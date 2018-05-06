@@ -1,4 +1,4 @@
-package com.malliina.app
+package com.malliina.boat
 
 object SecretService {
   val secret = 42

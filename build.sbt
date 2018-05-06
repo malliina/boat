@@ -19,19 +19,19 @@ lazy val crossJs = cross.js
 
 lazy val backendSettings = commonSettings ++ Seq(
   resolvers ++= Seq(
-  Resolver.jcenterRepo,
-  Resolver.bintrayRepo("malliina", "maven"),
-  Resolver.mavenLocal
-),
-libraryDependencies ++= Seq(
-  "net.sf.marineapi" % "marineapi" % "0.12.0-SNAPSHOT",
-  utilPlayDep,
-  utilPlayDep % Test classifier "tests"
-),
-dependencyOverrides ++= Seq(
-  "com.typesafe.akka" %% "akka-stream" % "2.5.8",
-  "com.typesafe.akka" %% "akka-actor" % "2.5.8"
-),
+    Resolver.jcenterRepo,
+    Resolver.bintrayRepo("malliina", "maven"),
+    Resolver.mavenLocal
+  ),
+  libraryDependencies ++= Seq(
+    "net.sf.marineapi" % "marineapi" % "0.12.0-SNAPSHOT",
+    utilPlayDep,
+    utilPlayDep % Test classifier "tests"
+  ),
+  dependencyOverrides ++= Seq(
+    "com.typesafe.akka" %% "akka-stream" % "2.5.8",
+    "com.typesafe.akka" %% "akka-actor" % "2.5.8"
+  ),
   pipelineStages := Seq(digest, gzip),
   scalaJSProjects := Seq(frontend),
   pipelineStages in Assets := Seq(scalaJSPipeline)
@@ -48,7 +48,7 @@ lazy val frontendSettings = commonSettings ++ Seq(
 
 lazy val commonSettings = Seq(
   organization := "com.malliina",
-    version := "0.0.1",
+  version := "0.0.1",
   scalaVersion := "2.12.6",
   scalacOptions := Seq("-unchecked", "-deprecation")
 )

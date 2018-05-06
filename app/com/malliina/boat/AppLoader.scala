@@ -1,7 +1,7 @@
-package com.malliina.app
+package com.malliina.boat
 
 import com.malliina.play.app.DefaultApp
-import controllers.{AssetsComponents, Home}
+import controllers.{AppHtml, AssetsComponents, Home}
 import play.api.ApplicationLoader.Context
 import play.api.BuiltInComponentsFromContext
 import play.api.routing.Router
@@ -15,6 +15,7 @@ class AppComponents(context: Context)
     with HttpFiltersComponents
     with AssetsComponents {
   val secretService = SecretService
-  val home = new Home(controllerComponents, assets)
+  val html = AppHtml(environment.mode)
+  val home = new Home(html, controllerComponents, assets)
   override val router: Router = new Routes(httpErrorHandler, home)
 }

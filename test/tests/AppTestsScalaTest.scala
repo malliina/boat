@@ -1,6 +1,6 @@
 package tests
 
-import com.malliina.app.AppComponents
+import com.malliina.boat.AppComponents
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 
