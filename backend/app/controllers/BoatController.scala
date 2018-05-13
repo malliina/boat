@@ -1,0 +1,73 @@
+package controllers
+
+import akka.actor.ActorSystem
+import akka.stream.Materializer
+import com.malliina.boat.db.UserManager
+import com.malliina.boat.ws.BoatActor.BoatClient
+import com.malliina.boat.ws.ViewerActor.ViewerClient
+import com.malliina.boat.ws.{BoatActor, BoatManager, ViewerActor, ViewerManager}
+import com.malliina.boat.{BoatHtml, Errors}
+import com.malliina.concurrent.ExecutionContexts.cached
+import com.malliina.play.auth.Auth
+import com.malliina.play.models.Username
+import controllers.Assets.Asset
+import controllers.BoatController.log
+import play.api.Logger
+import play.api.libs.json.JsValue
+import play.api.libs.streams.ActorFlow
+import play.api.mvc._
+
+import scala.concurrent.Future
+
+object BoatController {
+  private val log = Logger(getClass)
+}
+
+class BoatController(html: BoatHtml,
+                     auth: UserManager,
+                     comps: ControllerComponents,
+                     assets: AssetsBuilder)(implicit as: ActorSystem, mat: Materializer)
+  extends AbstractController(comps) {
+
+  val viewerManager = as.actorOf(ViewerManager.props())
+  val boatManager = as.actorOf(BoatManager.props(viewerManager, mat))
+
+  def index = Action(Ok(html.map))
+
+  def updates = WebSocket.acceptOrResult[JsValue, JsValue] { rh =>
+    auth(rh).map { outcome =>
+      outcome.map { user =>
+        ActorFlow.actorRef { out =>
+          ViewerActor.props(ViewerClient(user, viewerManager, out, rh))
+        }
+      }
+    }
+  }
+
+  def boats = WebSocket.acceptOrResult[JsValue, JsValue] { rh =>
+    auth(rh).map { outcome =>
+      outcome.map { user =>
+        ActorFlow.actorRef { out =>
+          BoatActor.props(BoatClient(user, boatManager, out, rh))
+        }
+      }
+    }
+  }
+
+  def auth(rh: RequestHeader): Future[Either[Result, Username]] =
+    Auth.basicCredentials(rh).map { creds =>
+      auth.authenticate(creds.username, creds.password).map { outcome =>
+        outcome.map { profile =>
+          Right(profile.username)
+        }.recover { err =>
+          log.warn(s"Authentication failed from '$rh': '$err'.")
+          Left(Unauthorized(Errors("Unauthorized.")))
+        }
+      }
+    }.getOrElse {
+      Future.successful(Left(Unauthorized(Errors("Credentials required."))))
+    }
+
+  def versioned(path: String, file: Asset): Action[AnyContent] =
+    assets.versioned(path, file)
+}

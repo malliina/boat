@@ -1,0 +1,123 @@
+package com.malliina.boat
+
+import com.malliina.boat.BoatJson.keyValued
+import com.malliina.values.{StringCompanion, Wrapped}
+import play.api.libs.json._
+
+case class Coord(lng: Double, lat: Double)
+
+object Coord {
+  val Key = "coord"
+  implicit val json = Json.format[Coord]
+  // GeoJSON format
+  val jsonArray = Format(
+    Reads[Coord](json => json.validate[List[Double]].flatMap {
+      case lng :: lat :: _ => JsSuccess(Coord(lng, lat))
+      case _ => JsError(s"Expected a JSON array of at least two numbers for coordinates [lng, lat]. Got: '$json'.")
+    }),
+    Writes[Coord](c => Json.toJson(Seq(c.lng, c.lat)))
+  )
+}
+
+case class Geometry(`type`: String, coordinates: Seq[Coord]) {
+  def addCoords(coords: Seq[Coord]): Geometry = copy(coordinates = coordinates ++ coords)
+}
+
+object Geometry {
+  implicit val coord = Coord.jsonArray
+  implicit val json = Json.format[Geometry]
+}
+
+case class Feature(`type`: String, geometry: Geometry) {
+  def addCoords(coords: Seq[Coord]) = copy(geometry = geometry.addCoords(coords))
+}
+
+object Feature {
+  implicit val json = Json.format[Feature]
+}
+
+case class FeatureCollection(`type`: String, features: Seq[Feature]) {
+  def addCoords(coords: Seq[Coord]) = copy(features = features.map(_.addCoords(coords)))
+}
+
+object FeatureCollection {
+  implicit val json = Json.format[FeatureCollection]
+}
+
+case class AnimationSource(`type`: String, data: FeatureCollection)
+
+object AnimationSource {
+  implicit val json = Json.format[AnimationSource]
+}
+
+case class Layout(`line-join`: String, `line-cap`: String)
+
+object Layout {
+  implicit val json = Json.format[Layout]
+}
+
+case class Paint(`line-color`: String, `line-width`: Int)
+
+object Paint {
+  implicit val json = Json.format[Paint]
+}
+
+case class Animation(id: String,
+                     `type`: String,
+                     source: AnimationSource,
+                     layout: Layout,
+                     paint: Paint)
+
+object Animation {
+  implicit val json = Json.format[Animation]
+}
+
+case class RawSentence(sentence: String) extends Wrapped(sentence)
+
+object RawSentence extends StringCompanion[RawSentence]
+
+case class CoordsEvent(coords: Seq[Coord]) extends FrontEvent
+
+object CoordsEvent {
+  val Key = "coords"
+  implicit val coordJson = Coord.json
+  implicit val json = keyValued(Key, Json.format[CoordsEvent])
+}
+
+case class SentencesEvent(sentences: Seq[RawSentence]) extends FrontEvent
+
+object SentencesEvent {
+  val Key = "sentences"
+  implicit val json = keyValued(Key, Json.format[SentencesEvent])
+}
+
+sealed trait FrontEvent
+
+object FrontEvent {
+  implicit val reader = Reads[FrontEvent] { json =>
+    json.validate[CoordsEvent].orElse(SentencesEvent.json.reads(json))
+  }
+}
+
+object BoatJson {
+  val EventKey = "event"
+  val BodyKey = "body"
+
+  def empty[T](build: => T): OFormat[T] = OFormat[T](Reads(_ => JsSuccess(build)), OWrites[T](_ => Json.obj()))
+
+  /** A JSON format for objects of type T that contains a top-level "event" key and further data in "body".
+    */
+  def keyValued[T](value: String, payload: OFormat[T]): OFormat[T] = {
+    val reader: Reads[T] = Reads { json =>
+      for {
+        event <- (json \ EventKey).validate[String]
+        if event == value
+        body <- (json \ BodyKey).validate[T](payload)
+      } yield body
+    }
+    val writer = OWrites[T] { t =>
+      Json.obj(EventKey -> value, BodyKey -> payload.writes(t))
+    }
+    OFormat(reader, writer)
+  }
+}

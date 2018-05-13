@@ -2,7 +2,13 @@ import com.malliina.sbtplay.PlayProject
 
 val utilPlayDep = "com.malliina" %% "util-play" % "4.12.2"
 
-lazy val backend = PlayProject.linux("boat-tracker")
+parallelExecution in ThisBuild := false
+
+lazy val boatRoot = project.in(file("."))
+  .settings(commonSettings: _*)
+  .aggregate(backend, frontend, client, it)
+
+lazy val backend = PlayProject.linux("boat-tracker", file("backend"))
   .settings(backendSettings: _*)
   .dependsOn(crossJvm)
 
@@ -12,19 +18,27 @@ lazy val frontend = project.in(file("frontend"))
   .dependsOn(crossJs)
 
 lazy val cross = crossProject.in(file("shared"))
-  .settings(commonSettings: _*)
+  .settings(sharedSettings: _*)
 
 lazy val crossJvm = cross.jvm
 lazy val crossJs = cross.js
 
-lazy val backendSettings = commonSettings ++ Seq(
-  resolvers ++= Seq(
-    Resolver.jcenterRepo,
-    Resolver.bintrayRepo("malliina", "maven"),
-    Resolver.mavenLocal
-  ),
+lazy val client = Project("boat-client", file("client"))
+  .settings(clientSettings: _*)
+  .dependsOn(crossJvm)
+
+lazy val it = Project("boat-test", file("boat-test"))
+  .settings(testSettings: _*)
+  .dependsOn(backend, backend % "test->test", client)
+
+lazy val backendSettings = playSettings ++ Seq(
   libraryDependencies ++= Seq(
-    "net.sf.marineapi" % "marineapi" % "0.12.0-SNAPSHOT",
+    "net.sf.marineapi" % "marineapi" % "0.13.0-SNAPSHOT",
+    "com.typesafe.slick" %% "slick" % "3.2.3",
+    "com.h2database" % "h2" % "1.4.197",
+    "org.mariadb.jdbc" % "mariadb-java-client" % "2.2.3",
+    "com.zaxxer" % "HikariCP" % "3.1.0",
+    "org.apache.commons" % "commons-text" % "1.3",
     utilPlayDep,
     utilPlayDep % Test classifier "tests"
   ),
@@ -46,9 +60,42 @@ lazy val frontendSettings = commonSettings ++ Seq(
   scalaJSUseMainModuleInitializer := true
 )
 
+lazy val sharedSettings = commonSettings ++ Seq(
+  libraryDependencies ++= Seq(
+    "com.typesafe.play" %%% "play-json" % "2.6.9",
+    "com.malliina" %%% "primitives" % "1.5.2"
+  )
+)
+
+lazy val clientSettings = commonSettings ++ Seq(
+  libraryDependencies ++= Seq(
+    "com.malliina" %% "primitives" % "1.5.2",
+    "com.neovisionaries" % "nv-websocket-client" % "2.3",
+    "org.slf4j" % "slf4j-api" % "1.7.25"
+  )
+)
+
+lazy val testSettings = playSettings ++ Seq(
+  libraryDependencies ++= Seq(
+    utilPlayDep % Test classifier "tests"
+  )
+)
+
+lazy val playSettings = commonSettings ++ Seq(
+  dependencyOverrides ++= Seq(
+    "com.typesafe.akka" %% "akka-stream" % "2.5.8",
+    "com.typesafe.akka" %% "akka-actor" % "2.5.8"
+  )
+)
+
 lazy val commonSettings = Seq(
   organization := "com.malliina",
   version := "0.0.1",
   scalaVersion := "2.12.6",
-  scalacOptions := Seq("-unchecked", "-deprecation")
+  scalacOptions := Seq("-unchecked", "-deprecation"),
+  resolvers ++= Seq(
+    Resolver.jcenterRepo,
+    Resolver.bintrayRepo("malliina", "maven"),
+    Resolver.mavenLocal
+  )
 )
