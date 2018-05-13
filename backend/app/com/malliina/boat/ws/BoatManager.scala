@@ -3,6 +3,7 @@ package com.malliina.boat.ws
 import akka.actor.{Actor, ActorRef, Props, Terminated}
 import akka.stream.Materializer
 import com.malliina.boat._
+import com.malliina.boat.db.TrackMeta
 import com.malliina.boat.parsing.{DefaultParser, SentenceError, SentenceException, UnknownSentence}
 import com.malliina.boat.ws.BoatManager.{BoatMessage, NewBoat, log}
 import com.malliina.boat.ws.ViewerManager.BoatUpdate
@@ -11,7 +12,7 @@ import net.sf.marineapi.nmea.sentence.{GGASentence, SentenceId}
 import play.api.Logger
 import play.api.libs.json.{JsError, JsValue, Json}
 
-case class Boat(out: ActorRef, user: Username, trackName: String)
+case class Boat(out: ActorRef, user: Username, boat: BoatName, track: TrackName) extends TrackMeta
 
 object BoatManager {
   private val log = Logger(getClass)
@@ -21,7 +22,7 @@ object BoatManager {
 
   case class NewBoat(boat: Boat)
 
-  case class BoatMessage(message: JsValue, from: Username)
+  case class BoatMessage(message: JsValue, from: Boat)
 
   object BoatMessage {
     val Event = "event"
@@ -39,9 +40,9 @@ class BoatManager(viewerManager: ActorRef)(implicit mat: Materializer) extends A
     case NewBoat(boat) =>
       context watch boat.out
       boats += boat
-      log.info(s"Boat '${boat.user}' connected.")
+      log.info(s"Boat '${boat.boat}' by '${boat.user}' connected.")
     case BoatMessage(message, from) =>
-      log.info(s"Boat '$from' says '$message'.")
+      log.info(s"Boat '${from.boat}' says '$message'.")
       handleBoatMessage(message, from)
     case Terminated(out) =>
       boats.find(_.out == out) foreach { boat =>
@@ -50,7 +51,7 @@ class BoatManager(viewerManager: ActorRef)(implicit mat: Materializer) extends A
       }
   }
 
-  def handleBoatMessage(message: JsValue, from: Username) = {
+  def handleBoatMessage(message: JsValue, from: Boat) = {
     viewerManager ! BoatUpdate(message, from)
     val parsed = (message \ BoatMessage.Event).validate[String].flatMap {
       case Sentences.Key => (message \ BoatMessage.Body).validate[Sentences]
@@ -63,9 +64,9 @@ class BoatManager(viewerManager: ActorRef)(implicit mat: Materializer) extends A
     }
   }
 
-  def handleSentences(ss: Seq[RawSentence], from: Username): Unit = {
+  def handleSentences(ss: Seq[RawSentence], from: Boat): Unit = {
     val coords: Seq[Coord] = ss.map(parse).flatMap(e => e.asOption(handleError))
-    viewerManager ! BoatUpdate(Json.toJson(CoordsEvent(coords)), from)
+    viewerManager ! BoatUpdate(Json.toJson(CoordsEvent(coords, from.boat)), from)
   }
 
   def handleError(err: SentenceError): Unit =

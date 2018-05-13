@@ -1,8 +1,7 @@
 package com.malliina.boat
 
-import java.time.{Instant, LocalTime}
+import java.time.Instant
 
-import com.malliina.values.{StringCompanion, Wrapped}
 import play.api.http.Writeable
 import play.api.libs.json.{Format, Json, Reads, Writes}
 
@@ -25,21 +24,17 @@ case class BoatId(id: Long) extends WrappedId
 
 object BoatId extends IdCompanion[BoatId]
 
-case class BoatName(name: String) extends Wrapped(name)
-
-object BoatName extends StringCompanion[BoatName] {
+object BoatNames {
   def random() = BoatName(Utils.randomString(6))
 }
 
-case class TrackName(name: String) extends Wrapped(name)
-
-object TrackName extends StringCompanion[TrackName] {
+object TrackNames {
   def random() = TrackName(Utils.randomString(6))
 }
 
 case class BoatRow(id: BoatId, name: BoatName, owner: UserId, added: Instant)
 
-case class TrackRow(id: TrackId, name: TrackName, boat: BoatId, lon: Double, lat: Double, time: LocalTime, added: Instant)
+case class TrackRow(id: TrackId, name: TrackName, boat: BoatId, added: Instant)
 
 case class UserId(id: Long) extends WrappedId
 
@@ -66,6 +61,8 @@ case class TrackPointId(id: Long) extends WrappedId
 
 object TrackPointId extends IdCompanion[TrackPointId]
 
+case class TrackPointRow(id: TrackPointId, lon: Double, lat: Double, track: TrackId, added: Instant)
+
 case class TrackPoint(coord: Coord, time: Instant, waterTemp: Double, wind: Double)
 
 object TrackPoint {
@@ -76,7 +73,7 @@ case class TrackId(id: Long) extends WrappedId
 
 object TrackId extends IdCompanion[TrackId]
 
-case class Track(id: TrackId, name: String, points: Seq[TrackPoint])
+case class Track(id: TrackId, name: TrackName, points: Seq[TrackPoint])
 
 object Track {
   implicit val json = Json.format[Track]

@@ -1,6 +1,7 @@
 package com.malliina.boat.db
 
 import java.sql.SQLException
+import java.time.Instant
 
 import com.malliina.boat.UserId
 import com.malliina.boat.db.DatabaseUserManager.log
@@ -54,12 +55,9 @@ class DatabaseUserManager(val db: BoatSchema)(implicit ec: ExecutionContext) ext
     }
   }
 
-  def addUser(user: Username, pass: Password): Future[Either[AlreadyExists, UserId]] =
-    addUser(NewUser(user, hash(user, pass), enabled = true))
-
   override def addUser(user: NewUser): Future[Either[AlreadyExists, UserId]] = {
-    val action = usersTable.map(_.forInserts) += user
-    db.run(action).map(id => Right(UserId(id))).recover {
+    val action = usersTable.map(_.forInserts).returning(usersTable.map(_.id)) += user
+    db.run(action).map(id => Right(id)).recover {
       case sqle: SQLException if sqle.getMessage contains "primary key violation" =>
         Left(AlreadyExists(user.username))
     }
@@ -76,8 +74,22 @@ class DatabaseUserManager(val db: BoatSchema)(implicit ec: ExecutionContext) ext
     }
 
   override def users: Future[Seq[DataUser]] = db.run(usersTable.result)
+}
 
-  private def hash(user: Username, pass: Password): String = DigestUtils.md5Hex(user.name + ":" + pass.pass)
+object PassThroughUserManager extends UserManager {
+  val god = DataUser(UserId(1L), Username("test"), "", enabled = true, added = Instant.now())
+
+  def authenticate(user: Username, pass: Password): Future[Either[IdentityError, DataUser]] = fut(Right(god))
+
+  def updatePassword(user: Username, newPass: Password): Future[Unit] = fut(())
+
+  def addUser(user: NewUser): Future[Either[AlreadyExists, UserId]] = fut(Left(AlreadyExists(user.username)))
+
+  def deleteUser(user: Username): Future[Either[UserDoesNotExist, Unit]] = fut(Left(UserDoesNotExist(user)))
+
+  def users: Future[Seq[DataUser]] = fut(Seq(god))
+
+  def fut[T](t: T) = Future.successful(t)
 }
 
 trait UserManager {
@@ -91,11 +103,16 @@ trait UserManager {
 
   def updatePassword(user: Username, newPass: Password): Future[Unit]
 
+  def addUser(user: Username, pass: Password): Future[Either[AlreadyExists, UserId]] =
+    addUser(NewUser(user, hash(user, pass), enabled = true))
+
   def addUser(user: NewUser): Future[Either[AlreadyExists, UserId]]
 
   def deleteUser(user: Username): Future[Either[UserDoesNotExist, Unit]]
 
   def users: Future[Seq[DataUser]]
+
+  protected def hash(user: Username, pass: Password): String = DigestUtils.md5Hex(user.name + ":" + pass.pass)
 }
 
 sealed trait IdentityError

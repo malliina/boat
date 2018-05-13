@@ -15,7 +15,7 @@ object ViewerManager {
 
   case class NewViewer(out: Viewer)
 
-  case class BoatUpdate(message: JsValue, to: Username)
+  case class BoatUpdate(message: JsValue, boat: Boat)
 
 }
 
@@ -28,13 +28,13 @@ class ViewerManager extends Actor {
       viewers += viewer
       log.info(s"Viewer '${viewer.user}' joined.")
     case BoatUpdate(message, to) =>
-      viewers.filter(_.user == to).foreach { viewer =>
+      viewers.filter(_.user == to.user).foreach { viewer =>
         viewer.out ! message
       }
     case Terminated(out) =>
       viewers.find(v => v.out == out) foreach { viewer =>
         viewers -= viewer
-        log.info(s"Viewer ${viewer.user} disconnected.")
+        log.info(s"Viewer '${viewer.user}' disconnected.")
       }
   }
 }

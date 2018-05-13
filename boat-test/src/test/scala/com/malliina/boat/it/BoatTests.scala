@@ -6,6 +6,7 @@ import com.malliina.http.FullUrl
 import com.malliina.play.models.{Password, Username}
 import com.malliina.security.SSLUtils
 import com.malliina.util.Utils
+import controllers.BoatController
 import org.scalatest.FunSuite
 import play.api.ApplicationLoader.Context
 import play.api.BuiltInComponents
@@ -30,29 +31,31 @@ abstract class BoatTests extends TestAppSuite {
   val testUser = Username("test")
   val testPass = Password("pass")
 
-  def withBoat[T](code: JsonSocket => T) =
-    withWebSocket(reverse.boats(), _ => ())(code)
+  def withBoat[T](boat: BoatName)(code: JsonSocket => T) =
+    withWebSocket(reverse.boats(), boat, _ => ())(code)
 
   def withViewer[T](onJson: JsValue => Any)(code: JsonSocket => T) =
-    withWebSocket(reverse.updates(), onJson)(code)
+    withWebSocket(reverse.updates(), BoatNames.random(), onJson)(code)
 
-  def withWebSocket[T](path: Call, onJson: JsValue => Any)(code: TestSocket => T) = {
+  def withWebSocket[T](path: Call, boat: BoatName, onJson: JsValue => Any)(code: TestSocket => T) = {
     val wsUrl = FullUrl("ws", s"localhost:$port", path.toString)
-    withSocket(wsUrl, onJson)(code)
+    withSocket(wsUrl, boat, onJson)(code)
   }
 
-  def withSocket[T](url: FullUrl, onJson: JsValue => Any)(code: TestSocket => T) = {
+  def withSocket[T](url: FullUrl, boat: BoatName, onJson: JsValue => Any)(code: TestSocket => T) = {
     await(components.users.addUser(testUser, testPass))
-    Utils.using(new TestSocket(url, onJson)) { client =>
+    Utils.using(new TestSocket(url, boat, onJson)) { client =>
       await(client.initialConnection)
       code(client)
     }
   }
 
-  class TestSocket(wsUri: FullUrl, onJson: JsValue => Any) extends JsonSocket(
+  class TestSocket(wsUri: FullUrl, boat: BoatName, onJson: JsValue => Any) extends JsonSocket(
     wsUri,
     SSLUtils.trustAllSslContext().getSocketFactory,
-    Seq(HttpUtil.Authorization -> HttpUtil.authorizationValue(testUser.name, testPass.pass))
+    Seq(
+      HttpUtil.Authorization -> HttpUtil.authorizationValue(testUser.name, testPass.pass),
+      BoatController.BoatNameHeader -> boat.name)
   ) {
     override def onText(message: String): Unit = onJson(Json.parse(message))
   }

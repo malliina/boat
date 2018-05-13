@@ -1,5 +1,5 @@
 package com.malliina.boat.db
 
-class TracksDatabase {
+trait TracksDatabase extends TracksSource {
 
 }

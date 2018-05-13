@@ -2,7 +2,7 @@ package com.malliina.boat.db
 
 import java.time.{Instant, LocalTime}
 
-import com.malliina.boat.{BoatId, BoatName, RawSentence, SentenceKey, TrackId, TrackName, UserId, WrappedId}
+import com.malliina.boat.{BoatId, BoatName, RawSentence, SentenceKey, TrackId, TrackName, TrackPointId, UserId, WrappedId}
 import com.malliina.play.models.{Password, Username}
 import com.malliina.values.Wrapped
 import slick.ast.BaseTypedType
@@ -20,6 +20,7 @@ class Mappings(val impl: JdbcProfile) {
   implicit val sentenceMapping = stringMapping(RawSentence.apply)
   implicit val userIdMapping = longMapping(UserId.apply)
   implicit val trackIdMapping = longMapping(TrackId.apply)
+  implicit val pointIdMapping = longMapping(TrackPointId.apply)
   implicit val boatIdMapping = longMapping(BoatId.apply)
   implicit val boatNameMapping = stringMapping(BoatName.apply)
   implicit val trackNameMapping = stringMapping(TrackName.apply)

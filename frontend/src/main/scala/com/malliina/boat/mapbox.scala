@@ -18,7 +18,7 @@ class MapboxMap(options: MapOptions) extends js.Object {
 
   def easeTo(options: EaseOptions): Unit = js.native
 
-  def getSource(id: String): GeoJsonSource = js.native
+  def getSource(id: String): js.UndefOr[GeoJsonSource] = js.native
 
   def addLayer(layer: js.Any): Unit = js.native
 

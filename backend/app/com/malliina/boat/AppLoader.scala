@@ -1,6 +1,6 @@
 package com.malliina.boat
 
-import com.malliina.boat.db.{BoatSchema, DatabaseConf, DatabaseUserManager}
+import com.malliina.boat.db._
 import com.malliina.play.app.DefaultApp
 import controllers.{AssetsComponents, BoatController}
 import play.api.ApplicationLoader.Context
@@ -29,7 +29,8 @@ class AppComponents(context: Context)
   val html = BoatHtml(mode)
   val databaseConf = DatabaseConf(mode, configuration)
   val schema = BoatSchema(databaseConf)
-  val users = DatabaseUserManager(schema, executionContext)
+  val users: UserManager = DatabaseUserManager(schema, executionContext)
+  //  val users = PassThroughUserManager
   val home = new BoatController(html, users, controllerComponents, assets)(actorSystem, materializer)
   override val router: Router = new Routes(httpErrorHandler, home)
 }

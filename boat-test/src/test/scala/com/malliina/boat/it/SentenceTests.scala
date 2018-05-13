@@ -1,13 +1,13 @@
 package com.malliina.boat.it
 
-import com.malliina.boat.{CoordsEvent, RawSentence, SentencesEvent}
+import com.malliina.boat.{BoatNames, CoordsEvent, RawSentence, SentencesEvent}
 import play.api.libs.json.JsValue
 
 import scala.concurrent.Promise
 
 class SentenceTests extends BoatTests {
   test("sent sentence is received by viewer") {
-    withBoat { boat =>
+    withBoat(BoatNames.random()) { boat =>
       val sentencePromise = Promise[SentencesEvent]()
       val coordPromise = Promise[CoordsEvent]()
       val testMessage = SentencesEvent(Seq(RawSentence("test")))

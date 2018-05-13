@@ -1,9 +1,9 @@
 package com.malliina.boat.db
 
-import java.time.{Instant, LocalTime}
+import java.time.Instant
 
 import com.malliina.boat.db.BoatSchema.CreatedTimestampType
-import com.malliina.boat.{BoatId, BoatName, BoatRow, RawSentence, SentenceKey, SentenceRow, TrackId, TrackName, TrackRow, UserId}
+import com.malliina.boat.{BoatId, BoatName, BoatRow, RawSentence, SentenceKey, SentenceRow, TrackId, TrackName, TrackPointId, TrackPointRow, TrackRow, UserId}
 import com.malliina.play.models.Username
 import com.zaxxer.hikari.{HikariConfig, HikariDataSource}
 import javax.sql.DataSource
@@ -67,16 +67,30 @@ class BoatSchema(ds: DataSource, override val impl: JdbcProfile)
     def * = (id, sentence, boat, added) <> ((SentenceRow.apply _).tupled, SentenceRow.unapply)
   }
 
-  case class TracksTable(tag: Tag) extends Table[TrackRow](tag, "tracks") {
-    def id = column[TrackId]("id", O.PrimaryKey, O.AutoInc)
-
-    def name = column[TrackName]("name", O.Unique, O.Length(128))
+  class TrackPointsTable(tag: Tag) extends Table[TrackPointRow](tag, "points") {
+    def id = column[TrackPointId]("id", O.PrimaryKey, O.AutoInc)
 
     def lon = column[Double]("longitude")
 
     def lat = column[Double]("latitude")
 
-    def time = column[LocalTime]("time")
+    def track = column[TrackId]("track")
+
+    def trackConstraint = foreignKey("points_track_fk", track, tracksTable)(
+      _.id,
+      onUpdate = ForeignKeyAction.Cascade,
+      onDelete = ForeignKeyAction.Cascade
+    )
+
+    def added = column[Instant]("added", O.SqlType(CreatedTimestampType))
+
+    def * = (id, lon, lat, track, added) <> ((TrackPointRow.apply _).tupled, TrackPointRow.unapply)
+  }
+
+  class TracksTable(tag: Tag) extends Table[TrackRow](tag, "tracks") {
+    def id = column[TrackId]("id", O.PrimaryKey, O.AutoInc)
+
+    def name = column[TrackName]("name", O.Unique, O.Length(128))
 
     def boat = column[BoatId]("boat")
 
@@ -88,7 +102,7 @@ class BoatSchema(ds: DataSource, override val impl: JdbcProfile)
       onDelete = ForeignKeyAction.Cascade
     )
 
-    def * = (id, name, boat, lon, lat, time, added) <> ((TrackRow.apply _).tupled, TrackRow.unapply)
+    def * = (id, name, boat, added) <> ((TrackRow.apply _).tupled, TrackRow.unapply)
   }
 
   class BoatsTable(tag: Tag) extends Table[BoatRow](tag, "boats") {

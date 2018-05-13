@@ -20,17 +20,9 @@ class MapView(accessToken: String) {
   val map = new MapboxMap(mapOptions)
   var socket: Option[MapSocket] = None
 
-//  map.on("click", (e: MouseEvent) => {
-  //    onCoord(Coord(e.lngLat.lng, e.lngLat.lat))
-  //  })
-
   map.on("load", () => {
     socket = Option(new MapSocket(map))
   })
-
-  def onCoord(coord: Coord): Unit = {
-    socket.foreach(_.onCoords(Seq(coord)))
-  }
 
   def parse[T: Writes](t: T) = JSON.parse(Json.stringify(Json.toJson(t)))
 }

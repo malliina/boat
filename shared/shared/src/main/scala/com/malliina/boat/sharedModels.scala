@@ -72,11 +72,19 @@ object Animation {
   implicit val json = Json.format[Animation]
 }
 
+case class BoatName(name: String) extends Wrapped(name)
+
+object BoatName extends StringCompanion[BoatName]
+
+case class TrackName(name: String) extends Wrapped(name)
+
+object TrackName extends StringCompanion[TrackName]
+
 case class RawSentence(sentence: String) extends Wrapped(sentence)
 
 object RawSentence extends StringCompanion[RawSentence]
 
-case class CoordsEvent(coords: Seq[Coord]) extends FrontEvent
+case class CoordsEvent(coords: Seq[Coord], boat: BoatName) extends FrontEvent
 
 object CoordsEvent {
   val Key = "coords"
