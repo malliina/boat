@@ -6,7 +6,7 @@ import com.malliina.boat.db.UserManager
 import com.malliina.boat.ws.BoatActor.BoatClient
 import com.malliina.boat.ws.ViewerActor.ViewerClient
 import com.malliina.boat.ws.{BoatActor, BoatManager, ViewerActor, ViewerManager}
-import com.malliina.boat.{BoatHtml, BoatName, BoatNames, Errors, TrackName, TrackNames}
+import com.malliina.boat.{BoatHtml, BoatName, BoatNames, Constants, Errors, TrackName, TrackNames}
 import com.malliina.concurrent.ExecutionContexts.cached
 import com.malliina.play.auth.Auth
 import com.malliina.play.models.Username
@@ -26,7 +26,8 @@ object BoatController {
   val TrackNameHeader = "X-Track"
 }
 
-class BoatController(html: BoatHtml,
+class BoatController(mapboxToken: String,
+                     html: BoatHtml,
                      auth: UserManager,
                      comps: ControllerComponents,
                      assets: AssetsBuilder)(implicit as: ActorSystem, mat: Materializer)
@@ -36,7 +37,7 @@ class BoatController(html: BoatHtml,
   val boatManager = as.actorOf(BoatManager.props(viewerManager, mat))
   val anonUser = Username("anon")
 
-  def index = Action(Ok(html.map))
+  def index = Action(Ok(html.map).withCookies(Cookie(Constants.TokenCookieName, mapboxToken, httpOnly = false)))
 
   def updates = WebSocket.acceptOrResult[JsValue, JsValue] { rh =>
     auth(rh).map { outcome =>

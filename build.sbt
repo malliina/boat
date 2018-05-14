@@ -33,12 +33,13 @@ lazy val it = Project("integration-tests", file("boat-test"))
 
 lazy val backendSettings = playSettings ++ Seq(
   libraryDependencies ++= Seq(
-    "net.sf.marineapi" % "marineapi" % "0.13.0-SNAPSHOT",
+//    "net.sf.marineapi" % "marineapi" % "0.13.0-SNAPSHOT",
     "com.typesafe.slick" %% "slick" % "3.2.3",
     "com.h2database" % "h2" % "1.4.197",
     "org.mariadb.jdbc" % "mariadb-java-client" % "2.2.3",
     "com.zaxxer" % "HikariCP" % "3.1.0",
     "org.apache.commons" % "commons-text" % "1.3",
+    "com.malliina" %% "logstreams-client" % "1.0.0",
     utilPlayDep,
     utilPlayDep % Test classifier "tests"
   ),
@@ -48,7 +49,22 @@ lazy val backendSettings = playSettings ++ Seq(
   ),
   pipelineStages := Seq(digest, gzip),
   scalaJSProjects := Seq(frontend),
-  pipelineStages in Assets := Seq(scalaJSPipeline)
+  pipelineStages in Assets := Seq(scalaJSPipeline),
+  buildInfoKeys := Seq[BuildInfoKey](name, version, scalaVersion),
+  buildInfoPackage := "com.malliina.reverse",
+  // linux packaging
+  httpPort in Linux := Option("8465"),
+  httpsPort in Linux := Option("disabled"),
+  maintainer := "Michael Skogberg <malliina123@gmail.com>",
+  // WTF?
+  linuxPackageSymlinks := linuxPackageSymlinks.value.filterNot(_.link == "/usr/bin/starter"),
+  javaOptions in Universal ++= {
+    val linuxName = (name in Linux).value
+    Seq(
+      s"-Dconfig.file=/etc/$linuxName/production.conf",
+      s"-Dlogger.file=/etc/$linuxName/logback-prod.xml"
+    )
+  }
 )
 
 lazy val frontendSettings = commonSettings ++ Seq(

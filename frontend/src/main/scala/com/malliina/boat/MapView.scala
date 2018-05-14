@@ -1,11 +1,20 @@
 package com.malliina.boat
 
+import org.scalajs.dom.document
 import play.api.libs.json.{Json, Writes}
 
-import scala.scalajs.js.JSON
+import scala.scalajs.js.{JSON, URIUtils}
 
 object MapView {
-  def apply() = new MapView("pk.eyJ1IjoibWFsbGlpbmEiLCJhIjoiY2pnbnVmbnBwMXpzYTJ3cndqajh2anFmaSJ9.2a0q5s3Tre_4_KFeuCB7iQ")
+
+  def apply(accessToken: String): MapView = new MapView(accessToken)
+
+  def apply(): MapView = apply(cookies(Constants.TokenCookieName))
+
+  def cookies = URIUtils.decodeURIComponent(document.cookie).split(";").toList
+    .map(_.trim.split("=").toList)
+    .collect { case key :: value :: _ => key -> value }
+    .toMap
 }
 
 class MapView(accessToken: String) {
