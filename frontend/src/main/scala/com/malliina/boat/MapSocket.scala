@@ -32,8 +32,11 @@ class MapSocket(map: MapboxMap) extends BaseSocket("/ws/updates") {
     map.getSource(from.name).foreach { geoJson =>
       geoJson.setData(parse(newTrack))
     }
-    coords.lastOption.foreach { coord =>
-      map.easeTo(EaseOptions(coord))
+    // Does not follow if more than one boats are online, since it's not clear what to follow
+    if (boats.keySet.size == 1) {
+      coords.lastOption.foreach { coord =>
+        map.easeTo(EaseOptions(coord))
+      }
     }
   }
 

@@ -2,7 +2,7 @@ package controllers
 
 import akka.actor.ActorSystem
 import akka.stream.Materializer
-import com.malliina.boat.db.{PassThroughUserManager, UserManager}
+import com.malliina.boat.db.UserManager
 import com.malliina.boat.ws.BoatActor.BoatClient
 import com.malliina.boat.ws.ViewerActor.ViewerClient
 import com.malliina.boat.ws.{BoatActor, BoatManager, ViewerActor, ViewerManager}
@@ -32,14 +32,14 @@ class BoatController(html: BoatHtml,
                      assets: AssetsBuilder)(implicit as: ActorSystem, mat: Materializer)
   extends AbstractController(comps) {
 
-
   val viewerManager = as.actorOf(ViewerManager.props())
   val boatManager = as.actorOf(BoatManager.props(viewerManager, mat))
+  val anonUser = Username("anon")
 
   def index = Action(Ok(html.map))
 
   def updates = WebSocket.acceptOrResult[JsValue, JsValue] { rh =>
-    authViewer(rh).map { outcome =>
+    auth(rh).map { outcome =>
       outcome.map { user =>
         ActorFlow.actorRef { out =>
           ViewerActor.props(ViewerClient(user, viewerManager, out, rh))
@@ -62,10 +62,6 @@ class BoatController(html: BoatHtml,
     }
   }
 
-  def authViewer(rh: RequestHeader): Future[Either[Result, Username]] = {
-    Future.successful(Right(PassThroughUserManager.god.username))
-  }
-
   def auth(rh: RequestHeader): Future[Either[Result, Username]] =
     Auth.basicCredentials(rh).map { creds =>
       auth.authenticate(creds.username, creds.password).map { outcome =>
@@ -77,7 +73,8 @@ class BoatController(html: BoatHtml,
         }
       }
     }.getOrElse {
-      Future.successful(Left(Unauthorized(Errors("Credentials required."))))
+      //      Future.successful(Left(Unauthorized(Errors("Credentials required."))))
+      Future.successful(Right(anonUser))
     }
 
   def versioned(path: String, file: Asset): Action[AnyContent] =

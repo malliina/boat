@@ -4,11 +4,11 @@ val utilPlayDep = "com.malliina" %% "util-play" % "4.12.2"
 
 parallelExecution in ThisBuild := false
 
-lazy val boatRoot = project.in(file("."))
+lazy val boat = project.in(file("."))
   .settings(commonSettings: _*)
   .aggregate(backend, frontend, client, it)
 
-lazy val backend = PlayProject.linux("boat-tracker", file("backend"))
+lazy val backend = PlayProject.linux("backend", file("backend"))
   .settings(backendSettings: _*)
   .dependsOn(crossJvm)
 
@@ -23,11 +23,11 @@ lazy val cross = crossProject.in(file("shared"))
 lazy val crossJvm = cross.jvm
 lazy val crossJs = cross.js
 
-lazy val client = Project("boat-client", file("client"))
+lazy val client = project.in(file("client"))
   .settings(clientSettings: _*)
   .dependsOn(crossJvm)
 
-lazy val it = Project("boat-test", file("boat-test"))
+lazy val it = Project("integration-tests", file("boat-test"))
   .settings(testSettings: _*)
   .dependsOn(backend, backend % "test->test", client)
 

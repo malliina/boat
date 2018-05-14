@@ -1,9 +1,8 @@
 package com.malliina.boat.it
 
 import com.malliina.boat._
-import com.malliina.boat.client.{HttpUtil, JsonSocket}
+import com.malliina.boat.client.JsonSocket
 import com.malliina.http.FullUrl
-import com.malliina.play.models.{Password, Username}
 import com.malliina.security.SSLUtils
 import com.malliina.util.Utils
 import controllers.BoatController
@@ -20,17 +19,18 @@ import scala.concurrent.{Await, Future}
 abstract class TestAppSuite extends ServerSuite(new AppComponents(_))
 
 abstract class ServerSuite[T <: BuiltInComponents](build: Context => T)
-  extends FunSuite
+  extends BaseSuite
     with OneServerPerSuite2[T] {
   override def createComponents(context: Context) = build(context)
 }
 
-abstract class BoatTests extends TestAppSuite {
+abstract class BaseSuite extends FunSuite {
   val reverse = controllers.routes.BoatController
 
-  val testUser = Username("test")
-  val testPass = Password("pass")
+  def await[T](f: Future[T]): T = Await.result(f, 30.seconds)
+}
 
+abstract class BoatTests extends TestAppSuite with BoatSockets {
   def withBoat[T](boat: BoatName)(code: JsonSocket => T) =
     withWebSocket(reverse.boats(), boat, _ => ())(code)
 
@@ -41,9 +41,14 @@ abstract class BoatTests extends TestAppSuite {
     val wsUrl = FullUrl("ws", s"localhost:$port", path.toString)
     withSocket(wsUrl, boat, onJson)(code)
   }
+}
+
+trait BoatSockets {
+  this: BaseSuite =>
+  //  val testUser = Username("test")
+  //  val testPass = Password("pass")
 
   def withSocket[T](url: FullUrl, boat: BoatName, onJson: JsValue => Any)(code: TestSocket => T) = {
-    await(components.users.addUser(testUser, testPass))
     Utils.using(new TestSocket(url, boat, onJson)) { client =>
       await(client.initialConnection)
       code(client)
@@ -54,11 +59,10 @@ abstract class BoatTests extends TestAppSuite {
     wsUri,
     SSLUtils.trustAllSslContext().getSocketFactory,
     Seq(
-      HttpUtil.Authorization -> HttpUtil.authorizationValue(testUser.name, testPass.pass),
+      //      HttpUtil.Authorization -> HttpUtil.authorizationValue(testUser.name, testPass.pass),
       BoatController.BoatNameHeader -> boat.name)
   ) {
     override def onText(message: String): Unit = onJson(Json.parse(message))
   }
 
-  def await[T](f: Future[T]): T = Await.result(f, 30.seconds)
 }
