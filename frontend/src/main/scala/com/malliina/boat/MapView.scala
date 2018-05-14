@@ -23,7 +23,7 @@ class MapView(accessToken: String) {
   val mapOptions = MapOptions(
     container = "map",
     style = "mapbox://styles/malliina/cjgny1fjc008p2so90sbz8nbv",
-    center = Coord(24.891515387373488, 60.15350862904472),
+    center = Coord(24.9000, 60.1400),
     zoom = 13
   )
   val map = new MapboxMap(mapOptions)
