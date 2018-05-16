@@ -8,7 +8,7 @@ lazy val boat = project.in(file("."))
   .settings(commonSettings: _*)
   .aggregate(backend, frontend, client, it)
 
-lazy val backend = PlayProject.linux("backend", file("backend"))
+lazy val backend = PlayProject.linux("boat", file("backend"))
   .settings(backendSettings: _*)
   .dependsOn(crossJvm)
 
