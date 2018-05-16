@@ -26,9 +26,9 @@ object DatabaseConf {
     def read(key: String) = conf.getOptional[String](key).toRight(ErrorMessage(s"Key not found: '$key'."))
 
     for {
-      url <- read("db_url")
-      user <- read("db_user")
-      pass <- read("db_pass")
-    } yield apply(url, user, pass, read("db_driver").getOrElse(MariaDriver))
+      url <- read("boat.db.url")
+      user <- read("boat.db.user")
+      pass <- read("boat.db.pass")
+    } yield apply(url, user, pass, read("boat.db.driver").getOrElse(MariaDriver))
   }
 }
