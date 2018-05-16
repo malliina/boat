@@ -72,6 +72,10 @@ object Animation {
   implicit val json = Json.format[Animation]
 }
 
+case class AccessToken(token: String) extends Wrapped(token)
+
+object AccessToken extends StringCompanion[AccessToken]
+
 case class BoatName(name: String) extends Wrapped(name)
 
 object BoatName extends StringCompanion[BoatName]

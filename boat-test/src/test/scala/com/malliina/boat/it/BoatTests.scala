@@ -3,7 +3,7 @@ package com.malliina.boat.it
 import com.malliina.boat._
 import com.malliina.boat.client.JsonSocket
 import com.malliina.http.FullUrl
-import com.malliina.security.SSLUtils
+import com.malliina.logstreams.client.CustomSSLSocketFactory
 import com.malliina.util.Utils
 import controllers.BoatController
 import org.scalatest.FunSuite
@@ -57,7 +57,8 @@ trait BoatSockets {
 
   class TestSocket(wsUri: FullUrl, boat: BoatName, onJson: JsValue => Any) extends JsonSocket(
     wsUri,
-    SSLUtils.trustAllSslContext().getSocketFactory,
+    CustomSSLSocketFactory.forHost("boat.malliina.com"),
+//    SSLUtils.trustAllSslContext().getSocketFactory,
     Seq(
       //      HttpUtil.Authorization -> HttpUtil.authorizationValue(testUser.name, testPass.pass),
       BoatController.BoatNameHeader -> boat.name)

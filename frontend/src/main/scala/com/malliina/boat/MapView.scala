@@ -6,10 +6,9 @@ import play.api.libs.json.{Json, Writes}
 import scala.scalajs.js.{JSON, URIUtils}
 
 object MapView {
+  def apply(accessToken: AccessToken): MapView = new MapView(accessToken)
 
-  def apply(accessToken: String): MapView = new MapView(accessToken)
-
-  def apply(): MapView = apply(cookies(Constants.TokenCookieName))
+  def apply(): MapView = apply(AccessToken(cookies(Constants.TokenCookieName)))
 
   def cookies = URIUtils.decodeURIComponent(document.cookie).split(";").toList
     .map(_.trim.split("=").toList)
@@ -17,8 +16,8 @@ object MapView {
     .toMap
 }
 
-class MapView(accessToken: String) {
-  mapboxGl.accessToken = accessToken
+class MapView(accessToken: AccessToken) {
+  mapboxGl.accessToken = accessToken.token
 
   val mapOptions = MapOptions(
     container = "map",

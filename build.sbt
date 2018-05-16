@@ -4,7 +4,7 @@ val utilPlayDep = "com.malliina" %% "util-play" % "4.12.2"
 
 parallelExecution in ThisBuild := false
 
-lazy val boat = project.in(file("."))
+lazy val boatRoot = project.in(file("."))
   .settings(commonSettings: _*)
   .aggregate(backend, frontend, client, it)
 

@@ -24,11 +24,7 @@ class AppComponents(context: Context)
   val localConfFile = Paths.get(sys.props("user.home")).resolve(".boat/boat.conf")
   override val configuration = context.initialConfiguration ++ Configuration(ConfigFactory.parseFile(localConfFile.toFile))
   override lazy val allowedHostsConfig = AllowedHostsConfig(Seq("boat.malliina.com", "localhost"))
-  val allowedCsp = Seq(
-    "*.mapbox.com"
-  )
-  val allowedEntry = allowedCsp.mkString(" ")
-  val csp = s"default-src 'self' 'unsafe-inline' $allowedEntry; connect-src *; img-src 'self' data: blob:; worker-src blob:;"
+  val csp = s"default-src 'self' 'unsafe-inline' *.mapbox.com; connect-src * https://*.tiles.mapbox.com https://api.mapbox.com; img-src 'self' data: blob:; child-src blob:; script-src 'unsafe-eval' 'self' *.mapbox.com;"
   override lazy val securityHeadersConfig = SecurityHeadersConfig(contentSecurityPolicy = Option(csp))
 
   val mode = environment.mode
@@ -37,7 +33,7 @@ class AppComponents(context: Context)
   val schema = BoatSchema(databaseConf)
   val users: UserManager = DatabaseUserManager(schema, executionContext)
   val home = new BoatController(
-    configuration.get[String]("boat.mapbox.token"), html, users,
+    AccessToken(configuration.get[String]("boat.mapbox.token")), html, users,
     controllerComponents, assets)(actorSystem, materializer
   )
   override val router: Router = new Routes(httpErrorHandler, home)

@@ -4,7 +4,8 @@ import com.malliina.boat.{BoatNames, RawSentence, SentencesEvent}
 import com.malliina.http.FullUrl
 
 class MultiTrackTests extends BaseSuite with BoatSockets {
-  def url = FullUrl.ws("localhost:9000", reverse.boats().toString)
+//  def url = FullUrl.ws("localhost:9000", reverse.boats().toString)
+  def url = FullUrl.wss("boat.malliina.com", reverse.boats().toString)
 
   val track1 = Seq(
     "$GPGGA,154106,6008.0079,N,02452.0497,E,1,12,0.60,0,M,19.5,M,,*68",
@@ -20,7 +21,7 @@ class MultiTrackTests extends BaseSuite with BoatSockets {
 
   def msg(ts: Seq[String]) = SentencesEvent(ts.map(RawSentence.apply))
 
-  ignore("two tracks") {
+  test("two tracks") {
     withSocket(url, BoatNames.random(), _ => ()) { boat1 =>
       boat1.sendMessage(msg(track1))
     }
