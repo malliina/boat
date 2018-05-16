@@ -11,6 +11,7 @@ import play.api.routing.Router
 import play.api.{BuiltInComponentsFromContext, Configuration}
 import play.filters.HttpFiltersComponents
 import play.filters.headers.SecurityHeadersConfig
+import play.filters.hosts.AllowedHostsConfig
 import router.Routes
 
 class AppLoader extends DefaultApp(new AppComponents(_))
@@ -22,6 +23,7 @@ class AppComponents(context: Context)
 
   val localConfFile = Paths.get(sys.props("user.home")).resolve(".boat/boat.conf")
   override val configuration = context.initialConfiguration ++ Configuration(ConfigFactory.parseFile(localConfFile.toFile))
+  override lazy val allowedHostsConfig = AllowedHostsConfig(Seq("boat.malliina.com", "localhost"))
   val allowedCsp = Seq(
     "*.mapbox.com"
   )
