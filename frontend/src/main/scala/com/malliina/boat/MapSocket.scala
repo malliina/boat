@@ -16,20 +16,22 @@ class MapSocket(map: MapboxMap) extends BaseSocket("/ws/updates") {
 
   def consume(event: FrontEvent): Unit = event match {
     case CoordsEvent(coords, boat) => onCoords(coords, boat)
-    case SentencesEvent(_) => ()
+    case SentencesEvent(_, _) => ()
+    case PingEvent(_) => ()
     case other => log.info(s"Unknown event: '$other'.")
   }
 
-  def onCoords(coords: Seq[Coord], from: BoatName): Unit = {
-    val oldTrack = boats.getOrElse(from, emptyTrack)
+  def onCoords(coords: Seq[Coord], from: BoatInfo): Unit = {
+    val boat = from.boat
+    val oldTrack = boats.getOrElse(boat, emptyTrack)
     val newTrack = oldTrack.addCoords(coords)
-    boats = boats.updated(from, newTrack)
-    if (map.getSource(from.name).isEmpty) {
+    boats = boats.updated(boat, newTrack)
+    if (map.getSource(boat.name).isEmpty) {
       log.debug("Crafting new track...")
-      val lineLayer = parse(animation(from))
+      val lineLayer = parse(animation(boat))
       map.addLayer(lineLayer)
     }
-    map.getSource(from.name).foreach { geoJson =>
+    map.getSource(boat.name).foreach { geoJson =>
       geoJson.setData(parse(newTrack))
     }
     // Does not follow if more than one boats are online, since it's not clear what to follow

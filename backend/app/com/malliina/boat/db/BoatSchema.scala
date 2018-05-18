@@ -3,8 +3,7 @@ package com.malliina.boat.db
 import java.time.Instant
 
 import com.malliina.boat.db.BoatSchema.CreatedTimestampType
-import com.malliina.boat.{BoatId, BoatName, BoatRow, RawSentence, SentenceKey, SentenceRow, TrackId, TrackName, TrackPointId, TrackPointRow, TrackRow, UserId}
-import com.malliina.play.models.Username
+import com.malliina.boat.{BoatId, BoatName, BoatRow, RawSentence, SentenceKey, SentenceRow, TrackId, TrackName, TrackPointId, TrackPointRow, TrackRow, User, UserId}
 import com.zaxxer.hikari.{HikariConfig, HikariDataSource}
 import javax.sql.DataSource
 import play.api.Logger
@@ -126,7 +125,7 @@ class BoatSchema(ds: DataSource, override val impl: JdbcProfile)
   class UsersTable(tag: Tag) extends Table[DataUser](tag, "users") {
     def id = column[UserId]("id", O.PrimaryKey, O.AutoInc)
 
-    def user = column[Username]("user", O.Unique, O.Length(128))
+    def user = column[User]("user", O.Unique, O.Length(128))
 
     def passHash = column[String]("pass_hash", O.Length(512))
 

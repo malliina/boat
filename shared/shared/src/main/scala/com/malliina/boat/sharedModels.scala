@@ -88,7 +88,27 @@ case class RawSentence(sentence: String) extends Wrapped(sentence)
 
 object RawSentence extends StringCompanion[RawSentence]
 
-case class CoordsEvent(coords: Seq[Coord], boat: BoatName) extends FrontEvent
+case class User(name: String) extends Wrapped(name)
+
+object User extends StringCompanion[User]
+
+trait TrackMeta {
+  def user: User
+
+  def boat: BoatName
+
+  def track: TrackName
+}
+
+case class BoatInfo(user: User, boat: BoatName, track: TrackName) extends TrackMeta
+
+object BoatInfo {
+  implicit val json = Json.format[BoatInfo]
+}
+
+case class CoordsEvent(coords: Seq[Coord], from: BoatInfo) extends BoatFrontEvent {
+  def isEmpty = coords.isEmpty
+}
 
 object CoordsEvent {
   val Key = "coords"
@@ -96,19 +116,52 @@ object CoordsEvent {
   implicit val json = keyValued(Key, Json.format[CoordsEvent])
 }
 
-case class SentencesEvent(sentences: Seq[RawSentence]) extends FrontEvent
+case class SentencesEvent(sentences: Seq[RawSentence], from: BoatInfo) extends BoatFrontEvent
 
 object SentencesEvent {
   val Key = "sentences"
   implicit val json = keyValued(Key, Json.format[SentencesEvent])
 }
 
-sealed trait FrontEvent
+case class PingEvent(sent: Long) extends FrontEvent {
+  override def isIntendedFor(user: User) = true
+}
+
+object PingEvent {
+  val Key = "ping"
+  implicit val json = keyValued(Key, Json.format[PingEvent])
+}
+
+sealed trait FrontEvent {
+  def isIntendedFor(user: User): Boolean
+}
+
+sealed trait BoatFrontEvent extends FrontEvent {
+  def from: BoatInfo
+
+  override def isIntendedFor(user: User): Boolean = from.user == user
+}
 
 object FrontEvent {
   implicit val reader = Reads[FrontEvent] { json =>
-    json.validate[CoordsEvent].orElse(SentencesEvent.json.reads(json))
+    CoordsEvent.json.reads(json)
+      .orElse(SentencesEvent.json.reads(json))
+      .orElse(PingEvent.json.reads(json))
   }
+  implicit val writer = Writes[FrontEvent] {
+    case se@SentencesEvent(_, _) => SentencesEvent.json.writes(se)
+    case ce@CoordsEvent(_, _) => CoordsEvent.json.writes(ce)
+    case pe@PingEvent(_) => PingEvent.json.writes(pe)
+  }
+}
+
+case class SentencesMessage(sentences: Seq[RawSentence]) {
+  def toEvent(from: BoatInfo) = SentencesEvent(sentences, from)
+}
+
+object SentencesMessage {
+  val Key = "sentences"
+  implicit val json = keyValued(Key, Json.format[SentencesMessage])
 }
 
 object BoatJson {

@@ -3,7 +3,13 @@ package com.malliina.boat
 import java.time.Instant
 
 import play.api.http.Writeable
-import play.api.libs.json.{Format, Json, Reads, Writes}
+import play.api.libs.json._
+
+case class BoatEvent(message: JsValue, from: BoatInfo)
+
+object BoatEvent {
+  implicit val json = Json.format[BoatEvent]
+}
 
 case class SingleError(message: String)
 

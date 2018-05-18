@@ -3,9 +3,9 @@ package com.malliina.boat.db
 import java.sql.SQLException
 import java.time.Instant
 
-import com.malliina.boat.UserId
 import com.malliina.boat.db.DatabaseUserManager.log
-import com.malliina.play.models.{Password, Username}
+import com.malliina.boat.{User, UserId}
+import com.malliina.play.models.Password
 import org.apache.commons.codec.digest.DigestUtils
 import play.api.Logger
 
@@ -30,7 +30,7 @@ class DatabaseUserManager(val db: BoatSchema)(implicit ec: ExecutionContext) ext
     * @param pass password
     * @return true if the credentials are valid, false otherwise
     */
-  override def authenticate(user: Username, pass: Password): Future[Either[IdentityError, DataUser]] = {
+  override def authenticate(user: User, pass: Password): Future[Either[IdentityError, DataUser]] = {
     val passHash = hash(user, pass)
     val users = usersTable.filter(u => u.user === user && u.passHash === passHash)
     val action = users.result.headOption.map { maybeUser =>
@@ -44,7 +44,7 @@ class DatabaseUserManager(val db: BoatSchema)(implicit ec: ExecutionContext) ext
     db.run(action)
   }
 
-  override def updatePassword(user: Username, newPass: Password): Future[Unit] = {
+  override def updatePassword(user: User, newPass: Password): Future[Unit] = {
     val action = usersTable
       .filter(u => u.user === user)
       .map(_.passHash)
@@ -63,7 +63,7 @@ class DatabaseUserManager(val db: BoatSchema)(implicit ec: ExecutionContext) ext
     }
   }
 
-  override def deleteUser(user: Username): Future[Either[UserDoesNotExist, Unit]] =
+  override def deleteUser(user: User): Future[Either[UserDoesNotExist, Unit]] =
     db.run(usersTable.filter(_.user === user).delete).map { changed =>
       if (changed > 0) {
         log.info(s"Deleted user '$user'.")
@@ -77,15 +77,15 @@ class DatabaseUserManager(val db: BoatSchema)(implicit ec: ExecutionContext) ext
 }
 
 object PassThroughUserManager extends UserManager {
-  val god = DataUser(UserId(1L), Username("test"), "", enabled = true, added = Instant.now())
+  val god = DataUser(UserId(1L), User("test"), "", enabled = true, added = Instant.now())
 
-  def authenticate(user: Username, pass: Password): Future[Either[IdentityError, DataUser]] = fut(Right(god))
+  def authenticate(user: User, pass: Password): Future[Either[IdentityError, DataUser]] = fut(Right(god))
 
-  def updatePassword(user: Username, newPass: Password): Future[Unit] = fut(())
+  def updatePassword(user: User, newPass: Password): Future[Unit] = fut(())
 
   def addUser(user: NewUser): Future[Either[AlreadyExists, UserId]] = fut(Left(AlreadyExists(user.username)))
 
-  def deleteUser(user: Username): Future[Either[UserDoesNotExist, Unit]] = fut(Left(UserDoesNotExist(user)))
+  def deleteUser(user: User): Future[Either[UserDoesNotExist, Unit]] = fut(Left(UserDoesNotExist(user)))
 
   def users: Future[Seq[DataUser]] = fut(Seq(god))
 
@@ -99,28 +99,28 @@ trait UserManager {
     * @param pass password
     * @return true if the credentials are valid, false otherwise
     */
-  def authenticate(user: Username, pass: Password): Future[Either[IdentityError, DataUser]]
+  def authenticate(user: User, pass: Password): Future[Either[IdentityError, DataUser]]
 
-  def updatePassword(user: Username, newPass: Password): Future[Unit]
+  def updatePassword(user: User, newPass: Password): Future[Unit]
 
-  def addUser(user: Username, pass: Password): Future[Either[AlreadyExists, UserId]] =
+  def addUser(user: User, pass: Password): Future[Either[AlreadyExists, UserId]] =
     addUser(NewUser(user, hash(user, pass), enabled = true))
 
   def addUser(user: NewUser): Future[Either[AlreadyExists, UserId]]
 
-  def deleteUser(user: Username): Future[Either[UserDoesNotExist, Unit]]
+  def deleteUser(user: User): Future[Either[UserDoesNotExist, Unit]]
 
   def users: Future[Seq[DataUser]]
 
-  protected def hash(user: Username, pass: Password): String = DigestUtils.md5Hex(user.name + ":" + pass.pass)
+  protected def hash(user: User, pass: Password): String = DigestUtils.md5Hex(user.name + ":" + pass.pass)
 }
 
 sealed trait IdentityError
 
-case class AlreadyExists(user: Username) extends IdentityError
+case class AlreadyExists(user: User) extends IdentityError
 
-case class InvalidCredentials(user: Username) extends IdentityError
+case class InvalidCredentials(user: User) extends IdentityError
 
-case class UserDisabled(user: Username) extends IdentityError
+case class UserDisabled(user: User) extends IdentityError
 
-case class UserDoesNotExist(user: Username) extends IdentityError
+case class UserDoesNotExist(user: User) extends IdentityError

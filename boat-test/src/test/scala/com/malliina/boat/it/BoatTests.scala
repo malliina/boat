@@ -27,7 +27,7 @@ abstract class ServerSuite[T <: BuiltInComponents](build: Context => T)
 abstract class BaseSuite extends FunSuite {
   val reverse = controllers.routes.BoatController
 
-  def await[T](f: Future[T]): T = Await.result(f, 30.seconds)
+  def await[T](f: Future[T]): T = Await.result(f, 3.seconds)
 }
 
 abstract class BoatTests extends TestAppSuite with BoatSockets {
@@ -45,8 +45,6 @@ abstract class BoatTests extends TestAppSuite with BoatSockets {
 
 trait BoatSockets {
   this: BaseSuite =>
-  //  val testUser = Username("test")
-  //  val testPass = Password("pass")
 
   def withSocket[T](url: FullUrl, boat: BoatName, onJson: JsValue => Any)(code: TestSocket => T) = {
     Utils.using(new TestSocket(url, boat, onJson)) { client =>

@@ -1,6 +1,6 @@
 package com.malliina.boat.it
 
-import com.malliina.boat.{BoatNames, Coord, CoordsEvent, RawSentence, SentencesEvent}
+import com.malliina.boat.{BoatNames, Coord, CoordsEvent, RawSentence, SentencesEvent, SentencesMessage}
 import play.api.libs.json.JsValue
 
 import scala.concurrent.Promise
@@ -13,10 +13,11 @@ class BoatFileTests extends BoatTests {
   ).map(RawSentence.apply)
 
   test("GPS reporting") {
-    withBoat(BoatNames.random()) { boat =>
+    val boatName = BoatNames.random()
+    withBoat(boatName) { boat =>
       val sentencePromise = Promise[SentencesEvent]()
       val coordPromise = Promise[CoordsEvent]()
-      val testMessage = SentencesEvent(testTrack.take(1))
+      val testMessage = SentencesMessage(testTrack.take(1))
       val testCoord = Coord(24.89171, 60.1532)
 
       def inspect(json: JsValue): Unit = {
@@ -27,7 +28,8 @@ class BoatFileTests extends BoatTests {
       withViewer(inspect) { _ =>
         boat.sendMessage(testMessage)
         val received = await(sentencePromise.future)
-        assert(received === testMessage)
+        assert(received.sentences === testMessage.sentences)
+        assert(received.from.boat === boatName)
         val coord = await(coordPromise.future).coords
         assert(coord === Seq(testCoord))
       }
