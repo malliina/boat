@@ -84,9 +84,25 @@ case class TrackName(name: String) extends Wrapped(name)
 
 object TrackName extends StringCompanion[TrackName]
 
+/** An NMEA Sentence.
+  *
+  * "An NMEA sentence consists of a start delimiter, followed by a comma-separated sequence of fields,
+  * followed by the character * (ASCII 42), the checksum and an end-of-line marker."
+  *
+  * "The first field of a sentence is called the "tag" and normally consists of a two-letter talker ID followed by a three-letter type code."
+  *
+  * "Sentences are terminated by a CRLF sequence."
+  *
+  * "Maximum sentence length, including the $ and CRLF is 82 bytes."
+  *
+  * @param sentence sentence as a String
+  * @see http://www.catb.org/gpsd/NMEA.html
+  */
 case class RawSentence(sentence: String) extends Wrapped(sentence)
 
-object RawSentence extends StringCompanion[RawSentence]
+object RawSentence extends StringCompanion[RawSentence] {
+  val MaxLength = 82
+}
 
 case class User(name: String) extends Wrapped(name)
 
