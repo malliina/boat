@@ -45,9 +45,9 @@ class BoatHtml(jsFile: String) extends Tags(scalatags.Text) {
     div(`class` := "modal-content")(
       span(`class` := "close")(raw("&times;")),
       h2("Merikartta-aineistot"),
-      p("Lähde: Liikennevirasto. Ei navigointikäyttöön. Ei täytä virallisen merikartan vaatimuksia."),
+      p(a(href := "https://creativecommons.org/licenses/by/4.0/")("CC 4.0"), " ", "Lähde: Liikennevirasto. Ei navigointikäyttöön. Ei täytä virallisen merikartan vaatimuksia."),
       h2("Java Marine API"),
-      p(a(href := "https://ktuukkan.github.io/marine-api/")("https://ktuukkan.github.io/marine-api/")),
+      p(a(href := "http://www.gnu.org/licenses/lgpl-3.0-standalone.html")("GNU LGPL"), " ", a(href := "https://ktuukkan.github.io/marine-api/")("https://ktuukkan.github.io/marine-api/")),
       h2("Open Iconic"),
       p("Open Iconic — ", a(href := "www.useiconic.com/open")("www.useiconic.com/open"))
     )
