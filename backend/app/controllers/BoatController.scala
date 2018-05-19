@@ -6,14 +6,14 @@ import akka.NotUsed
 import akka.actor.ActorSystem
 import akka.stream.Materializer
 import akka.stream.scaladsl.{BroadcastHub, Flow, Keep, MergeHub, Sink, Source}
-import com.malliina.boat.db.UserManager
+import com.malliina.boat.db.{TracksSource, UserManager}
 import com.malliina.boat.parsing.BoatParser.{parseCoords, read}
 import com.malliina.boat.{AccessToken, BoatEvent, BoatHtml, BoatInfo, BoatJsonError, BoatName, BoatNames, Constants, Errors, FrontEvent, PingEvent, SentencesMessage, Streams, TrackName, TrackNames, User}
 import com.malliina.concurrent.ExecutionContexts.cached
 import com.malliina.play.auth.Auth
 import com.malliina.play.models.Username
 import controllers.Assets.Asset
-import controllers.BoatController.{BoatNameHeader, TrackNameHeader, log}
+import controllers.BoatController.{BoatNameHeader, TrackNameHeader, anonUser, log}
 import play.api.Logger
 import play.api.libs.json.JsValue
 import play.api.mvc.WebSocket.MessageFlowTransformer.jsonMessageFlowTransformer
@@ -27,17 +27,19 @@ object BoatController {
 
   val BoatNameHeader = "X-Boat"
   val TrackNameHeader = "X-Track"
+
+  val anonUser = User("anon")
 }
 
 class BoatController(mapboxToken: AccessToken,
                      html: BoatHtml,
                      auth: UserManager,
+                     db: TracksSource,
                      comps: ControllerComponents,
                      assets: AssetsBuilder)(implicit as: ActorSystem, mat: Materializer)
   extends AbstractController(comps) with Streams {
 
   implicit val updatesTransformer = jsonMessageFlowTransformer[JsValue, FrontEvent]
-  val anonUser = User("anon")
 
   // Publish-Subscribe Akka Streams
   // https://doc.akka.io/docs/akka/2.5/stream/stream-dynamic.html
@@ -53,6 +55,7 @@ class BoatController(mapboxToken: AccessToken,
   }
   val parsedEvents = sentencesSource.map(e => e.map(parseCoords))
   val sentences = rights(sentencesSource)
+  val savedSentences = sentences.mapAsync(parallelism = 10)(ss => db.saveSentences(ss).map(_ => ss))
   val coords = rights(parsedEvents)
   val errors = lefts(parsedEvents)
 
@@ -79,7 +82,7 @@ class BoatController(mapboxToken: AccessToken,
   def updates = WebSocket.acceptOrResult[JsValue, FrontEvent] { rh =>
     auth(rh).map { outcome =>
       outcome.map { user =>
-        val events: Source[FrontEvent, NotUsed] = sentences.merge(coords)
+        val events: Source[FrontEvent, NotUsed] = savedSentences.merge(coords)
         // disconnects viewers that lag more than 3s
         Flow.fromSinkAndSource(Sink.ignore, events.filter(_.isIntendedFor(user)))
           .keepAlive(10.seconds, () => PingEvent(Instant.now.toEpochMilli))

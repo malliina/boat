@@ -3,11 +3,14 @@ package com.malliina.boat.db
 import java.time.Instant
 
 import com.malliina.boat.db.BoatSchema.CreatedTimestampType
-import com.malliina.boat.{BoatId, BoatName, BoatRow, RawSentence, SentenceKey, SentenceRow, TrackId, TrackName, TrackPointId, TrackPointRow, TrackRow, User, UserId}
+import com.malliina.boat.{BoatId, BoatInput, BoatName, BoatRow, RawSentence, SentenceInput, SentenceKey, SentenceRow, TrackId, TrackName, TrackPointId, TrackPointRow, TrackRow, User, UserId}
 import com.zaxxer.hikari.{HikariConfig, HikariDataSource}
+import controllers.BoatController
 import javax.sql.DataSource
 import play.api.Logger
 import slick.jdbc.JdbcProfile
+
+import scala.concurrent.ExecutionContext
 
 object BoatSchema {
   private val log = Logger(getClass)
@@ -43,10 +46,20 @@ class BoatSchema(ds: DataSource, override val impl: JdbcProfile)
   val boatsTable = TableQuery[BoatsTable]
   val tracksTable = TableQuery[TracksTable]
   val sentencesTable = TableQuery[SentencesTable]
+  val sentenceInserts = sentencesTable.map(_.forInserts).returning(sentencesTable.map(_.id))
+  val boatInserts = boatsTable.map(_.forInserts).returning(boatsTable.map(_.id))
+  val userInserts = usersTable.map(_.forInserts).returning(usersTable.map(_.id))
 
   override val tableQueries = Seq(sentencesTable, tracksTable, boatsTable, usersTable)
 
-  init()
+  def initBoat()(implicit ec: ExecutionContext) = {
+    init()
+    val addAnon = usersTable.filter(_.user === BoatController.anonUser).exists.result.flatMap { exists =>
+      if (exists) DBIO.successful(())
+      else userInserts += NewUser(BoatController.anonUser, "unused", enabled = true)
+    }
+    await(run(addAnon))
+  }
 
   class SentencesTable(tag: Tag) extends Table[SentenceRow](tag, "sentences") {
     def id = column[SentenceKey]("id", O.AutoInc, O.PrimaryKey)
@@ -62,6 +75,8 @@ class BoatSchema(ds: DataSource, override val impl: JdbcProfile)
       onUpdate = ForeignKeyAction.Cascade,
       onDelete = ForeignKeyAction.Cascade
     )
+
+    def forInserts = (sentence, boat) <> ((SentenceInput.apply _).tupled, SentenceInput.unapply)
 
     def * = (id, sentence, boat, added) <> ((SentenceRow.apply _).tupled, SentenceRow.unapply)
   }
@@ -118,6 +133,8 @@ class BoatSchema(ds: DataSource, override val impl: JdbcProfile)
       onUpdate = ForeignKeyAction.Cascade,
       onDelete = ForeignKeyAction.Cascade
     )
+
+    def forInserts = (name, owner) <> ((BoatInput.apply _).tupled, BoatInput.unapply)
 
     def * = (id, name, owner, added) <> ((BoatRow.apply _).tupled, BoatRow.unapply)
   }

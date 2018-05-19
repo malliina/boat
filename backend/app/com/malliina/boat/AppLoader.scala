@@ -31,10 +31,12 @@ class AppComponents(context: Context)
   val html = BoatHtml(mode)
   val databaseConf = DatabaseConf(mode, configuration)
   val schema = BoatSchema(databaseConf)
+  schema.initBoat()(executionContext)
   val users: UserManager = DatabaseUserManager(schema, executionContext)
+  val tracks: TracksSource = TracksDatabase(schema, executionContext)
+  val mapboxToken = AccessToken(configuration.get[String]("boat.mapbox.token"))
   val home = new BoatController(
-    AccessToken(configuration.get[String]("boat.mapbox.token")), html, users,
-    controllerComponents, assets)(actorSystem, materializer
-  )
+    mapboxToken, html, users, tracks,
+    controllerComponents, assets)(actorSystem, materializer)
   override val router: Router = new Routes(httpErrorHandler, home)
 }

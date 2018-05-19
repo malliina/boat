@@ -40,6 +40,8 @@ object TrackNames {
   def random() = TrackName(Utils.randomString(6))
 }
 
+case class BoatInput(name: BoatName, owner: UserId)
+
 case class BoatRow(id: BoatId, name: BoatName, owner: UserId, added: Instant)
 
 case class TrackRow(id: TrackId, name: TrackName, boat: BoatId, added: Instant)
@@ -51,6 +53,8 @@ object UserId extends IdCompanion[UserId]
 case class SentenceKey(id: Long) extends WrappedId
 
 object SentenceKey extends IdCompanion[SentenceKey]
+
+case class SentenceInput(sentence: RawSentence, boat: BoatId)
 
 case class SentenceRow(id: SentenceKey, sentence: RawSentence, boat: BoatId, added: Instant)
 

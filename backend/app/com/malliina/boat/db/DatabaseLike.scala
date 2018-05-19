@@ -67,5 +67,5 @@ abstract class DatabaseLike(val impl: JdbcProfile, val database: JdbcProfile#API
         Future.successful(Nil)
     }
 
-  private def await[T](f: Future[T]): T = Await.result(f, 20.seconds)
+  protected def await[T](f: Future[T]): T = Await.result(f, 20.seconds)
 }
