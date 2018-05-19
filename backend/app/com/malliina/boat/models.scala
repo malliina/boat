@@ -11,6 +11,8 @@ object BoatEvent {
   implicit val json = Json.format[BoatEvent]
 }
 
+case class BoatJsonError(error: JsError, boat: BoatEvent)
+
 case class SingleError(message: String)
 
 object SingleError {

@@ -8,7 +8,7 @@ import akka.stream.Materializer
 import akka.stream.scaladsl.{BroadcastHub, Flow, Keep, MergeHub, Sink, Source}
 import com.malliina.boat.db.UserManager
 import com.malliina.boat.parsing.BoatParser.{parseCoords, read}
-import com.malliina.boat.{AccessToken, BoatEvent, BoatHtml, BoatInfo, BoatName, BoatNames, Constants, Errors, FrontEvent, PingEvent, SentencesMessage, Streams, TrackName, TrackNames, User}
+import com.malliina.boat.{AccessToken, BoatEvent, BoatHtml, BoatInfo, BoatJsonError, BoatName, BoatNames, Constants, Errors, FrontEvent, PingEvent, SentencesMessage, Streams, TrackName, TrackNames, User}
 import com.malliina.concurrent.ExecutionContexts.cached
 import com.malliina.play.auth.Auth
 import com.malliina.play.models.Username
@@ -47,14 +47,16 @@ class BoatController(mapboxToken: AccessToken,
 
   val _ = viewerSource.runWith(Sink.ignore)
   val sentencesSource = viewerSource.map { boatEvent =>
-    read[SentencesMessage](boatEvent.message).map(_.toEvent(boatEvent.from))
+    read[SentencesMessage](boatEvent.message)
+      .map(_.toEvent(boatEvent.from))
+      .left.map(err => BoatJsonError(err, boatEvent))
   }
   val parsedEvents = sentencesSource.map(e => e.map(parseCoords))
   val sentences = rights(sentencesSource)
   val coords = rights(parsedEvents)
   val errors = lefts(parsedEvents)
 
-  errors.runWith(Sink.foreach(err => log.error(s"JSON error: '$err'.")))
+  errors.runWith(Sink.foreach(err => log.error(s"JSON error for '${err.boat}': '${err.error}'.")))
 
   def index = Action(Ok(html.map).withCookies(Cookie(Constants.TokenCookieName, mapboxToken.token, httpOnly = false)))
 

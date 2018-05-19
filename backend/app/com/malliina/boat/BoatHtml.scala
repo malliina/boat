@@ -1,6 +1,7 @@
 package com.malliina.boat
 
 import com.malliina.boat.BoatHtml.callAttr
+import com.malliina.boat.FrontKeys._
 import com.malliina.html.Tags
 import com.malliina.play.tags.TagPage
 import controllers.routes
@@ -29,17 +30,35 @@ class BoatHtml(jsFile: String) extends Tags(scalatags.Text) {
 
   def map = page(
     PageConf(
-      div(id := "map"),
-      bodyClasses = Seq(Constants.MapClass),
+      modifier(
+        div(id := MapId),
+        span(id := Question, `class` := "oi", data("glyph") := "question-mark", title := "About", aria.hidden := "true"),
+        about
+      ),
+      bodyClasses = Seq(MapClass),
       cssLink("https://api.tiles.mapbox.com/mapbox-gl-js/v0.44.2/mapbox-gl.css"),
       jsScript("https://api.tiles.mapbox.com/mapbox-gl-js/v0.44.2/mapbox-gl.js")
+    )
+  )
+
+  def about = div(id := ModalId, `class` := s"$Modal $Hidden")(
+    div(`class` := "modal-content")(
+      span(`class` := "close")(raw("&times;")),
+      h2("Merikartta-aineistot"),
+      p("Lähde: Liikennevirasto. Ei navigointikäyttöön. Ei täytä virallisen merikartan vaatimuksia."),
+      h2("Java Marine API"),
+      p(a(href := "https://ktuukkan.github.io/marine-api/")("https://ktuukkan.github.io/marine-api/")),
+      h2("Open Iconic"),
+      p("Open Iconic — ", a(href := "www.useiconic.com/open")("www.useiconic.com/open"))
     )
   )
 
   def page(content: PageConf) = TagPage(
     html(
       head(
+        meta(charset := "utf-8"),
         cssLink(reverse.versioned("css/main.css")),
+        cssLink("https://fonts.googleapis.com/css?family=Roboto:100,300,400,500,700"),
         content.css,
         content.js,
         script(`type` := MimeTypes.JAVASCRIPT, defer, src := reverse.versioned(jsFile))

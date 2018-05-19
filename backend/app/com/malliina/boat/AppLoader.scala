@@ -24,7 +24,7 @@ class AppComponents(context: Context)
   val localConfFile = Paths.get(sys.props("user.home")).resolve(".boat/boat.conf")
   override val configuration = context.initialConfiguration ++ Configuration(ConfigFactory.parseFile(localConfFile.toFile))
   override lazy val allowedHostsConfig = AllowedHostsConfig(Seq("boat.malliina.com", "localhost"))
-  val csp = s"default-src 'self' 'unsafe-inline' *.mapbox.com; connect-src * https://*.tiles.mapbox.com https://api.mapbox.com; img-src 'self' data: blob:; child-src blob:; script-src 'unsafe-eval' 'self' *.mapbox.com;"
+  val csp = s"default-src 'self' 'unsafe-inline' *.mapbox.com; font-src 'self' data: https://fonts.gstatic.com; style-src 'self' https://fonts.googleapis.com *.mapbox.com; connect-src * https://*.tiles.mapbox.com https://api.mapbox.com; img-src 'self' data: blob:; child-src blob:; script-src 'unsafe-eval' 'self' *.mapbox.com;"
   override lazy val securityHeadersConfig = SecurityHeadersConfig(contentSecurityPolicy = Option(csp))
 
   val mode = environment.mode

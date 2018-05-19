@@ -70,8 +70,8 @@ lazy val backendSettings = playSettings ++ Seq(
 lazy val frontendSettings = commonSettings ++ Seq(
   libraryDependencies ++= Seq(
     "org.scala-js" %%% "scalajs-dom" % "0.9.2",
-    "org.scalatest" %%% "scalatest" % "3.0.4" % Test,
-    "be.doeraene" %%% "scalajs-jquery" % "0.9.2"
+    "be.doeraene" %%% "scalajs-jquery" % "0.9.2",
+    "org.scalatest" %%% "scalatest" % "3.0.4" % Test
   ),
   scalaJSUseMainModuleInitializer := true
 )
@@ -79,7 +79,8 @@ lazy val frontendSettings = commonSettings ++ Seq(
 lazy val sharedSettings = commonSettings ++ Seq(
   libraryDependencies ++= Seq(
     "com.typesafe.play" %%% "play-json" % "2.6.9",
-    "com.malliina" %%% "primitives" % "1.5.2"
+    "com.malliina" %%% "primitives" % "1.5.2",
+    "com.lihaoyi" %%% "scalatags" % "0.6.7"
   )
 )
 
