@@ -30,8 +30,10 @@ sealed trait SentenceError {
   def message: String
 }
 
-case class UnknownSentence(sentence: RawSentence, message: String) extends SentenceError
+case class UnknownSentence(sentence: RawSentence, detailedMessage: String) extends SentenceError {
+  override def message: String = s"Unknown sentence: '$sentence'. $detailedMessage"
+}
 
 case class SentenceException(sentence: RawSentence, e: Exception) extends SentenceError {
-  override def message = e.getMessage
+  override def message: String = s"Error for sentence: '$sentence'. ${e.getMessage}"
 }

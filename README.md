@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/malliina/boat.png?branch=master)](https://travis-ci.org/malliina/boat)
+
 # boat-tracker
 
 A solution for tracking boats.

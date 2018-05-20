@@ -31,7 +31,7 @@ object BoatParser {
         //        val localTime = LocalTime.of(time.getHour, time.getMinutes, time.getSeconds.toInt)
         Right(Coord(pos.getLongitude, pos.getLatitude))
       } else {
-        Left(UnknownSentence(sentence, "Unsupported sentence."))
+        Left(UnknownSentence(sentence, s"Unsupported sentence: '$sentence'."))
       }
     }
   }

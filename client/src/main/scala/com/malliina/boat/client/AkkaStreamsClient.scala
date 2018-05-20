@@ -4,6 +4,7 @@ import java.nio.charset.StandardCharsets
 import java.util.concurrent.atomic.AtomicBoolean
 
 import akka.actor.ActorSystem
+import akka.pattern.after
 import akka.stream.Materializer
 import akka.stream.scaladsl.{Flow, Framing, Sink, Source, Tcp}
 import akka.util.ByteString
@@ -38,15 +39,11 @@ class AkkaStreamsClient(host: String, port: Int, out: Sink[SentencesMessage, Fut
   val sentencesSource: Source[SentencesMessage, Promise[Option[ByteString]]] =
     Source.maybe[ByteString].via(conn).via(flow)
 
-
-  val enabled = new AtomicBoolean(true)
-
-  var reconnects = 0
+  private val enabled = new AtomicBoolean(true)
 
   def connect(): Future[Done] = sentencesSource.runWith(out).flatMap { done =>
-    if (reconnects < 1) {
-      reconnects += 1
-      connect()
+    if (enabled.get()) {
+      after(1.second, as.scheduler)(connect())
     } else {
       Future.successful(done)
     }
