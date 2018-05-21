@@ -49,7 +49,9 @@ class BoatHtml(jsFile: String) extends Tags(scalatags.Text) {
       h2("Java Marine API"),
       p(a(href := "http://www.gnu.org/licenses/lgpl-3.0-standalone.html")("GNU LGPL"), " ", a(href := "https://ktuukkan.github.io/marine-api/")("https://ktuukkan.github.io/marine-api/")),
       h2("Open Iconic"),
-      p("Open Iconic — ", a(href := "www.useiconic.com/open")("www.useiconic.com/open"))
+      p("Open Iconic — ", a(href := "www.useiconic.com/open")("www.useiconic.com/open")),
+      h2("Inspiration"),
+      p("Inspired by ", a(href := "https://github.com/iaue/poiju.io")("POIJU.IO"), ".")
     )
   )
 
