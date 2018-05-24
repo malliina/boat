@@ -69,8 +69,8 @@ lazy val backendSettings = playSettings ++ Seq(
 
 lazy val frontendSettings = commonSettings ++ Seq(
   libraryDependencies ++= Seq(
-    "org.scala-js" %%% "scalajs-dom" % "0.9.2",
-    "be.doeraene" %%% "scalajs-jquery" % "0.9.2",
+    "org.scala-js" %%% "scalajs-dom" % "0.9.6",
+    "be.doeraene" %%% "scalajs-jquery" % "0.9.3",
     "org.scalatest" %%% "scalatest" % "3.0.4" % Test
   ),
   scalaJSUseMainModuleInitializer := true
@@ -87,10 +87,11 @@ lazy val sharedSettings = commonSettings ++ Seq(
 lazy val clientSettings = commonSettings ++ Seq(
   libraryDependencies ++= Seq(
     "com.malliina" %% "primitives" % "1.5.2",
-    "com.neovisionaries" % "nv-websocket-client" % "2.3",
+    "com.neovisionaries" % "nv-websocket-client" % "2.4",
     "org.slf4j" % "slf4j-api" % "1.7.25",
-    "com.typesafe.akka" %% "akka-stream" % "2.5.8",
-    "org.scalatest" %% "scalatest" % "3.0.4" % Test
+    "com.typesafe.akka" %% "akka-stream" % "2.5.12",
+    "com.typesafe.akka" %% "akka-http"   % "10.1.1",
+    "org.scalatest" %% "scalatest" % "3.0.5" % Test
   )
 )
 
