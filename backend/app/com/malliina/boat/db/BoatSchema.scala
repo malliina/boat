@@ -2,13 +2,14 @@ package com.malliina.boat.db
 
 import java.time.Instant
 
-import com.malliina.boat.db.BoatSchema.CreatedTimestampType
-import com.malliina.boat.{BoatId, BoatInput, BoatName, BoatRow, RawSentence, SentenceInput, SentenceKey, SentenceRow, TrackId, TrackName, TrackPointId, TrackPointRow, TrackRow, User, UserId}
+import com.malliina.boat._
+import com.malliina.boat.db.BoatSchema.{CreatedTimestampType, NumThreads}
 import com.zaxxer.hikari.{HikariConfig, HikariDataSource}
 import controllers.BoatController
 import javax.sql.DataSource
 import play.api.Logger
 import slick.jdbc.JdbcProfile
+import slick.util.AsyncExecutor
 
 import scala.concurrent.ExecutionContext
 
@@ -16,6 +17,7 @@ object BoatSchema {
   private val log = Logger(getClass)
 
   val CreatedTimestampType = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL"
+  val NumThreads = 20
 
   def apply(profile: JdbcProfile, ds: DataSource): BoatSchema =
     new BoatSchema(ds, profile)
@@ -29,10 +31,18 @@ object BoatSchema {
     log.info(s"Connecting to '${conf.url}'...")
     apply(conf.profile, new HikariDataSource(hikariConfig))
   }
+
+  def executor(threads: Int = NumThreads) = AsyncExecutor(
+    name = "AsyncExecutor.boat",
+    minThreads = threads,
+    maxThreads = threads,
+    queueSize = 10000,
+    maxConnections = threads
+  )
 }
 
 class BoatSchema(ds: DataSource, override val impl: JdbcProfile)
-  extends DatabaseLike(impl, impl.api.Database.forDataSource(ds, None)) {
+  extends DatabaseLike(impl, impl.api.Database.forDataSource(ds, Option(NumThreads), BoatSchema.executor(NumThreads))) {
 
   val api = impl.api
 

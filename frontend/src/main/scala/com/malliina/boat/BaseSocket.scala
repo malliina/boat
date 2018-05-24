@@ -54,7 +54,7 @@ class BaseSocket(wsPath: String, val log: BaseLogger = BaseLogger.console) {
 
   def onClosed(e: CloseEvent): Unit = showDisconnected()
 
-  def onError(e: ErrorEvent): Unit = showDisconnected()
+  def onError(e: Event): Unit = showDisconnected()
 
   def openSocket(pathAndQuery: String) = {
     val url = wsBaseUrl.append(pathAndQuery)
@@ -62,7 +62,7 @@ class BaseSocket(wsPath: String, val log: BaseLogger = BaseLogger.console) {
     socket.onopen = (e: Event) => onConnected(e)
     socket.onmessage = (e: MessageEvent) => onMessage(e)
     socket.onclose = (e: CloseEvent) => onClosed(e)
-    socket.onerror = (e: ErrorEvent) => onError(e)
+    socket.onerror = (e: Event) => onError(e)
     socket
   }
 
