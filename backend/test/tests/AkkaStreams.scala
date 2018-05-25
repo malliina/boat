@@ -8,10 +8,20 @@ import org.scalatest.FunSuite
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.WebSocket
 
-import scala.concurrent.duration.DurationInt
-
 class AkkaStreams extends FunSuite {
   implicit val mat = ActorMaterializer()(ActorSystem("test"))
+
+  ignore("one-time side-effect") {
+    val orig = Source.tick(1.second, 1.second, "msg").take(1)
+    // only side-effects once, if others run `src` instead of `effected`
+    val effected = orig.map { msg => println(msg); s"$msg!" }
+    val pub = effected.runWith(Sink.asPublisher(fanout = true))
+    val src = Source.fromPublisher(pub)
+    val f1 = src.runForeach(println)
+    val f2 = src.runForeach(println)
+    await(f1)
+    await(f2)
+  }
 
   ignore("MergeHub") {
     val consumer = Sink.foreach(println)

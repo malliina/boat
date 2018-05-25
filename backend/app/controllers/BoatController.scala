@@ -8,7 +8,7 @@ import akka.stream.Materializer
 import akka.stream.scaladsl.{BroadcastHub, Flow, Keep, MergeHub, Sink, Source}
 import com.malliina.boat.db.{TracksSource, UserManager}
 import com.malliina.boat.parsing.BoatParser.{parseCoords, read}
-import com.malliina.boat.{AccessToken, BoatEvent, BoatHtml, BoatInfo, BoatJsonError, BoatName, BoatNames, Constants, Errors, FrontEvent, PingEvent, SentencesMessage, Streams, TrackName, TrackNames, User}
+import com.malliina.boat._
 import com.malliina.concurrent.ExecutionContexts.cached
 import com.malliina.play.auth.Auth
 import com.malliina.play.models.Username
@@ -55,7 +55,8 @@ class BoatController(mapboxToken: AccessToken,
   }
   val parsedEvents = sentencesSource.map(e => e.map(parseCoords))
   val sentences = rights(sentencesSource)
-  val savedSentences = sentences.mapAsync(parallelism = 10)(ss => db.saveSentences(ss).map(_ => ss))
+  val savedSentences = onlyOnce(sentences.mapAsync(parallelism = 10)(ss => db.saveSentences(ss).map(_ => ss)))
+  val drainer = savedSentences.runWith(Sink.ignore)
   val coords = rights(parsedEvents)
   val errors = lefts(parsedEvents)
 
@@ -64,18 +65,20 @@ class BoatController(mapboxToken: AccessToken,
   def index = Action(Ok(html.map).withCookies(Cookie(Constants.TokenCookieName, mapboxToken.token, httpOnly = false)))
 
   def boats = WebSocket { rh =>
-    auth(rh).map { e =>
-      e.right.map { user =>
+    auth(rh).flatMap { e =>
+      e.fold(err => Future.successful(Left(err)), user => {
         val boatName = rh.headers.get(BoatNameHeader).map(BoatName.apply).getOrElse(BoatNames.random())
         val trackName = rh.headers.get(TrackNameHeader).map(TrackName.apply).getOrElse(TrackNames.random())
         val info = BoatInfo(user, boatName, trackName)
-        // adds metadata to messages from boats
-        val transformer = jsonMessageFlowTransformer.map[BoatEvent, JsValue](
-          json => BoatEvent(json, info),
-          out => out
-        )
-        transformer.transform(Flow.fromSinkAndSource(boatSink, Source.maybe[JsValue]))
-      }
+        db.registerBoat(info).map { _ =>
+          // adds metadata to messages from boats
+          val transformer = jsonMessageFlowTransformer.map[BoatEvent, JsValue](
+            json => BoatEvent(json, info),
+            out => out
+          )
+          Right(transformer.transform(Flow.fromSinkAndSource(boatSink, Source.maybe[JsValue])))
+        }
+      })
     }
   }
 
@@ -110,4 +113,15 @@ class BoatController(mapboxToken: AccessToken,
 
   def versioned(path: String, file: Asset): Action[AnyContent] =
     assets.versioned(path, file)
+
+  /** The publisher-dance makes it so that even with multiple subscribers, `once` only runs once. Without this wrapping,
+    * `once` executes independently for each subscriber, which is undesired if `once` involves a side-effect
+    * (e.g. a database insert operation).
+    *
+    * @param once source to only run once for each emitted element
+    * @tparam T type of element
+    * @tparam U materialized value
+    * @return a Source that supports multiple subscribers, but does not independently run `once` for each
+    */
+  def onlyOnce[T, U](once: Source[T, U]) = Source.fromPublisher(once.runWith(Sink.asPublisher(fanout = true)))
 }

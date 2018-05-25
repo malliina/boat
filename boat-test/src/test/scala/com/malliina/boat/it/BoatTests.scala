@@ -1,9 +1,10 @@
 package com.malliina.boat.it
 
 import com.malliina.boat._
-import com.malliina.boat.client.JsonSocket
+import com.malliina.boat.client.{HttpUtil, JsonSocket, KeyValue}
 import com.malliina.http.FullUrl
 import com.malliina.logstreams.client.CustomSSLSocketFactory
+import com.malliina.play.models.Password
 import com.malliina.util.Utils
 import controllers.BoatController
 import org.scalatest.FunSuite
@@ -13,7 +14,6 @@ import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.Call
 import tests.OneServerPerSuite2
 
-import scala.concurrent.duration.DurationInt
 import scala.concurrent.{Await, Future}
 
 abstract class TestAppSuite extends ServerSuite(new AppComponents(_))
@@ -31,37 +31,37 @@ abstract class BaseSuite extends FunSuite {
 }
 
 abstract class BoatTests extends TestAppSuite with BoatSockets {
-  def withBoat[T](boat: BoatName)(code: JsonSocket => T) =
-    withWebSocket(reverse.boats(), boat, _ => ())(code)
+  def withBoat[T](boat: BoatName, creds: Option[Creds] = None)(code: JsonSocket => T) =
+    withWebSocket(reverse.boats(), boat, creds, _ => ())(code)
 
-  def withViewer[T](onJson: JsValue => Any)(code: JsonSocket => T) =
-    withWebSocket(reverse.updates(), BoatNames.random(), onJson)(code)
+  def withViewer[T](onJson: JsValue => Any, creds: Option[Creds] = None)(code: JsonSocket => T) =
+    withWebSocket(reverse.updates(), BoatNames.random(), creds, onJson)(code)
 
-  def withWebSocket[T](path: Call, boat: BoatName, onJson: JsValue => Any)(code: TestSocket => T) = {
+  def withWebSocket[T](path: Call, boat: BoatName, creds: Option[Creds], onJson: JsValue => Any)(code: TestSocket => T) = {
     val wsUrl = FullUrl("ws", s"localhost:$port", path.toString)
-    withSocket(wsUrl, boat, onJson)(code)
+    withSocket(wsUrl, boat, onJson, creds)(code)
   }
 }
 
 trait BoatSockets {
   this: BaseSuite =>
 
-  def withSocket[T](url: FullUrl, boat: BoatName, onJson: JsValue => Any)(code: TestSocket => T) = {
-    Utils.using(new TestSocket(url, boat, onJson)) { client =>
+  def withSocket[T](url: FullUrl, boat: BoatName, onJson: JsValue => Any, creds: Option[Creds] = None)(code: TestSocket => T) =
+    Utils.using(new TestSocket(url, boat, creds, onJson)) { client =>
       await(client.initialConnection)
       code(client)
     }
-  }
 
-  class TestSocket(wsUri: FullUrl, boat: BoatName, onJson: JsValue => Any) extends JsonSocket(
-    wsUri,
+  class TestSocket(url: FullUrl, boat: BoatName, creds: Option[Creds], onJson: JsValue => Any) extends JsonSocket(
+    url,
     CustomSSLSocketFactory.forHost("boat.malliina.com"),
-//    SSLUtils.trustAllSslContext().getSocketFactory,
-    Seq(
-      //      HttpUtil.Authorization -> HttpUtil.authorizationValue(testUser.name, testPass.pass),
-      BoatController.BoatNameHeader -> boat.name)
+    //    SSLUtils.trustAllSslContext().getSocketFactory,
+    creds.map(c => KeyValue(HttpUtil.Authorization, HttpUtil.authorizationValue(c.user, c.pass.pass))).toSeq ++
+      Seq(KeyValue(BoatController.BoatNameHeader, boat.name))
   ) {
     override def onText(message: String): Unit = onJson(Json.parse(message))
   }
 
 }
+
+case class Creds(user: User, pass: Password)
