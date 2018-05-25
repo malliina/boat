@@ -50,6 +50,20 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext) extends 
     }
   }
 
+  override def renameBoat(old: TrackMeta, newName: BoatName): Future[BoatRow] = {
+    val action = for {
+      maybeId <- boatsView.filter(b => b.username === old.user && b.boatName === old.boat).map(_.boat).result.headOption
+      id <- maybeId.map(DBIO.successful).getOrElse(DBIO.failed(new Exception(s"Boat not found: '${old.boat}'.")))
+      _ <- boatsTable.filter(_.id === id).map(_.name).update(newName)
+      maybeUpdated <- boatsTable.filter(_.id === id).result.headOption
+      updated <- maybeUpdated.map(DBIO.successful).getOrElse(DBIO.failed(new Exception(s"Boat not found: '${old.boat}'.")))
+    } yield updated
+    db.run(action).map { maybeBoat =>
+      log.info(s"Renamed boat '${old.boat}' owned by '${old.user}' to '$newName'.")
+      maybeBoat
+    }
+  }
+
   private def boatId(from: TrackMeta) = {
     boatsView.filter(view => view.boatName === from.boat && view.username === from.user).map(_.boat).result.headOption.flatMap { maybeId =>
       maybeId.map { id =>

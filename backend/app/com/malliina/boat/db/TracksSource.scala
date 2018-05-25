@@ -13,6 +13,8 @@ trait TracksSource {
 
   def registerBoat(meta: TrackMeta): Future[BoatId]
 
+  def renameBoat(old: TrackMeta, newName: BoatName): Future[BoatRow]
+
   //  def saveCoord(boat: BoatInfo, coords: Seq[TrackPoint]): Future[Seq[TrackPointId]]
 
   //  def track(boat: BoatInfo): Future[Track]
