@@ -28,10 +28,6 @@ object Errors {
   def apply(message: String): Errors = Errors(Seq(SingleError(message)))
 }
 
-case class BoatId(id: Long) extends WrappedId
-
-object BoatId extends IdCompanion[BoatId]
-
 object BoatNames {
   def random() = BoatName(Utils.randomString(6))
 }
@@ -101,27 +97,4 @@ case class Route(id: RouteId, name: String, points: Seq[Coord])
 
 object Route {
   implicit val json = Json.format[Route]
-}
-
-trait WrappedId {
-  def id: Long
-
-  override def toString = s"$id"
-}
-
-abstract class IdCompanion[T <: WrappedId] extends Companion[Long, T] {
-  override def raw(t: T) = t.id
-}
-
-abstract class Companion[Raw, T](implicit jsonFormat: Format[Raw], o: Ordering[Raw]) {
-  def apply(raw: Raw): T
-
-  def raw(t: T): Raw
-
-  implicit val format: Format[T] = Format(
-    Reads[T](in => in.validate[Raw].map(apply)),
-    Writes[T](t => Json.toJson(raw(t)))
-  )
-
-  implicit val ordering: Ordering[T] = o.on(raw)
 }

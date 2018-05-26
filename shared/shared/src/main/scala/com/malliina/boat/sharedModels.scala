@@ -108,15 +108,23 @@ case class User(name: String) extends Wrapped(name)
 
 object User extends StringCompanion[User]
 
-trait TrackMeta {
+trait BoatMeta {
   def user: User
 
   def boat: BoatName
 
-  def track: TrackName
+  //  def track: TrackName
 }
 
-case class BoatInfo(user: User, boat: BoatName, track: TrackName) extends TrackMeta
+case class BoatId(id: Long) extends WrappedId
+
+object BoatId extends IdCompanion[BoatId]
+
+case class BoatUser(boat: BoatName, user: User) extends BoatMeta {
+  def toBoat(id: BoatId) = BoatInfo(id, boat, user)
+}
+
+case class BoatInfo(boatId: BoatId, boat: BoatName, user: User) extends BoatMeta
 
 object BoatInfo {
   implicit val json = Json.format[BoatInfo]
@@ -201,4 +209,27 @@ object BoatJson {
     }
     OFormat(reader, writer)
   }
+}
+
+trait WrappedId {
+  def id: Long
+
+  override def toString = s"$id"
+}
+
+abstract class IdCompanion[T <: WrappedId] extends Companion[Long, T] {
+  override def raw(t: T) = t.id
+}
+
+abstract class Companion[Raw, T](implicit jsonFormat: Format[Raw], o: Ordering[Raw]) {
+  def apply(raw: Raw): T
+
+  def raw(t: T): Raw
+
+  implicit val format: Format[T] = Format(
+    Reads[T](in => in.validate[Raw].map(apply)),
+    Writes[T](t => Json.toJson(raw(t)))
+  )
+
+  implicit val ordering: Ordering[T] = o.on(raw)
 }

@@ -11,9 +11,9 @@ trait TracksSource {
 
   def saveSentences(sentences: SentencesEvent): Future[Seq[SentenceKey]]
 
-  def registerBoat(meta: TrackMeta): Future[BoatId]
+  def registerBoat(meta: BoatMeta): Future[BoatId]
 
-  def renameBoat(old: TrackMeta, newName: BoatName): Future[BoatRow]
+  def renameBoat(old: BoatMeta, newName: BoatName): Future[BoatRow]
 
   //  def saveCoord(boat: BoatInfo, coords: Seq[TrackPoint]): Future[Seq[TrackPointId]]
 

@@ -36,7 +36,7 @@ object BoatSchema {
     name = "AsyncExecutor.boat",
     minThreads = threads,
     maxThreads = threads,
-    queueSize = 10000,
+    queueSize = 20000,
     maxConnections = threads
   )
 }

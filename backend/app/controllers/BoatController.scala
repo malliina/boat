@@ -68,12 +68,12 @@ class BoatController(mapboxToken: AccessToken,
     auth(rh).flatMap { e =>
       e.fold(err => Future.successful(Left(err)), user => {
         val boatName = rh.headers.get(BoatNameHeader).map(BoatName.apply).getOrElse(BoatNames.random())
-        val trackName = rh.headers.get(TrackNameHeader).map(TrackName.apply).getOrElse(TrackNames.random())
-        val info = BoatInfo(user, boatName, trackName)
-        db.registerBoat(info).map { _ =>
+//        val trackName = rh.headers.get(TrackNameHeader).map(TrackName.apply).getOrElse(TrackNames.random())
+        val info = BoatUser(boatName, user)
+        db.registerBoat(info).map { boatId =>
           // adds metadata to messages from boats
           val transformer = jsonMessageFlowTransformer.map[BoatEvent, JsValue](
-            json => BoatEvent(json, info),
+            json => BoatEvent(json, info.toBoat(boatId)),
             out => out
           )
           Right(transformer.transform(Flow.fromSinkAndSource(boatSink, Source.maybe[JsValue])))
