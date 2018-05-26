@@ -134,6 +134,8 @@ class BoatSchema(ds: DataSource, override val impl: JdbcProfile)
 
     def name = column[BoatName]("name", O.Unique, O.Length(128))
 
+    def token = column[BoatToken]("token", O.Unique, O.Length(128))
+
     def owner = column[UserId]("owner")
 
     def added = column[Instant]("added", O.SqlType(CreatedTimestampType))
@@ -144,9 +146,9 @@ class BoatSchema(ds: DataSource, override val impl: JdbcProfile)
       onDelete = ForeignKeyAction.Cascade
     )
 
-    def forInserts = (name, owner) <> ((BoatInput.apply _).tupled, BoatInput.unapply)
+    def forInserts = (name, token, owner) <> ((BoatInput.apply _).tupled, BoatInput.unapply)
 
-    def * = (id, name, owner, added) <> ((BoatRow.apply _).tupled, BoatRow.unapply)
+    def * = (id, name, token, owner, added) <> ((BoatRow.apply _).tupled, BoatRow.unapply)
   }
 
   class UsersTable(tag: Tag) extends Table[DataUser](tag, "users") {

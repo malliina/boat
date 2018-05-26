@@ -36,9 +36,13 @@ object TrackNames {
   def random() = TrackName(Utils.randomString(6))
 }
 
-case class BoatInput(name: BoatName, owner: UserId)
+object BoatTokens {
+  def random() = BoatToken(Utils.randomString(8))
+}
 
-case class BoatRow(id: BoatId, name: BoatName, owner: UserId, added: Instant)
+case class BoatInput(name: BoatName, token: BoatToken, owner: UserId)
+
+case class BoatRow(id: BoatId, name: BoatName, token: BoatToken, owner: UserId, added: Instant)
 
 case class TrackRow(id: TrackId, name: TrackName, boat: BoatId, added: Instant)
 

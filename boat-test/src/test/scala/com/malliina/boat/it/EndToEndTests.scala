@@ -56,4 +56,36 @@ class EndToEndTests extends BoatTests {
     agent.close()
     plotter.shutdown()
   }
+
+  ignore("unreliable plotter connection") {
+    // the client validates maximum frame length, so we must not concatenate multiple sentences
+    val plotterOutput = Source(sentences.map(s => ByteString(s"$s${TcpClient.sentenceDelimiter}", StandardCharsets.US_ASCII)).toList)
+
+    val tcpHost = "127.0.0.1"
+    val tcpPort = 10104
+    val incomingSink = Sink.foreach[IncomingConnection] { conn =>
+      conn.flow.runWith(plotterOutput.concat(Source.maybe), Sink.foreach(msg => println(msg)))
+    }
+    val plotter = Tcp().bind(tcpHost, tcpPort).viaMat(KillSwitches.single)(Keep.right).toMat(incomingSink)(Keep.left).run()
+    val serverUrl = FullUrl.ws(s"localhost:$port", reverse.boats().toString)
+    //    val serverUrl = FullUrl.wss("boat.malliina.com", reverse.boats().toString)
+    val agent = new BoatAgent(tcpHost, tcpPort, serverUrl)
+    val p = Promise[JsValue]()
+    val p2 = Promise[SentencesMessage]()
+
+    def handle(json: JsValue): Unit = {
+      p.trySuccess(json)
+      json.asOpt[SentencesMessage].foreach { sm => p2.trySuccess(sm) }
+    }
+
+    val msg = withViewer(handle) { socket =>
+      await(socket.initialConnection)
+      agent.connect()
+      await(p.future)
+      await(p2.future)
+    }
+    assert(msg.sentences.map(_.sentence) === sentences)
+    agent.close()
+    plotter.shutdown()
+  }
 }

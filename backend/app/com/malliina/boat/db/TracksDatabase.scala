@@ -1,7 +1,7 @@
 package com.malliina.boat.db
 
-import com.malliina.boat.db.TracksDatabase.log
 import com.malliina.boat._
+import com.malliina.boat.db.TracksDatabase.log
 import play.api.Logger
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -36,7 +36,9 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext) extends 
   val sentencesView: Query[LiftedJoined, Joined, Seq] = sentencesTable.join(boatsView).on(_.boat === _.boat)
     .map { case (ss, bs) => LiftedJoined(ss.id, ss.sentence, bs.boat, bs.boatName, bs.user, bs.username) }
 
-  override def registerBoat(meta: BoatMeta): Future[BoatId] = db.run(boatId(meta))
+  override def registerBoat(meta: BoatMeta): Future[BoatRow] = {
+    db.run(boatId(meta))
+  }
 
   override def saveSentences(sentences: SentencesEvent): Future[Seq[SentenceKey]] = {
     val from = sentences.from
@@ -60,9 +62,9 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext) extends 
   }
 
   private def boatId(from: BoatMeta) = {
-    boatsView.filter(view => view.boatName === from.boat && view.username === from.user).map(_.boat).result.headOption.flatMap { maybeId =>
-      maybeId.map { id =>
-        DBIO.successful(id)
+    boatsTable.filter(_.name === from.boat).join(usersTable.filter(_.user === from.user)).on(_.owner === _.id).map(_._1).result.headOption.flatMap { maybeBoat =>
+      maybeBoat.map { boat =>
+        DBIO.successful(boat)
       }.getOrElse {
         boatsTable.filter(b => b.name === from.boat).exists.result.flatMap { exists =>
           if (exists) DBIO.failed(new Exception(s"Boat name '${from.boat}' is already taken and therefore not available for '${from.user}'."))
@@ -74,16 +76,18 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext) extends 
 
   private def saveBoat(from: BoatMeta) = {
     val action = for {
-      maybeUser <- usersTable.filter(_.user === from.user).map(_.id).result.headOption
-      user <- maybeUser.map(DBIO.successful).getOrElse(DBIO.failed(new Exception(s"User not found: '${from.user}'.")))
-      boatId <- boatInserts += BoatInput(from.boat, user)
-    } yield boatId
-    action.map { boatId =>
-      log.info(s"Registered boat '${from.boat}' with ID '$boatId' for owner '${from.user}'.")
-      boatId
+      user <- first(usersTable.filter(_.user === from.user).map(_.id), s"User not found: '${from.user}'.")
+      boatId <- boatInserts += BoatInput(from.boat, BoatTokens.random(), user)
+      boat <- first(boatsTable.filter(_.id === boatId), s"Boat not found: '$boatId'.")
+    } yield boat
+    action.map { boat =>
+      log.info(s"Registered boat '${from.boat}' with ID '${boat.id}' for owner '${from.user}'.")
+      boat
     }
   }
 
   private def first[T, R](q: Query[T, R, Seq], onNotFound: => String) =
-    q.result.headOption.flatMap { maybeRow => maybeRow.map(DBIO.successful).getOrElse(DBIO.failed(new Exception("Not found."))) }
+    q.result.headOption.flatMap { maybeRow =>
+      maybeRow.map(DBIO.successful).getOrElse(DBIO.failed(new Exception("Not found.")))
+    }
 }

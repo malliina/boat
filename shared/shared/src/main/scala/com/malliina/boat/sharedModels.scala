@@ -84,6 +84,10 @@ case class TrackName(name: String) extends Wrapped(name)
 
 object TrackName extends StringCompanion[TrackName]
 
+case class BoatToken(token: String) extends Wrapped(token)
+
+object BoatToken extends StringCompanion[BoatToken]
+
 /** An NMEA Sentence.
   *
   * "An NMEA sentence consists of a start delimiter, followed by a comma-separated sequence of fields,
