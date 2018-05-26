@@ -3,6 +3,7 @@ package com.malliina.boat.client
 import java.util.concurrent.atomic.AtomicBoolean
 
 import akka.actor.ActorSystem
+import akka.http.scaladsl.model.ws.WebSocketUpgradeResponse
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.model.ws.{BinaryMessage, Message, TextMessage, WebSocketRequest}
 import akka.http.scaladsl.model.{HttpHeader, StatusCodes, Uri}
@@ -14,7 +15,7 @@ import com.malliina.boat.client.WebSocketClient.log
 import com.malliina.http.FullUrl
 import play.api.libs.json.{JsValue, Json, Writes}
 
-import scala.concurrent.Future
+import scala.concurrent.{Future, Promise}
 import scala.concurrent.duration.DurationInt
 
 object WebSocketClient {
@@ -22,8 +23,11 @@ object WebSocketClient {
 
   val ProdUrl = FullUrl.https("boat.malliina.com", "/ws/boats")
 
+  def apply(url: FullUrl, headers: List[HttpHeader], as: ActorSystem, mat: Materializer): WebSocketClient =
+    new WebSocketClient(url, headers)(as, mat)
+
   def apply(headers: List[HttpHeader], as: ActorSystem, mat: Materializer): WebSocketClient =
-    new WebSocketClient(ProdUrl, headers)(as, mat)
+    apply(ProdUrl, headers, as, mat)
 }
 
 class WebSocketClient(url: FullUrl, headers: List[HttpHeader])(implicit as: ActorSystem, mat: Materializer) {
@@ -31,6 +35,8 @@ class WebSocketClient(url: FullUrl, headers: List[HttpHeader])(implicit as: Acto
   implicit val ec = mat.executionContext
   private val enabled = new AtomicBoolean(true)
   val reconnectInterval = 2.seconds
+  private val initialConnectionPromise = Promise[WebSocketUpgradeResponse]()
+  val initialConnection = initialConnectionPromise.future
 
   def connect[T: Writes](out: Source[T, NotUsed]): Future[Done] =
     connectInOut(Sink.ignore, out)
@@ -39,6 +45,7 @@ class WebSocketClient(url: FullUrl, headers: List[HttpHeader])(implicit as: Acto
     val incomingSink = in.contramap[Message] {
       case BinaryMessage.Strict(data) => Json.parse(data.iterator.asInputStream)
       case TextMessage.Strict(text) => Json.parse(text)
+      case other => throw new Exception(s"Unsupported $other")
     }
     connectInOut(incomingSink, out)
   }
@@ -48,6 +55,7 @@ class WebSocketClient(url: FullUrl, headers: List[HttpHeader])(implicit as: Acto
     val flow = Flow.fromSinkAndSourceMat(in, messageSource)(Keep.left)
     val (upgrade, closed) = Http().singleWebSocketRequest(WebSocketRequest(Uri(url.url), headers), flow)
     upgrade.map { up =>
+      initialConnectionPromise.trySuccess(up)
       val code = up.response.status
       if (code == StatusCodes.SwitchingProtocols) {
         log.info(s"WebSocket connected to '$url'.")

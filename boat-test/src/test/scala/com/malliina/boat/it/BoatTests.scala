@@ -1,16 +1,20 @@
 package com.malliina.boat.it
 
+import akka.actor.ActorSystem
+import akka.http.scaladsl.model.HttpHeader
+import akka.http.scaladsl.model.HttpHeader.ParsingResult.Ok
+import akka.stream.ActorMaterializer
+import akka.stream.scaladsl.{Sink, Source, SourceQueue}
+import akka.{Done, NotUsed}
 import com.malliina.boat._
-import com.malliina.boat.client.{HttpUtil, JsonSocket, KeyValue}
+import com.malliina.boat.client.{HttpUtil, WebSocketClient}
 import com.malliina.http.FullUrl
-import com.malliina.logstreams.client.CustomSSLSocketFactory
 import com.malliina.play.models.Password
-import com.malliina.util.Utils
 import controllers.BoatController
 import org.scalatest.FunSuite
 import play.api.ApplicationLoader.Context
 import play.api.BuiltInComponents
-import play.api.libs.json.{JsValue, Json}
+import play.api.libs.json.{JsValue, Json, Writes}
 import play.api.mvc.Call
 import tests.OneServerPerSuite2
 
@@ -31,37 +35,55 @@ abstract class BaseSuite extends FunSuite {
 }
 
 abstract class BoatTests extends TestAppSuite with BoatSockets {
-  def withBoat[T](boat: BoatName, creds: Option[Creds] = None)(code: JsonSocket => T) =
-    withWebSocket(reverse.boats(), boat, creds, _ => ())(code)
-
-  def withViewer[T](onJson: JsValue => Any, creds: Option[Creds] = None)(code: JsonSocket => T) =
-    withWebSocket(reverse.updates(), BoatNames.random(), creds, onJson)(code)
-
-  def withWebSocket[T](path: Call, boat: BoatName, creds: Option[Creds], onJson: JsValue => Any)(code: TestSocket => T) = {
-    val wsUrl = FullUrl("ws", s"localhost:$port", path.toString)
-    withSocket(wsUrl, boat, onJson, creds)(code)
+  def openTestBoat(boat: BoatName, creds: Option[Creds] = None) = {
+    openBoat(urlFor(reverse.boats()), boat, creds)
   }
+
+  def openViewerSocket(in: Sink[JsValue, Future[Done]], creds: Option[Creds] = None) = {
+    val out = Source.maybe[JsValue].mapMaterializedValue(_ => NotUsed)
+    val client = openWebSocket(reverse.updates(), BoatNames.random(), creds, in, out)
+    client
+  }
+
+  def openWebSocket[T](path: Call, boat: BoatName, creds: Option[Creds], in: Sink[JsValue, Future[Done]], out: Source[JsValue, NotUsed]) = {
+    openSocket(urlFor(path), boat, in, out, creds)
+  }
+
+  def urlFor(call: Call) = FullUrl("ws", s"localhost:$port", call.toString)
 }
 
 trait BoatSockets {
   this: BaseSuite =>
 
-  def withSocket[T](url: FullUrl, boat: BoatName, onJson: JsValue => Any, creds: Option[Creds] = None)(code: TestSocket => T) =
-    Utils.using(new TestSocket(url, boat, creds, onJson)) { client =>
-      await(client.initialConnection)
-      code(client)
-    }
+  implicit val as = ActorSystem()
+  implicit val mat = ActorMaterializer()
 
-  class TestSocket(url: FullUrl, boat: BoatName, creds: Option[Creds], onJson: JsValue => Any) extends JsonSocket(
-    url,
-    CustomSSLSocketFactory.forHost("boat.malliina.com"),
-    //    SSLUtils.trustAllSslContext().getSocketFactory,
-    creds.map(c => KeyValue(HttpUtil.Authorization, HttpUtil.authorizationValue(c.user, c.pass.pass))).toSeq ++
-      Seq(KeyValue(BoatController.BoatNameHeader, boat.name))
-  ) {
-    override def onText(message: String): Unit = onJson(Json.parse(message))
+  def openBoat(url: FullUrl, boat: BoatName, creds: Option[Creds] = None) = {
+    val (queue, src) = Streaming.sourceQueue[JsValue](mat)
+    val socket = openSocket(url, boat, Sink.ignore, src, creds)
+    new TestBoat(queue, socket)
   }
 
+  def openSocket[T](url: FullUrl, boat: BoatName, in: Sink[JsValue, Future[Done]], out: Source[JsValue, NotUsed], creds: Option[Creds] = None): WebSocketClient = {
+    val authHeaders = creds.map { c =>
+      newHeader(HttpUtil.Authorization, HttpUtil.authorizationValue(c.user, c.pass.pass))
+    }.toList
+    val boatHeader = newHeader(BoatController.BoatNameHeader, boat.name)
+    val client = WebSocketClient(url, authHeaders :+ boatHeader, as, mat)
+    client.connectJson(in, out)
+    await(client.initialConnection)
+    client
+  }
+
+  class TestBoat(val queue: SourceQueue[Option[JsValue]], val socket: WebSocketClient) {
+    def send[T: Writes](t: T) = await(queue.offer(Option(Json.toJson(t))))
+
+    def close(): Unit = queue.offer(None)
+  }
+
+  private def newHeader(key: String, value: String): HttpHeader = {
+    HttpHeader.parse(key, value).asInstanceOf[Ok].header
+  }
 }
 
 case class Creds(user: User, pass: Password)

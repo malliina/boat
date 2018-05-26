@@ -56,6 +56,28 @@ class AkkaStreamsClientTests extends FunSuite {
     }
   }
 
+  ignore("receives sentences") {
+    val jsons = mutable.Buffer[SentencesMessage]()
+    val out = Sink.foreach[SentencesMessage](msg => jsons.append(msg))
+    val client = new TcpSource("192.168.0.11", 10110)
+    val _ = client.sentencesSource.runWith(out)
+    Thread.sleep(50000)
+    Files.write(Paths.get("demo2.json"), Json.toBytes(Json.toJson(jsons)))
+    //client.close()
+  }
+
+  ignore("receive-send locally") {
+    val url = FullUrl.ws("localhost:9000", "/ws/boats")
+    val agent = new BoatAgent("192.168.0.11", 10110, url)
+    agent.connect()
+    Thread.sleep(300000)
+  }
+
+  ignore("count") {
+    val msgs = Json.parse(new FileInputStream(Paths.get("demo2.json").toFile)).as[Seq[SentencesMessage]]
+    println(msgs.flatMap(_.sentences).length)
+  }
+
   ignore("sends sentences") {
     val url = FullUrl.wss("boat.malliina.com", "/ws/boats")
     val socket = new JsonSocket(url, CustomSSLSocketFactory.forHost("boat.malliina.com"), Seq("X-Boat" -> "name"))
@@ -68,16 +90,6 @@ class AkkaStreamsClientTests extends FunSuite {
     val client = new TcpClient("192.168.0.11", 10110, out)
     client.connect()
     Thread.sleep(5000)
-  }
-
-  ignore("receives sentences") {
-    val jsons = mutable.Buffer[SentencesMessage]()
-    val out = Sink.foreach[SentencesMessage](msg => jsons.append(msg))
-    val client = new TcpClient("192.168.0.11", 10110, out)
-    client.connect()
-    Thread.sleep(20000)
-    Files.write(Paths.get("demo.json"), Json.toBytes(Json.toJson(jsons)))
-    client.close()
   }
 
   ignore("TCP client receives and parses messages from TCP server") {

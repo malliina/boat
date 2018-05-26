@@ -22,11 +22,9 @@ class MultiTrackTests extends BaseSuite with BoatSockets {
   def msg(ts: Seq[String]) = SentencesMessage(ts.map(RawSentence.apply))
 
   ignore("two tracks") {
-    withSocket(url, BoatNames.random(), _ => ()) { boat1 =>
-      boat1.sendMessage(msg(track1))
-    }
-    withSocket(url, BoatNames.random(), _ => ()) { boat2 =>
-      boat2.sendMessage(msg(track2))
-    }
+    val boat1 = openBoat(url, BoatNames.random())
+    boat1.send(msg(track1))
+    val boat2 = openBoat(url, BoatNames.random())
+    boat2.send(msg(track2))
   }
 }
