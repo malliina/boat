@@ -17,6 +17,7 @@ object BoatAgent {
     apply(host, port, FullUrl.wss("boat.malliina.com", "/ws/boats"))(as, mat)
 
   case class Conf(plotterIp: String, plotterPort: Int, serverUrl: FullUrl, token: Option[BoatToken])
+
 }
 
 /** Connects a TCP source to a WebSocket.

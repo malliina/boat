@@ -24,15 +24,6 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext) extends 
 
   implicit object JoinedShape extends CaseClassShape(LiftedJoined.tupled, Joined.tupled)
 
-  case class JoinedBoat(boat: BoatId, boatName: BoatName, user: UserId, username: User)
-
-  case class LiftedJoinedBoat(boat: Rep[BoatId], boatName: Rep[BoatName], user: Rep[UserId], username: Rep[User])
-
-  implicit object JoinedBoatShape extends CaseClassShape(LiftedJoinedBoat.tupled, JoinedBoat.tupled)
-
-  val boatsView: Query[LiftedJoinedBoat, JoinedBoat, Seq] = boatsTable.join(usersTable).on(_.owner === _.id)
-    .map { case (b, u) => LiftedJoinedBoat(b.id, b.name, u.id, u.user) }
-
   val sentencesView: Query[LiftedJoined, Joined, Seq] = sentencesTable.join(boatsView).on(_.boat === _.boat)
     .map { case (ss, bs) => LiftedJoined(ss.id, ss.sentence, bs.boat, bs.boatName, bs.user, bs.username) }
 
@@ -51,9 +42,9 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext) extends 
 
   override def renameBoat(old: BoatMeta, newName: BoatName): Future[BoatRow] = {
     val action = for {
-      id <- first(boatsView.filter(b => b.username === old.user && b.boatName === old.boat).map(_.boat), s"Boat not found: '${old.boat}'.")
+      id <- db.first(boatsView.filter(b => b.username === old.user && b.boatName === old.boat).map(_.boat), s"Boat not found: '${old.boat}'.")
       _ <- boatsTable.filter(_.id === id).map(_.name).update(newName)
-      updated <- first(boatsTable.filter(_.id === id), s"Boat not found: '${old.boat}'.")
+      updated <- db.first(boatsTable.filter(_.id === id), s"Boat not found: '${old.boat}'.")
     } yield updated
     db.run(action).map { maybeBoat =>
       log.info(s"Renamed boat '${old.boat}' owned by '${old.user}' to '$newName'.")
@@ -76,18 +67,13 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext) extends 
 
   private def saveBoat(from: BoatMeta) = {
     val action = for {
-      user <- first(usersTable.filter(_.user === from.user).map(_.id), s"User not found: '${from.user}'.")
+      user <- db.first(usersTable.filter(_.user === from.user).map(_.id), s"User not found: '${from.user}'.")
       boatId <- boatInserts += BoatInput(from.boat, BoatTokens.random(), user)
-      boat <- first(boatsTable.filter(_.id === boatId), s"Boat not found: '$boatId'.")
+      boat <- db.first(boatsTable.filter(_.id === boatId), s"Boat not found: '$boatId'.")
     } yield boat
     action.map { boat =>
       log.info(s"Registered boat '${from.boat}' with ID '${boat.id}' for owner '${from.user}'.")
       boat
     }
   }
-
-  private def first[T, R](q: Query[T, R, Seq], onNotFound: => String) =
-    q.result.headOption.flatMap { maybeRow =>
-      maybeRow.map(DBIO.successful).getOrElse(DBIO.failed(new Exception("Not found.")))
-    }
 }

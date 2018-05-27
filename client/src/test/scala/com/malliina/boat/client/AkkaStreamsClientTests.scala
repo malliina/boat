@@ -137,21 +137,6 @@ class AkkaStreamsClientTests extends FunSuite {
     println(msgs.flatMap(_.sentences).length)
   }
 
-  ignore("sends sentences") {
-    val url = FullUrl.wss("boat.malliina.com", "/ws/boats")
-    val socket = new JsonSocket(url, CustomSSLSocketFactory.forHost("boat.malliina.com"), Seq("X-Boat" -> "name"))
-    await(socket.initialConnection)
-    val in = Json.parse(new FileInputStream(Paths.get("demo.json").toFile)).as[Seq[SentencesMessage]]
-    in.foreach { s =>
-      socket.sendMessage(s)
-    }
-    val out = Sink.foreach[SentencesMessage](msg => socket.sendMessage(msg))
-    val client = TcpSource("192.168.0.11", 10110)
-    client.sentencesSource.runWith(out)
-    client.connect()
-    Thread.sleep(5000)
-  }
-
   ignore("TCP client receives and parses messages from TCP server") {
     val localHost = "127.0.0.1"
     val localPort = 8816

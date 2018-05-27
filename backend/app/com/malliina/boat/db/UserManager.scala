@@ -4,7 +4,7 @@ import java.sql.SQLException
 import java.time.Instant
 
 import com.malliina.boat.db.DatabaseUserManager.log
-import com.malliina.boat.{User, UserId}
+import com.malliina.boat.{BoatInfo, BoatToken, User, UserId}
 import com.malliina.play.models.Password
 import org.apache.commons.codec.digest.DigestUtils
 import play.api.Logger
@@ -20,7 +20,9 @@ object DatabaseUserManager {
 
 class DatabaseUserManager(val db: BoatSchema)(implicit ec: ExecutionContext) extends UserManager {
   val usersTable = db.usersTable
+  val boatsTable = db.boatsTable
 
+  import db.JoinedBoatShape
   import db.impl.api._
   import db.mappings._
 
@@ -40,6 +42,15 @@ class DatabaseUserManager(val db: BoatSchema)(implicit ec: ExecutionContext) ext
       }.getOrElse {
         Left(InvalidCredentials(user))
       }
+    }
+    db.run(action)
+  }
+
+  override def authBoat(token: BoatToken): Future[Either[IdentityError, BoatInfo]] = {
+    val query = boatsTable.filter(_.token === token).join(usersTable).on(_.owner === _.id)
+      .map { case (b, u) => db.LiftedJoinedBoat(b.id, b.name, u.id, u.user) }
+    val action = query.result.headOption.map { maybeBoat =>
+      maybeBoat.map(l => BoatInfo(l.boat, l.boatName, l.username)).toRight(InvalidToken(token))
     }
     db.run(action)
   }
@@ -81,6 +92,8 @@ object PassThroughUserManager extends UserManager {
 
   def authenticate(user: User, pass: Password): Future[Either[IdentityError, DataUser]] = fut(Right(god))
 
+  def authBoat(token: BoatToken): Future[Either[IdentityError, BoatInfo]] = fut(Left(InvalidToken(token)))
+
   def updatePassword(user: User, newPass: Password): Future[Unit] = fut(())
 
   def addUser(user: NewUser): Future[Either[AlreadyExists, UserId]] = fut(Left(AlreadyExists(user.username)))
@@ -101,6 +114,8 @@ trait UserManager {
     */
   def authenticate(user: User, pass: Password): Future[Either[IdentityError, DataUser]]
 
+  def authBoat(token: BoatToken): Future[Either[IdentityError, BoatInfo]]
+
   def updatePassword(user: User, newPass: Password): Future[Unit]
 
   def addUser(user: User, pass: Password): Future[Either[AlreadyExists, UserId]] =
@@ -120,6 +135,8 @@ sealed trait IdentityError
 case class AlreadyExists(user: User) extends IdentityError
 
 case class InvalidCredentials(user: User) extends IdentityError
+
+case class InvalidToken(token: BoatToken) extends IdentityError
 
 case class UserDisabled(user: User) extends IdentityError
 

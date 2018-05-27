@@ -62,6 +62,20 @@ class BoatSchema(ds: DataSource, override val impl: JdbcProfile)
 
   override val tableQueries = Seq(sentencesTable, tracksTable, boatsTable, usersTable)
 
+  case class JoinedBoat(boat: BoatId, boatName: BoatName, user: UserId, username: User)
+
+  case class LiftedJoinedBoat(boat: Rep[BoatId], boatName: Rep[BoatName], user: Rep[UserId], username: Rep[User])
+
+  implicit object JoinedBoatShape extends CaseClassShape(LiftedJoinedBoat.tupled, JoinedBoat.tupled)
+
+  val boatsView: Query[LiftedJoinedBoat, JoinedBoat, Seq] = boatsTable.join(usersTable).on(_.owner === _.id)
+    .map { case (b, u) => LiftedJoinedBoat(b.id, b.name, u.id, u.user) }
+
+  def first[T, R](q: Query[T, R, Seq], onNotFound: => String)(implicit ec: ExecutionContext) =
+    q.result.headOption.flatMap { maybeRow =>
+      maybeRow.map(DBIO.successful).getOrElse(DBIO.failed(new Exception("Not found.")))
+    }
+
   def initBoat()(implicit ec: ExecutionContext) = {
     init()
     val addAnon = usersTable.filter(_.user === BoatController.anonUser).exists.result.flatMap { exists =>

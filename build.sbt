@@ -92,6 +92,8 @@ lazy val clientSettings = commonSettings ++ Seq(
     "com.malliina" %% "logback-rx" % "1.2.0",
     "com.typesafe.akka" %% "akka-stream" % "2.5.12",
     "com.typesafe.akka" %% "akka-http"   % "10.1.1",
+    "com.typesafe.akka" %% "akka-http-spray-json" % "10.1.1",
+    "com.lihaoyi" %% "scalatags" % "0.6.7",
     "org.scalatest" %% "scalatest" % "3.0.5" % Test
   )
 )

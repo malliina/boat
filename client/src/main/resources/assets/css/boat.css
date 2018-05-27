@@ -1,0 +1,38 @@
+@font-face {
+    font-family: 'Roboto';
+    src: url('/fonts/roboto-v18-latin-regular.woff') format('woff');
+}
+
+* {
+    font-family: 'Roboto', sans-serif;
+}
+
+form {
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.form-field {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 12px;
+}
+
+label, input, button {
+    font-size: 24px;
+}
+
+input[type=text], input[type=number], button {
+    border: 1px solid black;
+    border-radius: 4px;
+    padding: 4px;
+}
+
+input:focus {
+    outline: none;
+}
+
+button:hover {
+    background: aliceblue;
+}

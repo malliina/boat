@@ -6,14 +6,14 @@ import akka.NotUsed
 import akka.actor.ActorSystem
 import akka.stream.Materializer
 import akka.stream.scaladsl.{BroadcastHub, Flow, Keep, MergeHub, Sink, Source}
+import com.malliina.boat._
 import com.malliina.boat.db.{TracksSource, UserManager}
 import com.malliina.boat.parsing.BoatParser.{parseCoords, read}
-import com.malliina.boat._
 import com.malliina.concurrent.ExecutionContexts.cached
 import com.malliina.play.auth.Auth
 import com.malliina.play.models.Username
 import controllers.Assets.Asset
-import controllers.BoatController.{BoatNameHeader, TrackNameHeader, anonUser, log}
+import controllers.BoatController.{BoatNameHeader, BoatTokenHeader, anonUser, log}
 import play.api.Logger
 import play.api.libs.json.JsValue
 import play.api.mvc.WebSocket.MessageFlowTransformer.jsonMessageFlowTransformer
@@ -26,6 +26,7 @@ object BoatController {
   private val log = Logger(getClass)
 
   val BoatNameHeader = "X-Boat"
+  val BoatTokenHeader = "X-Token"
   val TrackNameHeader = "X-Track"
 
   val anonUser = User("anon")
@@ -33,7 +34,7 @@ object BoatController {
 
 class BoatController(mapboxToken: AccessToken,
                      html: BoatHtml,
-                     auth: UserManager,
+                     auther: UserManager,
                      db: TracksSource,
                      comps: ControllerComponents,
                      assets: AssetsBuilder)(implicit as: ActorSystem, mat: Materializer)
@@ -65,20 +66,44 @@ class BoatController(mapboxToken: AccessToken,
   def index = Action(Ok(html.map).withCookies(Cookie(Constants.TokenCookieName, mapboxToken.token, httpOnly = false)))
 
   def boats = WebSocket { rh =>
-    auth(rh).flatMap { e =>
-      e.fold(err => Future.successful(Left(err)), user => {
-        val boatName = rh.headers.get(BoatNameHeader).map(BoatName.apply).getOrElse(BoatNames.random())
-//        val trackName = rh.headers.get(TrackNameHeader).map(TrackName.apply).getOrElse(TrackNames.random())
-        val info = BoatUser(boatName, user)
-        db.registerBoat(info).map { boat =>
-          // adds metadata to messages from boats
-          val transformer = jsonMessageFlowTransformer.map[BoatEvent, JsValue](
-            json => BoatEvent(json, BoatInfo(boat.id, boat.name, user)),
-            out => out
-          )
-          Right(transformer.transform(Flow.fromSinkAndSource(boatSink, Source.maybe[JsValue])))
+    authBoat(rh).map { e =>
+      e.map { boat =>
+        // adds metadata to messages from boats
+        val transformer = jsonMessageFlowTransformer.map[BoatEvent, JsValue](
+          json => BoatEvent(json, boat),
+          out => out
+        )
+        transformer.transform(Flow.fromSinkAndSource(boatSink, Source.maybe[JsValue]))
+      }
+    }
+  }
+
+  /** Auths with boat token or user/pass. Fails if an invalid token is provided. If no token is provided,
+    * tries to auth with user/pass. Fails if invalid user/pass is provided. If no user/pass is provided,
+    * falls back to the anonymous user.
+    *
+    * @param rh request
+    * @return
+    */
+  def authBoat(rh: RequestHeader): Future[Either[Result, BoatInfo]] = {
+    rh.headers.get(BoatTokenHeader).map(BoatToken.apply).map { token =>
+      auther.authBoat(token).map { e =>
+        e.left.map { err =>
+          log.error(s"Boat authentication failed. $err")
+          Unauthorized(Errors("Unauthorized."))
         }
-      })
+      }
+    }.getOrElse {
+      auth(rh).flatMap { e =>
+        e.fold(err => Future.successful(Left(err)), user => {
+          val boatName = rh.headers.get(BoatNameHeader).map(BoatName.apply).getOrElse(BoatNames.random())
+          //        val trackName = rh.headers.get(TrackNameHeader).map(TrackName.apply).getOrElse(TrackNames.random())
+          val info = BoatUser(boatName, user)
+          db.registerBoat(info).map { boat =>
+            Right(BoatInfo(boat.id, boat.name, user))
+          }
+        })
+      }
     }
   }
 
@@ -98,7 +123,7 @@ class BoatController(mapboxToken: AccessToken,
 
   def auth(rh: RequestHeader): Future[Either[Result, User]] =
     Auth.basicCredentials(rh).map { creds =>
-      auth.authenticate(User(creds.username.name), creds.password).map { outcome =>
+      auther.authenticate(User(creds.username.name), creds.password).map { outcome =>
         outcome.map { profile =>
           Right(profile.username)
         }.recover { err =>
