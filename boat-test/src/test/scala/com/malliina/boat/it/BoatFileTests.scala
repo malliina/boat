@@ -1,7 +1,7 @@
 package com.malliina.boat.it
 
 import akka.stream.scaladsl.Sink
-import com.malliina.boat.{BoatNames, Coord, CoordsEvent, RawSentence, SentencesEvent, SentencesMessage}
+import com.malliina.boat._
 import play.api.libs.json.JsValue
 
 import scala.concurrent.Promise
@@ -15,23 +15,25 @@ class BoatFileTests extends BoatTests {
 
   test("GPS reporting") {
     val boatName = BoatNames.random()
-    val boat = openTestBoat(boatName)
-    val sentencePromise = Promise[SentencesEvent]()
-    val coordPromise = Promise[CoordsEvent]()
-    val testMessage = SentencesMessage(testTrack.take(1))
-    val testCoord = Coord(24.89171, 60.1532)
+    openTestBoat(boatName) { boat =>
+      val sentencePromise = Promise[SentencesEvent]()
+      val coordPromise = Promise[CoordsEvent]()
+      val testMessage = SentencesMessage(testTrack.take(1))
+      val testCoord = Coord(24.89171, 60.1532)
 
-    val sink = Sink.foreach[JsValue] { json =>
-      json.validate[SentencesEvent].foreach { s => sentencePromise.trySuccess(s) }
-      json.validate[CoordsEvent].foreach { c => coordPromise.trySuccess(c) }
+      val sink = Sink.foreach[JsValue] { json =>
+        json.validate[SentencesEvent].foreach { s => sentencePromise.trySuccess(s) }
+        json.validate[CoordsEvent].foreach { c => coordPromise.trySuccess(c) }
+      }
+
+      openViewerSocket(sink, None) { _ =>
+        boat.send(testMessage)
+        val received = await(sentencePromise.future)
+        assert(received.sentences === testMessage.sentences)
+        assert(received.from.boat === boatName)
+        val coord = await(coordPromise.future).coords
+        assert(coord === Seq(testCoord))
+      }
     }
-
-    val _ = openViewerSocket(sink, None)
-    boat.send(testMessage)
-    val received = await(sentencePromise.future)
-    assert(received.sentences === testMessage.sentences)
-    assert(received.from.boat === boatName)
-    val coord = await(coordPromise.future).coords
-    assert(coord === Seq(testCoord))
   }
 }

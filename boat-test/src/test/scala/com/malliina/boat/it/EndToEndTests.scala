@@ -7,7 +7,7 @@ import akka.stream.scaladsl.Tcp.IncomingConnection
 import akka.stream.scaladsl.{Keep, Sink, Source, Tcp}
 import akka.util.ByteString
 import com.malliina.boat.SentencesMessage
-import com.malliina.boat.client.{BoatAgent, TcpClient}
+import com.malliina.boat.client.{BoatAgent, TcpSource}
 import com.malliina.http.FullUrl
 import play.api.libs.json.JsValue
 
@@ -23,57 +23,97 @@ class EndToEndTests extends BoatTests {
 
   test("plotter to frontend") {
     // the client validates maximum frame length, so we must not concatenate multiple sentences
-    val plotterOutput = Source(sentences.map(s => ByteString(s"$s${TcpClient.sentenceDelimiter}", StandardCharsets.US_ASCII)).toList)
+    val plotterOutput = Source(sentences.map(s => ByteString(s"$s${TcpSource.sentenceDelimiter}", StandardCharsets.US_ASCII)).toList)
 
     val tcpHost = "127.0.0.1"
     val tcpPort = 10104
     val incomingSink = Sink.foreach[IncomingConnection] { conn =>
       conn.flow.runWith(plotterOutput.concat(Source.maybe), Sink.foreach(msg => println(msg)))
     }
-    val plotter = Tcp().bind(tcpHost, tcpPort).viaMat(KillSwitches.single)(Keep.right).toMat(incomingSink)(Keep.left).run()
+    val (server, plotter) = Tcp().bind(tcpHost, tcpPort).viaMat(KillSwitches.single)(Keep.both).toMat(incomingSink)(Keep.left).run()
+    await(server)
     val serverUrl = FullUrl.ws(s"localhost:$port", reverse.boats().toString)
-    val agent = new BoatAgent(tcpHost, tcpPort, serverUrl)
-    val p = Promise[JsValue]()
-    val p2 = Promise[SentencesMessage]()
+    val agent = BoatAgent(tcpHost, tcpPort, serverUrl)
+    try {
+      val p = Promise[JsValue]()
+      val p2 = Promise[SentencesMessage]()
 
-    val sink = Sink.foreach[JsValue] { json =>
-      p.trySuccess(json)
-      json.asOpt[SentencesMessage].foreach { sm => p2.trySuccess(sm) }
+      val sink = Sink.foreach[JsValue] { json =>
+        p.trySuccess(json)
+        json.asOpt[SentencesMessage].foreach { sm => p2.trySuccess(sm) }
+      }
+      openViewerSocket(sink, None) { _ =>
+        agent.connect()
+        await(p.future)
+        val msg = await(p2.future)
+        assert(msg.sentences.map(_.sentence) === sentences)
+      }
+    } finally {
+      agent.close()
+      plotter.shutdown()
     }
-    val _ = openViewerSocket(sink, None)
-    agent.connect()
-    await(p.future)
-    val msg = await(p2.future)
-    assert(msg.sentences.map(_.sentence) === sentences)
-    agent.close()
-    plotter.shutdown()
+  }
+
+  ignore("external unreliable TCP server") {
+    val serverUrl = FullUrl.ws(s"localhost:$port", reverse.boats().toString)
+    val tcpHost = "127.0.0.1"
+    val tcpPort = 10104
+    val agent = BoatAgent(tcpHost, tcpPort, serverUrl)
+    try {
+      val done = agent.connect()
+      await(done, 30.seconds)
+    } finally {
+      agent.close()
+    }
   }
 
   ignore("unreliable plotter connection") {
+    // this test does not work due to nonexistent termination signals of the TCP server
+
     // the client validates maximum frame length, so we must not concatenate multiple sentences
-    val plotterOutput = Source(sentences.map(s => ByteString(s"$s${TcpClient.sentenceDelimiter}", StandardCharsets.US_ASCII)).toList)
+    val plotterOutput = Source(sentences.map(s => ByteString(s"$s${TcpSource.sentenceDelimiter}", StandardCharsets.US_ASCII)).toList)
 
     val tcpHost = "127.0.0.1"
     val tcpPort = 10104
     val incomingSink = Sink.foreach[IncomingConnection] { conn =>
       conn.flow.runWith(plotterOutput.concat(Source.maybe), Sink.foreach(msg => println(msg)))
     }
-    val plotter = Tcp().bind(tcpHost, tcpPort).viaMat(KillSwitches.single)(Keep.right).toMat(incomingSink)(Keep.left).run()
+    val server = Tcp().bind(tcpHost, tcpPort).toMat(incomingSink)(Keep.left).run()
+    val binding = await(server)
     val serverUrl = FullUrl.ws(s"localhost:$port", reverse.boats().toString)
     //    val serverUrl = FullUrl.wss("boat.malliina.com", reverse.boats().toString)
-    val agent = new BoatAgent(tcpHost, tcpPort, serverUrl)
+    val agent = BoatAgent(tcpHost, tcpPort, serverUrl)
     val p = Promise[JsValue]()
     val p2 = Promise[SentencesMessage]()
+    val p3 = Promise[SentencesMessage]()
     val sink = Sink.foreach[JsValue] { json =>
       p.trySuccess(json)
-      json.asOpt[SentencesMessage].foreach { sm => p2.trySuccess(sm) }
+      json.asOpt[SentencesMessage].foreach { sm => if (!p2.trySuccess(sm)) p3.trySuccess(sm) }
     }
-    val _ = openViewerSocket(sink, None)
-    agent.connect()
-    await(p.future)
-    val msg = await(p2.future)
-    assert(msg.sentences.map(_.sentence) === sentences)
-    agent.close()
-    plotter.shutdown()
+    openViewerSocket(sink, None) { _ =>
+      agent.connect()
+      await(p.future)
+      val msg = await(p2.future)
+      assert(msg.sentences.map(_.sentence) === sentences)
+      // Simulates loss of plotter connectivity
+      await(binding.unbind())
+      println("Plotter disconnected.")
+      val rePromise = Promise[Int]()
+      val incomingSinkAgain = Sink.foreach[IncomingConnection] { conn =>
+        println("TCP connection again.")
+        rePromise.trySuccess(1)
+        conn.flow.runWith(plotterOutput.concat(Source.maybe), Sink.foreach(msg => println(msg)))
+      }
+      val (serverAgain, _) = Tcp().bind(tcpHost, tcpPort).toMat(incomingSinkAgain)(Keep.both).run()
+      val bindingAgain = await(serverAgain)
+      println("Online again.")
+      try {
+        await(rePromise.future)
+      } finally {
+        await(bindingAgain.unbind())
+        agent.close()
+      }
+    }
+
   }
 }

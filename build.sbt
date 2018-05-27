@@ -89,6 +89,7 @@ lazy val clientSettings = commonSettings ++ Seq(
     "com.malliina" %% "primitives" % "1.5.2",
     "com.neovisionaries" % "nv-websocket-client" % "2.4",
     "org.slf4j" % "slf4j-api" % "1.7.25",
+    "com.malliina" %% "logback-rx" % "1.2.0",
     "com.typesafe.akka" %% "akka-stream" % "2.5.12",
     "com.typesafe.akka" %% "akka-http"   % "10.1.1",
     "org.scalatest" %% "scalatest" % "3.0.5" % Test

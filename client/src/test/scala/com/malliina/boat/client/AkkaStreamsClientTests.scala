@@ -7,7 +7,7 @@ import java.nio.file.{Files, Paths}
 import akka.actor.ActorSystem
 import akka.stream.scaladsl.Tcp.IncomingConnection
 import akka.stream.scaladsl.{Flow, Keep, Sink, Source, Tcp}
-import akka.stream.{ActorMaterializer, KillSwitches}
+import akka.stream.{ActorMaterializer, KillSwitches, StreamTcpException}
 import akka.util.ByteString
 import com.malliina.boat.{RawSentence, SentencesMessage}
 import com.malliina.http.FullUrl
@@ -16,12 +16,13 @@ import play.api.libs.json.Json
 
 import scala.collection.immutable.Iterable
 import scala.collection.mutable
-import scala.concurrent.duration.DurationInt
+import scala.concurrent.duration.{Duration, DurationInt}
 import scala.concurrent.{Await, Future, Promise}
 
 class AkkaStreamsClientTests extends FunSuite {
-  implicit val system = ActorSystem()
-  implicit val mater = ActorMaterializer()
+  implicit val as = ActorSystem()
+  implicit val mat = ActorMaterializer()
+  implicit val ec = mat.executionContext
 
   test("client receives sentences over TCP socket") {
     val sentences = Seq(
@@ -31,7 +32,7 @@ class AkkaStreamsClientTests extends FunSuite {
       "$GPGGA,125642,6009.2559,N,02447.5942,E,1,12,0.60,1,M,19.5,M,,*68"
     )
     // the client validates maximum frame length, so we must not concatenate multiple sentences
-    val plotterOutput = Source(sentences.map(s => ByteString(s"$s${TcpClient.sentenceDelimiter}", StandardCharsets.US_ASCII)).toList)
+    val plotterOutput = Source(sentences.map(s => ByteString(s"$s${TcpSource.sentenceDelimiter}", StandardCharsets.US_ASCII)).toList)
 
     // pretend-plotter
     val tcpHost = "127.0.0.1"
@@ -46,20 +47,78 @@ class AkkaStreamsClientTests extends FunSuite {
     val clientSink = Sink.foreach[SentencesMessage] { msg =>
       p.trySuccess(msg)
     }
-    val client = new TcpClient(tcpHost, tcpPort, clientSink)
+    val client = TcpSource(tcpHost, tcpPort)
     client.connect()
+    client.sentencesHub.runWith(clientSink)
     try {
       val received = await(p.future)
       assert(received.sentences === sentences.map(RawSentence.apply))
     } finally {
       plotter.shutdown()
+      client.close()
+    }
+  }
+
+  ignore("kill TCP server") {
+    // this test does not work because the client never gets a termination signal even when the TCP server is shut down
+    // TODO devise a fix
+    val tcpHost = "127.0.0.1"
+    val tcpPort = 10108
+    val client = TcpSource(tcpHost, tcpPort)
+
+    val tcpOut = Source.maybe[ByteString]
+    val established = Promise[IncomingConnection]()
+    val established2 = Promise[IncomingConnection]()
+    val incomingSink = Sink.foreach[IncomingConnection] { conn =>
+      if (!established.trySuccess(conn)) established2.trySuccess(conn)
+      val handler = Flow.fromSinkAndSourceCoupled(Sink.foreach[ByteString](msg => println(msg)), tcpOut)
+      //      conn.flow.joinMat(handler)(Keep.right).run()
+      conn.handleWith(handler)
+    }
+
+    def startServer() = Tcp().bind(tcpHost, tcpPort).toMat(incomingSink)(Keep.left).run()
+
+    val server = startServer()
+    val binding = await(server)
+    client.connect()
+
+    await(established.future)
+    await(binding.unbind())
+
+    // restores server, awaits reconnection
+    val server2 = startServer()
+    val binding2 = await(server2)
+    await(established2.future, 10.seconds)
+    await(binding2.unbind())
+  }
+
+  ignore("TCP client") {
+    val tcpHost = "127.0.0.1"
+    val tcpPort = 10110
+    val client = TcpSource(tcpHost, tcpPort)
+    val done = client.connect()
+    await(done, 30.seconds)
+  }
+
+  test("connection to unavailable server fails stream") {
+    val tcpHost = "127.0.0.1"
+    val tcpPort = 10109
+    val client = TcpSource(tcpHost, tcpPort)
+    val src = client.sentencesSource.watchTermination()(Keep.right).map(identity)
+    val completion = src.toMat(Sink.foreach(msg => println(msg)))(Keep.left).run()
+    try {
+      intercept[StreamTcpException] {
+        await(completion)
+      }
+    } finally {
+      client.close()
     }
   }
 
   ignore("receives sentences") {
     val jsons = mutable.Buffer[SentencesMessage]()
     val out = Sink.foreach[SentencesMessage](msg => jsons.append(msg))
-    val client = new TcpSource("192.168.0.11", 10110)
+    val client = TcpSource("192.168.0.11", 10110)
     val _ = client.sentencesSource.runWith(out)
     Thread.sleep(50000)
     Files.write(Paths.get("demo2.json"), Json.toBytes(Json.toJson(jsons)))
@@ -68,7 +127,7 @@ class AkkaStreamsClientTests extends FunSuite {
 
   ignore("receive-send locally") {
     val url = FullUrl.ws("localhost:9000", "/ws/boats")
-    val agent = new BoatAgent("192.168.0.11", 10110, url)
+    val agent = BoatAgent("192.168.0.11", 10110, url)
     agent.connect()
     Thread.sleep(300000)
   }
@@ -87,7 +146,8 @@ class AkkaStreamsClientTests extends FunSuite {
       socket.sendMessage(s)
     }
     val out = Sink.foreach[SentencesMessage](msg => socket.sendMessage(msg))
-    val client = new TcpClient("192.168.0.11", 10110, out)
+    val client = TcpSource("192.168.0.11", 10110)
+    client.sentencesSource.runWith(out)
     client.connect()
     Thread.sleep(5000)
   }
@@ -107,8 +167,9 @@ class AkkaStreamsClientTests extends FunSuite {
       val p = if (p1.isCompleted) p2 else p1
       p.trySuccess(msg)
     }
-    val client = new TcpClient(localHost, localPort, out)
+    val client = TcpSource(localHost, localPort)
     client.connect()
+    client.sentencesSource.runWith(out)
     val expected = SentencesMessage(testSentences.toList.map(RawSentence.apply))
     val actual = await(p1.future)
     assert(expected === actual)
@@ -116,5 +177,5 @@ class AkkaStreamsClientTests extends FunSuite {
     assert(expected === actual2)
   }
 
-  def await[T](f: Future[T]): T = Await.result(f, 10.seconds)
+  def await[T](f: Future[T], duration: Duration = 3.seconds): T = Await.result(f, duration)
 }

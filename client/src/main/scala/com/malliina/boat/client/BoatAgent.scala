@@ -1,35 +1,47 @@
 package com.malliina.boat.client
 
-import akka.Done
 import akka.actor.ActorSystem
 import akka.stream.Materializer
-import com.malliina.boat.{BoatName, User}
+import akka.{Done, NotUsed}
+import com.malliina.boat.BoatToken
+import com.malliina.boat.client.BoatAgent.Conf
 import com.malliina.http.FullUrl
 
 import scala.concurrent.Future
 
 object BoatAgent {
+  def apply(host: String, port: Int, url: FullUrl)(implicit as: ActorSystem, mat: Materializer): BoatAgent =
+    new BoatAgent(Conf(host, port, url, None))
+
   def prod(host: String, port: Int, as: ActorSystem, mat: Materializer): BoatAgent =
-    new BoatAgent(host, port, FullUrl.wss("boat.malliina.com", "/ws/boats"))(as, mat)
+    apply(host, port, FullUrl.wss("boat.malliina.com", "/ws/boats"))(as, mat)
 
-  case class Conf(plotterIp: String, plotterPort: Int, boat: BoatName, user: User, pass: String)
-
+  case class Conf(plotterIp: String, plotterPort: Int, serverUrl: FullUrl, token: Option[BoatToken])
 }
 
-/**
-  * @param plotterIp   plotter IP
-  * @param plotterPort plotter TCP port
-  * @param server      boat server WebSocket URL
+/** Connects a TCP source to a WebSocket.
+  *
+  * @param conf agent conf
   */
-class BoatAgent(plotterIp: String, plotterPort: Int, server: FullUrl)(implicit as: ActorSystem, mat: Materializer) {
-  val tcp = new TcpSource(plotterIp, plotterPort)
-  val ws = new WebSocketClient(server, Nil)
+class BoatAgent(conf: Conf)(implicit as: ActorSystem, mat: Materializer) {
+  val tcp = TcpSource(conf.plotterIp, conf.plotterPort)
+  val ws = WebSocketClient(conf.serverUrl, Nil, as, mat)
 
   /** Opens a TCP connection to the plotter and a WebSocket to the server. Reconnects on failures.
     *
     * @return a Future that completes when the connection has closed and no more reconnects are attempted
     */
-  def connect(): Future[Done] = ws.connect(tcp.sentencesSource)
+  def connect(): Future[Done] = {
+    tcp.connect()
+    ws.connect(tcp.sentencesHub)
+  }
 
-  def close(): Unit = ws.close()
+  def connectDirect(): Future[Done] = {
+    ws.connect(tcp.sentencesSource.mapMaterializedValue(_ => NotUsed))
+  }
+
+  def close(): Unit = {
+    tcp.close()
+    ws.close()
+  }
 }

@@ -23,20 +23,22 @@ class ManualBoatTests extends BoatTests {
 
   ignore("local GPS reporting") {
     val testMessages = gpsSentences.toList.grouped(1000).map(SentencesMessage.apply).toList
-    val boat = openBoat(url, BoatNames.random())
-    testMessages.foreach { msg =>
-      println(s"Sending $testMessages...")
-      boat.send(msg)
-      println(s"Sent $testMessages")
+    openBoat(url, BoatNames.random()) { boat =>
+      testMessages.foreach { msg =>
+        println(s"Sending $testMessages...")
+        boat.send(msg)
+        println(s"Sent $testMessages")
+      }
     }
   }
 
   ignore("slow GPS reporting") {
     val testMessages = gpsSentences.toList.grouped(10).map(SentencesMessage.apply).take(100).toList
-    val boat = openBoat(url, BoatNames.random())
-    testMessages.foreach { msg =>
-      boat.send(msg)
-      Thread.sleep(1000)
+    openBoat(url, BoatNames.random()) { boat =>
+      testMessages.foreach { msg =>
+        boat.send(msg)
+        Thread.sleep(1000)
+      }
     }
   }
 }
