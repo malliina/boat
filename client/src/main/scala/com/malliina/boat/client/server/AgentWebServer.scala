@@ -2,7 +2,6 @@ package com.malliina.boat.client.server
 
 import java.nio.charset.StandardCharsets
 import java.nio.file.{Files, Path, Paths}
-import java.util.concurrent.atomic.AtomicReference
 
 import akka.Done
 import akka.actor.ActorSystem
@@ -26,24 +25,22 @@ import scala.concurrent.Await
 import scala.concurrent.duration.DurationInt
 import scala.util.Try
 
-// TODO fix this
-
 object AgentInstance {
   def apply(initial: BoatConf)(implicit as: ActorSystem, mat: Materializer): AgentInstance =
     new AgentInstance(initial)
 }
 
 class AgentInstance(initialConf: BoatConf)(implicit as: ActorSystem, mat: Materializer) {
-  val conf = new AtomicReference[BoatConf](initialConf)
-  val agent = new AtomicReference[BoatAgent](BoatAgent.prod(conf.get()))
+  private var conf = initialConf
+  private var agent = BoatAgent.prod(conf)
 
   def updateIfNecessary(newConf: BoatConf): Boolean = synchronized {
-    if (newConf != conf.get()) {
-      conf.set(newConf)
-      val oldAgent = agent.get()
+    if (newConf != conf) {
+      conf = newConf
+      val oldAgent = agent
       oldAgent.close()
       val newAgent = BoatAgent.prod(newConf)
-      agent.set(newAgent)
+      agent = newAgent
       if (newConf.enabled) {
         newAgent.connect()
       }
