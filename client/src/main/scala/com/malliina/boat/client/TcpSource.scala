@@ -13,7 +13,6 @@ import com.malliina.boat.client.TcpSource.{log, sentenceDelimiter}
 import com.malliina.boat.{RawSentence, SentencesMessage}
 
 import scala.concurrent.Future
-import scala.concurrent.duration.DurationInt
 
 object TcpSource {
   private val log = Logging(getClass)

@@ -15,13 +15,12 @@ import com.malliina.boat.client.WebSocketClient.log
 import com.malliina.http.FullUrl
 import play.api.libs.json.{JsValue, Json, Writes}
 
-import scala.concurrent.duration.DurationInt
 import scala.concurrent.{Future, Promise}
 
 object WebSocketClient {
   private val log = Logging(getClass)
 
-  val ProdUrl = FullUrl.https("boat.malliina.com", "/ws/boats")
+  val ProdUrl = FullUrl.wss("boat.malliina.com", "/ws/boats")
 
   def apply(url: FullUrl, headers: List[KeyValue], as: ActorSystem, mat: Materializer): WebSocketClient =
     new WebSocketClient(url, headers)(as, mat)
@@ -31,6 +30,7 @@ object WebSocketClient {
 }
 
 class WebSocketClient(url: FullUrl, headers: List[KeyValue])(implicit as: ActorSystem, mat: Materializer) {
+  log.info(s"Using '$url'.")
   val validHeaders = headers.map(kv => HttpHeader.parse(kv.key, kv.value)).collect {
     case Ok(header, _) => header
   }

@@ -9,6 +9,7 @@ import akka.stream.scaladsl.Tcp.IncomingConnection
 import akka.stream.scaladsl.{Flow, Keep, Sink, Source, Tcp}
 import akka.stream.{ActorMaterializer, KillSwitches, StreamTcpException}
 import akka.util.ByteString
+import com.malliina.boat.client.server.BoatConf
 import com.malliina.boat.{RawSentence, SentencesMessage}
 import com.malliina.http.FullUrl
 import org.scalatest.FunSuite
@@ -16,7 +17,7 @@ import play.api.libs.json.Json
 
 import scala.collection.immutable.Iterable
 import scala.collection.mutable
-import scala.concurrent.duration.{Duration, DurationInt}
+import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, Future, Promise}
 
 class AkkaStreamsClientTests extends FunSuite {
@@ -127,7 +128,7 @@ class AkkaStreamsClientTests extends FunSuite {
 
   ignore("receive-send locally") {
     val url = FullUrl.ws("localhost:9000", "/ws/boats")
-    val agent = BoatAgent("192.168.0.11", 10110, url)
+    val agent = BoatAgent(BoatConf.anon("192.168.0.11", 10110), url)
     agent.connect()
     Thread.sleep(300000)
   }

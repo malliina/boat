@@ -1,5 +1,8 @@
 import com.malliina.sbtplay.PlayProject
 
+import scala.sys.process.Process
+import scala.util.Try
+
 val utilPlayDep = "com.malliina" %% "util-play" % "4.12.2"
 
 parallelExecution in ThisBuild := false
@@ -26,6 +29,7 @@ lazy val crossJs = cross.js
 lazy val client = project.in(file("client"))
   .settings(clientSettings: _*)
   .dependsOn(crossJvm)
+  .enablePlugins(JavaServerAppPackaging, DebianPlugin)
 
 lazy val it = Project("integration-tests", file("boat-test"))
   .settings(testSettings: _*)
@@ -50,8 +54,8 @@ lazy val backendSettings = playSettings ++ Seq(
   pipelineStages := Seq(digest, gzip),
   scalaJSProjects := Seq(frontend),
   pipelineStages in Assets := Seq(scalaJSPipeline),
-  buildInfoKeys := Seq[BuildInfoKey](name, version, scalaVersion),
-  buildInfoPackage := "com.malliina.reverse",
+  buildInfoKeys := Seq[BuildInfoKey](name, version, scalaVersion, "gitHash" -> gitHash),
+  buildInfoPackage := "com.malliina.boat",
   // linux packaging
   httpPort in Linux := Option("8465"),
   httpsPort in Linux := Option("disabled"),
@@ -94,6 +98,7 @@ lazy val clientSettings = commonSettings ++ Seq(
     "com.typesafe.akka" %% "akka-http"   % "10.1.1",
     "com.typesafe.akka" %% "akka-http-spray-json" % "10.1.1",
     "com.lihaoyi" %% "scalatags" % "0.6.7",
+    "commons-codec" % "commons-codec" % "1.11",
     "org.scalatest" %% "scalatest" % "3.0.5" % Test
   )
 )
@@ -122,3 +127,6 @@ lazy val commonSettings = Seq(
     Resolver.mavenLocal
   )
 )
+
+def gitHash: String =
+  Try(Process("git rev-parse --short HEAD").lineStream.head).toOption.getOrElse("unknown")

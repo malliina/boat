@@ -13,7 +13,8 @@ Seq(
   "com.typesafe.sbt" % "sbt-digest" % "1.1.4",
   "com.typesafe.sbt" % "sbt-less" % "1.1.2",
   "org.scala-js" % "sbt-scalajs" % "0.6.22",
-  "com.vmunier" % "sbt-web-scalajs" % "1.0.6"
+  "com.vmunier" % "sbt-web-scalajs" % "1.0.6",
+  "com.typesafe.sbt" % "sbt-native-packager" % "1.3.4"
 ) map addSbtPlugin
 
 dependencyOverrides ++= Seq(

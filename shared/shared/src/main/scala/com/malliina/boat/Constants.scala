@@ -3,10 +3,10 @@ package com.malliina.boat
 object Constants extends Constants
 
 trait Constants {
-
   val TokenCookieName = "mapboxToken"
 
   val BoatNameHeader = "X-Boat"
+  val BoatTokenHeader = "X-Token"
   val TrackNameHeader = "X-Track"
 }
 

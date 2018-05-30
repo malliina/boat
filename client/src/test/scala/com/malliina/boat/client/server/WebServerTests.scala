@@ -22,14 +22,18 @@ class WebServerTests extends FunSuite {
   }
 
   test("get") {
-    val server = WebServer("127.0.0.1", 0)
+    val server = WebServer("127.0.0.1", 0, AgentInstance(BoatConf.empty))
     val testServer = Http().bindAndHandle(server.routes, "127.0.0.1", 0)
     val binding = await(testServer)
 
     def urlTo(path: String) = s"http://${binding.localAddress.getHostString}:${binding.localAddress.getPort}$path"
 
-    val res = await(Http().singleRequest(HttpRequest(method = HttpMethods.GET, uri = urlTo("/hello"))))
-    assert(res.status === StatusCodes.OK)
+    val res = await(Http().singleRequest(HttpRequest(method = HttpMethods.GET, uri = urlTo(WebServer.settingsUri))))
+    assert(res.status === StatusCodes.Unauthorized)
+  }
+
+  test("initial pass hash") {
+    assert(WebServer.hash("boat") === WebServer.defaultHash)
   }
 
   def await[T](f: Future[T], duration: Duration = 3.seconds): T = Await.result(f, duration)

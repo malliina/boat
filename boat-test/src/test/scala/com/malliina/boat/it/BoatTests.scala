@@ -10,7 +10,6 @@ import com.malliina.boat._
 import com.malliina.boat.client.{HttpUtil, KeyValue, WebSocketClient}
 import com.malliina.http.FullUrl
 import com.malliina.play.models.Password
-import controllers.BoatController
 import org.scalatest.FunSuite
 import play.api.ApplicationLoader.Context
 import play.api.BuiltInComponents
@@ -69,7 +68,7 @@ trait BoatSockets {
     val authHeaders = creds.map { c =>
       KeyValue(HttpUtil.Authorization, HttpUtil.authorizationValue(c.user, c.pass.pass))
     }.toList
-    val boatHeader = KeyValue(BoatController.BoatNameHeader, boat.name)
+    val boatHeader = KeyValue(Constants.BoatNameHeader, boat.name)
     val client = WebSocketClient(url, authHeaders :+ boatHeader, as, mat)
     try {
       client.connectJson(in, out)

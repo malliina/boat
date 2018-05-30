@@ -5,6 +5,13 @@ import java.time.Instant
 import play.api.http.Writeable
 import play.api.libs.json._
 
+case class AppMeta(name: String, version: String, gitHash: String)
+
+object AppMeta {
+  implicit val json = Json.format[AppMeta]
+  val default = AppMeta(BuildInfo.name, BuildInfo.version, BuildInfo.gitHash)
+}
+
 case class BoatEvent(message: JsValue, from: BoatInfo)
 
 object BoatEvent {

@@ -1,5 +1,6 @@
 package com.malliina.boat.client
 
+import java.nio.charset.StandardCharsets
 import java.util.Base64
 
 import com.malliina.boat.User
@@ -11,5 +12,5 @@ object HttpUtil {
     KeyValue(HttpUtil.Authorization, authorizationValue(username, password))
 
   def authorizationValue(username: User, password: String) =
-    "Basic " + Base64.getEncoder.encodeToString(s"$username:$password".getBytes("UTF-8"))
+    "Basic " + Base64.getEncoder.encodeToString(s"$username:$password".getBytes(StandardCharsets.UTF_8))
 }

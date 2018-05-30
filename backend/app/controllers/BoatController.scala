@@ -6,6 +6,7 @@ import akka.NotUsed
 import akka.actor.ActorSystem
 import akka.stream.Materializer
 import akka.stream.scaladsl.{BroadcastHub, Flow, Keep, MergeHub, Sink, Source}
+import com.malliina.boat.Constants.{BoatNameHeader, BoatTokenHeader}
 import com.malliina.boat._
 import com.malliina.boat.db.{TracksSource, UserManager}
 import com.malliina.boat.parsing.BoatParser.{parseCoords, read}
@@ -13,9 +14,9 @@ import com.malliina.concurrent.ExecutionContexts.cached
 import com.malliina.play.auth.Auth
 import com.malliina.play.models.Username
 import controllers.Assets.Asset
-import controllers.BoatController.{BoatNameHeader, BoatTokenHeader, anonUser, log}
+import controllers.BoatController.{anonUser, log}
 import play.api.Logger
-import play.api.libs.json.JsValue
+import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.WebSocket.MessageFlowTransformer.jsonMessageFlowTransformer
 import play.api.mvc._
 
@@ -24,10 +25,6 @@ import scala.concurrent.duration.DurationInt
 
 object BoatController {
   private val log = Logger(getClass)
-
-  val BoatNameHeader = "X-Boat"
-  val BoatTokenHeader = "X-Token"
-  val TrackNameHeader = "X-Track"
 
   val anonUser = User("anon")
 }
@@ -65,15 +62,20 @@ class BoatController(mapboxToken: AccessToken,
 
   def index = Action(Ok(html.map).withCookies(Cookie(Constants.TokenCookieName, mapboxToken.token, httpOnly = false)))
 
+  def health = Action(Ok(Json.toJson(AppMeta.default)))
+
   def boats = WebSocket { rh =>
     authBoat(rh).map { e =>
       e.map { boat =>
         // adds metadata to messages from boats
-        val transformer = jsonMessageFlowTransformer.map[BoatEvent, JsValue](
+        val transformer = jsonMessageFlowTransformer.map[BoatEvent, FrontEvent](
           json => BoatEvent(json, boat),
-          out => out
+          out => Json.toJson(out)
         )
-        transformer.transform(Flow.fromSinkAndSource(boatSink, Source.maybe[JsValue]))
+        val flow: Flow[BoatEvent, PingEvent, NotUsed] = Flow.fromSinkAndSource(boatSink, Source.maybe[PingEvent])
+          .keepAlive(10.seconds, () => PingEvent(Instant.now.toEpochMilli))
+          .backpressureTimeout(3.seconds)
+        transformer.transform(flow)
       }
     }
   }

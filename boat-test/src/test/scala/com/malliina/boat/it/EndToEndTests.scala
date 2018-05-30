@@ -7,6 +7,7 @@ import akka.stream.scaladsl.Tcp.IncomingConnection
 import akka.stream.scaladsl.{Keep, Sink, Source, Tcp}
 import akka.util.ByteString
 import com.malliina.boat.SentencesMessage
+import com.malliina.boat.client.server.BoatConf
 import com.malliina.boat.client.{BoatAgent, TcpSource}
 import com.malliina.http.FullUrl
 import play.api.libs.json.JsValue
@@ -33,7 +34,7 @@ class EndToEndTests extends BoatTests {
     val (server, plotter) = Tcp().bind(tcpHost, tcpPort).viaMat(KillSwitches.single)(Keep.both).toMat(incomingSink)(Keep.left).run()
     await(server)
     val serverUrl = FullUrl.ws(s"localhost:$port", reverse.boats().toString)
-    val agent = BoatAgent(tcpHost, tcpPort, serverUrl)
+    val agent = BoatAgent(BoatConf.anon(tcpHost, tcpPort), serverUrl)
     try {
       val p = Promise[JsValue]()
       val p2 = Promise[SentencesMessage]()
@@ -56,9 +57,8 @@ class EndToEndTests extends BoatTests {
 
   ignore("external unreliable TCP server") {
     val serverUrl = FullUrl.ws(s"localhost:$port", reverse.boats().toString)
-    val tcpHost = "127.0.0.1"
-    val tcpPort = 10104
-    val agent = BoatAgent(tcpHost, tcpPort, serverUrl)
+    val conf = BoatConf.anon("127.0.0.1", 10104)
+    val agent = BoatAgent(conf, serverUrl)
     try {
       val done = agent.connect()
       await(done, 30.seconds)
@@ -82,7 +82,7 @@ class EndToEndTests extends BoatTests {
     val binding = await(server)
     val serverUrl = FullUrl.ws(s"localhost:$port", reverse.boats().toString)
     //    val serverUrl = FullUrl.wss("boat.malliina.com", reverse.boats().toString)
-    val agent = BoatAgent(tcpHost, tcpPort, serverUrl)
+    val agent = BoatAgent(BoatConf.anon(tcpHost, tcpPort), serverUrl)
     val p = Promise[JsValue]()
     val p2 = Promise[SentencesMessage]()
     val p3 = Promise[SentencesMessage]()

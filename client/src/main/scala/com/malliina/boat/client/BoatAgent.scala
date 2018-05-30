@@ -3,30 +3,27 @@ package com.malliina.boat.client
 import akka.actor.ActorSystem
 import akka.stream.Materializer
 import akka.{Done, NotUsed}
-import com.malliina.boat.BoatToken
-import com.malliina.boat.client.BoatAgent.Conf
+import com.malliina.boat.Constants.BoatTokenHeader
+import com.malliina.boat.client.server.BoatConf
 import com.malliina.http.FullUrl
 
 import scala.concurrent.Future
 
 object BoatAgent {
-  def apply(host: String, port: Int, url: FullUrl)(implicit as: ActorSystem, mat: Materializer): BoatAgent =
-    new BoatAgent(Conf(host, port, url, None))
+  def prod(conf: BoatConf)(implicit as: ActorSystem, mat: Materializer): BoatAgent =
+    apply(conf, WebSocketClient.ProdUrl)
 
-  def prod(host: String, port: Int, as: ActorSystem, mat: Materializer): BoatAgent =
-    apply(host, port, FullUrl.wss("boat.malliina.com", "/ws/boats"))(as, mat)
-
-  case class Conf(plotterIp: String, plotterPort: Int, serverUrl: FullUrl, token: Option[BoatToken])
-
+  def apply(conf: BoatConf, url: FullUrl)(implicit as: ActorSystem, mat: Materializer): BoatAgent =
+    new BoatAgent(conf, url)
 }
 
 /** Connects a TCP source to a WebSocket.
   *
   * @param conf agent conf
   */
-class BoatAgent(conf: Conf)(implicit as: ActorSystem, mat: Materializer) {
-  val tcp = TcpSource(conf.plotterIp, conf.plotterPort)
-  val ws = WebSocketClient(conf.serverUrl, Nil, as, mat)
+class BoatAgent(conf: BoatConf, serverUrl: FullUrl)(implicit as: ActorSystem, mat: Materializer) {
+  val tcp = TcpSource(conf.host, conf.port)
+  val ws = WebSocketClient(serverUrl, conf.token.map { t => KeyValue(BoatTokenHeader, t.token) }.toList, as, mat)
 
   /** Opens a TCP connection to the plotter and a WebSocket to the server. Reconnects on failures.
     *
