@@ -110,6 +110,10 @@ lazy val clientSettings = commonSettings ++ Seq(
     "com.lihaoyi" %% "scalatags" % "0.6.7",
     "commons-codec" % "commons-codec" % "1.11",
     "org.scalatest" %% "scalatest" % "3.0.5" % Test
+  ),
+  dependencyOverrides ++= Seq(
+    "com.typesafe.akka" %% "akka-http-core" % "10.1.1",
+    "com.typesafe.akka" %% "akka-parsing" % "10.1.1"
   )
 )
 

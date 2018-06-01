@@ -1,12 +1,10 @@
 package com.malliina.boat.client.server
 
 import java.nio.charset.StandardCharsets
-import java.nio.file.{Files, Path, Paths}
 
 import akka.Done
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
-import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.directives.Credentials
@@ -14,16 +12,11 @@ import akka.http.scaladsl.server.directives.Credentials.Provided
 import akka.http.scaladsl.unmarshalling.Unmarshaller
 import akka.stream.{ActorMaterializer, Materializer}
 import com.malliina.boat.BoatToken
-import com.malliina.boat.client.server.WebServer.{boatCharset, defaultHash, hash, log}
 import com.malliina.boat.client.{BoatAgent, Logging}
 import org.apache.commons.codec.digest.DigestUtils
-import scalatags.Text
-import spray.json.{DefaultJsonProtocol, JsString, JsValue, JsonFormat}
 
-import scala.collection.JavaConverters.asScalaBufferConverter
 import scala.concurrent.Await
 import scala.concurrent.duration.DurationInt
-import scala.util.Try
 
 object AgentInstance {
   def apply(initial: BoatConf)(implicit as: ActorSystem, mat: Materializer): AgentInstance =
@@ -33,6 +26,9 @@ object AgentInstance {
 class AgentInstance(initialConf: BoatConf)(implicit as: ActorSystem, mat: Materializer) {
   private var conf = initialConf
   private var agent = BoatAgent.prod(conf)
+  if (initialConf.enabled) {
+    agent.connect()
+  }
 
   def updateIfNecessary(newConf: BoatConf): Boolean = synchronized {
     if (newConf != conf) {
@@ -58,63 +54,6 @@ object AgentWebServer {
 
     val agentManager = new AgentInstance(AgentSettings.readConf())
     WebServer("0.0.0.0", 8080, agentManager)
-  }
-}
-
-case class BoatConf(host: String, port: Int, token: Option[BoatToken], enabled: Boolean) {
-  def describe = s"$host:$port-$enabled"
-}
-
-object BoatConf {
-  val empty = BoatConf("", 0, None, enabled = false)
-
-  def anon(host: String, port: Int) = BoatConf(host, port, None, enabled = true)
-}
-
-trait JsonSupport extends SprayJsonSupport with DefaultJsonProtocol {
-
-  implicit object tokenFormat extends JsonFormat[BoatToken] {
-    override def write(obj: BoatToken): JsValue = JsString(obj.token)
-
-    override def read(json: JsValue): BoatToken = BoatToken(StringJsonFormat.read(json))
-  }
-
-  implicit val confFormat = jsonFormat4(BoatConf.apply)
-}
-
-object AgentSettings extends JsonSupport {
-
-  import spray.json.enrichString
-
-  val passFile = file("pass.md5")
-  val confFile = file("boat.conf")
-
-  def file(name: String) = confDir.resolve(name)
-
-  def confDir = sys.props.get("conf.dir").map(s => Paths.get(s)).getOrElse(Files.createTempDirectory("boat-"))
-
-  def readPass: String =
-    if (Files.exists(passFile)) Files.readAllLines(passFile).asScala.headOption.getOrElse(defaultHash)
-    else defaultHash
-
-  def savePass(pass: String): Unit = save(hash(pass), passFile)
-
-  def readConf(): BoatConf =
-    if (Files.exists(confFile))
-      Try(new String(Files.readAllBytes(confFile), StandardCharsets.UTF_8).parseJson.convertTo[BoatConf]).getOrElse(BoatConf.empty)
-    else
-      BoatConf.empty
-
-  def saveConf(conf: BoatConf): Unit = save(confFormat.write(conf).prettyPrint, confFile)
-
-  def saveAndReload(conf: BoatConf, instance: AgentInstance): Boolean = {
-    saveConf(conf)
-    instance.updateIfNecessary(conf)
-  }
-
-  def save(content: String, to: Path): Unit = {
-    Files.write(to, content.getBytes(boatCharset))
-    log.info(s"Wrote $to.")
   }
 }
 
@@ -189,6 +128,12 @@ class WebServer(host: String, port: Int, agentInstance: AgentInstance)(implicit 
     getFromResourceDirectory("assets")
   )
 
+  val binding = Http().bindAndHandle(routes, host, port)
+
+  binding.foreach { _ =>
+    log.info(s"Listening on $host:$port")
+  }
+
   def initialAuth(credentials: Credentials): Option[String] =
     credentials match {
       case p@Credentials.Provided(user) if isValid(p) => Option(user)
@@ -205,62 +150,7 @@ class WebServer(host: String, port: Int, agentInstance: AgentInstance)(implicit 
   def isValid(provided: Provided): Boolean =
     defaultHash != readPass && provided.identifier == boatUser && provided.verify(readPass, WebServer.hash)
 
-  val binding = Http().bindAndHandle(routes, host, port)
-
-  binding.foreach { _ =>
-    log.info(s"Listening on $host:$port")
-  }
-
   def stop(): Unit = {
     Await.result(binding.flatMap(_.unbind()).recover { case _ => Done }, 5.seconds)
-  }
-}
-
-object AgentHtml {
-
-  import scalatags.Text.all._
-
-  val empty = stringFrag("")
-
-  def boatForm(conf: BoatConf) = form(action := WebServer.settingsUri, method := "post")(
-    h2("Settings"),
-    div(`class` := "form-field")(
-      label(`for` := "host")("Host"),
-      input(`type` := "text", name := "host", id := "host", value := conf.host)
-    ),
-    div(`class` := "form-field")(
-      label(`for` := "port")("Port"),
-      input(`type` := "number", name := "port", id := "port", value := conf.port)
-    ),
-    div(`class` := "form-field")(
-      label(`for` := "token")("Token"),
-      input(`type` := "text", name := "token", id := "token", conf.token.map(v => value := v.token).getOrElse(empty))
-    ),
-    div(`class` := "form-field")(
-      label(`for` := "enabled")("Enabled"),
-      input(`type` := "checkbox", name := "enabled", id := "enabled", if (conf.enabled) checked else empty)
-    ),
-    div(`class` := "form-field")(
-      button(`type` := "submit")("Save")
-    )
-  )
-
-  def changePassForm = form(action := WebServer.changePassUri, method := "post")(
-    h2("Set password"),
-    div(`class` := "form-field")(
-      label(`for` := "pass")("Password"),
-      input(`type` := "password", name := "pass", id := "pass")
-    ),
-    div(`class` := "form-field")(
-      button(`type` := "submit")("Save")
-    )
-  )
-
-  def asHtml(content: Text.TypedTag[String]): HttpEntity.Strict = {
-    val payload = html(
-      head(link(rel := "stylesheet", href := "/css/boat.css")),
-      body(content)
-    )
-    HttpEntity(ContentTypes.`text/html(UTF-8)`, payload.render)
   }
 }
