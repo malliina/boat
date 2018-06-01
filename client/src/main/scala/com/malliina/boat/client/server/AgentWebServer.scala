@@ -57,7 +57,7 @@ object AgentWebServer {
     implicit val materializer = ActorMaterializer()
 
     val agentManager = new AgentInstance(AgentSettings.readConf())
-    WebServer("localhost", 8080, agentManager)
+    WebServer("0.0.0.0", 8080, agentManager)
   }
 }
 
