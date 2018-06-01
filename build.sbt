@@ -29,7 +29,7 @@ lazy val crossJs = cross.js
 lazy val client = project.in(file("client"))
   .settings(clientSettings: _*)
   .dependsOn(crossJvm)
-  .enablePlugins(JavaServerAppPackaging, DebianPlugin)
+  .enablePlugins(JavaServerAppPackaging, DebianPlugin, SystemdPlugin)
 
 lazy val it = Project("integration-tests", file("boat-test"))
   .settings(testSettings: _*)
@@ -89,6 +89,7 @@ lazy val sharedSettings = commonSettings ++ Seq(
 )
 
 lazy val clientSettings = commonSettings ++ Seq(
+  name in Debian := "boat-agent",
   libraryDependencies ++= Seq(
     "com.malliina" %% "primitives" % "1.5.2",
     "com.neovisionaries" % "nv-websocket-client" % "2.4",
