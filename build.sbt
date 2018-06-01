@@ -89,7 +89,16 @@ lazy val sharedSettings = commonSettings ++ Seq(
 )
 
 lazy val clientSettings = commonSettings ++ Seq(
-  name in Debian := "boat-agent",
+  normalizedName := "boat-agent",
+  maintainer := "Michael Skogberg",
+  javaOptions in Universal ++= {
+    val linuxName = (normalizedName in Debian).value
+    Seq(s"-Dconf.dir=/usr/share/$linuxName/conf")
+  },
+  linuxPackageMappings += {
+    val linuxName = (normalizedName in Debian).value
+    packageTemplateMapping(s"/usr/share/$linuxName/conf")().withUser(daemonUser.value).withGroup(daemonUser.value)
+  },
   libraryDependencies ++= Seq(
     "com.malliina" %% "primitives" % "1.5.2",
     "com.neovisionaries" % "nv-websocket-client" % "2.4",
@@ -119,7 +128,7 @@ lazy val playSettings = commonSettings ++ Seq(
 
 lazy val commonSettings = Seq(
   organization := "com.malliina",
-  version := "0.0.1",
+  version := "0.0.2",
   scalaVersion := "2.12.6",
   scalacOptions := Seq("-unchecked", "-deprecation"),
   resolvers ++= Seq(

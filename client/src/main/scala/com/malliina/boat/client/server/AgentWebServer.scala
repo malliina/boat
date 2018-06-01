@@ -84,12 +84,14 @@ trait JsonSupport extends SprayJsonSupport with DefaultJsonProtocol {
 
 object AgentSettings extends JsonSupport {
 
-  import spray.json._
+  import spray.json.enrichString
 
   val passFile = file("pass.md5")
   val confFile = file("boat.conf")
 
-  def file(name: String) = Paths.get(name)
+  def file(name: String) = confDir.resolve(name)
+
+  def confDir = sys.props.get("conf.dir").map(s => Paths.get(s)).getOrElse(Files.createTempDirectory("boat-"))
 
   def readPass: String =
     if (Files.exists(passFile)) Files.readAllLines(passFile).asScala.headOption.getOrElse(defaultHash)
