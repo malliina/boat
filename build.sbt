@@ -119,9 +119,10 @@ lazy val clientSettings = commonSettings ++ Seq(
   ),
   buildAndUpload := {
     val debFile = (packageBin in Debian).value
-    S3Client.upload(debFile.toPath)
-    val url = FullUrl("https", "boat.malliina.com", s"/files/${debFile.name}")
+    val filename = S3Client.upload(debFile.toPath)
+    val url = FullUrl("https", "boat.malliina.com", s"/files/$filename")
     streams.value.log.info(s"Uploaded package to '$url'.")
+    url
   }
 )
 
