@@ -2,4 +2,6 @@ GET        /                    controllers.BoatController.index
 GET        /health              controllers.BoatController.health
 GET        /ws/updates          controllers.BoatController.updates
 GET        /ws/boats            controllers.BoatController.boats
+GET        /files               controllers.FileController.list
+GET        /files/*file         controllers.FileController.download(file)
 GET        /assets/*file        controllers.BoatController.versioned(path = "/public", file: Asset)

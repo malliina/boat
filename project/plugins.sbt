@@ -7,6 +7,8 @@ resolvers ++= Seq(
 
 scalacOptions ++= Seq("-unchecked", "-deprecation")
 
+libraryDependencies += "com.amazonaws" % "aws-java-sdk-s3" % "1.11.313"
+
 Seq(
   "com.malliina" % "sbt-play" % "1.2.2",
   "com.typesafe.sbt" % "sbt-gzip" % "1.0.2",

@@ -1,9 +1,13 @@
+import com.malliina.http.FullUrl
 import com.malliina.sbtplay.PlayProject
 
 import scala.sys.process.Process
 import scala.util.Try
 
 val utilPlayDep = "com.malliina" %% "util-play" % "4.12.2"
+
+val buildAndUpload = taskKey[FullUrl]("Uploads to S3")
+val upFiles = taskKey[Seq[String]]("lists")
 
 parallelExecution in ThisBuild := false
 
@@ -37,13 +41,14 @@ lazy val it = Project("integration-tests", file("boat-test"))
 
 lazy val backendSettings = playSettings ++ Seq(
   libraryDependencies ++= Seq(
-//    "net.sf.marineapi" % "marineapi" % "0.13.0-SNAPSHOT",
+    //    "net.sf.marineapi" % "marineapi" % "0.13.0-SNAPSHOT",
     "com.typesafe.slick" %% "slick" % "3.2.3",
     "com.h2database" % "h2" % "1.4.197",
     "org.mariadb.jdbc" % "mariadb-java-client" % "2.2.3",
     "com.zaxxer" % "HikariCP" % "3.1.0",
     "org.apache.commons" % "commons-text" % "1.3",
     "com.malliina" %% "logstreams-client" % "1.0.0",
+    "com.amazonaws" % "aws-java-sdk-s3" % "1.11.313",
     utilPlayDep,
     utilPlayDep % Test classifier "tests"
   ),
@@ -89,6 +94,7 @@ lazy val sharedSettings = commonSettings ++ Seq(
 )
 
 lazy val clientSettings = commonSettings ++ Seq(
+  name in Linux := "boat-agent",
   normalizedName := "boat-agent",
   maintainer := "Michael Skogberg",
   javaOptions in Universal ++= {
@@ -105,16 +111,18 @@ lazy val clientSettings = commonSettings ++ Seq(
     "org.slf4j" % "slf4j-api" % "1.7.25",
     "com.malliina" %% "logback-rx" % "1.2.0",
     "com.typesafe.akka" %% "akka-stream" % "2.5.12",
-    "com.typesafe.akka" %% "akka-http"   % "10.1.1",
+    "com.typesafe.akka" %% "akka-http" % "10.1.1",
     "com.typesafe.akka" %% "akka-http-spray-json" % "10.1.1",
     "com.lihaoyi" %% "scalatags" % "0.6.7",
     "commons-codec" % "commons-codec" % "1.11",
     "org.scalatest" %% "scalatest" % "3.0.5" % Test
   ),
-  dependencyOverrides ++= Seq(
-    "com.typesafe.akka" %% "akka-http-core" % "10.1.1",
-    "com.typesafe.akka" %% "akka-parsing" % "10.1.1"
-  )
+  buildAndUpload := {
+    val debFile = (packageBin in Debian).value
+    S3Client.upload(debFile.toPath)
+    val url = FullUrl("https", "boat.malliina.com", s"/files/${debFile.name}")
+    streams.value.log.info(s"Uploaded package to '$url'.")
+  }
 )
 
 lazy val testSettings = playSettings ++ Seq(
@@ -132,13 +140,17 @@ lazy val playSettings = commonSettings ++ Seq(
 
 lazy val commonSettings = Seq(
   organization := "com.malliina",
-  version := "0.0.2",
+  version := "0.0.3",
   scalaVersion := "2.12.6",
   scalacOptions := Seq("-unchecked", "-deprecation"),
   resolvers ++= Seq(
     Resolver.jcenterRepo,
     Resolver.bintrayRepo("malliina", "maven"),
     Resolver.mavenLocal
+  ),
+  dependencyOverrides ++= Seq(
+    "com.typesafe.akka" %% "akka-http-core" % "10.1.1",
+    "com.typesafe.akka" %% "akka-parsing" % "10.1.1"
   )
 )
 

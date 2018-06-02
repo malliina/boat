@@ -5,7 +5,7 @@ import java.nio.file.Paths
 import com.malliina.boat.db._
 import com.malliina.play.app.DefaultApp
 import com.typesafe.config.ConfigFactory
-import controllers.{AssetsComponents, BoatController}
+import controllers.{AssetsComponents, BoatController, FileController}
 import play.api.ApplicationLoader.Context
 import play.api.routing.Router
 import play.api.{BuiltInComponentsFromContext, Configuration}
@@ -35,8 +35,13 @@ class AppComponents(context: Context)
   val users: UserManager = DatabaseUserManager(schema, executionContext)
   val tracks: TracksSource = TracksDatabase(schema, executionContext)
   val mapboxToken = AccessToken(configuration.get[String]("boat.mapbox.token"))
+  val files = new FileController(
+    S3Client(),
+    new FileController.BlockingActions(actorSystem, controllerComponents.parsers.default),
+    controllerComponents
+  )
   val home = new BoatController(
     mapboxToken, html, users, tracks,
     controllerComponents, assets)(actorSystem, materializer)
-  override val router: Router = new Routes(httpErrorHandler, home)
+  override val router: Router = new Routes(httpErrorHandler, home, files)
 }
