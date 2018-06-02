@@ -18,22 +18,21 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext) extends 
   import db.api._
   import db.mappings._
 
-  case class Joined(sid: SentenceKey, sentence: RawSentence, boat: BoatId, boatName: BoatName, user: UserId, username: User)
+  case class Joined(sid: SentenceKey, sentence: RawSentence, track: TrackId, trackName: TrackName, boat: BoatId, boatName: BoatName, user: UserId, username: User)
 
-  case class LiftedJoined(sid: Rep[SentenceKey], sentence: Rep[RawSentence], boat: Rep[BoatId], boatName: Rep[BoatName], user: Rep[UserId], username: Rep[User])
+  case class LiftedJoined(sid: Rep[SentenceKey], sentence: Rep[RawSentence], track: Rep[TrackId], trackName: Rep[TrackName], boat: Rep[BoatId], boatName: Rep[BoatName], user: Rep[UserId], username: Rep[User])
 
   implicit object JoinedShape extends CaseClassShape(LiftedJoined.tupled, Joined.tupled)
 
-  val sentencesView: Query[LiftedJoined, Joined, Seq] = sentencesTable.join(boatsView).on(_.boat === _.boat)
-    .map { case (ss, bs) => LiftedJoined(ss.id, ss.sentence, bs.boat, bs.boatName, bs.user, bs.username) }
+  val sentencesView: Query[LiftedJoined, Joined, Seq] = sentencesTable.join(tracksView).on(_.track === _.track)
+    .map { case (ss, bs) => LiftedJoined(ss.id, ss.sentence, bs.track, bs.trackName, bs.boat, bs.boatName, bs.user, bs.username) }
 
-  override def registerBoat(meta: BoatMeta): Future[BoatRow] = {
+  override def join(meta: BoatMeta): Future[JoinedTrack] =
     db.run(boatId(meta))
-  }
 
   override def saveSentences(sentences: SentencesEvent): Future[Seq[SentenceKey]] = {
     val from = sentences.from
-    val action = db.sentenceInserts ++= sentences.sentences.map { s => SentenceInput(s, sentences.from.boatId) }
+    val action = db.sentenceInserts ++= sentences.sentences.map { s => SentenceInput(s, sentences.from.track) }
     db.run(action).map { keys =>
       log.info(s"Inserted ${keys.length} sentences from '${from.boat}' owned by '${from.user}'.")
       keys
@@ -52,28 +51,55 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext) extends 
     }
   }
 
-  private def boatId(from: BoatMeta) = {
-    boatsTable.filter(_.name === from.boat).join(usersTable.filter(_.user === from.user)).on(_.owner === _.id).map(_._1).result.headOption.flatMap { maybeBoat =>
-      maybeBoat.map { boat =>
-        DBIO.successful(boat)
+  private def boatId(from: BoatMeta) =
+    tracksView.filter(t => t.username === from.user && t.boatName === from.boat && t.trackName === from.track).result.headOption.flatMap { maybeTrack =>
+      maybeTrack.map { track =>
+        DBIO.successful(track)
       }.getOrElse {
-        boatsTable.filter(b => b.name === from.boat).exists.result.flatMap { exists =>
-          if (exists) DBIO.failed(new Exception(s"Boat name '${from.boat}' is already taken and therefore not available for '${from.user}'."))
-          else saveBoat(from)
-        }
+        prepareBoat(from)
       }
     }.transactionally
-  }
 
-  private def saveBoat(from: BoatMeta) = {
-    val action = for {
-      user <- db.first(usersTable.filter(_.user === from.user).map(_.id), s"User not found: '${from.user}'.")
+  private def prepareBoat(from: BoatMeta) =
+    for {
+      userRow <- db.first(usersTable.filter(_.user === from.user), s"User not found: '${from.user}'.")
+      user = userRow.id
+      maybeBoat <- boatsTable.filter(b => b.name === from.boat && b.owner === user).result.headOption
+      boatRow <- maybeBoat.map(b => DBIO.successful(b)).getOrElse(registerBoat(from, user))
+      boat = boatRow.id
+      track <- prepareTrack(from.track, boat)
+    } yield {
+      log.info(s"Prepared boat '${from.boat}' with ID '${boatRow.id}' for owner '${from.user}'.")
+      JoinedTrack(track.id, track.name, boat, boatRow.name, user, userRow.username)
+    }
+
+  def prepareTrack(trackName: TrackName, boat: BoatId) =
+    for {
+      maybeTrack <- tracksTable.filter(t => t.name === trackName && t.boat === boat).result.headOption
+      track <- maybeTrack.map(t => DBIO.successful(t)).getOrElse(saveTrack(trackName, boat))
+    } yield track
+
+  private def saveTrack(trackName: TrackName, boat: BoatId) =
+    for {
+      trackId <- trackInserts += TrackInput(trackName, boat)
+      track <- db.first(tracksTable.filter(_.id === trackId), s"Track not found: '$trackId'.")
+    } yield {
+      log.info(s"Registered track with ID '$trackId' for boat '$boat'.")
+      track
+    }
+
+  private def registerBoat(from: BoatMeta, user: UserId) =
+    boatsTable.filter(b => b.name === from.boat).exists.result.flatMap { exists =>
+      if (exists) DBIO.failed(new Exception(s"Boat name '${from.boat}' is already taken and therefore not available for '${from.user}'."))
+      else saveBoat(from, user)
+    }
+
+  private def saveBoat(from: BoatMeta, user: UserId) =
+    for {
       boatId <- boatInserts += BoatInput(from.boat, BoatTokens.random(), user)
       boat <- db.first(boatsTable.filter(_.id === boatId), s"Boat not found: '$boatId'.")
-    } yield boat
-    action.map { boat =>
-      log.info(s"Registered boat '${from.boat}' with ID '${boat.id}' for owner '${from.user}'.")
+    } yield {
+      log.info(s"Registered boat '${from.boat}' with ID '${boat.id}' owned by '${from.user}'.")
       boat
     }
-  }
 }

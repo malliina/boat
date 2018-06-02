@@ -12,7 +12,7 @@ object AppMeta {
   val default = AppMeta(BuildInfo.name, BuildInfo.version, BuildInfo.gitHash)
 }
 
-case class BoatEvent(message: JsValue, from: BoatInfo)
+case class BoatEvent(message: JsValue, from: JoinedTrack)
 
 object BoatEvent {
   implicit val json = Json.format[BoatEvent]
@@ -51,19 +51,17 @@ case class BoatInput(name: BoatName, token: BoatToken, owner: UserId)
 
 case class BoatRow(id: BoatId, name: BoatName, token: BoatToken, owner: UserId, added: Instant)
 
+case class TrackInput(name: TrackName, boat: BoatId)
+
 case class TrackRow(id: TrackId, name: TrackName, boat: BoatId, added: Instant)
-
-case class UserId(id: Long) extends WrappedId
-
-object UserId extends IdCompanion[UserId]
 
 case class SentenceKey(id: Long) extends WrappedId
 
 object SentenceKey extends IdCompanion[SentenceKey]
 
-case class SentenceInput(sentence: RawSentence, boat: BoatId)
+case class SentenceInput(sentence: RawSentence, track: TrackId)
 
-case class SentenceRow(id: SentenceKey, sentence: RawSentence, boat: BoatId, added: Instant)
+case class SentenceRow(id: SentenceKey, sentence: RawSentence, track: TrackId, added: Instant)
 
 object SentenceRow {
   implicit val json = Json.format[SentenceRow]
@@ -88,16 +86,10 @@ object TrackPoint {
   implicit val json = Json.format[TrackPoint]
 }
 
-case class TrackId(id: Long) extends WrappedId
-
-object TrackId extends IdCompanion[TrackId]
-
 case class Track(id: TrackId, name: TrackName, points: Seq[TrackPoint])
 
 object Track {
   implicit val json = Json.format[Track]
-
-  def randomName() = Utils.randomString(6)
 }
 
 case class RouteId(id: Long) extends WrappedId

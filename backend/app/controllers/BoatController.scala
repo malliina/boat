@@ -6,9 +6,9 @@ import akka.NotUsed
 import akka.actor.ActorSystem
 import akka.stream.Materializer
 import akka.stream.scaladsl.{BroadcastHub, Flow, Keep, MergeHub, Sink, Source}
-import com.malliina.boat.Constants.{BoatNameHeader, BoatTokenHeader}
+import com.malliina.boat.Constants.{BoatNameHeader, BoatTokenHeader, TrackNameHeader}
 import com.malliina.boat._
-import com.malliina.boat.db.{TracksSource, UserManager}
+import com.malliina.boat.db.{IdentityError, TracksSource, UserManager}
 import com.malliina.boat.parsing.BoatParser.{parseCoords, read}
 import com.malliina.concurrent.ExecutionContexts.cached
 import com.malliina.play.auth.Auth
@@ -87,30 +87,33 @@ class BoatController(mapboxToken: AccessToken,
     * @param rh request
     * @return
     */
-  def authBoat(rh: RequestHeader): Future[Either[Result, BoatInfo]] = {
+  def authBoat(rh: RequestHeader): Future[Either[Result, JoinedTrack]] =
+    asResult(boatAuth(rh), rh).flatMap { e =>
+      e.fold(err => Future.successful(Left(err)), boat => {
+        db.join(boat).map(Right.apply)
+      })
+    }
+
+  def boatAuth(rh: RequestHeader): Future[Either[IdentityError, BoatMeta]] =
     rh.headers.get(BoatTokenHeader).map(BoatToken.apply).map { token =>
       auther.authBoat(token).map { e =>
-        e.left.map { err =>
-          log.error(s"Boat authentication failed. $err")
-          Unauthorized(Errors("Unauthorized."))
+        e.map { info =>
+          val trackName = rh.headers.get(TrackNameHeader).map(TrackName.apply).getOrElse(TrackNames.random())
+          BoatUser(trackName, info.boat, info.user)
         }
       }
     }.getOrElse {
-      auth(rh).flatMap { e =>
-        e.fold(err => Future.successful(Left(err)), user => {
+      auth(rh).map { e =>
+        e.map { user =>
           val boatName = rh.headers.get(BoatNameHeader).map(BoatName.apply).getOrElse(BoatNames.random())
-          //        val trackName = rh.headers.get(TrackNameHeader).map(TrackName.apply).getOrElse(TrackNames.random())
-          val info = BoatUser(boatName, user)
-          db.registerBoat(info).map { boat =>
-            Right(BoatInfo(boat.id, boat.name, user))
-          }
-        })
+          val trackName = rh.headers.get(TrackNameHeader).map(TrackName.apply).getOrElse(TrackNames.random())
+          BoatUser(trackName, boatName, user)
+        }
       }
     }
-  }
 
   def updates = WebSocket.acceptOrResult[JsValue, FrontEvent] { rh =>
-    auth(rh).map { outcome =>
+    asResult(auth(rh), rh).map { outcome =>
       outcome.map { user =>
         val events: Source[FrontEvent, NotUsed] = savedSentences.merge(coords)
         // disconnects viewers that lag more than 3s
@@ -123,18 +126,22 @@ class BoatController(mapboxToken: AccessToken,
 
   def registerTrack(user: Username, boat: BoatName, track: TrackName) = Action(Ok)
 
-  def auth(rh: RequestHeader): Future[Either[Result, User]] =
+  def asResult[T](f: Future[Either[IdentityError, T]], rh: RequestHeader) =
+    f.map { e =>
+      e.left.map { err =>
+        log.warn(s"Authentication failed from '$rh': '$err'.")
+        Unauthorized(Errors("Unauthorized."))
+      }
+    }
+
+  def auth(rh: RequestHeader): Future[Either[IdentityError, User]] =
     Auth.basicCredentials(rh).map { creds =>
       auther.authenticate(User(creds.username.name), creds.password).map { outcome =>
         outcome.map { profile =>
-          Right(profile.username)
-        }.recover { err =>
-          log.warn(s"Authentication failed from '$rh': '$err'.")
-          Left(Unauthorized(Errors("Unauthorized.")))
+          profile.username
         }
       }
     }.getOrElse {
-      //      Future.successful(Left(Unauthorized(Errors("Credentials required."))))
       Future.successful(Right(anonUser))
     }
 

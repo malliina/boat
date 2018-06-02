@@ -15,15 +15,15 @@ class MapSocket(map: MapboxMap) extends BaseSocket("/ws/updates") {
     payload.validate[FrontEvent].map(consume).recover { case err => onJsonFailure(err) }
 
   def consume(event: FrontEvent): Unit = event match {
-    case CoordsEvent(coords, boat) => onCoords(coords, boat)
+    case CoordsEvent(coords, track) => onCoords(coords, track)
     case SentencesEvent(_, _) => ()
     case PingEvent(_) => ()
     case other => log.info(s"Unknown event: '$other'.")
   }
 
-  def onCoords(coords: Seq[Coord], from: BoatInfo): Unit = {
-    val boat = from.boat
-    val oldTrack = boats.getOrElse(boat, emptyTrack)
+  def onCoords(coords: Seq[Coord], from: JoinedTrack): Unit = {
+    val boat = from.boatName
+    val oldTrack = boats.getOrElse(from.boatName, emptyTrack)
     val newTrack = oldTrack.addCoords(coords)
     boats = boats.updated(boat, newTrack)
     if (map.getSource(boat.name).isEmpty) {

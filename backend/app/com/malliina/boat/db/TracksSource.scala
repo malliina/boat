@@ -4,14 +4,23 @@ import com.malliina.boat._
 
 import scala.concurrent.Future
 
-case class TrackInfo(boat: BoatRow, track: TrackRow)
-
 trait TracksSource {
-  //  def newTrack(user: Username, boat: BoatName): Future[TrackInfo]
+  /** If the given track and boat exist and are owned by the user, returns the track info.
+    *
+    * If the boat exists and is owned by the user but no track with the given name exists, the track is created.
+    *
+    * If neither the track nor boat exist, they are created.
+    *
+    * If the track name or boat name is already taken by another user, the returned Future fails.
+    *
+    * @param meta track, boat and user info
+    * @return track specs, or failure if there is a naming clash
+    */
+  def join(meta: BoatMeta): Future[JoinedTrack]
 
   def saveSentences(sentences: SentencesEvent): Future[Seq[SentenceKey]]
 
-  def registerBoat(meta: BoatMeta): Future[BoatRow]
+  //  def saveCoords(coords: CoordsEvent): Future[Seq[Coord]]
 
   def renameBoat(old: BoatMeta, newName: BoatName): Future[BoatRow]
 

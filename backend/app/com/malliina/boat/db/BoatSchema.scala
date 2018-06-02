@@ -59,6 +59,7 @@ class BoatSchema(ds: DataSource, override val impl: JdbcProfile)
   val sentenceInserts = sentencesTable.map(_.forInserts).returning(sentencesTable.map(_.id))
   val boatInserts = boatsTable.map(_.forInserts).returning(boatsTable.map(_.id))
   val userInserts = usersTable.map(_.forInserts).returning(usersTable.map(_.id))
+  val trackInserts = tracksTable.map(_.forInserts).returning(tracksTable.map(_.id))
 
   override val tableQueries = Seq(sentencesTable, tracksTable, boatsTable, usersTable)
 
@@ -70,6 +71,14 @@ class BoatSchema(ds: DataSource, override val impl: JdbcProfile)
 
   val boatsView: Query[LiftedJoinedBoat, JoinedBoat, Seq] = boatsTable.join(usersTable).on(_.owner === _.id)
     .map { case (b, u) => LiftedJoinedBoat(b.id, b.name, u.id, u.user) }
+
+  case class LiftedJoinedTrack(track: Rep[TrackId], trackName: Rep[TrackName], boat: Rep[BoatId], boatName: Rep[BoatName], user: Rep[UserId], username: Rep[User])
+
+  implicit object TrackShape extends CaseClassShape(LiftedJoinedTrack.tupled, (JoinedTrack.apply _).tupled)
+
+  val tracksView: Query[LiftedJoinedTrack, JoinedTrack, Seq] =
+    tracksTable.join(boatsTable).on(_.boat === _.id).join(usersTable).on(_._2.owner === _.id)
+      .map { case ((ts, bs), us) => LiftedJoinedTrack(ts.id, ts.name, bs.id, bs.name, us.id, us.user) }
 
   def first[T, R](q: Query[T, R, Seq], onNotFound: => String)(implicit ec: ExecutionContext) =
     q.result.headOption.flatMap { maybeRow =>
@@ -85,24 +94,24 @@ class BoatSchema(ds: DataSource, override val impl: JdbcProfile)
     await(run(addAnon))
   }
 
-  class SentencesTable(tag: Tag) extends Table[SentenceRow](tag, "sentences") {
+  class SentencesTable(tag: Tag) extends Table[SentenceRow](tag, "sentences2") {
     def id = column[SentenceKey]("id", O.AutoInc, O.PrimaryKey)
 
     def sentence = column[RawSentence]("sentence")
 
-    def boat = column[BoatId]("boat")
+    def track = column[TrackId]("track")
 
     def added = column[Instant]("added", O.SqlType(CreatedTimestampType))
 
-    def userConstraint = foreignKey("sentences_boat_fk", boat, boatsTable)(
+    def userConstraint = foreignKey("sentences_track_fk", track, tracksTable)(
       _.id,
       onUpdate = ForeignKeyAction.Cascade,
       onDelete = ForeignKeyAction.Cascade
     )
 
-    def forInserts = (sentence, boat) <> ((SentenceInput.apply _).tupled, SentenceInput.unapply)
+    def forInserts = (sentence, track) <> ((SentenceInput.apply _).tupled, SentenceInput.unapply)
 
-    def * = (id, sentence, boat, added) <> ((SentenceRow.apply _).tupled, SentenceRow.unapply)
+    def * = (id, sentence, track, added) <> ((SentenceRow.apply _).tupled, SentenceRow.unapply)
   }
 
   class TrackPointsTable(tag: Tag) extends Table[TrackPointRow](tag, "points") {
@@ -128,7 +137,7 @@ class BoatSchema(ds: DataSource, override val impl: JdbcProfile)
   class TracksTable(tag: Tag) extends Table[TrackRow](tag, "tracks") {
     def id = column[TrackId]("id", O.PrimaryKey, O.AutoInc)
 
-    def name = column[TrackName]("name", O.Unique, O.Length(128))
+    def name = column[TrackName]("name", O.Length(128))
 
     def boat = column[BoatId]("boat")
 
@@ -139,6 +148,8 @@ class BoatSchema(ds: DataSource, override val impl: JdbcProfile)
       onUpdate = ForeignKeyAction.Cascade,
       onDelete = ForeignKeyAction.Cascade
     )
+
+    def forInserts = (name, boat) <> ((TrackInput.apply _).tupled, TrackInput.unapply)
 
     def * = (id, name, boat, added) <> ((TrackRow.apply _).tupled, TrackRow.unapply)
   }

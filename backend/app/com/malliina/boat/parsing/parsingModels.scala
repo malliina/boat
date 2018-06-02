@@ -20,7 +20,7 @@ class DefaultParser(parser: SentenceFactory) extends BoatSentenceParser {
       case use: UnsupportedSentenceException =>
         Left(UnknownSentence(in, use.getMessage))
       case other: Exception =>
-        Left(SentenceException(in, other))
+        Left(SentenceFailure(in, other))
     }
 }
 
@@ -34,6 +34,6 @@ case class UnknownSentence(sentence: RawSentence, detailedMessage: String) exten
   override def message: String = s"Unknown sentence: '$sentence'. $detailedMessage"
 }
 
-case class SentenceException(sentence: RawSentence, e: Exception) extends SentenceError {
+case class SentenceFailure(sentence: RawSentence, e: Exception) extends SentenceError {
   override def message: String = s"Error for sentence: '$sentence'. ${e.getMessage}"
 }

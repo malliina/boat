@@ -108,6 +108,10 @@ object RawSentence extends StringCompanion[RawSentence] {
   val MaxLength = 82
 }
 
+case class UserId(id: Long) extends WrappedId
+
+object UserId extends IdCompanion[UserId]
+
 case class User(name: String) extends Wrapped(name)
 
 object User extends StringCompanion[User]
@@ -117,24 +121,34 @@ trait BoatMeta {
 
   def boat: BoatName
 
-  //  def track: TrackName
+  def track: TrackName
 }
 
 case class BoatId(id: Long) extends WrappedId
 
 object BoatId extends IdCompanion[BoatId]
 
-case class BoatUser(boat: BoatName, user: User) extends BoatMeta {
-  def toBoat(id: BoatId) = BoatInfo(id, boat, user)
+case class TrackId(id: Long) extends WrappedId
+
+object TrackId extends IdCompanion[TrackId]
+
+case class BoatUser(track: TrackName, boat: BoatName, user: User) extends BoatMeta {
+  def toBoat(boatId: BoatId) = BoatInfo(boatId, boat, user)
 }
 
-case class BoatInfo(boatId: BoatId, boat: BoatName, user: User) extends BoatMeta
+case class BoatInfo(boatId: BoatId, boat: BoatName, user: User)
 
 object BoatInfo {
   implicit val json = Json.format[BoatInfo]
 }
 
-case class CoordsEvent(coords: Seq[Coord], from: BoatInfo) extends BoatFrontEvent {
+case class JoinedTrack(track: TrackId, trackName: TrackName, boat: BoatId, boatName: BoatName, user: UserId, username: User)
+
+object JoinedTrack {
+  implicit val json = Json.format[JoinedTrack]
+}
+
+case class CoordsEvent(coords: Seq[Coord], from: JoinedTrack) extends BoatFrontEvent {
   def isEmpty = coords.isEmpty
 }
 
@@ -144,7 +158,7 @@ object CoordsEvent {
   implicit val json = keyValued(Key, Json.format[CoordsEvent])
 }
 
-case class SentencesEvent(sentences: Seq[RawSentence], from: BoatInfo) extends BoatFrontEvent
+case class SentencesEvent(sentences: Seq[RawSentence], from: JoinedTrack) extends BoatFrontEvent
 
 object SentencesEvent {
   val Key = "sentences"
@@ -165,9 +179,9 @@ sealed trait FrontEvent {
 }
 
 sealed trait BoatFrontEvent extends FrontEvent {
-  def from: BoatInfo
+  def from: JoinedTrack
 
-  override def isIntendedFor(user: User): Boolean = from.user == user
+  override def isIntendedFor(user: User): Boolean = from.username == user
 }
 
 object FrontEvent {
@@ -184,7 +198,7 @@ object FrontEvent {
 }
 
 case class SentencesMessage(sentences: Seq[RawSentence]) {
-  def toEvent(from: BoatInfo) = SentencesEvent(sentences, from)
+  def toEvent(from: JoinedTrack) = SentencesEvent(sentences, from)
 }
 
 object SentencesMessage {

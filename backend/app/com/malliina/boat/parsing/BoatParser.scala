@@ -18,11 +18,10 @@ object BoatParser {
     CoordsEvent(coords, sentences.from)
   }
 
-  def readSentences(event: BoatEvent) = {
+  def readSentences(event: BoatEvent) =
     read[SentencesEvent](event.message)
-  }
 
-  def parse(sentence: RawSentence): Either[SentenceError, Coord] = {
+  def parse(sentence: RawSentence): Either[SentenceError, Coord] =
     parser.parse(sentence).flatMap { parsed =>
       if (parsed.getSentenceId == SentenceId.GGA.name()) {
         val gga = parsed.asInstanceOf[GGASentence]
@@ -34,11 +33,12 @@ object BoatParser {
         Left(UnknownSentence(sentence, s"Unsupported sentence: '$sentence'."))
       }
     }
-  }
 
   def handleError(err: SentenceError): Unit =
     err match {
-      case SentenceException(_, ex) =>
+      case UnknownSentence(_, message) =>
+        log.debug(message)
+      case SentenceFailure(_, ex) =>
         log.error(err.message, ex)
       case _ =>
         log.error(err.message)

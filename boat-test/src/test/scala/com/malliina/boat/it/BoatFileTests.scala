@@ -30,7 +30,7 @@ class BoatFileTests extends BoatTests {
         boat.send(testMessage)
         val received = await(sentencePromise.future)
         assert(received.sentences === testMessage.sentences)
-        assert(received.from.boat === boatName)
+        assert(received.from.boatName === boatName)
         val coord = await(coordPromise.future).coords
         assert(coord === Seq(testCoord))
       }
