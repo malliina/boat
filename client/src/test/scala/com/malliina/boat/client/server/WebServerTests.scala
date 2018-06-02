@@ -29,7 +29,7 @@ class WebServerTests extends FunSuite {
     def urlTo(path: String) = s"http://${binding.localAddress.getHostString}:${binding.localAddress.getPort}$path"
 
     val res = await(Http().singleRequest(HttpRequest(method = HttpMethods.GET, uri = urlTo(WebServer.settingsUri))))
-    assert(res.status === StatusCodes.Unauthorized)
+    assert(res.status === StatusCodes.OK)
   }
 
   test("initial pass hash") {

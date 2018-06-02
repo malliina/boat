@@ -7,8 +7,6 @@ import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.server.Directives._
-import akka.http.scaladsl.server.directives.Credentials
-import akka.http.scaladsl.server.directives.Credentials.Provided
 import akka.http.scaladsl.unmarshalling.Unmarshaller
 import akka.stream.{ActorMaterializer, Materializer}
 import com.malliina.boat.BoatToken
@@ -88,42 +86,22 @@ class WebServer(host: String, port: Int, agentInstance: AgentInstance)(implicit 
 
   val routes = concat(
     path("") {
-      authenticateBasic(realm = "Boat Agent", initialAuth) { user =>
-        get {
-          val dest = if (user == tempUser) changePassRoute else settingsPath
-          redirect(Uri(s"/$dest"), StatusCodes.SeeOther)
-        }
-      }
-    },
-    path(changePassRoute) {
-      authenticateBasic(realm = "Boat Agent", initialAuth) { user =>
-        concat(
-          get {
-            complete(asHtml(changePassForm))
-          },
-          post {
-            formFields('pass) { pass =>
-              savePass(pass)
-              redirect(Uri(settingsUri), StatusCodes.SeeOther)
-            }
-          }
-        )
+      get {
+        redirect(Uri(settingsUri), StatusCodes.SeeOther)
       }
     },
     path(settingsPath) {
-      authenticateBasic(realm = "Boat Agent", passAuth) { user =>
-        concat(
-          get {
-            complete(asHtml(boatForm(readConf())))
-          },
-          post {
-            formFields('host, 'port.as[Int], 'token.as[BoatToken].?, 'enabled.as[Boolean] ? false) { (host, port, token, enabled) =>
-              saveAndReload(BoatConf(host, port, token.filter(_.token.nonEmpty), enabled), agentInstance)
-              redirect(Uri(settingsUri), StatusCodes.SeeOther)
-            }
+      concat(
+        get {
+          complete(asHtml(boatForm(readConf())))
+        },
+        post {
+          formFields('host, 'port.as[Int], 'token.as[BoatToken].?, 'enabled.as[Boolean] ? false) { (host, port, token, enabled) =>
+            saveAndReload(BoatConf(host, port, token.filter(_.token.nonEmpty), enabled), agentInstance)
+            redirect(Uri(settingsUri), StatusCodes.SeeOther)
           }
-        )
-      }
+        }
+      )
     },
     getFromResourceDirectory("assets")
   )
@@ -133,22 +111,6 @@ class WebServer(host: String, port: Int, agentInstance: AgentInstance)(implicit 
   binding.foreach { _ =>
     log.info(s"Listening on $host:$port")
   }
-
-  def initialAuth(credentials: Credentials): Option[String] =
-    credentials match {
-      case p@Credentials.Provided(user) if isValid(p) => Option(user)
-      case Credentials.Missing if defaultHash == readPass => Option(tempUser)
-      case _ => None
-    }
-
-  def passAuth(credentials: Credentials): Option[String] =
-    credentials match {
-      case p@Credentials.Provided(user) if isValid(p) => Option(user)
-      case _ => None
-    }
-
-  def isValid(provided: Provided): Boolean =
-    defaultHash != readPass && provided.identifier == boatUser && provided.verify(readPass, WebServer.hash)
 
   def stop(): Unit = {
     Await.result(binding.flatMap(_.unbind()).recover { case _ => Done }, 5.seconds)
