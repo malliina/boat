@@ -3,6 +3,8 @@ import com.malliina.sbtplay.PlayProject
 
 import scala.sys.process.Process
 import scala.util.Try
+import sbtrelease.ReleasePlugin.autoImport.{ReleaseStep, releaseProcess}
+import sbtrelease.ReleaseStateTransformations._
 
 val utilPlayDep = "com.malliina" %% "util-play" % "4.12.2"
 
@@ -123,7 +125,20 @@ lazy val clientSettings = commonSettings ++ Seq(
     val url = FullUrl("https", "boat.malliina.com", s"/files/$filename")
     streams.value.log.info(s"Uploaded package to '$url'.")
     url
-  }
+  },
+  releaseProcess := Seq[ReleaseStep](
+    checkSnapshotDependencies,
+    inquireVersions,
+    runTest,
+    setReleaseVersion,
+    commitReleaseVersion,
+    tagRelease,
+//    ReleaseStep(action = releaseStepCommand("buildAndUpload")),
+//    publishArtifacts, // : ReleaseStep, checks whether `publishTo` is properly set up
+    setNextVersion,
+    commitNextVersion,
+    pushChanges // : ReleaseStep, also checks that an upstream branch is properly configured
+  )
 )
 
 lazy val testSettings = playSettings ++ Seq(
@@ -141,7 +156,6 @@ lazy val playSettings = commonSettings ++ Seq(
 
 lazy val commonSettings = Seq(
   organization := "com.malliina",
-  version := "0.0.3",
   scalaVersion := "2.12.6",
   scalacOptions := Seq("-unchecked", "-deprecation"),
   resolvers ++= Seq(
