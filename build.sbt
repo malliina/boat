@@ -101,7 +101,11 @@ lazy val clientSettings = commonSettings ++ Seq(
   maintainer := "Michael Skogberg",
   javaOptions in Universal ++= {
     val linuxName = (normalizedName in Debian).value
-    Seq(s"-Dconf.dir=/usr/share/$linuxName/conf")
+    Seq(
+      s"-Dconf.dir=/usr/share/$linuxName/conf",
+      s"-Dlogback.configurationFile=/etc/$linuxName/logback-prod.xml",
+      s"-Dlog.dir=/var/run/$linuxName"
+    )
   },
   linuxPackageMappings += {
     val linuxName = (normalizedName in Debian).value
