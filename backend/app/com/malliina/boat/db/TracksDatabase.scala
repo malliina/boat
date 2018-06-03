@@ -34,7 +34,7 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext) extends 
     val from = sentences.from
     val action = db.sentenceInserts ++= sentences.sentences.map { s => SentenceInput(s, sentences.from.track) }
     db.run(action).map { keys =>
-      log.info(s"Inserted ${keys.length} sentences from '${from.boat}' owned by '${from.user}'.")
+      log.info(s"Inserted ${keys.length} sentences from '${from.boatName}' owned by '${from.username}'.")
       keys
     }
   }
