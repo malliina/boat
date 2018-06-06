@@ -20,7 +20,7 @@ trait TracksSource {
 
   def saveSentences(sentences: SentencesEvent): Future[Seq[SentenceKey]]
 
-  //  def saveCoords(coords: CoordsEvent): Future[Seq[Coord]]
+  def saveCoords(coords: CoordsEvent): Future[Seq[TrackPointId]]
 
   def renameBoat(old: BoatMeta, newName: BoatName): Future[BoatRow]
 

@@ -59,6 +59,7 @@ class BoatHtml(jsFile: String) extends Tags(scalatags.Text) {
     html(
       head(
         meta(charset := "utf-8"),
+        titleTag("Boat Tracker"),
         cssLink(reverse.versioned("css/main.css")),
         cssLink("https://fonts.googleapis.com/css?family=Roboto:100,300,400,500,700"),
         content.css,

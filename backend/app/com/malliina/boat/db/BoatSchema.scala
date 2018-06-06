@@ -56,12 +56,14 @@ class BoatSchema(ds: DataSource, override val impl: JdbcProfile)
   val boatsTable = TableQuery[BoatsTable]
   val tracksTable = TableQuery[TracksTable]
   val sentencesTable = TableQuery[SentencesTable]
+  val coordsTable = TableQuery[TrackPointsTable]
   val sentenceInserts = sentencesTable.map(_.forInserts).returning(sentencesTable.map(_.id))
   val boatInserts = boatsTable.map(_.forInserts).returning(boatsTable.map(_.id))
   val userInserts = usersTable.map(_.forInserts).returning(usersTable.map(_.id))
   val trackInserts = tracksTable.map(_.forInserts).returning(tracksTable.map(_.id))
+  val coordInserts = coordsTable.map(_.forInserts).returning(coordsTable.map(_.id))
 
-  override val tableQueries = Seq(sentencesTable, tracksTable, boatsTable, usersTable)
+  override val tableQueries = Seq(coordsTable, sentencesTable, tracksTable, boatsTable, usersTable)
 
   case class JoinedBoat(boat: BoatId, boatName: BoatName, user: UserId, username: User)
 
@@ -97,7 +99,7 @@ class BoatSchema(ds: DataSource, override val impl: JdbcProfile)
   class SentencesTable(tag: Tag) extends Table[SentenceRow](tag, "sentences2") {
     def id = column[SentenceKey]("id", O.AutoInc, O.PrimaryKey)
 
-    def sentence = column[RawSentence]("sentence")
+    def sentence = column[RawSentence]("sentence", O.Length(128))
 
     def track = column[TrackId]("track")
 
@@ -130,6 +132,8 @@ class BoatSchema(ds: DataSource, override val impl: JdbcProfile)
     )
 
     def added = column[Instant]("added", O.SqlType(CreatedTimestampType))
+
+    def forInserts = (lon, lat, track) <> ((TrackPointInput.apply _).tupled, TrackPointInput.unapply)
 
     def * = (id, lon, lat, track, added) <> ((TrackPointRow.apply _).tupled, TrackPointRow.unapply)
   }

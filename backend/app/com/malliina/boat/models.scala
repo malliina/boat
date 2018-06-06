@@ -78,6 +78,13 @@ case class TrackPointId(id: Long) extends WrappedId
 
 object TrackPointId extends IdCompanion[TrackPointId]
 
+case class TrackPointInput(lon: Double, lat: Double, track: TrackId)
+
+object TrackPointInput {
+  def forCoord(coord: Coord, track: TrackId): TrackPointInput =
+    TrackPointInput(coord.lng, coord.lat, track)
+}
+
 case class TrackPointRow(id: TrackPointId, lon: Double, lat: Double, track: TrackId, added: Instant)
 
 case class TrackPoint(coord: Coord, time: Instant, waterTemp: Double, wind: Double)

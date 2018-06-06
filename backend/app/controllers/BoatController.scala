@@ -12,7 +12,6 @@ import com.malliina.boat.db.{IdentityError, TracksSource, UserManager}
 import com.malliina.boat.parsing.BoatParser.{parseCoords, read}
 import com.malliina.concurrent.ExecutionContexts.cached
 import com.malliina.play.auth.Auth
-import com.malliina.play.models.Username
 import controllers.Assets.Asset
 import controllers.BoatController.{anonUser, log}
 import play.api.Logger
@@ -56,7 +55,9 @@ class BoatController(mapboxToken: AccessToken,
   val savedSentences = onlyOnce(sentences.mapAsync(parallelism = 10)(ss => db.saveSentences(ss).map(_ => ss)))
   val drainer = savedSentences.runWith(Sink.ignore)
   val coords = rights(parsedEvents)
+  val savedCoords = onlyOnce(coords.mapAsync(parallelism = 10)(coordsEvent => db.saveCoords(coordsEvent).map(_ => coordsEvent)))
   val errors = lefts(parsedEvents)
+  val frontEvents: Source[FrontEvent, NotUsed] = savedSentences.merge(savedCoords)
 
   errors.runWith(Sink.foreach(err => log.error(s"JSON error for '${err.boat}': '${err.error}'.")))
 
@@ -89,25 +90,24 @@ class BoatController(mapboxToken: AccessToken,
     */
   def authBoat(rh: RequestHeader): Future[Either[Result, JoinedTrack]] =
     asResult(boatAuth(rh), rh).flatMap { e =>
-      e.fold(err => Future.successful(Left(err)), boat => {
-        db.join(boat).map(Right.apply)
-      })
+      e.fold(
+        err => Future.successful(Left(err)),
+        boat => db.join(boat).map(Right.apply)
+      )
     }
 
   def boatAuth(rh: RequestHeader): Future[Either[IdentityError, BoatMeta]] =
     rh.headers.get(BoatTokenHeader).map(BoatToken.apply).map { token =>
       auther.authBoat(token).map { e =>
         e.map { info =>
-          val trackName = rh.headers.get(TrackNameHeader).map(TrackName.apply).getOrElse(TrackNames.random())
-          BoatUser(trackName, info.boat, info.user)
+          BoatUser(trackOrRandom(rh), info.boat, info.user)
         }
       }
     }.getOrElse {
       auth(rh).map { e =>
         e.map { user =>
           val boatName = rh.headers.get(BoatNameHeader).map(BoatName.apply).getOrElse(BoatNames.random())
-          val trackName = rh.headers.get(TrackNameHeader).map(TrackName.apply).getOrElse(TrackNames.random())
-          BoatUser(trackName, boatName, user)
+          BoatUser(trackOrRandom(rh), boatName, user)
         }
       }
     }
@@ -115,18 +115,15 @@ class BoatController(mapboxToken: AccessToken,
   def updates = WebSocket.acceptOrResult[JsValue, FrontEvent] { rh =>
     asResult(auth(rh), rh).map { outcome =>
       outcome.map { user =>
-        val events: Source[FrontEvent, NotUsed] = savedSentences.merge(coords)
         // disconnects viewers that lag more than 3s
-        Flow.fromSinkAndSource(Sink.ignore, events.filter(_.isIntendedFor(user)))
+        Flow.fromSinkAndSource(Sink.ignore, frontEvents.filter(_.isIntendedFor(user)))
           .keepAlive(10.seconds, () => PingEvent(Instant.now.toEpochMilli))
           .backpressureTimeout(3.seconds)
       }
     }
   }
 
-  def registerTrack(user: Username, boat: BoatName, track: TrackName) = Action(Ok)
-
-  def asResult[T](f: Future[Either[IdentityError, T]], rh: RequestHeader) =
+  private def asResult[T](f: Future[Either[IdentityError, T]], rh: RequestHeader) =
     f.map { e =>
       e.left.map { err =>
         log.warn(s"Authentication failed from '$rh': '$err'.")
@@ -158,4 +155,7 @@ class BoatController(mapboxToken: AccessToken,
     * @return a Source that supports multiple subscribers, but does not independently run `once` for each
     */
   def onlyOnce[T, U](once: Source[T, U]) = Source.fromPublisher(once.runWith(Sink.asPublisher(fanout = true)))
+
+  private def trackOrRandom(rh: RequestHeader) =
+    rh.headers.get(TrackNameHeader).map(TrackName.apply).getOrElse(TrackNames.random())
 }

@@ -32,9 +32,20 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext) extends 
 
   override def saveSentences(sentences: SentencesEvent): Future[Seq[SentenceKey]] = {
     val from = sentences.from
-    val action = db.sentenceInserts ++= sentences.sentences.map { s => SentenceInput(s, sentences.from.track) }
+    val action = db.sentenceInserts ++= sentences.sentences.map { s => SentenceInput(s, from.track) }
+    insertLogged(action, from, "sentence")
+  }
+
+  override def saveCoords(coords: CoordsEvent): Future[Seq[TrackPointId]] = {
+    val from = coords.from
+    val action = db.coordInserts ++= coords.coords.map { c => TrackPointInput.forCoord(c, from.track) }
+    insertLogged(action, coords.from, "coordinate")
+  }
+
+  private def insertLogged[R](action: DBIOAction[Seq[R], NoStream, Nothing], from: JoinedTrack, word: String) = {
     db.run(action).map { keys =>
-      log.info(s"Inserted ${keys.length} sentences from '${from.boatName}' owned by '${from.username}'.")
+      val pluralSuffix = if (keys.length > 1) "s" else ""
+      log.info(s"Inserted ${keys.length} $word$pluralSuffix from '${from.boatName}' owned by '${from.username}'.")
       keys
     }
   }
