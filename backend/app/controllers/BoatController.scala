@@ -53,9 +53,10 @@ class BoatController(mapboxToken: AccessToken,
   val parsedEvents = sentencesSource.map(e => e.map(parseCoords))
   val sentences = rights(sentencesSource)
   val savedSentences = onlyOnce(sentences.mapAsync(parallelism = 10)(ss => db.saveSentences(ss).map(_ => ss)))
-  val drainer = savedSentences.runWith(Sink.ignore)
+  val sentencesDrainer = savedSentences.runWith(Sink.ignore)
   val coords = rights(parsedEvents)
   val savedCoords = onlyOnce(coords.mapAsync(parallelism = 10)(coordsEvent => db.saveCoords(coordsEvent).map(_ => coordsEvent)))
+  val coordsDrainer = savedCoords.runWith(Sink.ignore)
   val errors = lefts(parsedEvents)
   val frontEvents: Source[FrontEvent, NotUsed] = savedSentences.merge(savedCoords)
 
