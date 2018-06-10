@@ -9,6 +9,7 @@ import akka.stream.scaladsl.{BroadcastHub, Flow, Keep, MergeHub, Sink, Source}
 import com.malliina.boat.Constants.{BoatNameHeader, BoatTokenHeader, TrackNameHeader}
 import com.malliina.boat._
 import com.malliina.boat.db.{IdentityError, TracksSource, UserManager}
+import com.malliina.boat.http.Limits
 import com.malliina.boat.parsing.BoatParser.{parseCoords, read}
 import com.malliina.concurrent.ExecutionContexts.cached
 import com.malliina.play.auth.Auth
@@ -54,7 +55,7 @@ class BoatController(mapboxToken: AccessToken,
   val sentences = rights(sentencesSource)
   val savedSentences = onlyOnce(sentences.mapAsync(parallelism = 10)(ss => db.saveSentences(ss).map(_ => ss)))
   val sentencesDrainer = savedSentences.runWith(Sink.ignore)
-  val coords = rights(parsedEvents)
+  val coords: Source[CoordsEvent, NotUsed] = rights(parsedEvents)
   val savedCoords = onlyOnce(coords.mapAsync(parallelism = 10)(coordsEvent => db.saveCoords(coordsEvent).map(_ => coordsEvent)))
   val coordsDrainer = savedCoords.runWith(Sink.ignore)
   val errors = lefts(parsedEvents)
@@ -81,6 +82,26 @@ class BoatController(mapboxToken: AccessToken,
       }
     }
   }
+
+  def updates = WebSocket.acceptOrResult[JsValue, FrontEvent] { rh =>
+    asResult(auth(rh), rh).map { outcome =>
+      outcome.flatMap { user =>
+        Limits(rh).left.map(err => BadRequest(Errors(err.message))).map { limits =>
+          // Show recent tracks for non-anon users
+          val history: Source[CoordsEvent, NotUsed] =
+            if (user == anonUser) Source.empty[CoordsEvent]
+            else Source.fromFuture(db.history(user, limits)).flatMapConcat(es => Source(es.toList))
+          // disconnects viewers that lag more than 3s
+          Flow.fromSinkAndSource(Sink.ignore, history.concat(frontEvents).filter(_.isIntendedFor(user)))
+            .keepAlive(10.seconds, () => PingEvent(Instant.now.toEpochMilli))
+            .backpressureTimeout(3.seconds)
+        }
+      }
+    }
+  }
+
+  def versioned(path: String, file: Asset): Action[AnyContent] =
+    assets.versioned(path, file)
 
   /** Auths with boat token or user/pass. Fails if an invalid token is provided. If no token is provided,
     * tries to auth with user/pass. Fails if invalid user/pass is provided. If no user/pass is provided,
@@ -113,25 +134,6 @@ class BoatController(mapboxToken: AccessToken,
       }
     }
 
-  def updates = WebSocket.acceptOrResult[JsValue, FrontEvent] { rh =>
-    asResult(auth(rh), rh).map { outcome =>
-      outcome.map { user =>
-        // disconnects viewers that lag more than 3s
-        Flow.fromSinkAndSource(Sink.ignore, frontEvents.filter(_.isIntendedFor(user)))
-          .keepAlive(10.seconds, () => PingEvent(Instant.now.toEpochMilli))
-          .backpressureTimeout(3.seconds)
-      }
-    }
-  }
-
-  private def asResult[T](f: Future[Either[IdentityError, T]], rh: RequestHeader) =
-    f.map { e =>
-      e.left.map { err =>
-        log.warn(s"Authentication failed from '$rh': '$err'.")
-        Unauthorized(Errors("Unauthorized."))
-      }
-    }
-
   def auth(rh: RequestHeader): Future[Either[IdentityError, User]] =
     Auth.basicCredentials(rh).map { creds =>
       auther.authenticate(User(creds.username.name), creds.password).map { outcome =>
@@ -143,9 +145,6 @@ class BoatController(mapboxToken: AccessToken,
       Future.successful(Right(anonUser))
     }
 
-  def versioned(path: String, file: Asset): Action[AnyContent] =
-    assets.versioned(path, file)
-
   /** The publisher-dance makes it so that even with multiple subscribers, `once` only runs once. Without this wrapping,
     * `once` executes independently for each subscriber, which is undesired if `once` involves a side-effect
     * (e.g. a database insert operation).
@@ -156,6 +155,14 @@ class BoatController(mapboxToken: AccessToken,
     * @return a Source that supports multiple subscribers, but does not independently run `once` for each
     */
   def onlyOnce[T, U](once: Source[T, U]) = Source.fromPublisher(once.runWith(Sink.asPublisher(fanout = true)))
+
+  private def asResult[T](f: Future[Either[IdentityError, T]], rh: RequestHeader) =
+    f.map { e =>
+      e.left.map { err =>
+        log.warn(s"Authentication failed from '$rh': '$err'.")
+        Unauthorized(Errors("Unauthorized."))
+      }
+    }
 
   private def trackOrRandom(rh: RequestHeader) =
     rh.headers.get(TrackNameHeader).map(TrackName.apply).getOrElse(TrackNames.random())

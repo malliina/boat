@@ -18,9 +18,15 @@ class MapboxMap(options: MapOptions) extends js.Object {
 
   def easeTo(options: EaseOptions): Unit = js.native
 
+  def loadImage(url: String, callback: js.Function2[js.Any, js.Any, Unit]): Unit = js.native
+
+  def addImage(id: String, image: js.Any): Unit = js.native
+
   def getSource(id: String): js.UndefOr[GeoJsonSource] = js.native
 
   def addLayer(layer: js.Any): Unit = js.native
+
+  def setLayoutProperty(layer: String, prop: String, value: js.Any): Unit = js.native
 
   def on(name: String, func: js.Function1[MouseEvent, Unit]): Unit = js.native
 

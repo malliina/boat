@@ -17,9 +17,9 @@ class ManualBoatTests extends BoatTests {
 
   def gpsSentences = sentences.filter(_.sentence.startsWith("$GPGGA"))
 
-  //  def url = FullUrl.ws("localhost:9000", reverse.boats().toString)
+  def url = FullUrl.ws("localhost:9000", reverse.boats().toString)
 
-  def url = FullUrl.wss("boat.malliina.com", reverse.boats().toString)
+  //  def url = FullUrl.wss("boat.malliina.com", reverse.boats().toString)
 
   ignore("local GPS reporting") {
     val testMessages = gpsSentences.toList.grouped(1000).map(SentencesMessage.apply).toList
@@ -33,11 +33,11 @@ class ManualBoatTests extends BoatTests {
   }
 
   ignore("slow GPS reporting") {
-    val testMessages = gpsSentences.toList.grouped(10).map(SentencesMessage.apply).take(100).toList
+    val testMessages = gpsSentences.toList.grouped(2).map(SentencesMessage.apply).slice(50, 100).toList
     openBoat(url, BoatNames.random()) { boat =>
       testMessages.foreach { msg =>
         boat.send(msg)
-        Thread.sleep(1000)
+        Thread.sleep(500)
       }
     }
   }

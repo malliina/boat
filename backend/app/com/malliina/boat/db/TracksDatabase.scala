@@ -2,6 +2,7 @@ package com.malliina.boat.db
 
 import com.malliina.boat._
 import com.malliina.boat.db.TracksDatabase.log
+import com.malliina.boat.http.Limits
 import play.api.Logger
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -32,23 +33,36 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext) extends 
 
   override def saveSentences(sentences: SentencesEvent): Future[Seq[SentenceKey]] = {
     val from = sentences.from
-    val action = db.sentenceInserts ++= sentences.sentences.map { s => SentenceInput(s, from.track) }
+    val action = sentenceInserts ++= sentences.sentences.map { s => SentenceInput(s, from.track) }
     insertLogged(action, from, "sentence")
   }
 
   override def saveCoords(coords: CoordsEvent): Future[Seq[TrackPointId]] = {
     val from = coords.from
-    val action = db.coordInserts ++= coords.coords.map { c => TrackPointInput.forCoord(c, from.track) }
+    val action = coordInserts ++= coords.coords.map { c => TrackPointInput.forCoord(c, from.track) }
     insertLogged(action, coords.from, "coordinate")
   }
 
-  private def insertLogged[R](action: DBIOAction[Seq[R], NoStream, Nothing], from: JoinedTrack, word: String) = {
-    db.run(action).map { keys =>
-      val pluralSuffix = if (keys.length > 1) "s" else ""
-      log.info(s"Inserted ${keys.length} $word$pluralSuffix from '${from.boatName}' owned by '${from.username}'.")
-      keys
-    }
+  override def history(user: User, limits: Limits): Future[Seq[CoordsEvent]] = {
+    val query = tracksView.filter(_.username === user)
+      .join(coordsTable).on(_.track === _.track)
+      .sortBy(_._2.added.asc)
+      .drop(limits.offset)
+      .take(limits.limit)
+    db.run(query.result.map(collectCoords))
   }
+
+  private def collectCoords(rows: Seq[(JoinedTrack, TrackPointRow)]): Seq[CoordsEvent] =
+    rows.foldLeft(Vector.empty[CoordsEvent]) { case (acc, (from, point)) =>
+      val idx = acc.indexWhere(_.from.track == from.track)
+      val coord = Coord(point.lon, point.lat)
+      if (idx >= 0) {
+        val old = acc(idx)
+        acc.updated(idx, old.copy(coords = old.coords :+ coord))
+      } else {
+        acc :+ CoordsEvent(Seq(coord), from)
+      }
+    }
 
   override def renameBoat(old: BoatMeta, newName: BoatName): Future[BoatRow] = {
     val action = for {
@@ -59,6 +73,14 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext) extends 
     db.run(action).map { maybeBoat =>
       log.info(s"Renamed boat '${old.boat}' owned by '${old.user}' to '$newName'.")
       maybeBoat
+    }
+  }
+
+  private def insertLogged[R](action: DBIOAction[Seq[R], NoStream, Nothing], from: JoinedTrack, word: String) = {
+    db.run(action).map { keys =>
+      val pluralSuffix = if (keys.length > 1) "s" else ""
+      log.info(s"Inserted ${keys.length} $word$pluralSuffix from '${from.boatName}' owned by '${from.username}'.")
+      keys
     }
   }
 

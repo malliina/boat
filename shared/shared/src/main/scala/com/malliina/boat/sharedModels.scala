@@ -19,21 +19,48 @@ object Coord {
   )
 }
 
-case class Geometry(`type`: String, coordinates: Seq[Coord]) {
-  def addCoords(coords: Seq[Coord]): Geometry = copy(coordinates = coordinates ++ coords)
+case class LineGeometry(`type`: String, coordinates: Seq[Coord]) extends Geometry("LineString") {
+  override def updateCoords(coords: Seq[Coord]): LineGeometry =
+    copy(coordinates = coordinates ++ coords)
+
+  override def coords: Seq[Coord] = coordinates
+}
+
+object LineGeometry {
+  implicit val coord = Coord.jsonArray
+  implicit val json = Json.format[LineGeometry]
+}
+
+case class PointGeometry(`type`: String, coordinates: Coord) extends Geometry("Point") {
+  override def updateCoords(coords: Seq[Coord]): PointGeometry =
+    PointGeometry(`type`, coords.headOption.getOrElse(coordinates))
+
+  override def coords: Seq[Coord] = Seq(coordinates)
+}
+
+object PointGeometry {
+  implicit val coord = Coord.jsonArray
+  implicit val json = Json.format[PointGeometry]
+}
+
+sealed abstract class Geometry(typeName: String) {
+  def updateCoords(coords: Seq[Coord]): Geometry
+  def coords: Seq[Coord]
 }
 
 object Geometry {
-  implicit val coord = Coord.jsonArray
-  implicit val json = Json.format[Geometry]
+  implicit val writer = Writes[Geometry] {
+    case lg@LineGeometry(_, _) => Json.toJson(lg)
+    case pg@PointGeometry(_, _) => Json.toJson(pg)
+  }
 }
 
 case class Feature(`type`: String, geometry: Geometry) {
-  def addCoords(coords: Seq[Coord]) = copy(geometry = geometry.addCoords(coords))
+  def addCoords(coords: Seq[Coord]) = copy(geometry = geometry.updateCoords(coords))
 }
 
 object Feature {
-  implicit val json = Json.format[Feature]
+  implicit val json = Json.writes[Feature]
 }
 
 case class FeatureCollection(`type`: String, features: Seq[Feature]) {
@@ -41,19 +68,34 @@ case class FeatureCollection(`type`: String, features: Seq[Feature]) {
 }
 
 object FeatureCollection {
-  implicit val json = Json.format[FeatureCollection]
+  implicit val json = Json.writes[FeatureCollection]
 }
 
 case class AnimationSource(`type`: String, data: FeatureCollection)
 
 object AnimationSource {
-  implicit val json = Json.format[AnimationSource]
+  implicit val json = Json.writes[AnimationSource]
 }
 
-case class Layout(`line-join`: String, `line-cap`: String)
+case class LineLayout(`line-join`: String, `line-cap`: String) extends Layout
+
+object LineLayout {
+  implicit val json = Json.format[LineLayout]
+}
+
+case class ImageLayout(`icon-image`: String, `icon-size`: Int) extends Layout
+
+object ImageLayout {
+  implicit val json = Json.format[ImageLayout]
+}
+
+sealed trait Layout
 
 object Layout {
-  implicit val json = Json.format[Layout]
+  implicit val writer = Writes[Layout] {
+    case ll@LineLayout(_, _) => Json.toJson(ll)
+    case il@ImageLayout(_, _) => Json.toJson(il)
+  }
 }
 
 case class Paint(`line-color`: String, `line-width`: Int)
@@ -62,14 +104,24 @@ object Paint {
   implicit val json = Json.format[Paint]
 }
 
+sealed abstract class LayerType(val name: String)
+
+object LayerType {
+  implicit val writer = Writes[LayerType] { l => Json.toJson(l.name) }
+}
+
+case object LineLayer extends LayerType("line")
+
+case object SymbolLayer extends LayerType("symbol")
+
 case class Animation(id: String,
-                     `type`: String,
+                     `type`: LayerType,
                      source: AnimationSource,
                      layout: Layout,
-                     paint: Paint)
+                     paint: Option[Paint])
 
 object Animation {
-  implicit val json = Json.format[Animation]
+  implicit val json = Json.writes[Animation]
 }
 
 case class AccessToken(token: String) extends Wrapped(token)
