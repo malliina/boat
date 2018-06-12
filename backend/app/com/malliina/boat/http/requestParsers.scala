@@ -39,7 +39,7 @@ object Limits {
   val DefaultLimit = 10000
   val DefaultOffset = 0
 
-  val default = Limits(1000, 0)
+  val default = Limits(DefaultLimit, DefaultOffset)
 
   def readIntOrElse(rh: RequestHeader, key: String, default: Int): Either[ErrorMessage, Int] =
     QueryStringBindable.bindableInt.bind(key, rh.queryString).getOrElse(Right(default))

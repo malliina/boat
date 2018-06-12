@@ -195,5 +195,4 @@ class BoatSchema(ds: DataSource, override val impl: JdbcProfile)
 
     def * = (id, user, passHash, enabled, added) <> ((DataUser.apply _).tupled, DataUser.unapply)
   }
-
 }

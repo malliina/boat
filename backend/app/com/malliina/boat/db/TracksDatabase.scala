@@ -46,10 +46,11 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext) extends 
   override def history(user: User, limits: BoatQuery): Future[Seq[CoordsEvent]] = {
     val query = tracksView.filter(_.username === user)
       .join(rangedCoords(limits.timeRange)).on(_.track === _.track)
-      .sortBy(_._2.added.asc)
+      .sortBy { case (_, point) => (point.added.desc, point.id.desc) }
       .drop(limits.offset)
       .take(limits.limit)
-    db.run(query.result.map(collectCoords))
+      .sortBy { case (_, point) => (point.added.asc, point.id.asc) }
+    db.run(query.result.map(rows => collectCoords(rows)))
   }
 
   private def rangedCoords(limits: TimeRange) =

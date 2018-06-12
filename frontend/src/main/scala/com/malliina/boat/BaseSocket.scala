@@ -41,7 +41,7 @@ class BaseSocket(wsPath: String, val log: BaseLogger = BaseLogger.console) {
   }
 
   def onMessage(msg: MessageEvent): Unit = {
-    log.info(s"Got message: ${msg.data.toString}")
+    log.debug(s"Got message: ${msg.data.toString}")
     Try(Json.parse(msg.data.toString)).map { json =>
       val isPing = (json \ EventKey).validate[String].filter(_ == Ping).isSuccess
       if (!isPing) {
@@ -73,7 +73,7 @@ class BaseSocket(wsPath: String, val log: BaseLogger = BaseLogger.console) {
   }
 
   def setFeedback(feedback: String) = {
-    log.info(feedback)
+    log.debug(feedback)
   }
 
   def onJsonException(t: Throwable): Unit = {

@@ -8,6 +8,7 @@ trait Constants {
   val BoatNameHeader = "X-Boat"
   val BoatTokenHeader = "X-Token"
   val TrackNameHeader = "X-Track"
+  val BoatTokenQuery = "token"
 }
 
 object FrontKeys {

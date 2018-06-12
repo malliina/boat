@@ -14,6 +14,8 @@ import play.filters.headers.SecurityHeadersConfig
 import play.filters.hosts.AllowedHostsConfig
 import router.Routes
 
+import scala.concurrent.Future
+
 class AppLoader extends DefaultApp(new AppComponents(_))
 
 class AppComponents(context: Context)
@@ -44,4 +46,8 @@ class AppComponents(context: Context)
     mapboxToken, html, users, tracks,
     controllerComponents, assets)(actorSystem, materializer)
   override val router: Router = new Routes(httpErrorHandler, home, files)
+
+  applicationLifecycle.addStopHook(() => Future.successful {
+    schema.close()
+  })
 }

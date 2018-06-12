@@ -6,7 +6,7 @@ import akka.NotUsed
 import akka.actor.ActorSystem
 import akka.stream.Materializer
 import akka.stream.scaladsl.{BroadcastHub, Flow, Keep, MergeHub, Sink, Source}
-import com.malliina.boat.Constants.{BoatNameHeader, BoatTokenHeader, TokenCookieName, TrackNameHeader}
+import com.malliina.boat.Constants._
 import com.malliina.boat._
 import com.malliina.boat.db.{IdentityError, TracksSource, UserManager}
 import com.malliina.boat.http.BoatQuery
@@ -37,6 +37,8 @@ class BoatController(mapboxToken: AccessToken,
                      assets: AssetsBuilder)(implicit as: ActorSystem, mat: Materializer)
   extends AbstractController(comps) with Streams {
 
+  val UserSessionKey = "user"
+
   implicit val updatesTransformer = jsonMessageFlowTransformer[JsValue, FrontEvent]
 
   // Publish-Subscribe Akka Streams
@@ -53,19 +55,19 @@ class BoatController(mapboxToken: AccessToken,
   }
   val parsedEvents = sentencesSource.map(e => e.map(parseCoords))
   val sentences = rights(sentencesSource)
-  val savedSentences = onlyOnce(sentences.mapAsync(parallelism = 10)(ss => db.saveSentences(ss).map(_ => ss)))
+  val savedSentences = onlyOnce(sentences.mapAsync(parallelism = 1)(ss => db.saveSentences(ss).map(_ => ss)))
   val sentencesDrainer = savedSentences.runWith(Sink.ignore)
   val coords: Source[CoordsEvent, NotUsed] = rights(parsedEvents)
-  val savedCoords = onlyOnce(coords.mapAsync(parallelism = 10)(coordsEvent => db.saveCoords(coordsEvent).map(_ => coordsEvent)))
+  val savedCoords = onlyOnce(coords.mapAsync(parallelism = 1)(coordsEvent => db.saveCoords(coordsEvent).map(_ => coordsEvent)))
   val coordsDrainer = savedCoords.runWith(Sink.ignore)
   val errors = lefts(parsedEvents)
   val frontEvents: Source[FrontEvent, NotUsed] = savedCoords
 
   errors.runWith(Sink.foreach(err => log.error(s"JSON error for '${err.boat}': '${err.error}'.")))
 
-  def index = Action {
+  def index = authAction(authQuery) { user =>
     val cookie = Cookie(TokenCookieName, mapboxToken.token, httpOnly = false)
-    Ok(html.map).withCookies(cookie)
+    Future.successful(Ok(html.map).withCookies(cookie).withSession(UserSessionKey -> user.name))
   }
 
   def health = Action {
@@ -89,9 +91,10 @@ class BoatController(mapboxToken: AccessToken,
   }
 
   def updates = WebSocket.acceptOrResult[JsValue, FrontEvent] { rh =>
-    asResult(auth(rh), rh).map { outcome =>
+    makeResult(auth(rh), rh).map { outcome =>
       outcome.flatMap { user =>
         BoatQuery(rh).map { limits =>
+          log.info(s"Viewer '$user' joined.")
           // Show recent tracks for non-anon users
           val historicalLimits: BoatQuery =
             if (user == anonUser) BoatQuery.recent(Instant.now())
@@ -120,7 +123,7 @@ class BoatController(mapboxToken: AccessToken,
     * @return
     */
   def authBoat(rh: RequestHeader): Future[Either[Result, JoinedTrack]] =
-    asResult(boatAuth(rh), rh).flatMap { e =>
+    makeResult(boatAuth(rh), rh).flatMap { e =>
       e.fold(
         err => Future.successful(Left(err)),
         boat => db.join(boat).map(Right.apply)
@@ -146,9 +149,20 @@ class BoatController(mapboxToken: AccessToken,
   def auth(rh: RequestHeader): Future[Either[IdentityError, User]] =
     Auth.basicCredentials(rh).map { creds =>
       auther.authenticate(User(creds.username.name), creds.password).map { outcome =>
-        outcome.map { profile =>
-          profile.username
-        }
+        outcome.map { profile => profile.username }
+      }
+    }.orElse {
+      rh.session.get(UserSessionKey).filter(_ != anonUser.name).map { user =>
+        Future.successful(Right(User(user)))
+      }
+    }.getOrElse {
+      Future.successful(Right(anonUser))
+    }
+
+  def authQuery(rh: RequestHeader): Future[Either[IdentityError, User]] =
+    rh.getQueryString(BoatTokenQuery).map { token =>
+      auther.authBoat(BoatToken(token)).map { outcome =>
+        outcome.map { boatInfo => boatInfo.user }
       }
     }.getOrElse {
       Future.successful(Right(anonUser))
@@ -165,7 +179,10 @@ class BoatController(mapboxToken: AccessToken,
     */
   def onlyOnce[T, U](once: Source[T, U]) = Source.fromPublisher(once.runWith(Sink.asPublisher(fanout = true)))
 
-  private def asResult[T](f: Future[Either[IdentityError, T]], rh: RequestHeader) =
+  private def authAction[T](makeAuth: RequestHeader => Future[Either[IdentityError, T]])(code: T => Future[Result]) =
+    Action.async { req => makeResult(makeAuth(req), req).flatMap { e => e.fold(Future.successful, code) } }
+
+  private def makeResult[T](f: Future[Either[IdentityError, T]], rh: RequestHeader): Future[Either[Result, T]] =
     f.map { e =>
       e.left.map { err =>
         log.warn(s"Authentication failed from '$rh': '$err'.")
