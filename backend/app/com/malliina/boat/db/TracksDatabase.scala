@@ -2,7 +2,7 @@ package com.malliina.boat.db
 
 import com.malliina.boat._
 import com.malliina.boat.db.TracksDatabase.log
-import com.malliina.boat.http.Limits
+import com.malliina.boat.http.{BoatQuery, Limits, TimeRange}
 import play.api.Logger
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -43,14 +43,20 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext) extends 
     insertLogged(action, coords.from, "coordinate")
   }
 
-  override def history(user: User, limits: Limits): Future[Seq[CoordsEvent]] = {
+  override def history(user: User, limits: BoatQuery): Future[Seq[CoordsEvent]] = {
     val query = tracksView.filter(_.username === user)
-      .join(coordsTable).on(_.track === _.track)
+      .join(rangedCoords(limits.timeRange)).on(_.track === _.track)
       .sortBy(_._2.added.asc)
       .drop(limits.offset)
       .take(limits.limit)
     db.run(query.result.map(collectCoords))
   }
+
+  private def rangedCoords(limits: TimeRange) =
+    coordsTable.filter { c =>
+      limits.from.map(from => c.added >= from).getOrElse(valueToConstColumn(true)) &&
+        limits.to.map(to => c.added <= to).getOrElse(valueToConstColumn(true))
+    }
 
   private def collectCoords(rows: Seq[(JoinedTrack, TrackPointRow)]): Seq[CoordsEvent] =
     rows.foldLeft(Vector.empty[CoordsEvent]) { case (acc, (from, point)) =>

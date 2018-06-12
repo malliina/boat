@@ -40,8 +40,8 @@ class SentenceTests extends BoatTests {
       val coordPromise = Promise[CoordsEvent]()
       val testMessage = SentencesMessage(Seq(RawSentence("$GPGGA,154106,6008.0079,N,02452.0497,E,1,12,0.60,0,M,19.5,M,,*68")))
       val anonSink = Sink.foreach[JsValue] { json =>
-        json.validate[SentencesEvent].foreach { se => sentencePromise.trySuccess(se) }
-        json.validate[CoordsEvent].foreach { c => coordPromise.trySuccess(c) }
+        json.validate[SentencesEvent].filter(_.from.username == testUser).foreach { se => sentencePromise.trySuccess(se) }
+        json.validate[CoordsEvent].filter(_.from.username == testUser).foreach { c => coordPromise.trySuccess(c) }
       }
       val authSink = Sink.foreach[JsValue] { json =>
         json.validate[SentencesEvent].foreach { se => authSentencePromise.trySuccess(se) }
@@ -54,8 +54,10 @@ class SentenceTests extends BoatTests {
           intercept[TimeoutException] {
             Await.result(sentencePromise.future, 500.millis)
           }
+
           intercept[TimeoutException] {
             Await.result(coordPromise.future, 500.millis)
+            println(await(coordPromise.future))
           }
         }
       }

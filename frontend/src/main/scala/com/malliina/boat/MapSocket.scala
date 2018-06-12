@@ -7,8 +7,7 @@ import scala.scalajs.js.JSON
 
 class MapSocket(map: MapboxMap) extends BaseSocket("/ws/updates") {
   val boatIconId = "boat-icon"
-  val animationId = "line-animation"
-  val emptyTrack = FeatureCollection("FeatureCollection", Seq(Feature("Feature", LineGeometry("LineString", Nil))))
+  val emptyTrack = lineFor(Nil)
 
   var boats = Map.empty[String, FeatureCollection]
 
@@ -105,6 +104,8 @@ class MapSocket(map: MapboxMap) extends BaseSocket("/ws/updates") {
   def toRad(deg: Double) = deg * Math.PI / 180
 
   def toDeg(rad: Double) = rad * 180 / Math.PI
+
+  def lineFor(coords: Seq[Coord]) = FeatureCollection("FeatureCollection", Seq(Feature("Feature", LineGeometry("LineString", coords))))
 
   def pointFor(coord: Coord) = FeatureCollection("FeatureCollection", Seq(Feature("Feature", PointGeometry("Point", coord))))
 

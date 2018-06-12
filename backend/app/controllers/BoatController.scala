@@ -6,10 +6,10 @@ import akka.NotUsed
 import akka.actor.ActorSystem
 import akka.stream.Materializer
 import akka.stream.scaladsl.{BroadcastHub, Flow, Keep, MergeHub, Sink, Source}
-import com.malliina.boat.Constants.{BoatNameHeader, BoatTokenHeader, TrackNameHeader}
+import com.malliina.boat.Constants.{BoatNameHeader, BoatTokenHeader, TokenCookieName, TrackNameHeader}
 import com.malliina.boat._
 import com.malliina.boat.db.{IdentityError, TracksSource, UserManager}
-import com.malliina.boat.http.Limits
+import com.malliina.boat.http.BoatQuery
 import com.malliina.boat.parsing.BoatParser.{parseCoords, read}
 import com.malliina.concurrent.ExecutionContexts.cached
 import com.malliina.play.auth.Auth
@@ -63,9 +63,14 @@ class BoatController(mapboxToken: AccessToken,
 
   errors.runWith(Sink.foreach(err => log.error(s"JSON error for '${err.boat}': '${err.error}'.")))
 
-  def index = Action(Ok(html.map).withCookies(Cookie(Constants.TokenCookieName, mapboxToken.token, httpOnly = false)))
+  def index = Action {
+    val cookie = Cookie(TokenCookieName, mapboxToken.token, httpOnly = false)
+    Ok(html.map).withCookies(cookie)
+  }
 
-  def health = Action(Ok(Json.toJson(AppMeta.default)))
+  def health = Action {
+    Ok(Json.toJson(AppMeta.default))
+  }
 
   def boats = WebSocket { rh =>
     authBoat(rh).map { e =>
@@ -86,15 +91,19 @@ class BoatController(mapboxToken: AccessToken,
   def updates = WebSocket.acceptOrResult[JsValue, FrontEvent] { rh =>
     asResult(auth(rh), rh).map { outcome =>
       outcome.flatMap { user =>
-        Limits(rh).left.map(err => BadRequest(Errors(err.message))).map { limits =>
+        BoatQuery(rh).map { limits =>
           // Show recent tracks for non-anon users
+          val historicalLimits: BoatQuery =
+            if (user == anonUser) BoatQuery.recent(Instant.now())
+            else limits
           val history: Source[CoordsEvent, NotUsed] =
-            if (user == anonUser) Source.empty[CoordsEvent]
-            else Source.fromFuture(db.history(user, limits)).flatMapConcat(es => Source(es.toList))
+            Source.fromFuture(db.history(user, historicalLimits)).flatMapConcat(es => Source(es.toList))
           // disconnects viewers that lag more than 3s
           Flow.fromSinkAndSource(Sink.ignore, history.concat(frontEvents).filter(_.isIntendedFor(user)))
             .keepAlive(10.seconds, () => PingEvent(Instant.now.toEpochMilli))
             .backpressureTimeout(3.seconds)
+        }.left.map { err =>
+          BadRequest(Errors(err.message))
         }
       }
     }
