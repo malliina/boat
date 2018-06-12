@@ -59,7 +59,7 @@ class BoatController(mapboxToken: AccessToken,
   val savedCoords = onlyOnce(coords.mapAsync(parallelism = 10)(coordsEvent => db.saveCoords(coordsEvent).map(_ => coordsEvent)))
   val coordsDrainer = savedCoords.runWith(Sink.ignore)
   val errors = lefts(parsedEvents)
-  val frontEvents: Source[FrontEvent, NotUsed] = savedSentences.merge(savedCoords)
+  val frontEvents: Source[FrontEvent, NotUsed] = savedCoords
 
   errors.runWith(Sink.foreach(err => log.error(s"JSON error for '${err.boat}': '${err.error}'.")))
 

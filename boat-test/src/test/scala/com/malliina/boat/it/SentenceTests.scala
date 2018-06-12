@@ -35,29 +35,21 @@ class SentenceTests extends BoatTests {
     await(components.users.addUser(testUser, testPass))
     val creds = Option(Creds(testUser, testPass))
     openTestBoat(BoatNames.random(), creds) { boat =>
-      val authSentencePromise = Promise[SentencesEvent]()
-      val sentencePromise = Promise[SentencesEvent]()
-      val coordPromise = Promise[CoordsEvent]()
+      val authPromise = Promise[CoordsEvent]()
+      val anonPromise = Promise[CoordsEvent]()
       val testMessage = SentencesMessage(Seq(RawSentence("$GPGGA,154106,6008.0079,N,02452.0497,E,1,12,0.60,0,M,19.5,M,,*68")))
       val anonSink = Sink.foreach[JsValue] { json =>
-        json.validate[SentencesEvent].filter(_.from.username == testUser).foreach { se => sentencePromise.trySuccess(se) }
-        json.validate[CoordsEvent].filter(_.from.username == testUser).foreach { c => coordPromise.trySuccess(c) }
+        json.validate[CoordsEvent].filter(_.from.username == testUser).foreach { c => anonPromise.trySuccess(c) }
       }
       val authSink = Sink.foreach[JsValue] { json =>
-        json.validate[SentencesEvent].foreach { se => authSentencePromise.trySuccess(se) }
+        json.validate[CoordsEvent].filter(_.from.username == testUser).foreach { se => authPromise.trySuccess(se) }
       }
       openViewerSocket(anonSink, None) { _ =>
         openViewerSocket(authSink, creds) { _ =>
           boat.send(testMessage)
-          val received = await(authSentencePromise.future)
-          assert(received.sentences === testMessage.sentences)
+          await(authPromise.future)
           intercept[TimeoutException] {
-            Await.result(sentencePromise.future, 500.millis)
-          }
-
-          intercept[TimeoutException] {
-            Await.result(coordPromise.future, 500.millis)
-            println(await(coordPromise.future))
+            Await.result(anonPromise.future, 500.millis)
           }
         }
       }

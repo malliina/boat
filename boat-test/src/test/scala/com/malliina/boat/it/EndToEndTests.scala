@@ -6,9 +6,9 @@ import akka.stream.KillSwitches
 import akka.stream.scaladsl.Tcp.IncomingConnection
 import akka.stream.scaladsl.{Keep, Sink, Source, Tcp}
 import akka.util.ByteString
-import com.malliina.boat.{CoordsEvent, SentencesEvent, SentencesMessage}
 import com.malliina.boat.client.server.BoatConf
 import com.malliina.boat.client.{BoatAgent, TcpSource}
+import com.malliina.boat.{CoordsEvent, SentencesMessage}
 import com.malliina.http.FullUrl
 import play.api.libs.json.JsValue
 
@@ -37,19 +37,15 @@ class EndToEndTests extends BoatTests {
     val agent = BoatAgent(BoatConf.anon(tcpHost, tcpPort), serverUrl)
     try {
       val p = Promise[JsValue]()
-      val p2 = Promise[SentencesEvent]()
       val p3 = Promise[CoordsEvent]()
 
       val sink = Sink.foreach[JsValue] { json =>
         p.trySuccess(json)
-        json.asOpt[SentencesEvent].map { sm => p2.trySuccess(sm) }
-          .orElse(json.asOpt[CoordsEvent].map { ce => p3.trySuccess(ce)})
+        json.asOpt[CoordsEvent].foreach { ce => p3.trySuccess(ce) }
       }
       openViewerSocket(sink, None) { _ =>
         agent.connect()
         await(p.future)
-        val msg = await(p2.future)
-        assert(msg.sentences.map(_.sentence) === sentences)
         await(p3.future).coords
       }
     } finally {
