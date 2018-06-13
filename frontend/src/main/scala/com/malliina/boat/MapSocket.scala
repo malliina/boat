@@ -5,7 +5,7 @@ import play.api.libs.json._
 import scala.concurrent.{Future, Promise}
 import scala.scalajs.js.JSON
 
-class MapSocket(map: MapboxMap) extends BaseSocket("/ws/updates") {
+class MapSocket(map: MapboxMap, queryString: String) extends BaseSocket(s"/ws/updates?$queryString") {
   val boatIconId = "boat-icon"
   val emptyTrack = lineFor(Nil)
 

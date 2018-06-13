@@ -1,5 +1,6 @@
 GET        /                    controllers.BoatController.index
 GET        /health              controllers.BoatController.health
+GET        /tracks              controllers.BoatController.tracks
 GET        /ws/updates          controllers.BoatController.updates
 GET        /ws/boats            controllers.BoatController.boats
 GET        /files               controllers.FileController.list

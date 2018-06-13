@@ -1,5 +1,7 @@
 package com.malliina.boat
 
+import java.net.URI
+
 import com.malliina.boat.FrontKeys._
 import org.scalajs.dom.raw.HTMLSpanElement
 import org.scalajs.dom.{document, window}
@@ -20,7 +22,12 @@ object MapView {
 
 class MapView(accessToken: AccessToken) {
   mapboxGl.accessToken = accessToken.token
-
+  val queryString = new URI(window.location.href).getQuery
+  val queryParams = queryString.split("&").toList
+    .map { kv => kv.split("=").toList }
+    .collect { case key :: value :: Nil => key -> value }
+    .groupBy { case (key, _) => key }
+    .mapValues { vs => vs.map { case (_, v) => v} }
   val mapOptions = MapOptions(
     container = MapId,
     style = "mapbox://styles/malliina/cjgny1fjc008p2so90sbz8nbv",
@@ -31,7 +38,7 @@ class MapView(accessToken: AccessToken) {
   var socket: Option[MapSocket] = None
 
   map.on("load", () => {
-    socket = Option(new MapSocket(map))
+    socket = Option(new MapSocket(map, queryString))
   })
 
   initModal()

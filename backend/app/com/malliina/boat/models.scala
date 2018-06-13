@@ -32,7 +32,7 @@ object Errors {
   implicit val json = Json.format[Errors]
   implicit val html: Writeable[Errors] = Writeable.writeableOf_JsValue.map[Errors](e => Json.toJson(e))
 
-  def apply(message: String): Errors = Errors(Seq(SingleError(message)))
+  def apply(error: SingleError): Errors = Errors(Seq(error))
 }
 
 object BoatNames {

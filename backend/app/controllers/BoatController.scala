@@ -9,7 +9,7 @@ import akka.stream.scaladsl.{BroadcastHub, Flow, Keep, MergeHub, Sink, Source}
 import com.malliina.boat.Constants._
 import com.malliina.boat._
 import com.malliina.boat.db.{IdentityError, TracksSource, UserManager}
-import com.malliina.boat.http.BoatQuery
+import com.malliina.boat.http.{BoatQuery, TrackQuery}
 import com.malliina.boat.parsing.BoatParser.{parseCoords, read}
 import com.malliina.concurrent.ExecutionContexts.cached
 import com.malliina.play.auth.Auth
@@ -65,7 +65,7 @@ class BoatController(mapboxToken: AccessToken,
 
   errors.runWith(Sink.foreach(err => log.error(s"JSON error for '${err.boat}': '${err.error}'.")))
 
-  def index = authAction(authQuery) { user =>
+  def index = authAction(authQuery) { (user, _) =>
     val cookie = Cookie(TokenCookieName, mapboxToken.token, httpOnly = false)
     Future.successful(Ok(html.map).withCookies(cookie).withSession(UserSessionKey -> user.name))
   }
@@ -90,6 +90,20 @@ class BoatController(mapboxToken: AccessToken,
     }
   }
 
+  def tracks = authAction(authQuery) { (user, rh) =>
+    TrackQuery(rh).fold(
+      err => {
+        Future.successful(BadRequest(Errors(err)))
+      },
+      query => {
+        db.tracks(user, query).map { summaries =>
+          Ok(Json.toJson(summaries))
+        }
+      }
+    )
+
+  }
+
   def updates = WebSocket.acceptOrResult[JsValue, FrontEvent] { rh =>
     makeResult(auth(rh), rh).map { outcome =>
       outcome.flatMap { user =>
@@ -106,7 +120,7 @@ class BoatController(mapboxToken: AccessToken,
             .keepAlive(10.seconds, () => PingEvent(Instant.now.toEpochMilli))
             .backpressureTimeout(3.seconds)
         }.left.map { err =>
-          BadRequest(Errors(err.message))
+          BadRequest(Errors(err))
         }
       }
     }
@@ -179,14 +193,14 @@ class BoatController(mapboxToken: AccessToken,
     */
   def onlyOnce[T, U](once: Source[T, U]) = Source.fromPublisher(once.runWith(Sink.asPublisher(fanout = true)))
 
-  private def authAction[T](makeAuth: RequestHeader => Future[Either[IdentityError, T]])(code: T => Future[Result]) =
-    Action.async { req => makeResult(makeAuth(req), req).flatMap { e => e.fold(Future.successful, code) } }
+  private def authAction[T](makeAuth: RequestHeader => Future[Either[IdentityError, T]])(code: (T, RequestHeader) => Future[Result]) =
+    Action.async { req => makeResult(makeAuth(req), req).flatMap { e => e.fold(Future.successful, t => code(t, req)) } }
 
   private def makeResult[T](f: Future[Either[IdentityError, T]], rh: RequestHeader): Future[Either[Result, T]] =
     f.map { e =>
       e.left.map { err =>
         log.warn(s"Authentication failed from '$rh': '$err'.")
-        Unauthorized(Errors("Unauthorized."))
+        Unauthorized(Errors(SingleError("Unauthorized.")))
       }
     }
 

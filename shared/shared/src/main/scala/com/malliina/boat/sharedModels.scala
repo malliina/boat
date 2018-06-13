@@ -1,8 +1,11 @@
 package com.malliina.boat
 
 import com.malliina.boat.BoatJson.keyValued
+import com.malliina.json.PrimitiveFormats
 import com.malliina.values.{StringCompanion, Wrapped}
 import play.api.libs.json._
+
+import scala.concurrent.duration.Duration
 
 case class Coord(lng: Double, lat: Double)
 
@@ -45,6 +48,7 @@ object PointGeometry {
 
 sealed abstract class Geometry(typeName: String) {
   def updateCoords(coords: Seq[Coord]): Geometry
+
   def coords: Seq[Coord]
 }
 
@@ -198,6 +202,26 @@ case class JoinedTrack(track: TrackId, trackName: TrackName, boat: BoatId, boatN
 
 object JoinedTrack {
   implicit val json = Json.format[JoinedTrack]
+}
+
+case class TrackStats(points: Int, first: String, firstMillis: Long, last: String, lastMillis: Long, duration: Duration)
+
+object TrackStats {
+  implicit val durationFormat = PrimitiveFormats.durationFormat
+  implicit val json = Json.format[TrackStats]
+}
+
+case class TrackSummary(track: JoinedTrack, stats: TrackStats)
+
+object TrackSummary {
+
+  implicit val json = Json.format[TrackSummary]
+}
+
+case class TrackSummaries(tracks: Seq[TrackSummary])
+
+object TrackSummaries {
+  implicit val json = Json.format[TrackSummaries]
 }
 
 case class CoordsEvent(coords: Seq[Coord], from: JoinedTrack) extends BoatFrontEvent {

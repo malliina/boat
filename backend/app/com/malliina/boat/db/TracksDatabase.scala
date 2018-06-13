@@ -2,9 +2,10 @@ package com.malliina.boat.db
 
 import com.malliina.boat._
 import com.malliina.boat.db.TracksDatabase.log
-import com.malliina.boat.http.{BoatQuery, Limits, TimeRange}
+import com.malliina.boat.http._
+import com.malliina.logbackrx.TimeFormatter
 import play.api.Logger
-
+import concurrent.duration.DurationLong
 import scala.concurrent.{ExecutionContext, Future}
 
 object TracksDatabase {
@@ -14,6 +15,8 @@ object TracksDatabase {
 }
 
 class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext) extends TracksSource {
+  //  val timeFormatter = new TimeFormatter(CoreConstants.ISO8601_PATTERN)
+  val timeFormatter = new TimeFormatter("yyyy-MM-dd HH:mm:ss")
 
   import db._
   import db.api._
@@ -43,8 +46,35 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext) extends 
     insertLogged(action, coords.from, "coordinate")
   }
 
+  override def tracks(user: User, filter: TrackQuery): Future[TrackSummaries] = {
+    val query = tracksView.filter(t => t.username === user).join(coordsTable).on(_.track === _.track)
+      .groupBy { case (t, _) => t }
+      .map { case (track, ps) =>
+        val points = ps.map(_._2)
+        (track, points.length, points.map(_.added).min, points.map(_.added).max)
+      }
+      .sortBy {
+        case (_, points, _, last) => (filter.sort, filter.order) match {
+          case (TrackSort.Recent, SortOrder.Desc) => last.desc.nullsLast
+          case (TrackSort.Recent, SortOrder.Asc) => last.asc.nullsLast
+          case (TrackSort.Points, SortOrder.Desc) => points.desc.nullsLast
+          case _ => points.asc.nullsLast
+        }
+      }
+    val action = query.result.map { rows =>
+      val summaries = rows.map { case (track, points, first, last) =>
+        val firstMillis = first.get.toEpochMilli
+        val lastMillis = last.get.toEpochMilli
+        val duration = (lastMillis - firstMillis).millis
+        TrackSummary(track, TrackStats(points, timeFormatter.format(firstMillis), firstMillis, timeFormatter.format(lastMillis), lastMillis, duration))
+      }
+      TrackSummaries(summaries)
+    }
+    db.run(action)
+  }
+
   override def history(user: User, limits: BoatQuery): Future[Seq[CoordsEvent]] = {
-    val query = tracksView.filter(_.username === user)
+    val query = tracksView.filter(t => t.username === user && (if (limits.tracks.nonEmpty) t.trackName.inSet(limits.tracks) else trueColumn))
       .join(rangedCoords(limits.timeRange)).on(_.track === _.track)
       .sortBy { case (_, point) => (point.added.desc, point.id.desc) }
       .drop(limits.offset)
@@ -52,24 +82,6 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext) extends 
       .sortBy { case (_, point) => (point.added.asc, point.id.asc) }
     db.run(query.result.map(rows => collectCoords(rows)))
   }
-
-  private def rangedCoords(limits: TimeRange) =
-    coordsTable.filter { c =>
-      limits.from.map(from => c.added >= from).getOrElse(valueToConstColumn(true)) &&
-        limits.to.map(to => c.added <= to).getOrElse(valueToConstColumn(true))
-    }
-
-  private def collectCoords(rows: Seq[(JoinedTrack, TrackPointRow)]): Seq[CoordsEvent] =
-    rows.foldLeft(Vector.empty[CoordsEvent]) { case (acc, (from, point)) =>
-      val idx = acc.indexWhere(_.from.track == from.track)
-      val coord = Coord(point.lon, point.lat)
-      if (idx >= 0) {
-        val old = acc(idx)
-        acc.updated(idx, old.copy(coords = old.coords :+ coord))
-      } else {
-        acc :+ CoordsEvent(Seq(coord), from)
-      }
-    }
 
   override def renameBoat(old: BoatMeta, newName: BoatName): Future[BoatRow] = {
     val action = for {
@@ -82,6 +94,26 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext) extends 
       maybeBoat
     }
   }
+
+  private def rangedCoords(limits: TimeRange) =
+    coordsTable.filter { c =>
+      limits.from.map(from => c.added >= from).getOrElse(trueColumn) &&
+        limits.to.map(to => c.added <= to).getOrElse(trueColumn)
+    }
+
+  private def trueColumn: Rep[Boolean] = valueToConstColumn(true)
+
+  private def collectCoords(rows: Seq[(JoinedTrack, TrackPointRow)]): Seq[CoordsEvent] =
+    rows.foldLeft(Vector.empty[CoordsEvent]) { case (acc, (from, point)) =>
+      val idx = acc.indexWhere(_.from.track == from.track)
+      val coord = Coord(point.lon, point.lat)
+      if (idx >= 0) {
+        val old = acc(idx)
+        acc.updated(idx, old.copy(coords = old.coords :+ coord))
+      } else {
+        acc :+ CoordsEvent(Seq(coord), from)
+      }
+    }
 
   private def insertLogged[R](action: DBIOAction[Seq[R], NoStream, Nothing], from: JoinedTrack, word: String) = {
     db.run(action).map { keys =>
