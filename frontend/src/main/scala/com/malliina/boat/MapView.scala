@@ -22,7 +22,7 @@ object MapView {
 
 class MapView(accessToken: AccessToken) {
   mapboxGl.accessToken = accessToken.token
-  val queryString = new URI(window.location.href).getQuery
+  val queryString = Option(new URI(window.location.href).getQuery).getOrElse("")
   val queryParams = queryString.split("&").toList
     .map { kv => kv.split("=").toList }
     .collect { case key :: value :: Nil => key -> value }
