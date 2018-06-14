@@ -1,7 +1,7 @@
 package com.malliina.boat.parsing
 
 import com.malliina.boat.RawSentence
-import net.sf.marineapi.nmea.parser.{SentenceFactory, UnsupportedSentenceException}
+import net.sf.marineapi.nmea.parser.{DataNotAvailableException, SentenceFactory, UnsupportedSentenceException}
 import net.sf.marineapi.nmea.sentence.Sentence
 
 trait BoatSentenceParser {
@@ -30,6 +30,10 @@ sealed trait SentenceError {
   def message: String
 }
 
+case class MissingData(sentence: RawSentence, e: DataNotAvailableException) extends SentenceError {
+  override def message: String = s"Data not available in '$sentence'. ${e.getMessage}"
+}
+
 case class UnknownSentence(sentence: RawSentence, detailedMessage: String) extends SentenceError {
   override def message: String = s"Unknown sentence: '$sentence'. $detailedMessage"
 }
@@ -37,3 +41,4 @@ case class UnknownSentence(sentence: RawSentence, detailedMessage: String) exten
 case class SentenceFailure(sentence: RawSentence, e: Exception) extends SentenceError {
   override def message: String = s"Error for sentence: '$sentence'. ${e.getMessage}"
 }
+

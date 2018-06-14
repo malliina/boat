@@ -1,6 +1,7 @@
 package com.malliina.boat.parsing
 
 import com.malliina.boat._
+import net.sf.marineapi.nmea.parser.DataNotAvailableException
 import net.sf.marineapi.nmea.sentence.{GGASentence, SentenceId}
 import play.api.Logger
 import play.api.libs.json.{JsError, JsValue, Reads}
@@ -23,14 +24,21 @@ object BoatParser {
 
   def parse(sentence: RawSentence): Either[SentenceError, Coord] =
     parser.parse(sentence).flatMap { parsed =>
-      if (parsed.getSentenceId == SentenceId.GGA.name()) {
-        val gga = parsed.asInstanceOf[GGASentence]
-        val pos = gga.getPosition
-        //        val time = gga.getTime
-        //        val localTime = LocalTime.of(time.getHour, time.getMinutes, time.getSeconds.toInt)
-        Right(Coord(pos.getLongitude, pos.getLatitude))
-      } else {
-        Left(UnknownSentence(sentence, s"Unsupported sentence: '$sentence'."))
+      try {
+        if (parsed.getSentenceId == SentenceId.GGA.name()) {
+          val gga = parsed.asInstanceOf[GGASentence]
+          val pos = gga.getPosition
+          //        val time = gga.getTime
+          //        val localTime = LocalTime.of(time.getHour, time.getMinutes, time.getSeconds.toInt)
+          Right(Coord(pos.getLongitude, pos.getLatitude))
+        } else {
+          Left(UnknownSentence(sentence, s"Unsupported sentence: '$sentence'."))
+        }
+      } catch {
+        case dnee: DataNotAvailableException =>
+          Left(MissingData(sentence, dnee))
+        case e: Exception =>
+          Left(SentenceFailure(sentence, e))
       }
     }
 
