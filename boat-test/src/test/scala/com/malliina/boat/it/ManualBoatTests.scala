@@ -17,9 +17,9 @@ class ManualBoatTests extends BoatTests {
 
   def gpsSentences = sentences.filter(_.sentence.startsWith("$GPGGA"))
 
-  def url = FullUrl.ws("localhost:9000", reverse.boats().toString)
+  //  def url = FullUrl.ws("localhost:9000", reverse.boats().toString)
 
-  //  def url = FullUrl.wss("boat.malliina.com", reverse.boats().toString)
+  def url = FullUrl.wss("boat.malliina.com", reverse.boats().toString)
 
   ignore("local GPS reporting") {
     val testMessages = gpsSentences.toList.grouped(1000).map(SentencesMessage.apply).toList

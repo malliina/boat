@@ -117,7 +117,7 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext) extends 
 
   private def insertLogged[R](action: DBIOAction[Seq[R], NoStream, Nothing], from: JoinedTrack, word: String) = {
     db.run(action).map { keys =>
-      val pluralSuffix = if (keys.length > 1) "s" else ""
+      val pluralSuffix = if (keys.length == 1) "" else "s"
       log.info(s"Inserted ${keys.length} $word$pluralSuffix from '${from.boatName}' owned by '${from.username}'.")
       keys
     }

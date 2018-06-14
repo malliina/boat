@@ -58,12 +58,18 @@ class BoatController(mapboxToken: AccessToken,
   val savedSentences = onlyOnce(sentences.mapAsync(parallelism = 1)(ss => db.saveSentences(ss).map(_ => ss)))
   val sentencesDrainer = savedSentences.runWith(Sink.ignore)
   val coords: Source[CoordsEvent, NotUsed] = rights(parsedEvents)
-  val savedCoords = onlyOnce(coords.mapAsync(parallelism = 1)(coordsEvent => db.saveCoords(coordsEvent).map(_ => coordsEvent)))
+  val savedCoords = onlyOnce(coords.mapAsync(parallelism = 1)(saveRecovered))
   val coordsDrainer = savedCoords.runWith(Sink.ignore)
   val errors = lefts(parsedEvents)
   val frontEvents: Source[FrontEvent, NotUsed] = savedCoords
 
   errors.runWith(Sink.foreach(err => log.error(s"JSON error for '${err.boat}': '${err.error}'.")))
+
+  def saveRecovered(coords: CoordsEvent) =
+    db.saveCoords(coords).map { _ => coords }.recover { case t =>
+      log.error(s"Unable to save coords.", t)
+      coords
+    }
 
   def index = authAction(authQuery) { (user, _) =>
     val cookie = Cookie(TokenCookieName, mapboxToken.token, httpOnly = false)
