@@ -3,12 +3,15 @@ package com.malliina.boat
 import play.api.libs.json._
 
 import scala.concurrent.{Future, Promise}
+import scala.scalajs.js
+import scala.scalajs.js.JSConverters.genTravConvertible2JSRichGenTrav
 import scala.scalajs.js.JSON
 
 class MapSocket(map: MapboxMap, queryString: String) extends BaseSocket(s"/ws/updates?$queryString") {
   val boatIconId = "boat-icon"
   val emptyTrack = lineFor(Nil)
 
+  var mapMode: MapMode = Fit
   var boats = Map.empty[String, FeatureCollection]
 
   initImage()
@@ -57,21 +60,21 @@ class MapSocket(map: MapboxMap, queryString: String) extends BaseSocket(s"/ws/up
     val track = trackName(boat)
     val point = pointName(boat)
     val oldTrack = boats.getOrElse(track, emptyTrack)
-    val newTrack = oldTrack.addCoords(coords)
+    val newTrack: FeatureCollection = oldTrack.addCoords(coords)
     boats = boats.updated(track, newTrack)
     // adds layer if not already added
     if (map.getSource(track).isEmpty) {
       log.debug(s"Crafting new track for boat '$boat'...")
-      map.addLayer(parse(animation(track)))
+      map.addLayer(toJson(animation(track)))
       coords.lastOption.map { coord =>
-        map.addLayer(parse(symbolAnimation(point, coord)))
+        map.addLayer(toJson(symbolAnimation(point, coord)))
       }
     }
-    // updates the data of the layers
+    // updates the boat icon
     map.getSource(point).foreach { geoJson =>
       coords.lastOption.foreach { coord =>
         // updates placement
-        geoJson.setData(parse(pointFor(coord)))
+        geoJson.setData(toJson(pointFor(coord)))
         // updates bearing
         newTrack.features.flatMap(_.geometry.coords).takeRight(2).toList match {
           case prev :: last :: _ =>
@@ -81,15 +84,43 @@ class MapSocket(map: MapboxMap, queryString: String) extends BaseSocket(s"/ws/up
         }
       }
     }
+    // updates the trail
     map.getSource(track).foreach { geoJson =>
-      geoJson.setData(parse(newTrack))
+      geoJson.setData(toJson(newTrack))
     }
-    // does not follow if more than one boats are online, since it's not clear what to follow
-    if (boats.keySet.size == 1) {
-      coords.lastOption.foreach { coord =>
-        map.easeTo(EaseOptions(coord))
-      }
+    asJson[Feature](turf.center(toJson(newTrack))).flatMap { feature =>
+      feature.geometry.coords.headOption.toRight(JsError("Missing center."))
+    }.foreach { center =>
+      map.flyTo(FlyOptions(center))
     }
+    val trail: Seq[Coord] = newTrack.features.flatMap(_.geometry.coords)
+
+    mapMode match {
+      case Fit =>
+        newTrack.features.headOption.foreach { f =>
+//          println("Length: " + turf.length(toJson(f)) + " km")
+        }
+        trail.headOption.foreach { coord =>
+          val init = new LngLatBounds(coord.toArray.toJSArray, coord.toArray.toJSArray)
+          val bs: LngLatBounds = trail.foldLeft(init) { (bounds, c) =>
+            bounds.extend(c.toArray.toJSArray)
+          }
+          map.fitBounds(bs, FitOptions(20))
+        }
+        mapMode = Follow
+      case Follow =>
+        if (boats.keySet.size == 1) {
+          coords.lastOption.foreach { coord =>
+            map.easeTo(EaseOptions(coord))
+          }
+        } else {
+          // does not follow if more than one boats are online, since it's not clear what to follow
+          mapMode = Stay
+        }
+      case Stay =>
+        ()
+    }
+
   }
 
   // https://www.movable-type.co.uk/scripts/latlong.html
@@ -105,13 +136,18 @@ class MapSocket(map: MapboxMap, queryString: String) extends BaseSocket(s"/ws/up
 
   def toDeg(rad: Double) = rad * 180 / Math.PI
 
-  def lineFor(coords: Seq[Coord]) = FeatureCollection("FeatureCollection", Seq(Feature("Feature", LineGeometry("LineString", coords))))
+  def lineFor(coords: Seq[Coord]) = collectionFor(LineGeometry("LineString", coords))
 
-  def pointFor(coord: Coord) = FeatureCollection("FeatureCollection", Seq(Feature("Feature", PointGeometry("Point", coord))))
+  def pointFor(coord: Coord) = collectionFor(PointGeometry("Point", coord))
+
+  def collectionFor(geo: Geometry) = FeatureCollection("FeatureCollection", Seq(Feature("Feature", geo)))
 
   def trackName(boat: BoatName) = s"$boat-track"
 
   def pointName(boat: BoatName) = s"$boat-point"
 
-  def parse[T: Writes](t: T) = JSON.parse(Json.stringify(Json.toJson(t)))
+  def toJson[T: Writes](t: T) = JSON.parse(Json.stringify(Json.toJson(t)))
+
+  def asJson[T: Reads](in: js.Any): Either[JsError, T] =
+    Json.parse(JSON.stringify(in)).validate[T].asEither.left.map(err => JsError(err))
 }

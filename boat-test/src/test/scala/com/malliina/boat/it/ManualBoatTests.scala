@@ -11,17 +11,19 @@ import scala.collection.JavaConverters.asScalaBufferConverter
 
 class ManualBoatTests extends BoatTests {
   //  val testFile = FileUtilities.userHome.resolve(".boat/Log2.txt")
-  val testFile = FileUtilities.userHome.resolve(".boat/nmea0183-standard.log")
+  //  val testFile = FileUtilities.userHome.resolve(".boat/nmea0183-standard.log")
+  val testFile = FileUtilities.userHome.resolve(".boat/Log.txt")
 
   def sentences = Files.readAllLines(testFile, StandardCharsets.UTF_8).asScala.map(RawSentence.apply)
 
-  def gpsSentences = sentences.filter(_.sentence.startsWith("$GPGGA"))
+  def gpsSentences = sentences.drop(325506).filter(_.sentence.startsWith("$GPGGA"))
 
   //  def url = FullUrl.ws("localhost:9000", reverse.boats().toString)
 
   def url = FullUrl.wss("boat.malliina.com", reverse.boats().toString)
 
   ignore("local GPS reporting") {
+    //    println("Lines " + gpsSentences.toList.length)
     val testMessages = gpsSentences.toList.grouped(1000).map(SentencesMessage.apply).toList
     openBoat(url, BoatNames.random()) { boat =>
       testMessages.foreach { msg =>

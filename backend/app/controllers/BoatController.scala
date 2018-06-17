@@ -9,6 +9,7 @@ import akka.stream.scaladsl.{BroadcastHub, Flow, Keep, MergeHub, Sink, Source}
 import com.malliina.boat.Constants._
 import com.malliina.boat._
 import com.malliina.boat.db.{IdentityError, TracksSource, UserManager}
+import com.malliina.boat.html.BoatHtml
 import com.malliina.boat.http.{BoatQuery, TrackQuery}
 import com.malliina.boat.parsing.BoatParser.{parseCoords, read}
 import com.malliina.concurrent.ExecutionContexts.cached

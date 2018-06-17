@@ -1,7 +1,7 @@
-package com.malliina.boat
+package com.malliina.boat.html
 
-import com.malliina.boat.BoatHtml.callAttr
 import com.malliina.boat.FrontKeys._
+import com.malliina.boat.html.BoatHtml.callAttr
 import com.malliina.html.Tags
 import com.malliina.play.tags.TagPage
 import controllers.routes
@@ -37,7 +37,10 @@ class BoatHtml(jsFile: String) extends Tags(scalatags.Text) {
       ),
       bodyClasses = Seq(MapClass),
       cssLink("https://api.tiles.mapbox.com/mapbox-gl-js/v0.44.2/mapbox-gl.css"),
-      jsScript("https://api.tiles.mapbox.com/mapbox-gl-js/v0.44.2/mapbox-gl.js")
+      modifier(
+        jsScript("https://api.tiles.mapbox.com/mapbox-gl-js/v0.44.2/mapbox-gl.js"),
+        jsScript("https://npmcdn.com/@turf/turf/turf.min.js")
+      )
     )
   )
 

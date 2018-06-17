@@ -6,6 +6,18 @@ import scala.scalajs.js.JSConverters._
 import scala.scalajs.js.annotation.JSGlobal
 
 @js.native
+@JSGlobal("turf")
+object turf extends js.Object {
+  def center(geoJson: js.Any): js.Any = js.native
+
+  def point(coord: js.Array[Double]): js.Any = js.native
+
+  def lineString(coords: js.Array[js.Array[Double]]): js.Any = js.native
+
+  def length(line: js.Any): Double = js.native
+}
+
+@js.native
 @JSGlobal("mapboxgl")
 object mapboxGl extends js.Object {
   var accessToken: String = js.native
@@ -17,6 +29,8 @@ class MapboxMap(options: MapOptions) extends js.Object {
   def flyTo(options: FlyOptions): Unit = js.native
 
   def easeTo(options: EaseOptions): Unit = js.native
+
+  def fitBounds(bounds: LngLatBounds, options: FitOptions): Unit = js.native
 
   def loadImage(url: String, callback: js.Function2[js.Any, js.Any, Unit]): Unit = js.native
 
@@ -34,12 +48,34 @@ class MapboxMap(options: MapOptions) extends js.Object {
 }
 
 @js.native
+@JSGlobal("mapboxgl.LngLatBounds")
+class LngLatBounds(sw: js.Array[Double], ne: js.Array[Double]) extends js.Object {
+  def extend(coord: js.Array[Double]): LngLatBounds = js.native
+}
+
+@js.native
+trait FitOptions extends js.Object {
+  def padding: Double = js.native
+
+  def linear: Boolean = js.native
+
+  def maxZoom: js.UndefOr[Int] = js.native
+}
+
+object FitOptions {
+  def apply(padding: Double, linear: Boolean = false): FitOptions =
+    literal(padding = padding, linear = linear).asInstanceOf[FitOptions]
+}
+
+@js.native
 trait FlyOptions extends EaseOptions {
   def speed: Double = js.native
 }
 
 object FlyOptions {
-  def apply(center: Coord, speed: Double): FlyOptions =
+  val SpeedDefault: Double = 1.2d
+
+  def apply(center: Coord, speed: Double = SpeedDefault): FlyOptions =
     literal(center = LngLat(center.lng, center.lat), speed = speed).asInstanceOf[FlyOptions]
 }
 
