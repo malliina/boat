@@ -13,10 +13,12 @@ trait Constants {
 
 object FrontKeys {
   val Close = "close"
+  val Distance = "distance"
   val Hidden = "hidden"
   val MapClass = "map"
   val MapId = "map"
   val Modal = "modal"
   val ModalId = "modal"
   val Question = "question"
+  val QuestionNav = "question-nav"
 }

@@ -1,15 +1,18 @@
 package com.malliina.boat.html
 
+import com.malliina.boat.BoatInfo
 import com.malliina.boat.FrontKeys._
 import com.malliina.boat.html.BoatHtml.callAttr
 import com.malliina.html.Tags
 import com.malliina.play.tags.TagPage
+import com.malliina.values.Wrapped
 import controllers.routes
 import play.api.Mode
 import play.api.http.MimeTypes
 import play.api.mvc.Call
 import scalatags.Text.GenericAttr
 import scalatags.Text.all._
+import scalatags.text.Builder
 
 object BoatHtml {
   implicit val callAttr = new GenericAttr[Call]
@@ -26,14 +29,30 @@ class BoatHtml(jsFile: String) extends Tags(scalatags.Text) {
   val defer = attr("defer").empty
   val reverse = routes.BoatController
 
+  implicit def wrapFrag[T <: Wrapped](w: T): StringFrag = stringFrag(w.value)
+
+  implicit def wrapAttr[T <: Wrapped]: AttrValue[T] = {
+    (t: Builder, a: Attr, v: T) => t.setAttr(a.name, Builder.GenericAttrValueSource(v.value))
+  }
+
   def index(msg: String) = page(PageConf(h1(msg)))
 
-  def map = page(
+  def map(boat: Option[BoatInfo]) = page(
     PageConf(
       modifier(
-        div(id := MapId),
-        span(id := Question, `class` := "oi", data("glyph") := "question-mark", title := "About", aria.hidden := "true"),
-        about
+        boat.map { b =>
+          modifier(
+            div(id := "navbar", `class` := "navbar")(
+              span(`class` := "nav-text")(b.boat),
+              span(id := Distance, `class` := "nav-text")(""),
+              standaloneQuestion("question-nav nav-icon")
+            )
+          )
+        }.getOrElse {
+          standaloneQuestion("question-solo")
+        },
+        div(id := MapId, `class` := boat.fold("mapbox-map anon")(_ => "mapbox-map auth")),
+        about,
       ),
       bodyClasses = Seq(MapClass),
       cssLink("https://api.tiles.mapbox.com/mapbox-gl-js/v0.44.2/mapbox-gl.css"),
@@ -43,6 +62,9 @@ class BoatHtml(jsFile: String) extends Tags(scalatags.Text) {
       )
     )
   )
+
+  def standaloneQuestion(cls: String) =
+    span(id := Question, `class` := s"oi $cls", data("glyph") := "question-mark", title := "About", aria.hidden := "true")
 
   def about = div(id := ModalId, `class` := s"$Modal $Hidden")(
     div(`class` := "modal-content")(

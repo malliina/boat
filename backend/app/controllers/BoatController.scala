@@ -8,12 +8,12 @@ import akka.stream.Materializer
 import akka.stream.scaladsl.{BroadcastHub, Flow, Keep, MergeHub, Sink, Source}
 import com.malliina.boat.Constants._
 import com.malliina.boat._
-import com.malliina.boat.db.{IdentityError, TracksSource, UserManager}
+import com.malliina.boat.db.{IdentityError, MissingToken, TracksSource, UserManager}
 import com.malliina.boat.html.BoatHtml
 import com.malliina.boat.http.{BoatQuery, TrackQuery}
 import com.malliina.boat.parsing.BoatParser.{parseCoords, read}
 import com.malliina.concurrent.ExecutionContexts.cached
-import com.malliina.play.auth.Auth
+import com.malliina.play.auth.{Auth, MissingCredentials}
 import controllers.Assets.Asset
 import controllers.BoatController.{anonUser, log}
 import play.api.Logger
@@ -66,9 +66,10 @@ class BoatController(mapboxToken: AccessToken,
 
   errors.runWith(Sink.foreach(err => log.error(s"JSON error for '${err.boat}': '${err.error}'.")))
 
-  def index = authAction(authQuery) { (user, _) =>
+  def index = authAction(rh => queryAuthBoat(rh, Right(None))) { (user, _) =>
     val cookie = Cookie(TokenCookieName, mapboxToken.token, httpOnly = false)
-    Future.successful(Ok(html.map).withCookies(cookie).withSession(UserSessionKey -> user.name))
+    val username = user.map(_.user).getOrElse(anonUser)
+    Future.successful(Ok(html.map(user)).withCookies(cookie).withSession(UserSessionKey -> username.name))
   }
 
   def health = Action {
@@ -175,12 +176,13 @@ class BoatController(mapboxToken: AccessToken,
     }
 
   def authQuery(rh: RequestHeader): Future[Either[IdentityError, User]] =
+    queryAuthBoat(rh, Left(MissingToken(rh))).map(_.map(_.map(_.user).getOrElse(anonUser)))
+
+  def queryAuthBoat(rh: RequestHeader, onAnon: => Either[IdentityError, Option[BoatInfo]]): Future[Either[IdentityError, Option[BoatInfo]]] =
     rh.getQueryString(BoatTokenQuery).map { token =>
-      auther.authBoat(BoatToken(token)).map { outcome =>
-        outcome.map { boatInfo => boatInfo.user }
-      }
+      auther.authBoat(BoatToken(token)).map(_.map(Option.apply))
     }.getOrElse {
-      Future.successful(Right(anonUser))
+      Future.successful(onAnon)
     }
 
   /** The publisher-dance makes it so that even with multiple subscribers, `once` only runs once. Without this wrapping,

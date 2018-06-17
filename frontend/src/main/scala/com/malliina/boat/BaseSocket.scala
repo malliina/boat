@@ -20,8 +20,6 @@ class BaseSocket(wsPath: String, val log: BaseLogger = BaseLogger.console) {
   val EventKey = BaseSocket.EventKey
   val BodyKey = "body"
 
-  def elem(id: String): JQuery = jQuery(s"#$id")
-
   def handlePayload(payload: JsValue): Unit = ()
 
   def handleValidated[T: Reads](json: JsValue)(process: T => Unit): Unit =

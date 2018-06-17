@@ -8,6 +8,7 @@ import com.malliina.boat.{BoatInfo, BoatToken, User, UserId}
 import com.malliina.play.models.Password
 import org.apache.commons.codec.digest.DigestUtils
 import play.api.Logger
+import play.api.mvc.RequestHeader
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -141,3 +142,5 @@ case class InvalidToken(token: BoatToken) extends IdentityError
 case class UserDisabled(user: User) extends IdentityError
 
 case class UserDoesNotExist(user: User) extends IdentityError
+
+case class MissingToken(rh: RequestHeader) extends IdentityError

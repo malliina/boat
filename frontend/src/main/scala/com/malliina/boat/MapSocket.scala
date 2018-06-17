@@ -1,5 +1,7 @@
 package com.malliina.boat
 
+import com.malliina.boat.FrontKeys.Distance
+import org.scalajs.dom.document
 import play.api.libs.json._
 
 import scala.concurrent.{Future, Promise}
@@ -11,8 +13,8 @@ class MapSocket(map: MapboxMap, queryString: String) extends BaseSocket(s"/ws/up
   val boatIconId = "boat-icon"
   val emptyTrack = lineFor(Nil)
 
-  var mapMode: MapMode = Fit
-  var boats = Map.empty[String, FeatureCollection]
+  private var mapMode: MapMode = Fit
+  private var boats = Map.empty[String, FeatureCollection]
 
   initImage()
 
@@ -88,18 +90,13 @@ class MapSocket(map: MapboxMap, queryString: String) extends BaseSocket(s"/ws/up
     map.getSource(track).foreach { geoJson =>
       geoJson.setData(toJson(newTrack))
     }
-    asJson[Feature](turf.center(toJson(newTrack))).flatMap { feature =>
-      feature.geometry.coords.headOption.toRight(JsError("Missing center."))
-    }.foreach { center =>
-      map.flyTo(FlyOptions(center))
-    }
     val trail: Seq[Coord] = newTrack.features.flatMap(_.geometry.coords)
-
+    val totalLength = boats.values.flatMap(fc => fc.features.headOption.map(f => turf.length(toJson(f)))).sum
+    val threeDecimalsKm = 1.0 * (totalLength * 1000).toInt / 1000
+    document.getElementById(Distance).innerHTML = s"$threeDecimalsKm km"
+    // updates the map position, zoom to reflect the updated track(s)
     mapMode match {
       case Fit =>
-        newTrack.features.headOption.foreach { f =>
-//          println("Length: " + turf.length(toJson(f)) + " km")
-        }
         trail.headOption.foreach { coord =>
           val init = new LngLatBounds(coord.toArray.toJSArray, coord.toArray.toJSArray)
           val bs: LngLatBounds = trail.foldLeft(init) { (bounds, c) =>
