@@ -58,7 +58,7 @@ class AkkaStreamsClientTests extends FunSuite {
     await(binding2.unbind())
   }
 
-  test("TCP client") {
+  ignore("TCP client") {
     val tcpHost = "127.0.0.1"
     val tcpPort = 10110
     val client = TcpSource(tcpHost, tcpPort)
