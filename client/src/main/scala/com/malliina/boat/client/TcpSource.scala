@@ -1,12 +1,13 @@
 package com.malliina.boat.client
 
+import java.net.InetSocketAddress
 import java.nio.charset.StandardCharsets
 import java.util.concurrent.atomic.AtomicBoolean
 
 import akka.actor.ActorSystem
 import akka.pattern.after
+import akka.stream.Materializer
 import akka.stream.scaladsl.{BroadcastHub, Flow, Framing, Keep, MergeHub, Sink, Source, Tcp}
-import akka.stream.{KillSwitches, Materializer}
 import akka.util.ByteString
 import akka.{Done, NotUsed}
 import com.malliina.boat.client.TcpSource.{log, sentenceDelimiter}
@@ -31,11 +32,11 @@ class TcpSource(host: String, port: Int)(implicit as: ActorSystem, mat: Material
   val sendTimeWindow = 500.millis
   val reconnectInterval = 2.second
 
-  val switch = KillSwitches.shared(s"TCP-$host")
+  // val switch = KillSwitches.shared(s"TCP-$host")
 
   val (sink, sentencesHub) =
-    MergeHub.source[SentencesMessage](perProducerBufferSize = 16)
-      .toMat(BroadcastHub.sink(bufferSize = 256))(Keep.both)
+    MergeHub.source[SentencesMessage](perProducerBufferSize = 16384)
+      .toMat(BroadcastHub.sink(bufferSize = 2048))(Keep.both)
       .run()
   sentencesHub.runWith(Sink.ignore)
 
@@ -45,10 +46,10 @@ class TcpSource(host: String, port: Int)(implicit as: ActorSystem, mat: Material
     .groupedWithin(maxBatchSize, sendTimeWindow)
     .map(SentencesMessage.apply)
 
-  def sentencesSource: Source[SentencesMessage, Future[Done]] = {
+  def sentencesSource: Source[SentencesMessage, (Future[Tcp.OutgoingConnection], Future[Done])] = {
     val conn = Tcp().outgoingConnection(host, port).via(flow)
     val toPlotter = Source.maybe[ByteString]
-    toPlotter.via(conn).watchTermination()(Keep.right)
+    toPlotter.viaMat(conn)(Keep.right).watchTermination()(Keep.both)
   }
 
   /** Makes received sentences available in `sentencesHub`
@@ -56,7 +57,14 @@ class TcpSource(host: String, port: Int)(implicit as: ActorSystem, mat: Material
     * @return a Future that completes when the client is disabled and the remaining connection completes
     */
   def connect(): Future[Done] = {
-    sentencesSource.via(switch.flow).to(sink).run().recover { case t =>
+    val (connected, disconnected) = sentencesSource.to(sink).run()
+    connected.foreach { conn =>
+      log.info(s"Connected to ${toHostPort(conn.remoteAddress)}.")
+    }
+    disconnected.map { d =>
+      log.info(s"Disconnected from $host:$port.")
+      d
+    }.recover { case t =>
       log.warn("TCP connection failed.", t)
       Done
     }.flatMap { done =>
@@ -69,8 +77,11 @@ class TcpSource(host: String, port: Int)(implicit as: ActorSystem, mat: Material
     }
   }
 
+  private def toHostPort(addr: InetSocketAddress) =
+    s"${addr.getHostString}:${addr.getPort}"
+
   def close(): Unit = {
     enabled.set(false)
-    switch.shutdown()
+    //switch.shutdown()
   }
 }
