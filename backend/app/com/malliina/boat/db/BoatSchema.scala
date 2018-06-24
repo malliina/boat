@@ -83,14 +83,24 @@ class BoatSchema(ds: DataSource, override val impl: JdbcProfile)
 
   implicit object TrackShape extends CaseClassShape(LiftedJoinedTrack.tupled, (JoinedTrack.apply _).tupled)
 
-  val tracksView: Query[LiftedJoinedTrack, JoinedTrack, Seq] =
+  val tracksViewNonEmpty: Query[LiftedJoinedTrack, JoinedTrack, Seq] =
     coordsTable.join(tracksTable).on(_.track === _.id).join(boatsView).on(_._2.boat === _.boat)
       .groupBy { case ((_, ts), bs) => (bs, ts) }
-      .map { case ((bs, ts), q) => LiftedJoinedTrack(ts.id, ts.name, ts.added, bs.boat, bs.boatName, bs.token, bs.user, bs.username, bs.email, q.length, q.map(_._1._1.added).min, q.map(_._1._1.added).max) }
+      .map { case ((bs, ts), q) => LiftedJoinedTrack(
+        ts.id, ts.name, ts.added, bs.boat, bs.boatName, bs.token, bs.user,
+        bs.username, bs.email, q.length, q.map(_._1._1.added).min, q.map(_._1._1.added).max)
+      }
+
+  val tracksView: Query[LiftedJoinedTrack, JoinedTrack, Seq] =
+    boatsView.join(tracksTable).on(_.boat === _.boat).joinLeft(coordsTable).on(_._2.id === _.track)
+        .groupBy { case ((bs, ts), _) => (bs, ts) }
+        .map { case ((bs, ts), q) => LiftedJoinedTrack(
+          ts.id, ts.name, ts.added, bs.boat, bs.boatName, bs.token, bs.user,
+          bs.username, bs.email, q.length, q.map(_._2.map(_.added)).min, q.map(_._2.map(_.added)).max) }
 
   def first[T, R](q: Query[T, R, Seq], onNotFound: => String)(implicit ec: ExecutionContext) =
     q.result.headOption.flatMap { maybeRow =>
-      maybeRow.map(DBIO.successful).getOrElse(DBIO.failed(new Exception("Not found.")))
+      maybeRow.map(DBIO.successful).getOrElse(DBIO.failed(new Exception(onNotFound)))
     }
 
   def initBoat()(implicit ec: ExecutionContext) = {

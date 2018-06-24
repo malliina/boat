@@ -2,6 +2,7 @@ package com.malliina.boat
 
 import com.malliina.boat.BoatJson.keyValued
 import com.malliina.json.PrimitiveFormats
+import com.malliina.measure.Distance
 import com.malliina.values.{StringCompanion, Wrapped}
 import play.api.libs.json._
 
@@ -208,7 +209,8 @@ object TrackId extends IdCompanion[TrackId]
 case class TrackRef(track: TrackId, trackName: TrackName, boat: BoatId,
                     boatName: BoatName, user: UserId, username: User,
                     points: Int, start: String, startMillis: Long,
-                    end: String, endMillis: Long, startEndRange: String) extends TrackLike
+                    end: String, endMillis: Long, startEndRange: String,
+                    distance: Distance) extends TrackLike
 
 object TrackRef {
   implicit val json = Json.format[TrackRef]

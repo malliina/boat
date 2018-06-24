@@ -4,7 +4,8 @@ import java.sql.SQLException
 import java.time.Instant
 
 import com.malliina.boat.db.DatabaseUserManager.log
-import com.malliina.boat.{BoatInfo, BoatToken, JoinedTrack, User, UserEmail, UserId}
+import com.malliina.boat.{BoatInfo, BoatToken, Earth, JoinedTrack, TrackId, User, UserEmail, UserId}
+import com.malliina.measure.Distance
 import com.malliina.play.models.Password
 import org.apache.commons.codec.digest.DigestUtils
 import play.api.Logger
@@ -22,7 +23,7 @@ object DatabaseUserManager {
 class DatabaseUserManager(val db: BoatSchema)(implicit ec: ExecutionContext)
   extends UserManager {
 
-  import db.{usersTable, tracksView}
+  import db.{usersTable, tracksView, coordsTable, LiftedJoinedTrack}
 
   import db.impl.api._
   import db.mappings._
@@ -47,26 +48,36 @@ class DatabaseUserManager(val db: BoatSchema)(implicit ec: ExecutionContext)
   }
 
   override def authBoat(token: BoatToken): Future[Either[IdentityError, BoatInfo]] = action {
-    tracksView.filter(r => r.boatToken === token)
-      .sortBy(r => (r.user, r.boat, r.trackAdded.desc, r.track.desc))
-      .result.map(collectBoats)
+    loadBoats(tracksView.filter(r => r.boatToken === token))
       .map(bs => bs.headOption.toRight(InvalidToken(token)))
   }
 
   override def boats(email: UserEmail): Future[Seq[BoatInfo]] = action {
-    tracksView.filter(r => r.email.isDefined && r.email === email && r.points > 0)
-      .sortBy(r => (r.user, r.boat, r.trackAdded.desc, r.track.desc))
-      .result.map(collectBoats)
+    loadBoats(tracksView.filter(r => r.email.isDefined && r.email === email && r.points > 10))
   }
 
-  private def collectBoats(rows: Seq[JoinedTrack]): Seq[BoatInfo] =
+  private def loadBoats(q: Query[LiftedJoinedTrack, JoinedTrack, Seq]) = {
+    val tracksAction = q
+      .sortBy(r => (r.user, r.boat, r.trackAdded.desc, r.track.desc))
+      .result
+    for {
+      tracks <- tracksAction
+      distances <- DBIO.sequence(tracks.map(t => distance(t.track).map(d => t.track -> d)))
+    } yield collectBoats(tracks, distances.toMap)
+  }
+
+  private def distance(track: TrackId) = coordsTable.filter(_.track === track).result.map { coords =>
+    Earth.length(coords.map(_.toCoord).toList)
+  }
+
+  private def collectBoats(rows: Seq[JoinedTrack], distances: Map[TrackId, Distance]): Seq[BoatInfo] =
     rows.foldLeft(Vector.empty[BoatInfo]) { (acc, row) =>
       val boatIdx = acc.indexWhere(b => b.user == row.username && b.boatId == row.boat)
       if (boatIdx >= 0) {
         val old = acc(boatIdx)
-        acc.updated(boatIdx, acc(boatIdx).copy(tracks = old.tracks :+ row.strip))
+        acc.updated(boatIdx, old.copy(tracks = old.tracks :+ row.strip(distances.getOrElse(row.track, Distance.zero))))
       } else {
-        acc :+ BoatInfo(row.boat, row.boatName, row.username, Seq(row.strip))
+        acc :+ BoatInfo(row.boat, row.boatName, row.username, Seq(row.strip(distances.getOrElse(row.track, Distance.zero))))
       }
     }
 

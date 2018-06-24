@@ -2,6 +2,7 @@ package com.malliina.boat
 
 import java.time.Instant
 
+import com.malliina.measure.Distance
 import play.api.http.Writeable
 import play.api.libs.json._
 
@@ -19,11 +20,12 @@ case class JoinedTrack(track: TrackId, trackName: TrackName, trackAdded: Instant
   val startOrNow = start.getOrElse(Instant.now())
   val endOrNow = end.getOrElse(Instant.now())
 
-  def strip = TrackRef(
+  def strip(distance: Distance) = TrackRef(
     track, trackName, boat,
     boatName, user, username,
     points, Instants.format(startOrNow), startOrNow.toEpochMilli,
-    Instants.format(endOrNow), endOrNow.toEpochMilli, Instants.formatRange(startOrNow, endOrNow)
+    Instants.format(endOrNow), endOrNow.toEpochMilli, Instants.formatRange(startOrNow, endOrNow),
+    distance
   )
 }
 
@@ -104,7 +106,9 @@ object TrackPointInput {
     TrackPointInput(coord.lng, coord.lat, track)
 }
 
-case class TrackPointRow(id: TrackPointId, lon: Double, lat: Double, track: TrackId, added: Instant)
+case class TrackPointRow(id: TrackPointId, lon: Double, lat: Double, track: TrackId, added: Instant) {
+  def toCoord = Coord(lon, lat)
+}
 
 case class TrackPoint(coord: Coord, time: Instant, waterTemp: Double, wind: Double)
 

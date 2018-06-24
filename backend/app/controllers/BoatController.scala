@@ -13,6 +13,7 @@ import com.malliina.boat.html.BoatHtml
 import com.malliina.boat.http.{BoatQuery, TrackQuery}
 import com.malliina.boat.parsing.BoatParser.{parseCoords, read}
 import com.malliina.concurrent.ExecutionContexts.cached
+import com.malliina.measure.Distance
 import com.malliina.play.auth.Auth
 import controllers.Assets.Asset
 import controllers.BoatController.{anonUser, log}
@@ -53,7 +54,7 @@ class BoatController(mapboxToken: AccessToken,
   val _ = viewerSource.runWith(Sink.ignore)
   val sentencesSource = viewerSource.map { boatEvent =>
     read[SentencesMessage](boatEvent.message)
-      .map(_.toEvent(boatEvent.from.strip))
+      .map(_.toEvent(boatEvent.from.strip(Distance.zero)))
       .left.map(err => BoatJsonError(err, boatEvent))
   }
   val parsedEvents = sentencesSource.map(e => e.map(parseCoords))

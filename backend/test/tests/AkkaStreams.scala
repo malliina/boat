@@ -1,15 +1,49 @@
 package tests
 
+import java.time.LocalDate
+
 import akka.NotUsed
-import akka.actor.ActorSystem
+import akka.actor.{Actor, ActorRef, ActorSystem, Props}
 import akka.stream.scaladsl.{BroadcastHub, Flow, Keep, MergeHub, RunnableGraph, Sink, Source}
 import akka.stream.{ActorMaterializer, KillSwitches, UniqueKillSwitch}
+import com.malliina.boat.{Coord, Streams}
 import org.scalatest.FunSuite
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.WebSocket
 
+import scala.concurrent.Promise
+
+object ProcessorActor {
+  def props(processed: ActorRef) = Props(new ProcessorActor(processed))
+}
+
+class ProcessorActor(processed: ActorRef) extends Actor {
+  var age: Int = 0
+  var latestDate: Option[LocalDate] = None
+  var coords: Seq[Coord] = Nil
+
+  var buff: String = ""
+
+  override def receive: Receive = {
+    case "a" => buff = "a"
+    case "b" => processed ! s"${buff}b"
+    // case SentencesEvent(...)
+    // closes the processed source
+    // case Done => processed ! ...
+  }
+}
+
 class AkkaStreams extends FunSuite {
-  implicit val mat = ActorMaterializer()(ActorSystem("test"))
+  val as = ActorSystem("test")
+  implicit val mat = ActorMaterializer()(as)
+
+  test("state") {
+    val strs = Source[String](List("a", "b", "c"))
+    val p = Promise[String]()
+    val processed = Streams.couple[String, String](strs, dest => ProcessorActor.props(dest), as)
+    processed.runWith(Sink.foreach(s => p.trySuccess(s)))
+    assert(await(p.future) === "ab")
+  }
 
   ignore("one-time side-effect") {
     val orig = Source.tick(1.second, 1.second, "msg").take(1)
