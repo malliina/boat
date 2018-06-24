@@ -2,7 +2,7 @@ package controllers
 
 import java.time.Instant
 
-import akka.NotUsed
+import akka.{Done, NotUsed}
 import akka.actor.ActorSystem
 import akka.stream.Materializer
 import akka.stream.scaladsl.{BroadcastHub, Flow, Keep, MergeHub, Sink, Source}
@@ -13,9 +13,10 @@ import com.malliina.boat.html.BoatHtml
 import com.malliina.boat.http.{BoatQuery, TrackQuery}
 import com.malliina.boat.parsing.BoatParser.{parseCoords, read}
 import com.malliina.concurrent.ExecutionContexts.cached
-import com.malliina.play.auth.{Auth, MissingCredentials}
+import com.malliina.play.auth.Auth
 import controllers.Assets.Asset
 import controllers.BoatController.{anonUser, log}
+import controllers.Social.{EmailKey, GoogleCookie, ProviderCookieName}
 import play.api.Logger
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.WebSocket.MessageFlowTransformer.jsonMessageFlowTransformer
@@ -23,6 +24,7 @@ import play.api.mvc._
 
 import scala.concurrent.Future
 import scala.concurrent.duration.DurationInt
+import scala.util.Try
 
 object BoatController {
   private val log = Logger(getClass)
@@ -51,7 +53,7 @@ class BoatController(mapboxToken: AccessToken,
   val _ = viewerSource.runWith(Sink.ignore)
   val sentencesSource = viewerSource.map { boatEvent =>
     read[SentencesMessage](boatEvent.message)
-      .map(_.toEvent(boatEvent.from))
+      .map(_.toEvent(boatEvent.from.strip))
       .left.map(err => BoatJsonError(err, boatEvent))
   }
   val parsedEvents = sentencesSource.map(e => e.map(parseCoords))
@@ -66,10 +68,24 @@ class BoatController(mapboxToken: AccessToken,
 
   errors.runWith(Sink.foreach(err => log.error(s"JSON error for '${err.boat}': '${err.error}'.")))
 
-  def index = authAction(rh => queryAuthBoat(rh, Right(None))) { (user, _) =>
-    val cookie = Cookie(TokenCookieName, mapboxToken.token, httpOnly = false)
-    val username = user.map(_.user).getOrElse(anonUser)
-    Future.successful(Ok(html.map(user)).withCookies(cookie).withSession(UserSessionKey -> username.name))
+  def index = authAction(authWeb) { (user, rh) =>
+    def resultFor(u: User) = {
+      val cookie = Cookie(TokenCookieName, mapboxToken.token, httpOnly = false)
+      val result = Ok(html.map(user))
+        .withCookies(cookie)
+        .addingToSession(UserSessionKey -> u.name)(rh)
+      Future.successful(result)
+    }
+
+    user.map { boat =>
+      resultFor(boat.user)
+    }.getOrElse {
+      checkLogin(rh).map { r =>
+        Future.successful(r)
+      }.getOrElse {
+        resultFor(anonUser)
+      }
+    }
   }
 
   def health = Action {
@@ -87,7 +103,7 @@ class BoatController(mapboxToken: AccessToken,
         val flow: Flow[BoatEvent, PingEvent, NotUsed] = Flow.fromSinkAndSource(boatSink, Source.maybe[PingEvent])
           .keepAlive(10.seconds, () => PingEvent(Instant.now.toEpochMilli))
           .backpressureTimeout(3.seconds)
-        transformer.transform(flow)
+        logTermination(transformer.transform(flow), _ => s"Boat '${boat.boatName}' left.")
       }
     }
   }
@@ -103,7 +119,6 @@ class BoatController(mapboxToken: AccessToken,
         }
       }
     )
-
   }
 
   def updates = WebSocket.acceptOrResult[JsValue, FrontEvent] { rh =>
@@ -118,9 +133,10 @@ class BoatController(mapboxToken: AccessToken,
           val history: Source[CoordsEvent, NotUsed] =
             Source.fromFuture(db.history(user, historicalLimits)).flatMapConcat(es => Source(es.toList))
           // disconnects viewers that lag more than 3s
-          Flow.fromSinkAndSource(Sink.ignore, history.concat(frontEvents).filter(_.isIntendedFor(user)))
+          val flow = Flow.fromSinkAndSource(Sink.ignore, history.concat(frontEvents).filter(_.isIntendedFor(user)))
             .keepAlive(10.seconds, () => PingEvent(Instant.now.toEpochMilli))
             .backpressureTimeout(3.seconds)
+          logTermination(flow, _ => s"Viewer '$user' left.")
         }.left.map { err =>
           BadRequest(Errors(err))
         }
@@ -128,8 +144,23 @@ class BoatController(mapboxToken: AccessToken,
     }
   }
 
+  def logTermination[In, Out, Mat](flow: Flow[In, Out, Mat], message: Try[Done] => String): Flow[In, Out, Future[Done]] = {
+    flow.watchTermination()(Keep.right).mapMaterializedValue { done =>
+      done.transform { t =>
+        log.info(message(t))
+        t
+      }
+    }
+  }
+
   def versioned(path: String, file: Asset): Action[AnyContent] =
     assets.versioned(path, file)
+
+  private def checkLogin(rh: RequestHeader): Option[Result] =
+    rh.cookies.get(ProviderCookieName).filter(_.value == GoogleCookie).map { _ =>
+      log.info(s"Redir to login")
+      Redirect(routes.Social.google())
+    }
 
   /** Auths with boat token or user/pass. Fails if an invalid token is provided. If no token is provided,
     * tries to auth with user/pass. Fails if invalid user/pass is provided. If no user/pass is provided,
@@ -183,6 +214,23 @@ class BoatController(mapboxToken: AccessToken,
       auther.authBoat(BoatToken(token)).map(_.map(Option.apply))
     }.getOrElse {
       Future.successful(onAnon)
+    }
+
+  def authSocial(rh: RequestHeader): Future[Option[BoatInfo]] =
+    rh.session.get(EmailKey).map { email =>
+      auther.boats(UserEmail(email)).map { boats =>
+        boats.headOption
+      }
+    }.getOrElse {
+      Future.successful(None)
+    }
+
+  def authWeb(rh: RequestHeader): Future[Either[IdentityError, Option[BoatInfo]]] =
+    queryAuthBoat(rh, Right(None)).flatMap { e =>
+      e.fold(
+        err => Future.successful(Left(err)),
+        opt => opt.map(b => Future.successful(Right(Option(b)))).getOrElse(authSocial(rh).map(o => Right(o)))
+      )
     }
 
   /** The publisher-dance makes it so that even with multiple subscribers, `once` only runs once. Without this wrapping,

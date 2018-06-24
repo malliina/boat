@@ -65,22 +65,28 @@ class BoatSchema(ds: DataSource, override val impl: JdbcProfile)
 
   override val tableQueries = Seq(coordsTable, sentencesTable, tracksTable, boatsTable, usersTable)
 
-  case class JoinedBoat(boat: BoatId, boatName: BoatName, user: UserId, username: User)
+  case class JoinedBoat(boat: BoatId, boatName: BoatName, boatToken: BoatToken,
+                        user: UserId, username: User, email: Option[UserEmail])
 
-  case class LiftedJoinedBoat(boat: Rep[BoatId], boatName: Rep[BoatName], user: Rep[UserId], username: Rep[User])
+  case class LiftedJoinedBoat(boat: Rep[BoatId], boatName: Rep[BoatName], token: Rep[BoatToken],
+                              user: Rep[UserId], username: Rep[User], email: Rep[Option[UserEmail]])
 
   implicit object JoinedBoatShape extends CaseClassShape(LiftedJoinedBoat.tupled, JoinedBoat.tupled)
 
   val boatsView: Query[LiftedJoinedBoat, JoinedBoat, Seq] = boatsTable.join(usersTable).on(_.owner === _.id)
-    .map { case (b, u) => LiftedJoinedBoat(b.id, b.name, u.id, u.user) }
+    .map { case (b, u) => LiftedJoinedBoat(b.id, b.name, b.token, u.id, u.user, u.email) }
 
-  case class LiftedJoinedTrack(track: Rep[TrackId], trackName: Rep[TrackName], boat: Rep[BoatId], boatName: Rep[BoatName], user: Rep[UserId], username: Rep[User])
+  case class LiftedJoinedTrack(track: Rep[TrackId], trackName: Rep[TrackName], trackAdded: Rep[Instant],
+                               boat: Rep[BoatId], boatName: Rep[BoatName], boatToken: Rep[BoatToken],
+                               user: Rep[UserId], username: Rep[User], email: Rep[Option[UserEmail]],
+                               points: Rep[Int], start: Rep[Option[Instant]], end: Rep[Option[Instant]])
 
   implicit object TrackShape extends CaseClassShape(LiftedJoinedTrack.tupled, (JoinedTrack.apply _).tupled)
 
   val tracksView: Query[LiftedJoinedTrack, JoinedTrack, Seq] =
-    tracksTable.join(boatsTable).on(_.boat === _.id).join(usersTable).on(_._2.owner === _.id)
-      .map { case ((ts, bs), us) => LiftedJoinedTrack(ts.id, ts.name, bs.id, bs.name, us.id, us.user) }
+    coordsTable.join(tracksTable).on(_.track === _.id).join(boatsView).on(_._2.boat === _.boat)
+      .groupBy { case ((_, ts), bs) => (bs, ts) }
+      .map { case ((bs, ts), q) => LiftedJoinedTrack(ts.id, ts.name, ts.added, bs.boat, bs.boatName, bs.token, bs.user, bs.username, bs.email, q.length, q.map(_._1._1.added).min, q.map(_._1._1.added).max) }
 
   def first[T, R](q: Query[T, R, Seq], onNotFound: => String)(implicit ec: ExecutionContext) =
     q.result.headOption.flatMap { maybeRow =>
@@ -91,7 +97,7 @@ class BoatSchema(ds: DataSource, override val impl: JdbcProfile)
     init()
     val addAnon = usersTable.filter(_.user === BoatController.anonUser).exists.result.flatMap { exists =>
       if (exists) DBIO.successful(())
-      else userInserts += NewUser(BoatController.anonUser, "unused", enabled = true)
+      else userInserts += NewUser(BoatController.anonUser, None, "unused", enabled = true)
     }
     await(run(addAnon))
   }
@@ -185,14 +191,17 @@ class BoatSchema(ds: DataSource, override val impl: JdbcProfile)
 
     def user = column[User]("user", O.Unique, O.Length(128))
 
+    def email = column[Option[UserEmail]]("email", O.Unique, O.Length(128))
+
     def passHash = column[String]("pass_hash", O.Length(512))
 
     def enabled = column[Boolean]("enabled")
 
     def added = column[Instant]("added", O.SqlType(CreatedTimestampType))
 
-    def forInserts = (user, passHash, enabled) <> ((NewUser.apply _).tupled, NewUser.unapply)
+    def forInserts = (user, email, passHash, enabled) <> ((NewUser.apply _).tupled, NewUser.unapply)
 
-    def * = (id, user, passHash, enabled, added) <> ((DataUser.apply _).tupled, DataUser.unapply)
+    def * = (id, user, email, passHash, enabled, added) <> ((DataUser.apply _).tupled, DataUser.unapply)
   }
+
 }

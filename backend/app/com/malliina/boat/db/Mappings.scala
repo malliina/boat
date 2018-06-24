@@ -2,7 +2,7 @@ package com.malliina.boat.db
 
 import java.time.{Instant, LocalTime}
 
-import com.malliina.boat.{BoatId, BoatName, BoatToken, RawSentence, SentenceKey, TrackId, TrackName, TrackPointId, User, UserId, WrappedId}
+import com.malliina.boat.{BoatId, BoatName, BoatToken, RawSentence, SentenceKey, TrackId, TrackName, TrackPointId, User, UserEmail, UserId, WrappedId}
 import com.malliina.play.models.{Password, Username}
 import com.malliina.values.Wrapped
 import slick.ast.BaseTypedType
@@ -26,6 +26,7 @@ class Mappings(val impl: JdbcProfile) {
   implicit val boatTokenMapping = stringMapping(BoatToken.apply)
   implicit val trackNameMapping = stringMapping(TrackName.apply)
   implicit val userMapping = stringMapping(User.apply)
+  implicit val emailMapping = stringMapping(UserEmail.apply)
   implicit val instantMapping = MappedColumnType.base[Instant, java.sql.Timestamp](java.sql.Timestamp.from, _.toInstant)
   implicit val timeMapping = MappedColumnType.base[LocalTime, java.sql.Time](java.sql.Time.valueOf, _.toLocalTime)
 

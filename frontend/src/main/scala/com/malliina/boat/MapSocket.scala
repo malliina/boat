@@ -57,7 +57,7 @@ class MapSocket(map: MapboxMap, queryString: String) extends BaseSocket(s"/ws/up
     case other => log.info(s"Unknown event: '$other'.")
   }
 
-  def onCoords(coords: Seq[Coord], from: JoinedTrack): Unit = {
+  def onCoords(coords: Seq[Coord], from: TrackLike): Unit = {
     val boat = from.boatName
     val track = trackName(boat)
     val point = pointName(boat)

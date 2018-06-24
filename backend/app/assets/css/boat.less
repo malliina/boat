@@ -5,9 +5,10 @@
   font-family: 'Roboto', sans-serif;
 }
 
-@tablets: ~"only screen and (min-width: 479px)";
+@tablets: ~"only screen and (min-width: 700px)";
 
-@navbar-height: 35px;
+@navbar-height: 34px;
+@navbar-padding: 8px;
 
 #map {
   position: absolute;
@@ -41,7 +42,8 @@
   display: block;
   text-decoration: none;
   font-size: 18px;
-  padding: 8px 16px;
+  padding: @navbar-padding 16px;
+  line-height: 1;
 }
 
 .nav-icon {
@@ -54,10 +56,9 @@
   margin-left: auto;
 }
 
-.question-solo {
+.boat-icon {
   position: absolute;
   z-index: 1000;
-  top: 10px;
   left: 10px;
   width: 30px;
   text-align: center;
@@ -66,4 +67,13 @@
   background-color: white;
   cursor: pointer;
   opacity: 0.4;
+
+  &.question {
+    top: 10px;
+  }
+
+  &.person {
+    top: 60px;
+  }
 }
+

@@ -66,7 +66,7 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext) extends 
         val firstMillis = first.get.toEpochMilli
         val lastMillis = last.get.toEpochMilli
         val duration = (lastMillis - firstMillis).millis
-        TrackSummary(track, TrackStats(points, timeFormatter.format(firstMillis), firstMillis, timeFormatter.format(lastMillis), lastMillis, duration))
+        TrackSummary(track.strip, TrackStats(points, timeFormatter.format(firstMillis), firstMillis, timeFormatter.format(lastMillis), lastMillis, duration))
       }
       TrackSummaries(summaries)
     }
@@ -111,11 +111,11 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext) extends 
         val old = acc(idx)
         acc.updated(idx, old.copy(coords = old.coords :+ coord))
       } else {
-        acc :+ CoordsEvent(Seq(coord), from)
+        acc :+ CoordsEvent(Seq(coord), from.strip)
       }
     }
 
-  private def insertLogged[R](action: DBIOAction[Seq[R], NoStream, Nothing], from: JoinedTrack, word: String) = {
+  private def insertLogged[R](action: DBIOAction[Seq[R], NoStream, Nothing], from: TrackRef, word: String) = {
     db.run(action).map { keys =>
       val pluralSuffix = if (keys.length == 1) "" else "s"
       log.info(s"Inserted ${keys.length} $word$pluralSuffix from '${from.boatName}' owned by '${from.username}'.")
@@ -140,9 +140,10 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext) extends 
       boatRow <- maybeBoat.map(b => DBIO.successful(b)).getOrElse(registerBoat(from, user))
       boat = boatRow.id
       track <- prepareTrack(from.track, boat)
+      joined <- db.first(db.tracksView.filter(_.track === track.id), "Track not found.")
     } yield {
       log.info(s"Prepared boat '${from.boat}' with ID '${boatRow.id}' for owner '${from.user}'.")
-      JoinedTrack(track.id, track.name, boat, boatRow.name, user, userRow.username)
+      joined
     }
 
   def prepareTrack(trackName: TrackName, boat: BoatId) =

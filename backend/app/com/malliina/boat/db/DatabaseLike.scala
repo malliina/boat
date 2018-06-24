@@ -26,8 +26,17 @@ abstract class DatabaseLike(val impl: JdbcProfile, val database: JdbcProfile#API
   def runQuery[A, B, C[_]](query: Query[A, B, C]): Future[C[B]] =
     run(query.result)
 
-  def run[R](a: DBIOAction[R, NoStream, Nothing]): Future[R] =
-    database.run(a)
+  def run[R](a: DBIOAction[R, NoStream, Nothing]): Future[R] = {
+    val start = System.currentTimeMillis()
+    database.run(a).map { r =>
+      val end = System.currentTimeMillis()
+      val durationMillis = end - start
+      if (durationMillis > 500) {
+        log.warn(s"Database operation completed in $durationMillis ms.")
+      }
+      r
+    }
+  }
 
   def init(): Unit = {
     log info s"Ensuring all tables exist..."

@@ -6,7 +6,7 @@ import com.malliina.boat.db._
 import com.malliina.boat.html.BoatHtml
 import com.malliina.play.app.DefaultApp
 import com.typesafe.config.ConfigFactory
-import controllers.{AssetsComponents, BoatController, FileController}
+import controllers.{AssetsComponents, BoatController, FileController, Social}
 import play.api.ApplicationLoader.Context
 import play.api.routing.Router
 import play.api.{BuiltInComponentsFromContext, Configuration}
@@ -47,6 +47,8 @@ class AppComponents(context: Context)
   val users: UserManager = DatabaseUserManager(schema, executionContext)
   val tracks: TracksSource = TracksDatabase(schema, executionContext)
   val mapboxToken = AccessToken(configuration.get[String]("boat.mapbox.token"))
+
+  val signIn = Social(configuration, controllerComponents, executionContext)
   val files = new FileController(
     S3Client(),
     new FileController.BlockingActions(actorSystem, controllerComponents.parsers.default),
@@ -55,9 +57,10 @@ class AppComponents(context: Context)
   val home = new BoatController(
     mapboxToken, html, users, tracks,
     controllerComponents, assets)(actorSystem, materializer)
-  override val router: Router = new Routes(httpErrorHandler, home, files)
+  override val router: Router = new Routes(httpErrorHandler, home, signIn, files)
 
   applicationLifecycle.addStopHook(() => Future.successful {
     schema.close()
+    signIn.okClient.close()
   })
 }

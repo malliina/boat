@@ -1,8 +1,11 @@
-GET        /                    controllers.BoatController.index
-GET        /health              controllers.BoatController.health
-GET        /tracks              controllers.BoatController.tracks
-GET        /ws/updates          controllers.BoatController.updates
-GET        /ws/boats            controllers.BoatController.boats
-GET        /files               controllers.FileController.list
-GET        /files/*file         controllers.FileController.download(file)
-GET        /assets/*file        controllers.BoatController.versioned(path = "/public", file: Asset)
+GET        /                                controllers.BoatController.index
+GET        /health                          controllers.BoatController.health
+GET        /tracks                          controllers.BoatController.tracks
+GET        /ws/updates                      controllers.BoatController.updates
+GET        /ws/boats                        controllers.BoatController.boats
+GET        /sign-in/google                  controllers.Social.google
+GET        /sign-in/callbacks/google        controllers.Social.googleCallback
+
+GET        /files                           controllers.FileController.list
+GET        /files/*file                     controllers.FileController.download(file)
+GET        /assets/*file                    controllers.BoatController.versioned(path = "/public", file: Asset)

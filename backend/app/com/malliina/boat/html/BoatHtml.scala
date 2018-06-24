@@ -1,5 +1,8 @@
 package com.malliina.boat.html
 
+import java.net.URLEncoder
+import java.nio.charset.StandardCharsets
+
 import com.malliina.boat.BoatInfo
 import com.malliina.boat.FrontKeys._
 import com.malliina.boat.html.BoatHtml.callAttr
@@ -45,11 +48,26 @@ class BoatHtml(jsFile: String) extends Tags(scalatags.Text) {
             div(id := "navbar", `class` := "navbar")(
               span(`class` := "nav-text")(b.boat),
               span(id := Distance, `class` := "nav-text")(""),
+              div(`class` := "dropdown nav-text")(
+                span("Tracks"),
+                div(`class` := "dropdown-content")(
+                  b.tracks.map { t =>
+                    a(`class` := "track-link", href := routes.BoatController.index().url + s"?track=${urlEncode(t.trackName)}")(
+                      span(t.trackName),
+                      span(t.points),
+                      span(t.startEndRange)
+                    )
+                  }
+                )
+              ),
               standaloneQuestion("question-nav nav-icon")
             )
           )
         }.getOrElse {
-          standaloneQuestion("question-solo")
+          modifier(
+            standaloneQuestion("boat-icon question"),
+            personIcon("boat-icon person")
+          )
         },
         div(id := MapId, `class` := boat.fold("mapbox-map anon")(_ => "mapbox-map auth")),
         about,
@@ -63,8 +81,16 @@ class BoatHtml(jsFile: String) extends Tags(scalatags.Text) {
     )
   )
 
+  def urlEncode(w: Wrapped): String = URLEncoder.encode(w.value, StandardCharsets.UTF_8.name())
+
   def standaloneQuestion(cls: String) =
-    span(id := Question, `class` := s"oi $cls", data("glyph") := "question-mark", title := "About", aria.hidden := "true")
+    iconLink(span, Question, cls, "question-mark", "About")
+
+  def personIcon(cls: String) =
+    iconLink(a, PersonLink, cls, "person", "Sign in", href := routes.Social.google().toString)
+
+  def iconLink(tag: ConcreteHtmlTag[String], idValue: String, cls: String, dataGlyph: String, titleValue: String, more: AttrPair*) =
+    tag(id := idValue, `class` := s"oi $cls", data("glyph") := dataGlyph, title := titleValue, aria.hidden := "true", more)
 
   def about = div(id := ModalId, `class` := s"$Modal $Hidden")(
     div(`class` := "modal-content")(

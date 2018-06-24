@@ -12,6 +12,25 @@ object AppMeta {
   val default = AppMeta(BuildInfo.name, BuildInfo.version, BuildInfo.gitHash)
 }
 
+case class JoinedTrack(track: TrackId, trackName: TrackName, trackAdded: Instant,
+                       boat: BoatId, boatName: BoatName, boatToken: BoatToken,
+                       user: UserId, username: User, email: Option[UserEmail],
+                       points: Int, start: Option[Instant], end: Option[Instant]) extends TrackLike {
+  val startOrNow = start.getOrElse(Instant.now())
+  val endOrNow = end.getOrElse(Instant.now())
+
+  def strip = TrackRef(
+    track, trackName, boat,
+    boatName, user, username,
+    points, Instants.format(startOrNow), startOrNow.toEpochMilli,
+    Instants.format(endOrNow), endOrNow.toEpochMilli, Instants.formatRange(startOrNow, endOrNow)
+  )
+}
+
+object JoinedTrack {
+  implicit val json = Json.format[JoinedTrack]
+}
+
 case class BoatEvent(message: JsValue, from: JoinedTrack)
 
 object BoatEvent {

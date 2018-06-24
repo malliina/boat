@@ -1,0 +1,48 @@
+package controllers
+
+import com.malliina.http.OkClient
+import com.malliina.play.auth.{AuthConf, AuthConfReader, BasicAuthHandler, CodeValidationConf, StandardCodeValidator}
+import controllers.Social.{EmailKey, ProviderCookieName, GoogleCookie}
+import play.api.Configuration
+import play.api.mvc.{AbstractController, ControllerComponents, Cookie, DiscardingCookie}
+
+import scala.concurrent.ExecutionContext
+
+object Social {
+  val EmailKey = "email"
+  val ProviderCookieName = "provider"
+  val GoogleCookie = "google"
+
+  def apply(conf: Configuration, comps: ControllerComponents, ec: ExecutionContext) =
+    new Social(AuthConfReader.conf(conf).google, comps)(ec)
+}
+
+class Social(googleConf: AuthConf, comps: ControllerComponents)(implicit ec: ExecutionContext)
+  extends AbstractController(comps) {
+
+  val okClient = OkClient.default
+  val handler = new BasicAuthHandler(routes.BoatController.index(), sessionKey = EmailKey)
+
+  val googleValidator = StandardCodeValidator(
+    CodeValidationConf.google(
+      routes.Social.googleCallback(),
+      handler,
+      googleConf,
+      okClient)
+  )
+
+  def google = Action.async { req => googleValidator.start(req) }
+
+  def googleCallback = Action.async { req =>
+    googleValidator.validateCallback(req).map { r =>
+      if (r.header.status < 400) r.withCookies(Cookie(ProviderCookieName, GoogleCookie))
+      else r
+    }
+  }
+
+  def logout = Action {
+    Redirect(routes.BoatController.index())
+      .withNewSession
+      .discardingCookies(DiscardingCookie(ProviderCookieName))
+  }
+}

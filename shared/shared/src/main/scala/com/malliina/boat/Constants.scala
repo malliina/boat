@@ -19,6 +19,7 @@ object FrontKeys {
   val MapId = "map"
   val Modal = "modal"
   val ModalId = "modal"
-  val Question = "question"
+  val PersonLink = "person-link"
+  val Question = "question-link"
   val QuestionNav = "question-nav"
 }

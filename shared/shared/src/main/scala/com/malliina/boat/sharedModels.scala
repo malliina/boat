@@ -185,6 +185,10 @@ case class User(name: String) extends Wrapped(name)
 
 object User extends StringCompanion[User]
 
+case class UserEmail(email: String) extends Wrapped(email)
+
+object UserEmail extends StringCompanion[UserEmail]
+
 trait BoatMeta {
   def user: User
 
@@ -201,20 +205,35 @@ case class TrackId(id: Long) extends WrappedId
 
 object TrackId extends IdCompanion[TrackId]
 
-case class BoatUser(track: TrackName, boat: BoatName, user: User) extends BoatMeta {
-  def toBoat(boatId: BoatId) = BoatInfo(boatId, boat, user)
+case class TrackRef(track: TrackId, trackName: TrackName, boat: BoatId,
+                    boatName: BoatName, user: UserId, username: User,
+                    points: Int, start: String, startMillis: Long,
+                    end: String, endMillis: Long, startEndRange: String) extends TrackLike
+
+object TrackRef {
+  implicit val json = Json.format[TrackRef]
 }
 
-case class BoatInfo(boatId: BoatId, boat: BoatName, user: User)
+case class BoatUser(track: TrackName, boat: BoatName, user: User) extends BoatMeta
+
+case class BoatInfo(boatId: BoatId, boat: BoatName, user: User, tracks: Seq[TrackRef])
 
 object BoatInfo {
   implicit val json = Json.format[BoatInfo]
 }
 
-case class JoinedTrack(track: TrackId, trackName: TrackName, boat: BoatId, boatName: BoatName, user: UserId, username: User)
+trait TrackLike {
+  def username: User
 
-object JoinedTrack {
-  implicit val json = Json.format[JoinedTrack]
+  def boatName: BoatName
+
+  def trackName: TrackName
+}
+
+case class TrackBrief(trackName: TrackName, added: String, addedMillis: Long)
+
+object TrackBrief {
+  implicit val json = Json.format[TrackBrief]
 }
 
 case class TrackStats(points: Int, first: String, firstMillis: Long, last: String, lastMillis: Long, duration: Duration)
@@ -224,10 +243,9 @@ object TrackStats {
   implicit val json = Json.format[TrackStats]
 }
 
-case class TrackSummary(track: JoinedTrack, stats: TrackStats)
+case class TrackSummary(track: TrackRef, stats: TrackStats)
 
 object TrackSummary {
-
   implicit val json = Json.format[TrackSummary]
 }
 
@@ -237,7 +255,7 @@ object TrackSummaries {
   implicit val json = Json.format[TrackSummaries]
 }
 
-case class CoordsEvent(coords: Seq[Coord], from: JoinedTrack) extends BoatFrontEvent {
+case class CoordsEvent(coords: Seq[Coord], from: TrackRef) extends BoatFrontEvent {
   def isEmpty = coords.isEmpty
 }
 
@@ -247,7 +265,7 @@ object CoordsEvent {
   implicit val json = keyValued(Key, Json.format[CoordsEvent])
 }
 
-case class SentencesEvent(sentences: Seq[RawSentence], from: JoinedTrack) extends BoatFrontEvent
+case class SentencesEvent(sentences: Seq[RawSentence], from: TrackRef) extends BoatFrontEvent
 
 object SentencesEvent {
   val Key = "sentences"
@@ -268,7 +286,7 @@ sealed trait FrontEvent {
 }
 
 sealed trait BoatFrontEvent extends FrontEvent {
-  def from: JoinedTrack
+  def from: TrackRef
 
   override def isIntendedFor(user: User): Boolean = from.username == user
 }
@@ -287,7 +305,7 @@ object FrontEvent {
 }
 
 case class SentencesMessage(sentences: Seq[RawSentence]) {
-  def toEvent(from: JoinedTrack) = SentencesEvent(sentences, from)
+  def toEvent(from: TrackRef) = SentencesEvent(sentences, from)
 }
 
 object SentencesMessage {
