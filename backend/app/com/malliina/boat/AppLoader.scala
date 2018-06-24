@@ -48,7 +48,7 @@ class AppComponents(context: Context)
   val tracks: TracksSource = TracksDatabase(schema, executionContext)
   val mapboxToken = AccessToken(configuration.get[String]("boat.mapbox.token"))
 
-  val signIn = Social(configuration, controllerComponents, executionContext)
+  val signIn = Social(mode, configuration, controllerComponents, executionContext)
   val files = new FileController(
     S3Client(),
     new FileController.BlockingActions(actorSystem, controllerComponents.parsers.default),

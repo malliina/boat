@@ -2,8 +2,8 @@ package controllers
 
 import com.malliina.http.OkClient
 import com.malliina.play.auth.{AuthConf, AuthConfReader, BasicAuthHandler, CodeValidationConf, StandardCodeValidator}
-import controllers.Social.{EmailKey, ProviderCookieName, GoogleCookie}
-import play.api.Configuration
+import controllers.Social.{EmailKey, GoogleCookie, ProviderCookieName}
+import play.api.{Configuration, Mode}
 import play.api.mvc.{AbstractController, ControllerComponents, Cookie, DiscardingCookie}
 
 import scala.concurrent.ExecutionContext
@@ -13,8 +13,12 @@ object Social {
   val ProviderCookieName = "provider"
   val GoogleCookie = "google"
 
-  def apply(conf: Configuration, comps: ControllerComponents, ec: ExecutionContext) =
-    new Social(AuthConfReader.conf(conf).google, comps)(ec)
+  def apply(mode: Mode, conf: Configuration, comps: ControllerComponents, ec: ExecutionContext) = {
+    val authConf =
+      if (mode == Mode.Test) AuthConf("test-id", "test-secret")
+      else AuthConfReader.conf(conf).google
+    new Social(authConf, comps)(ec)
+  }
 }
 
 class Social(googleConf: AuthConf, comps: ControllerComponents)(implicit ec: ExecutionContext)
