@@ -47,7 +47,7 @@ class TcpSource(host: String, port: Int)(implicit as: ActorSystem, mat: Material
     .map(SentencesMessage.apply)
 
   def sentencesSource: Source[SentencesMessage, (Future[Tcp.OutgoingConnection], Future[Done])] = {
-    val conn = Tcp().outgoingConnection(host, port).via(flow)
+    val conn = Tcp().outgoingConnection(host, port).via(flow).idleTimeout(20.seconds)
     val toPlotter = Source.maybe[ByteString]
     toPlotter.viaMat(conn)(Keep.right).watchTermination()(Keep.both)
   }
