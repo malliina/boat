@@ -5,6 +5,7 @@
 .dropdown {
   position: relative;
   display: inline-block;
+  cursor: pointer;
 
   > span {
     padding-left: @dropdown-padding;
@@ -22,6 +23,10 @@
   overflow-y: auto;
   margin-top: @navbar-padding;
   white-space: nowrap;
+
+  &.visible {
+    display: block;
+  }
 
   > a {
     cursor: pointer;
@@ -51,6 +56,6 @@
   }
 }
 
-.dropdown:hover .dropdown-content {
-  display: block;
-}
+//.dropdown:hover .dropdown-content {
+//  display: block;
+//}

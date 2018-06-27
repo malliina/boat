@@ -3,7 +3,7 @@ package com.malliina.boat
 import java.net.URI
 
 import com.malliina.boat.FrontKeys._
-import org.scalajs.dom.raw.HTMLSpanElement
+import org.scalajs.dom.raw._
 import org.scalajs.dom.{document, window}
 import play.api.libs.json.{Json, Writes}
 
@@ -27,7 +27,7 @@ class MapView(accessToken: AccessToken) {
     .map { kv => kv.split("=").toList }
     .collect { case key :: value :: Nil => key -> value }
     .groupBy { case (key, _) => key }
-    .mapValues { vs => vs.map { case (_, v) => v} }
+    .mapValues { vs => vs.map { case (_, v) => v } }
   val mapOptions = MapOptions(
     container = MapId,
     style = "mapbox://styles/malliina/cjgny1fjc008p2so90sbz8nbv",
@@ -42,15 +42,14 @@ class MapView(accessToken: AccessToken) {
   })
 
   initModal()
+  initNav()
 
   def initModal(): Unit = {
-    val modal = document.getElementById(ModalId)
+    val modal = elem(ModalId)
 
     def hideModal(): Unit = if (!modal.classList.contains(Hidden)) modal.classList.add(Hidden)
 
-    window.onclick = e => {
-      if (e.target == modal) hideModal()
-    }
+    window.addEventListener("click", (e: Event) => if (e.target == modal) hideModal())
     modal.getElementsByClassName(Close).headOption.foreach { node =>
       node.asInstanceOf[HTMLSpanElement].onclick = _ => hideModal()
     }
@@ -59,6 +58,24 @@ class MapView(accessToken: AccessToken) {
       modal.classList.remove(Hidden)
     }
   }
+
+  def initNav(): Unit = {
+    Option(elem(DropdownLinkId)).map(_.asInstanceOf[HTMLElement]).foreach { e =>
+      val content = htmlElem(DropdownContentId)
+      e.addEventListener("click", (_: Event) => toggleClass(content, Visible))
+      window.addEventListener("click", (e: Event) => {
+        if (e.target == content) htmlElem(DropdownContentId).classList.remove(Visible)
+      })
+    }
+  }
+
+  def toggleClass(e: HTMLElement, className: String): Unit = {
+    val classList = e.classList
+    if (classList.contains(className)) classList.remove(className)
+    else classList.add(className)
+  }
+
+  def htmlElem(id: String) = elem(id).asInstanceOf[HTMLElement]
 
   def elem(id: String) = document.getElementById(id)
 
