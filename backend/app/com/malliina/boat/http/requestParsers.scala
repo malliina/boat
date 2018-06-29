@@ -69,7 +69,11 @@ abstract class EnumLike[T <: Named] {
       .map(e => e.flatMap(s => all.find(_.name == s).toRight(SingleError(s"Unknown $key value: '$s'."))))
 }
 
-case class BoatQuery(limits: Limits, timeRange: TimeRange, tracks: Seq[TrackName]) {
+/**
+  * @param tracks tracks to return
+  * @param newest true to return the newest track if no tracks are specified, false means all tracks are returned
+  */
+case class BoatQuery(limits: Limits, timeRange: TimeRange, tracks: Seq[TrackName], newest: Boolean) {
   def limit = limits.limit
 
   def offset = limits.offset
@@ -80,23 +84,28 @@ case class BoatQuery(limits: Limits, timeRange: TimeRange, tracks: Seq[TrackName
 }
 
 object BoatQuery {
+  val NewestKey = "newest"
   val TrackKey = "track"
   val bindTrack: QueryStringBindable[TrackName] =
     QueryStringBindable.bindableString.transform[TrackName](TrackName.apply, _.name)
   val tracksBindable = QueryStringBindable.bindableSeq[TrackName](bindTrack)
 
   def recent(now: Instant): BoatQuery =
-    BoatQuery(Limits.default, TimeRange.recent(now), Nil)
+    BoatQuery(Limits.default, TimeRange.recent(now), Nil, newest = false)
 
   def apply(rh: RequestHeader): Either[SingleError, BoatQuery] =
     for {
       limits <- Limits(rh)
       timeRange <- TimeRange(rh)
       tracks <- bindTracks(rh)
-    } yield BoatQuery(limits, timeRange, tracks)
+      newest <- bindBool(rh, default = true)
+    } yield BoatQuery(limits, timeRange, tracks, newest)
 
   def bindTracks(rh: RequestHeader): Either[SingleError, Seq[TrackName]] =
     tracksBindable.bind(TrackKey, rh.queryString).map(_.left.map(SingleError.apply)).getOrElse(Right(Nil))
+
+  def bindBool(rh: RequestHeader, default: Boolean) =
+    QueryStringBindable.bindableBoolean.bind(NewestKey, rh.queryString).getOrElse(Right(default)).left.map(SingleError.apply)
 }
 
 case class Limits(limit: Int, offset: Int)

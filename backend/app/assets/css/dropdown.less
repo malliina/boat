@@ -8,14 +8,28 @@
   cursor: pointer;
 
   > span {
-    padding-left: @dropdown-padding;
+    position: relative;
+    padding: 0 24px 0 @dropdown-padding;
+  }
+}
+
+.dropdown-button {
+  &:after {
+    position: absolute;
+    content: "";
+    top: 8px;
+    right: 4px;
+    width: 0;
+    height: 0;
+    border: 6px solid transparent;
+    border-color: black transparent transparent transparent;
   }
 }
 
 .dropdown-content {
   display: none;
   position: absolute;
-  background-color: #f9f9f9;
+  background-color: lightgray;
   min-width: 160px;
   box-shadow: 0 8px 16px 0 rgba(0, 0, 0, 0.2);
   z-index: 1000;
@@ -56,6 +70,6 @@
   }
 }
 
-//.dropdown:hover .dropdown-content {
-//  display: block;
-//}
+.track-link {
+  color: black;
+}

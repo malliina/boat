@@ -184,7 +184,9 @@ object UserId extends IdCompanion[UserId]
 
 case class User(name: String) extends Wrapped(name)
 
-object User extends StringCompanion[User]
+object User extends StringCompanion[User] {
+  val anon = User("anon")
+}
 
 case class UserEmail(email: String) extends Wrapped(email)
 
@@ -259,12 +261,23 @@ object TrackSummaries {
 
 case class CoordsEvent(coords: Seq[Coord], from: TrackRef) extends BoatFrontEvent {
   def isEmpty = coords.isEmpty
+
+  def sample(every: Int): CoordsEvent =
+    copy(coords = coords.grouped(every).flatMap(_.headOption).toList, from)
 }
 
 object CoordsEvent {
   val Key = "coords"
   implicit val coordJson = Coord.json
   implicit val json = keyValued(Key, Json.format[CoordsEvent])
+}
+
+case class CoordsBatch(events: Seq[CoordsEvent]) extends FrontEvent {
+  override def isIntendedFor(user: User): Boolean = events.forall(_.isIntendedFor(user))
+}
+
+object CoordsBatch {
+  implicit val json = Json.format[CoordsBatch]
 }
 
 case class SentencesEvent(sentences: Seq[RawSentence], from: TrackRef) extends BoatFrontEvent
@@ -290,18 +303,21 @@ sealed trait FrontEvent {
 sealed trait BoatFrontEvent extends FrontEvent {
   def from: TrackRef
 
-  override def isIntendedFor(user: User): Boolean = from.username == user
+  // Anonymous users receive all live boat updates by design
+  override def isIntendedFor(user: User): Boolean = from.username == user || user == User.anon
 }
 
 object FrontEvent {
   implicit val reader = Reads[FrontEvent] { json =>
     CoordsEvent.json.reads(json)
+      .orElse(CoordsBatch.json.reads(json))
       .orElse(SentencesEvent.json.reads(json))
       .orElse(PingEvent.json.reads(json))
   }
   implicit val writer = Writes[FrontEvent] {
     case se@SentencesEvent(_, _) => SentencesEvent.json.writes(se)
     case ce@CoordsEvent(_, _) => CoordsEvent.json.writes(ce)
+    case cb@CoordsBatch(_) => CoordsBatch.json.writes(cb)
     case pe@PingEvent(_) => PingEvent.json.writes(pe)
   }
 }

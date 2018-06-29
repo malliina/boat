@@ -47,9 +47,8 @@ class BoatHtml(jsFile: String) extends Tags(scalatags.Text) {
           modifier(
             div(id := "navbar", `class` := "navbar")(
               span(`class` := "nav-text")(b.boat),
-              span(id := Distance, `class` := "nav-text distance")(""),
               div(`class` := "dropdown nav-text", id := DropdownLinkId)(
-                span("Tracks"),
+                span(`class` := "dropdown-button", "Tracks"),
                 div(`class` := "dropdown-content", id := DropdownContentId)(
                   b.tracks.map { t =>
                     a(`class` := "track-link", href := routes.BoatController.index().url + s"?track=${urlEncode(t.trackName)}")(
@@ -60,6 +59,7 @@ class BoatHtml(jsFile: String) extends Tags(scalatags.Text) {
                   }
                 )
               ),
+              span(id := Distance, `class` := "nav-text distance")(""),
               standaloneQuestion("question-nav nav-icon")
             )
           )

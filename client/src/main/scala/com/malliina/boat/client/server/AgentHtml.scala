@@ -2,11 +2,9 @@ package com.malliina.boat.client.server
 
 import akka.http.scaladsl.model.{ContentTypes, HttpEntity}
 import scalatags.Text
+import scalatags.Text.all._
 
 object AgentHtml {
-
-  import scalatags.Text.all._
-
   val empty = stringFrag("")
 
   def boatForm(conf: BoatConf) = form(action := WebServer.settingsUri, method := "post")(

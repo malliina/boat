@@ -32,8 +32,6 @@ class TcpSource(host: String, port: Int)(implicit as: ActorSystem, mat: Material
   val sendTimeWindow = 500.millis
   val reconnectInterval = 2.second
 
-  // val switch = KillSwitches.shared(s"TCP-$host")
-
   val (sink, sentencesHub) =
     MergeHub.source[SentencesMessage](perProducerBufferSize = 16384)
       .toMat(BroadcastHub.sink(bufferSize = 2048))(Keep.both)
@@ -82,6 +80,5 @@ class TcpSource(host: String, port: Int)(implicit as: ActorSystem, mat: Material
 
   def close(): Unit = {
     enabled.set(false)
-    //switch.shutdown()
   }
 }

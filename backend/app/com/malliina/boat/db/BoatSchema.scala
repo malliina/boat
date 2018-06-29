@@ -105,9 +105,9 @@ class BoatSchema(ds: DataSource, override val impl: JdbcProfile)
 
   def initBoat()(implicit ec: ExecutionContext) = {
     init()
-    val addAnon = usersTable.filter(_.user === BoatController.anonUser).exists.result.flatMap { exists =>
+    val addAnon = usersTable.filter(_.user === User.anon).exists.result.flatMap { exists =>
       if (exists) DBIO.successful(())
-      else userInserts += NewUser(BoatController.anonUser, None, "unused", enabled = true)
+      else userInserts += NewUser(User.anon, None, "unused", enabled = true)
     }
     await(run(addAnon))
   }

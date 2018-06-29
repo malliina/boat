@@ -2,10 +2,10 @@ package controllers
 
 import java.time.Instant
 
-import akka.{Done, NotUsed}
 import akka.actor.ActorSystem
 import akka.stream.Materializer
 import akka.stream.scaladsl.{BroadcastHub, Flow, Keep, MergeHub, Sink, Source}
+import akka.{Done, NotUsed}
 import com.malliina.boat.Constants._
 import com.malliina.boat._
 import com.malliina.boat.db.{IdentityError, MissingToken, TracksSource, UserManager}
@@ -16,7 +16,7 @@ import com.malliina.concurrent.ExecutionContexts.cached
 import com.malliina.measure.Distance
 import com.malliina.play.auth.Auth
 import controllers.Assets.Asset
-import controllers.BoatController.{anonUser, log}
+import controllers.BoatController.log
 import controllers.Social.{EmailKey, GoogleCookie, ProviderCookieName}
 import play.api.Logger
 import play.api.libs.json.{JsValue, Json}
@@ -29,8 +29,6 @@ import scala.util.Try
 
 object BoatController {
   private val log = Logger(getClass)
-
-  val anonUser = User("anon")
 }
 
 class BoatController(mapboxToken: AccessToken,
@@ -65,7 +63,7 @@ class BoatController(mapboxToken: AccessToken,
   val savedCoords = onlyOnce(coords.mapAsync(parallelism = 1)(saveRecovered))
   val coordsDrainer = savedCoords.runWith(Sink.ignore)
   val errors = lefts(parsedEvents)
-  val frontEvents: Source[FrontEvent, NotUsed] = savedCoords
+  val frontEvents: Source[CoordsEvent, NotUsed] = savedCoords
 
   errors.runWith(Sink.foreach(err => log.error(s"JSON error for '${err.boat}': '${err.error}'.")))
 
@@ -84,7 +82,7 @@ class BoatController(mapboxToken: AccessToken,
       checkLogin(rh).map { r =>
         Future.successful(r)
       }.getOrElse {
-        resultFor(anonUser)
+        resultFor(User.anon)
       }
     }
   }
@@ -129,10 +127,10 @@ class BoatController(mapboxToken: AccessToken,
           log.info(s"Viewer '$user' joined.")
           // Show recent tracks for non-anon users
           val historicalLimits: BoatQuery =
-            if (user == anonUser) BoatQuery.recent(Instant.now())
+            if (user == User.anon) BoatQuery.recent(Instant.now())
             else limits
           val history: Source[CoordsEvent, NotUsed] =
-            Source.fromFuture(db.history(user, historicalLimits)).flatMapConcat(es => Source(es.toList))
+            Source.fromFuture(db.history(user, historicalLimits)).flatMapConcat(es => Source(es.toList.map(_.sample(4))))
           // disconnects viewers that lag more than 3s
           val flow = Flow.fromSinkAndSource(Sink.ignore, history.concat(frontEvents).filter(_.isIntendedFor(user)))
             .keepAlive(10.seconds, () => PingEvent(Instant.now.toEpochMilli))
@@ -200,15 +198,15 @@ class BoatController(mapboxToken: AccessToken,
         outcome.map { profile => profile.username }
       }
     }.orElse {
-      rh.session.get(UserSessionKey).filter(_ != anonUser.name).map { user =>
+      rh.session.get(UserSessionKey).filter(_ != User.anon.name).map { user =>
         Future.successful(Right(User(user)))
       }
     }.getOrElse {
-      Future.successful(Right(anonUser))
+      Future.successful(Right(User.anon))
     }
 
   def authQuery(rh: RequestHeader): Future[Either[IdentityError, User]] =
-    queryAuthBoat(rh, Left(MissingToken(rh))).map(_.map(_.map(_.user).getOrElse(anonUser)))
+    queryAuthBoat(rh, Left(MissingToken(rh))).map(_.map(_.map(_.user).getOrElse(User.anon)))
 
   def queryAuthBoat(rh: RequestHeader, onAnon: => Either[IdentityError, Option[BoatInfo]]): Future[Either[IdentityError, Option[BoatInfo]]] =
     rh.getQueryString(BoatTokenQuery).map { token =>

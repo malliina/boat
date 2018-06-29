@@ -17,16 +17,19 @@ object TracksDatabase {
 }
 
 class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext) extends TracksSource {
-  //  val timeFormatter = new TimeFormatter(CoreConstants.ISO8601_PATTERN)
   val timeFormatter = new TimeFormatter("yyyy-MM-dd HH:mm:ss")
 
   import db._
   import db.api._
   import db.mappings._
 
-  case class Joined(sid: SentenceKey, sentence: RawSentence, track: TrackId, trackName: TrackName, boat: BoatId, boatName: BoatName, user: UserId, username: User)
+  case class Joined(sid: SentenceKey, sentence: RawSentence, track: TrackId,
+                    trackName: TrackName, boat: BoatId, boatName: BoatName,
+                    user: UserId, username: User)
 
-  case class LiftedJoined(sid: Rep[SentenceKey], sentence: Rep[RawSentence], track: Rep[TrackId], trackName: Rep[TrackName], boat: Rep[BoatId], boatName: Rep[BoatName], user: Rep[UserId], username: Rep[User])
+  case class LiftedJoined(sid: Rep[SentenceKey], sentence: Rep[RawSentence], track: Rep[TrackId],
+                          trackName: Rep[TrackName], boat: Rep[BoatId], boatName: Rep[BoatName],
+                          user: Rep[UserId], username: Rep[User])
 
   implicit object JoinedShape extends CaseClassShape(LiftedJoined.tupled, Joined.tupled)
 
@@ -76,7 +79,12 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext) extends 
   }
 
   override def history(user: User, limits: BoatQuery): Future[Seq[CoordsEvent]] = {
-    val query = tracksView.filter(t => t.username === user && (if (limits.tracks.nonEmpty) t.trackName.inSet(limits.tracks) else trueColumn))
+    val newestTrack = tracksViewNonEmpty.filter(_.username === user).sortBy(_.trackAdded.desc).take(1)
+    val eligibleTracks =
+      if (limits.tracks.nonEmpty) tracksView.filter(t => t.username === user && t.trackName.inSet(limits.tracks))
+      else if (limits.newest) tracksView.join(newestTrack).on(_.track === _.track).map(_._1)
+      else tracksView
+    val query = eligibleTracks
       .join(rangedCoords(limits.timeRange)).on(_.track === _.track)
       .sortBy { case (_, point) => (point.added.desc, point.id.desc) }
       .drop(limits.offset)
@@ -148,7 +156,7 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext) extends 
       joined
     }
 
-  def prepareTrack(trackName: TrackName, boat: BoatId) =
+  private def prepareTrack(trackName: TrackName, boat: BoatId) =
     for {
       maybeTrack <- tracksTable.filter(t => t.name === trackName && t.boat === boat).result.headOption
       track <- maybeTrack.map(t => DBIO.successful(t)).getOrElse(saveTrack(trackName, boat))
