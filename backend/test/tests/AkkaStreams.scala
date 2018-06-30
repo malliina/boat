@@ -1,48 +1,42 @@
 package tests
 
-import java.time.LocalDate
+import java.time.{Instant, LocalDate, LocalTime}
 
 import akka.NotUsed
-import akka.actor.{Actor, ActorRef, ActorSystem, Props}
+import akka.actor.ActorSystem
 import akka.stream.scaladsl.{BroadcastHub, Flow, Keep, MergeHub, RunnableGraph, Sink, Source}
 import akka.stream.{ActorMaterializer, KillSwitches, UniqueKillSwitch}
-import com.malliina.boat.{Coord, Streams}
+import com.malliina.boat.parsing._
+import com.malliina.boat.{BoatId, BoatName, BoatToken, Coord, JoinedTrack, Streams, TrackId, TrackName, User, UserId}
+import com.malliina.measure.Distance
 import org.scalatest.FunSuite
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.WebSocket
 
-import scala.concurrent.Promise
-
-object ProcessorActor {
-  def props(processed: ActorRef) = Props(new ProcessorActor(processed))
-}
-
-class ProcessorActor(processed: ActorRef) extends Actor {
-  var age: Int = 0
-  var latestDate: Option[LocalDate] = None
-  var coords: Seq[Coord] = Nil
-
-  var buff: String = ""
-
-  override def receive: Receive = {
-    case "a" => buff = "a"
-    case "b" => processed ! s"${buff}b"
-    // case SentencesEvent(...)
-    // closes the processed source
-    // case Done => processed ! ...
-  }
-}
-
 class AkkaStreams extends FunSuite {
-  val as = ActorSystem("test")
+  implicit val as = ActorSystem("test")
   implicit val mat = ActorMaterializer()(as)
 
   test("state") {
-    val strs = Source[String](List("a", "b", "c"))
-    val p = Promise[String]()
-    val processed = Streams.couple[String, String](strs, dest => ProcessorActor.props(dest), as)
-    processed.runWith(Sink.foreach(s => p.trySuccess(s)))
-    assert(await(p.future) === "ab")
+    val from = JoinedTrack(TrackId(1), TrackName("test"), Instant.now, BoatId(1), BoatName("boat"), BoatToken("a"), UserId(1), User("u"), None, 1, None, None).strip(Distance.zero)
+    val parsed = Source[ParsedSentence](List(
+      ParsedCoord(Coord(1, 2), LocalTime.of(10, 11, 1), from),
+      ParsedCoord(Coord(4, 5), LocalTime.of(10, 12, 2), from),
+      ParsedDate(LocalDate.of(2018, 4, 10), from),
+      ParsedCoord(Coord(6, 7), LocalTime.of(10, 13, 3), from),
+      ParsedDate(LocalDate.of(2018, 4, 11), from),
+      ParsedCoord(Coord(8, 9), LocalTime.of(0, 1, 4), from)
+    ))
+    val expected = List(
+      DatedCoord(Coord(1, 2), LocalTime.of(10, 11, 1), LocalDate.of(2018, 4, 10), from),
+      DatedCoord(Coord(4, 5), LocalTime.of(10, 12, 2), LocalDate.of(2018, 4, 10), from),
+      DatedCoord(Coord(6, 7), LocalTime.of(10, 13, 3), LocalDate.of(2018, 4, 10), from),
+      DatedCoord(Coord(8, 9), LocalTime.of(0, 1, 4), LocalDate.of(2018, 4, 11), from)
+    )
+    val processed = BoatParser.multi(parsed).take(4)
+    val listSink = Sink.fold[List[DatedCoord], DatedCoord](List.empty[DatedCoord])((acc, dc) => acc :+ dc)
+    val actual = await(processed.runWith(listSink))
+    assert(actual === expected)
   }
 
   ignore("one-time side-effect") {

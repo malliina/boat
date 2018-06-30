@@ -51,8 +51,8 @@ class MapSocket(map: MapboxMap, queryString: String) extends BaseSocket(s"/ws/up
     payload.validate[FrontEvent].map(consume).recover { case err => onJsonFailure(err) }
 
   def consume(event: FrontEvent): Unit = event match {
-    case CoordsEvent(coords, track) if coords.nonEmpty => onCoords(coords, track)
-    case CoordsBatch(coords) if coords.nonEmpty => coords.foreach(e => onCoords(e.coords, e.from))
+    case CoordsEvent(coords, track) if coords.nonEmpty => onCoords(coords.map(_.coord), track)
+    case CoordsBatch(coords) if coords.nonEmpty => coords.foreach(e => onCoords(e.coords.map(_.coord), e.from))
     case SentencesEvent(_, _) => ()
     case PingEvent(_) => ()
     case other => log.info(s"Unknown event: '$other'.")
@@ -92,9 +92,11 @@ class MapSocket(map: MapboxMap, queryString: String) extends BaseSocket(s"/ws/up
       geoJson.setData(toJson(newTrack))
     }
     val trail: Seq[Coord] = newTrack.features.flatMap(_.geometry.coords)
-    val totalLength = boats.values.flatMap(fc => fc.features.headOption.map(f => turf.length(toJson(f)))).sum
-    val threeDecimalsKm = "%.3f".format(totalLength).toDouble
-    document.getElementById(Distance).innerHTML = s"$threeDecimalsKm km"
+    Option(document.getElementById(Distance)).foreach { e =>
+      val totalLength = boats.values.flatMap(fc => fc.features.headOption.map(f => turf.length(toJson(f)))).sum
+      val threeDecimalsKm = "%.3f".format(totalLength).toDouble
+      e.innerHTML = s"$threeDecimalsKm km"
+    }
     // updates the map position, zoom to reflect the updated track(s)
     mapMode match {
       case Fit =>

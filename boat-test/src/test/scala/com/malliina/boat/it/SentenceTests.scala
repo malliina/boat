@@ -29,7 +29,8 @@ class SentenceTests extends BoatTests {
     }
   }
 
-  test("sent events are not received by unrelated viewer") {
+  // Ignored because the design is the opposite of the test
+  ignore("sent events are not received by unrelated viewer") {
     val testUser = User("User1")
     val testPass = Password("demo")
     await(components.users.addUser(testUser, testPass))

@@ -25,7 +25,8 @@ class Social(googleConf: AuthConf, comps: ControllerComponents)(implicit ec: Exe
   extends AbstractController(comps) {
 
   val okClient = OkClient.default
-  val handler = new BasicAuthHandler(routes.BoatController.index(), sessionKey = EmailKey)
+  val lastIdKey = "last_id"
+  val handler = new BasicAuthHandler(routes.BoatController.index(), lastIdKey, sessionKey = EmailKey)
 
   val googleValidator = StandardCodeValidator(
     CodeValidationConf.google(

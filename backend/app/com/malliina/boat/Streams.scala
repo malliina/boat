@@ -1,9 +1,9 @@
 package com.malliina.boat
 
 import akka.NotUsed
-import akka.actor.{ActorRef, ActorSystem, Props}
+import akka.actor.{ActorRef, ActorSystem, Props, Status}
+import akka.stream.scaladsl.{Flow, Keep, Sink, Source}
 import akka.stream.{Materializer, OverflowStrategy}
-import akka.stream.scaladsl.{Keep, Sink, Source}
 
 object Streams extends Streams
 
@@ -21,18 +21,17 @@ trait Streams {
     * @tparam U type of output
     * @return
     */
-  def couple[T, U](src: Source[T, NotUsed], processorProps: ActorRef => Props, as: ActorSystem)(implicit mat: Materializer): Source[U, NotUsed] = {
-    val (sink, source) = connected[T, U](processorProps, as)
-    src.runWith(sink)
-    source
+  def actorProcessed[T, U](src: Source[T, NotUsed], processorProps: ActorRef => Props, as: ActorSystem)(implicit mat: Materializer): Source[U, NotUsed] = {
+    val flow: Flow[T, U, NotUsed] = connected[T, U](processorProps, as)
+    src.via(flow)
   }
 
-  def connected[T, U](processorProps: ActorRef => Props, as: ActorSystem)(implicit mat: Materializer): (Sink[T, NotUsed], Source[U, NotUsed]) = {
+  def connected[T, U](processorProps: ActorRef => Props, as: ActorSystem)(implicit mat: Materializer): Flow[T, U, NotUsed] = {
     val publisherSink = Sink.asPublisher[U](fanout = true)
     val (processedActor, publisher) = Source.actorRef[U](65536, OverflowStrategy.fail).toMat(publisherSink)(Keep.both).run()
     val processed = Source.fromPublisher(publisher)
     val processor = as.actorOf(processorProps(processedActor))
-    val processorSink = Sink.actorRef[T](processor, ())
-    (processorSink, processed)
+    val processorSink = Sink.actorRef[T](processor, Status.Success("Done."))
+    Flow.fromSinkAndSource(processorSink, processed)
   }
 }

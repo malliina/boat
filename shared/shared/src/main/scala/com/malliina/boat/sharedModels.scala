@@ -25,6 +25,16 @@ object Coord {
   )
 }
 
+case class TimedCoord(coord: Coord, boatTime: String, boatTimeMillis: Long) {
+  def lng = coord.lng
+
+  def lat = coord.lat
+}
+
+object TimedCoord {
+  implicit val json = Json.format[TimedCoord]
+}
+
 case class LineGeometry(`type`: String, coordinates: Seq[Coord]) extends Geometry(LineGeometry.LineString) {
   override def updateCoords(coords: Seq[Coord]): LineGeometry =
     copy(coordinates = coordinates ++ coords)
@@ -259,7 +269,7 @@ object TrackSummaries {
   implicit val json = Json.format[TrackSummaries]
 }
 
-case class CoordsEvent(coords: Seq[Coord], from: TrackRef) extends BoatFrontEvent {
+case class CoordsEvent(coords: Seq[TimedCoord], from: TrackRef) extends BoatFrontEvent {
   def isEmpty = coords.isEmpty
 
   def sample(every: Int): CoordsEvent =

@@ -10,15 +10,13 @@ import com.malliina.boat._
 import com.malliina.boat.client.{HttpUtil, KeyValue, WebSocketClient}
 import com.malliina.http.FullUrl
 import com.malliina.play.models.Password
-import org.scalatest.FunSuite
 import play.api.ApplicationLoader.Context
 import play.api.BuiltInComponents
 import play.api.libs.json.{JsValue, Json, Writes}
 import play.api.mvc.Call
-import tests.OneServerPerSuite2
+import tests.{BaseSuite, OneServerPerSuite2}
 
-import scala.concurrent.duration.Duration
-import scala.concurrent.{Await, Future}
+import scala.concurrent.Future
 
 abstract class TestAppSuite extends ServerSuite(new AppComponents(_))
 
@@ -26,12 +24,6 @@ abstract class ServerSuite[T <: BuiltInComponents](build: Context => T)
   extends BaseSuite
     with OneServerPerSuite2[T] {
   override def createComponents(context: Context) = build(context)
-}
-
-abstract class BaseSuite extends FunSuite {
-  val reverse = controllers.routes.BoatController
-
-  def await[T](f: Future[T], duration: Duration = 3.seconds): T = Await.result(f, duration)
 }
 
 abstract class BoatTests extends TestAppSuite with BoatSockets {

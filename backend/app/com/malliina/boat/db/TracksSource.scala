@@ -2,6 +2,7 @@ package com.malliina.boat.db
 
 import com.malliina.boat._
 import com.malliina.boat.http.{BoatQuery, TrackQuery}
+import com.malliina.boat.parsing.DatedCoord
 
 import scala.concurrent.Future
 
@@ -21,7 +22,7 @@ trait TracksSource {
 
   def saveSentences(sentences: SentencesEvent): Future[Seq[SentenceKey]]
 
-  def saveCoords(coords: CoordsEvent): Future[Seq[TrackPointId]]
+  def saveCoords(coords: DatedCoord): Future[Seq[TrackPointId]]
 
   def renameBoat(old: BoatMeta, newName: BoatName): Future[BoatRow]
 

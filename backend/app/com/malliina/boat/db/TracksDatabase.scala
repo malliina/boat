@@ -3,6 +3,7 @@ package com.malliina.boat.db
 import com.malliina.boat._
 import com.malliina.boat.db.TracksDatabase.log
 import com.malliina.boat.http._
+import com.malliina.boat.parsing.DatedCoord
 import com.malliina.logbackrx.TimeFormatter
 import com.malliina.measure.Distance
 import play.api.Logger
@@ -45,10 +46,9 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext) extends 
     insertLogged(action, from, "sentence")
   }
 
-  override def saveCoords(coords: CoordsEvent): Future[Seq[TrackPointId]] = {
-    val from = coords.from
-    val action = coordInserts ++= coords.coords.map { c => TrackPointInput.forCoord(c, from.track) }
-    insertLogged(action, coords.from, "coordinate")
+  override def saveCoords(coords: DatedCoord): Future[Seq[TrackPointId]] = {
+    val action = coordInserts += TrackPointInput.forCoord(coords)
+    insertLogged(action.map(id => Seq(id)), coords.from, "coordinate")
   }
 
   override def tracks(user: User, filter: TrackQuery): Future[TrackSummaries] = {
@@ -116,14 +116,14 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext) extends 
   private def collectCoords(rows: Seq[(JoinedTrack, TrackPointRow)]): Seq[CoordsEvent] =
     rows.foldLeft(Vector.empty[CoordsEvent]) { case (acc, (from, point)) =>
       val idx = acc.indexWhere(_.from.track == from.track)
-      val coord = Coord(point.lon, point.lat)
+      val coord = TimedCoord(Coord(point.lon, point.lat), Instants.format(point.boatTime), point.boatTime.toEpochMilli)
       if (idx >= 0) {
         val old = acc(idx)
         acc.updated(idx, old.copy(coords = old.coords :+ coord))
       } else {
         acc :+ CoordsEvent(Seq(coord), from.strip(Distance.zero))
       }
-    }.map { ce => ce.copy(from = ce.from.copy(distance = Earth.length(ce.coords.toList))) }
+    }.map { ce => ce.copy(from = ce.from.copy(distance = Earth.length(ce.coords.map(_.coord).toList))) }
 
   private def insertLogged[R](action: DBIOAction[Seq[R], NoStream, Nothing], from: TrackRef, word: String) = {
     db.run(action).map { keys =>

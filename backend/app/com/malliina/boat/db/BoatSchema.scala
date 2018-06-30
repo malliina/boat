@@ -139,6 +139,8 @@ class BoatSchema(ds: DataSource, override val impl: JdbcProfile)
 
     def lat = column[Double]("latitude")
 
+    def boatTime = column[Instant]("boat_time")
+
     def track = column[TrackId]("track")
 
     def trackConstraint = foreignKey("points_track_fk", track, tracksTable)(
@@ -149,9 +151,9 @@ class BoatSchema(ds: DataSource, override val impl: JdbcProfile)
 
     def added = column[Instant]("added", O.SqlType(CreatedTimestampType))
 
-    def forInserts = (lon, lat, track) <> ((TrackPointInput.apply _).tupled, TrackPointInput.unapply)
+    def forInserts = (lon, lat, boatTime, track) <> ((TrackPointInput.apply _).tupled, TrackPointInput.unapply)
 
-    def * = (id, lon, lat, track, added) <> ((TrackPointRow.apply _).tupled, TrackPointRow.unapply)
+    def * = (id, lon, lat, boatTime, track, added) <> ((TrackPointRow.apply _).tupled, TrackPointRow.unapply)
   }
 
   class TracksTable(tag: Tag) extends Table[TrackRow](tag, "tracks") {

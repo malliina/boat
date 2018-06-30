@@ -1,8 +1,14 @@
 package com.malliina.boat.parsing
 
+import java.time.{LocalDate, LocalTime}
+
+import akka.NotUsed
+import akka.actor.ActorSystem
+import akka.stream.Materializer
+import akka.stream.scaladsl.Source
 import com.malliina.boat._
 import net.sf.marineapi.nmea.parser.DataNotAvailableException
-import net.sf.marineapi.nmea.sentence.{GGASentence, SentenceId}
+import net.sf.marineapi.nmea.sentence.{GGASentence, SentenceId, ZDASentence}
 import play.api.Logger
 import play.api.libs.json.{JsError, JsValue, Reads}
 
@@ -11,26 +17,34 @@ object BoatParser {
 
   val parser = DefaultParser()
 
+  def multi(src: Source[ParsedSentence, NotUsed])(implicit as: ActorSystem, mat: Materializer) =
+    src.via(multiFlow())
+
+  def multiFlow()(implicit as: ActorSystem, mat: Materializer) =
+    Streams.connected[ParsedSentence, DatedCoord](dest => ProcessorActor.props(dest), as)
+
   def read[T: Reads](json: JsValue): Either[JsError, T] =
     json.validate[T].asEither.left.map(JsError.apply)
 
-  def parseCoords(sentences: SentencesEvent): CoordsEvent = {
-    val coords = sentences.sentences.map(parse).flatMap(e => e.asOption(handleError))
-    CoordsEvent(coords, sentences.from)
-  }
+  def parseMulti(sentences: SentencesEvent) =
+    sentences.sentences.map(s => parse(s, sentences.from)).flatMap(e => e.asOption(handleError))
 
   def readSentences(event: BoatEvent) =
     read[SentencesEvent](event.message)
 
-  def parse(sentence: RawSentence): Either[SentenceError, Coord] =
+  def parse(sentence: RawSentence, from: TrackRef): Either[SentenceError, ParsedSentence] =
     parser.parse(sentence).flatMap { parsed =>
+      val id = parsed.getSentenceId
       try {
-        if (parsed.getSentenceId == SentenceId.GGA.name()) {
+        if (id == SentenceId.GGA.name()) {
           val gga = parsed.asInstanceOf[GGASentence]
           val pos = gga.getPosition
-          //        val time = gga.getTime
-          //        val localTime = LocalTime.of(time.getHour, time.getMinutes, time.getSeconds.toInt)
-          Right(Coord(pos.getLongitude, pos.getLatitude))
+          val time = gga.getTime
+          val localTime = LocalTime.of(time.getHour, time.getMinutes, time.getSeconds.toInt)
+          Right(ParsedCoord(Coord(pos.getLongitude, pos.getLatitude), localTime, from))
+        } else if (id == SentenceId.ZDA.name()) {
+          val zda = parsed.asInstanceOf[ZDASentence].getDate
+          Right(ParsedDate(LocalDate.of(zda.getYear, zda.getMonth, zda.getDay), from))
         } else {
           Left(UnknownSentence(sentence, s"Unsupported sentence: '$sentence'."))
         }

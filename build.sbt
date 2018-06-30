@@ -6,7 +6,7 @@ import scala.util.Try
 import sbtrelease.ReleasePlugin.autoImport.{ReleaseStep, releaseProcess}
 import sbtrelease.ReleaseStateTransformations._
 
-val utilPlayDep = "com.malliina" %% "util-play" % "4.12.2"
+val utilPlayDep = "com.malliina" %% "util-play" % "4.12.4"
 
 val buildAndUpload = taskKey[FullUrl]("Uploads to S3")
 val upFiles = taskKey[Seq[String]]("lists")
@@ -46,11 +46,12 @@ lazy val backendSettings = playSettings ++ Seq(
     //    "net.sf.marineapi" % "marineapi" % "0.13.0-SNAPSHOT",
     "com.typesafe.slick" %% "slick" % "3.2.3",
     "com.h2database" % "h2" % "1.4.197",
-    "org.mariadb.jdbc" % "mariadb-java-client" % "2.2.3",
-    "com.zaxxer" % "HikariCP" % "3.1.0",
-    "org.apache.commons" % "commons-text" % "1.3",
+    "org.mariadb.jdbc" % "mariadb-java-client" % "2.2.5",
+    "com.zaxxer" % "HikariCP" % "3.2.0",
+    "org.flywaydb" % "flyway-core" % "5.1.3",
+    "org.apache.commons" % "commons-text" % "1.4",
     "com.malliina" %% "logstreams-client" % "1.0.0",
-    "com.amazonaws" % "aws-java-sdk-s3" % "1.11.313",
+    "com.amazonaws" % "aws-java-sdk-s3" % "1.11.358",
     utilPlayDep,
     utilPlayDep % Test classifier "tests"
   ),

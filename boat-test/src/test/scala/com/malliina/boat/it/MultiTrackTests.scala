@@ -2,6 +2,7 @@ package com.malliina.boat.it
 
 import com.malliina.boat.{BoatNames, RawSentence, SentencesMessage}
 import com.malliina.http.FullUrl
+import tests.BaseSuite
 
 class MultiTrackTests extends BaseSuite with BoatSockets {
   //  def url = FullUrl.ws("localhost:9000", reverse.boats().toString)

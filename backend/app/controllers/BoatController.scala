@@ -11,7 +11,7 @@ import com.malliina.boat._
 import com.malliina.boat.db.{IdentityError, MissingToken, TracksSource, UserManager}
 import com.malliina.boat.html.BoatHtml
 import com.malliina.boat.http.{BoatQuery, TrackQuery}
-import com.malliina.boat.parsing.BoatParser.{parseCoords, read}
+import com.malliina.boat.parsing.{BoatParser, DatedCoord, ParsedSentence}
 import com.malliina.concurrent.ExecutionContexts.cached
 import com.malliina.measure.Distance
 import com.malliina.play.auth.Auth
@@ -48,22 +48,26 @@ class BoatController(mapboxToken: AccessToken,
   val (boatSink, viewerSource) = MergeHub.source[BoatEvent](perProducerBufferSize = 16)
     .toMat(BroadcastHub.sink(bufferSize = 256))(Keep.both)
     .run()
-
+  val (combinedSink, combinedSource) = MergeHub.source[DatedCoord](perProducerBufferSize = 16)
+    .toMat(BroadcastHub.sink(bufferSize = 256))(Keep.both)
+    .run()
+  combinedSource.runWith(Sink.ignore)
   val _ = viewerSource.runWith(Sink.ignore)
   val sentencesSource = viewerSource.map { boatEvent =>
-    read[SentencesMessage](boatEvent.message)
+    BoatParser.read[SentencesMessage](boatEvent.message)
       .map(_.toEvent(boatEvent.from.strip(Distance.zero)))
       .left.map(err => BoatJsonError(err, boatEvent))
   }
-  val parsedEvents = sentencesSource.map(e => e.map(parseCoords))
   val sentences = rights(sentencesSource)
+  val parsedSentences = rights(sentencesSource).mapConcat[ParsedSentence](e => BoatParser.parseMulti(e).toList)
+  parsedSentences.runWith(Sink.ignore)
   val savedSentences = onlyOnce(sentences.mapAsync(parallelism = 1)(ss => db.saveSentences(ss).map(_ => ss)))
   val sentencesDrainer = savedSentences.runWith(Sink.ignore)
-  val coords: Source[CoordsEvent, NotUsed] = rights(parsedEvents).filter(e => !e.isEmpty)
-  val savedCoords = onlyOnce(coords.mapAsync(parallelism = 1)(saveRecovered))
+  val parsedEvents: Source[DatedCoord, NotUsed] = parsedSentences.via(BoatParser.multiFlow())
+  val savedCoords = onlyOnce(parsedEvents.mapAsync(parallelism = 1)(ce => saveRecovered(ce)))
   val coordsDrainer = savedCoords.runWith(Sink.ignore)
-  val errors = lefts(parsedEvents)
-  val frontEvents: Source[CoordsEvent, NotUsed] = savedCoords
+  val errors = lefts(sentencesSource)
+  val frontEvents: Source[CoordsEvent, NotUsed] = savedCoords.map(dc => CoordsEvent(Seq(dc.timed), dc.from))
 
   errors.runWith(Sink.foreach(err => log.error(s"JSON error for '${err.boat}': '${err.error}'.")))
 
@@ -99,6 +103,7 @@ class BoatController(mapboxToken: AccessToken,
           json => BoatEvent(json, boat),
           out => Json.toJson(out)
         )
+
         val flow: Flow[BoatEvent, PingEvent, NotUsed] = Flow.fromSinkAndSource(boatSink, Source.maybe[PingEvent])
           .keepAlive(10.seconds, () => PingEvent(Instant.now.toEpochMilli))
           .backpressureTimeout(3.seconds)
@@ -257,7 +262,7 @@ class BoatController(mapboxToken: AccessToken,
   private def trackOrRandom(rh: RequestHeader) =
     rh.headers.get(TrackNameHeader).map(TrackName.apply).getOrElse(TrackNames.random())
 
-  private def saveRecovered(coords: CoordsEvent) =
+  private def saveRecovered(coords: DatedCoord): Future[DatedCoord] =
     db.saveCoords(coords).map { _ => coords }.recover { case t =>
       log.error(s"Unable to save coords.", t)
       coords

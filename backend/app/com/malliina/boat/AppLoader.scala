@@ -9,7 +9,7 @@ import com.typesafe.config.ConfigFactory
 import controllers.{AssetsComponents, BoatController, FileController, Social}
 import play.api.ApplicationLoader.Context
 import play.api.routing.Router
-import play.api.{BuiltInComponentsFromContext, Configuration}
+import play.api.{BuiltInComponentsFromContext, Configuration, Mode}
 import play.filters.HttpFiltersComponents
 import play.filters.headers.SecurityHeadersConfig
 import play.filters.hosts.AllowedHostsConfig
@@ -42,6 +42,8 @@ class AppComponents(context: Context)
   val mode = environment.mode
   val html = BoatHtml(mode)
   val databaseConf = DatabaseConf(mode, configuration)
+  if (mode != Mode.Test)
+    DBMigrations.run(databaseConf)
   val schema = BoatSchema(databaseConf)
   schema.initBoat()(executionContext)
   val users: UserManager = DatabaseUserManager(schema, executionContext)

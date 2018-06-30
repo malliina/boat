@@ -11,20 +11,20 @@ import scala.collection.JavaConverters.asScalaBufferConverter
 
 class ManualBoatTests extends BoatTests {
   //  val testFile = FileUtilities.userHome.resolve(".boat/Log2.txt")
-  //  val testFile = FileUtilities.userHome.resolve(".boat/nmea0183-standard.log")
-  val testFile = FileUtilities.userHome.resolve(".boat/Log.txt")
+  val testFile = FileUtilities.userHome.resolve(".boat/nmea0183-standard.log")
+  //  val testFile = FileUtilities.userHome.resolve(".boat/Log.txt")
 
   def sentences = Files.readAllLines(testFile, StandardCharsets.UTF_8).asScala.map(RawSentence.apply)
 
-  def gpsSentences = sentences.drop(325506).filter(_.sentence.startsWith("$GPGGA"))
+  def relevantSentences = sentences.drop(10000).filter(s => s.sentence.startsWith("$GPGGA") || s.sentence.startsWith("$GPZDA"))
 
-  //  def url = FullUrl.ws("localhost:9000", reverse.boats().toString)
+  def url = FullUrl.ws("localhost:9000", reverse.boats().toString)
 
-  def url = FullUrl.wss("boat.malliina.com", reverse.boats().toString)
+  //  def url = FullUrl.wss("boat.malliina.com", reverse.boats().toString)
 
   ignore("local GPS reporting") {
     //    println("Lines " + gpsSentences.toList.length)
-    val testMessages = gpsSentences.toList.grouped(1000).map(SentencesMessage.apply).toList
+    val testMessages = relevantSentences.toList.grouped(1000).map(SentencesMessage.apply).toList
     openBoat(url, BoatNames.random()) { boat =>
       testMessages.foreach { msg =>
         println(s"Sending $testMessages...")
@@ -34,8 +34,8 @@ class ManualBoatTests extends BoatTests {
     }
   }
 
-  ignore("slow GPS reporting") {
-    val testMessages = gpsSentences.toList.grouped(2).map(SentencesMessage.apply).slice(50, 100).toList
+  test("slow GPS reporting") {
+    val testMessages = relevantSentences.toList.grouped(2).map(SentencesMessage.apply).slice(50, 100).toList
     openBoat(url, BoatNames.random()) { boat =>
       testMessages.foreach { msg =>
         boat.send(msg)

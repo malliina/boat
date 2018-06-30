@@ -1,6 +1,8 @@
 package com.malliina.boat.parsing
 
-import com.malliina.boat.RawSentence
+import java.time.{LocalDate, LocalTime, ZoneOffset}
+
+import com.malliina.boat.{Coord, Instants, RawSentence, TimedCoord, TrackRef}
 import net.sf.marineapi.nmea.parser.{DataNotAvailableException, SentenceFactory, UnsupportedSentenceException}
 import net.sf.marineapi.nmea.sentence.Sentence
 
@@ -22,6 +24,31 @@ class DefaultParser(parser: SentenceFactory) extends BoatSentenceParser {
       case other: Exception =>
         Left(SentenceFailure(in, other))
     }
+}
+
+sealed trait ParsedSentence {
+  def from: TrackRef
+}
+
+case class ParsedCoord(coord: Coord, time: LocalTime, from: TrackRef) extends ParsedSentence {
+  def lng = coord.lng
+
+  def lat = coord.lat
+
+  def withDate(date: LocalDate): DatedCoord = DatedCoord(coord, time, date, from)
+}
+
+case class ParsedDate(date: LocalDate, from: TrackRef) extends ParsedSentence
+
+case class DatedCoord(coord: Coord, time: LocalTime, date: LocalDate, from: TrackRef) {
+  val dateTime = date.atTime(time)
+  val boatTime = dateTime.toInstant(ZoneOffset.UTC)
+
+  def lng = coord.lng
+
+  def lat = coord.lat
+
+  def timed = TimedCoord(coord, Instants.format(boatTime), boatTime.toEpochMilli)
 }
 
 sealed trait SentenceError {

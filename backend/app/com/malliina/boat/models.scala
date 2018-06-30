@@ -1,7 +1,8 @@
 package com.malliina.boat
 
-import java.time.Instant
+import java.time.{Instant, LocalDate, LocalTime, ZoneOffset}
 
+import com.malliina.boat.parsing.DatedCoord
 import com.malliina.measure.Distance
 import play.api.http.Writeable
 import play.api.libs.json._
@@ -99,15 +100,21 @@ case class TrackPointId(id: Long) extends WrappedId
 
 object TrackPointId extends IdCompanion[TrackPointId]
 
-case class TrackPointInput(lon: Double, lat: Double, track: TrackId)
+case class TrackPointInput(lon: Double, lat: Double, boatTime: Instant, track: TrackId)
 
 object TrackPointInput {
-  def forCoord(coord: Coord, track: TrackId): TrackPointInput =
-    TrackPointInput(coord.lng, coord.lat, track)
+  def forCoord(coord: DatedCoord): TrackPointInput =
+    TrackPointInput(coord.lng, coord.lat, coord.boatTime, coord.from.track)
 }
 
-case class TrackPointRow(id: TrackPointId, lon: Double, lat: Double, track: TrackId, added: Instant) {
+case class TrackPointRow(id: TrackPointId, lon: Double, lat: Double, boatTime: Instant, track: TrackId, added: Instant) {
   def toCoord = Coord(lon, lat)
+
+  def dateTimeUtc = boatTime.atOffset(ZoneOffset.UTC)
+
+  def time = LocalTime.from(dateTimeUtc)
+
+  def date = LocalDate.from(dateTimeUtc)
 }
 
 case class TrackPoint(coord: Coord, time: Instant, waterTemp: Double, wind: Double)
