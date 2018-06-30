@@ -34,7 +34,7 @@ class ManualBoatTests extends BoatTests {
     }
   }
 
-  test("slow GPS reporting") {
+  ignore("slow GPS reporting") {
     val testMessages = relevantSentences.toList.grouped(2).map(SentencesMessage.apply).slice(50, 100).toList
     openBoat(url, BoatNames.random()) { boat =>
       testMessages.foreach { msg =>
