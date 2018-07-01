@@ -11,7 +11,7 @@ import com.malliina.boat._
 import com.malliina.boat.db.{IdentityError, MissingToken, TracksSource, UserManager}
 import com.malliina.boat.html.BoatHtml
 import com.malliina.boat.http.{BoatQuery, TrackQuery}
-import com.malliina.boat.parsing.{BoatParser, DatedCoord, ParsedSentence}
+import com.malliina.boat.parsing.{BoatParser, FullCoord, ParsedSentence}
 import com.malliina.concurrent.ExecutionContexts.cached
 import com.malliina.measure.Distance
 import com.malliina.play.auth.Auth
@@ -48,10 +48,10 @@ class BoatController(mapboxToken: AccessToken,
   val (boatSink, viewerSource) = MergeHub.source[BoatEvent](perProducerBufferSize = 16)
     .toMat(BroadcastHub.sink(bufferSize = 256))(Keep.both)
     .run()
-  val (combinedSink, combinedSource) = MergeHub.source[DatedCoord](perProducerBufferSize = 16)
-    .toMat(BroadcastHub.sink(bufferSize = 256))(Keep.both)
-    .run()
-  combinedSource.runWith(Sink.ignore)
+  //  val (combinedSink, combinedSource) = MergeHub.source[FullCoord](perProducerBufferSize = 16)
+  //    .toMat(BroadcastHub.sink(bufferSize = 256))(Keep.both)
+  //    .run()
+  //  combinedSource.runWith(Sink.ignore)
   val _ = viewerSource.runWith(Sink.ignore)
   val sentencesSource = viewerSource.map { boatEvent =>
     BoatParser.read[SentencesMessage](boatEvent.message)
@@ -59,15 +59,16 @@ class BoatController(mapboxToken: AccessToken,
       .left.map(err => BoatJsonError(err, boatEvent))
   }
   val sentences = rights(sentencesSource)
-  val parsedSentences = rights(sentencesSource).mapConcat[ParsedSentence](e => BoatParser.parseMulti(e).toList)
-  parsedSentences.runWith(Sink.ignore)
-  val savedSentences = onlyOnce(sentences.mapAsync(parallelism = 1)(ss => db.saveSentences(ss).map(_ => ss)))
+  val savedSentences = monitored(onlyOnce(sentences.mapAsync(parallelism = 1)(ss => db.saveSentences(ss).map(_ => ss))), "saved sentences")
   val sentencesDrainer = savedSentences.runWith(Sink.ignore)
-  val parsedEvents: Source[DatedCoord, NotUsed] = parsedSentences.via(BoatParser.multiFlow())
-  val savedCoords = onlyOnce(parsedEvents.mapAsync(parallelism = 1)(ce => saveRecovered(ce)))
+
+  val parsedSentences = monitored(rights(sentencesSource).mapConcat[ParsedSentence](e => BoatParser.parseMulti(e).toList), "parsed sentences")
+  parsedSentences.runWith(Sink.ignore)
+  val parsedEvents: Source[FullCoord, Future[Done]] = parsedSentences.via(BoatParser.multiFlow())
+  val savedCoords = monitored(onlyOnce(parsedEvents.mapAsync(parallelism = 1)(ce => saveRecovered(ce))), "saved coords")
   val coordsDrainer = savedCoords.runWith(Sink.ignore)
   val errors = lefts(sentencesSource)
-  val frontEvents: Source[CoordsEvent, NotUsed] = savedCoords.map(dc => CoordsEvent(Seq(dc.timed), dc.from))
+  val frontEvents: Source[CoordsEvent, Future[Done]] = savedCoords.map(dc => CoordsEvent(Seq(dc.timed), dc.from))
 
   errors.runWith(Sink.foreach(err => log.error(s"JSON error for '${err.boat}': '${err.error}'.")))
 
@@ -112,13 +113,13 @@ class BoatController(mapboxToken: AccessToken,
     }
   }
 
-  def tracks = authAction(authQuery) { (user, rh) =>
+  def tracks = authAction(authWeb) { (maybeBoat, rh) =>
     TrackQuery(rh).fold(
       err => {
         Future.successful(BadRequest(Errors(err)))
       },
       query => {
-        db.tracks(user, query).map { summaries =>
+        db.tracks(maybeBoat.fold(User.anon)(_.user), query).map { summaries =>
           Ok(Json.toJson(summaries))
         }
       }
@@ -148,14 +149,27 @@ class BoatController(mapboxToken: AccessToken,
     }
   }
 
-  def logTermination[In, Out, Mat](flow: Flow[In, Out, Mat], message: Try[Done] => String): Flow[In, Out, Future[Done]] = {
+  def logTermination[In, Out, Mat](flow: Flow[In, Out, Mat], message: Try[Done] => String): Flow[In, Out, Future[Done]] =
+    terminationWatched(flow)(t => log.info(message(t)))
+
+  def monitored[In, Mat](src: Source[In, Mat], label: String): Source[In, Future[Done]] =
+    src.watchTermination()(Keep.right).mapMaterializedValue { done =>
+      done.transform { tryDone =>
+        tryDone.fold(
+          t => log.error(s"Error in flow '$label'.", t),
+          _ => log.warn(s"Flow '$label' completed.")
+        )
+        tryDone
+      }
+    }
+
+  def terminationWatched[In, Out, Mat](flow: Flow[In, Out, Mat])(onTermination: Try[Done] => Unit): Flow[In, Out, Future[Done]] =
     flow.watchTermination()(Keep.right).mapMaterializedValue { done =>
       done.transform { t =>
-        log.info(message(t))
+        onTermination(t)
         t
       }
     }
-  }
 
   def versioned(path: String, file: Asset): Action[AnyContent] =
     assets.versioned(path, file)
@@ -262,7 +276,7 @@ class BoatController(mapboxToken: AccessToken,
   private def trackOrRandom(rh: RequestHeader) =
     rh.headers.get(TrackNameHeader).map(TrackName.apply).getOrElse(TrackNames.random())
 
-  private def saveRecovered(coords: DatedCoord): Future[DatedCoord] =
+  private def saveRecovered(coords: FullCoord): Future[FullCoord] =
     db.saveCoords(coords).map { _ => coords }.recover { case t =>
       log.error(s"Unable to save coords.", t)
       coords

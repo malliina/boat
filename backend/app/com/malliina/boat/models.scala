@@ -2,7 +2,7 @@ package com.malliina.boat
 
 import java.time.{Instant, LocalDate, LocalTime, ZoneOffset}
 
-import com.malliina.boat.parsing.DatedCoord
+import com.malliina.boat.parsing.FullCoord
 import com.malliina.measure.Distance
 import play.api.http.Writeable
 import play.api.libs.json._
@@ -103,9 +103,11 @@ object TrackPointId extends IdCompanion[TrackPointId]
 case class TrackPointInput(lon: Double, lat: Double, boatTime: Instant, track: TrackId)
 
 object TrackPointInput {
-  def forCoord(coord: DatedCoord): TrackPointInput =
+  def forCoord(coord: FullCoord): TrackPointInput =
     TrackPointInput(coord.lng, coord.lat, coord.boatTime, coord.from.track)
 }
+
+case class CombinedCoord(id: TrackPointId, lon: Double, lat: Double, boatTime: Instant, date: LocalDate, track: TrackId, added: Instant)
 
 case class TrackPointRow(id: TrackPointId, lon: Double, lat: Double, boatTime: Instant, track: TrackId, added: Instant) {
   def toCoord = Coord(lon, lat)

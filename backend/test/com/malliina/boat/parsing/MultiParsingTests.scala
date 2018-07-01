@@ -22,7 +22,7 @@ class MultiParsingTests extends BaseSuite {
   implicit val mat = ActorMaterializer()
 
   //  val testFile = FileUtilities.userHome.resolve(".boat/nmea0183-standard.log")
-  val testFile = FileUtilities.userHome.resolve(".boat/Log.txt")
+  val testFile = FileUtilities.userHome.resolve(".boat/Log2.txt")
 
   val from = JoinedTrack(TrackId(1), TrackName("test"), Instant.now,
     BoatId(1), BoatName("boat"), BoatToken("a"),
@@ -37,6 +37,17 @@ class MultiParsingTests extends BaseSuite {
     val multiParsed = BoatParser.multi(singleParsed)
     val task = multiParsed.runWith(Sink.foreach(println))
     await(task, 30.seconds)
+  }
+
+  test("just parse") {
+    val flow = Flow[RawSentence].mapConcat(raw => BoatParser.parse(raw, from).toOption.toList)
+    val singleParsed = Source(sentences.toList).via(flow)
+
+    val hm = singleParsed.runWith(Sink.fold[List[ParsedSentence], ParsedSentence](Nil)(_ :+ _))
+    val maxSpeed = await(hm, 600.seconds).collect {
+      case ParsedBoatSpeed(knots, _) => knots
+    }.max
+    println(maxSpeed)
   }
 
   ignore("process") {

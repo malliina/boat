@@ -1,6 +1,6 @@
 package com.malliina.boat.db
 
-import java.time.{Instant, LocalTime}
+import java.time.{Instant, LocalDate, LocalTime}
 
 import com.malliina.boat.{BoatId, BoatName, BoatToken, RawSentence, SentenceKey, TrackId, TrackName, TrackPointId, User, UserEmail, UserId, WrappedId}
 import com.malliina.play.models.{Password, Username}
@@ -29,6 +29,7 @@ class Mappings(val impl: JdbcProfile) {
   implicit val emailMapping = stringMapping(UserEmail.apply)
   implicit val instantMapping = MappedColumnType.base[Instant, java.sql.Timestamp](java.sql.Timestamp.from, _.toInstant)
   implicit val timeMapping = MappedColumnType.base[LocalTime, java.sql.Time](java.sql.Time.valueOf, _.toLocalTime)
+  implicit val dateMapping = MappedColumnType.base[LocalDate, java.sql.Date](java.sql.Date.valueOf, _.toLocalDate)
 
   def stringMapping[T <: Wrapped : ClassTag](apply: String => T): JdbcType[T] with BaseTypedType[T] =
     MappedColumnType.base[T, String](_.value, apply)

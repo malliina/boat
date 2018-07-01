@@ -8,6 +8,7 @@ import play.api.libs.json.JsValue
 import scala.concurrent.{Await, Promise, TimeoutException}
 
 class SentenceTests extends BoatTests {
+  // TODO Why is this test ignored?
   ignore("anonymously sent sentence is received by anonymous viewer") {
     openTestBoat(BoatNames.random()) { boat =>
       val sentencePromise = Promise[SentencesEvent]()

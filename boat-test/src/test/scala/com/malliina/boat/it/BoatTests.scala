@@ -72,7 +72,7 @@ trait BoatSockets {
   }
 
   class TestBoat(val queue: SourceQueue[Option[JsValue]], val socket: WebSocketClient) {
-    def send[T: Writes](t: T) = await(queue.offer(Option(Json.toJson(t))))
+    def send[T: Writes](t: T) = await(queue.offer(Option(Json.toJson(t))), 30.seconds)
 
     def close(): Unit = queue.offer(None)
   }

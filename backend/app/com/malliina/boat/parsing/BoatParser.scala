@@ -8,9 +8,10 @@ import akka.stream.Materializer
 import akka.stream.scaladsl.Source
 import com.malliina.boat._
 import net.sf.marineapi.nmea.parser.DataNotAvailableException
-import net.sf.marineapi.nmea.sentence.{GGASentence, SentenceId, ZDASentence}
+import net.sf.marineapi.nmea.sentence._
 import play.api.Logger
 import play.api.libs.json.{JsError, JsValue, Reads}
+import com.malliina.measure.{SpeedDouble, TemperatureDouble}
 
 object BoatParser {
   private val log = Logger(getClass)
@@ -21,7 +22,7 @@ object BoatParser {
     src.via(multiFlow())
 
   def multiFlow()(implicit as: ActorSystem, mat: Materializer) =
-    Streams.connected[ParsedSentence, DatedCoord](dest => ProcessorActor.props(dest), as)
+    Streams.connected[ParsedSentence, FullCoord](dest => ProcessorActor.props(dest), as)
 
   def read[T: Reads](json: JsValue): Either[JsError, T] =
     json.validate[T].asEither.left.map(JsError.apply)
@@ -45,6 +46,15 @@ object BoatParser {
         } else if (id == SentenceId.ZDA.name()) {
           val zda = parsed.asInstanceOf[ZDASentence].getDate
           Right(ParsedDate(LocalDate.of(zda.getYear, zda.getMonth, zda.getDay), from))
+        } else if (id == SentenceId.VTG.name()) {
+          val vtg = parsed.asInstanceOf[VTGSentence]
+          Right(ParsedBoatSpeed(vtg.getSpeedKnots.knots, from))
+        } else if (id == SentenceId.VHW.name()) {
+          val vhw = parsed.asInstanceOf[VHWSentence]
+          Right(ParsedWaterSpeed(vhw.getSpeedKnots.knots, from))
+        } else if (id == SentenceId.MTW.name()) {
+          val mtw = parsed.asInstanceOf[MTWSentence]
+          Right(WaterTemperature(mtw.getTemperature.celsius, from))
         } else {
           Left(UnknownSentence(sentence, s"Unsupported sentence: '$sentence'."))
         }

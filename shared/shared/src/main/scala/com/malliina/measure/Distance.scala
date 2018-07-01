@@ -6,8 +6,10 @@ import play.api.libs.json.{Format, Reads, Writes}
 /**
   * @param millis millimeters
   */
-class Distance(millis: Long) {
+class Distance(millis: Long) extends Ordered[Distance] {
   private val k = 1000
+
+  override def compare(that: Distance): Int = toMillis compare that.toMillis
 
   def toMillis = millis
 
@@ -23,15 +25,7 @@ class Distance(millis: Long) {
 
   def -(other: Distance) = millis - other.toMillis
 
-  def <(other: Distance) = toMillis < other.toMillis
-
-  def <=(other: Distance) = toMillis <= other.toMillis
-
-  def >(other: Distance) = toMillis > other.toMillis
-
-  def >=(other: Distance) = this.toMillis >= other.toMillis
-
-  def ==(other: Distance) = this.toMillis == other.toMillis
+  def ==(other: Distance): Boolean = this.toMillis == other.toMillis
 
   def !=(other: Distance) = this.toMillis != other.toMillis
 
@@ -39,8 +33,8 @@ class Distance(millis: Long) {
     * @return a string of format 'n units'
     */
   def short =
-    if (toKilometers > 10) s"$toKilometers km"
-    else if (toMeters > 10) s"$toMeters m"
+    if (toKilometers >= 10) s"$toKilometers km"
+    else if (toMeters >= 10) s"$toMeters m"
     else s"$toMillis mm"
 
   override def toString = short

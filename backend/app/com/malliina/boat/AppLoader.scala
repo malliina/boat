@@ -17,6 +17,11 @@ import router.Routes
 
 import scala.concurrent.Future
 
+object AppConf {
+  val localConfFile = Paths.get(sys.props("user.home")).resolve(".boat/boat.conf")
+  val localConf = Configuration(ConfigFactory.parseFile(localConfFile.toFile))
+}
+
 class AppLoader extends DefaultApp(new AppComponents(_))
 
 class AppComponents(context: Context)
@@ -24,8 +29,7 @@ class AppComponents(context: Context)
     with HttpFiltersComponents
     with AssetsComponents {
 
-  val localConfFile = Paths.get(sys.props("user.home")).resolve(".boat/boat.conf")
-  override val configuration = context.initialConfiguration ++ Configuration(ConfigFactory.parseFile(localConfFile.toFile))
+  override val configuration = context.initialConfiguration ++ AppConf.localConf
   override lazy val allowedHostsConfig = AllowedHostsConfig(Seq("boat.malliina.com", "localhost"))
   val csps = Seq(
     "default-src 'self' 'unsafe-inline' *.mapbox.com",

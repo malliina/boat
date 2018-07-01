@@ -1,6 +1,6 @@
 package com.malliina.boat.db
 
-import java.time.Instant
+import java.time.{Instant, LocalDate}
 
 import com.malliina.boat._
 import com.malliina.boat.db.BoatSchema.{CreatedTimestampType, NumThreads}
@@ -63,6 +63,9 @@ class BoatSchema(ds: DataSource, override val impl: JdbcProfile)
   val trackInserts = tracksTable.map(_.forInserts).returning(tracksTable.map(_.id))
   val coordInserts = coordsTable.map(_.forInserts).returning(coordsTable.map(_.id))
 
+  def dateFunc: Rep[Instant] => Rep[LocalDate] =
+    SimpleFunction.unary[Instant, LocalDate]("date")
+
   override val tableQueries = Seq(coordsTable, sentencesTable, tracksTable, boatsTable, usersTable)
 
   case class JoinedBoat(boat: BoatId, boatName: BoatName, boatToken: BoatToken,
@@ -83,12 +86,18 @@ class BoatSchema(ds: DataSource, override val impl: JdbcProfile)
 
   implicit object TrackShape extends CaseClassShape(LiftedJoinedTrack.tupled, (JoinedTrack.apply _).tupled)
 
+  case class LiftedCoord(id: Rep[TrackPointId], lon: Rep[Double], lat: Rep[Double],
+                         boatTime: Rep[Instant], date: Rep[LocalDate], track: Rep[TrackId],
+                         added: Rep[Instant])
+
+  implicit object Coordshape extends CaseClassShape(LiftedCoord.tupled, CombinedCoord.tupled)
+
   val tracksViewNonEmpty: Query[LiftedJoinedTrack, JoinedTrack, Seq] =
     coordsTable.join(tracksTable).on(_.track === _.id).join(boatsView).on(_._2.boat === _.boat)
       .groupBy { case ((_, ts), bs) => (bs, ts) }
       .map { case ((bs, ts), q) => LiftedJoinedTrack(
         ts.id, ts.name, ts.added, bs.boat, bs.boatName, bs.token, bs.user,
-        bs.username, bs.email, q.length, q.map(_._1._1.added).min, q.map(_._1._1.added).max)
+        bs.username, bs.email, q.length, q.map(_._1._1.boatTime).min, q.map(_._1._1.boatTime).max)
       }
 
   val tracksView: Query[LiftedJoinedTrack, JoinedTrack, Seq] =
@@ -96,7 +105,7 @@ class BoatSchema(ds: DataSource, override val impl: JdbcProfile)
         .groupBy { case ((bs, ts), _) => (bs, ts) }
         .map { case ((bs, ts), q) => LiftedJoinedTrack(
           ts.id, ts.name, ts.added, bs.boat, bs.boatName, bs.token, bs.user,
-          bs.username, bs.email, q.length, q.map(_._2.map(_.added)).min, q.map(_._2.map(_.added)).max) }
+          bs.username, bs.email, q.length, q.map(_._2.map(_.boatTime)).min, q.map(_._2.map(_.boatTime)).max) }
 
   def first[T, R](q: Query[T, R, Seq], onNotFound: => String)(implicit ec: ExecutionContext) =
     q.result.headOption.flatMap { maybeRow =>
@@ -152,6 +161,8 @@ class BoatSchema(ds: DataSource, override val impl: JdbcProfile)
     def added = column[Instant]("added", O.SqlType(CreatedTimestampType))
 
     def forInserts = (lon, lat, boatTime, track) <> ((TrackPointInput.apply _).tupled, TrackPointInput.unapply)
+
+    def combined = LiftedCoord(id, lon, lat, boatTime, dateFunc(boatTime), track, added)
 
     def * = (id, lon, lat, boatTime, track, added) <> ((TrackPointRow.apply _).tupled, TrackPointRow.unapply)
   }

@@ -53,12 +53,12 @@ class DatabaseUserManager(val db: BoatSchema)(implicit ec: ExecutionContext)
   }
 
   override def boats(email: UserEmail): Future[Seq[BoatInfo]] = action {
-    loadBoats(tracksView.filter(r => r.email.isDefined && r.email === email && r.points > 10))
+    loadBoats(tracksView.filter(r => r.email.isDefined && r.email === email && r.points > 100))
   }
 
   private def loadBoats(q: Query[LiftedJoinedTrack, JoinedTrack, Seq]) = {
     val tracksAction = q
-      .sortBy(r => (r.user, r.boat, r.trackAdded.desc, r.track.desc))
+      .sortBy(r => (r.user, r.boat, r.start.desc, r.trackAdded.desc, r.track.desc))
       .result
     for {
       tracks <- tracksAction

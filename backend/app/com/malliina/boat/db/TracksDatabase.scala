@@ -1,9 +1,11 @@
 package com.malliina.boat.db
 
+import java.time.{Instant, LocalDate}
+
 import com.malliina.boat._
 import com.malliina.boat.db.TracksDatabase.log
 import com.malliina.boat.http._
-import com.malliina.boat.parsing.DatedCoord
+import com.malliina.boat.parsing.FullCoord
 import com.malliina.logbackrx.TimeFormatter
 import com.malliina.measure.Distance
 import play.api.Logger
@@ -46,7 +48,7 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext) extends 
     insertLogged(action, from, "sentence")
   }
 
-  override def saveCoords(coords: DatedCoord): Future[Seq[TrackPointId]] = {
+  override def saveCoords(coords: FullCoord): Future[Seq[TrackPointId]] = {
     val action = coordInserts += TrackPointInput.forCoord(coords)
     insertLogged(action.map(id => Seq(id)), coords.from, "coordinate")
   }
@@ -56,7 +58,7 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext) extends 
       .groupBy { case (t, _) => t }
       .map { case (track, ps) =>
         val points = ps.map(_._2)
-        (track, points.length, points.map(_.added).min, points.map(_.added).max)
+        (track, points.length, points.map(_.boatTime).min, points.map(_.boatTime).max)
       }
       .sortBy {
         case (_, points, _, last) => (filter.sort, filter.order) match {
@@ -86,10 +88,10 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext) extends 
       else tracksView
     val query = eligibleTracks
       .join(rangedCoords(limits.timeRange)).on(_.track === _.track)
-      .sortBy { case (_, point) => (point.added.desc, point.id.desc) }
+      .sortBy { case (_, point) => (point.boatTime.desc, point.added.desc, point.id.desc) }
       .drop(limits.offset)
       .take(limits.limit)
-      .sortBy { case (_, point) => (point.added.asc, point.id.asc) }
+      .sortBy { case (_, point) => (point.boatTime.asc, point.added.asc, point.id.asc) }
     db.run(query.result.map { rows => collectCoords(rows) })
   }
 
@@ -130,6 +132,9 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext) extends 
       val pluralSuffix = if (keys.length == 1) "" else "s"
       log.info(s"Inserted ${keys.length} $word$pluralSuffix from '${from.boatName}' owned by '${from.username}'.")
       keys
+    }.recoverWith { case t =>
+      log.error(s"Error inserting $word from '${from.boatName}'.", t)
+      Future.failed(t)
     }
   }
 
