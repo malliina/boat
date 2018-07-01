@@ -8,7 +8,7 @@ import akka.stream.scaladsl.{BroadcastHub, Flow, Keep, MergeHub, RunnableGraph, 
 import akka.stream.{ActorMaterializer, KillSwitches, UniqueKillSwitch}
 import com.malliina.boat.parsing._
 import com.malliina.boat.{BoatId, BoatName, BoatToken, Coord, JoinedTrack, TrackId, TrackName, User, UserId}
-import com.malliina.measure.{Distance, SpeedInt, TemperatureInt}
+import com.malliina.measure.{Distance, SpeedInt, TemperatureInt, DistanceInt}
 import org.scalatest.FunSuite
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.WebSocket
@@ -26,9 +26,11 @@ class AkkaStreams extends FunSuite {
     ).strip(Distance.zero)
     val testTemp = WaterTemperature(10.celsius, from)
     val testSpeed = ParsedBoatSpeed(40.knots, from)
+    val testDepth = WaterDepth(10.meters, 0.meters, from)
     val parsed = Source[ParsedSentence](List(
       testTemp,
       testSpeed,
+      testDepth,
       ParsedCoord(Coord(1, 2), LocalTime.of(10, 11, 1), from),
       ParsedCoord(Coord(4, 5), LocalTime.of(10, 12, 2), from),
       ParsedDate(LocalDate.of(2018, 4, 10), from),
@@ -37,10 +39,10 @@ class AkkaStreams extends FunSuite {
       ParsedCoord(Coord(8, 9), LocalTime.of(0, 1, 4), from)
     ))
     val expected = List(
-      FullCoord(Coord(1, 2), LocalTime.of(10, 11, 1), LocalDate.of(2018, 4, 10), testSpeed.speed, testTemp.temp, from),
-      FullCoord(Coord(4, 5), LocalTime.of(10, 12, 2), LocalDate.of(2018, 4, 10), testSpeed.speed, testTemp.temp, from),
-      FullCoord(Coord(6, 7), LocalTime.of(10, 13, 3), LocalDate.of(2018, 4, 10), testSpeed.speed, testTemp.temp, from),
-      FullCoord(Coord(8, 9), LocalTime.of(0, 1, 4), LocalDate.of(2018, 4, 11), testSpeed.speed, testTemp.temp, from)
+      FullCoord(Coord(1, 2), LocalTime.of(10, 11, 1), LocalDate.of(2018, 4, 10), testSpeed.speed, testTemp.temp, testDepth.depth, testDepth.offset, from),
+      FullCoord(Coord(4, 5), LocalTime.of(10, 12, 2), LocalDate.of(2018, 4, 10), testSpeed.speed, testTemp.temp, testDepth.depth, testDepth.offset, from),
+      FullCoord(Coord(6, 7), LocalTime.of(10, 13, 3), LocalDate.of(2018, 4, 10), testSpeed.speed, testTemp.temp, testDepth.depth, testDepth.offset, from),
+      FullCoord(Coord(8, 9), LocalTime.of(0, 1, 4), LocalDate.of(2018, 4, 11), testSpeed.speed, testTemp.temp, testDepth.depth, testDepth.offset, from)
     )
     val processed = BoatParser.multi(parsed).take(4)
     val listSink = Sink.fold[List[FullCoord], FullCoord](List.empty[FullCoord])((acc, dc) => acc :+ dc)

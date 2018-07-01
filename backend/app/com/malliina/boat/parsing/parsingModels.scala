@@ -3,7 +3,7 @@ package com.malliina.boat.parsing
 import java.time.{LocalDate, LocalTime, ZoneOffset}
 
 import com.malliina.boat.{Coord, Instants, RawSentence, TimedCoord, TrackRef}
-import com.malliina.measure.{Speed, Temperature}
+import com.malliina.measure.{Distance, Speed, Temperature}
 import net.sf.marineapi.nmea.parser.{DataNotAvailableException, SentenceFactory, UnsupportedSentenceException}
 import net.sf.marineapi.nmea.sentence.Sentence
 
@@ -36,8 +36,8 @@ case class ParsedCoord(coord: Coord, time: LocalTime, from: TrackRef) extends Pa
 
   def lat = coord.lat
 
-  def complete(date: LocalDate, boatSpeed: Speed, waterTemp: Temperature): FullCoord =
-    FullCoord(coord, time, date, boatSpeed, waterTemp, from)
+  def complete(date: LocalDate, boatSpeed: Speed, waterTemp: Temperature, depth: Distance, depthOffset: Distance): FullCoord =
+    FullCoord(coord, time, date, boatSpeed, waterTemp, depth, depthOffset, from)
 }
 
 case class ParsedDate(date: LocalDate, from: TrackRef) extends ParsedSentence
@@ -48,11 +48,15 @@ case class ParsedWaterSpeed(speed: Speed, from: TrackRef) extends ParsedSentence
 
 case class WaterTemperature(temp: Temperature, from: TrackRef) extends ParsedSentence
 
+case class WaterDepth(depth: Distance, offset: Distance, from: TrackRef) extends ParsedSentence
+
 case class FullCoord(coord: Coord,
                      time: LocalTime,
                      date: LocalDate,
                      boatSpeed: Speed,
                      waterTemp: Temperature,
+                     depth: Distance,
+                     depthOffset: Distance,
                      from: TrackRef) {
   val dateTime = date.atTime(time)
   val boatTime = dateTime.toInstant(ZoneOffset.UTC)

@@ -11,7 +11,7 @@ import net.sf.marineapi.nmea.parser.DataNotAvailableException
 import net.sf.marineapi.nmea.sentence._
 import play.api.Logger
 import play.api.libs.json.{JsError, JsValue, Reads}
-import com.malliina.measure.{SpeedDouble, TemperatureDouble}
+import com.malliina.measure.{SpeedDouble, TemperatureDouble, DistanceDouble}
 
 object BoatParser {
   private val log = Logger(getClass)
@@ -55,6 +55,9 @@ object BoatParser {
         } else if (id == SentenceId.MTW.name()) {
           val mtw = parsed.asInstanceOf[MTWSentence]
           Right(WaterTemperature(mtw.getTemperature.celsius, from))
+        } else if (id == SentenceId.DPT.name()) {
+          val dpt = parsed.asInstanceOf[DPTSentence]
+          Right(WaterDepth(dpt.getDepth.meters, dpt.getOffset.meters, from))
         } else {
           Left(UnknownSentence(sentence, s"Unsupported sentence: '$sentence'."))
         }

@@ -8,6 +8,7 @@ import scala.concurrent.Promise
 
 class StaticBoatTests extends BoatTests {
   val testTrack = Seq(
+    "$SDDPT,23.9,0.0,*43",
     "$GPVTG,51.0,T,42.2,M,2.4,N,4.4,K,A*25",
     "$SDMTW,15.2,C*02",
     "$GPGGA,140618,6009.1920,N,02453.5026,E,1,12,0.70,0,M,19.6,M,,*68",
@@ -20,7 +21,7 @@ class StaticBoatTests extends BoatTests {
     val boatName = BoatNames.random()
     openTestBoat(boatName) { boat =>
       val coordPromise = Promise[CoordsEvent]()
-      val testMessage = SentencesMessage(testTrack.take(4))
+      val testMessage = SentencesMessage(testTrack.take(5))
       val testCoord = Coord(24.89171, 60.1532)
 
       val sink = Sink.foreach[JsValue] { json =>

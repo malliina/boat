@@ -9,6 +9,7 @@ class MultiTrackTests extends BaseSuite with BoatSockets {
   def url = FullUrl.wss("boat.malliina.com", reverse.boats().toString)
 
   val track1 = Seq(
+    "$SDDPT,23.9,0.0,*43",
     "$GPVTG,51.0,T,42.2,M,2.4,N,4.4,K,A*25",
     "$SDMTW,15.2,C*02",
     "$GPZDA,141735,04,05,2018,-03,00*69",
@@ -17,6 +18,7 @@ class MultiTrackTests extends BaseSuite with BoatSockets {
   )
 
   val track2 = Seq(
+    "$SDDPT,23.9,0.0,*43",
     "$GPVTG,51.0,T,42.2,M,2.4,N,4.4,K,A*25",
     "$SDMTW,15.2,C*02",
     "$GPZDA,141735,04,05,2018,-03,00*69",

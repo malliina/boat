@@ -39,7 +39,7 @@ class MultiParsingTests extends BaseSuite {
     await(task, 30.seconds)
   }
 
-  test("just parse") {
+  ignore("just parse") {
     val flow = Flow[RawSentence].mapConcat(raw => BoatParser.parse(raw, from).toOption.toList)
     val singleParsed = Source(sentences.toList).via(flow)
 
@@ -47,7 +47,6 @@ class MultiParsingTests extends BaseSuite {
     val maxSpeed = await(hm, 600.seconds).collect {
       case ParsedBoatSpeed(knots, _) => knots
     }.max
-    println(maxSpeed)
   }
 
   ignore("process") {

@@ -18,6 +18,7 @@ object ProcessorActor {
 /** Combines various NMEA0183 events, emits complete events of type `FullCoord` to `processed`.
   */
 class ProcessorActor(processed: ActorRef) extends Actor {
+  var latestDepth: Map[TrackId, WaterDepth] = Map.empty
   var latestWaterTemp: Map[TrackId, Temperature] = Map.empty
   var latestWaterSpeed: Map[TrackId, Speed] = Map.empty
   var latestBoatSpeed: Map[TrackId, Speed] = Map.empty
@@ -37,7 +38,11 @@ class ProcessorActor(processed: ActorRef) extends Actor {
       emitIfComplete(track)
     case ParsedWaterSpeed(knots, from) =>
       // does not seem to contain data, let's ignore it for now
-      latestWaterSpeed = latestWaterSpeed.updated(from.track, knots)
+//      latestWaterSpeed = latestWaterSpeed.updated(from.track, knots)
+    case wd@WaterDepth(_, _, from) =>
+      val track = from.track
+      latestDepth = latestDepth.updated(track, wd)
+      emitIfComplete(track)
     case WaterTemperature(celcius, from) =>
       val track = from.track
       latestWaterTemp = latestWaterTemp.updated(track, celcius)
@@ -69,8 +74,9 @@ class ProcessorActor(processed: ActorRef) extends Actor {
       date <- latestDate.get(track)
       speed <- latestBoatSpeed.get(track)
       temp <- latestWaterTemp.get(track)
+      depth <- latestDepth.get(track)
     } yield {
-      buffer.foreach(coord => processed ! coord.complete(date, speed, temp))
+      buffer.foreach(coord => processed ! coord.complete(date, speed, temp, depth.depth, depth.offset))
       true
     }).getOrElse(false)
 }

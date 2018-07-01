@@ -16,6 +16,7 @@ import scala.concurrent.Promise
 
 class EndToEndTests extends BoatTests {
   val sentences = Seq(
+    "$SDDPT,23.9,0.0,*43",
     "$GPVTG,51.0,T,42.2,M,2.4,N,4.4,K,A*25",
     "$SDMTW,15.2,C*02",
     "$GPGGA,162112,6009.0969,N,02453.4521,E,1,12,0.70,6,M,19.5,M,,*6F",
