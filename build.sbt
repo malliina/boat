@@ -15,7 +15,7 @@ parallelExecution in ThisBuild := false
 
 lazy val boatRoot = project.in(file("."))
   .settings(commonSettings: _*)
-  .aggregate(backend, frontend, client, it)
+  .aggregate(backend, frontend, agent, it)
 
 lazy val backend = PlayProject.linux("boat", file("backend"))
   .settings(backendSettings: _*)
@@ -32,14 +32,14 @@ lazy val cross = crossProject.in(file("shared"))
 lazy val crossJvm = cross.jvm
 lazy val crossJs = cross.js
 
-lazy val client = project.in(file("client"))
+lazy val agent = project.in(file("client"))
   .settings(clientSettings: _*)
   .dependsOn(crossJvm)
   .enablePlugins(JavaServerAppPackaging, DebianPlugin, SystemdPlugin)
 
 lazy val it = Project("integration-tests", file("boat-test"))
   .settings(testSettings: _*)
-  .dependsOn(backend, backend % "test->test", client)
+  .dependsOn(backend, backend % "test->test", agent)
 
 lazy val backendSettings = playSettings ++ Seq(
   libraryDependencies ++= Seq(
@@ -122,6 +122,7 @@ lazy val clientSettings = commonSettings ++ Seq(
     "com.typesafe.akka" %% "akka-http-spray-json" % "10.1.1",
     "com.lihaoyi" %% "scalatags" % "0.6.7",
     "commons-codec" % "commons-codec" % "1.11",
+    "com.neuronrobotics" % "nrjavaserial" % "3.14.0",
     "org.scalatest" %% "scalatest" % "3.0.5" % Test
   ),
   buildAndUpload := {
