@@ -2,7 +2,7 @@ package com.malliina.boat.parsing
 
 import java.time.{LocalDate, LocalTime, ZoneOffset}
 
-import com.malliina.boat.{Coord, Instants, RawSentence, TimedCoord, TrackRef}
+import com.malliina.boat.{Coord, Instants, KeyedSentence, RawSentence, SentenceKey, TimedCoord, TrackId, TrackRef}
 import com.malliina.measure.{Distance, Speed, Temperature}
 import net.sf.marineapi.nmea.parser.{DataNotAvailableException, SentenceFactory, UnsupportedSentenceException}
 import net.sf.marineapi.nmea.sentence.Sentence
@@ -28,27 +28,35 @@ class DefaultParser(parser: SentenceFactory) extends BoatSentenceParser {
 }
 
 sealed trait ParsedSentence {
-  def from: TrackRef
+  def sentence: KeyedSentence
+
+  def from: TrackRef = sentence.from
+
+  def track: TrackId = from.track
+
+  def key: SentenceKey = sentence.key
 }
 
-case class ParsedCoord(coord: Coord, time: LocalTime, from: TrackRef) extends ParsedSentence {
+case class ParsedCoord(coord: Coord, time: LocalTime, sentence: KeyedSentence) extends ParsedSentence {
   def lng = coord.lng
 
   def lat = coord.lat
 
-  def complete(date: LocalDate, boatSpeed: Speed, waterTemp: Temperature, depth: Distance, depthOffset: Distance): FullCoord =
-    FullCoord(coord, time, date, boatSpeed, waterTemp, depth, depthOffset, from)
+  def complete(date: LocalDate, boatSpeed: Speed,
+               waterTemp: Temperature, depth: Distance,
+               depthOffset: Distance, parts: Seq[SentenceKey]): FullCoord =
+    FullCoord(coord, time, date, boatSpeed, waterTemp, depth, depthOffset, from, parts)
 }
 
-case class ParsedDate(date: LocalDate, from: TrackRef) extends ParsedSentence
+case class ParsedDate(date: LocalDate, sentence: KeyedSentence) extends ParsedSentence
 
-case class ParsedBoatSpeed(speed: Speed, from: TrackRef) extends ParsedSentence
+case class ParsedBoatSpeed(speed: Speed, sentence: KeyedSentence) extends ParsedSentence
 
-case class ParsedWaterSpeed(speed: Speed, from: TrackRef) extends ParsedSentence
+case class ParsedWaterSpeed(speed: Speed, sentence: KeyedSentence) extends ParsedSentence
 
-case class WaterTemperature(temp: Temperature, from: TrackRef) extends ParsedSentence
+case class WaterTemperature(temp: Temperature, sentence: KeyedSentence) extends ParsedSentence
 
-case class WaterDepth(depth: Distance, offset: Distance, from: TrackRef) extends ParsedSentence
+case class WaterDepth(depth: Distance, offset: Distance, sentence: KeyedSentence) extends ParsedSentence
 
 case class FullCoord(coord: Coord,
                      time: LocalTime,
@@ -57,7 +65,8 @@ case class FullCoord(coord: Coord,
                      waterTemp: Temperature,
                      depth: Distance,
                      depthOffset: Distance,
-                     from: TrackRef) {
+                     from: TrackRef,
+                     parts: Seq[SentenceKey] = Nil) {
   val dateTime = date.atTime(time)
   val boatTime = dateTime.toInstant(ZoneOffset.UTC)
 

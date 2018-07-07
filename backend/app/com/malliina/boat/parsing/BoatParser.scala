@@ -5,13 +5,13 @@ import java.time.{LocalDate, LocalTime}
 import akka.NotUsed
 import akka.actor.ActorSystem
 import akka.stream.Materializer
-import akka.stream.scaladsl.Source
+import akka.stream.scaladsl.{Flow, Source}
 import com.malliina.boat._
 import net.sf.marineapi.nmea.parser.DataNotAvailableException
 import net.sf.marineapi.nmea.sentence._
 import play.api.Logger
 import play.api.libs.json.{JsError, JsValue, Reads}
-import com.malliina.measure.{SpeedDouble, TemperatureDouble, DistanceDouble}
+import com.malliina.measure.{DistanceDouble, SpeedDouble, TemperatureDouble}
 
 object BoatParser {
   private val log = Logger(getClass)
@@ -21,20 +21,20 @@ object BoatParser {
   def multi(src: Source[ParsedSentence, NotUsed])(implicit as: ActorSystem, mat: Materializer) =
     src.via(multiFlow())
 
-  def multiFlow()(implicit as: ActorSystem, mat: Materializer) =
+  def multiFlow()(implicit as: ActorSystem, mat: Materializer): Flow[ParsedSentence, FullCoord, NotUsed] =
     Streams.connected[ParsedSentence, FullCoord](dest => ProcessorActor.props(dest), as)
 
   def read[T: Reads](json: JsValue): Either[JsError, T] =
     json.validate[T].asEither.left.map(JsError.apply)
 
-  def parseMulti(sentences: SentencesEvent) =
-    sentences.sentences.map(s => parse(s, sentences.from)).flatMap(e => e.asOption(handleError))
+  def parseMulti(sentences: Seq[KeyedSentence]): Seq[ParsedSentence] =
+    sentences.map(parse).flatMap(e => e.asOption(handleError))
 
   def readSentences(event: BoatEvent) =
     read[SentencesEvent](event.message)
 
-  def parse(sentence: RawSentence, from: TrackRef): Either[SentenceError, ParsedSentence] =
-    parser.parse(sentence).flatMap { parsed =>
+  def parse(sentence: KeyedSentence): Either[SentenceError, ParsedSentence] =
+    parser.parse(sentence.sentence).flatMap { parsed =>
       val id = parsed.getSentenceId
       try {
         if (id == SentenceId.GGA.name()) {
@@ -42,30 +42,30 @@ object BoatParser {
           val pos = gga.getPosition
           val time = gga.getTime
           val localTime = LocalTime.of(time.getHour, time.getMinutes, time.getSeconds.toInt)
-          Right(ParsedCoord(Coord(pos.getLongitude, pos.getLatitude), localTime, from))
+          Right(ParsedCoord(Coord(pos.getLongitude, pos.getLatitude), localTime, sentence))
         } else if (id == SentenceId.ZDA.name()) {
           val zda = parsed.asInstanceOf[ZDASentence].getDate
-          Right(ParsedDate(LocalDate.of(zda.getYear, zda.getMonth, zda.getDay), from))
+          Right(ParsedDate(LocalDate.of(zda.getYear, zda.getMonth, zda.getDay), sentence))
         } else if (id == SentenceId.VTG.name()) {
           val vtg = parsed.asInstanceOf[VTGSentence]
-          Right(ParsedBoatSpeed(vtg.getSpeedKnots.knots, from))
+          Right(ParsedBoatSpeed(vtg.getSpeedKnots.knots, sentence))
         } else if (id == SentenceId.VHW.name()) {
           val vhw = parsed.asInstanceOf[VHWSentence]
-          Right(ParsedWaterSpeed(vhw.getSpeedKnots.knots, from))
+          Right(ParsedWaterSpeed(vhw.getSpeedKnots.knots, sentence))
         } else if (id == SentenceId.MTW.name()) {
           val mtw = parsed.asInstanceOf[MTWSentence]
-          Right(WaterTemperature(mtw.getTemperature.celsius, from))
+          Right(WaterTemperature(mtw.getTemperature.celsius, sentence))
         } else if (id == SentenceId.DPT.name()) {
           val dpt = parsed.asInstanceOf[DPTSentence]
-          Right(WaterDepth(dpt.getDepth.meters, dpt.getOffset.meters, from))
+          Right(WaterDepth(dpt.getDepth.meters, dpt.getOffset.meters, sentence))
         } else {
-          Left(UnknownSentence(sentence, s"Unsupported sentence: '$sentence'."))
+          Left(UnknownSentence(sentence.sentence, s"Unsupported sentence: '$sentence'."))
         }
       } catch {
         case dnee: DataNotAvailableException =>
-          Left(MissingData(sentence, dnee))
+          Left(MissingData(sentence.sentence, dnee))
         case e: Exception =>
-          Left(SentenceFailure(sentence, e))
+          Left(SentenceFailure(sentence.sentence, e))
       }
     }
 

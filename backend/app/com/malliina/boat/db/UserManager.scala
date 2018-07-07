@@ -23,7 +23,7 @@ object DatabaseUserManager {
 class DatabaseUserManager(val db: BoatSchema)(implicit ec: ExecutionContext)
   extends UserManager {
 
-  import db.{usersTable, tracksView, coordsTable, LiftedJoinedTrack}
+  import db.{usersTable, tracksView, pointsTable, LiftedJoinedTrack}
 
   import db.impl.api._
   import db.mappings._
@@ -66,7 +66,7 @@ class DatabaseUserManager(val db: BoatSchema)(implicit ec: ExecutionContext)
     } yield collectBoats(tracks, distances.toMap)
   }
 
-  private def distance(track: TrackId) = coordsTable.filter(_.track === track).result.map { coords =>
+  private def distance(track: TrackId) = pointsTable.filter(_.track === track).result.map { coords =>
     Earth.length(coords.map(_.toCoord).toList)
   }
 

@@ -9,7 +9,6 @@ import com.malliina.boat.parsing.FullCoord
 import com.malliina.logbackrx.TimeFormatter
 import com.malliina.measure.Distance
 import play.api.Logger
-
 import concurrent.duration.DurationLong
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -42,19 +41,27 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext) extends 
   override def join(meta: BoatMeta): Future[JoinedTrack] =
     db.run(boatId(meta))
 
-  override def saveSentences(sentences: SentencesEvent): Future[Seq[SentenceKey]] = {
+  override def saveSentences(sentences: SentencesEvent): Future[Seq[KeyedSentence]] = {
     val from = sentences.from
-    val action = sentenceInserts ++= sentences.sentences.map { s => SentenceInput(s, from.track) }
+    val action = DBIO.sequence {
+      sentences.sentences.map { s =>
+        (sentenceInserts += SentenceInput(s, from.track)).map { key => KeyedSentence(key, s, from) }
+      }
+    }
     insertLogged(action, from, "sentence")
   }
 
-  override def saveCoords(coords: FullCoord): Future[Seq[TrackPointId]] = {
-    val action = coordInserts += TrackPointInput.forCoord(coords)
-    insertLogged(action.map(id => Seq(id)), coords.from, "coordinate")
+  override def saveCoords(coord: FullCoord): Future[Seq[TrackPointId]] = {
+    insertLogged(saveCoordAction(coord).map(id => Seq(id)), coord.from, "coordinate")
   }
 
+  def saveCoordAction(coord: FullCoord) = for {
+    point <- coordInserts += TrackPointInput.forCoord(coord)
+    _ <- sentencePointsTable ++= coord.parts.map(key => SentencePointLink(key, point))
+  } yield point
+
   override def tracks(user: User, filter: TrackQuery): Future[TrackSummaries] = {
-    val query = tracksView.filter(t => t.username === user).join(coordsTable).on(_.track === _.track)
+    val query = tracksView.filter(t => t.username === user).join(pointsTable).on(_.track === _.track)
       .groupBy { case (t, _) => t }
       .map { case (track, ps) =>
         val points = ps.map(_._2)
@@ -108,7 +115,7 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext) extends 
   }
 
   private def rangedCoords(limits: TimeRange) =
-    coordsTable.filter { c =>
+    pointsTable.filter { c =>
       limits.from.map(from => c.added >= from).getOrElse(trueColumn) &&
         limits.to.map(to => c.added <= to).getOrElse(trueColumn)
     }

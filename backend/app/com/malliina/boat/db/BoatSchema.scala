@@ -4,8 +4,8 @@ import java.time.{Instant, LocalDate}
 
 import com.malliina.boat._
 import com.malliina.boat.db.BoatSchema.{CreatedTimestampType, NumThreads}
+import com.malliina.measure.{Distance, Speed, Temperature}
 import com.zaxxer.hikari.{HikariConfig, HikariDataSource}
-import controllers.BoatController
 import javax.sql.DataSource
 import play.api.Logger
 import slick.jdbc.JdbcProfile
@@ -56,17 +56,18 @@ class BoatSchema(ds: DataSource, override val impl: JdbcProfile)
   val boatsTable = TableQuery[BoatsTable]
   val tracksTable = TableQuery[TracksTable]
   val sentencesTable = TableQuery[SentencesTable]
-  val coordsTable = TableQuery[TrackPointsTable]
+  val pointsTable = TableQuery[TrackPointsTable]
+  val sentencePointsTable = TableQuery[SentencesPointsLink]
   val sentenceInserts = sentencesTable.map(_.forInserts).returning(sentencesTable.map(_.id))
   val boatInserts = boatsTable.map(_.forInserts).returning(boatsTable.map(_.id))
   val userInserts = usersTable.map(_.forInserts).returning(usersTable.map(_.id))
   val trackInserts = tracksTable.map(_.forInserts).returning(tracksTable.map(_.id))
-  val coordInserts = coordsTable.map(_.forInserts).returning(coordsTable.map(_.id))
+  val coordInserts = pointsTable.map(_.forInserts).returning(pointsTable.map(_.id))
 
   def dateFunc: Rep[Instant] => Rep[LocalDate] =
     SimpleFunction.unary[Instant, LocalDate]("date")
 
-  override val tableQueries = Seq(coordsTable, sentencesTable, tracksTable, boatsTable, usersTable)
+  override val tableQueries = Seq(sentencePointsTable, pointsTable, sentencesTable, tracksTable, boatsTable, usersTable)
 
   case class JoinedBoat(boat: BoatId, boatName: BoatName, boatToken: BoatToken,
                         user: UserId, username: User, email: Option[UserEmail])
@@ -87,13 +88,14 @@ class BoatSchema(ds: DataSource, override val impl: JdbcProfile)
   implicit object TrackShape extends CaseClassShape(LiftedJoinedTrack.tupled, (JoinedTrack.apply _).tupled)
 
   case class LiftedCoord(id: Rep[TrackPointId], lon: Rep[Double], lat: Rep[Double],
-                         boatTime: Rep[Instant], date: Rep[LocalDate], track: Rep[TrackId],
-                         added: Rep[Instant])
+                         boatSpeed: Rep[Speed], waterTemp: Rep[Temperature], depth: Rep[Distance],
+                         depthOffset: Rep[Distance], boatTime: Rep[Instant], date: Rep[LocalDate],
+                         track: Rep[TrackId], added: Rep[Instant])
 
   implicit object Coordshape extends CaseClassShape(LiftedCoord.tupled, CombinedCoord.tupled)
 
   val tracksViewNonEmpty: Query[LiftedJoinedTrack, JoinedTrack, Seq] =
-    coordsTable.join(tracksTable).on(_.track === _.id).join(boatsView).on(_._2.boat === _.boat)
+    pointsTable.join(tracksTable).on(_.track === _.id).join(boatsView).on(_._2.boat === _.boat)
       .groupBy { case ((_, ts), bs) => (bs, ts) }
       .map { case ((bs, ts), q) => LiftedJoinedTrack(
         ts.id, ts.name, ts.added, bs.boat, bs.boatName, bs.token, bs.user,
@@ -101,11 +103,12 @@ class BoatSchema(ds: DataSource, override val impl: JdbcProfile)
       }
 
   val tracksView: Query[LiftedJoinedTrack, JoinedTrack, Seq] =
-    boatsView.join(tracksTable).on(_.boat === _.boat).joinLeft(coordsTable).on(_._2.id === _.track)
-        .groupBy { case ((bs, ts), _) => (bs, ts) }
-        .map { case ((bs, ts), q) => LiftedJoinedTrack(
-          ts.id, ts.name, ts.added, bs.boat, bs.boatName, bs.token, bs.user,
-          bs.username, bs.email, q.length, q.map(_._2.map(_.boatTime)).min, q.map(_._2.map(_.boatTime)).max) }
+    boatsView.join(tracksTable).on(_.boat === _.boat).joinLeft(pointsTable).on(_._2.id === _.track)
+      .groupBy { case ((bs, ts), _) => (bs, ts) }
+      .map { case ((bs, ts), q) => LiftedJoinedTrack(
+        ts.id, ts.name, ts.added, bs.boat, bs.boatName, bs.token, bs.user,
+        bs.username, bs.email, q.length, q.map(_._2.map(_.boatTime)).min, q.map(_._2.map(_.boatTime)).max)
+      }
 
   def first[T, R](q: Query[T, R, Seq], onNotFound: => String)(implicit ec: ExecutionContext) =
     q.result.headOption.flatMap { maybeRow =>
@@ -141,18 +144,26 @@ class BoatSchema(ds: DataSource, override val impl: JdbcProfile)
     def * = (id, sentence, track, added) <> ((SentenceRow.apply _).tupled, SentenceRow.unapply)
   }
 
-  class TrackPointsTable(tag: Tag) extends Table[TrackPointRow](tag, "points") {
+  class TrackPointsTable(tag: Tag) extends Table[TrackPointRow](tag, "points2") {
     def id = column[TrackPointId]("id", O.PrimaryKey, O.AutoInc)
 
     def lon = column[Double]("longitude")
 
     def lat = column[Double]("latitude")
 
+    def boatSpeed = column[Speed]("boat_speed")
+
+    def waterTemp = column[Temperature]("water_temp")
+
+    def depth = column[Distance]("depth")
+
+    def depthOffset = column[Distance]("depth_offset")
+
     def boatTime = column[Instant]("boat_time")
 
     def track = column[TrackId]("track")
 
-    def trackConstraint = foreignKey("points_track_fk", track, tracksTable)(
+    def trackConstraint = foreignKey("points2_track_fk", track, tracksTable)(
       _.id,
       onUpdate = ForeignKeyAction.Cascade,
       onDelete = ForeignKeyAction.Cascade
@@ -160,11 +171,29 @@ class BoatSchema(ds: DataSource, override val impl: JdbcProfile)
 
     def added = column[Instant]("added", O.SqlType(CreatedTimestampType))
 
-    def forInserts = (lon, lat, boatTime, track) <> ((TrackPointInput.apply _).tupled, TrackPointInput.unapply)
+    def forInserts = (lon, lat, boatSpeed, waterTemp, depth, depthOffset, boatTime, track) <> ((TrackPointInput.apply _).tupled, TrackPointInput.unapply)
 
-    def combined = LiftedCoord(id, lon, lat, boatTime, dateFunc(boatTime), track, added)
+    def combined = LiftedCoord(id, lon, lat, boatSpeed, waterTemp, depth, depthOffset, boatTime, dateFunc(boatTime), track, added)
 
-    def * = (id, lon, lat, boatTime, track, added) <> ((TrackPointRow.apply _).tupled, TrackPointRow.unapply)
+    def * = (id, lon, lat, boatSpeed, waterTemp, depth, depthOffset, boatTime, track, added) <> ((TrackPointRow.apply _).tupled, TrackPointRow.unapply)
+  }
+
+  class SentencesPointsLink(tag: Tag) extends Table[SentencePointLink](tag, "sentence_points") {
+    def sentence = column[SentenceKey]("sentence")
+
+    def point = column[TrackPointId]("point")
+
+    def pKey = primaryKey("sentence_points_pk", (sentence, point))
+
+    def sentenceConstraint = foreignKey("sentence_points_sentence_fk", sentence, sentencesTable)(_.id,
+      onUpdate = ForeignKeyAction.Cascade,
+      onDelete = ForeignKeyAction.Cascade)
+
+    def pointConstraint = foreignKey("sentence_points_point_fk", point, pointsTable)(_.id,
+      onUpdate = ForeignKeyAction.Cascade,
+      onDelete = ForeignKeyAction.Cascade)
+
+    def * = (sentence, point) <> ((SentencePointLink.apply _).tupled, SentencePointLink.unapply)
   }
 
   class TracksTable(tag: Tag) extends Table[TrackRow](tag, "tracks") {

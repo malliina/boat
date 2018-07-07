@@ -7,8 +7,8 @@ import akka.actor.ActorSystem
 import akka.stream.scaladsl.{BroadcastHub, Flow, Keep, MergeHub, RunnableGraph, Sink, Source}
 import akka.stream.{ActorMaterializer, KillSwitches, UniqueKillSwitch}
 import com.malliina.boat.parsing._
-import com.malliina.boat.{BoatId, BoatName, BoatToken, Coord, JoinedTrack, TrackId, TrackName, User, UserId}
-import com.malliina.measure.{Distance, SpeedInt, TemperatureInt, DistanceInt}
+import com.malliina.boat.{BoatId, BoatName, BoatToken, Coord, JoinedTrack, KeyedSentence, RawSentence, SentenceKey, TrackId, TrackName, User, UserId}
+import com.malliina.measure.{Distance, DistanceInt, SpeedInt, TemperatureInt}
 import org.scalatest.FunSuite
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.WebSocket
@@ -24,25 +24,32 @@ class AkkaStreams extends FunSuite {
       UserId(1), User("u"), None,
       1, None, None
     ).strip(Distance.zero)
-    val testTemp = WaterTemperature(10.celsius, from)
-    val testSpeed = ParsedBoatSpeed(40.knots, from)
-    val testDepth = WaterDepth(10.meters, 0.meters, from)
+
+    def keyed(id: Long) = KeyedSentence(SentenceKey(id), RawSentence(""), from)
+
+    val testTemp = WaterTemperature(10.celsius, keyed(1))
+    val testSpeed = ParsedBoatSpeed(40.knots, keyed(2))
+    val testDepth = WaterDepth(10.meters, 0.meters, keyed(3))
     val parsed = Source[ParsedSentence](List(
       testTemp,
       testSpeed,
       testDepth,
-      ParsedCoord(Coord(1, 2), LocalTime.of(10, 11, 1), from),
-      ParsedCoord(Coord(4, 5), LocalTime.of(10, 12, 2), from),
-      ParsedDate(LocalDate.of(2018, 4, 10), from),
-      ParsedCoord(Coord(6, 7), LocalTime.of(10, 13, 3), from),
-      ParsedDate(LocalDate.of(2018, 4, 11), from),
-      ParsedCoord(Coord(8, 9), LocalTime.of(0, 1, 4), from)
+      ParsedCoord(Coord(1, 2), LocalTime.of(10, 11, 1), keyed(4)),
+      ParsedCoord(Coord(4, 5), LocalTime.of(10, 12, 2), keyed(5)),
+      ParsedDate(LocalDate.of(2018, 4, 10), keyed(6)),
+      ParsedCoord(Coord(6, 7), LocalTime.of(10, 13, 3), keyed(7)),
+      ParsedDate(LocalDate.of(2018, 4, 11), keyed(8)),
+      ParsedCoord(Coord(8, 9), LocalTime.of(0, 1, 4), keyed(9))
     ))
+
+    def toFull(coord: Coord, time: LocalTime, date: LocalDate, keys: Seq[Long]) =
+      FullCoord(coord, time, date, testSpeed.speed, testTemp.temp, testDepth.depth, testDepth.offset, from, keys.map(SentenceKey.apply))
+
     val expected = List(
-      FullCoord(Coord(1, 2), LocalTime.of(10, 11, 1), LocalDate.of(2018, 4, 10), testSpeed.speed, testTemp.temp, testDepth.depth, testDepth.offset, from),
-      FullCoord(Coord(4, 5), LocalTime.of(10, 12, 2), LocalDate.of(2018, 4, 10), testSpeed.speed, testTemp.temp, testDepth.depth, testDepth.offset, from),
-      FullCoord(Coord(6, 7), LocalTime.of(10, 13, 3), LocalDate.of(2018, 4, 10), testSpeed.speed, testTemp.temp, testDepth.depth, testDepth.offset, from),
-      FullCoord(Coord(8, 9), LocalTime.of(0, 1, 4), LocalDate.of(2018, 4, 11), testSpeed.speed, testTemp.temp, testDepth.depth, testDepth.offset, from)
+      toFull(Coord(1, 2), LocalTime.of(10, 11, 1), LocalDate.of(2018, 4, 10), Seq(4, 6, 2, 1, 3)),
+      toFull(Coord(4, 5), LocalTime.of(10, 12, 2), LocalDate.of(2018, 4, 10), Seq(5, 6, 2, 1, 3)),
+      toFull(Coord(6, 7), LocalTime.of(10, 13, 3), LocalDate.of(2018, 4, 10), Seq(7, 6, 2, 1, 3)),
+      toFull(Coord(8, 9), LocalTime.of(0, 1, 4), LocalDate.of(2018, 4, 11), Seq(9, 8, 2, 1, 3))
     )
     val processed = BoatParser.multi(parsed).take(4)
     val listSink = Sink.fold[List[FullCoord], FullCoord](List.empty[FullCoord])((acc, dc) => acc :+ dc)

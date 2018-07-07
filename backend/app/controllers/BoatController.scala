@@ -59,10 +59,10 @@ class BoatController(mapboxToken: AccessToken,
       .left.map(err => BoatJsonError(err, boatEvent))
   }
   val sentences = rights(sentencesSource)
-  val savedSentences = monitored(onlyOnce(sentences.mapAsync(parallelism = 1)(ss => db.saveSentences(ss).map(_ => ss))), "saved sentences")
+  val savedSentences = monitored(onlyOnce(sentences.mapAsync(parallelism = 1)(ss => db.saveSentences(ss))), "saved sentences")
   val sentencesDrainer = savedSentences.runWith(Sink.ignore)
 
-  val parsedSentences = monitored(rights(sentencesSource).mapConcat[ParsedSentence](e => BoatParser.parseMulti(e).toList), "parsed sentences")
+  val parsedSentences = monitored(savedSentences.mapConcat[ParsedSentence](e => BoatParser.parseMulti(e).toList), "parsed sentences")
   parsedSentences.runWith(Sink.ignore)
   val parsedEvents: Source[FullCoord, Future[Done]] = parsedSentences.via(BoatParser.multiFlow())
   val savedCoords = monitored(onlyOnce(parsedEvents.mapAsync(parallelism = 1)(ce => saveRecovered(ce))), "saved coords")
@@ -250,17 +250,6 @@ class BoatController(mapboxToken: AccessToken,
         opt => opt.map(b => Future.successful(Right(Option(b)))).getOrElse(authSocial(rh).map(o => Right(o)))
       )
     }
-
-  /** The publisher-dance makes it so that even with multiple subscribers, `once` only runs once. Without this wrapping,
-    * `once` executes independently for each subscriber, which is undesired if `once` involves a side-effect
-    * (e.g. a database insert operation).
-    *
-    * @param once source to only run once for each emitted element
-    * @tparam T type of element
-    * @tparam U materialized value
-    * @return a Source that supports multiple subscribers, but does not independently run `once` for each
-    */
-  def onlyOnce[T, U](once: Source[T, U]) = Source.fromPublisher(once.runWith(Sink.asPublisher(fanout = true)))
 
   private def authAction[T](makeAuth: RequestHeader => Future[Either[IdentityError, T]])(code: (T, RequestHeader) => Future[Result]) =
     Action.async { req => makeResult(makeAuth(req), req).flatMap { e => e.fold(Future.successful, t => code(t, req)) } }

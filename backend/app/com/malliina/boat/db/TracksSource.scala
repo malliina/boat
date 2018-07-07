@@ -20,7 +20,7 @@ trait TracksSource {
     */
   def join(meta: BoatMeta): Future[JoinedTrack]
 
-  def saveSentences(sentences: SentencesEvent): Future[Seq[SentenceKey]]
+  def saveSentences(sentences: SentencesEvent): Future[Seq[KeyedSentence]]
 
   def saveCoords(coords: FullCoord): Future[Seq[TrackPointId]]
 
