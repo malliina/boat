@@ -8,9 +8,9 @@ import akka.stream.scaladsl.{BroadcastHub, Flow, Keep, MergeHub, Sink, Source}
 import akka.{Done, NotUsed}
 import com.malliina.boat.Constants._
 import com.malliina.boat._
-import com.malliina.boat.db.{IdentityError, MissingToken, TracksSource, UserManager}
+import com.malliina.boat.db._
 import com.malliina.boat.html.BoatHtml
-import com.malliina.boat.http.{BoatQuery, TrackQuery}
+import com.malliina.boat.http.{BoatQuery, BoatRequest, TrackQuery}
 import com.malliina.boat.parsing.{BoatParser, FullCoord, ParsedSentence}
 import com.malliina.concurrent.ExecutionContexts.cached
 import com.malliina.measure.Distance
@@ -72,24 +72,13 @@ class BoatController(mapboxToken: AccessToken,
 
   errors.runWith(Sink.foreach(err => log.error(s"JSON error for '${err.boat}': '${err.error}'.")))
 
-  def index = authAction(authWeb) { (user, rh) =>
-    def resultFor(u: User) = {
-      val cookie = Cookie(TokenCookieName, mapboxToken.token, httpOnly = false)
-      val result = Ok(html.map(user))
-        .withCookies(cookie)
-        .addingToSession(UserSessionKey -> u.name)(rh)
-      Future.successful(result)
-    }
-
-    user.map { boat =>
-      resultFor(boat.user)
-    }.getOrElse {
-      checkLogin(rh).map { r =>
-        Future.successful(r)
-      }.getOrElse {
-        resultFor(User.anon)
-      }
-    }
+  def index = authAction(optionalAuth) { (user, rh) =>
+    val u = user.map(_.user).getOrElse(User.anon)
+    val cookie = Cookie(TokenCookieName, mapboxToken.token, httpOnly = false)
+    val result = Ok(html.map(user))
+      .withCookies(cookie)
+      .addingToSession(UserSessionKey -> u.name)(rh)
+    Future.successful(result)
   }
 
   def health = Action {
@@ -113,18 +102,25 @@ class BoatController(mapboxToken: AccessToken,
     }
   }
 
-  def tracks = authAction(authWeb) { (maybeBoat, rh) =>
-    TrackQuery(rh).fold(
-      err => {
-        Future.successful(BadRequest(Errors(err)))
-      },
-      query => {
-        db.tracks(maybeBoat.fold(User.anon)(_.user), query).map { summaries =>
-          Ok(Json.toJson(summaries))
-        }
-      }
-    )
+  def tracks = secureAction(TrackQuery.apply) { req =>
+    db.tracks(req.boat.user, req.query).map { summaries =>
+      Ok(Json.toJson(summaries))
+    }
   }
+
+  def track(track: TrackName) = secureAction(TrackQuery.apply) { req =>
+    db.track(track, req.boat.user, req.query).map { points =>
+      Ok(Json.toJson(points))
+    }
+  }
+
+  private def secureAction[T](parse: RequestHeader => Either[SingleError, T])(run: BoatRequest[T] => Future[Result]) =
+    authAction(authSecure) { (boat, rh) =>
+      parse(rh).fold(
+        err => Future.successful(BadRequest(Errors(err))),
+        t => run(BoatRequest(t, boat, rh))
+      )
+    }
 
   def updates = WebSocket.acceptOrResult[JsValue, FrontEvent] { rh =>
     makeResult(auth(rh), rh).map { outcome =>
@@ -174,12 +170,6 @@ class BoatController(mapboxToken: AccessToken,
   def versioned(path: String, file: Asset): Action[AnyContent] =
     assets.versioned(path, file)
 
-  private def checkLogin(rh: RequestHeader): Option[Result] =
-    rh.cookies.get(ProviderCookieName).filter(_.value == GoogleCookie).map { _ =>
-      log.info(s"Redir to login")
-      Redirect(routes.Social.google())
-    }
-
   /** Auths with boat token or user/pass. Fails if an invalid token is provided. If no token is provided,
     * tries to auth with user/pass. Fails if invalid user/pass is provided. If no user/pass is provided,
     * falls back to the anonymous user.
@@ -227,14 +217,26 @@ class BoatController(mapboxToken: AccessToken,
   def authQuery(rh: RequestHeader): Future[Either[IdentityError, User]] =
     queryAuthBoat(rh, Left(MissingToken(rh))).map(_.map(_.map(_.user).getOrElse(User.anon)))
 
-  def queryAuthBoat(rh: RequestHeader, onAnon: => Either[IdentityError, Option[BoatInfo]]): Future[Either[IdentityError, Option[BoatInfo]]] =
+  def queryAuthBoat(rh: RequestHeader, onNoQuery: => Either[IdentityError, Option[BoatInfo]]): Future[Either[IdentityError, Option[BoatInfo]]] =
     rh.getQueryString(BoatTokenQuery).map { token =>
       auther.authBoat(BoatToken(token)).map(_.map(Option.apply))
     }.getOrElse {
-      Future.successful(onAnon)
+      Future.successful(onNoQuery)
     }
 
-  def authSocial(rh: RequestHeader): Future[Option[BoatInfo]] =
+  def authOrAnon(rh: RequestHeader) = optionalAuth(rh).map(e => e.map(bi => bi.map(_.user).getOrElse(User.anon)))
+
+  def authSecure(rh: RequestHeader) = optionalAuth(rh).map(e => e.flatMap(_.toRight(InvalidCredentials(None))))
+
+  def optionalAuth(rh: RequestHeader): Future[Either[IdentityError, Option[BoatInfo]]] =
+    queryAuthBoat(rh, Right(None)).flatMap { e =>
+      e.fold(
+        err => Future.successful(Left(err)),
+        opt => opt.map(b => Future.successful(Right(Option(b)))).getOrElse(authSession(rh).map(o => Right(o)))
+      )
+    }
+
+  def authSession(rh: RequestHeader): Future[Option[BoatInfo]] =
     rh.session.get(EmailKey).map { email =>
       auther.boats(UserEmail(email)).map { boats =>
         boats.headOption
@@ -243,24 +245,27 @@ class BoatController(mapboxToken: AccessToken,
       Future.successful(None)
     }
 
-  def authWeb(rh: RequestHeader): Future[Either[IdentityError, Option[BoatInfo]]] =
-    queryAuthBoat(rh, Right(None)).flatMap { e =>
-      e.fold(
-        err => Future.successful(Left(err)),
-        opt => opt.map(b => Future.successful(Right(Option(b)))).getOrElse(authSocial(rh).map(o => Right(o)))
-      )
-    }
-
   private def authAction[T](makeAuth: RequestHeader => Future[Either[IdentityError, T]])(code: (T, RequestHeader) => Future[Result]) =
     Action.async { req => makeResult(makeAuth(req), req).flatMap { e => e.fold(Future.successful, t => code(t, req)) } }
 
   private def makeResult[T](f: Future[Either[IdentityError, T]], rh: RequestHeader): Future[Either[Result, T]] =
     f.map { e =>
-      e.left.map { err =>
-        log.warn(s"Authentication failed from '$rh': '$err'.")
-        Unauthorized(Errors(SingleError("Unauthorized.")))
+      e.left.map {
+        case MissingCredentials(req) =>
+          checkLoginCookie(req).getOrElse(unauth)
+        case err =>
+          log.warn(s"Authentication failed from '$rh': '$err'.")
+          unauth
       }
     }
+
+  private def checkLoginCookie(rh: RequestHeader): Option[Result] =
+    rh.cookies.get(ProviderCookieName).filter(_.value == GoogleCookie).map { _ =>
+      log.info(s"Redir to login")
+      Redirect(routes.Social.google())
+    }
+
+  def unauth = Unauthorized(Errors(SingleError("Unauthorized.")))
 
   private def trackOrRandom(rh: RequestHeader) =
     rh.headers.get(TrackNameHeader).map(TrackName.apply).getOrElse(TrackNames.random())

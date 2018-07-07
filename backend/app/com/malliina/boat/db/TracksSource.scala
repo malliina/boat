@@ -28,5 +28,7 @@ trait TracksSource {
 
   def tracks(user: User, query: TrackQuery): Future[TrackSummaries]
 
+  def track(track: TrackName, user: User, query: TrackQuery): Future[Seq[CombinedCoord]]
+
   def history(user: User, limits: BoatQuery): Future[Seq[CoordsEvent]]
 }

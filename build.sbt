@@ -59,6 +59,10 @@ lazy val backendSettings = playSettings ++ Seq(
     "com.typesafe.akka" %% "akka-stream" % "2.5.8",
     "com.typesafe.akka" %% "akka-actor" % "2.5.8"
   ),
+  routesImport ++= Seq(
+    "com.malliina.boat.Bindables._",
+    "com.malliina.boat.TrackName"
+  ),
   pipelineStages := Seq(digest, gzip),
   scalaJSProjects := Seq(frontend),
   pipelineStages in Assets := Seq(scalaJSPipeline),

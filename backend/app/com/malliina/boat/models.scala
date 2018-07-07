@@ -6,6 +6,7 @@ import com.malliina.boat.parsing.FullCoord
 import com.malliina.measure.{Distance, Speed, Temperature}
 import play.api.http.Writeable
 import play.api.libs.json._
+import play.api.mvc.PathBindable
 
 case class AppMeta(name: String, version: String, gitHash: String)
 
@@ -17,7 +18,8 @@ object AppMeta {
 case class JoinedTrack(track: TrackId, trackName: TrackName, trackAdded: Instant,
                        boat: BoatId, boatName: BoatName, boatToken: BoatToken,
                        user: UserId, username: User, email: Option[UserEmail],
-                       points: Int, start: Option[Instant], end: Option[Instant]) extends TrackLike {
+                       points: Int, start: Option[Instant], end: Option[Instant],
+                       topSpeed: Option[Speed], avgWaterTemp: Option[Temperature]) extends TrackLike {
   val startOrNow = start.getOrElse(Instant.now())
   val endOrNow = end.getOrElse(Instant.now())
 
@@ -26,7 +28,7 @@ case class JoinedTrack(track: TrackId, trackName: TrackName, trackAdded: Instant
     boatName, user, username,
     points, Instants.format(startOrNow), startOrNow.toEpochMilli,
     Instants.format(endOrNow), endOrNow.toEpochMilli, Instants.formatRange(startOrNow, endOrNow),
-    distance
+    distance, topSpeed, avgWaterTemp
   )
 }
 
@@ -67,6 +69,11 @@ object TrackNames {
 
 object BoatTokens {
   def random() = BoatToken(Utils.randomString(8))
+}
+
+object Bindables {
+  implicit val trackName: PathBindable[TrackName] =
+    PathBindable.bindableString.transform[TrackName](s => TrackName(s), t => t.name)
 }
 
 case class BoatInput(name: BoatName, token: BoatToken, owner: UserId)
@@ -127,6 +134,10 @@ case class CombinedCoord(id: TrackPointId,
                          date: LocalDate,
                          track: TrackId,
                          added: Instant)
+
+object CombinedCoord {
+  implicit val json = Json.format[CombinedCoord]
+}
 
 case class TrackPointRow(id: TrackPointId,
                          lon: Double,

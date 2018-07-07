@@ -42,7 +42,7 @@ class DatabaseUserManager(val db: BoatSchema)(implicit ec: ExecutionContext)
         if (profile.enabled) Right(profile)
         else Left(UserDisabled(profile.username))
       }.getOrElse {
-        Left(InvalidCredentials(user))
+        Left(InvalidCredentials(Option(user)))
       }
     }
   }
@@ -168,7 +168,7 @@ sealed trait IdentityError
 
 case class AlreadyExists(user: User) extends IdentityError
 
-case class InvalidCredentials(user: User) extends IdentityError
+case class InvalidCredentials(user: Option[User] = None) extends IdentityError
 
 case class InvalidToken(token: BoatToken) extends IdentityError
 

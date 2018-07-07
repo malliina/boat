@@ -84,7 +84,8 @@ class BoatSchema(ds: DataSource, override val impl: JdbcProfile)
   case class LiftedJoinedTrack(track: Rep[TrackId], trackName: Rep[TrackName], trackAdded: Rep[Instant],
                                boat: Rep[BoatId], boatName: Rep[BoatName], boatToken: Rep[BoatToken],
                                user: Rep[UserId], username: Rep[User], email: Rep[Option[UserEmail]],
-                               points: Rep[Int], start: Rep[Option[Instant]], end: Rep[Option[Instant]])
+                               points: Rep[Int], start: Rep[Option[Instant]], end: Rep[Option[Instant]],
+                               topSpeed: Rep[Option[Speed]], avgWaterTemp: Rep[Option[Temperature]])
 
   implicit object TrackShape extends CaseClassShape(LiftedJoinedTrack.tupled, (JoinedTrack.apply _).tupled)
 
@@ -93,14 +94,16 @@ class BoatSchema(ds: DataSource, override val impl: JdbcProfile)
                          depthOffset: Rep[Distance], boatTime: Rep[Instant], date: Rep[LocalDate],
                          track: Rep[TrackId], added: Rep[Instant])
 
-  implicit object Coordshape extends CaseClassShape(LiftedCoord.tupled, CombinedCoord.tupled)
+  implicit object Coordshape extends CaseClassShape(LiftedCoord.tupled, (CombinedCoord.apply _).tupled)
 
   val tracksViewNonEmpty: Query[LiftedJoinedTrack, JoinedTrack, Seq] =
     pointsTable.join(tracksTable).on(_.track === _.id).join(boatsView).on(_._2.boat === _.boat)
       .groupBy { case ((_, ts), bs) => (bs, ts) }
       .map { case ((bs, ts), q) => LiftedJoinedTrack(
         ts.id, ts.name, ts.added, bs.boat, bs.boatName, bs.token, bs.user,
-        bs.username, bs.email, q.length, q.map(_._1._1.boatTime).min, q.map(_._1._1.boatTime).max)
+        bs.username, bs.email, q.length,
+        q.map(_._1._1.boatTime).min, q.map(_._1._1.boatTime).max,
+        q.map(_._1._1.boatSpeed).min, q.map(_._1._1.waterTemp).max)
       }
 
   val tracksView: Query[LiftedJoinedTrack, JoinedTrack, Seq] =
@@ -108,7 +111,9 @@ class BoatSchema(ds: DataSource, override val impl: JdbcProfile)
       .groupBy { case ((bs, ts), _) => (bs, ts) }
       .map { case ((bs, ts), q) => LiftedJoinedTrack(
         ts.id, ts.name, ts.added, bs.boat, bs.boatName, bs.token, bs.user,
-        bs.username, bs.email, q.length, q.map(_._2.map(_.boatTime)).min, q.map(_._2.map(_.boatTime)).max)
+        bs.username, bs.email, q.length,
+        q.map(_._2.map(_.boatTime)).min, q.map(_._2.map(_.boatTime)).max,
+        q.map(_._2.map(_.boatSpeed)).max, q.map(_._2.map(_.waterTemp)).avg)
       }
 
   def first[T, R](q: Query[T, R, Seq], onNotFound: => String)(implicit ec: ExecutionContext) =

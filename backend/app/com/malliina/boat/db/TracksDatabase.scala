@@ -39,7 +39,7 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext) extends 
     .map { case (ss, bs) => LiftedJoined(ss.id, ss.sentence, bs.track, bs.trackName, bs.boat, bs.boatName, bs.user, bs.username) }
 
   override def join(meta: BoatMeta): Future[JoinedTrack] =
-    db.run(boatId(meta))
+    action(boatId(meta))
 
   override def saveSentences(sentences: SentencesEvent): Future[Seq[KeyedSentence]] = {
     val from = sentences.from
@@ -60,7 +60,7 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext) extends 
     _ <- sentencePointsTable ++= coord.parts.map(key => SentencePointLink(key, point))
   } yield point
 
-  override def tracks(user: User, filter: TrackQuery): Future[TrackSummaries] = {
+  override def tracks(user: User, filter: TrackQuery): Future[TrackSummaries] = action {
     val query = tracksView.filter(t => t.username === user).join(pointsTable).on(_.track === _.track)
       .groupBy { case (t, _) => t }
       .map { case (track, ps) =>
@@ -75,7 +75,7 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext) extends 
           case _ => points.asc.nullsLast
         }
       }
-    val action = query.result.map { rows =>
+    query.result.map { rows =>
       val summaries = rows.map { case (track, points, first, last) =>
         val firstMillis = first.get.toEpochMilli
         val lastMillis = last.get.toEpochMilli
@@ -84,10 +84,16 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext) extends 
       }
       TrackSummaries(summaries)
     }
-    db.run(action)
   }
 
-  override def history(user: User, limits: BoatQuery): Future[Seq[CoordsEvent]] = {
+
+  override def track(track: TrackName, user: User, query: TrackQuery): Future[Seq[CombinedCoord]] = action {
+    pointsTable.map(_.combined).join(tracksTable.filter(_.name === track)).on(_.track === _.id).map(_._1)
+      .sortBy(_.boatTime.asc)
+      .result
+  }
+
+  override def history(user: User, limits: BoatQuery): Future[Seq[CoordsEvent]] = action {
     val newestTrack = tracksViewNonEmpty.filter(_.username === user).sortBy(_.start.desc.nullsLast).take(1)
     val eligibleTracks =
       if (limits.tracks.nonEmpty) tracksView.filter(t => t.username === user && t.trackName.inSet(limits.tracks))
@@ -99,7 +105,7 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext) extends 
       .drop(limits.offset)
       .take(limits.limit)
       .sortBy { case (_, point) => (point.boatTime.asc, point.added.asc, point.id.asc) }
-    db.run(query.result.map { rows => collectCoords(rows) })
+    query.result.map { rows => collectCoords(rows) }
   }
 
   override def renameBoat(old: BoatMeta, newName: BoatName): Future[BoatRow] = {
@@ -197,4 +203,6 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext) extends 
       log.info(s"Registered boat '${from.boat}' with ID '${boat.id}' owned by '${from.user}'.")
       boat
     }
+
+  private def action[R](a: DBIOAction[R, NoStream, Nothing]): Future[R] = db.run(a)
 }

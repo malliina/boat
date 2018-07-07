@@ -22,7 +22,7 @@ class AkkaStreams extends FunSuite {
       TrackId(1), TrackName("test"), Instant.now,
       BoatId(1), BoatName("boat"), BoatToken("a"),
       UserId(1), User("u"), None,
-      1, None, None
+      1, None, None, None, None
     ).strip(Distance.zero)
 
     def keyed(id: Long) = KeyedSentence(SentenceKey(id), RawSentence(""), from)
