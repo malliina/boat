@@ -23,29 +23,8 @@ import scala.concurrent.duration.DurationInt
 class TracksDatabaseTests extends BaseSuite {
   ignore("modify tracks") {
     val db = BoatSchema(DatabaseConf(Mode.Prod, AppConf.localConf))
-    import db._
-    import db.api._
-    import db.mappings._
-
-    val oldTrack = TrackId(66)
-
-    def createAndUpdateTrack(date: LocalDate) =
-      for {
-        newTrack <- trackInserts += TrackInput(TrackNames.random(), BoatId(14))
-        updated <- updateTrack(oldTrack, date, newTrack)
-      } yield updated
-
-    def updateTrack(track: TrackId, date: LocalDate, newTrack: TrackId) =
-      pointsTable.map(_.combined)
-        .filter((t: LiftedCoord) => t.track === track && t.date === date)
-        .map(_.track)
-        .update(newTrack)
-
-    val action = for {
-      dates <- pointsTable.map(_.combined.date).distinct.sorted.result
-      updates <- DBIO.sequence(dates.map(date => createAndUpdateTrack(date)))
-    } yield updates
-    await(db.run(action), 100.seconds)
+    val oldTrack = TrackId(175)
+    splitTracksByDate(oldTrack, db)
   }
 
   implicit val as = ActorSystem()
@@ -57,10 +36,12 @@ class TracksDatabaseTests extends BaseSuite {
     import db.api._
     import db.mappings._
 
-    val tracks = await(db.run(sentencesTable.filter(t => !t.track.inSet(Set(TrackId(65), TrackId(66)))).map(_.track).distinct.result))
-    tracks.foreach { t =>
-      await(parseAndInsert(t), 300.seconds)
-    }
+    //    val tracks = await(db.run(sentencesTable.filter(t => !t.track.inSet(Set(TrackId(65), TrackId(66)))).map(_.track).distinct.result))
+    //    tracks.foreach { t =>
+    //      await(parseAndInsert(t), 300.seconds)
+    //    }
+
+    await(parseAndInsert(TrackId(167)), 300.seconds)
 
     def parseAndInsert(track: TrackId) = {
       val sentences = db.run {
@@ -76,14 +57,15 @@ class TracksDatabaseTests extends BaseSuite {
   }
 
   ignore("from file") {
-    val (_, tdb) = initDb()
+    val (db, tdb) = initDb()
     val trackName = TrackNames.random()
-    val track = await(tdb.join(BoatUser(trackName, BoatName("test"), User("test"))), 10.seconds)
+    val track = await(tdb.join(BoatUser(trackName, BoatName("Amina"), User("mle"))), 10.seconds)
     println(s"Using $track")
     val s: Source[RawSentence, NotUsed] = fromFile(FileUtilities.userHome.resolve(".boat/Log.txt"))
     val events = s.map(s => SentencesEvent(Seq(s), track.strip(Distance.zero)))
     val task = events.via(processSentences(tdb.saveSentences, tdb.saveCoords)).runWith(Sink.ignore)
     await(task, 30000.seconds)
+    splitTracksByDate(track.track, db)
   }
 
   def fromFile(file: Path): Source[RawSentence, NotUsed] =
@@ -108,5 +90,29 @@ class TracksDatabaseTests extends BaseSuite {
       .mapConcat(raw => BoatParser.parse(raw).toOption.toList)
       .via(BoatParser.multiFlow())
       .via(Flow[FullCoord].mapAsync(1)(save))
+  }
+
+  def splitTracksByDate(oldTrack: TrackId, db: BoatSchema) = {
+    import db._
+    import db.api._
+    import db.mappings._
+
+    def createAndUpdateTrack(date: LocalDate) =
+      for {
+        newTrack <- trackInserts += TrackInput(TrackNames.random(), BoatId(14))
+        updated <- updateTrack(oldTrack, date, newTrack)
+      } yield updated
+
+    def updateTrack(track: TrackId, date: LocalDate, newTrack: TrackId) =
+      pointsTable.map(_.combined)
+        .filter((t: LiftedCoord) => t.track === track && t.date === date)
+        .map(_.track)
+        .update(newTrack)
+
+    val action = for {
+      dates <- pointsTable.filter(_.track === oldTrack).map(_.combined.date).distinct.sorted.result
+      updates <- DBIO.sequence(dates.map(date => createAndUpdateTrack(date)))
+    } yield updates
+    await(db.run(action), 100.seconds)
   }
 }

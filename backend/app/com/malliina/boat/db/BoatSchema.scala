@@ -16,6 +16,7 @@ import scala.concurrent.ExecutionContext
 object BoatSchema {
   private val log = Logger(getClass)
 
+  // Use this for all timestamps, otherwise MySQL applies an ON UPDATE CURRENT_TIMESTAMP clause by default
   val CreatedTimestampType = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL"
   val NumThreads = 20
 
@@ -159,7 +160,7 @@ class BoatSchema(ds: DataSource, override val impl: JdbcProfile)
 
     def depthOffset = column[Distance]("depth_offset")
 
-    def boatTime = column[Instant]("boat_time")
+    def boatTime = column[Instant]("boat_time", O.SqlType(CreatedTimestampType))
 
     def track = column[TrackId]("track")
 

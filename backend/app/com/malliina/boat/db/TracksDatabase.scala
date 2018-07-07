@@ -88,7 +88,7 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext) extends 
   }
 
   override def history(user: User, limits: BoatQuery): Future[Seq[CoordsEvent]] = {
-    val newestTrack = tracksViewNonEmpty.filter(_.username === user).sortBy(_.trackAdded.desc).take(1)
+    val newestTrack = tracksViewNonEmpty.filter(_.username === user).sortBy(_.start.desc.nullsLast).take(1)
     val eligibleTracks =
       if (limits.tracks.nonEmpty) tracksView.filter(t => t.username === user && t.trackName.inSet(limits.tracks))
       else if (limits.newest) tracksView.join(newestTrack).on(_.track === _.track).map(_._1)
