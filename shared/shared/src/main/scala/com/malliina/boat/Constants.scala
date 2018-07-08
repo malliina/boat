@@ -16,6 +16,7 @@ object FrontKeys {
   val Distance = "distance"
   val DropdownContentId = "dropdown-content"
   val DropdownLinkId = "dropdown-link"
+  val DurationId = "duration"
   val Hidden = "hidden"
   val MapClass = "map"
   val MapId = "map"
@@ -24,5 +25,7 @@ object FrontKeys {
   val PersonLink = "person-link"
   val Question = "question-link"
   val QuestionNav = "question-nav"
+  val TopSpeedId = "top-speed"
   val Visible = "visible"
+  val WaterTempId = "water-temp"
 }

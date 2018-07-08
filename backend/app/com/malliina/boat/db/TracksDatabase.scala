@@ -105,7 +105,7 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext) extends 
       .drop(limits.offset)
       .take(limits.limit)
       .sortBy { case (_, point) => (point.boatTime.asc, point.added.asc, point.id.asc) }
-    query.result.map { rows => collectCoords(rows) }
+    query.result.map { rows => collectPoints(rows) }
   }
 
   override def renameBoat(old: BoatMeta, newName: BoatName): Future[BoatRow] = {
@@ -128,10 +128,17 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext) extends 
 
   private def trueColumn: Rep[Boolean] = valueToConstColumn(true)
 
-  private def collectCoords(rows: Seq[(JoinedTrack, TrackPointRow)]): Seq[CoordsEvent] =
+  private def collectPoints(rows: Seq[(JoinedTrack, TrackPointRow)]): Seq[CoordsEvent] =
     rows.foldLeft(Vector.empty[CoordsEvent]) { case (acc, (from, point)) =>
       val idx = acc.indexWhere(_.from.track == from.track)
-      val coord = TimedCoord(Coord(point.lon, point.lat), Instants.format(point.boatTime), point.boatTime.toEpochMilli)
+      val coord = TimedCoord(
+        Coord(point.lon, point.lat),
+        Instants.format(point.boatTime),
+        point.boatTime.toEpochMilli,
+        point.boatSpeed,
+        point.waterTemp,
+        point.depth
+      )
       if (idx >= 0) {
         val old = acc(idx)
         acc.updated(idx, old.copy(coords = old.coords :+ coord))

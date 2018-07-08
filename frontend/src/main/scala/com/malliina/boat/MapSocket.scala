@@ -1,9 +1,11 @@
 package com.malliina.boat
 
-import com.malliina.boat.FrontKeys.Distance
+import com.malliina.boat.FrontKeys.{Distance, DurationId, TopSpeedId, WaterTempId}
+import com.malliina.measure.Speed
 import org.scalajs.dom.document
 import play.api.libs.json._
 
+import scala.concurrent.duration.Duration
 import scala.concurrent.{Future, Promise}
 import scala.scalajs.js
 import scala.scalajs.js.JSConverters.genTravConvertible2JSRichGenTrav
@@ -15,6 +17,7 @@ class MapSocket(map: MapboxMap, queryString: String) extends BaseSocket(s"/ws/up
 
   private var mapMode: MapMode = Fit
   private var boats = Map.empty[String, FeatureCollection]
+  private var latestMaxSpeed: Option[Speed] = None
 
   initImage()
 
@@ -51,14 +54,15 @@ class MapSocket(map: MapboxMap, queryString: String) extends BaseSocket(s"/ws/up
     payload.validate[FrontEvent].map(consume).recover { case err => onJsonFailure(err) }
 
   def consume(event: FrontEvent): Unit = event match {
-    case CoordsEvent(coords, track) if coords.nonEmpty => onCoords(coords.map(_.coord), track)
-    case CoordsBatch(coords) if coords.nonEmpty => coords.foreach(e => onCoords(e.coords.map(_.coord), e.from))
+    case CoordsEvent(coords, track) if coords.nonEmpty => onCoords(coords, track)
+    case CoordsBatch(coords) if coords.nonEmpty => coords.foreach(e => onCoords(e.coords, e.from))
     case SentencesEvent(_, _) => ()
     case PingEvent(_) => ()
     case other => log.info(s"Unknown event: '$other'.")
   }
 
-  def onCoords(coords: Seq[Coord], from: TrackLike): Unit = {
+  def onCoords(coordsInfo: Seq[TimedCoord], from: TrackLike): Unit = {
+    val coords = coordsInfo.map(_.coord)
     val boat = from.boatName
     val track = trackName(boat)
     val point = pointName(boat)
@@ -92,10 +96,26 @@ class MapSocket(map: MapboxMap, queryString: String) extends BaseSocket(s"/ws/up
       geoJson.setData(toJson(newTrack))
     }
     val trail: Seq[Coord] = newTrack.features.flatMap(_.geometry.coords)
-    Option(document.getElementById(Distance)).foreach { e =>
+    elem(Distance).foreach { e =>
       val totalLength = boats.values.flatMap(fc => fc.features.headOption.map(f => turf.length(toJson(f)))).sum
-      val threeDecimalsKm = "%.3f".format(totalLength).toDouble
-      e.innerHTML = s"$threeDecimalsKm km"
+      e.innerHTML = s"${formatDouble(totalLength)} km"
+    }
+    elem(TopSpeedId).foreach { e =>
+      val maxSpeed = if (coordsInfo.isEmpty) Speed.zero else coordsInfo.map(_.speed).max
+      if (maxSpeed > latestMaxSpeed.getOrElse(Speed.zero)) {
+        e.innerHTML = s"Top ${formatDouble(maxSpeed.toKnots)} kn"
+        latestMaxSpeed = Option(maxSpeed)
+      }
+    }
+    elem(WaterTempId).foreach { e =>
+      coordsInfo.lastOption.map(_.waterTemp).foreach { temp =>
+        e.innerHTML = s"Water ${formatTemp(temp.toCelsius)} ℃"
+      }
+    }
+    if (boats.keySet.size == 1) {
+      elem(DurationId).foreach { e =>
+        e.innerHTML = s"Time ${formatDuration(from.duration)}"
+      }
     }
     // updates the map position, zoom to reflect the updated track(s)
     mapMode match {
@@ -123,6 +143,19 @@ class MapSocket(map: MapboxMap, queryString: String) extends BaseSocket(s"/ws/up
 
   }
 
+  def formatDuration(d: Duration): String = {
+    val seconds = d.toSeconds
+    val s = seconds % 60
+    val m = (seconds / 60) % 60
+    val h = (seconds / (60 * 60)) % 24
+    if (h > 0) "%d:%02d:%02d".format(h, m, s)
+    else "%02d:%02d".format(m, s)
+  }
+
+  def formatDouble(d: Double) = "%.3f".format(d)
+
+  def formatTemp(d: Double) = "%.1f".format(d)
+
   // https://www.movable-type.co.uk/scripts/latlong.html
   def bearing(from: Coord, to: Coord): Double = {
     val dLon = to.lng - from.lng
@@ -145,6 +178,8 @@ class MapSocket(map: MapboxMap, queryString: String) extends BaseSocket(s"/ws/up
   def trackName(boat: BoatName) = s"$boat-track"
 
   def pointName(boat: BoatName) = s"$boat-point"
+
+  def elem(id: String) = Option(document.getElementById(id))
 
   def toJson[T: Writes](t: T) = JSON.parse(Json.stringify(Json.toJson(t)))
 

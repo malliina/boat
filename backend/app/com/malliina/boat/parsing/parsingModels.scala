@@ -74,7 +74,7 @@ case class FullCoord(coord: Coord,
 
   def lat = coord.lat
 
-  def timed = TimedCoord(coord, Instants.format(boatTime), boatTime.toEpochMilli)
+  def timed = TimedCoord(coord, Instants.format(boatTime), boatTime.toEpochMilli, boatSpeed, waterTemp, depth)
 }
 
 sealed trait SentenceError {

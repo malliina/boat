@@ -7,6 +7,7 @@ import com.malliina.measure.{Distance, Speed, Temperature}
 import play.api.http.Writeable
 import play.api.libs.json._
 import play.api.mvc.PathBindable
+import concurrent.duration.DurationLong
 
 case class AppMeta(name: String, version: String, gitHash: String)
 
@@ -22,13 +23,15 @@ case class JoinedTrack(track: TrackId, trackName: TrackName, trackAdded: Instant
                        topSpeed: Option[Speed], avgWaterTemp: Option[Temperature]) extends TrackLike {
   val startOrNow = start.getOrElse(Instant.now())
   val endOrNow = end.getOrElse(Instant.now())
+  val duration = (endOrNow.toEpochMilli - startOrNow.toEpochMilli).millis
 
   def strip(distance: Distance) = TrackRef(
     track, trackName, boat,
     boatName, user, username,
     points, Instants.format(startOrNow), startOrNow.toEpochMilli,
     Instants.format(endOrNow), endOrNow.toEpochMilli, Instants.formatRange(startOrNow, endOrNow),
-    distance, topSpeed, avgWaterTemp
+    duration, distance, topSpeed,
+    avgWaterTemp
   )
 }
 

@@ -49,9 +49,9 @@ object BoatParser {
         } else if (id == SentenceId.VTG.name()) {
           val vtg = parsed.asInstanceOf[VTGSentence]
           Right(ParsedBoatSpeed(vtg.getSpeedKnots.knots, sentence))
-        } else if (id == SentenceId.VHW.name()) {
-          val vhw = parsed.asInstanceOf[VHWSentence]
-          Right(ParsedWaterSpeed(vhw.getSpeedKnots.knots, sentence))
+          //        } else if (id == SentenceId.VHW.name()) {
+          //          val vhw = parsed.asInstanceOf[VHWSentence]
+          //          Right(ParsedWaterSpeed(vhw.getSpeedKnots.knots, sentence))
         } else if (id == SentenceId.MTW.name()) {
           val mtw = parsed.asInstanceOf[MTWSentence]
           Right(WaterTemperature(mtw.getTemperature.celsius, sentence))

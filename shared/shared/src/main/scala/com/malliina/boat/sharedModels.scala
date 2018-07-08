@@ -25,7 +25,12 @@ object Coord {
   )
 }
 
-case class TimedCoord(coord: Coord, boatTime: String, boatTimeMillis: Long) {
+case class TimedCoord(coord: Coord,
+                      boatTime: String,
+                      boatTimeMillis: Long,
+                      speed: Speed,
+                      waterTemp: Temperature,
+                      depth: Distance) {
   def lng = coord.lng
 
   def lat = coord.lat
@@ -222,9 +227,11 @@ case class TrackRef(track: TrackId, trackName: TrackName, boat: BoatId,
                     boatName: BoatName, user: UserId, username: User,
                     points: Int, start: String, startMillis: Long,
                     end: String, endMillis: Long, startEndRange: String,
-                    distance: Distance, topSpeed: Option[Speed], avgWaterTemp: Option[Temperature]) extends TrackLike
+                    duration: Duration, distance: Distance,
+                    topSpeed: Option[Speed], avgWaterTemp: Option[Temperature]) extends TrackLike
 
 object TrackRef {
+  implicit val durationFormat = PrimitiveFormats.durationFormat
   implicit val json = Json.format[TrackRef]
 }
 
@@ -242,6 +249,8 @@ trait TrackLike {
   def boatName: BoatName
 
   def trackName: TrackName
+
+  def duration: Duration
 }
 
 case class TrackBrief(trackName: TrackName, added: String, addedMillis: Long)

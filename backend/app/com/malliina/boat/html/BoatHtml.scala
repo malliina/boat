@@ -17,6 +17,8 @@ import scalatags.Text.GenericAttr
 import scalatags.Text.all._
 import scalatags.text.Builder
 
+import scala.language.implicitConversions
+
 object BoatHtml {
   implicit val callAttr = new GenericAttr[Call]
 
@@ -60,6 +62,9 @@ class BoatHtml(jsFile: String) extends Tags(scalatags.Text) {
                 )
               ),
               span(id := Distance, `class` := "nav-text distance")(""),
+              span(id := DurationId, `class` := "nav-text duration")(""),
+              span(id := TopSpeedId, `class` := "nav-text top-speed")(""),
+              span(id := WaterTempId, `class` := "nav-text water-temp")(""),
               standaloneQuestion("question-nav nav-icon")
             )
           )
