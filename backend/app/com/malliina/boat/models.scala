@@ -20,7 +20,7 @@ case class JoinedTrack(track: TrackId, trackName: TrackName, trackAdded: Instant
                        boat: BoatId, boatName: BoatName, boatToken: BoatToken,
                        user: UserId, username: User, email: Option[UserEmail],
                        points: Int, start: Option[Instant], end: Option[Instant],
-                       topSpeed: Option[Speed], avgWaterTemp: Option[Temperature]) extends TrackLike {
+                       topSpeed: Option[Speed], avgSpeed: Option[Speed], avgWaterTemp: Option[Temperature]) extends TrackLike {
   val startOrNow = start.getOrElse(Instant.now())
   val endOrNow = end.getOrElse(Instant.now())
   val duration = (endOrNow.toEpochMilli - startOrNow.toEpochMilli).millis
@@ -30,7 +30,7 @@ case class JoinedTrack(track: TrackId, trackName: TrackName, trackAdded: Instant
     boatName, user, username,
     points, Instants.format(startOrNow), startOrNow.toEpochMilli,
     Instants.format(endOrNow), endOrNow.toEpochMilli, Instants.formatRange(startOrNow, endOrNow),
-    duration, distance, topSpeed,
+    duration, distance, topSpeed, avgSpeed,
     avgWaterTemp
   )
 }

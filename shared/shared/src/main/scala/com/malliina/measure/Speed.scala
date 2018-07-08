@@ -43,6 +43,8 @@ class Speed(kmh: Double) extends Ordered[Speed] {
 object Speed {
   val zero = new Speed(0)
 
+  def kmh(d: Double): Speed = new Speed(d)
+
   val kmhJson: Format[Speed] = Format[Speed](
     Reads(_.validate[Double].map(_.kmh)),
     Writes(size => toJson(size.toKmh))

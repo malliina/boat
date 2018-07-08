@@ -18,10 +18,11 @@ import scala.concurrent.Future
 import scala.concurrent.duration.DurationInt
 
 object MultiParsingTests {
-  def testFrom = JoinedTrack(TrackId(1), TrackName("test"), Instant.now,
+  def testFrom = JoinedTrack(
+    TrackId(1), TrackName("test"), Instant.now,
     BoatId(1), BoatName("boat"), BoatToken("a"),
-    UserId(1), User("u"), None,
-    1, None, None, None, None).strip(Distance.zero)
+    UserId(1), User("u"), None, 1,
+    None, None, None, None, None).strip(Distance.zero)
 
   def listSink[T]: Sink[T, Future[List[T]]] = Sink.fold[List[T], T](Nil)(_ :+ _)
 }
