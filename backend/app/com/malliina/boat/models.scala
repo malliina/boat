@@ -4,10 +4,24 @@ import java.time.{Instant, LocalDate, LocalTime, ZoneOffset}
 
 import com.malliina.boat.parsing.FullCoord
 import com.malliina.measure.{Distance, Speed, Temperature}
+import com.malliina.values.{ErrorMessage, StringCompanion, Wrapped}
 import play.api.http.Writeable
 import play.api.libs.json._
 import play.api.mvc.PathBindable
-import concurrent.duration.DurationLong
+
+import scala.concurrent.duration.DurationLong
+
+case class UserToken(token: String) extends Wrapped(token)
+
+object UserToken extends StringCompanion[UserToken] {
+  val minLength = 3
+
+  override def build(in: String): Either[ErrorMessage, UserToken] =
+    if (in.length >= minLength) Right(UserToken(in))
+    else Left(ErrorMessage(s"Too short token. Minimum length: $minLength, was: ${in.length}."))
+
+  def random(): UserToken = UserToken(Utils.randomString(length = 8))
+}
 
 case class AppMeta(name: String, version: String, gitHash: String)
 

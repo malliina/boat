@@ -129,7 +129,7 @@ class BoatSchema(ds: DataSource, override val impl: JdbcProfile)
     init()
     val addAnon = usersTable.filter(_.user === User.anon).exists.result.flatMap { exists =>
       if (exists) DBIO.successful(())
-      else userInserts += NewUser(User.anon, None, "unused", enabled = true)
+      else userInserts += NewUser(User.anon, None, "unused", UserToken.random(), enabled = true)
     }
     await(run(addAnon))
   }
@@ -257,13 +257,15 @@ class BoatSchema(ds: DataSource, override val impl: JdbcProfile)
 
     def passHash = column[String]("pass_hash", O.Length(512))
 
+    def token = column[UserToken]("token", O.Length(256))
+
     def enabled = column[Boolean]("enabled")
 
     def added = column[Instant]("added", O.SqlType(CreatedTimestampType))
 
-    def forInserts = (user, email, passHash, enabled) <> ((NewUser.apply _).tupled, NewUser.unapply)
+    def forInserts = (user, email, passHash, token, enabled) <> ((NewUser.apply _).tupled, NewUser.unapply)
 
-    def * = (id, user, email, passHash, enabled, added) <> ((DataUser.apply _).tupled, DataUser.unapply)
+    def * = (id, user, email, passHash, token, enabled, added) <> ((DataUser.apply _).tupled, DataUser.unapply)
   }
 
 }

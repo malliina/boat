@@ -92,6 +92,8 @@ object BoatQuery {
     QueryStringBindable.bindableString.transform[TrackName](TrackName.apply, _.name)
   val tracksBindable = QueryStringBindable.bindableSeq[TrackName](bindTrack)
 
+  def tracks(tracks: Seq[TrackName]) = BoatQuery(Limits.default, TimeRange(None, None), tracks, newest = false)
+
   def recent(now: Instant): BoatQuery =
     BoatQuery(Limits.default, TimeRange.recent(now), Nil, newest = false)
 
@@ -116,7 +118,7 @@ object Limits {
   val Limit = "limit"
   val Offset = "offset"
 
-  val DefaultLimit = 10000
+  val DefaultLimit = 30000
   val DefaultOffset = 0
 
   val default = Limits(DefaultLimit, DefaultOffset)

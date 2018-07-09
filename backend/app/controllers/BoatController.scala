@@ -19,6 +19,7 @@ import controllers.Assets.Asset
 import controllers.BoatController.log
 import controllers.Social.{EmailKey, GoogleCookie, ProviderCookieName}
 import play.api.Logger
+import play.api.http.HeaderNames
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.WebSocket.MessageFlowTransformer.jsonMessageFlowTransformer
 import play.api.mvc._
@@ -129,7 +130,8 @@ class BoatController(mapboxToken: AccessToken,
           log.info(s"Viewer '$user' joined.")
           // Show recent tracks for non-anon users
           val historicalLimits: BoatQuery =
-            if (user == User.anon) BoatQuery.recent(Instant.now())
+            if (limits.tracks.nonEmpty && user == User.anon) BoatQuery.tracks(limits.tracks)
+            else if (user == User.anon) BoatQuery.recent(Instant.now())
             else limits
           val history: Source[CoordsEvent, NotUsed] =
             Source.fromFuture(db.history(user, historicalLimits)).flatMapConcat(es => Source(es.toList.map(_.sample(4))))
@@ -202,16 +204,35 @@ class BoatController(mapboxToken: AccessToken,
     }
 
   def auth(rh: RequestHeader): Future[Either[IdentityError, User]] =
-    Auth.basicCredentials(rh).map { creds =>
-      auther.authenticate(User(creds.username.name), creds.password).map { outcome =>
-        outcome.map { profile => profile.username }
+    authApp(rh)
+      .orElse(authBasic(rh))
+      .orElse(authSessionUser(rh))
+      .getOrElse(Future.successful(Right(User.anon)))
+
+  def authSessionUser(rh: RequestHeader) =
+    rh.session.get(UserSessionKey).filter(_ != User.anon.name).map { user =>
+      Future.successful(Right(User(user)))
+    }
+
+  def authBasic(rh: RequestHeader) = Auth.basicCredentials(rh).map { creds =>
+    auther.authenticate(User(creds.username.name), creds.password).map { outcome =>
+      outcome.map { profile => profile.username }
+    }
+  }
+
+  def authApp(rh: RequestHeader) =
+    readBearerToken(rh).map { token =>
+      auther.authUser(token).map { outcome => outcome.map(_.username) }
+    }
+
+  def readBearerToken(rh: RequestHeader) =
+    rh.headers.get(HeaderNames.AUTHORIZATION).flatMap { authInfo =>
+      authInfo.split(" ") match {
+        case Array(name, value) if name.toLowerCase == "bearer" =>
+          UserToken.build(value).toOption
+        case _ =>
+          None
       }
-    }.orElse {
-      rh.session.get(UserSessionKey).filter(_ != User.anon.name).map { user =>
-        Future.successful(Right(User(user)))
-      }
-    }.getOrElse {
-      Future.successful(Right(User.anon))
     }
 
   def authQuery(rh: RequestHeader): Future[Either[IdentityError, User]] =
@@ -232,11 +253,11 @@ class BoatController(mapboxToken: AccessToken,
     queryAuthBoat(rh, Right(None)).flatMap { e =>
       e.fold(
         err => Future.successful(Left(err)),
-        opt => opt.map(b => Future.successful(Right(Option(b)))).getOrElse(authSession(rh).map(o => Right(o)))
+        opt => opt.map(b => Future.successful(Right(Option(b)))).getOrElse(authSessionEmail(rh).map(o => Right(o)))
       )
     }
 
-  def authSession(rh: RequestHeader): Future[Option[BoatInfo]] =
+  def authSessionEmail(rh: RequestHeader): Future[Option[BoatInfo]] =
     rh.session.get(EmailKey).map { email =>
       auther.boats(UserEmail(email)).map { boats =>
         boats.headOption

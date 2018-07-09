@@ -2,7 +2,7 @@ package com.malliina.boat.db
 
 import java.time.{Instant, LocalDate, LocalTime}
 
-import com.malliina.boat.{BoatId, BoatName, BoatToken, RawSentence, SentenceKey, TrackId, TrackName, TrackPointId, User, UserEmail, UserId, WrappedId}
+import com.malliina.boat.{BoatId, BoatName, BoatToken, RawSentence, SentenceKey, TrackId, TrackName, TrackPointId, User, UserEmail, UserId, UserToken, WrappedId}
 import com.malliina.measure.{Distance, DistanceLong, Speed, SpeedDouble, Temperature, TemperatureDouble}
 import com.malliina.play.models.{Password, Username}
 import com.malliina.values.Wrapped
@@ -27,6 +27,7 @@ class Mappings(val impl: JdbcProfile) {
   implicit val boatTokenMapping = stringMapping(BoatToken.apply)
   implicit val trackNameMapping = stringMapping(TrackName.apply)
   implicit val userMapping = stringMapping(User.apply)
+  implicit val userTokenMapping = stringMapping(UserToken.apply)
   implicit val emailMapping = stringMapping(UserEmail.apply)
   implicit val distanceMapping = MappedColumnType.base[Distance, Long](_.toMillis, _.millimeters)
   implicit val speedMapping = MappedColumnType.base[Speed, Double](_.toKmh, _.kmh)

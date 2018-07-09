@@ -4,7 +4,7 @@ import java.sql.SQLException
 import java.time.Instant
 
 import com.malliina.boat.db.DatabaseUserManager.log
-import com.malliina.boat.{BoatInfo, BoatToken, Earth, JoinedTrack, TrackId, User, UserEmail, UserId}
+import com.malliina.boat.{BoatInfo, BoatToken, Earth, JoinedTrack, TrackId, User, UserEmail, UserId, UserToken}
 import com.malliina.measure.Distance
 import com.malliina.play.models.Password
 import org.apache.commons.codec.digest.DigestUtils
@@ -23,7 +23,7 @@ object DatabaseUserManager {
 class DatabaseUserManager(val db: BoatSchema)(implicit ec: ExecutionContext)
   extends UserManager {
 
-  import db.{usersTable, tracksView, pointsTable, LiftedJoinedTrack}
+  import db.{usersTable, tracksView, pointsTable, LiftedJoinedTrack, UsersTable}
 
   import db.impl.api._
   import db.mappings._
@@ -34,15 +34,21 @@ class DatabaseUserManager(val db: BoatSchema)(implicit ec: ExecutionContext)
     * @param pass password
     * @return true if the credentials are valid, false otherwise
     */
-  override def authenticate(user: User, pass: Password): Future[Either[IdentityError, DataUser]] = action {
+  override def authenticate(user: User, pass: Password): Future[Either[IdentityError, DataUser]] = {
     val passHash = hash(user, pass)
-    val users = usersTable.filter(u => u.user === user && u.passHash === passHash)
-    users.result.headOption.map { maybeUser =>
+    withUserAuth(usersTable.filter(u => u.user === user && u.passHash === passHash))
+  }
+
+  override def authUser(token: UserToken): Future[Either[IdentityError, DataUser]] =
+    withUserAuth(usersTable.filter(_.token === token))
+
+  private def withUserAuth(filteredUsers: Query[UsersTable, DataUser, Seq]) = action {
+    filteredUsers.result.headOption.map { maybeUser =>
       maybeUser.map { profile =>
         if (profile.enabled) Right(profile)
         else Left(UserDisabled(profile.username))
       }.getOrElse {
-        Left(InvalidCredentials(Option(user)))
+        Left(InvalidCredentials(None))
       }
     }
   }
@@ -118,9 +124,11 @@ class DatabaseUserManager(val db: BoatSchema)(implicit ec: ExecutionContext)
 }
 
 object PassThroughUserManager extends UserManager {
-  val god = DataUser(UserId(1L), User("test"), None, "", enabled = true, added = Instant.now())
+  val god = DataUser(UserId(1L), User("test"), None, "", UserToken.random(), enabled = true, added = Instant.now())
 
   def authenticate(user: User, pass: Password): Future[Either[IdentityError, DataUser]] = fut(Right(god))
+
+  def authUser(token: UserToken): Future[Either[IdentityError, DataUser]] = fut(Right(god))
 
   def authBoat(token: BoatToken): Future[Either[IdentityError, BoatInfo]] = fut(Left(InvalidToken(token)))
 
@@ -146,6 +154,8 @@ trait UserManager {
     */
   def authenticate(user: User, pass: Password): Future[Either[IdentityError, DataUser]]
 
+  def authUser(token: UserToken): Future[Either[IdentityError, DataUser]]
+
   def authBoat(token: BoatToken): Future[Either[IdentityError, BoatInfo]]
 
   def boats(user: UserEmail): Future[Seq[BoatInfo]]
@@ -153,7 +163,7 @@ trait UserManager {
   def updatePassword(user: User, newPass: Password): Future[Unit]
 
   def addUser(user: User, pass: Password): Future[Either[AlreadyExists, UserId]] =
-    addUser(NewUser(user, None, hash(user, pass), enabled = true))
+    addUser(NewUser(user, None, hash(user, pass), UserToken.random(), enabled = true))
 
   def addUser(user: NewUser): Future[Either[AlreadyExists, UserId]]
 
