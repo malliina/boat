@@ -1,15 +1,16 @@
 package com.malliina.boat.db
 
-import java.time.{Instant, LocalDate}
+import java.time.Instant
+import java.time.format.DateTimeFormatter
 
 import com.malliina.boat._
 import com.malliina.boat.db.TracksDatabase.log
 import com.malliina.boat.http._
 import com.malliina.boat.parsing.FullCoord
-import com.malliina.logbackrx.TimeFormatter
 import com.malliina.measure.Distance
 import play.api.Logger
-import concurrent.duration.DurationLong
+
+import scala.concurrent.duration.DurationLong
 import scala.concurrent.{ExecutionContext, Future}
 
 object TracksDatabase {
@@ -19,11 +20,10 @@ object TracksDatabase {
 }
 
 class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext) extends TracksSource {
-  val timeFormatter = new TimeFormatter("yyyy-MM-dd HH:mm:ss")
+  val timeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
 
   import db._
   import db.api._
-  import db.mappings._
 
   case class Joined(sid: SentenceKey, sentence: RawSentence, track: TrackId,
                     trackName: TrackName, boat: BoatId, boatName: BoatName,
@@ -64,11 +64,11 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext) extends 
     val query = tracksView.filter(t => t.username === user).join(pointsTable).on(_.track === _.track)
       .groupBy { case (t, _) => t }
       .map { case (track, ps) =>
-        val points = ps.map(_._2)
+        val points: Query[TrackPointsTable, TrackPointRow, Seq] = ps.map(_._2)
         (track, points.length, points.map(_.boatTime).min, points.map(_.boatTime).max)
       }
       .sortBy {
-        case (_, points, _, last) => (filter.sort, filter.order) match {
+        case (_, points: Rep[Int], _, last: Rep[Option[Instant]]) => (filter.sort, filter.order) match {
           case (TrackSort.Recent, SortOrder.Desc) => last.desc.nullsLast
           case (TrackSort.Recent, SortOrder.Asc) => last.asc.nullsLast
           case (TrackSort.Points, SortOrder.Desc) => points.desc.nullsLast
@@ -80,7 +80,7 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext) extends 
         val firstMillis = first.get.toEpochMilli
         val lastMillis = last.get.toEpochMilli
         val duration = (lastMillis - firstMillis).millis
-        TrackSummary(track.strip(Distance.zero), TrackStats(points, timeFormatter.format(firstMillis), firstMillis, timeFormatter.format(lastMillis), lastMillis, duration))
+        TrackSummary(track.strip(Distance.zero), TrackStats(points, timeFormatter.format(first.get), firstMillis, timeFormatter.format(last.get), lastMillis, duration))
       }
       TrackSummaries(summaries)
     }

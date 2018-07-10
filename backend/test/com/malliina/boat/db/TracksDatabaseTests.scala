@@ -2,14 +2,15 @@ package com.malliina.boat.db
 
 import java.nio.charset.StandardCharsets
 import java.nio.file.{Files, Path}
-import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+import java.time.{Instant, LocalDate, ZoneOffset}
 
 import akka.NotUsed
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.{Flow, Sink, Source}
 import com.malliina.boat.parsing.{BoatParser, FullCoord}
-import com.malliina.boat.{AppConf, BoatId, BoatName, BoatUser, KeyedSentence, RawSentence, SentencesEvent, TrackId, TrackInput, TrackNames, TrackPointId, User}
+import com.malliina.boat.{AppConf, BoatId, BoatName, BoatUser, KeyedSentence, RawSentence, SentencesEvent, TrackId, TrackInput, TrackNames, TrackPointId, User, UserToken}
 import com.malliina.concurrent.ExecutionContexts.cached
 import com.malliina.file.FileUtilities
 import com.malliina.measure.Distance
@@ -21,20 +22,31 @@ import scala.concurrent.Future
 import scala.concurrent.duration.DurationInt
 
 class TracksDatabaseTests extends BaseSuite {
+  implicit val as = ActorSystem()
+  implicit val mat = ActorMaterializer()
+
+  ignore("init tokens") {
+    val (db, _) = initDb()
+    import db.api._
+    import db.usersTable
+
+    val action = for {
+      users <- usersTable.result
+      ts <- DBIO.sequence(users.map(u => usersTable.filter(_.id === u.id).map(_.token).update(UserToken.random())))
+    } yield ts
+    await(db.run(action))
+  }
+
   ignore("modify tracks") {
     val db = BoatSchema(DatabaseConf(Mode.Prod, AppConf.localConf))
     val oldTrack = TrackId(175)
     splitTracksByDate(oldTrack, db)
   }
 
-  implicit val as = ActorSystem()
-  implicit val mat = ActorMaterializer()
-
   ignore("sentences") {
     val (db, tdb) = initDb()
     import db._
     import db.api._
-    import db.mappings._
 
     //    val tracks = await(db.run(sentencesTable.filter(t => !t.track.inSet(Set(TrackId(65), TrackId(66)))).map(_.track).distinct.result))
     //    tracks.foreach { t =>
@@ -95,7 +107,6 @@ class TracksDatabaseTests extends BaseSuite {
   def splitTracksByDate(oldTrack: TrackId, db: BoatSchema) = {
     import db._
     import db.api._
-    import db.mappings._
 
     def createAndUpdateTrack(date: LocalDate) =
       for {

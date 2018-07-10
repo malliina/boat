@@ -20,9 +20,8 @@ object DatabaseUserManager {
 class DatabaseUserManager(val db: BoatSchema)(implicit ec: ExecutionContext)
   extends UserManager {
 
-  import db.impl.api._
-  import db.mappings._
-  import db.{LiftedJoinedTrack, UsersTable, pointsTable, tracksView, usersTable}
+  import db.api._
+  import db._
 
   /**
     *

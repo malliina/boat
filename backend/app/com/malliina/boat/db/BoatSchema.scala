@@ -45,13 +45,8 @@ object BoatSchema {
 class BoatSchema(ds: DataSource, override val impl: JdbcProfile)
   extends DatabaseLike(impl, impl.api.Database.forDataSource(ds, Option(NumThreads), BoatSchema.executor(NumThreads))) {
 
-  val api = impl.api
-
+  val api = new Mappings(impl) with impl.API
   import api._
-
-  object mappings extends Mappings(impl)
-
-  import mappings._
 
   val usersTable = TableQuery[UsersTable]
   val boatsTable = TableQuery[BoatsTable]
@@ -257,7 +252,7 @@ class BoatSchema(ds: DataSource, override val impl: JdbcProfile)
 
     def passHash = column[String]("pass_hash", O.Length(512))
 
-    def token = column[UserToken]("token", O.Length(256))
+    def token = column[UserToken]("token", O.Length(128), O.Unique)
 
     def enabled = column[Boolean]("enabled")
 
