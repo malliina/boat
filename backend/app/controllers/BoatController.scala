@@ -86,6 +86,8 @@ class BoatController(mapboxToken: AccessToken,
     Ok(Json.toJson(AppMeta.default))
   }
 
+  def pingAuth = authAction(authAppToken) { (_, _) => Future.successful(Ok(Json.toJson(AppMeta.default))) }
+
   def boats = WebSocket { rh =>
     authBoat(rh).map { e =>
       e.map { boat =>
@@ -220,12 +222,15 @@ class BoatController(mapboxToken: AccessToken,
     }
   }
 
-  def authApp(rh: RequestHeader) =
+  private def authAppToken(rh: RequestHeader) =
+    authApp(rh).getOrElse(Future.successful(Left(MissingCredentials(rh))))
+
+  private def authApp(rh: RequestHeader) =
     readBearerToken(rh).map { token =>
       auther.authUser(token).map { outcome => outcome.map(_.username) }
     }
 
-  def readBearerToken(rh: RequestHeader) =
+  private def readBearerToken(rh: RequestHeader) =
     rh.headers.get(HeaderNames.AUTHORIZATION).flatMap { authInfo =>
       authInfo.split(" ") match {
         case Array(name, value) if name.toLowerCase == "bearer" =>
