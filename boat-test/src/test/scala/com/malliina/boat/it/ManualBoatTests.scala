@@ -10,9 +10,9 @@ import com.malliina.http.FullUrl
 import scala.collection.JavaConverters.asScalaBufferConverter
 
 class ManualBoatTests extends BoatTests {
-  val testFile = FileUtilities.userHome.resolve(".boat/Log2.txt")
-  // val testFile = FileUtilities.userHome.resolve(".boat/nmea0183-standard.log")
-  //  val testFile = FileUtilities.userHome.resolve(".boat/Log.txt")
+  //  val testFile = FileUtilities.userHome.resolve(".boat/Log2.txt")
+  //  val testFile = FileUtilities.userHome.resolve(".boat/nmea0183-standard.log")
+  val testFile = FileUtilities.userHome.resolve(".boat/Log.txt")
 
   def sentences = Files.readAllLines(testFile, StandardCharsets.UTF_8).asScala.map(RawSentence.apply)
 
@@ -36,7 +36,7 @@ class ManualBoatTests extends BoatTests {
   }
 
   ignore("slow GPS reporting") {
-    val testMessages = relevantSentences.toList.grouped(2).map(SentencesMessage.apply).slice(50, 100).toList
+    val testMessages = relevantSentences.toList.grouped(30).map(SentencesMessage.apply).slice(50, 100).toList
     openBoat(url, BoatNames.random()) { boat =>
       testMessages.foreach { msg =>
         boat.send(msg)

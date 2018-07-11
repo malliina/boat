@@ -8,6 +8,9 @@ object DBMigrations {
     flyway.setDataSource(conf.url, conf.user, conf.pass)
     flyway.setBaselineOnMigrate(true)
     flyway.setBaselineVersionAsString("2")
+    if (flyway.info().current() == null) {
+      flyway.baseline()
+    }
     flyway.migrate()
   }
 }

@@ -8,6 +8,7 @@ import com.malliina.play.app.DefaultApp
 import com.typesafe.config.ConfigFactory
 import controllers.{AssetsComponents, BoatController, FileController, Social}
 import play.api.ApplicationLoader.Context
+import play.api.mvc.EssentialFilter
 import play.api.routing.Router
 import play.api.{BuiltInComponentsFromContext, Configuration, Mode}
 import play.filters.HttpFiltersComponents
@@ -31,6 +32,7 @@ class AppComponents(context: Context)
 
   override val configuration = context.initialConfiguration ++ AppConf.localConf
   override lazy val allowedHostsConfig = AllowedHostsConfig(Seq("boat.malliina.com", "localhost"))
+  override def httpFilters: Seq[EssentialFilter] = Seq(csrfFilter, securityHeadersFilter)
   val csps = Seq(
     "default-src 'self' 'unsafe-inline' *.mapbox.com",
     "font-src 'self' data: https://fonts.gstatic.com",
