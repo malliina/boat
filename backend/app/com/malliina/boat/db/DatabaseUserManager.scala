@@ -37,6 +37,10 @@ class DatabaseUserManager(val db: BoatSchema)(implicit ec: ExecutionContext)
   override def authUser(token: UserToken): Future[Either[IdentityError, DataUser]] =
     withUserAuth(usersTable.filter(_.token === token))
 
+  override def authEmail(email: UserEmail): Future[Either[IdentityError, DataUser]] = {
+    withUserAuth(usersTable.filter(u => u.email.isDefined && u.email === email))
+  }
+
   private def withUserAuth(filteredUsers: Query[UsersTable, DataUser, Seq]) = action {
     filteredUsers.result.headOption.map { maybeUser =>
       maybeUser.map { profile =>

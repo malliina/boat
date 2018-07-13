@@ -1,6 +1,7 @@
 package com.malliina.boat.db
 
 import com.malliina.boat.{BoatInfo, BoatToken, User, UserEmail, UserId, UserToken}
+import com.malliina.play.auth.AuthError
 import com.malliina.play.models.Password
 import org.apache.commons.codec.digest.DigestUtils
 import play.api.mvc.RequestHeader
@@ -17,6 +18,8 @@ trait UserManager {
   def authenticate(user: User, pass: Password): Future[Either[IdentityError, DataUser]]
 
   def authUser(token: UserToken): Future[Either[IdentityError, DataUser]]
+
+  def authEmail(email: UserEmail): Future[Either[IdentityError, DataUser]]
 
   def authBoat(token: BoatToken): Future[Either[IdentityError, BoatInfo]]
 
@@ -51,3 +54,5 @@ case class UserDoesNotExist(user: User) extends IdentityError
 case class MissingToken(rh: RequestHeader) extends IdentityError
 
 case class MissingCredentials(rh: RequestHeader) extends IdentityError
+
+case class JWTError(rh: RequestHeader, error: AuthError) extends IdentityError

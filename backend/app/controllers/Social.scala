@@ -13,18 +13,17 @@ object Social {
   val ProviderCookieName = "provider"
   val GoogleCookie = "google"
 
-  def apply(mode: Mode, conf: Configuration, comps: ControllerComponents, ec: ExecutionContext) = {
+  def apply(mode: Mode, conf: Configuration, http: OkClient, comps: ControllerComponents, ec: ExecutionContext) = {
     val authConf =
       if (mode == Mode.Test) AuthConf("test-id", "test-secret")
       else AuthConfReader.conf(conf).google
-    new Social(authConf, comps)(ec)
+    new Social(authConf, comps, http)(ec)
   }
 }
 
-class Social(googleConf: AuthConf, comps: ControllerComponents)(implicit ec: ExecutionContext)
+class Social(googleConf: AuthConf, comps: ControllerComponents, http: OkClient)(implicit ec: ExecutionContext)
   extends AbstractController(comps) {
 
-  val okClient = OkClient.default
   val lastIdKey = "last_id"
   val handler = new BasicAuthHandler(routes.BoatController.index(), lastIdKey, sessionKey = EmailKey)
 
@@ -33,7 +32,7 @@ class Social(googleConf: AuthConf, comps: ControllerComponents)(implicit ec: Exe
       routes.Social.googleCallback(),
       handler,
       googleConf,
-      okClient)
+      http)
   )
 
   def google = Action.async { req => googleValidator.start(req) }

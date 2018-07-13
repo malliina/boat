@@ -14,6 +14,8 @@ object PassThroughUserManager extends UserManager {
 
   def authUser(token: UserToken): Future[Either[IdentityError, DataUser]] = fut(Right(god))
 
+  def authEmail(email: UserEmail): Future[Either[IdentityError, DataUser]] = fut(Right(god))
+
   def authBoat(token: BoatToken): Future[Either[IdentityError, BoatInfo]] = fut(Left(InvalidToken(token)))
 
   def boats(user: UserEmail): Future[Seq[BoatInfo]] = fut(Nil)

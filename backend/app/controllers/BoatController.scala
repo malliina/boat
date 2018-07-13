@@ -8,6 +8,7 @@ import akka.stream.scaladsl.{BroadcastHub, Flow, Keep, MergeHub, Sink, Source}
 import akka.{Done, NotUsed}
 import com.malliina.boat.Constants._
 import com.malliina.boat._
+import com.malliina.boat.auth.GoogleTokenAuth
 import com.malliina.boat.db._
 import com.malliina.boat.html.BoatHtml
 import com.malliina.boat.http.{BoatQuery, BoatRequest, TrackQuery}
@@ -19,7 +20,6 @@ import controllers.Assets.Asset
 import controllers.BoatController.log
 import controllers.Social.{EmailKey, GoogleCookie, ProviderCookieName}
 import play.api.Logger
-import play.api.http.HeaderNames
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.WebSocket.MessageFlowTransformer.jsonMessageFlowTransformer
 import play.api.mvc._
@@ -35,6 +35,7 @@ object BoatController {
 class BoatController(mapboxToken: AccessToken,
                      html: BoatHtml,
                      auther: UserManager,
+                     googleAuth: GoogleTokenAuth,
                      db: TracksSource,
                      comps: ControllerComponents,
                      assets: AssetsBuilder)(implicit as: ActorSystem, mat: Materializer)
@@ -222,21 +223,16 @@ class BoatController(mapboxToken: AccessToken,
     }
   }
 
-  private def authAppToken(rh: RequestHeader) =
+  private def authAppToken(rh: RequestHeader): Future[Either[IdentityError, User]] =
     authApp(rh).getOrElse(Future.successful(Left(MissingCredentials(rh))))
 
-  private def authApp(rh: RequestHeader) =
-    readBearerToken(rh).map { token =>
-      auther.authUser(token).map { outcome => outcome.map(_.username) }
-    }
-
-  private def readBearerToken(rh: RequestHeader) =
-    rh.headers.get(HeaderNames.AUTHORIZATION).flatMap { authInfo =>
-      authInfo.split(" ") match {
-        case Array(name, value) if name.toLowerCase == "bearer" =>
-          UserToken.build(value).toOption
-        case _ =>
-          None
+  private def authApp(rh: RequestHeader): Option[Future[Either[IdentityError, User]]] =
+    googleAuth.auth(rh).map { f =>
+      f.flatMap { outcome =>
+        outcome.fold(
+          err => Future.successful(Left(err)),
+          email => auther.authEmail(email).map { outcome => outcome.map(_.username) }
+        )
       }
     }
 

@@ -2,8 +2,10 @@ package com.malliina.boat
 
 import java.nio.file.Paths
 
+import com.malliina.boat.auth.GoogleTokenAuth
 import com.malliina.boat.db._
 import com.malliina.boat.html.BoatHtml
+import com.malliina.http.OkClient
 import com.malliina.play.app.DefaultApp
 import com.typesafe.config.ConfigFactory
 import controllers.{AssetsComponents, BoatController, FileController, Social}
@@ -55,20 +57,22 @@ class AppComponents(context: Context)
   val users: UserManager = DatabaseUserManager(schema, executionContext)
   val tracks: TracksSource = TracksDatabase(schema, executionContext)
   val mapboxToken = AccessToken(configuration.get[String]("boat.mapbox.token"))
+  val http = OkClient.default
 
-  val signIn = Social(mode, configuration, controllerComponents, executionContext)
+  val googleAuth = GoogleTokenAuth(configuration.get[String]("boat.google.ios.id"), http, executionContext)
+  val signIn = Social(mode, configuration, http, controllerComponents, executionContext)
   val files = new FileController(
     S3Client(),
     new FileController.BlockingActions(actorSystem, controllerComponents.parsers.default),
     controllerComponents
   )
   val home = new BoatController(
-    mapboxToken, html, users, tracks,
+    mapboxToken, html, users, googleAuth, tracks,
     controllerComponents, assets)(actorSystem, materializer)
   override val router: Router = new Routes(httpErrorHandler, home, signIn, files)
 
   applicationLifecycle.addStopHook(() => Future.successful {
     schema.close()
-    signIn.okClient.close()
+    http.close()
   })
 }
