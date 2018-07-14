@@ -8,9 +8,10 @@ import akka.Done
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.{Flow, Sink, Source}
-import com.malliina.boat.{BoatId, BoatName, BoatToken, JoinedTrack, KeyedSentence, RawSentence, SentenceKey, TrackId, TrackName, User, UserId}
+import com.malliina.boat.{BoatId, BoatName, BoatToken, JoinedTrack, KeyedSentence, RawSentence, SentenceKey, TrackId, TrackName}
 import com.malliina.file.FileUtilities
 import com.malliina.measure.Distance
+import com.malliina.values.{UserId, Username}
 import tests.BaseSuite
 
 import scala.collection.JavaConverters.asScalaBufferConverter
@@ -21,7 +22,7 @@ object MultiParsingTests {
   def testFrom = JoinedTrack(
     TrackId(1), TrackName("test"), Instant.now,
     BoatId(1), BoatName("boat"), BoatToken("a"),
-    UserId(1), User("u"), None, 1,
+    UserId(1), Username("u"), None, 1,
     None, None, None, None, None).strip(Distance.zero)
 
   def listSink[T]: Sink[T, Future[List[T]]] = Sink.fold[List[T], T](Nil)(_ :+ _)

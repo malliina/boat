@@ -1,9 +1,9 @@
 package com.malliina.boat.auth
 
-import com.malliina.boat.UserEmail
 import com.malliina.boat.db.{IdentityError, JWTError}
 import com.malliina.http.OkClient
 import com.malliina.play.auth.{AuthError, IdToken, InvalidClaims, KeyClient}
+import com.malliina.values.Email
 import play.api.http.HeaderNames.AUTHORIZATION
 import play.api.mvc.RequestHeader
 
@@ -25,17 +25,17 @@ object GoogleTokenAuth {
 }
 
 class GoogleTokenAuth(client: KeyClient)(implicit ec: ExecutionContext) {
-  def auth(rh: RequestHeader): Option[Future[Either[IdentityError, UserEmail]]] =
+  def auth(rh: RequestHeader): Option[Future[Either[IdentityError, Email]]] =
     GoogleTokenAuth.readAuthToken(rh)
       .map(token => validate(IdToken(token)).map(_.left.map(err => JWTError(rh, err))))
 
-  def validate(token: IdToken): Future[Either[AuthError, UserEmail]] =
+  def validate(token: IdToken): Future[Either[AuthError, Email]] =
     client.validate(token).map { outcome =>
       outcome.flatMap { v =>
         val parsed = v.parsed
         for {
           _ <- parsed.read(parsed.claims.getBooleanClaim("email_verified"), "email_verified").filterOrElse(_ == true, InvalidClaims(token, "Email not verified."))
-          email <- v.parsed.readString("email").map(UserEmail.apply)
+          email <- v.parsed.readString("email").map(Email.apply)
         } yield email
       }
     }

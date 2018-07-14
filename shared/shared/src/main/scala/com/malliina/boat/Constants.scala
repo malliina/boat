@@ -13,7 +13,7 @@ trait Constants {
 
 object FrontKeys {
   val Close = "close"
-  val Distance = "distance"
+  val DistanceId = "distance"
   val DropdownContentId = "dropdown-content"
   val DropdownLinkId = "dropdown-link"
   val DurationId = "duration"

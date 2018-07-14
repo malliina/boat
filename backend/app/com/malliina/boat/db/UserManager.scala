@@ -1,8 +1,8 @@
 package com.malliina.boat.db
 
-import com.malliina.boat.{BoatInfo, BoatToken, User, UserEmail, UserId, UserToken}
+import com.malliina.boat.{BoatInfo, BoatToken, UserToken}
 import com.malliina.play.auth.AuthError
-import com.malliina.play.models.Password
+import com.malliina.values.{Email, Password, UserId, Username}
 import org.apache.commons.codec.digest.DigestUtils
 import play.api.mvc.RequestHeader
 
@@ -15,41 +15,41 @@ trait UserManager {
     * @param pass password
     * @return true if the credentials are valid, false otherwise
     */
-  def authenticate(user: User, pass: Password): Future[Either[IdentityError, DataUser]]
+  def authenticate(user: Username, pass: Password): Future[Either[IdentityError, DataUser]]
 
   def authUser(token: UserToken): Future[Either[IdentityError, DataUser]]
 
-  def authEmail(email: UserEmail): Future[Either[IdentityError, DataUser]]
+  def authEmail(email: Email): Future[Either[IdentityError, DataUser]]
 
   def authBoat(token: BoatToken): Future[Either[IdentityError, BoatInfo]]
 
-  def boats(user: UserEmail): Future[Seq[BoatInfo]]
+  def boats(user: Email): Future[Seq[BoatInfo]]
 
-  def updatePassword(user: User, newPass: Password): Future[Unit]
+  def updatePassword(user: Username, newPass: Password): Future[Unit]
 
-  def addUser(user: User, pass: Password): Future[Either[AlreadyExists, UserId]] =
+  def addUser(user: Username, pass: Password): Future[Either[AlreadyExists, UserId]] =
     addUser(NewUser(user, None, hash(user, pass), UserToken.random(), enabled = true))
 
   def addUser(user: NewUser): Future[Either[AlreadyExists, UserId]]
 
-  def deleteUser(user: User): Future[Either[UserDoesNotExist, Unit]]
+  def deleteUser(user: Username): Future[Either[UserDoesNotExist, Unit]]
 
   def users: Future[Seq[DataUser]]
 
-  protected def hash(user: User, pass: Password): String = DigestUtils.md5Hex(user.name + ":" + pass.pass)
+  protected def hash(user: Username, pass: Password): String = DigestUtils.md5Hex(user.name + ":" + pass.pass)
 }
 
 sealed trait IdentityError
 
-case class AlreadyExists(user: User) extends IdentityError
+case class AlreadyExists(user: Username) extends IdentityError
 
-case class InvalidCredentials(user: Option[User] = None) extends IdentityError
+case class InvalidCredentials(user: Option[Username] = None) extends IdentityError
 
 case class InvalidToken(token: BoatToken) extends IdentityError
 
-case class UserDisabled(user: User) extends IdentityError
+case class UserDisabled(user: Username) extends IdentityError
 
-case class UserDoesNotExist(user: User) extends IdentityError
+case class UserDoesNotExist(user: Username) extends IdentityError
 
 case class MissingToken(rh: RequestHeader) extends IdentityError
 

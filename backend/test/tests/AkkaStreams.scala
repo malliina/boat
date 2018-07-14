@@ -7,8 +7,9 @@ import akka.actor.ActorSystem
 import akka.stream.scaladsl.{BroadcastHub, Flow, Keep, MergeHub, RunnableGraph, Sink, Source}
 import akka.stream.{ActorMaterializer, KillSwitches, UniqueKillSwitch}
 import com.malliina.boat.parsing._
-import com.malliina.boat.{BoatId, BoatName, BoatToken, Coord, JoinedTrack, KeyedSentence, RawSentence, SentenceKey, TrackId, TrackName, User, UserId}
+import com.malliina.boat.{BoatId, BoatName, BoatToken, Coord, JoinedTrack, KeyedSentence, RawSentence, SentenceKey, TrackId, TrackName}
 import com.malliina.measure.{Distance, DistanceInt, SpeedInt, TemperatureInt}
+import com.malliina.values.{UserId, Username}
 import org.scalatest.FunSuite
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.WebSocket
@@ -21,7 +22,7 @@ class AkkaStreams extends FunSuite {
     val from = JoinedTrack(
       TrackId(1), TrackName("test"), Instant.now,
       BoatId(1), BoatName("boat"), BoatToken("a"),
-      UserId(1), User("u"), None,
+      UserId(1), Username("u"), None,
       1, None, None, None, None, None
     ).strip(Distance.zero)
 

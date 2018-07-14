@@ -8,6 +8,7 @@ import com.malliina.boat.db.TracksDatabase.log
 import com.malliina.boat.http._
 import com.malliina.boat.parsing.FullCoord
 import com.malliina.measure.Distance
+import com.malliina.values.{UserId, Username}
 import play.api.Logger
 
 import scala.concurrent.duration.DurationLong
@@ -27,11 +28,11 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext) extends 
 
   case class Joined(sid: SentenceKey, sentence: RawSentence, track: TrackId,
                     trackName: TrackName, boat: BoatId, boatName: BoatName,
-                    user: UserId, username: User)
+                    user: UserId, username: Username)
 
   case class LiftedJoined(sid: Rep[SentenceKey], sentence: Rep[RawSentence], track: Rep[TrackId],
                           trackName: Rep[TrackName], boat: Rep[BoatId], boatName: Rep[BoatName],
-                          user: Rep[UserId], username: Rep[User])
+                          user: Rep[UserId], username: Rep[Username])
 
   implicit object JoinedShape extends CaseClassShape(LiftedJoined.tupled, Joined.tupled)
 
@@ -60,7 +61,7 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext) extends 
     _ <- sentencePointsTable ++= coord.parts.map(key => SentencePointLink(key, point))
   } yield point
 
-  override def tracks(user: User, filter: TrackQuery): Future[TrackSummaries] = action {
+  override def tracks(user: Username, filter: TrackQuery): Future[TrackSummaries] = action {
     val query = tracksView.filter(t => t.username === user).join(pointsTable).on(_.track === _.track)
       .groupBy { case (t, _) => t }
       .map { case (track, ps) =>
@@ -86,13 +87,13 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext) extends 
     }
   }
 
-  override def track(track: TrackName, user: User, query: TrackQuery): Future[Seq[CombinedCoord]] = action {
+  override def track(track: TrackName, user: Username, query: TrackQuery): Future[Seq[CombinedCoord]] = action {
     pointsTable.map(_.combined).join(tracksTable.filter(_.name === track)).on(_.track === _.id).map(_._1)
       .sortBy(_.boatTime.asc)
       .result
   }
 
-  override def history(user: User, limits: BoatQuery): Future[Seq[CoordsEvent]] = action {
+  override def history(user: Username, limits: BoatQuery): Future[Seq[CoordsEvent]] = action {
     val newestTrack = tracksViewNonEmpty.filter(_.username === user).sortBy(_.start.desc.nullsLast).take(1)
     // Intentionally, you can view any track if you know its key.
     // Alternatively, we could filter tracks by user and make that optional.

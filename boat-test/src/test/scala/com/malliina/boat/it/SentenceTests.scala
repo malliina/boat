@@ -2,7 +2,7 @@ package com.malliina.boat.it
 
 import akka.stream.scaladsl.Sink
 import com.malliina.boat._
-import com.malliina.play.models.Password
+import com.malliina.values.{Password, Username}
 import play.api.libs.json.JsValue
 
 import scala.concurrent.{Await, Promise, TimeoutException}
@@ -32,7 +32,7 @@ class SentenceTests extends BoatTests {
 
   // Ignored because the design is the opposite of the test
   ignore("sent events are not received by unrelated viewer") {
-    val testUser = User("User1")
+    val testUser = Username("User1")
     val testPass = Password("demo")
     await(components.users.addUser(testUser, testPass))
     val creds = Option(Creds(testUser, testPass))

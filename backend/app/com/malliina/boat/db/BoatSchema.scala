@@ -5,6 +5,7 @@ import java.time.{Instant, LocalDate}
 import com.malliina.boat._
 import com.malliina.boat.db.BoatSchema.{CreatedTimestampType, NumThreads}
 import com.malliina.measure.{Distance, Speed, Temperature}
+import com.malliina.values.{UserId, Username, Email}
 import com.zaxxer.hikari.{HikariConfig, HikariDataSource}
 import javax.sql.DataSource
 import play.api.Logger
@@ -66,10 +67,10 @@ class BoatSchema(ds: DataSource, override val impl: JdbcProfile)
   override val tableQueries = Seq(sentencePointsTable, pointsTable, sentencesTable, tracksTable, boatsTable, usersTable)
 
   case class JoinedBoat(boat: BoatId, boatName: BoatName, boatToken: BoatToken,
-                        user: UserId, username: User, email: Option[UserEmail])
+                        user: UserId, username: Username, email: Option[Email])
 
   case class LiftedJoinedBoat(boat: Rep[BoatId], boatName: Rep[BoatName], token: Rep[BoatToken],
-                              user: Rep[UserId], username: Rep[User], email: Rep[Option[UserEmail]])
+                              user: Rep[UserId], username: Rep[Username], email: Rep[Option[Email]])
 
   implicit object JoinedBoatShape extends CaseClassShape(LiftedJoinedBoat.tupled, JoinedBoat.tupled)
 
@@ -78,7 +79,7 @@ class BoatSchema(ds: DataSource, override val impl: JdbcProfile)
 
   case class LiftedJoinedTrack(track: Rep[TrackId], trackName: Rep[TrackName], trackAdded: Rep[Instant],
                                boat: Rep[BoatId], boatName: Rep[BoatName], boatToken: Rep[BoatToken],
-                               user: Rep[UserId], username: Rep[User], email: Rep[Option[UserEmail]],
+                               user: Rep[UserId], username: Rep[Username], email: Rep[Option[Email]],
                                points: Rep[Int], start: Rep[Option[Instant]], end: Rep[Option[Instant]],
                                topSpeed: Rep[Option[Speed]], avgSpeed: Rep[Option[Speed]], avgWaterTemp: Rep[Option[Temperature]])
 
@@ -122,9 +123,9 @@ class BoatSchema(ds: DataSource, override val impl: JdbcProfile)
 
   def initBoat()(implicit ec: ExecutionContext) = {
     init()
-    val addAnon = usersTable.filter(_.user === User.anon).exists.result.flatMap { exists =>
+    val addAnon = usersTable.filter(_.user === Usernames.anon).exists.result.flatMap { exists =>
       if (exists) DBIO.successful(())
-      else userInserts += NewUser(User.anon, None, "unused", UserToken.random(), enabled = true)
+      else userInserts += NewUser(Usernames.anon, None, "unused", UserToken.random(), enabled = true)
     }
     await(run(addAnon))
   }
@@ -246,9 +247,9 @@ class BoatSchema(ds: DataSource, override val impl: JdbcProfile)
   class UsersTable(tag: Tag) extends Table[DataUser](tag, "users") {
     def id = column[UserId]("id", O.PrimaryKey, O.AutoInc)
 
-    def user = column[User]("user", O.Unique, O.Length(128))
+    def user = column[Username]("user", O.Unique, O.Length(128))
 
-    def email = column[Option[UserEmail]]("email", O.Unique, O.Length(128))
+    def email = column[Option[Email]]("email", O.Unique, O.Length(128))
 
     def passHash = column[String]("pass_hash", O.Length(512))
 

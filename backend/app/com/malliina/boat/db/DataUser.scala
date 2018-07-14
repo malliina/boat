@@ -2,18 +2,19 @@ package com.malliina.boat.db
 
 import java.time.Instant
 
-import com.malliina.boat.{User, UserEmail, UserId, UserToken}
+import com.malliina.boat.UserToken
+import com.malliina.values.{Email, UserId, Username}
 
 case class DataUser(id: UserId,
-                    username: User,
-                    email: Option[UserEmail],
+                    username: Username,
+                    email: Option[Email],
                     passwordHash: String,
                     token: UserToken,
                     enabled: Boolean,
                     added: Instant)
 
-case class NewUser(username: User,
-                   email: Option[UserEmail],
+case class NewUser(username: Username,
+                   email: Option[Email],
                    passwordHash: String,
                    token: UserToken,
                    enabled: Boolean)

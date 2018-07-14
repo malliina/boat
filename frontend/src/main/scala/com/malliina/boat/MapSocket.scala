@@ -1,6 +1,6 @@
 package com.malliina.boat
 
-import com.malliina.boat.FrontKeys.{Distance, DurationId, TopSpeedId, WaterTempId}
+import com.malliina.boat.FrontKeys.{DistanceId, DurationId, TopSpeedId, WaterTempId}
 import com.malliina.measure.Speed
 import org.scalajs.dom.document
 import play.api.libs.json._
@@ -96,7 +96,7 @@ class MapSocket(map: MapboxMap, queryString: String) extends BaseSocket(s"/ws/up
       geoJson.setData(toJson(newTrack))
     }
     val trail: Seq[Coord] = newTrack.features.flatMap(_.geometry.coords)
-    elem(Distance).foreach { e =>
+    elem(DistanceId).foreach { e =>
       val totalLength = boats.values.flatMap(fc => fc.features.headOption.map(f => turf.length(toJson(f)))).sum
       e.innerHTML = s"${formatDouble(totalLength)} km"
     }

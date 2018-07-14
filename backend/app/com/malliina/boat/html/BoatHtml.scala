@@ -7,6 +7,7 @@ import com.malliina.boat.BoatInfo
 import com.malliina.boat.FrontKeys._
 import com.malliina.boat.html.BoatHtml.callAttr
 import com.malliina.html.Tags
+import com.malliina.measure.Distance
 import com.malliina.play.tags.TagPage
 import com.malliina.values.Wrapped
 import controllers.routes
@@ -55,13 +56,13 @@ class BoatHtml(jsFile: String) extends Tags(scalatags.Text) {
                   b.tracks.map { t =>
                     a(`class` := "track-link", href := routes.BoatController.index().url + s"?track=${urlEncode(t.trackName)}")(
                       span(t.trackName),
-                      span(t.distance.short),
+                      span(short(t.distance)),
                       span(t.startEndRange)
                     )
                   }
                 )
               ),
-              span(id := Distance, `class` := "nav-text distance")(""),
+              span(id := DistanceId, `class` := "nav-text distance")(""),
               span(id := DurationId, `class` := "nav-text duration")(""),
               span(id := TopSpeedId, `class` := "nav-text top-speed")(""),
               span(id := WaterTempId, `class` := "nav-text water-temp")(""),
@@ -85,6 +86,11 @@ class BoatHtml(jsFile: String) extends Tags(scalatags.Text) {
       )
     )
   )
+
+  def short(d: Distance) =
+    if (d.toKilometers >= 10) s"${d.toKilometers} km"
+    else if (d.toMeters >= 10) s"${d.toMeters} m"
+    else s"${d.toMillis} mm"
 
   def urlEncode(w: Wrapped): String = URLEncoder.encode(w.value, StandardCharsets.UTF_8.name())
 

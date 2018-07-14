@@ -9,7 +9,7 @@ import akka.{Done, NotUsed}
 import com.malliina.boat._
 import com.malliina.boat.client.{HttpUtil, KeyValue, WebSocketClient}
 import com.malliina.http.FullUrl
-import com.malliina.play.models.Password
+import com.malliina.values.{Password, Username}
 import play.api.ApplicationLoader.Context
 import play.api.BuiltInComponents
 import play.api.libs.json.{JsValue, Json, Writes}
@@ -82,4 +82,4 @@ trait BoatSockets {
   }
 }
 
-case class Creds(user: User, pass: Password)
+case class Creds(user: Username, pass: Password)

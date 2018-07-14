@@ -5,8 +5,11 @@ import scala.sys.process.Process
 import scala.util.Try
 import sbtrelease.ReleasePlugin.autoImport.{ReleaseStep, releaseProcess}
 import sbtrelease.ReleaseStateTransformations._
+import sbtcrossproject.CrossPlugin.autoImport.{crossProject => portableProject, CrossType => PortableType}
 
-val utilPlayDep = "com.malliina" %% "util-play" % "4.12.4"
+val utilPlayVersion = "4.13.0"
+val utilPlayDep = "com.malliina" %% "util-play" % utilPlayVersion
+val primitiveVersion = "1.6.0"
 
 val buildAndUpload = taskKey[FullUrl]("Uploads to S3")
 val upFiles = taskKey[Seq[String]]("lists")
@@ -26,7 +29,9 @@ lazy val frontend = project.in(file("frontend"))
   .enablePlugins(ScalaJSPlugin)
   .dependsOn(crossJs)
 
-lazy val cross = crossProject.in(file("shared"))
+lazy val cross = portableProject(JSPlatform, JVMPlatform)
+  .crossType(PortableType.Full)
+  .in(file("shared"))
   .settings(sharedSettings: _*)
 
 lazy val crossJvm = cross.jvm
@@ -52,6 +57,7 @@ lazy val backendSettings = playSettings ++ Seq(
     "org.apache.commons" % "commons-text" % "1.4",
     "com.malliina" %% "logstreams-client" % "1.0.0",
     "com.amazonaws" % "aws-java-sdk-s3" % "1.11.358",
+    "com.malliina" %% "play-social" % utilPlayVersion,
     utilPlayDep,
     utilPlayDep % Test classifier "tests"
   ),
@@ -95,7 +101,7 @@ lazy val frontendSettings = commonSettings ++ Seq(
 lazy val sharedSettings = commonSettings ++ Seq(
   libraryDependencies ++= Seq(
     "com.typesafe.play" %%% "play-json" % "2.6.9",
-    "com.malliina" %%% "primitives" % "1.5.2",
+    "com.malliina" %%% "primitives" % "1.5.3-SNAPSHOT",
     "com.lihaoyi" %%% "scalatags" % "0.6.7"
   )
 )
@@ -117,7 +123,7 @@ lazy val clientSettings = commonSettings ++ Seq(
     packageTemplateMapping(s"/usr/share/$linuxName/conf")().withUser(daemonUser.value).withGroup(daemonUser.value)
   },
   libraryDependencies ++= Seq(
-    "com.malliina" %% "primitives" % "1.5.2",
+    "com.malliina" %% "primitives" % primitiveVersion,
     "com.neovisionaries" % "nv-websocket-client" % "2.4",
     "org.slf4j" % "slf4j-api" % "1.7.25",
     "com.malliina" %% "logback-rx" % "1.2.0",

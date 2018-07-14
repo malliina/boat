@@ -3,7 +3,7 @@ package com.malliina.boat
 import com.malliina.boat.BoatJson.keyValued
 import com.malliina.json.PrimitiveFormats
 import com.malliina.measure.{Distance, Speed, Temperature}
-import com.malliina.values.{StringCompanion, Wrapped}
+import com.malliina.values._
 import play.api.libs.json._
 
 import scala.concurrent.duration.Duration
@@ -193,22 +193,12 @@ object RawSentence extends StringCompanion[RawSentence] {
   val MaxLength = 82
 }
 
-case class UserId(id: Long) extends WrappedId
-
-object UserId extends IdCompanion[UserId]
-
-case class User(name: String) extends Wrapped(name)
-
-object User extends StringCompanion[User] {
-  val anon = User("anon")
+object Usernames {
+  val anon = Username("anon")
 }
 
-case class UserEmail(email: String) extends Wrapped(email)
-
-object UserEmail extends StringCompanion[UserEmail]
-
 trait BoatMeta {
-  def user: User
+  def user: Username
 
   def boat: BoatName
 
@@ -224,7 +214,7 @@ case class TrackId(id: Long) extends WrappedId
 object TrackId extends IdCompanion[TrackId]
 
 case class TrackRef(track: TrackId, trackName: TrackName, boat: BoatId,
-                    boatName: BoatName, user: UserId, username: User,
+                    boatName: BoatName, user: UserId, username: Username,
                     points: Int, start: String, startMillis: Long,
                     end: String, endMillis: Long, startEndRange: String,
                     duration: Duration, distance: Distance,
@@ -236,16 +226,16 @@ object TrackRef {
   implicit val json = Json.format[TrackRef]
 }
 
-case class BoatUser(track: TrackName, boat: BoatName, user: User) extends BoatMeta
+case class BoatUser(track: TrackName, boat: BoatName, user: Username) extends BoatMeta
 
-case class BoatInfo(boatId: BoatId, boat: BoatName, user: User, tracks: Seq[TrackRef])
+case class BoatInfo(boatId: BoatId, boat: BoatName, user: Username, tracks: Seq[TrackRef])
 
 object BoatInfo {
   implicit val json = Json.format[BoatInfo]
 }
 
 trait TrackLike {
-  def username: User
+  def username: Username
 
   def boatName: BoatName
 
@@ -293,7 +283,7 @@ object CoordsEvent {
 }
 
 case class CoordsBatch(events: Seq[CoordsEvent]) extends FrontEvent {
-  override def isIntendedFor(user: User): Boolean = events.forall(_.isIntendedFor(user))
+  override def isIntendedFor(user: Username): Boolean = events.forall(_.isIntendedFor(user))
 }
 
 object CoordsBatch {
@@ -308,7 +298,7 @@ object SentencesEvent {
 }
 
 case class PingEvent(sent: Long) extends FrontEvent {
-  override def isIntendedFor(user: User) = true
+  override def isIntendedFor(user: Username) = true
 }
 
 object PingEvent {
@@ -317,14 +307,14 @@ object PingEvent {
 }
 
 sealed trait FrontEvent {
-  def isIntendedFor(user: User): Boolean
+  def isIntendedFor(user: Username): Boolean
 }
 
 sealed trait BoatFrontEvent extends FrontEvent {
   def from: TrackRef
 
   // Anonymous users receive all live boat updates by design
-  override def isIntendedFor(user: User): Boolean = from.username == user || user == User.anon
+  override def isIntendedFor(user: Username): Boolean = from.username == user || user == Usernames.anon
 }
 
 object FrontEvent {
@@ -372,16 +362,6 @@ object BoatJson {
     }
     OFormat(reader, writer)
   }
-}
-
-trait WrappedId {
-  def id: Long
-
-  override def toString = s"$id"
-}
-
-abstract class IdCompanion[T <: WrappedId] extends Companion[Long, T] {
-  override def raw(t: T) = t.id
 }
 
 abstract class Companion[Raw, T](implicit jsonFormat: Format[Raw], o: Ordering[Raw]) {

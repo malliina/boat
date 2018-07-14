@@ -10,10 +10,11 @@ import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.{Flow, Sink, Source}
 import com.malliina.boat.parsing.{BoatParser, FullCoord}
-import com.malliina.boat.{AppConf, BoatId, BoatName, BoatUser, KeyedSentence, RawSentence, SentencesEvent, TrackId, TrackInput, TrackNames, TrackPointId, User, UserToken}
+import com.malliina.boat.{AppConf, BoatId, BoatName, BoatUser, KeyedSentence, RawSentence, SentencesEvent, TrackId, TrackInput, TrackNames, TrackPointId, UserToken}
 import com.malliina.concurrent.ExecutionContexts.cached
 import com.malliina.file.FileUtilities
 import com.malliina.measure.Distance
+import com.malliina.values.Username
 import play.api.Mode
 import tests.BaseSuite
 
@@ -71,7 +72,7 @@ class TracksDatabaseTests extends BaseSuite {
   ignore("from file") {
     val (db, tdb) = initDb()
     val trackName = TrackNames.random()
-    val track = await(tdb.join(BoatUser(trackName, BoatName("Amina"), User("mle"))), 10.seconds)
+    val track = await(tdb.join(BoatUser(trackName, BoatName("Amina"), Username("mle"))), 10.seconds)
     println(s"Using $track")
     val s: Source[RawSentence, NotUsed] = fromFile(FileUtilities.userHome.resolve(".boat/Log.txt"))
     val events = s.map(s => SentencesEvent(Seq(s), track.strip(Distance.zero)))

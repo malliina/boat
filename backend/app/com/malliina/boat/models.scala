@@ -4,7 +4,7 @@ import java.time.{Instant, LocalDate, LocalTime, ZoneOffset}
 
 import com.malliina.boat.parsing.FullCoord
 import com.malliina.measure.{Distance, Speed, Temperature}
-import com.malliina.values.{ErrorMessage, StringCompanion, Wrapped}
+import com.malliina.values._
 import play.api.http.Writeable
 import play.api.libs.json._
 import play.api.mvc.PathBindable
@@ -32,7 +32,7 @@ object AppMeta {
 
 case class JoinedTrack(track: TrackId, trackName: TrackName, trackAdded: Instant,
                        boat: BoatId, boatName: BoatName, boatToken: BoatToken,
-                       user: UserId, username: User, email: Option[UserEmail],
+                       user: UserId, username: Username, email: Option[Email],
                        points: Int, start: Option[Instant], end: Option[Instant],
                        topSpeed: Option[Speed], avgSpeed: Option[Speed], avgWaterTemp: Option[Temperature]) extends TrackLike {
   val startOrNow = start.getOrElse(Instant.now())
