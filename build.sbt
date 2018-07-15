@@ -101,7 +101,7 @@ lazy val frontendSettings = commonSettings ++ Seq(
 lazy val sharedSettings = commonSettings ++ Seq(
   libraryDependencies ++= Seq(
     "com.typesafe.play" %%% "play-json" % "2.6.9",
-    "com.malliina" %%% "primitives" % "1.5.3-SNAPSHOT",
+    "com.malliina" %%% "primitives" % "1.6.0",
     "com.lihaoyi" %%% "scalatags" % "0.6.7"
   )
 )
