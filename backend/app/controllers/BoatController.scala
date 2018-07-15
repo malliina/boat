@@ -15,7 +15,6 @@ import com.malliina.boat.http.{BoatQuery, BoatRequest, TrackQuery}
 import com.malliina.boat.parsing.{BoatParser, FullCoord, ParsedSentence}
 import com.malliina.concurrent.ExecutionContexts.cached
 import com.malliina.measure.Distance
-import com.malliina.play.auth.Auth
 import com.malliina.values.{Email, Username}
 import controllers.Assets.Asset
 import controllers.BoatController.log
@@ -108,22 +107,22 @@ class BoatController(mapboxToken: AccessToken,
   }
 
   def tracks = secureAction(TrackQuery.apply) { req =>
-    db.tracks(req.boat.user, req.query).map { summaries =>
+    db.tracksFor(req.email, req.query).map { summaries =>
       Ok(Json.toJson(summaries))
     }
   }
 
   def track(track: TrackName) = secureAction(TrackQuery.apply) { req =>
-    db.track(track, req.boat.user, req.query).map { points =>
+    db.track(track, req.email, req.query).map { points =>
       Ok(Json.toJson(points))
     }
   }
 
   private def secureAction[T](parse: RequestHeader => Either[SingleError, T])(run: BoatRequest[T] => Future[Result]) =
-    authAction(authSecure) { (boat, rh) =>
+    authAction(authAppOrWeb) { (email, rh) =>
       parse(rh).fold(
         err => Future.successful(BadRequest(Errors(err))),
-        t => run(BoatRequest(t, boat, rh))
+        t => run(BoatRequest(t, email, rh))
       )
     }
 
@@ -209,7 +208,6 @@ class BoatController(mapboxToken: AccessToken,
 
   def auth(rh: RequestHeader): Future[Either[IdentityError, Username]] =
     authApp(rh)
-      .orElse(authBasic(rh))
       .orElse(authSessionUser(rh))
       .getOrElse(Future.successful(Right(anonUser)))
 
@@ -217,12 +215,6 @@ class BoatController(mapboxToken: AccessToken,
     rh.session.get(UserSessionKey).filter(_ != Usernames.anon.name).map { user =>
       Future.successful(Right(Username(user)))
     }
-
-  def authBasic(rh: RequestHeader) = Auth.basicCredentials(rh).map { creds =>
-    auther.authenticate(creds.username, creds.password).map { outcome =>
-      outcome.map { profile => profile.username }
-    }
-  }
 
   private def authAppToken(rh: RequestHeader): Future[Either[IdentityError, Username]] =
     authApp(rh).getOrElse(Future.successful(Left(MissingCredentials(rh))))
@@ -236,6 +228,12 @@ class BoatController(mapboxToken: AccessToken,
         )
       }
     }
+
+  private def authAppOrWeb(rh: RequestHeader): Future[Either[IdentityError, Email]] = {
+    def authFromSession = Future.successful(sessionEmail(rh).toRight(MissingCredentials(rh)))
+
+    googleAuth.auth(rh).getOrElse(authFromSession)
+  }
 
   def authQuery(rh: RequestHeader): Future[Either[IdentityError, Username]] =
     queryAuthBoat(rh, Left(MissingToken(rh))).map(_.map(_.map(_.user).getOrElse(anonUser)))
@@ -260,13 +258,16 @@ class BoatController(mapboxToken: AccessToken,
     }
 
   def authSessionEmail(rh: RequestHeader): Future[Option[BoatInfo]] =
-    rh.session.get(EmailKey).map { email =>
-      auther.boats(Email(email)).map { boats =>
+    sessionEmail(rh).map { email =>
+      auther.boats(email).map { boats =>
         boats.headOption
       }
     }.getOrElse {
       Future.successful(None)
     }
+
+  def sessionEmail(rh: RequestHeader): Option[Email] =
+    rh.session.get(EmailKey).map(Email.apply)
 
   private def authAction[T](makeAuth: RequestHeader => Future[Either[IdentityError, T]])(code: (T, RequestHeader) => Future[Result]) =
     Action.async { req => makeResult(makeAuth(req), req).flatMap { e => e.fold(Future.successful, t => code(t, req)) } }

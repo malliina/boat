@@ -1,6 +1,6 @@
 package com.malliina.boat.db
 
-import java.time.Instant
+import java.time.{Instant, ZoneOffset}
 import java.time.format.DateTimeFormatter
 
 import com.malliina.boat._
@@ -8,7 +8,7 @@ import com.malliina.boat.db.TracksDatabase.log
 import com.malliina.boat.http._
 import com.malliina.boat.parsing.FullCoord
 import com.malliina.measure.Distance
-import com.malliina.values.{UserId, Username}
+import com.malliina.values.{Email, UserId, Username}
 import play.api.Logger
 
 import scala.concurrent.duration.DurationLong
@@ -61,8 +61,14 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext) extends 
     _ <- sentencePointsTable ++= coord.parts.map(key => SentencePointLink(key, point))
   } yield point
 
-  override def tracks(user: Username, filter: TrackQuery): Future[TrackSummaries] = action {
-    val query = tracksView.filter(t => t.username === user).join(pointsTable).on(_.track === _.track)
+  override def tracksFor(email: Email, filter: TrackQuery): Future[TrackSummaries] =
+    trackList(tracksView.filter(t => t.email.isDefined && t.email === email), filter)
+
+  override def tracks(user: Username, filter: TrackQuery): Future[TrackSummaries] =
+    trackList(tracksView.filter(t => t.username === user), filter)
+
+  private def trackList(trackQuery: Query[LiftedJoinedTrack, JoinedTrack, Seq], filter: TrackQuery) = action {
+    val query = trackQuery.join(pointsTable).on(_.track === _.track)
       .groupBy { case (t, _) => t }
       .map { case (track, ps) =>
         val points: Query[TrackPointsTable, TrackPointRow, Seq] = ps.map(_._2)
@@ -81,14 +87,17 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext) extends 
         val firstMillis = first.get.toEpochMilli
         val lastMillis = last.get.toEpochMilli
         val duration = (lastMillis - firstMillis).millis
-        TrackSummary(track.strip(Distance.zero), TrackStats(points, timeFormatter.format(first.get), firstMillis, timeFormatter.format(last.get), lastMillis, duration))
+        val firstUtc = first.get.atOffset(ZoneOffset.UTC)
+        val lastUtc = last.get.atOffset(ZoneOffset.UTC)
+        TrackSummary(track.strip(Distance.zero), TrackStats(points, timeFormatter.format(firstUtc), firstMillis, timeFormatter.format(lastUtc), lastMillis, duration))
       }
       TrackSummaries(summaries)
     }
   }
 
-  override def track(track: TrackName, user: Username, query: TrackQuery): Future[Seq[CombinedCoord]] = action {
-    pointsTable.map(_.combined).join(tracksTable.filter(_.name === track)).on(_.track === _.id).map(_._1)
+  override def track(track: TrackName, email: Email, query: TrackQuery): Future[Seq[CombinedCoord]] = action {
+    // intentionally does not filter on email for now
+    pointsTable.map(_.combined).join(tracksTable.filter(t => t.name === track)).on(_.track === _.id).map(_._1)
       .sortBy(_.boatTime.asc)
       .result
   }

@@ -4,12 +4,13 @@ import java.time.Instant
 import java.time.format.DateTimeParseException
 import java.time.temporal.ChronoUnit
 
-import com.malliina.boat.{BoatInfo, SingleError, TrackName}
+import com.malliina.boat.{SingleError, TrackName}
+import com.malliina.values.Email
 import play.api.mvc.{QueryStringBindable, RequestHeader}
 
 import scala.concurrent.duration.DurationInt
 
-case class BoatRequest[T](query: T, boat: BoatInfo, rh: RequestHeader)
+case class BoatRequest[T](query: T, email: Email, rh: RequestHeader)
 
 sealed abstract class TrackSort(val name: String) extends Named
 

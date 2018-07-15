@@ -23,17 +23,6 @@ class DatabaseUserManager(val db: BoatSchema)(implicit ec: ExecutionContext)
   import db._
   import db.api._
 
-  /**
-    *
-    * @param user username
-    * @param pass password
-    * @return true if the credentials are valid, false otherwise
-    */
-  override def authenticate(user: Username, pass: Password): Future[Either[IdentityError, DataUser]] = {
-    val passHash = hash(user, pass)
-    withUserAuth(usersTable.filter(u => u.user === user && u.passHash === passHash))
-  }
-
   override def authUser(token: UserToken): Future[Either[IdentityError, DataUser]] =
     withUserAuth(usersTable.filter(_.token === token))
 

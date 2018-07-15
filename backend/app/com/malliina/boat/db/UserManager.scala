@@ -9,14 +9,6 @@ import play.api.mvc.RequestHeader
 import scala.concurrent.Future
 
 trait UserManager {
-  /**
-    *
-    * @param user username
-    * @param pass password
-    * @return true if the credentials are valid, false otherwise
-    */
-  def authenticate(user: Username, pass: Password): Future[Either[IdentityError, DataUser]]
-
   def authUser(token: UserToken): Future[Either[IdentityError, DataUser]]
 
   def authEmail(email: Email): Future[Either[IdentityError, DataUser]]
