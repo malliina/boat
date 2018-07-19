@@ -10,7 +10,7 @@ import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.{Flow, Sink, Source}
 import com.malliina.boat.parsing.{BoatParser, FullCoord}
-import com.malliina.boat.{AppConf, BoatId, BoatName, BoatUser, KeyedSentence, RawSentence, SentencesEvent, TrackId, TrackInput, TrackNames, TrackPointId, UserToken}
+import com.malliina.boat.{LocalConf, BoatId, BoatName, BoatUser, KeyedSentence, RawSentence, SentencesEvent, TrackId, TrackInput, TrackNames, TrackPointId, UserToken}
 import com.malliina.concurrent.ExecutionContexts.cached
 import com.malliina.file.FileUtilities
 import com.malliina.measure.Distance
@@ -39,7 +39,7 @@ class TracksDatabaseTests extends BaseSuite {
   }
 
   ignore("modify tracks") {
-    val db = BoatSchema(DatabaseConf(Mode.Prod, AppConf.localConf))
+    val db = BoatSchema(DatabaseConf(Mode.Prod, LocalConf.localConf))
     val oldTrack = TrackId(175)
     splitTracksByDate(oldTrack, db)
   }
@@ -85,7 +85,7 @@ class TracksDatabaseTests extends BaseSuite {
     Source(Files.readAllLines(file, StandardCharsets.UTF_8).asScala.map(RawSentence.apply).toList)
 
   def initDb() = {
-    val db = BoatSchema(DatabaseConf(Mode.Prod, AppConf.localConf))
+    val db = BoatSchema(DatabaseConf(Mode.Prod, LocalConf.localConf))
     db.init()
     val tdb = TracksDatabase(db, mat.executionContext)
     (db, tdb)

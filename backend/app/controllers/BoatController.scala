@@ -50,10 +50,6 @@ class BoatController(mapboxToken: AccessToken,
   val (boatSink, viewerSource) = MergeHub.source[BoatEvent](perProducerBufferSize = 16)
     .toMat(BroadcastHub.sink(bufferSize = 256))(Keep.both)
     .run()
-  //  val (combinedSink, combinedSource) = MergeHub.source[FullCoord](perProducerBufferSize = 16)
-  //    .toMat(BroadcastHub.sink(bufferSize = 256))(Keep.both)
-  //    .run()
-  //  combinedSource.runWith(Sink.ignore)
   val _ = viewerSource.runWith(Sink.ignore)
   val sentencesSource = viewerSource.map { boatEvent =>
     BoatParser.read[SentencesMessage](boatEvent.message)

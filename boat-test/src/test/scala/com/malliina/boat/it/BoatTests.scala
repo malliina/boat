@@ -18,7 +18,7 @@ import tests.{BaseSuite, OneServerPerSuite2}
 
 import scala.concurrent.Future
 
-abstract class TestAppSuite extends ServerSuite(new AppComponents(_))
+abstract class TestAppSuite extends ServerSuite(new AppComponents(_ => AppConf("", "", "", ""), _))
 
 abstract class ServerSuite[T <: BuiltInComponents](build: Context => T)
   extends BaseSuite

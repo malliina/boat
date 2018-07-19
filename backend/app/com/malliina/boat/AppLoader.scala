@@ -20,21 +20,24 @@ import router.Routes
 
 import scala.concurrent.Future
 
-object AppConf {
+object LocalConf {
   val localConfFile = Paths.get(sys.props("user.home")).resolve(".boat/boat.conf")
   val localConf = Configuration(ConfigFactory.parseFile(localConfFile.toFile))
 }
 
-class AppLoader extends DefaultApp(new AppComponents(_))
+class AppLoader extends DefaultApp(new AppComponents(conf => AppConf(conf), _))
 
-class AppComponents(context: Context)
+class AppComponents(readConf: Configuration => AppConf, context: Context)
   extends BuiltInComponentsFromContext(context)
     with HttpFiltersComponents
     with AssetsComponents {
 
-  override val configuration = context.initialConfiguration ++ AppConf.localConf
+  override val configuration = context.initialConfiguration ++ LocalConf.localConf
+  val appConf = readConf(configuration)
   override lazy val allowedHostsConfig = AllowedHostsConfig(Seq("boat.malliina.com", "localhost"))
+
   override def httpFilters: Seq[EssentialFilter] = Seq(csrfFilter, securityHeadersFilter)
+
   val csps = Seq(
     "default-src 'self' 'unsafe-inline' *.mapbox.com",
     "font-src 'self' data: https://fonts.gstatic.com",
@@ -59,8 +62,8 @@ class AppComponents(context: Context)
   val mapboxToken = AccessToken(configuration.get[String]("boat.mapbox.token"))
   val http = OkClient.default
 
-  val googleAuth = GoogleTokenAuth(configuration.get[String]("boat.google.ios.id"), http, executionContext)
-  val signIn = Social(mode, configuration, http, controllerComponents, executionContext)
+  val googleAuth = GoogleTokenAuth(appConf.iosClientId, http, executionContext)
+  val signIn = Social(appConf.web, http, controllerComponents, executionContext)
   val files = new FileController(
     S3Client(),
     new FileController.BlockingActions(actorSystem, controllerComponents.parsers.default),
