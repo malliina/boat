@@ -82,17 +82,26 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext) extends 
           case _ => points.asc.nullsLast
         }
       }
-    query.result.map { rows =>
+    // This is crazy and kills performance. TODO: Need to compute distances in the database.
+    for {
+      rows <- query.result
+      distances <- DBIO.sequence(rows.map(t => distance(t._1.track).map(d => t._1.track -> d))).map(_.toMap)
+    } yield {
       val summaries = rows.map { case (track, points, first, last) =>
         val firstMillis = first.get.toEpochMilli
         val lastMillis = last.get.toEpochMilli
         val duration = (lastMillis - firstMillis).millis
         val firstUtc = first.get.atOffset(ZoneOffset.UTC)
         val lastUtc = last.get.atOffset(ZoneOffset.UTC)
-        TrackSummary(track.strip(Distance.zero), TrackStats(points, timeFormatter.format(firstUtc), firstMillis, timeFormatter.format(lastUtc), lastMillis, duration))
+        val distance = distances.getOrElse(track.track, Distance.zero)
+        TrackSummary(track.strip(distance), TrackStats(points, timeFormatter.format(firstUtc), firstMillis, timeFormatter.format(lastUtc), lastMillis, duration))
       }
       TrackSummaries(summaries)
     }
+  }
+
+  private def distance(track: TrackId) = pointsTable.filter(_.track === track).result.map { coords =>
+    Earth.length(coords.map(_.toCoord).toList)
   }
 
   override def track(track: TrackName, email: Email, query: TrackQuery): Future[Seq[CombinedCoord]] = action {
