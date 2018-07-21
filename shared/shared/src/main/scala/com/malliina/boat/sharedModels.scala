@@ -191,6 +191,7 @@ case class RawSentence(sentence: String) extends Wrapped(sentence)
 
 object RawSentence extends StringCompanion[RawSentence] {
   val MaxLength = 82
+  val initialZda = RawSentence("$GPZDA,,00,00,0000,-03,00*66")
 }
 
 object Usernames {

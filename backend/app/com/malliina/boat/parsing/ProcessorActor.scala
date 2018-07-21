@@ -20,14 +20,14 @@ class ProcessorActor(processed: ActorRef) extends Actor {
   var latestWaterSpeed: Map[TrackId, ParsedWaterSpeed] = Map.empty
   var latestBoatSpeed: Map[TrackId, ParsedBoatSpeed] = Map.empty
   // latest suitable date, if any
-  var latestDate: Map[TrackId, ParsedDate] = Map.empty
+  var latestDateTime: Map[TrackId, ParsedDateTime] = Map.empty
   // buffer for coords without a suitable date
   var coords: Map[TrackId, Seq[ParsedCoord]] = Map.empty
 
   override def receive: Receive = {
-    case pd@ParsedDate(_, _) =>
+    case pd@ParsedDateTime(_, _, _) =>
       val track = pd.track
-      latestDate = latestDate.updated(track, pd)
+      latestDateTime = latestDateTime.updated(track, pd)
       emitIfComplete(track)
     case pbs@ParsedBoatSpeed(_, _) =>
       val track = pbs.track
@@ -70,14 +70,14 @@ class ProcessorActor(processed: ActorRef) extends Actor {
     */
   def emitIfComplete(track: TrackId, buffer: Seq[ParsedCoord]): Boolean =
     (for {
-      date <- latestDate.get(track)
+      dateTime <- latestDateTime.get(track)
       speed <- latestBoatSpeed.get(track)
       temp <- latestWaterTemp.get(track)
       depth <- latestDepth.get(track)
     } yield {
       buffer.foreach { coord =>
-        val sentenceKeys = Seq(coord.key, date.key, speed.key, temp.key, depth.key)
-        processed ! coord.complete(date.date, speed.speed, temp.temp, depth.depth, depth.offset, sentenceKeys)
+        val sentenceKeys = Seq(coord.key, dateTime.key, speed.key, temp.key, depth.key)
+        processed ! coord.complete(dateTime.date, dateTime.time, speed.speed, temp.temp, depth.depth, depth.offset, sentenceKeys)
       }
       true
     }).getOrElse(false)

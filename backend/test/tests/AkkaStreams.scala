@@ -18,7 +18,7 @@ class AkkaStreams extends FunSuite {
   implicit val as = ActorSystem("test")
   implicit val mat = ActorMaterializer()(as)
 
-  test("state") {
+  test("stateful sentence parsing") {
     val from = JoinedTrack(
       TrackId(1), TrackName("test"), Instant.now,
       BoatId(1), BoatName("boat"), BoatToken("a"),
@@ -35,22 +35,23 @@ class AkkaStreams extends FunSuite {
       testTemp,
       testSpeed,
       testDepth,
-      ParsedCoord(Coord(1, 2), LocalTime.of(10, 11, 1), keyed(4)),
-      ParsedCoord(Coord(4, 5), LocalTime.of(10, 12, 2), keyed(5)),
-      ParsedDate(LocalDate.of(2018, 4, 10), keyed(6)),
-      ParsedCoord(Coord(6, 7), LocalTime.of(10, 13, 3), keyed(7)),
-      ParsedDate(LocalDate.of(2018, 4, 11), keyed(8)),
-      ParsedCoord(Coord(8, 9), LocalTime.of(0, 1, 4), keyed(9))
+      ParsedDateTime(LocalDate.of(2018, 4, 10), LocalTime.of(10, 11, 1), keyed(4)),
+      ParsedCoord(Coord(1, 2), LocalTime.of(10, 11, 1), keyed(5)),
+      ParsedDateTime(LocalDate.of(2018, 4, 10), LocalTime.of(10, 12, 2), keyed(6)),
+      ParsedCoord(Coord(4, 5), LocalTime.of(10, 12, 2), keyed(7)),
+      ParsedDateTime(LocalDate.of(2018, 4, 11), LocalTime.of(10, 13, 3), keyed(8)),
+      ParsedCoord(Coord(6, 7), LocalTime.of(10, 13, 3), keyed(9)),
+      ParsedCoord(Coord(8, 9), LocalTime.of(0, 1, 4), keyed(10))
     ))
 
     def toFull(coord: Coord, time: LocalTime, date: LocalDate, keys: Seq[Long]) =
       FullCoord(coord, time, date, testSpeed.speed, testTemp.temp, testDepth.depth, testDepth.offset, from, keys.map(SentenceKey.apply))
 
     val expected = List(
-      toFull(Coord(1, 2), LocalTime.of(10, 11, 1), LocalDate.of(2018, 4, 10), Seq(4, 6, 2, 1, 3)),
-      toFull(Coord(4, 5), LocalTime.of(10, 12, 2), LocalDate.of(2018, 4, 10), Seq(5, 6, 2, 1, 3)),
-      toFull(Coord(6, 7), LocalTime.of(10, 13, 3), LocalDate.of(2018, 4, 10), Seq(7, 6, 2, 1, 3)),
-      toFull(Coord(8, 9), LocalTime.of(0, 1, 4), LocalDate.of(2018, 4, 11), Seq(9, 8, 2, 1, 3))
+      toFull(Coord(1, 2), LocalTime.of(10, 11, 1), LocalDate.of(2018, 4, 10), Seq(5, 4, 2, 1, 3)),
+      toFull(Coord(4, 5), LocalTime.of(10, 12, 2), LocalDate.of(2018, 4, 10), Seq(7, 6, 2, 1, 3)),
+      toFull(Coord(6, 7), LocalTime.of(10, 13, 3), LocalDate.of(2018, 4, 11), Seq(9, 8, 2, 1, 3)),
+      toFull(Coord(8, 9), LocalTime.of(10, 13, 3), LocalDate.of(2018, 4, 11), Seq(10, 8, 2, 1, 3))
     )
     val processed = BoatParser.multi(parsed).take(4)
     val listSink = Sink.fold[List[FullCoord], FullCoord](List.empty[FullCoord])((acc, dc) => acc :+ dc)

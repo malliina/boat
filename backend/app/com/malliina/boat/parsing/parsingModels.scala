@@ -37,18 +37,18 @@ sealed trait ParsedSentence {
   def key: SentenceKey = sentence.key
 }
 
-case class ParsedCoord(coord: Coord, time: LocalTime, sentence: KeyedSentence) extends ParsedSentence {
+case class ParsedCoord(coord: Coord, ggaTime: LocalTime, sentence: KeyedSentence) extends ParsedSentence {
   def lng = coord.lng
 
   def lat = coord.lat
 
-  def complete(date: LocalDate, boatSpeed: Speed,
+  def complete(date: LocalDate, time: LocalTime, boatSpeed: Speed,
                waterTemp: Temperature, depth: Distance,
                depthOffset: Distance, parts: Seq[SentenceKey]): FullCoord =
     FullCoord(coord, time, date, boatSpeed, waterTemp, depth, depthOffset, from, parts)
 }
 
-case class ParsedDate(date: LocalDate, sentence: KeyedSentence) extends ParsedSentence
+case class ParsedDateTime(date: LocalDate, time: LocalTime, sentence: KeyedSentence) extends ParsedSentence
 
 case class ParsedBoatSpeed(speed: Speed, sentence: KeyedSentence) extends ParsedSentence
 
@@ -91,7 +91,10 @@ case class UnknownSentence(sentence: RawSentence, detailedMessage: String) exten
   override def message: String = s"Unknown sentence: '$sentence'. $detailedMessage"
 }
 
+case class SuspectTime(sentence: RawSentence) extends SentenceError {
+  override def message = s"Suspect time in '$sentence'. This might mean the plotter is still initializing."
+}
+
 case class SentenceFailure(sentence: RawSentence, e: Exception) extends SentenceError {
   override def message: String = s"Error for sentence: '$sentence'. ${e.getMessage}"
 }
-
