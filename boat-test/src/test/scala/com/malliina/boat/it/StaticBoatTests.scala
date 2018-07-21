@@ -36,7 +36,7 @@ class StaticBoatTests extends BoatTests {
         assert(coordsEvent.from.boatName === boatName)
         assert(coordsEvent.coords.map(_.coord) === Seq(testCoord))
         val first = coordsEvent.coords.head
-        assert(first.boatTime === "2018-05-04 17:17:35")
+        assert(first.boatTimeMillis === 1525443455000L)
       }
     }
   }
