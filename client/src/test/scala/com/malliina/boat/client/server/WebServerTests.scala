@@ -36,5 +36,5 @@ class WebServerTests extends FunSuite {
     assert(WebServer.hash("boat") === WebServer.defaultHash)
   }
 
-  def await[T](f: Future[T], duration: Duration = 3.seconds): T = Await.result(f, duration)
+  def await[T](f: Future[T], duration: Duration = 10.seconds): T = Await.result(f, duration)
 }
