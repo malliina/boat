@@ -26,6 +26,8 @@ abstract class DatabaseLike(val impl: JdbcProfile, val database: JdbcProfile#API
   def runQuery[A, B, C[_]](query: Query[A, B, C]): Future[C[B]] =
     run(query.result)
 
+  def runAndAwait[R](a: DBIOAction[R, NoStream, Nothing]): R = await(run(a))
+
   def run[R](a: DBIOAction[R, NoStream, Nothing]): Future[R] = {
     val start = System.currentTimeMillis()
     database.run(a).map { r =>

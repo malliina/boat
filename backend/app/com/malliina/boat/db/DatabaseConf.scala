@@ -14,6 +14,7 @@ case class DatabaseConf(url: String, user: String, pass: String, driverName: Str
 object DatabaseConf {
   val H2Driver = "org.h2.Driver"
   val MariaDriver = "org.mariadb.jdbc.Driver"
+  val MySQLDriver = "com.mysql.jdbc.Driver"
 
   def apply(mode: Mode, conf: Configuration): DatabaseConf =
     if (mode == Mode.Test) inMemory
@@ -29,6 +30,6 @@ object DatabaseConf {
       url <- read("boat.db.url")
       user <- read("boat.db.user")
       pass <- read("boat.db.pass")
-    } yield apply(url, user, pass, read("boat.db.driver").getOrElse(MariaDriver))
+    } yield apply(url, user, pass, read("boat.db.driver").getOrElse(MySQLDriver))
   }
 }

@@ -5,7 +5,7 @@ import java.time.{Instant, LocalDate}
 import com.malliina.boat._
 import com.malliina.boat.db.BoatSchema.{CreatedTimestampType, NumThreads}
 import com.malliina.measure.{Distance, Speed, Temperature}
-import com.malliina.values.{UserId, Username, Email}
+import com.malliina.values.{Email, UserId, Username}
 import com.zaxxer.hikari.{HikariConfig, HikariDataSource}
 import javax.sql.DataSource
 import play.api.Logger
@@ -25,13 +25,18 @@ object BoatSchema {
     new BoatSchema(ds, profile)
 
   def apply(conf: DatabaseConf): BoatSchema = {
+    log.info(s"Connecting to '${conf.url}'...")
+    apply(conf.profile, dataSource(conf))
+  }
+
+  def dataSource(conf: DatabaseConf): HikariDataSource = {
     val hikariConfig = new HikariConfig()
     hikariConfig.setJdbcUrl(conf.url)
     hikariConfig.setUsername(conf.user)
     hikariConfig.setPassword(conf.pass)
     hikariConfig.setDriverClassName(conf.driverName)
     log.info(s"Connecting to '${conf.url}'...")
-    apply(conf.profile, new HikariDataSource(hikariConfig))
+    new HikariDataSource(hikariConfig)
   }
 
   def executor(threads: Int = NumThreads) = AsyncExecutor(
@@ -47,6 +52,7 @@ class BoatSchema(ds: DataSource, override val impl: JdbcProfile)
   extends DatabaseLike(impl, impl.api.Database.forDataSource(ds, Option(NumThreads), BoatSchema.executor(NumThreads))) {
 
   val api = new Mappings(impl) with impl.API
+
   import api._
 
   val usersTable = TableQuery[UsersTable]
