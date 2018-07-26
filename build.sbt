@@ -49,8 +49,9 @@ lazy val it = Project("integration-tests", file("boat-test"))
 lazy val backendSettings = playSettings ++ Seq(
   libraryDependencies ++= Seq(
     //    "net.sf.marineapi" % "marineapi" % "0.13.0-SNAPSHOT",
+    "com.vividsolutions" % "jts" % "1.13",
     "com.typesafe.slick" %% "slick" % "3.2.3",
-    "com.h2database" % "h2" % "1.4.197",
+    "com.h2database" % "h2" % "1.4.196",
     "org.orbisgis" % "h2gis" % "1.4.0",
     "org.mariadb.jdbc" % "mariadb-java-client" % "2.2.5",
     "mysql" % "mysql-connector-java" % "5.1.46",

@@ -128,6 +128,7 @@ object TrackPointId extends IdCompanion[TrackPointId]
 
 case class TrackPointInput(lon: Double,
                            lat: Double,
+                           coord: Coord,
                            boatSpeed: Speed,
                            waterTemp: Temperature,
                            depth: Distance,
@@ -137,12 +138,13 @@ case class TrackPointInput(lon: Double,
 
 object TrackPointInput {
   def forCoord(c: FullCoord): TrackPointInput =
-    TrackPointInput(c.lng, c.lat, c.boatSpeed, c.waterTemp, c.depth, c.depthOffset, c.boatTime, c.from.track)
+    TrackPointInput(c.lng, c.lat, c.coord, c.boatSpeed, c.waterTemp, c.depth, c.depthOffset, c.boatTime, c.from.track)
 }
 
 case class CombinedCoord(id: TrackPointId,
                          lon: Double,
                          lat: Double,
+                         coord: Coord,
                          boatSpeed: Speed,
                          waterTemp: Temperature,
                          depth: Distance,
@@ -159,6 +161,7 @@ object CombinedCoord {
 case class TrackPointRow(id: TrackPointId,
                          lon: Double,
                          lat: Double,
+                         coord: Coord,
                          boatSpeed: Speed,
                          waterTemp: Temperature,
                          depth: Distance,
@@ -166,8 +169,6 @@ case class TrackPointRow(id: TrackPointId,
                          boatTime: Instant,
                          track: TrackId,
                          added: Instant) {
-  def toCoord = Coord(lon, lat)
-
   def dateTimeUtc = boatTime.atOffset(ZoneOffset.UTC)
 
   def time = LocalTime.from(dateTimeUtc)

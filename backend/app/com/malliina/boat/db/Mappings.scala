@@ -1,11 +1,14 @@
 package com.malliina.boat.db
 
+import java.sql.{PreparedStatement, ResultSet}
 import java.time.{Instant, LocalDate, LocalTime}
 
-import com.malliina.boat.{BoatId, BoatName, BoatToken, RawSentence, SentenceKey, TrackId, TrackName, TrackPointId, UserToken}
+import com.malliina.boat.db.SpatialUtils.{coordToBytes, fromBytes}
+import com.malliina.boat.{BoatId, BoatName, BoatToken, Coord, RawSentence, SentenceKey, TrackId, TrackName, TrackPointId, UserToken}
 import com.malliina.measure.{Distance, DistanceLong, Speed, SpeedDouble, Temperature, TemperatureDouble}
 import com.malliina.values._
-import slick.ast.BaseTypedType
+import com.vividsolutions.jts.geom.Point
+import slick.ast.{BaseTypedType, FieldSymbol}
 import slick.jdbc.{JdbcProfile, JdbcType}
 
 import scala.reflect.ClassTag
@@ -33,6 +36,36 @@ class Mappings(val impl: JdbcProfile) {
   implicit val instantMapping = MappedColumnType.base[Instant, java.sql.Timestamp](java.sql.Timestamp.from, _.toInstant)
   implicit val timeMapping = MappedColumnType.base[LocalTime, java.sql.Time](java.sql.Time.valueOf, _.toLocalTime)
   implicit val dateMapping = MappedColumnType.base[LocalDate, java.sql.Date](java.sql.Date.valueOf, _.toLocalDate)
+
+  class CoordJdbcType(implicit override val classTag: ClassTag[Coord])
+    extends impl.DriverJdbcType[Coord] {
+
+    override def sqlType: Int = java.sql.Types.OTHER
+
+    override def sqlTypeName(sym: Option[FieldSymbol]): String = "geometry"
+
+    override def getValue(r: ResultSet, idx: Int): Coord = {
+      val value = r.getBytes(idx)
+      if (r.wasNull) null.asInstanceOf[Coord] else toCoord(fromBytes[Point](value))
+    }
+
+    def toCoord(point: Point): Coord = {
+      val c = point.getCoordinate
+      Coord(c.x, c.y)
+    }
+
+    override def setValue(coord: Coord, p: PreparedStatement, idx: Int): Unit =
+      p.setBytes(idx, coordToBytes(coord))
+
+    override def updateValue(v: Coord, r: ResultSet, idx: Int): Unit =
+      r.updateBytes(idx, coordToBytes(v))
+
+    override def hasLiteralForm: Boolean = false
+
+    override def valueToSQLLiteral(v: Coord): String = throw new SlickException("no literal form")
+  }
+
+  implicit val coordMapper = new CoordJdbcType
 
   def stringMapping[T <: Wrapped : ClassTag](apply: String => T): JdbcType[T] with BaseTypedType[T] =
     MappedColumnType.base[T, String](_.value, apply)

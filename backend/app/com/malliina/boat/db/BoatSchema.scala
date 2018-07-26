@@ -3,13 +3,13 @@ package com.malliina.boat.db
 import java.time.{Instant, LocalDate}
 
 import com.malliina.boat._
-import com.malliina.boat.db.BoatSchema.{CreatedTimestampType, NumThreads}
+import com.malliina.boat.db.BoatSchema.{CreatedTimestampType, GetDummy, NumThreads}
 import com.malliina.measure.{Distance, Speed, Temperature}
 import com.malliina.values.{Email, UserId, Username}
 import com.zaxxer.hikari.{HikariConfig, HikariDataSource}
 import javax.sql.DataSource
 import play.api.Logger
-import slick.jdbc.JdbcProfile
+import slick.jdbc.{GetResult, H2Profile, PositionedResult}
 import slick.util.AsyncExecutor
 
 import scala.concurrent.ExecutionContext
@@ -21,12 +21,12 @@ object BoatSchema {
   val CreatedTimestampType = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL"
   val NumThreads = 20
 
-  def apply(profile: JdbcProfile, ds: DataSource): BoatSchema =
+  def apply(ds: DataSource, profile: ProfileConf): BoatSchema =
     new BoatSchema(ds, profile)
 
   def apply(conf: DatabaseConf): BoatSchema = {
     log.info(s"Connecting to '${conf.url}'...")
-    apply(conf.profile, dataSource(conf))
+    apply(dataSource(conf), conf.profileConf)
   }
 
   def dataSource(conf: DatabaseConf): HikariDataSource = {
@@ -46,10 +46,14 @@ object BoatSchema {
     queueSize = 20000,
     maxConnections = threads
   )
+
+  object GetDummy extends GetResult[Int] {
+    override def apply(v1: PositionedResult) = 0
+  }
 }
 
-class BoatSchema(ds: DataSource, override val impl: JdbcProfile)
-  extends DatabaseLike(impl, impl.api.Database.forDataSource(ds, Option(NumThreads), BoatSchema.executor(NumThreads))) {
+class BoatSchema(ds: DataSource, conf: ProfileConf)
+  extends DatabaseLike(conf.profile, conf.profile.api.Database.forDataSource(ds, Option(NumThreads), BoatSchema.executor(NumThreads))) {
 
   val api = new Mappings(impl) with impl.API
 
@@ -66,6 +70,17 @@ class BoatSchema(ds: DataSource, override val impl: JdbcProfile)
   val userInserts = usersTable.map(_.forInserts).returning(usersTable.map(_.id))
   val trackInserts = tracksTable.map(_.forInserts).returning(tracksTable.map(_.id))
   val coordInserts = pointsTable.map(_.forInserts).returning(pointsTable.map(_.id))
+
+  val distanceFunc = impl match {
+    case H2Profile => "ST_MaxDistance"
+    case _ => "ST_Distance_Sphere"
+  }
+  val distanceCoords = SimpleFunction.binary[Coord, Coord, Double](distanceFunc)
+
+  def distance(coords: Query[Rep[Coord], Coord, Seq]): Rep[Option[Double]] =
+    coords.zipWithIndex.join(coords.zipWithIndex).on((c1, c2) => c1._2 === c2._2 - 1L)
+      .map { case (l, r) => distanceCoords(l._1, r._1) }
+      .sum
 
   def dateFunc: Rep[Instant] => Rep[LocalDate] =
     SimpleFunction.unary[Instant, LocalDate]("date")
@@ -91,7 +106,7 @@ class BoatSchema(ds: DataSource, override val impl: JdbcProfile)
 
   implicit object TrackShape extends CaseClassShape(LiftedJoinedTrack.tupled, (JoinedTrack.apply _).tupled)
 
-  case class LiftedCoord(id: Rep[TrackPointId], lon: Rep[Double], lat: Rep[Double],
+  case class LiftedCoord(id: Rep[TrackPointId], lon: Rep[Double], lat: Rep[Double], coord: Rep[Coord],
                          boatSpeed: Rep[Speed], waterTemp: Rep[Temperature], depth: Rep[Distance],
                          depthOffset: Rep[Distance], boatTime: Rep[Instant], date: Rep[LocalDate],
                          track: Rep[TrackId], added: Rep[Instant])
@@ -129,6 +144,14 @@ class BoatSchema(ds: DataSource, override val impl: JdbcProfile)
 
   def initBoat()(implicit ec: ExecutionContext) = {
     init()
+    if (conf.profile == H2Profile) {
+      val clazz = "org.h2gis.functions.factory.H2GISFunctions.load"
+      val a = for {
+        _ <- sqlu"""CREATE ALIAS IF NOT EXISTS H2GIS_SPATIAL FOR "#$clazz";"""
+        _ <- sql"CALL H2GIS_SPATIAL();".as[Int](GetDummy)
+      } yield ()
+      runAndAwait(a)
+    }
     val addAnon = usersTable.filter(_.user === Usernames.anon).exists.result.flatMap { exists =>
       if (exists) DBIO.successful(())
       else userInserts += NewUser(Usernames.anon, None, "unused", UserToken.random(), enabled = true)
@@ -163,6 +186,8 @@ class BoatSchema(ds: DataSource, override val impl: JdbcProfile)
 
     def lat = column[Double]("latitude")
 
+    def coord = column[Coord]("coord")
+
     def boatSpeed = column[Speed]("boat_speed")
 
     def waterTemp = column[Temperature]("water_temp")
@@ -183,11 +208,11 @@ class BoatSchema(ds: DataSource, override val impl: JdbcProfile)
 
     def added = column[Instant]("added", O.SqlType(CreatedTimestampType))
 
-    def forInserts = (lon, lat, boatSpeed, waterTemp, depth, depthOffset, boatTime, track) <> ((TrackPointInput.apply _).tupled, TrackPointInput.unapply)
+    def forInserts = (lon, lat, coord, boatSpeed, waterTemp, depth, depthOffset, boatTime, track) <> ((TrackPointInput.apply _).tupled, TrackPointInput.unapply)
 
-    def combined = LiftedCoord(id, lon, lat, boatSpeed, waterTemp, depth, depthOffset, boatTime, dateFunc(boatTime), track, added)
+    def combined = LiftedCoord(id, lon, lat, coord, boatSpeed, waterTemp, depth, depthOffset, boatTime, dateFunc(boatTime), track, added)
 
-    def * = (id, lon, lat, boatSpeed, waterTemp, depth, depthOffset, boatTime, track, added) <> ((TrackPointRow.apply _).tupled, TrackPointRow.unapply)
+    def * = (id, lon, lat, coord, boatSpeed, waterTemp, depth, depthOffset, boatTime, track, added) <> ((TrackPointRow.apply _).tupled, TrackPointRow.unapply)
   }
 
   class SentencesPointsLink(tag: Tag) extends Table[SentencePointLink](tag, "sentence_points") {

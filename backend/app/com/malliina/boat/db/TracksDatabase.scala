@@ -52,9 +52,8 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext) extends 
     insertLogged(action, from, "sentence")
   }
 
-  override def saveCoords(coord: FullCoord): Future[Seq[TrackPointId]] = {
+  override def saveCoords(coord: FullCoord): Future[Seq[TrackPointId]] =
     insertLogged(saveCoordAction(coord).map(id => Seq(id)), coord.from, "coordinate")
-  }
 
   def saveCoordAction(coord: FullCoord) = for {
     point <- coordInserts += TrackPointInput.forCoord(coord)
@@ -101,7 +100,7 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext) extends 
   }
 
   private def distance(track: TrackId) = pointsTable.filter(_.track === track).result.map { coords =>
-    Earth.length(coords.map(_.toCoord).toList)
+    Earth.length(coords.map(_.coord).toList)
   }
 
   override def track(track: TrackName, email: Email, query: TrackQuery): Future[Seq[CombinedCoord]] = action {

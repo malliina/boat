@@ -60,7 +60,7 @@ class DatabaseUserManager(val db: BoatSchema)(implicit ec: ExecutionContext)
   }
 
   private def distance(track: TrackId) = pointsTable.filter(_.track === track).result.map { coords =>
-    Earth.length(coords.map(_.toCoord).toList)
+    Earth.length(coords.map(_.coord).toList)
   }
 
   private def collectBoats(rows: Seq[JoinedTrack], distances: Map[TrackId, Distance]): Seq[BoatInfo] =
