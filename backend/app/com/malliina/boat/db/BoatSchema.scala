@@ -3,7 +3,7 @@ package com.malliina.boat.db
 import java.time.{Instant, LocalDate}
 
 import com.malliina.boat._
-import com.malliina.boat.db.BoatSchema.{CreatedTimestampType, GetDummy, NumThreads}
+import com.malliina.boat.db.BoatSchema.{CreatedTimestampType, GetDummy, log, NumThreads}
 import com.malliina.measure.{Distance, Speed, Temperature}
 import com.malliina.values.{Email, UserId, Username}
 import com.zaxxer.hikari.{HikariConfig, HikariDataSource}
@@ -24,10 +24,8 @@ object BoatSchema {
   def apply(ds: DataSource, profile: ProfileConf): BoatSchema =
     new BoatSchema(ds, profile)
 
-  def apply(conf: DatabaseConf): BoatSchema = {
-    log.info(s"Connecting to '${conf.url}'...")
+  def apply(conf: DatabaseConf): BoatSchema =
     apply(dataSource(conf), conf.profileConf)
-  }
 
   def dataSource(conf: DatabaseConf): HikariDataSource = {
     val hikariConfig = new HikariConfig()
@@ -50,11 +48,11 @@ object BoatSchema {
   object GetDummy extends GetResult[Int] {
     override def apply(v1: PositionedResult) = 0
   }
+
 }
 
 class BoatSchema(ds: DataSource, conf: ProfileConf)
   extends DatabaseLike(conf.profile, conf.profile.api.Database.forDataSource(ds, Option(NumThreads), BoatSchema.executor(NumThreads))) {
-
   val api = new Mappings(impl) with impl.API
 
   import api._
@@ -71,16 +69,16 @@ class BoatSchema(ds: DataSource, conf: ProfileConf)
   val trackInserts = tracksTable.map(_.forInserts).returning(tracksTable.map(_.id))
   val coordInserts = pointsTable.map(_.forInserts).returning(pointsTable.map(_.id))
 
+  // The H2 function is wrong, but I just want something that compiles for H2
   val distanceFunc = impl match {
     case H2Profile => "ST_MaxDistance"
     case _ => "ST_Distance_Sphere"
   }
-  val distanceCoords = SimpleFunction.binary[Coord, Coord, Double](distanceFunc)
-
-  def distance(coords: Query[Rep[Coord], Coord, Seq]): Rep[Option[Double]] =
-    coords.zipWithIndex.join(coords.zipWithIndex).on((c1, c2) => c1._2 === c2._2 - 1L)
-      .map { case (l, r) => distanceCoords(l._1, r._1) }
-      .sum
+  private val distanceCoords = SimpleFunction.binary[Coord, Coord, Double](distanceFunc)
+  val distances = pointsTable
+    .join(pointsTable).on((c1, c2) => c1.track === c2.track && c1.id === c2.previous)
+    .map { case (c1, c2) => (c1.track, distanceCoords(c1.coord, c2.coord)) }
+    .groupBy(_._1).map { case (track, q) => (track, q.map(_._2).sum.map(_.asColumnOf[Distance](distanceMappingMeters))) }
 
   def dateFunc: Rep[Instant] => Rep[LocalDate] =
     SimpleFunction.unary[Instant, LocalDate]("date")
@@ -102,7 +100,8 @@ class BoatSchema(ds: DataSource, conf: ProfileConf)
                                boat: Rep[BoatId], boatName: Rep[BoatName], boatToken: Rep[BoatToken],
                                user: Rep[UserId], username: Rep[Username], email: Rep[Option[Email]],
                                points: Rep[Int], start: Rep[Option[Instant]], end: Rep[Option[Instant]],
-                               topSpeed: Rep[Option[Speed]], avgSpeed: Rep[Option[Speed]], avgWaterTemp: Rep[Option[Temperature]])
+                               topSpeed: Rep[Option[Speed]], avgSpeed: Rep[Option[Speed]],
+                               avgWaterTemp: Rep[Option[Temperature]], length: Rep[Option[Distance]])
 
   implicit object TrackShape extends CaseClassShape(LiftedJoinedTrack.tupled, (JoinedTrack.apply _).tupled)
 
@@ -116,17 +115,20 @@ class BoatSchema(ds: DataSource, conf: ProfileConf)
   private val minSpeed: Speed = Speed.kmh(1)
 
   val tracksViewNonEmpty: Query[LiftedJoinedTrack, JoinedTrack, Seq] =
-    pointsTable.join(tracksTable).on(_.track === _.id).join(boatsView).on(_._2.boat === _.boat)
-      .groupBy { case ((_, ts), bs) => (bs, ts) }
+    pointsTable.join(tracksTable).on(_.track === _.id).join(boatsView).on(_._2.boat === _.boat).join(distances).on(_._1._2.id === _._1)
+      .groupBy { case (((_, ts), bs), _) => (bs, ts) }
       .map { case ((bs, ts), q) =>
         // TODO should filter average speed by minSpeed, but Slick throws an exception. However, works with trackView.
         LiftedJoinedTrack(
           ts.id, ts.name, ts.added, bs.boat, bs.boatName, bs.token, bs.user,
           bs.username, bs.email, q.length,
-          q.map(_._1._1.boatTime).min, q.map(_._1._1.boatTime).max,
-          q.map(_._1._1.boatSpeed).max, q.map(_._1._1.boatSpeed).avg, q.map(_._1._1.waterTemp).max)
+          q.map(_._1._1._1.boatTime).min, q.map(_._1._1._1.boatTime).max,
+          q.map(_._1._1._1.boatSpeed).max, q.map(_._1._1._1.boatSpeed).avg,
+          q.map(_._1._1._1.waterTemp).max, q.map(_._2._2).max
+        )
       }
 
+  // TODO Fix - do not join points
   val tracksView: Query[LiftedJoinedTrack, JoinedTrack, Seq] =
     boatsView.join(tracksTable).on(_.boat === _.boat).joinLeft(pointsTable).on(_._2.id === _.track)
       .groupBy { case ((bs, ts), _) => (bs, ts) }
@@ -134,7 +136,9 @@ class BoatSchema(ds: DataSource, conf: ProfileConf)
         ts.id, ts.name, ts.added, bs.boat, bs.boatName, bs.token, bs.user,
         bs.username, bs.email, q.length,
         q.map(_._2.map(_.boatTime)).min, q.map(_._2.map(_.boatTime)).max,
-        q.map(_._2.map(_.boatSpeed)).max, q.map(_._2.map(_.boatSpeed).filter(_ >= minSpeed)).avg, q.map(_._2.map(_.waterTemp)).avg)
+        q.map(_._2.map(_.boatSpeed)).max, q.map(_._2.map(_.boatSpeed).filter(_ >= minSpeed)).avg,
+        q.map(_._2.map(_.waterTemp)).avg, Distance.zero.bind.?
+      )
       }
 
   def first[T, R](q: Query[T, R, Seq], onNotFound: => String)(implicit ec: ExecutionContext) =
@@ -143,7 +147,6 @@ class BoatSchema(ds: DataSource, conf: ProfileConf)
     }
 
   def initBoat()(implicit ec: ExecutionContext) = {
-    init()
     if (conf.profile == H2Profile) {
       val clazz = "org.h2gis.functions.factory.H2GISFunctions.load"
       val a = for {
@@ -151,7 +154,9 @@ class BoatSchema(ds: DataSource, conf: ProfileConf)
         _ <- sql"CALL H2GIS_SPATIAL();".as[Int](GetDummy)
       } yield ()
       runAndAwait(a)
+      log.info("Initialized H2GIS spatial extensions.")
     }
+    init()
     val addAnon = usersTable.filter(_.user === Usernames.anon).exists.result.flatMap { exists =>
       if (exists) DBIO.successful(())
       else userInserts += NewUser(Usernames.anon, None, "unused", UserToken.random(), enabled = true)
@@ -192,13 +197,17 @@ class BoatSchema(ds: DataSource, conf: ProfileConf)
 
     def waterTemp = column[Temperature]("water_temp")
 
-    def depth = column[Distance]("depth")
+    def depth = column[Distance]("depthm")
 
-    def depthOffset = column[Distance]("depth_offset")
+    def depthOffset = column[Distance]("depth_offsetm")
 
     def boatTime = column[Instant]("boat_time", O.SqlType(CreatedTimestampType))
 
     def track = column[TrackId]("track")
+
+    def trackIndex = column[Int]("track_index", O.Default(0))
+
+    def trackIndexIdx = index("points_track_index_idx", trackIndex, unique = false)
 
     def trackConstraint = foreignKey("points2_track_fk", track, tracksTable)(
       _.id,
@@ -206,13 +215,21 @@ class BoatSchema(ds: DataSource, conf: ProfileConf)
       onDelete = ForeignKeyAction.Cascade
     )
 
+    def previous = column[Option[TrackPointId]]("previous")
+
+    def previousConstraint = foreignKey("points_previous_fk", previous, pointsTable)(
+      _.id.?,
+      onUpdate = ForeignKeyAction.Cascade,
+      onDelete = ForeignKeyAction.Cascade
+    )
+
     def added = column[Instant]("added", O.SqlType(CreatedTimestampType))
 
-    def forInserts = (lon, lat, coord, boatSpeed, waterTemp, depth, depthOffset, boatTime, track) <> ((TrackPointInput.apply _).tupled, TrackPointInput.unapply)
+    def forInserts = (lon, lat, coord, boatSpeed, waterTemp, depth, depthOffset, boatTime, track, trackIndex, previous) <> ((TrackPointInput.apply _).tupled, TrackPointInput.unapply)
 
     def combined = LiftedCoord(id, lon, lat, coord, boatSpeed, waterTemp, depth, depthOffset, boatTime, dateFunc(boatTime), track, added)
 
-    def * = (id, lon, lat, coord, boatSpeed, waterTemp, depth, depthOffset, boatTime, track, added) <> ((TrackPointRow.apply _).tupled, TrackPointRow.unapply)
+    def * = (id, lon, lat, coord, boatSpeed, waterTemp, depth, depthOffset, boatTime, track, trackIndex, previous, added) <> ((TrackPointRow.apply _).tupled, TrackPointRow.unapply)
   }
 
   class SentencesPointsLink(tag: Tag) extends Table[SentencePointLink](tag, "sentence_points") {

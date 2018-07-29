@@ -7,7 +7,8 @@ import tests.BaseSuite
 import scala.concurrent.duration.DurationInt
 
 class SpatialSlickTests extends BaseSuite {
-  val conf = DatabaseConf("jdbc:mysql://localhost:3306/gis?useSSL=false", "", "", DatabaseConf.MySQLDriver)
+  val conf = DatabaseConf("jdbc:mysql://localhost:3306/boat?useSSL=false", "", "", DatabaseConf.MySQLDriver)
+  val conf2 = DatabaseConf("jdbc:mysql://localhost:3306/gis?useSSL=false", "", "", DatabaseConf.MySQLDriver)
   //        val conf = DatabaseConf.inMemory
 
   ignore("insert coords directly") {
@@ -36,30 +37,29 @@ class SpatialSlickTests extends BaseSuite {
     await(db.run(rowsChanged), 600.seconds)
   }
 
-  ignore("zip") {
-    val db = craftDb()
-    import db._
-    import db.api._
-    val london = Coord(0.13, 51.5)
-    val sanfran = Coord(-122.4, 37.8)
-    runAndAwait(coordsTable.delete)
-    runAndAwait(coordsTable.map(_.coord) ++= Seq(london, sanfran))
-
-    def distance(coords: Query[Rep[Coord], Coord, Seq]): Rep[Option[Double]] =
-      coords.zipWithIndex.join(coords.zipWithIndex).on((c1, c2) => c1._2 === c2._2 - 1L)
-        .map { case (l, r) => distanceCoords(l._1, r._1) }
-        .sum
-
-    val a = distance(coordsTable.sortBy(_.id).map(_.coord)).result
-    runAndAwait(a) foreach println
-  }
-
-  ignore("distance") {
+  ignore("migrate track indices") {
     val db = BoatSchema(conf)
     import db._
     import db.api._
-    val d = distance(pointsTable.filter(_.track === TrackId(214)).map(_.coord)).result
-    println(runAndAwait(d))
+
+    def migrate(track: TrackId) = {
+      pointsTable.filter(_.track === track)
+        .sortBy(p => (p.track, p.boatTime.asc, p.id.asc))
+        .map(_.id)
+        .result.flatMap { ts =>
+        DBIO.sequence(
+          ts.zipWithIndex.map { case (id, idx) =>
+            pointsTable.filter(_.id === id).map(_.trackIndex).update(idx + 1)
+          }
+        )
+      }
+    }
+
+    val action = for {
+      ts <- pointsTable.map(_.track).distinct.result
+      ok <- DBIO.sequence(ts.map(migrate))
+    } yield ok.flatten.sum
+    runAndAwait(action, 10000.seconds)
   }
 
   def craftDb() = {

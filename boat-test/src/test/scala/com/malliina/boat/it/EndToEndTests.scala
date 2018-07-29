@@ -49,7 +49,7 @@ class EndToEndTests extends BoatTests {
       }
       openViewerSocket(sink, None) { _ =>
         agent.connect()
-        await(p.future)
+        await(p.future, 10.seconds)
         await(p3.future).coords
       }
     } finally {

@@ -46,7 +46,7 @@ class DatabaseUserManager(val db: BoatSchema)(implicit ec: ExecutionContext)
   }
 
   override def boats(email: Email): Future[Seq[BoatInfo]] = action {
-    loadBoats(tracksView.filter(r => r.email.isDefined && r.email === email && r.points > 100))
+    loadBoats(tracksViewNonEmpty.filter(r => r.email.isDefined && r.email === email && r.points > 100))
   }
 
   private def loadBoats(q: Query[LiftedJoinedTrack, JoinedTrack, Seq]) = {
@@ -55,18 +55,13 @@ class DatabaseUserManager(val db: BoatSchema)(implicit ec: ExecutionContext)
       .result
     for {
       tracks <- tracksAction
-      distances <- DBIO.sequence(tracks.map(t => distance(t.track).map(d => t.track -> d)))
-    } yield collectBoats(tracks, distances.toMap)
+    } yield collectBoats(tracks)
   }
 
-  private def distance(track: TrackId) = pointsTable.filter(_.track === track).result.map { coords =>
-    Earth.length(coords.map(_.coord).toList)
-  }
-
-  private def collectBoats(rows: Seq[JoinedTrack], distances: Map[TrackId, Distance]): Seq[BoatInfo] =
+  private def collectBoats(rows: Seq[JoinedTrack]): Seq[BoatInfo] =
     rows.foldLeft(Vector.empty[BoatInfo]) { (acc, row) =>
       val boatIdx = acc.indexWhere(b => b.user == row.username && b.boatId == row.boat)
-      val newRow = row.strip(distances.getOrElse(row.track, Distance.zero))
+      val newRow = row.strip
       if (boatIdx >= 0) {
         val old = acc(boatIdx)
         acc.updated(boatIdx, old.copy(tracks = old.tracks :+ newRow))

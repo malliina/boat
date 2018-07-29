@@ -7,7 +7,9 @@ import com.vividsolutions.jts.geom.impl.CoordinateArraySequenceFactory
 import com.vividsolutions.jts.geom.{Coordinate, Geometry, GeometryFactory, PrecisionModel}
 import com.vividsolutions.jts.io.{ByteOrderValues, OutputStreamOutStream, WKBReader, WKBWriter}
 
-// adapted from slick-pg
+/**
+  * @see https://github.com/gquintana/jooq-mysql-spatial/blob/master/src/main/java/net/gquintana/jooq/mysql/GeometryConverter.java
+  */
 object SpatialUtils {
   val byteOrder = ByteOrderValues.LITTLE_ENDIAN
   val outputDimension = 2
@@ -26,7 +28,6 @@ object SpatialUtils {
     geoToBytes(point)
   }
 
-  // https://github.com/gquintana/jooq-mysql-spatial/blob/master/src/main/java/net/gquintana/jooq/mysql/GeometryConverter.java
   def geoToBytes(geo: Geometry): Array[Byte] = {
     val out = new ByteArrayOutputStream()
     val sridBytes = new Array[Byte](4)

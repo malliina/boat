@@ -23,7 +23,7 @@ object MultiParsingTests {
     TrackId(1), TrackName("test"), Instant.now,
     BoatId(1), BoatName("boat"), BoatToken("a"),
     UserId(1), Username("u"), None, 1,
-    None, None, None, None, None).strip(Distance.zero)
+    None, None, None, None, None, Option(Distance.zero)).strip
 
   def listSink[T]: Sink[T, Future[List[T]]] = Sink.fold[List[T], T](Nil)(_ :+ _)
 }

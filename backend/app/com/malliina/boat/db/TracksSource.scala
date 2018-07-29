@@ -29,6 +29,8 @@ trait TracksSource {
 
   def tracksFor(email: Email, filter: TrackQuery): Future[TrackSummaries]
 
+  def distances(email: Email): Future[Seq[EasyDistance]]
+
   def tracks(user: Username, query: TrackQuery): Future[TrackSummaries]
 
   def track(track: TrackName, user: Email, query: TrackQuery): Future[Seq[CombinedCoord]]

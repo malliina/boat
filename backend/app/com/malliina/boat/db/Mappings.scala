@@ -5,7 +5,7 @@ import java.time.{Instant, LocalDate, LocalTime}
 
 import com.malliina.boat.db.SpatialUtils.{coordToBytes, fromBytes}
 import com.malliina.boat.{BoatId, BoatName, BoatToken, Coord, RawSentence, SentenceKey, TrackId, TrackName, TrackPointId, UserToken}
-import com.malliina.measure.{Distance, DistanceLong, Speed, SpeedDouble, Temperature, TemperatureDouble}
+import com.malliina.measure.{Distance, DistanceDouble, Speed, SpeedDouble, Temperature, TemperatureDouble}
 import com.malliina.values._
 import com.vividsolutions.jts.geom.Point
 import slick.ast.{BaseTypedType, FieldSymbol}
@@ -30,7 +30,7 @@ class Mappings(val impl: JdbcProfile) {
   implicit val userMapping = stringMapping(Username.apply)
   implicit val userTokenMapping = stringMapping(UserToken.apply)
   implicit val emailMapping = stringMapping(Email.apply)
-  implicit val distanceMapping = MappedColumnType.base[Distance, Long](_.toMillis, (l: Long) => l.millimeters)
+  implicit val distanceMappingMeters = MappedColumnType.base[Distance, Double](_.toMetersDouble, (m: Double) => m.meters)
   implicit val speedMapping = MappedColumnType.base[Speed, Double](_.toKmh, _.kmh)
   implicit val temperatureMapping = MappedColumnType.base[Temperature, Double](_.toCelsius, _.celsius)
   implicit val instantMapping = MappedColumnType.base[Instant, java.sql.Timestamp](java.sql.Timestamp.from, _.toInstant)

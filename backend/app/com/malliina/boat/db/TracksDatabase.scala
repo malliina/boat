@@ -1,6 +1,6 @@
 package com.malliina.boat.db
 
-import java.time.{Instant, ZoneOffset}
+import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 
 import com.malliina.boat._
@@ -55,52 +55,46 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext) extends 
   override def saveCoords(coord: FullCoord): Future[Seq[TrackPointId]] =
     insertLogged(saveCoordAction(coord).map(id => Seq(id)), coord.from, "coordinate")
 
-  def saveCoordAction(coord: FullCoord) = for {
-    point <- coordInserts += TrackPointInput.forCoord(coord)
+  def saveCoordAction(coord: FullCoord) = (for {
+    // previous <- pointsTable.filter(_.track === coord.from.track).map(_.trackIndex).max.result
+    previous <- pointsTable.filter(_.track === coord.from.track).sortBy(_.trackIndex.desc).take(1).result
+    trackIdx = previous.headOption.map(_.trackIndex).getOrElse(0) + 1
+    point <- coordInserts += TrackPointInput.forCoord(coord, trackIdx, previous.headOption.map(_.id))
     _ <- sentencePointsTable ++= coord.parts.map(key => SentencePointLink(key, point))
-  } yield point
+  } yield point).transactionally
 
   override def tracksFor(email: Email, filter: TrackQuery): Future[TrackSummaries] =
-    trackList(tracksView.filter(t => t.email.isDefined && t.email === email), filter)
+    trackList(tracksViewNonEmpty.filter(t => t.email.isDefined && t.email === email), filter)
 
   override def tracks(user: Username, filter: TrackQuery): Future[TrackSummaries] =
-    trackList(tracksView.filter(t => t.username === user), filter)
+    trackList(tracksViewNonEmpty.filter(t => t.username === user), filter)
+
+  override def distances(email: Email): Future[Seq[EasyDistance]] = action {
+    db.distances.result.map { rows => rows.map { case (t, d) => EasyDistance(t, d.getOrElse(Distance.zero)) }}
+  }
 
   private def trackList(trackQuery: Query[LiftedJoinedTrack, JoinedTrack, Seq], filter: TrackQuery) = action {
-    val query = trackQuery.join(pointsTable).on(_.track === _.track)
-      .groupBy { case (t, _) => t }
-      .map { case (track, ps) =>
-        val points: Query[TrackPointsTable, TrackPointRow, Seq] = ps.map(_._2)
-        (track, points.length, points.map(_.boatTime).min, points.map(_.boatTime).max)
+    trackQuery.sortBy { ljt =>
+      (filter.sort, filter.order) match {
+        case (TrackSort.Recent, SortOrder.Desc) => ljt.end.desc.nullsLast
+        case (TrackSort.Recent, SortOrder.Asc) => ljt.end.asc.nullsLast
+        case (TrackSort.Points, SortOrder.Desc) => ljt.points.desc.nullsLast
+        case _ => ljt.points.asc.nullsLast
       }
-      .sortBy {
-        case (_, points: Rep[Int], _, last: Rep[Option[Instant]]) => (filter.sort, filter.order) match {
-          case (TrackSort.Recent, SortOrder.Desc) => last.desc.nullsLast
-          case (TrackSort.Recent, SortOrder.Asc) => last.asc.nullsLast
-          case (TrackSort.Points, SortOrder.Desc) => points.desc.nullsLast
-          case _ => points.asc.nullsLast
-        }
-      }
-    // This is crazy and kills performance. TODO: Need to compute distances in the database.
-    for {
-      rows <- query.result
-      distances <- DBIO.sequence(rows.map(t => distance(t._1.track).map(d => t._1.track -> d))).map(_.toMap)
-    } yield {
-      val summaries = rows.map { case (track, points, first, last) =>
-        val firstMillis = first.get.toEpochMilli
-        val lastMillis = last.get.toEpochMilli
+    }.result.map { rows =>
+      val summaries = rows.map { track =>
+        val first = track.start.get
+        val last = track.end.get
+        val firstMillis = first.toEpochMilli
+        val lastMillis = last.toEpochMilli
         val duration = (lastMillis - firstMillis).millis
-        val firstUtc = first.get.atOffset(ZoneOffset.UTC)
-        val lastUtc = last.get.atOffset(ZoneOffset.UTC)
-        val distance = distances.getOrElse(track.track, Distance.zero)
-        TrackSummary(track.strip(distance), TrackStats(points, timeFormatter.format(firstUtc), firstMillis, timeFormatter.format(lastUtc), lastMillis, duration))
+        val firstUtc = first.atOffset(ZoneOffset.UTC)
+        val lastUtc = last.atOffset(ZoneOffset.UTC)
+        //        val distance = distances.getOrElse(track.track, Distance.zero)
+        TrackSummary(track.strip, TrackStats(track.points, timeFormatter.format(firstUtc), firstMillis, timeFormatter.format(lastUtc), lastMillis, duration))
       }
       TrackSummaries(summaries)
     }
-  }
-
-  private def distance(track: TrackId) = pointsTable.filter(_.track === track).result.map { coords =>
-    Earth.length(coords.map(_.coord).toList)
   }
 
   override def track(track: TrackName, email: Email, query: TrackQuery): Future[Seq[CombinedCoord]] = action {
@@ -115,9 +109,9 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext) extends 
     // Intentionally, you can view any track if you know its key.
     // Alternatively, we could filter tracks by user and make that optional.
     val eligibleTracks =
-      if (limits.tracks.nonEmpty) tracksView.filter(t => t.trackName.inSet(limits.tracks))
-      else if (limits.newest) tracksView.join(newestTrack).on(_.track === _.track).map(_._1)
-      else tracksView
+      if (limits.tracks.nonEmpty) tracksViewNonEmpty.filter(t => t.trackName.inSet(limits.tracks))
+      else if (limits.newest) tracksViewNonEmpty.join(newestTrack).on(_.track === _.track).map(_._1)
+      else tracksViewNonEmpty
     val query = eligibleTracks
       .join(rangedCoords(limits.timeRange)).on(_.track === _.track)
       .sortBy { case (_, point) => (point.boatTime.desc, point.added.desc, point.id.desc) }
@@ -162,9 +156,9 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext) extends 
         val old = acc(idx)
         acc.updated(idx, old.copy(coords = old.coords :+ coord))
       } else {
-        acc :+ CoordsEvent(Seq(coord), from.strip(Distance.zero))
+        acc :+ CoordsEvent(Seq(coord), from.strip)
       }
-    }.map { ce => ce.copy(from = ce.from.copy(distance = Earth.length(ce.coords.map(_.coord).toList))) }
+    }
 
   private def insertLogged[R](action: DBIOAction[Seq[R], NoStream, Nothing], from: TrackRef, word: String) = {
     db.run(action).map { keys =>

@@ -5,6 +5,7 @@ GET        /tracks                          controllers.BoatController.tracks
 GET        /tracks/:track                   controllers.BoatController.track(track: com.malliina.boat.TrackName)
 GET        /ws/updates                      controllers.BoatController.updates
 GET        /ws/boats                        controllers.BoatController.boats
+GET        /distances                       controllers.BoatController.distances
 GET        /sign-in/google                  controllers.Social.google
 GET        /sign-in/callbacks/google        controllers.Social.googleCallback
 

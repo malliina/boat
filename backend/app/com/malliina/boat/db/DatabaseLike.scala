@@ -9,7 +9,7 @@ import slick.jdbc.JdbcProfile
 import slick.jdbc.meta.MTable
 import slick.lifted.AbstractTable
 
-import scala.concurrent.duration.DurationInt
+import scala.concurrent.duration.{Duration, DurationInt}
 import scala.concurrent.{Await, Future}
 import scala.language.higherKinds
 
@@ -26,7 +26,8 @@ abstract class DatabaseLike(val impl: JdbcProfile, val database: JdbcProfile#API
   def runQuery[A, B, C[_]](query: Query[A, B, C]): Future[C[B]] =
     run(query.result)
 
-  def runAndAwait[R](a: DBIOAction[R, NoStream, Nothing]): R = await(run(a))
+  def runAndAwait[R](a: DBIOAction[R, NoStream, Nothing], duration: Duration = 20.seconds): R =
+    await(run(a), duration)
 
   def run[R](a: DBIOAction[R, NoStream, Nothing]): Future[R] = {
     val start = System.currentTimeMillis()
@@ -79,7 +80,8 @@ abstract class DatabaseLike(val impl: JdbcProfile, val database: JdbcProfile#API
         Future.successful(Nil)
     }
 
-  protected def await[T](f: Future[T]): T = Await.result(f, 20.seconds)
+  protected def await[T](f: Future[T], duration: Duration = 20.seconds): T =
+    Await.result(f, duration)
 
   def close(): Unit = database.close()
 }

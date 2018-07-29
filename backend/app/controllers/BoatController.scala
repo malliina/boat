@@ -14,7 +14,6 @@ import com.malliina.boat.html.BoatHtml
 import com.malliina.boat.http.{BoatQuery, BoatRequest, TrackQuery}
 import com.malliina.boat.parsing.{BoatParser, FullCoord, ParsedSentence}
 import com.malliina.concurrent.ExecutionContexts.cached
-import com.malliina.measure.Distance
 import com.malliina.values.{Email, Username}
 import controllers.Assets.Asset
 import controllers.BoatController.log
@@ -53,7 +52,7 @@ class BoatController(mapboxToken: AccessToken,
   val _ = viewerSource.runWith(Sink.ignore)
   val sentencesSource = viewerSource.map { boatEvent =>
     BoatParser.read[SentencesMessage](boatEvent.message)
-      .map(_.toEvent(boatEvent.from.strip(Distance.zero)))
+      .map(_.toEvent(boatEvent.from.strip))
       .left.map(err => BoatJsonError(err, boatEvent))
   }
   val sentences = rights(sentencesSource)
@@ -105,6 +104,12 @@ class BoatController(mapboxToken: AccessToken,
   def tracks = secureAction(TrackQuery.apply) { req =>
     db.tracksFor(req.email, req.query).map { summaries =>
       Ok(Json.toJson(summaries))
+    }
+  }
+
+  def distances = secureAction(_ => Right(())) { req =>
+    db.distances(req.email).map { ds =>
+      Ok(Json.toJson(ds))
     }
   }
 

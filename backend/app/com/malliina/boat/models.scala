@@ -30,21 +30,28 @@ object AppMeta {
   val default = AppMeta(BuildInfo.name, BuildInfo.version, BuildInfo.gitHash)
 }
 
+case class EasyDistance(track: TrackId, distance: Distance)
+
+object EasyDistance {
+  implicit val json = Json.format[EasyDistance]
+}
+
 case class JoinedTrack(track: TrackId, trackName: TrackName, trackAdded: Instant,
                        boat: BoatId, boatName: BoatName, boatToken: BoatToken,
                        user: UserId, username: Username, email: Option[Email],
                        points: Int, start: Option[Instant], end: Option[Instant],
-                       topSpeed: Option[Speed], avgSpeed: Option[Speed], avgWaterTemp: Option[Temperature]) extends TrackLike {
+                       topSpeed: Option[Speed], avgSpeed: Option[Speed],
+                       avgWaterTemp: Option[Temperature], distance: Option[Distance]) extends TrackLike {
   val startOrNow = start.getOrElse(Instant.now())
   val endOrNow = end.getOrElse(Instant.now())
   val duration = (endOrNow.toEpochMilli - startOrNow.toEpochMilli).millis
 
-  def strip(distance: Distance) = TrackRef(
+  def strip = TrackRef(
     track, trackName, boat,
     boatName, user, username,
     points, Instants.format(startOrNow), startOrNow.toEpochMilli,
     Instants.format(endOrNow), endOrNow.toEpochMilli, Instants.formatRange(startOrNow, endOrNow),
-    duration, distance, topSpeed, avgSpeed,
+    duration, distance.getOrElse(Distance.zero), topSpeed, avgSpeed,
     avgWaterTemp
   )
 }
@@ -134,11 +141,16 @@ case class TrackPointInput(lon: Double,
                            depth: Distance,
                            depthOffset: Distance,
                            boatTime: Instant,
-                           track: TrackId)
+                           track: TrackId,
+                           trackIndex: Int,
+                           previous: Option[TrackPointId])
 
 object TrackPointInput {
-  def forCoord(c: FullCoord): TrackPointInput =
-    TrackPointInput(c.lng, c.lat, c.coord, c.boatSpeed, c.waterTemp, c.depth, c.depthOffset, c.boatTime, c.from.track)
+  def forCoord(c: FullCoord, trackIndex: Int, previous: Option[TrackPointId]): TrackPointInput =
+    TrackPointInput(
+      c.lng, c.lat, c.coord, c.boatSpeed,
+      c.waterTemp, c.depth, c.depthOffset, c.boatTime,
+      c.from.track, trackIndex, previous)
 }
 
 case class CombinedCoord(id: TrackPointId,
@@ -168,6 +180,8 @@ case class TrackPointRow(id: TrackPointId,
                          depthOffset: Distance,
                          boatTime: Instant,
                          track: TrackId,
+                         trackIndex: Int,
+                         previous: Option[TrackPointId],
                          added: Instant) {
   def dateTimeUtc = boatTime.atOffset(ZoneOffset.UTC)
 
