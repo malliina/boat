@@ -5,7 +5,7 @@ import com.malliina.measure.Speed
 import org.scalajs.dom.document
 import play.api.libs.json._
 
-import scala.concurrent.duration.Duration
+import scala.concurrent.duration.{Duration, DurationLong}
 import scala.concurrent.{Future, Promise}
 import scala.scalajs.js
 import scala.scalajs.js.JSConverters.genTravConvertible2JSRichGenTrav
@@ -18,6 +18,8 @@ class MapSocket(map: MapboxMap, queryString: String) extends BaseSocket(s"/ws/up
   private var mapMode: MapMode = Fit
   private var boats = Map.empty[String, FeatureCollection]
   private var latestMaxSpeed: Option[Speed] = None
+  private var smallestTime: Option[Long] = None
+  private var largestTime: Option[Long] = None
 
   initImage()
 
@@ -114,7 +116,22 @@ class MapSocket(map: MapboxMap, queryString: String) extends BaseSocket(s"/ws/up
     }
     if (boats.keySet.size == 1) {
       elem(DurationId).foreach { e =>
-//        e.innerHTML = s"Time ${formatDuration(from.duration)}"
+        val times = coordsInfo.map(_.boatTimeMillis)
+        val min = times.min
+        val max = times.max
+        if (smallestTime.forall(_ > min)) {
+          smallestTime = Option(min)
+        }
+        if (largestTime.forall(_ < max)) {
+          largestTime = Option(times.max)
+        }
+        for {
+          start <- smallestTime
+          latest <- largestTime
+        } {
+          val duration = (latest - start).millis
+          e.innerHTML = s"Time ${formatDuration(duration)}"
+        }
       }
     }
     // updates the map position, zoom to reflect the updated track(s)
