@@ -61,7 +61,7 @@ class MapSocket(map: MapboxMap, queryString: String) extends BaseSocket(s"/ws/up
     case other => log.info(s"Unknown event: '$other'.")
   }
 
-  def onCoords(coordsInfo: Seq[TimedCoord], from: TrackLike): Unit = {
+  def onCoords(coordsInfo: Seq[TimedCoord], from: TrackMetaLike): Unit = {
     val coords = coordsInfo.map(_.coord)
     val boat = from.boatName
     val track = trackName(boat)
@@ -114,7 +114,7 @@ class MapSocket(map: MapboxMap, queryString: String) extends BaseSocket(s"/ws/up
     }
     if (boats.keySet.size == 1) {
       elem(DurationId).foreach { e =>
-        e.innerHTML = s"Time ${formatDuration(from.duration)}"
+//        e.innerHTML = s"Time ${formatDuration(from.duration)}"
       }
     }
     // updates the map position, zoom to reflect the updated track(s)

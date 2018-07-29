@@ -214,6 +214,22 @@ case class TrackId(id: Long) extends WrappedId
 
 object TrackId extends IdCompanion[TrackId]
 
+trait TrackMetaLike {
+  def boatName: BoatName
+
+  def trackName: TrackName
+
+  def username: Username
+}
+
+case class TrackMetaShort(track: TrackId, trackName: TrackName,
+                          boat: BoatId, boatName: BoatName,
+                          user: UserId, username: Username) extends TrackMetaLike
+
+object TrackMetaShort {
+  implicit val json = Json.format[TrackMetaShort]
+}
+
 case class TrackRef(track: TrackId, trackName: TrackName, boat: BoatId,
                     boatName: BoatName, user: UserId, username: Username,
                     points: Int, start: String, startMillis: Long,
@@ -270,7 +286,7 @@ object TrackSummaries {
   implicit val json = Json.format[TrackSummaries]
 }
 
-case class CoordsEvent(coords: Seq[TimedCoord], from: TrackRef) extends BoatFrontEvent {
+case class CoordsEvent(coords: Seq[TimedCoord], from: TrackMetaShort) extends BoatFrontEvent {
   def isEmpty = coords.isEmpty
 
   def sample(every: Int): CoordsEvent =
@@ -291,7 +307,7 @@ object CoordsBatch {
   implicit val json = Json.format[CoordsBatch]
 }
 
-case class SentencesEvent(sentences: Seq[RawSentence], from: TrackRef) extends BoatFrontEvent
+case class SentencesEvent(sentences: Seq[RawSentence], from: TrackMetaShort) extends BoatFrontEvent
 
 object SentencesEvent {
   val Key = "sentences"
@@ -312,7 +328,7 @@ sealed trait FrontEvent {
 }
 
 sealed trait BoatFrontEvent extends FrontEvent {
-  def from: TrackRef
+  def from: TrackMetaShort
 
   // Anonymous users receive all live boat updates by design
   override def isIntendedFor(user: Username): Boolean = from.username == user || user == Usernames.anon
@@ -334,7 +350,7 @@ object FrontEvent {
 }
 
 case class SentencesMessage(sentences: Seq[RawSentence]) {
-  def toEvent(from: TrackRef) = SentencesEvent(sentences, from)
+  def toEvent(from: TrackMetaShort) = SentencesEvent(sentences, from)
 }
 
 object SentencesMessage {

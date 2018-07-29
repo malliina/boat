@@ -46,6 +46,8 @@ case class JoinedTrack(track: TrackId, trackName: TrackName, trackAdded: Instant
   val endOrNow = end.getOrElse(Instant.now())
   val duration = (endOrNow.toEpochMilli - startOrNow.toEpochMilli).millis
 
+  def short = TrackMetaShort(track, trackName, boat, boatName, user, username)
+
   def strip = TrackRef(
     track, trackName, boat,
     boatName, user, username,
@@ -60,7 +62,21 @@ object JoinedTrack {
   implicit val json = Json.format[JoinedTrack]
 }
 
-case class BoatEvent(message: JsValue, from: JoinedTrack)
+case class TrackNumbers(track: TrackId, points: Int, start: Option[Instant],
+                        end: Option[Instant], topSpeed: Option[Speed], avgSpeed: Option[Speed],
+                        avgWaterTemp: Option[Temperature])
+
+case class TrackMeta(track: TrackId, trackName: TrackName, trackAdded: Instant,
+                     boat: BoatId, boatName: BoatName, boatToken: BoatToken,
+                     user: UserId, username: Username, email: Option[Email]) {
+  def short = TrackMetaShort(track, trackName, boat, boatName, user, username)
+}
+
+object TrackMeta {
+  implicit val json = Json.format[TrackMeta]
+}
+
+case class BoatEvent(message: JsValue, from: TrackMeta)
 
 object BoatEvent {
   implicit val json = Json.format[BoatEvent]
@@ -104,6 +120,9 @@ case class BoatInput(name: BoatName, token: BoatToken, owner: UserId)
 
 case class BoatRow(id: BoatId, name: BoatName, token: BoatToken, owner: UserId, added: Instant)
 
+case class JoinedBoat(boat: BoatId, boatName: BoatName, boatToken: BoatToken,
+                      user: UserId, username: Username, email: Option[Email])
+
 case class TrackInput(name: TrackName, boat: BoatId)
 
 case class TrackRow(id: TrackId, name: TrackName, boat: BoatId, added: Instant)
@@ -114,7 +133,7 @@ object SentenceKey extends IdCompanion[SentenceKey]
 
 case class SentenceInput(sentence: RawSentence, track: TrackId)
 
-case class KeyedSentence(key: SentenceKey, sentence: RawSentence, from: TrackRef)
+case class KeyedSentence(key: SentenceKey, sentence: RawSentence, from: TrackMetaShort)
 
 case class SentenceRow(id: SentenceKey, sentence: RawSentence, track: TrackId, added: Instant)
 
@@ -143,14 +162,15 @@ case class TrackPointInput(lon: Double,
                            boatTime: Instant,
                            track: TrackId,
                            trackIndex: Int,
-                           previous: Option[TrackPointId])
+                           previous: Option[TrackPointId],
+                           diff: Distance)
 
 object TrackPointInput {
-  def forCoord(c: FullCoord, trackIndex: Int, previous: Option[TrackPointId]): TrackPointInput =
+  def forCoord(c: FullCoord, trackIndex: Int, previous: Option[TrackPointId], diff: Distance): TrackPointInput =
     TrackPointInput(
       c.lng, c.lat, c.coord, c.boatSpeed,
       c.waterTemp, c.depth, c.depthOffset, c.boatTime,
-      c.from.track, trackIndex, previous)
+      c.from.track, trackIndex, previous, diff)
 }
 
 case class CombinedCoord(id: TrackPointId,
@@ -182,6 +202,7 @@ case class TrackPointRow(id: TrackPointId,
                          track: TrackId,
                          trackIndex: Int,
                          previous: Option[TrackPointId],
+                         diff: Distance,
                          added: Instant) {
   def dateTimeUtc = boatTime.atOffset(ZoneOffset.UTC)
 

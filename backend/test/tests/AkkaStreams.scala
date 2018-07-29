@@ -19,12 +19,7 @@ class AkkaStreams extends FunSuite {
   implicit val mat = ActorMaterializer()(as)
 
   test("stateful sentence parsing") {
-    val from = JoinedTrack(
-      TrackId(1), TrackName("test"), Instant.now,
-      BoatId(1), BoatName("boat"), BoatToken("a"),
-      UserId(1), Username("u"), None,
-      1, None, None, None, None, None, Option(Distance.zero)
-    ).strip
+    val from = MultiParsingTests.testFrom
 
     def keyed(id: Long) = KeyedSentence(SentenceKey(id), RawSentence(""), from)
 

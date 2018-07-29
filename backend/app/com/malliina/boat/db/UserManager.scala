@@ -1,6 +1,6 @@
 package com.malliina.boat.db
 
-import com.malliina.boat.{BoatInfo, BoatToken, UserToken}
+import com.malliina.boat.{BoatInfo, BoatToken, JoinedBoat, UserToken}
 import com.malliina.play.auth.AuthError
 import com.malliina.values.{Email, Password, UserId, Username}
 import org.apache.commons.codec.digest.DigestUtils
@@ -13,7 +13,7 @@ trait UserManager {
 
   def authEmail(email: Email): Future[Either[IdentityError, DataUser]]
 
-  def authBoat(token: BoatToken): Future[Either[IdentityError, BoatInfo]]
+  def authBoat(token: BoatToken): Future[Either[IdentityError, JoinedBoat]]
 
   def boats(user: Email): Future[Seq[BoatInfo]]
 

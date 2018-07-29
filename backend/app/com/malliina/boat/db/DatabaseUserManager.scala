@@ -3,8 +3,7 @@ package com.malliina.boat.db
 import java.sql.SQLException
 
 import com.malliina.boat.db.DatabaseUserManager.log
-import com.malliina.boat.{BoatInfo, BoatToken, Earth, JoinedTrack, TrackId, UserToken}
-import com.malliina.measure.Distance
+import com.malliina.boat.{BoatInfo, BoatToken, JoinedBoat, JoinedTrack, UserToken}
 import com.malliina.values.{Email, Password, UserId, Username}
 import play.api.Logger
 
@@ -40,9 +39,8 @@ class DatabaseUserManager(val db: BoatSchema)(implicit ec: ExecutionContext)
     }
   }
 
-  override def authBoat(token: BoatToken): Future[Either[IdentityError, BoatInfo]] = action {
-    loadBoats(tracksView.filter(r => r.boatToken === token))
-      .map(bs => bs.headOption.toRight(InvalidToken(token)))
+  override def authBoat(token: BoatToken): Future[Either[IdentityError, JoinedBoat]] = action {
+    boatsView.filter(_.token === token).result.headOption.map(_.toRight(InvalidToken(token)))
   }
 
   override def boats(email: Email): Future[Seq[BoatInfo]] = action {

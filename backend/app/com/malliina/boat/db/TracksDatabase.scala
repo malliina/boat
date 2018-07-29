@@ -36,10 +36,7 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext) extends 
 
   implicit object JoinedShape extends CaseClassShape(LiftedJoined.tupled, Joined.tupled)
 
-  val sentencesView: Query[LiftedJoined, Joined, Seq] = sentencesTable.join(tracksView).on(_.track === _.track)
-    .map { case (ss, bs) => LiftedJoined(ss.id, ss.sentence, bs.track, bs.trackName, bs.boat, bs.boatName, bs.user, bs.username) }
-
-  override def join(meta: BoatMeta): Future[JoinedTrack] =
+  override def join(meta: BoatMeta): Future[TrackMeta] =
     action(boatId(meta))
 
   override def saveSentences(sentences: SentencesEvent): Future[Seq[KeyedSentence]] = {
@@ -56,10 +53,10 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext) extends 
     insertLogged(saveCoordAction(coord).map(id => Seq(id)), coord.from, "coordinate")
 
   def saveCoordAction(coord: FullCoord) = (for {
-    // previous <- pointsTable.filter(_.track === coord.from.track).map(_.trackIndex).max.result
     previous <- pointsTable.filter(_.track === coord.from.track).sortBy(_.trackIndex.desc).take(1).result
     trackIdx = previous.headOption.map(_.trackIndex).getOrElse(0) + 1
-    point <- coordInserts += TrackPointInput.forCoord(coord, trackIdx, previous.headOption.map(_.id))
+//    diff <- previous.headOption.map { p => distanceCoords(p.coord, coord.coord.bind).result }.getOrElse { DBIO.successful(Distance.zero) }
+    point <- coordInserts += TrackPointInput.forCoord(coord, trackIdx, previous.headOption.map(_.id), Distance.zero)
     _ <- sentencePointsTable ++= coord.parts.map(key => SentencePointLink(key, point))
   } yield point).transactionally
 
@@ -74,14 +71,15 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext) extends 
   }
 
   private def trackList(trackQuery: Query[LiftedJoinedTrack, JoinedTrack, Seq], filter: TrackQuery) = action {
-    trackQuery.sortBy { ljt =>
+    val query = trackQuery.sortBy { ljt =>
       (filter.sort, filter.order) match {
         case (TrackSort.Recent, SortOrder.Desc) => ljt.end.desc.nullsLast
         case (TrackSort.Recent, SortOrder.Asc) => ljt.end.asc.nullsLast
         case (TrackSort.Points, SortOrder.Desc) => ljt.points.desc.nullsLast
         case _ => ljt.points.asc.nullsLast
       }
-    }.result.map { rows =>
+    }
+    query.result.map { rows =>
       val summaries = rows.map { track =>
         val first = track.start.get
         val last = track.end.get
@@ -90,7 +88,6 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext) extends 
         val duration = (lastMillis - firstMillis).millis
         val firstUtc = first.atOffset(ZoneOffset.UTC)
         val lastUtc = last.atOffset(ZoneOffset.UTC)
-        //        val distance = distances.getOrElse(track.track, Distance.zero)
         TrackSummary(track.strip, TrackStats(track.points, timeFormatter.format(firstUtc), firstMillis, timeFormatter.format(lastUtc), lastMillis, duration))
       }
       TrackSummaries(summaries)
@@ -105,19 +102,27 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext) extends 
   }
 
   override def history(user: Username, limits: BoatQuery): Future[Seq[CoordsEvent]] = action {
-    val newestTrack = tracksViewNonEmpty.filter(_.username === user).sortBy(_.start.desc.nullsLast).take(1)
+    val newestTrack = usersTable.filter(_.user === user)
+      .join(boatsTable).on(_.id === _.owner)
+      .join(tracksTable).on(_._2.id === _.boat)
+      .sortBy(_._2.added.desc)
+      .map(_._2)
+      .take(1)
+//    newestTrack.result.statements.toList foreach println
     // Intentionally, you can view any track if you know its key.
     // Alternatively, we could filter tracks by user and make that optional.
     val eligibleTracks =
       if (limits.tracks.nonEmpty) tracksViewNonEmpty.filter(t => t.trackName.inSet(limits.tracks))
-      else if (limits.newest) tracksViewNonEmpty.join(newestTrack).on(_.track === _.track).map(_._1)
+      else if (limits.newest) tracksViewNonEmpty.join(newestTrack).on(_.track === _.id).map(_._1)
       else tracksViewNonEmpty
+//    eligibleTracks.result.statements.toList foreach println
     val query = eligibleTracks
       .join(rangedCoords(limits.timeRange)).on(_.track === _.track)
-      .sortBy { case (_, point) => (point.boatTime.desc, point.added.desc, point.id.desc) }
+      .sortBy { case (_, point) => point.trackIndex.desc }
       .drop(limits.offset)
       .take(limits.limit)
-      .sortBy { case (_, point) => (point.boatTime.asc, point.added.asc, point.id.asc) }
+      .sortBy { case (_, point) => point.trackIndex.asc }
+//    query.result.statements.toList foreach println
     query.result.map { rows => collectPoints(rows) }
   }
 
@@ -156,11 +161,11 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext) extends 
         val old = acc(idx)
         acc.updated(idx, old.copy(coords = old.coords :+ coord))
       } else {
-        acc :+ CoordsEvent(Seq(coord), from.strip)
+        acc :+ CoordsEvent(Seq(coord), from.short)
       }
     }
 
-  private def insertLogged[R](action: DBIOAction[Seq[R], NoStream, Nothing], from: TrackRef, word: String) = {
+  private def insertLogged[R](action: DBIOAction[Seq[R], NoStream, Nothing], from: TrackMetaLike, word: String) = {
     db.run(action).map { keys =>
       val pluralSuffix = if (keys.length == 1) "" else "s"
       log.info(s"Inserted ${keys.length} $word$pluralSuffix from '${from.boatName}' owned by '${from.username}'.")
@@ -172,7 +177,7 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext) extends 
   }
 
   private def boatId(from: BoatMeta) =
-    tracksView.filter(t => t.username === from.user && t.boatName === from.boat && t.trackName === from.track).result.headOption.flatMap { maybeTrack =>
+    trackMetas.filter(t => t.username === from.user && t.boatName === from.boat && t.trackName === from.track).result.headOption.flatMap { maybeTrack =>
       maybeTrack.map { track =>
         DBIO.successful(track)
       }.getOrElse {
@@ -188,7 +193,7 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext) extends 
       boatRow <- maybeBoat.map(b => DBIO.successful(b)).getOrElse(registerBoat(from, user))
       boat = boatRow.id
       track <- prepareTrack(from.track, boat)
-      joined <- db.first(tracksView.filter(_.track === track.id), "Track not found.")
+      joined <- db.first(trackMetas.filter(_.track === track.id), "Track not found.")
     } yield {
       log.info(s"Prepared boat '${from.boat}' with ID '${boatRow.id}' for owner '${from.user}'.")
       joined

@@ -2,7 +2,7 @@ package com.malliina.boat.db
 
 import java.time.Instant
 
-import com.malliina.boat.{BoatInfo, BoatToken, UserToken}
+import com.malliina.boat.{BoatInfo, BoatToken, JoinedBoat, UserToken}
 import com.malliina.values.{Email, Password, UserId, Username}
 
 import scala.concurrent.Future
@@ -16,7 +16,7 @@ object PassThroughUserManager extends UserManager {
 
   def authEmail(email: Email): Future[Either[IdentityError, DataUser]] = fut(Right(god))
 
-  def authBoat(token: BoatToken): Future[Either[IdentityError, BoatInfo]] = fut(Left(InvalidToken(token)))
+  def authBoat(token: BoatToken): Future[Either[IdentityError, JoinedBoat]] = fut(Left(InvalidToken(token)))
 
   def boats(user: Email): Future[Seq[BoatInfo]] = fut(Nil)
 

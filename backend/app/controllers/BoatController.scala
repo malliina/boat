@@ -52,7 +52,7 @@ class BoatController(mapboxToken: AccessToken,
   val _ = viewerSource.runWith(Sink.ignore)
   val sentencesSource = viewerSource.map { boatEvent =>
     BoatParser.read[SentencesMessage](boatEvent.message)
-      .map(_.toEvent(boatEvent.from.strip))
+      .map(_.toEvent(boatEvent.from.short))
       .left.map(err => BoatJsonError(err, boatEvent))
   }
   val sentences = rights(sentencesSource)
@@ -183,7 +183,7 @@ class BoatController(mapboxToken: AccessToken,
     * @param rh request
     * @return
     */
-  def authBoat(rh: RequestHeader): Future[Either[Result, JoinedTrack]] =
+  def authBoat(rh: RequestHeader): Future[Either[Result, TrackMeta]] =
     makeResult(boatAuth(rh), rh).flatMap { e =>
       e.fold(
         err => Future.successful(Left(err)),
@@ -195,7 +195,7 @@ class BoatController(mapboxToken: AccessToken,
     rh.headers.get(BoatTokenHeader).map(BoatToken.apply).map { token =>
       auther.authBoat(token).map { e =>
         e.map { info =>
-          BoatUser(trackOrRandom(rh), info.boat, info.user)
+          BoatUser(trackOrRandom(rh), info.boatName, info.username)
         }
       }
     }.getOrElse {
@@ -236,27 +236,22 @@ class BoatController(mapboxToken: AccessToken,
     googleAuth.auth(rh).getOrElse(authFromSession)
   }
 
-  def authQuery(rh: RequestHeader): Future[Either[IdentityError, Username]] =
-    queryAuthBoat(rh, Left(MissingToken(rh))).map(_.map(_.map(_.user).getOrElse(anonUser)))
+//  def authQuery(rh: RequestHeader): Future[Either[IdentityError, Username]] =
+//    queryAuthBoat(rh, Left(MissingToken(rh))).map(_.map(_.map(_.user).getOrElse(anonUser)))
 
-  def queryAuthBoat(rh: RequestHeader, onNoQuery: => Either[IdentityError, Option[BoatInfo]]): Future[Either[IdentityError, Option[BoatInfo]]] =
+  def queryAuthBoat(rh: RequestHeader, onNoQuery: => Either[IdentityError, Option[JoinedBoat]]): Future[Either[IdentityError, Option[JoinedBoat]]] =
     rh.getQueryString(BoatTokenQuery).map { token =>
       auther.authBoat(BoatToken(token)).map(_.map(Option.apply))
     }.getOrElse {
       Future.successful(onNoQuery)
     }
 
-  def authOrAnon(rh: RequestHeader) = optionalAuth(rh).map(e => e.map(bi => bi.map(_.user).getOrElse(Usernames.anon)))
+//  def authOrAnon(rh: RequestHeader) = optionalAuth(rh).map(e => e.map(bi => bi.map(_.user).getOrElse(Usernames.anon)))
 
-  def authSecure(rh: RequestHeader) = optionalAuth(rh).map(e => e.flatMap(_.toRight(InvalidCredentials(None))))
+//  def authSecure(rh: RequestHeader) = optionalAuth(rh).map(e => e.flatMap(_.toRight(InvalidCredentials(None))))
 
   def optionalAuth(rh: RequestHeader): Future[Either[IdentityError, Option[BoatInfo]]] =
-    queryAuthBoat(rh, Right(None)).flatMap { e =>
-      e.fold(
-        err => Future.successful(Left(err)),
-        opt => opt.map(b => Future.successful(Right(Option(b)))).getOrElse(authSessionEmail(rh).map(o => Right(o)))
-      )
-    }
+    authSessionEmail(rh).map(opt => Right(opt))
 
   def authSessionEmail(rh: RequestHeader): Future[Option[BoatInfo]] =
     sessionEmail(rh).map { email =>

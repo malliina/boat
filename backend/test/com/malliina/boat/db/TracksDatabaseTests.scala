@@ -58,9 +58,9 @@ class TracksDatabaseTests extends BaseSuite {
     def parseAndInsert(track: TrackId) = {
       val sentences = db.run {
         for {
-          from <- db.first(tracksView.filter(_.track === track), s"Track not found: '$track'.")
+          from <- db.first(trackMetas.filter(_.track === track), s"Track not found: '$track'.")
           ss <- sentencesTable.filter(_.track === track).result
-          keyed = ss.map(s => KeyedSentence(s.id, s.sentence, from.strip))
+          keyed = ss.map(s => KeyedSentence(s.id, s.sentence, from.short))
         } yield keyed
       }
       val src = Source.fromFuture(sentences).flatMapConcat(ss => Source(ss.toList))
@@ -76,7 +76,7 @@ class TracksDatabaseTests extends BaseSuite {
     val s: Source[RawSentence, NotUsed] = fromFile(FileUtilities.userHome.resolve(".boat/Log2107.txt"))
       .drop(231306)
       .filter(_ != RawSentence.initialZda)
-    val events = s.map(s => SentencesEvent(Seq(s), track.strip))
+    val events = s.map(s => SentencesEvent(Seq(s), track.short))
     val task = events.via(processSentences(tdb.saveSentences, tdb.saveCoords)).runWith(Sink.ignore)
     await(task, 30000.seconds)
     splitTracksByDate(track.track, db)

@@ -74,24 +74,44 @@ class BoatSchema(ds: DataSource, conf: ProfileConf)
     case H2Profile => "ST_MaxDistance"
     case _ => "ST_Distance_Sphere"
   }
-  private val distanceCoords = SimpleFunction.binary[Coord, Coord, Double](distanceFunc)
+  val distanceCoords = SimpleFunction.binary[Coord, Coord, Distance](distanceFunc)
   val distances = pointsTable
     .join(pointsTable).on((c1, c2) => c1.track === c2.track && c1.id === c2.previous)
     .map { case (c1, c2) => (c1.track, distanceCoords(c1.coord, c2.coord)) }
-    .groupBy(_._1).map { case (track, q) => (track, q.map(_._2).sum.map(_.asColumnOf[Distance](distanceMappingMeters))) }
+    .groupBy(_._1).map { case (track, q) => (track, q.map(_._2).sum) }
+
+//  val trackJoinedStats = pointsTable
+//    .join(pointsTable).on((c1, c2) => c1.track === c2.track && c1.id === c2.previous)
+//    .map { case (c1, c2) => (c1.track, c1, distanceCoords(c1.coord, c2.coord)) }
+//    .groupBy(_._1).map { case (track, q) =>
+//    LiftedTrackStats(
+//      track, q.length, q.map(_._2.boatTime).min,
+//      q.map(_._2.boatTime).max, q.map(_._2.boatSpeed).max, q.map(_._2.boatSpeed).avg,
+//      q.map(_._2.waterTemp).avg, q.map(_._3).sum
+//    )
+//  }
+
+  def computeDistance(coords: Query[TrackPointsTable, TrackPointRow, Seq]): Rep[Option[Distance]] =
+    coords
+      .join(coords).on((c1, c2) => c1.track === c2.track && c1.id === c2.previous)
+      .map { case (c1, c2) => distanceCoords(c1.coord, c2.coord) }
+      .sum
 
   def dateFunc: Rep[Instant] => Rep[LocalDate] =
     SimpleFunction.unary[Instant, LocalDate]("date")
 
   override val tableQueries = Seq(sentencePointsTable, pointsTable, sentencesTable, tracksTable, boatsTable, usersTable)
 
-  case class JoinedBoat(boat: BoatId, boatName: BoatName, boatToken: BoatToken,
-                        user: UserId, username: Username, email: Option[Email])
-
   case class LiftedJoinedBoat(boat: Rep[BoatId], boatName: Rep[BoatName], token: Rep[BoatToken],
                               user: Rep[UserId], username: Rep[Username], email: Rep[Option[Email]])
 
   implicit object JoinedBoatShape extends CaseClassShape(LiftedJoinedBoat.tupled, JoinedBoat.tupled)
+
+  case class LiftedTrackMeta(track: Rep[TrackId], trackName: Rep[TrackName], trackAdded: Rep[Instant],
+                             boat: Rep[BoatId], boatName: Rep[BoatName], token: Rep[BoatToken],
+                             user: Rep[UserId], username: Rep[Username], email: Rep[Option[Email]])
+
+  implicit object LiftedTrackMetaShape extends CaseClassShape(LiftedTrackMeta.tupled, (TrackMeta.apply _).tupled)
 
   val boatsView: Query[LiftedJoinedBoat, JoinedBoat, Seq] = boatsTable.join(usersTable).on(_.owner === _.id)
     .map { case (b, u) => LiftedJoinedBoat(b.id, b.name, b.token, u.id, u.user, u.email) }
@@ -105,6 +125,12 @@ class BoatSchema(ds: DataSource, conf: ProfileConf)
 
   implicit object TrackShape extends CaseClassShape(LiftedJoinedTrack.tupled, (JoinedTrack.apply _).tupled)
 
+  case class LiftedTrackStats(track: Rep[TrackId], points: Rep[Int], start: Rep[Option[Instant]],
+                              end: Rep[Option[Instant]], topSpeed: Rep[Option[Speed]], avgSpeed: Rep[Option[Speed]],
+                              avgWaterTemp: Rep[Option[Temperature]])
+
+  implicit object TrackStatsShape extends CaseClassShape(LiftedTrackStats.tupled, (TrackNumbers.apply _).tupled)
+
   case class LiftedCoord(id: Rep[TrackPointId], lon: Rep[Double], lat: Rep[Double], coord: Rep[Coord],
                          boatSpeed: Rep[Speed], waterTemp: Rep[Temperature], depth: Rep[Distance],
                          depthOffset: Rep[Distance], boatTime: Rep[Instant], date: Rep[LocalDate],
@@ -112,34 +138,33 @@ class BoatSchema(ds: DataSource, conf: ProfileConf)
 
   implicit object Coordshape extends CaseClassShape(LiftedCoord.tupled, (CombinedCoord.apply _).tupled)
 
-  private val minSpeed: Speed = Speed.kmh(1)
+  val trackStats = pointsTable.groupBy(_.track).map { case (tid, q) =>
+    LiftedTrackStats(
+      tid, q.length, q.map(_.boatTime).min,
+      q.map(_.boatTime).max, q.map(_.boatSpeed).max, q.map(_.boatSpeed).avg,
+      q.map(_.waterTemp).avg
+    )
+  }
 
   val tracksViewNonEmpty: Query[LiftedJoinedTrack, JoinedTrack, Seq] =
-    pointsTable.join(tracksTable).on(_.track === _.id).join(boatsView).on(_._2.boat === _.boat).join(distances).on(_._1._2.id === _._1)
-      .groupBy { case (((_, ts), bs), _) => (bs, ts) }
-      .map { case ((bs, ts), q) =>
-        // TODO should filter average speed by minSpeed, but Slick throws an exception. However, works with trackView.
+    boatsView
+      .join(tracksTable).on(_.boat === _.boat)
+      .join(trackStats).on(_._2.id === _.track)
+      .join(distances).on(_._1._2.id === _._1)
+      .map { case (((boat, track), stats), (_, distance)) =>
         LiftedJoinedTrack(
-          ts.id, ts.name, ts.added, bs.boat, bs.boatName, bs.token, bs.user,
-          bs.username, bs.email, q.length,
-          q.map(_._1._1._1.boatTime).min, q.map(_._1._1._1.boatTime).max,
-          q.map(_._1._1._1.boatSpeed).max, q.map(_._1._1._1.boatSpeed).avg,
-          q.map(_._1._1._1.waterTemp).max, q.map(_._2._2).max
+          track.id, track.name, track.added, boat.boat, boat.boatName,
+          boat.token, boat.user, boat.username, boat.email, stats.points,
+          stats.start, stats.end, stats.topSpeed, stats.avgSpeed, stats.avgWaterTemp,
+          distance
         )
       }
 
-  // TODO Fix - do not join points
-  val tracksView: Query[LiftedJoinedTrack, JoinedTrack, Seq] =
-    boatsView.join(tracksTable).on(_.boat === _.boat).joinLeft(pointsTable).on(_._2.id === _.track)
-      .groupBy { case ((bs, ts), _) => (bs, ts) }
-      .map { case ((bs, ts), q) => LiftedJoinedTrack(
-        ts.id, ts.name, ts.added, bs.boat, bs.boatName, bs.token, bs.user,
-        bs.username, bs.email, q.length,
-        q.map(_._2.map(_.boatTime)).min, q.map(_._2.map(_.boatTime)).max,
-        q.map(_._2.map(_.boatSpeed)).max, q.map(_._2.map(_.boatSpeed).filter(_ >= minSpeed)).avg,
-        q.map(_._2.map(_.waterTemp)).avg, Distance.zero.bind.?
-      )
-      }
+  val trackMetas: Query[LiftedTrackMeta, TrackMeta, Seq] =
+    boatsView
+      .join(tracksTable).on(_.boat === _.boat).map { case (b, t) =>
+      LiftedTrackMeta(t.id, t.name, t.added, b.boat, b.boatName, b.token, b.user, b.username, b.email)
+    }
 
   def first[T, R](q: Query[T, R, Seq], onNotFound: => String)(implicit ec: ExecutionContext) =
     q.result.headOption.flatMap { maybeRow =>
@@ -223,13 +248,15 @@ class BoatSchema(ds: DataSource, conf: ProfileConf)
       onDelete = ForeignKeyAction.Cascade
     )
 
+    def diff = column[Distance]("diff", O.Default(Distance.zero))
+
     def added = column[Instant]("added", O.SqlType(CreatedTimestampType))
 
-    def forInserts = (lon, lat, coord, boatSpeed, waterTemp, depth, depthOffset, boatTime, track, trackIndex, previous) <> ((TrackPointInput.apply _).tupled, TrackPointInput.unapply)
+    def forInserts = (lon, lat, coord, boatSpeed, waterTemp, depth, depthOffset, boatTime, track, trackIndex, previous, diff) <> ((TrackPointInput.apply _).tupled, TrackPointInput.unapply)
 
     def combined = LiftedCoord(id, lon, lat, coord, boatSpeed, waterTemp, depth, depthOffset, boatTime, dateFunc(boatTime), track, added)
 
-    def * = (id, lon, lat, coord, boatSpeed, waterTemp, depth, depthOffset, boatTime, track, trackIndex, previous, added) <> ((TrackPointRow.apply _).tupled, TrackPointRow.unapply)
+    def * = (id, lon, lat, coord, boatSpeed, waterTemp, depth, depthOffset, boatTime, track, trackIndex, previous, diff, added) <> ((TrackPointRow.apply _).tupled, TrackPointRow.unapply)
   }
 
   class SentencesPointsLink(tag: Tag) extends Table[SentencePointLink](tag, "sentence_points") {

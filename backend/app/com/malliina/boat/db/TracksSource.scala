@@ -19,7 +19,7 @@ trait TracksSource {
     * @param meta track, boat and user info
     * @return track specs, or failure if there is a naming clash
     */
-  def join(meta: BoatMeta): Future[JoinedTrack]
+  def join(meta: BoatMeta): Future[TrackMeta]
 
   def saveSentences(sentences: SentencesEvent): Future[Seq[KeyedSentence]]
 
