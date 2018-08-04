@@ -19,7 +19,7 @@ import controllers.Assets.Asset
 import controllers.BoatController.log
 import controllers.Social.{EmailKey, GoogleCookie, ProviderCookieName}
 import play.api.Logger
-import play.api.libs.json.{JsValue, Json}
+import play.api.libs.json.{JsValue, Json, Writes}
 import play.api.mvc.WebSocket.MessageFlowTransformer.jsonMessageFlowTransformer
 import play.api.mvc._
 
@@ -101,23 +101,24 @@ class BoatController(mapboxToken: AccessToken,
     }
   }
 
-  def tracks = secureAction(TrackQuery.apply) { req =>
-    db.tracksFor(req.email, req.query).map { summaries =>
-      Ok(Json.toJson(summaries))
-    }
+  def tracks = secureJson(TrackQuery.apply) { req =>
+    db.tracksFor(req.email, req.query)
   }
 
-  def distances = secureAction(_ => Right(())) { req =>
-    db.distances(req.email).map { ds =>
-      Ok(Json.toJson(ds))
-    }
+  def summary(track: TrackName) = secureJson(TrackQuery.apply) { _ =>
+    db.summary(track)
   }
 
-  def track(track: TrackName) = secureAction(TrackQuery.apply) { req =>
-    db.track(track, req.email, req.query).map { points =>
-      Ok(Json.toJson(points))
-    }
+  def distances = secureJson(_ => Right(())) { req =>
+    db.distances(req.email)
   }
+
+  def track(track: TrackName) = secureJson(TrackQuery.apply) { req =>
+    db.track(track, req.email, req.query)
+  }
+
+  private def secureJson[T, W: Writes](parse: RequestHeader => Either[SingleError, T])(run: BoatRequest[T] => Future[W]) =
+    secureAction(parse)(req => run(req).map { w => Ok(Json.toJson(w)) } )
 
   private def secureAction[T](parse: RequestHeader => Either[SingleError, T])(run: BoatRequest[T] => Future[Result]) =
     authAction(authAppOrWeb) { (email, rh) =>

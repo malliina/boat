@@ -11,7 +11,7 @@ import javax.sql.DataSource
 import play.api.Logger
 import slick.jdbc.{GetResult, H2Profile, PositionedResult}
 import slick.util.AsyncExecutor
-
+import slick.jdbc.JdbcType
 import scala.concurrent.ExecutionContext
 
 object BoatSchema {
@@ -79,17 +79,37 @@ class BoatSchema(ds: DataSource, conf: ProfileConf)
     .join(pointsTable).on((c1, c2) => c1.track === c2.track && c1.id === c2.previous)
     .map { case (c1, c2) => (c1.track, distanceCoords(c1.coord, c2.coord)) }
     .groupBy(_._1).map { case (track, q) => (track, q.map(_._2).sum) }
+  val maxSpeeds = trackAggregate(_.map(_.boatSpeed).max)
+  val avgSpeeds = trackAggregate(_.map(_.boatSpeed).avg)
+  val minTimes = trackAggregate(_.map(_.boatTime).min)
+  val maxTimes = trackAggregate(_.map(_.boatTime).max)
+  val avgTemps = trackAggregate(_.map(_.waterTemp).avg)
+  val lengths = pointsTable.groupBy(_.track).map { case (t, q) => (t, q.length) }
+  val distancesSum = trackAggregate(_.map(_.diff).sum)
 
-//  val trackJoinedStats = pointsTable
-//    .join(pointsTable).on((c1, c2) => c1.track === c2.track && c1.id === c2.previous)
-//    .map { case (c1, c2) => (c1.track, c1, distanceCoords(c1.coord, c2.coord)) }
-//    .groupBy(_._1).map { case (track, q) =>
-//    LiftedTrackStats(
-//      track, q.length, q.map(_._2.boatTime).min,
-//      q.map(_._2.boatTime).max, q.map(_._2.boatSpeed).max, q.map(_._2.boatSpeed).avg,
-//      q.map(_._2.waterTemp).avg, q.map(_._3).sum
-//    )
-//  }
+//  val trackStatsAlternative: Query[LiftedTrackStats, TrackNumbers, Seq] =
+//    for {
+//      (t1, topSpeed) <- maxSpeeds
+//      (t2, avgSpeed) <- avgSpeeds if t1 === t2
+//      (t3, start) <- minTimes if t1 === t3
+//      (t4, end) <- maxTimes if t1 === t4
+//      (t5, avgTemp) <- avgTemps if t1 === t5
+//      (t6, length) <- lenghts if t1 === t6
+//      (t7, distance) <- distancesSum if t1 === t7
+//    } yield LiftedTrackStats(t1, length, start, end, topSpeed, avgSpeed, avgTemp, distance)
+
+  val trackStats: Query[LiftedTrackStats, TrackNumbers, Seq] =
+    pointsTable.groupBy(_.track).map { case (tid, q) =>
+    LiftedTrackStats(
+      tid, q.length, q.map(_.boatTime).min,
+      q.map(_.boatTime).max, q.map(_.boatSpeed).max, q.map(_.boatSpeed).avg,
+      q.map(_.waterTemp).avg, q.map(_.diff).sum
+    )
+  }
+
+  def trackAggregate[N: JdbcType](agg: Query[TrackPointsTable, TrackPointRow, Seq] => Rep[Option[N]]):
+  Query[(Rep[TrackId], Rep[Option[N]]), (TrackId, Option[N]), Seq] =
+    pointsTable.groupBy(_.track).map { case (t, q) => (t, agg(q)) }
 
   def computeDistance(coords: Query[TrackPointsTable, TrackPointRow, Seq]): Rep[Option[Distance]] =
     coords
@@ -127,7 +147,7 @@ class BoatSchema(ds: DataSource, conf: ProfileConf)
 
   case class LiftedTrackStats(track: Rep[TrackId], points: Rep[Int], start: Rep[Option[Instant]],
                               end: Rep[Option[Instant]], topSpeed: Rep[Option[Speed]], avgSpeed: Rep[Option[Speed]],
-                              avgWaterTemp: Rep[Option[Temperature]])
+                              avgWaterTemp: Rep[Option[Temperature]], distance: Rep[Option[Distance]])
 
   implicit object TrackStatsShape extends CaseClassShape(LiftedTrackStats.tupled, (TrackNumbers.apply _).tupled)
 
@@ -138,25 +158,16 @@ class BoatSchema(ds: DataSource, conf: ProfileConf)
 
   implicit object Coordshape extends CaseClassShape(LiftedCoord.tupled, (CombinedCoord.apply _).tupled)
 
-  val trackStats = pointsTable.groupBy(_.track).map { case (tid, q) =>
-    LiftedTrackStats(
-      tid, q.length, q.map(_.boatTime).min,
-      q.map(_.boatTime).max, q.map(_.boatSpeed).max, q.map(_.boatSpeed).avg,
-      q.map(_.waterTemp).avg
-    )
-  }
-
   val tracksViewNonEmpty: Query[LiftedJoinedTrack, JoinedTrack, Seq] =
     boatsView
       .join(tracksTable).on(_.boat === _.boat)
       .join(trackStats).on(_._2.id === _.track)
-      .join(distances).on(_._1._2.id === _._1)
-      .map { case (((boat, track), stats), (_, distance)) =>
+      .map { case ((boat, track), stats) =>
         LiftedJoinedTrack(
           track.id, track.name, track.added, boat.boat, boat.boatName,
           boat.token, boat.user, boat.username, boat.email, stats.points,
           stats.start, stats.end, stats.topSpeed, stats.avgSpeed, stats.avgWaterTemp,
-          distance
+          stats.distance
         )
       }
 
@@ -218,15 +229,25 @@ class BoatSchema(ds: DataSource, conf: ProfileConf)
 
     def coord = column[Coord]("coord")
 
+    def coordIdx = index("points_track_coord_idx", (track, coord))
+
     def boatSpeed = column[Speed]("boat_speed")
+
+    def speedIdx = index("points_track_speed_idx", (track, boatSpeed))
 
     def waterTemp = column[Temperature]("water_temp")
 
+    def tempIdx = index("points_track_water_temp_idx", (track, waterTemp))
+
     def depth = column[Distance]("depthm")
+
+    def depthIdx = index("points_track_depth_idx", (track, depth))
 
     def depthOffset = column[Distance]("depth_offsetm")
 
     def boatTime = column[Instant]("boat_time", O.SqlType(CreatedTimestampType))
+
+    def timeIdx = index("points_track_boat_time_idx", (track, boatTime))
 
     def track = column[TrackId]("track")
 
@@ -249,6 +270,11 @@ class BoatSchema(ds: DataSource, conf: ProfileConf)
     )
 
     def diff = column[Distance]("diff", O.Default(Distance.zero))
+
+    def diffIdx = index("points_track_diff_idx", (track, diff))
+
+    // I think this is the best index for aggregate calculations (group by with avg, sum, max, min)
+    def allIdx = index("points_track_all_idx", (track, boatTime, boatSpeed, waterTemp, diff))
 
     def added = column[Instant]("added", O.SqlType(CreatedTimestampType))
 

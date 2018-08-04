@@ -55,8 +55,8 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext) extends 
   def saveCoordAction(coord: FullCoord) = (for {
     previous <- pointsTable.filter(_.track === coord.from.track).sortBy(_.trackIndex.desc).take(1).result
     trackIdx = previous.headOption.map(_.trackIndex).getOrElse(0) + 1
-//    diff <- previous.headOption.map { p => distanceCoords(p.coord, coord.coord.bind).result }.getOrElse { DBIO.successful(Distance.zero) }
-    point <- coordInserts += TrackPointInput.forCoord(coord, trackIdx, previous.headOption.map(_.id), Distance.zero)
+    diff <- previous.headOption.map { p => distanceCoords(p.coord, coord.coord.bind).result }.getOrElse { DBIO.successful(Distance.zero) }
+    point <- coordInserts += TrackPointInput.forCoord(coord, trackIdx, previous.headOption.map(_.id), diff)
     _ <- sentencePointsTable ++= coord.parts.map(key => SentencePointLink(key, point))
   } yield point).transactionally
 
@@ -66,8 +66,12 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext) extends 
   override def tracks(user: Username, filter: TrackQuery): Future[TrackSummaries] =
     trackList(tracksViewNonEmpty.filter(t => t.username === user), filter)
 
+  override def summary(track: TrackName): Future[TrackSummary] = action {
+    first(tracksViewNonEmpty.filter(_.trackName === track), s"Track not found: '$track'.").map(trackSummary)
+  }
+
   override def distances(email: Email): Future[Seq[EasyDistance]] = action {
-    db.distances.result.map { rows => rows.map { case (t, d) => EasyDistance(t, d.getOrElse(Distance.zero)) }}
+    db.distancesSum.result.map { rows => rows.map { case (t, d) => EasyDistance(t, d.getOrElse(Distance.zero)) }}
   }
 
   private def trackList(trackQuery: Query[LiftedJoinedTrack, JoinedTrack, Seq], filter: TrackQuery) = action {
@@ -79,19 +83,21 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext) extends 
         case _ => ljt.points.asc.nullsLast
       }
     }
+//    query.result.statements.toList foreach println
     query.result.map { rows =>
-      val summaries = rows.map { track =>
-        val first = track.start.get
-        val last = track.end.get
-        val firstMillis = first.toEpochMilli
-        val lastMillis = last.toEpochMilli
-        val duration = (lastMillis - firstMillis).millis
-        val firstUtc = first.atOffset(ZoneOffset.UTC)
-        val lastUtc = last.atOffset(ZoneOffset.UTC)
-        TrackSummary(track.strip, TrackStats(track.points, timeFormatter.format(firstUtc), firstMillis, timeFormatter.format(lastUtc), lastMillis, duration))
-      }
-      TrackSummaries(summaries)
+      TrackSummaries(rows.map(trackSummary))
     }
+  }
+
+  private def trackSummary(track: JoinedTrack) = {
+    val first = track.start.get
+    val last = track.end.get
+    val firstMillis = first.toEpochMilli
+    val lastMillis = last.toEpochMilli
+    val duration = (lastMillis - firstMillis).millis
+    val firstUtc = first.atOffset(ZoneOffset.UTC)
+    val lastUtc = last.atOffset(ZoneOffset.UTC)
+    TrackSummary(track.strip, TrackStats(track.points, timeFormatter.format(firstUtc), firstMillis, timeFormatter.format(lastUtc), lastMillis, duration))
   }
 
   override def track(track: TrackName, email: Email, query: TrackQuery): Future[Seq[CombinedCoord]] = action {

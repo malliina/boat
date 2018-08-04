@@ -64,7 +64,7 @@ object JoinedTrack {
 
 case class TrackNumbers(track: TrackId, points: Int, start: Option[Instant],
                         end: Option[Instant], topSpeed: Option[Speed], avgSpeed: Option[Speed],
-                        avgWaterTemp: Option[Temperature])
+                        avgWaterTemp: Option[Temperature], distance: Option[Distance])
 
 case class TrackMeta(track: TrackId, trackName: TrackName, trackAdded: Instant,
                      boat: BoatId, boatName: BoatName, boatToken: BoatToken,
