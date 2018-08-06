@@ -19,12 +19,6 @@ import scala.concurrent.Future
 import scala.concurrent.duration.DurationInt
 
 object MultiParsingTests {
-  def testFrom2 = JoinedTrack(
-    TrackId(1), TrackName("test"), Instant.now,
-    BoatId(1), BoatName("boat"), BoatToken("a"),
-    UserId(1), Username("u"), None, 1,
-    None, None, None, None, None, Option(Distance.zero)).strip
-
   def testFrom = TrackMetaShort(
     TrackId(1), TrackName("test"),
     BoatId(1), BoatName("boat"),

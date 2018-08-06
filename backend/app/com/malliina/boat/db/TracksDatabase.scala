@@ -71,7 +71,7 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext) extends 
   }
 
   override def distances(email: Email): Future[Seq[EasyDistance]] = action {
-    db.distancesSum.result.map { rows => rows.map { case (t, d) => EasyDistance(t, d.getOrElse(Distance.zero)) }}
+    distancesSum.result.map { rows => rows.map { case (t, d) => EasyDistance(t, d.getOrElse(Distance.zero)) }}
   }
 
   private def trackList(trackQuery: Query[LiftedJoinedTrack, JoinedTrack, Seq], filter: TrackQuery) = action {

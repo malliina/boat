@@ -4,14 +4,15 @@ import java.time.Instant
 
 import com.malliina.boat.{BoatInput, BoatName, BoatToken, Coord, TrackId, TrackInput, TrackName, TrackPointInput, UserToken}
 import com.malliina.concurrent.ExecutionContexts.cached
-import com.malliina.measure.{Distance, Speed, Temperature}
+import com.malliina.measure.{Distance, Speed, SpeedInt, Temperature}
 import com.malliina.values.Username
 import tests.BaseSuite
 
+import scala.concurrent.Future
 import scala.concurrent.duration.DurationInt
 
 class SpatialSlickTests extends BaseSuite {
-  val conf = DatabaseConf("jdbc:mysql://localhost:3306/boat?useSSL=false", "", "", DatabaseConf.MySQLDriver)
+  val conf = DatabaseConf("jdbc:mysql://localost:3306/boat?useSSL=false", "", "", DatabaseConf.MySQLDriver)
   val conf2 = DatabaseConf("jdbc:mysql://localhost:3306/gis?useSSL=false", "", "", DatabaseConf.MySQLDriver)
   //        val conf = DatabaseConf.inMemory
 
@@ -104,6 +105,46 @@ class SpatialSlickTests extends BaseSuite {
       DBIO.sequence(updates)
     }
     db.runAndAwait(action, 36000.seconds)
+  }
+
+  ignore("filter grouping") {
+    val db = BoatSchema(conf)
+    import db._
+    import db.api._
+    val minSpeed: Speed = 1.kmh
+    val query = pointsTable
+      .filter(_.boatSpeed >= minSpeed)
+      .groupBy(_.track)
+      .map { case (t, q) => (t, q.map(_.boatSpeed).avg) }
+    query.result.statements.toList foreach println
+
+    println(runAndAwait(query.result))
+  }
+
+  ignore("benchmark") {
+    val db = BoatSchema(conf)
+    import db._
+    import db.api._
+    trackStats.result.statements.toList foreach println
+    (1 to 30).foreach { _ =>
+      await(timed(db.run(trackStats.result)))
+    }
+  }
+
+  def sequentially[T, R](ts: List[T])(code: T => Future[R]): Future[List[R]] = {
+    ts match {
+      case head :: tail => code(head).flatMap { t => sequentially(tail)(code).map { ts => t :: ts } }
+      case _ => Future.successful(Nil)
+    }
+  }
+
+  def timed[T](f: => Future[T]): Future[T] = {
+    val start = System.currentTimeMillis()
+    f.map { t =>
+      val end = System.currentTimeMillis()
+      println(s"${end - start} ms")
+      t
+    }
   }
 
   def craftDb() = {
