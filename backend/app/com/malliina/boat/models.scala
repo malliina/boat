@@ -41,7 +41,7 @@ case class JoinedTrack(track: TrackId, trackName: TrackName, trackAdded: Instant
                        user: UserId, username: Username, email: Option[Email],
                        points: Int, start: Option[Instant], end: Option[Instant],
                        topSpeed: Option[Speed], avgSpeed: Option[Speed],
-                       avgWaterTemp: Option[Temperature], distance: Option[Distance]) extends TrackLike {
+                       avgWaterTemp: Option[Temperature], distance: Distance) extends TrackLike {
   val startOrNow = start.getOrElse(Instant.now())
   val endOrNow = end.getOrElse(Instant.now())
   val duration = (endOrNow.toEpochMilli - startOrNow.toEpochMilli).millis
@@ -53,7 +53,7 @@ case class JoinedTrack(track: TrackId, trackName: TrackName, trackAdded: Instant
     boatName, user, username,
     points, Instants.format(startOrNow), startOrNow.toEpochMilli,
     Instants.format(endOrNow), endOrNow.toEpochMilli, Instants.formatRange(startOrNow, endOrNow),
-    duration, distance.getOrElse(Distance.zero), topSpeed, avgSpeed,
+    duration, distance, topSpeed, avgSpeed,
     avgWaterTemp
   )
 }
@@ -62,9 +62,7 @@ object JoinedTrack {
   implicit val json = Json.format[JoinedTrack]
 }
 
-case class TrackNumbers(track: TrackId, points: Int, start: Option[Instant],
-                        end: Option[Instant], topSpeed: Option[Speed], avgSpeed: Option[Speed],
-                        avgWaterTemp: Option[Temperature], distance: Option[Distance])
+case class TrackNumbers(track: TrackId, start: Option[Instant], end: Option[Instant], topSpeed: Option[Speed])
 
 case class TrackMeta(track: TrackId, trackName: TrackName, trackAdded: Instant,
                      boat: BoatId, boatName: BoatName, boatToken: BoatToken,

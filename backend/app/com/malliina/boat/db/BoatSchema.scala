@@ -4,7 +4,7 @@ import java.time.{Instant, LocalDate}
 
 import com.malliina.boat._
 import com.malliina.boat.db.BoatSchema.{CreatedTimestampType, GetDummy, NumThreads, log}
-import com.malliina.measure.{Distance, Speed, SpeedInt, Temperature}
+import com.malliina.measure.{Distance, Speed, Temperature}
 import com.malliina.values.{Email, UserId, Username}
 import com.zaxxer.hikari.{HikariConfig, HikariDataSource}
 import javax.sql.DataSource
@@ -75,68 +75,27 @@ class BoatSchema(ds: DataSource, conf: ProfileConf)
     case _ => "ST_Distance_Sphere"
   }
   val distanceCoords = SimpleFunction.binary[Coord, Coord, Distance](distanceFunc)
-  val distances = pointsTable
-    .join(pointsTable).on((c1, c2) => c1.track === c2.track && c1.id === c2.previous)
-    .map { case (c1, c2) => (c1.track, distanceCoords(c1.coord, c2.coord)) }
-    .groupBy(_._1).map { case (track, q) => (track, q.map(_._2).sum) }
-  val minSpeed: Speed = 1.kmh
-  val maxSpeeds = trackAggregate(_.map(_.boatSpeed).max)
-  val avgSpeeds = pointsTable
-    .filter(_.boatSpeed >= minSpeed)
-    .groupBy(_.track)
-    .map { case (t, q) => (t, q.map(_.boatSpeed).avg) }
+  val topSpeeds = trackAggregate(_.map(_.boatSpeed).max)
   val minTimes = trackAggregate(_.map(_.boatTime).min)
   val maxTimes = trackAggregate(_.map(_.boatTime).max)
-  val avgTemps = trackAggregate(_.map(_.waterTemp).avg)
-  val lengths = pointsTable.groupBy(_.track).map { case (t, q) => (t, q.length) }
-  val distancesSum = trackAggregate(_.map(_.diff).sum)
-
-  val trackStats: Query[LiftedTrackStats, TrackNumbers, Seq] =
-    pointsTable.groupBy(_.track).map { case (tid, q) =>
-      LiftedTrackStats(
-        tid, q.length, q.map(_.boatTime).min,
-        q.map(_.boatTime).max, q.map(_.boatSpeed).max, q.map(_.boatSpeed).avg,
-        q.map(_.waterTemp).avg, q.map(_.diff).sum
-      )
-    }
-
-  //  val trackStats: Query[LiftedTrackStats, TrackNumbers, Seq] =
-  //    trackStatsStepOne.joinLeft(avgSpeeds).on(_.track === _._1).map { case (s, avg) =>
-  //      LiftedTrackStats(
-  //        s.track, s.points, s.start, s.end, s.topSpeed, avg.flatMap(_._2), s.avgWaterTemp, s.distance
-  //      )
-  //    }
-
-  //  val trackStatsAlternative: Query[LiftedTrackStats, TrackNumbers, Seq] =
-  //    for {
-  //      (t1, topSpeed) <- maxSpeeds
-  //      (t2, avgSpeed) <- avgSpeeds if t1 === t2
-  //      (t3, start) <- minTimes if t1 === t3
-  //      (t4, end) <- maxTimes if t1 === t4
-  //      (t5, avgTemp) <- avgTemps if t1 === t5
-  //      (t6, length) <- lenghts if t1 === t6
-  //      (t7, distance) <- distancesSum if t1 === t7
-  //    } yield LiftedTrackStats(t1, length, start, end, topSpeed, avgSpeed, avgTemp, distance)
-
   val boatsView: Query[LiftedJoinedBoat, JoinedBoat, Seq] = boatsTable.join(usersTable).on(_.owner === _.id)
     .map { case (b, u) => LiftedJoinedBoat(b.id, b.name, b.token, u.id, u.user, u.email) }
-
   val tracksViewNonEmpty: Query[LiftedJoinedTrack, JoinedTrack, Seq] =
     boatsView
       .join(tracksTable).on(_.boat === _.boat)
-      .join(trackStats).on(_._2.id === _.track)
-      .map { case ((boat, track), stats) =>
+      .join(topSpeeds).on(_._2.id === _._1)
+      .join(minTimes).on(_._1._2.id === _._1)
+      .join(maxTimes).on(_._1._1._2.id === _._1)
+      .map { case ((((boat, track), (_, top)), (_, start)), (_, end)) =>
         LiftedJoinedTrack(
           track.id, track.name, track.added, boat.boat, boat.boatName,
-          boat.token, boat.user, boat.username, boat.email, stats.points,
-          stats.start, stats.end, stats.topSpeed, stats.avgSpeed, stats.avgWaterTemp,
-          stats.distance
+          boat.token, boat.user, boat.username, boat.email, track.points,
+          start, end, top, track.avgSpeed, track.avgWaterTemp,
+          track.distance
         )
       }
-
   val trackMetas: Query[LiftedTrackMeta, TrackMeta, Seq] =
-    boatsView
-      .join(tracksTable).on(_.boat === _.boat).map { case (b, t) =>
+    boatsView.join(tracksTable).on(_.boat === _.boat).map { case (b, t) =>
       LiftedTrackMeta(t.id, t.name, t.added, b.boat, b.boatName, b.token, b.user, b.username, b.email)
     }
 
@@ -145,12 +104,6 @@ class BoatSchema(ds: DataSource, conf: ProfileConf)
   def trackAggregate[N: JdbcType](agg: Query[TrackPointsTable, TrackPointRow, Seq] => Rep[Option[N]]):
   Query[(Rep[TrackId], Rep[Option[N]]), (TrackId, Option[N]), Seq] =
     pointsTable.groupBy(_.track).map { case (t, q) => (t, agg(q)) }
-
-  def computeDistance(coords: Query[TrackPointsTable, TrackPointRow, Seq]): Rep[Option[Distance]] =
-    coords
-      .join(coords).on((c1, c2) => c1.track === c2.track && c1.id === c2.previous)
-      .map { case (c1, c2) => distanceCoords(c1.coord, c2.coord) }
-      .sum
 
   def dateFunc: Rep[Instant] => Rep[LocalDate] =
     SimpleFunction.unary[Instant, LocalDate]("date")
@@ -171,13 +124,12 @@ class BoatSchema(ds: DataSource, conf: ProfileConf)
                                user: Rep[UserId], username: Rep[Username], email: Rep[Option[Email]],
                                points: Rep[Int], start: Rep[Option[Instant]], end: Rep[Option[Instant]],
                                topSpeed: Rep[Option[Speed]], avgSpeed: Rep[Option[Speed]],
-                               avgWaterTemp: Rep[Option[Temperature]], length: Rep[Option[Distance]])
+                               avgWaterTemp: Rep[Option[Temperature]], length: Rep[Distance])
 
   implicit object TrackShape extends CaseClassShape(LiftedJoinedTrack.tupled, (JoinedTrack.apply _).tupled)
 
-  case class LiftedTrackStats(track: Rep[TrackId], points: Rep[Int], start: Rep[Option[Instant]],
-                              end: Rep[Option[Instant]], topSpeed: Rep[Option[Speed]], avgSpeed: Rep[Option[Speed]],
-                              avgWaterTemp: Rep[Option[Temperature]], distance: Rep[Option[Distance]])
+  case class LiftedTrackStats(track: Rep[TrackId], start: Rep[Option[Instant]],
+                              end: Rep[Option[Instant]], topSpeed: Rep[Option[Speed]])
 
   implicit object TrackStatsShape extends CaseClassShape(LiftedTrackStats.tupled, (TrackNumbers.apply _).tupled)
 

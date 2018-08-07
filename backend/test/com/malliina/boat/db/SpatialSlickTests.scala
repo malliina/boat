@@ -2,7 +2,7 @@ package com.malliina.boat.db
 
 import java.time.Instant
 
-import com.malliina.boat.{BoatInput, BoatName, BoatToken, Coord, TrackId, TrackInput, TrackName, TrackPointInput, UserToken}
+import com.malliina.boat.{BoatInput, BoatName, BoatToken, Coord, TrackId, TrackInput, TrackName, TrackPointInput, TrackPointRow, UserToken}
 import com.malliina.concurrent.ExecutionContexts.cached
 import com.malliina.measure.{Distance, Speed, SpeedInt, Temperature}
 import com.malliina.values.Username
@@ -12,7 +12,7 @@ import scala.concurrent.Future
 import scala.concurrent.duration.DurationInt
 
 class SpatialSlickTests extends BaseSuite {
-  val conf = DatabaseConf("jdbc:mysql://localost:3306/boat?useSSL=false", "", "", DatabaseConf.MySQLDriver)
+  val conf = DatabaseConf("jdbc:mysql://localhost:3306/boat?useSSL=false", "", "", DatabaseConf.MySQLDriver)
   val conf2 = DatabaseConf("jdbc:mysql://localhost:3306/gis?useSSL=false", "", "", DatabaseConf.MySQLDriver)
   //        val conf = DatabaseConf.inMemory
 
@@ -73,6 +73,13 @@ class SpatialSlickTests extends BaseSuite {
     import db.api._
     val london = Coord(0.13, 51.5)
     val sanfran = Coord(-122.4, 37.8)
+
+    def computeDistance(coords: Query[TrackPointsTable, TrackPointRow, Seq]): Rep[Option[Distance]] =
+      coords
+        .join(coords).on((c1, c2) => c1.track === c2.track && c1.id === c2.previous)
+        .map { case (c1, c2) => distanceCoords(c1.coord, c2.coord) }
+        .sum
+
     val action = for {
       user <- userInserts += NewUser(Username("test-run"), None, "whatever", UserToken("test-token"), enabled = true)
       boat <- boatInserts += BoatInput(BoatName("test"), BoatToken("boat-token"), user)
@@ -125,9 +132,9 @@ class SpatialSlickTests extends BaseSuite {
     val db = BoatSchema(conf)
     import db._
     import db.api._
-    trackStats.result.statements.toList foreach println
+    tracksViewNonEmpty.result.statements.toList foreach println
     (1 to 30).foreach { _ =>
-      await(timed(db.run(trackStats.result)))
+      await(timed(db.run(tracksViewNonEmpty.result)))
     }
   }
 
