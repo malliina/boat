@@ -10,7 +10,7 @@ import com.malliina.boat.parsing.FullCoord
 import com.malliina.measure.Distance
 import com.malliina.values.{Email, UserId, Username}
 import play.api.Logger
-
+import com.malliina.measure.{Speed, SpeedInt}
 import scala.concurrent.duration.DurationLong
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -25,6 +25,8 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext) extends 
 
   import db._
   import db.api._
+
+  val minSpeed: Speed = 1.kmh
 
   case class Joined(sid: SentenceKey, sentence: RawSentence, track: TrackId,
                     trackName: TrackName, boat: BoatId, boatName: BoatName,
@@ -52,13 +54,30 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext) extends 
   override def saveCoords(coord: FullCoord): Future[Seq[TrackPointId]] =
     insertLogged(saveCoordAction(coord).map(id => Seq(id)), coord.from, "coordinate")
 
-  def saveCoordAction(coord: FullCoord) = (for {
-    previous <- pointsTable.filter(_.track === coord.from.track).sortBy(_.trackIndex.desc).take(1).result
-    trackIdx = previous.headOption.map(_.trackIndex).getOrElse(0) + 1
-    diff <- previous.headOption.map { p => distanceCoords(p.coord, coord.coord.bind).result }.getOrElse { DBIO.successful(Distance.zero) }
-    point <- coordInserts += TrackPointInput.forCoord(coord, trackIdx, previous.headOption.map(_.id), diff)
-    _ <- sentencePointsTable ++= coord.parts.map(key => SentencePointLink(key, point))
-  } yield point).transactionally
+  def saveCoordAction(coord: FullCoord) = {
+    val track = coord.from.track
+    val action = for {
+      previous <- pointsTable.filter(_.track === track).sortBy(_.trackIndex.desc).take(1).result
+      trackIdx = previous.headOption.map(_.trackIndex).getOrElse(0) + 1
+      diff <- previous.headOption.map { p => distanceCoords(p.coord, coord.coord.bind).result }.getOrElse {
+        DBIO.successful(Distance.zero)
+      }
+      point <- coordInserts += TrackPointInput.forCoord(coord, trackIdx, previous.headOption.map(_.id), diff)
+      _ <- sentencePointsTable ++= coord.parts.map(key => SentencePointLink(key, point))
+      // Updates aggregates; simulates a materialized view for performance
+      trackQuery = tracksTable.filter(t => t.id === track)
+      pointsQuery = pointsTable.filter(p => p.track === track)
+      avgSpeed <- pointsQuery.filter(_.boatSpeed >= minSpeed).map(_.boatSpeed).avg.result
+      _ <- trackQuery.map(_.avgSpeed).update(avgSpeed)
+      avgWaterTemp <- pointsQuery.map(_.waterTemp).avg.result
+      _ <- trackQuery.map(_.avgWaterTemp).update(avgWaterTemp)
+      points <- pointsQuery.length.result
+      _ <- trackQuery.map(_.points).update(points)
+      distance <- pointsQuery.map(_.diff).sum.result
+      _ <- trackQuery.map(_.distance).update(distance.getOrElse(Distance.zero))
+    } yield point
+    action.transactionally
+  }
 
   override def tracksFor(email: Email, filter: TrackQuery): Future[TrackSummaries] =
     trackList(tracksViewNonEmpty.filter(t => t.email.isDefined && t.email === email), filter)
@@ -71,7 +90,7 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext) extends 
   }
 
   override def distances(email: Email): Future[Seq[EasyDistance]] = action {
-    distancesSum.result.map { rows => rows.map { case (t, d) => EasyDistance(t, d.getOrElse(Distance.zero)) }}
+    distancesSum.result.map { rows => rows.map { case (t, d) => EasyDistance(t, d.getOrElse(Distance.zero)) } }
   }
 
   private def trackList(trackQuery: Query[LiftedJoinedTrack, JoinedTrack, Seq], filter: TrackQuery) = action {
@@ -83,7 +102,7 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext) extends 
         case _ => ljt.points.asc.nullsLast
       }
     }
-//    query.result.statements.toList foreach println
+    //    query.result.statements.toList foreach println
     query.result.map { rows =>
       TrackSummaries(rows.map(trackSummary))
     }
@@ -114,21 +133,21 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext) extends 
       .sortBy(_._2.added.desc)
       .map(_._2)
       .take(1)
-//    newestTrack.result.statements.toList foreach println
+    //    newestTrack.result.statements.toList foreach println
     // Intentionally, you can view any track if you know its key.
     // Alternatively, we could filter tracks by user and make that optional.
     val eligibleTracks =
-      if (limits.tracks.nonEmpty) tracksViewNonEmpty.filter(t => t.trackName.inSet(limits.tracks))
-      else if (limits.newest) tracksViewNonEmpty.join(newestTrack).on(_.track === _.id).map(_._1)
-      else tracksViewNonEmpty
-//    eligibleTracks.result.statements.toList foreach println
+    if (limits.tracks.nonEmpty) tracksViewNonEmpty.filter(t => t.trackName.inSet(limits.tracks))
+    else if (limits.newest) tracksViewNonEmpty.join(newestTrack).on(_.track === _.id).map(_._1)
+    else tracksViewNonEmpty
+    //    eligibleTracks.result.statements.toList foreach println
     val query = eligibleTracks
       .join(rangedCoords(limits.timeRange)).on(_.track === _.track)
       .sortBy { case (_, point) => point.trackIndex.desc }
       .drop(limits.offset)
       .take(limits.limit)
       .sortBy { case (_, point) => point.trackIndex.asc }
-//    query.result.statements.toList foreach println
+    //    query.result.statements.toList foreach println
     query.result.map { rows => collectPoints(rows) }
   }
 
@@ -213,7 +232,7 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext) extends 
 
   private def saveTrack(trackName: TrackName, boat: BoatId) =
     for {
-      trackId <- trackInserts += TrackInput(trackName, boat)
+      trackId <- trackInserts += TrackInput.empty(trackName, boat)
       track <- db.first(tracksTable.filter(_.id === trackId), s"Track not found: '$trackId'.")
     } yield {
       log.info(s"Registered track with ID '$trackId' for boat '$boat'.")

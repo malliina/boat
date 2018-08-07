@@ -2,18 +2,18 @@ package com.malliina.boat.db
 
 import java.nio.charset.StandardCharsets
 import java.nio.file.{Files, Path}
-import java.time.LocalDate
+import java.time.{LocalDate, LocalTime}
 
 import akka.NotUsed
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.{Flow, Sink, Source}
 import com.malliina.boat.parsing.{BoatParser, FullCoord}
-import com.malliina.boat.{BoatId, BoatName, BoatUser, KeyedSentence, LocalConf, RawSentence, SentencesEvent, TrackId, TrackInput, TrackNames, TrackPointId, UserToken}
+import com.malliina.boat.{BoatId, BoatInput, BoatName, BoatNames, BoatTokens, BoatUser, Coord, KeyedSentence, LocalConf, RawSentence, SentencesEvent, TrackId, TrackInput, TrackMetaShort, TrackNames, TrackPointId, TrackRow, UserToken}
 import com.malliina.concurrent.ExecutionContexts.cached
 import com.malliina.file.FileUtilities
-import com.malliina.measure.Distance
-import com.malliina.values.Username
+import com.malliina.measure.{DistanceInt, Speed, SpeedInt, Temperature}
+import com.malliina.values.{UserId, Username}
 import play.api.Mode
 import tests.BaseSuite
 
@@ -24,6 +24,38 @@ import scala.concurrent.duration.DurationInt
 class TracksDatabaseTests extends BaseSuite {
   implicit val as = ActorSystem()
   implicit val mat = ActorMaterializer()
+  //  val conf = DatabaseConf("jdbc:mysql://localhost:3306/boat?useSSL=false", "", "", DatabaseConf.MySQLDriver)
+  val conf = DatabaseConf.inMemory
+
+  test("inserts update track aggregates") {
+    val db = BoatSchema(conf)
+    db.initBoat()
+    val tdb = TracksDatabase(db, mat.executionContext)
+    val london = Coord(0.13, 51.5)
+    val sanfran = Coord(-122.4, 37.8)
+    val user = NewUser(Username("test-agg-user"), None, "", UserToken.random(), enabled = true)
+
+    def coord(c: Coord, speed: Speed, track: TrackId, boat: BoatId, user: UserId) = {
+      FullCoord(c, LocalTime.now(), LocalDate.now(), speed, Temperature.zeroCelsius, 1.meters, 0.meters,
+        TrackMetaShort(track, TrackNames.random(), boat, BoatNames.random(), user, Username("whatever")))
+    }
+
+    import db._
+    import db.api._
+    val action = for {
+      uid <- userInserts += user
+      boat = BoatInput(BoatNames.random(), BoatTokens.random(), uid)
+      bid <- boatInserts += boat
+      tid: TrackId <- trackInserts += TrackInput.empty(TrackNames.random(), bid)
+      _ <- tdb.saveCoordAction(coord(london, 10.kmh, tid, bid, uid))
+      _ <- tdb.saveCoordAction(coord(sanfran, 20.kmh, tid, bid, uid))
+      track: TrackRow <- first(tracksTable.filter(_.id === tid.bind), s"Track not found: '$tid'.")
+      _ <- usersTable.filter(_.id === uid).delete
+    } yield track
+    val t = runAndAwait(action)
+    assert(t.avgSpeed.exists(s => s > 14.kmh && s < 16.kmh))
+    assert(t.points === 2)
+  }
 
   ignore("init tokens") {
     val (db, _) = initDb()
@@ -112,7 +144,7 @@ class TracksDatabaseTests extends BaseSuite {
 
     def createAndUpdateTrack(date: LocalDate) =
       for {
-        newTrack <- trackInserts += TrackInput(TrackNames.random(), BoatId(14))
+        newTrack <- trackInserts += TrackInput.empty(TrackNames.random(), BoatId(14))
         updated <- updateTrack(oldTrack, date, newTrack)
       } yield updated
 

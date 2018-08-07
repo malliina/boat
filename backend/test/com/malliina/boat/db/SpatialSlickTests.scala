@@ -76,7 +76,7 @@ class SpatialSlickTests extends BaseSuite {
     val action = for {
       user <- userInserts += NewUser(Username("test-run"), None, "whatever", UserToken("test-token"), enabled = true)
       boat <- boatInserts += BoatInput(BoatName("test"), BoatToken("boat-token"), user)
-      track <- trackInserts += TrackInput(TrackName("test-track"), boat)
+      track <- trackInserts += TrackInput.empty(TrackName("test-track"), boat)
       sanfranId <- coordInserts += TrackPointInput(1, 2, sanfran, Speed.zero, Temperature.zeroCelsius, Distance.zero, Distance.zero, Instant.now, track, 1, None, Distance.zero)
       previous <- pointsTable.filter(_.track === track).sortBy(_.trackIndex.desc).take(1).result
       trackIdx = previous.headOption.map(_.trackIndex).getOrElse(0) + 1

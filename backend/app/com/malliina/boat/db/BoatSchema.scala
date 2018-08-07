@@ -316,6 +316,14 @@ class BoatSchema(ds: DataSource, conf: ProfileConf)
 
     def boat = column[BoatId]("boat")
 
+    def avgSpeed = column[Option[Speed]]("avg_speed")
+
+    def avgWaterTemp = column[Option[Temperature]]("avg_water_temp")
+
+    def points = column[Int]("points")
+
+    def distance = column[Distance]("distance")
+
     def added = column[Instant]("added", O.SqlType(CreatedTimestampType))
 
     def boatConstraint = foreignKey("tracks_boat_fk", boat, boatsTable)(
@@ -324,9 +332,9 @@ class BoatSchema(ds: DataSource, conf: ProfileConf)
       onDelete = ForeignKeyAction.Cascade
     )
 
-    def forInserts = (name, boat) <> ((TrackInput.apply _).tupled, TrackInput.unapply)
+    def forInserts = (name, boat, avgSpeed, avgWaterTemp, points, distance) <> ((TrackInput.apply _).tupled, TrackInput.unapply)
 
-    def * = (id, name, boat, added) <> ((TrackRow.apply _).tupled, TrackRow.unapply)
+    def * = (id, name, boat, avgSpeed, avgWaterTemp, points, distance, added) <> ((TrackRow.apply _).tupled, TrackRow.unapply)
   }
 
   class BoatsTable(tag: Tag) extends Table[BoatRow](tag, "boats") {

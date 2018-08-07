@@ -123,9 +123,16 @@ case class BoatRow(id: BoatId, name: BoatName, token: BoatToken, owner: UserId, 
 case class JoinedBoat(boat: BoatId, boatName: BoatName, boatToken: BoatToken,
                       user: UserId, username: Username, email: Option[Email])
 
-case class TrackInput(name: TrackName, boat: BoatId)
+case class TrackInput(name: TrackName, boat: BoatId, avgSpeed: Option[Speed],
+                      avgWaterTemp: Option[Temperature], points: Int, distance: Distance)
 
-case class TrackRow(id: TrackId, name: TrackName, boat: BoatId, added: Instant)
+object TrackInput {
+  def empty(name: TrackName, boat: BoatId): TrackInput = TrackInput(name, boat, None, None, 0, Distance.zero)
+}
+
+case class TrackRow(id: TrackId, name: TrackName, boat: BoatId,
+                    avgSpeed: Option[Speed], avgWaterTemp: Option[Temperature],
+                    points: Int, distance: Distance, added: Instant)
 
 case class SentenceKey(id: Long) extends WrappedId
 
