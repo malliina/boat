@@ -53,13 +53,12 @@ lazy val backendSettings = playSettings ++ Seq(
     "com.typesafe.slick" %% "slick" % "3.2.3",
     "com.h2database" % "h2" % "1.4.196",
     "org.orbisgis" % "h2gis" % "1.4.0",
-    "org.mariadb.jdbc" % "mariadb-java-client" % "2.2.5",
     "mysql" % "mysql-connector-java" % "5.1.46",
     "com.zaxxer" % "HikariCP" % "3.2.0",
-    "org.flywaydb" % "flyway-core" % "5.1.3",
+    "org.flywaydb" % "flyway-core" % "5.1.4",
     "org.apache.commons" % "commons-text" % "1.4",
-    "com.malliina" %% "logstreams-client" % "1.0.0",
-    "com.amazonaws" % "aws-java-sdk-s3" % "1.11.358",
+    "com.malliina" %% "logstreams-client" % "1.1.0",
+    "com.amazonaws" % "aws-java-sdk-s3" % "1.11.385",
     "com.malliina" %% "play-social" % utilPlayVersion,
     utilPlayDep,
     utilPlayDep % Test classifier "tests"
@@ -95,8 +94,8 @@ lazy val backendSettings = playSettings ++ Seq(
 lazy val frontendSettings = commonSettings ++ Seq(
   libraryDependencies ++= Seq(
     "org.scala-js" %%% "scalajs-dom" % "0.9.6",
-    "be.doeraene" %%% "scalajs-jquery" % "0.9.3",
-    "org.scalatest" %%% "scalatest" % "3.0.4" % Test
+    "be.doeraene" %%% "scalajs-jquery" % "0.9.4",
+    "org.scalatest" %%% "scalatest" % "3.0.5" % Test
   ),
   scalaJSUseMainModuleInitializer := true
 )
@@ -127,12 +126,12 @@ lazy val clientSettings = commonSettings ++ Seq(
   },
   libraryDependencies ++= Seq(
     "com.malliina" %% "primitives" % primitiveVersion,
-    "com.neovisionaries" % "nv-websocket-client" % "2.4",
+    "com.neovisionaries" % "nv-websocket-client" % "2.5",
     "org.slf4j" % "slf4j-api" % "1.7.25",
     "com.malliina" %% "logback-rx" % "1.2.0",
-    "com.typesafe.akka" %% "akka-stream" % "2.5.12",
-    "com.typesafe.akka" %% "akka-http" % "10.1.1",
-    "com.typesafe.akka" %% "akka-http-spray-json" % "10.1.1",
+    "com.typesafe.akka" %% "akka-stream" % "2.5.14",
+    "com.typesafe.akka" %% "akka-http" % "10.1.3",
+    "com.typesafe.akka" %% "akka-http-spray-json" % "10.1.3",
     "com.lihaoyi" %% "scalatags" % "0.6.7",
     "commons-codec" % "commons-codec" % "1.11",
     "com.neuronrobotics" % "nrjavaserial" % "3.14.0",
