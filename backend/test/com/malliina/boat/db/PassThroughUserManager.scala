@@ -2,19 +2,20 @@ package com.malliina.boat.db
 
 import java.time.Instant
 
-import com.malliina.boat.{BoatInfo, BoatToken, JoinedBoat, UserToken}
+import com.malliina.boat.{BoatInfo, BoatToken, JoinedBoat, UserInfo, UserToken}
 import com.malliina.values.{Email, Password, UserId, Username}
 
 import scala.concurrent.Future
 
 object PassThroughUserManager extends UserManager {
-  val god = DataUser(UserId(1L), Username("test"), None, "", UserToken.random(), enabled = true, added = Instant.now())
+//  val god = DataUser(UserId(1L), Username("test"), None, "", UserToken.random(), enabled = true, added = Instant.now())
+  val god = UserInfo(UserId(1L), Username("test"), None, Nil, enabled = true, addedMillis = Instant.now().toEpochMilli)
 
-  def authenticate(user: Username, pass: Password): Future[Either[IdentityError, DataUser]] = fut(Right(god))
+  def authenticate(user: Username, pass: Password): Future[Either[IdentityError, UserInfo]] = fut(Right(god))
 
-  def authUser(token: UserToken): Future[Either[IdentityError, DataUser]] = fut(Right(god))
+  def authUser(token: UserToken): Future[Either[IdentityError, UserInfo]] = fut(Right(god))
 
-  def authEmail(email: Email): Future[Either[IdentityError, DataUser]] = fut(Right(god))
+  def authEmail(email: Email): Future[Either[IdentityError, UserInfo]] = fut(Right(god))
 
   def authBoat(token: BoatToken): Future[Either[IdentityError, JoinedBoat]] = fut(Left(InvalidToken(token)))
 
@@ -26,7 +27,7 @@ object PassThroughUserManager extends UserManager {
 
   def deleteUser(user: Username): Future[Either[UserDoesNotExist, Unit]] = fut(Left(UserDoesNotExist(user)))
 
-  def users: Future[Seq[DataUser]] = fut(Seq(god))
+  def users: Future[Seq[UserInfo]] = fut(Seq(god))
 
   def fut[T](t: T) = Future.successful(t)
 }

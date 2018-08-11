@@ -3,7 +3,7 @@ package com.malliina.boat.db
 import java.sql.SQLException
 
 import com.malliina.boat.db.DatabaseUserManager.log
-import com.malliina.boat.{BoatInfo, BoatToken, JoinedBoat, JoinedTrack, UserToken}
+import com.malliina.boat.{Boat, BoatInfo, BoatRow, BoatToken, JoinedBoat, JoinedTrack, UserInfo, UserToken}
 import com.malliina.values.{Email, Password, UserId, Username}
 import play.api.Logger
 
@@ -22,22 +22,44 @@ class DatabaseUserManager(val db: BoatSchema)(implicit ec: ExecutionContext)
   import db._
   import db.api._
 
-  override def authUser(token: UserToken): Future[Either[IdentityError, DataUser]] =
+  override def authUser(token: UserToken): Future[Either[IdentityError, UserInfo]] =
     withUserAuth(usersTable.filter(_.token === token))
 
-  override def authEmail(email: Email): Future[Either[IdentityError, DataUser]] =
+  override def authEmail(email: Email): Future[Either[IdentityError, UserInfo]] =
     withUserAuth(usersTable.filter(u => u.email.isDefined && u.email === email))
 
-  private def withUserAuth(filteredUsers: Query[UsersTable, DataUser, Seq]) = action {
-    filteredUsers.result.headOption.map { maybeUser =>
-      maybeUser.map { profile =>
-        if (profile.enabled) Right(profile)
-        else Left(UserDisabled(profile.username))
-      }.getOrElse {
-        Left(InvalidCredentials(None))
+  override def users: Future[Seq[UserInfo]] = action {
+    userInfos(usersTable)
+  }
+
+  private def withUserAuth(filteredUsers: Query[UsersTable, DataUser, Seq]): Future[Either[IdentityError, UserInfo]] =
+    action {
+      userInfos(filteredUsers).map { users =>
+        users.headOption.map { profile =>
+          if (profile.enabled) Right(profile)
+          else Left(UserDisabled(profile.username))
+        }.getOrElse {
+          Left(InvalidCredentials(None))
+        }
       }
     }
-  }
+
+  private def userInfos(filteredUsers: Query[UsersTable, DataUser, Seq]) =
+    filteredUsers.joinLeft(boatsTable).on(_.id === _.owner).result.map { rows =>
+      collectUsers(rows)
+    }
+
+  private def collectUsers(rows: Seq[(DataUser, Option[BoatRow])]) =
+    rows.foldLeft(Vector.empty[UserInfo]) { case (acc, (user, boat)) =>
+      val idx = acc.indexWhere(_.id == user.id)
+      val newBoats = boat.toSeq.map(b => Boat(b.id, b.name, b.token, b.added.toEpochMilli))
+      if (idx >= 0) {
+        val old = acc(idx)
+        acc.updated(idx, old.copy(boats = old.boats ++ newBoats))
+      } else {
+        acc :+ UserInfo(user.id, user.username, user.email, newBoats, user.enabled, user.added.toEpochMilli)
+      }
+    }
 
   override def authBoat(token: BoatToken): Future[Either[IdentityError, JoinedBoat]] = action {
     boatsView.filter(_.token === token).result.headOption.map(_.toRight(InvalidToken(token)))
@@ -96,10 +118,6 @@ class DatabaseUserManager(val db: BoatSchema)(implicit ec: ExecutionContext)
         Left(UserDoesNotExist(user))
       }
     }
-
-  override def users: Future[Seq[DataUser]] = action {
-    usersTable.result
-  }
 
   private def action[R](a: DBIOAction[R, NoStream, Nothing]): Future[R] = db.run(a)
 }

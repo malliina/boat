@@ -22,6 +22,9 @@ package object boat {
     def flatMapRight[LL >: L, S](code: R => Future[Either[LL, S]]): Future[Either[LL, S]] =
       fe.flatMap(e => e.fold(l => Future.successful(Left(l)), r => code(r)))
 
+    def flatMapR[S](code: R => Future[S]): Future[Either[L, S]] =
+      fe.flatMapRight(r => code(r).map(s => Right(s)))
+
     def onFail[S >: R](code: L => S): Future[S] =
       fe.map(e => e.fold(l => code(l), identity))
   }

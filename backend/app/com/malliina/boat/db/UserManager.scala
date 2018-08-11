@@ -1,6 +1,6 @@
 package com.malliina.boat.db
 
-import com.malliina.boat.{BoatInfo, BoatToken, JoinedBoat, UserToken}
+import com.malliina.boat.{BoatInfo, BoatToken, JoinedBoat, UserInfo, UserToken}
 import com.malliina.play.auth.AuthError
 import com.malliina.values.{Email, Password, UserId, Username}
 import org.apache.commons.codec.digest.DigestUtils
@@ -9,9 +9,9 @@ import play.api.mvc.RequestHeader
 import scala.concurrent.Future
 
 trait UserManager {
-  def authUser(token: UserToken): Future[Either[IdentityError, DataUser]]
+  def authUser(token: UserToken): Future[Either[IdentityError, UserInfo]]
 
-  def authEmail(email: Email): Future[Either[IdentityError, DataUser]]
+  def authEmail(email: Email): Future[Either[IdentityError, UserInfo]]
 
   def authBoat(token: BoatToken): Future[Either[IdentityError, JoinedBoat]]
 
@@ -26,9 +26,10 @@ trait UserManager {
 
   def deleteUser(user: Username): Future[Either[UserDoesNotExist, Unit]]
 
-  def users: Future[Seq[DataUser]]
+  def users: Future[Seq[UserInfo]]
 
-  protected def hash(user: Username, pass: Password): String = DigestUtils.md5Hex(user.name + ":" + pass.pass)
+  protected def hash(user: Username, pass: Password): String =
+    DigestUtils.md5Hex(user.name + ":" + pass.pass)
 }
 
 sealed trait IdentityError

@@ -26,8 +26,9 @@ object GoogleTokenAuth {
 
 class GoogleTokenAuth(client: KeyClient)(implicit ec: ExecutionContext) {
   def auth(rh: RequestHeader): Option[Future[Either[IdentityError, Email]]] =
-    GoogleTokenAuth.readAuthToken(rh)
-      .map(token => validate(IdToken(token)).map(_.left.map(err => JWTError(rh, err))))
+    GoogleTokenAuth.readAuthToken(rh).map { token =>
+      validate(IdToken(token)).map(_.left.map(err => JWTError(rh, err)))
+    }
 
   def validate(token: IdToken): Future[Either[AuthError, Email]] =
     client.validate(token).map { outcome =>

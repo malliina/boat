@@ -1,6 +1,7 @@
 GET        /                                controllers.BoatController.index
 GET        /pingAuth                        controllers.BoatController.pingAuth
 GET        /health                          controllers.BoatController.health
+GET        /users/me                        controllers.BoatController.me
 GET        /tracks                          controllers.BoatController.tracks
 GET        /tracks/:track                   controllers.BoatController.summary(track: com.malliina.boat.TrackName)
 GET        /tracks/:track/trail             controllers.BoatController.track(track: com.malliina.boat.TrackName)

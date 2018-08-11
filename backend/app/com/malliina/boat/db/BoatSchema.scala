@@ -178,7 +178,7 @@ class BoatSchema(ds: DataSource, conf: ProfileConf)
     def * = (id, sentence, track, added) <> ((SentenceRow.apply _).tupled, SentenceRow.unapply)
   }
 
-  class TrackPointsTable(tag: Tag) extends Table[TrackPointRow](tag, "points2") {
+  class TrackPointsTable(tag: Tag) extends Table[TrackPointRow](tag, "points") {
     def id = column[TrackPointId]("id", O.PrimaryKey, O.AutoInc)
 
     def lon = column[Double]("longitude")

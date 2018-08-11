@@ -82,6 +82,10 @@ class BoatController(mapboxToken: AccessToken,
     Ok(Json.toJson(AppMeta.default))
   }
 
+  def me = authAction(profile) { (user, _) =>
+    Future.successful(Ok(Json.toJson(UserContainer(user))))
+  }
+
   def pingAuth = authAction(authAppToken) { (_, _) => Future.successful(Ok(Json.toJson(AppMeta.default))) }
 
   def boats = WebSocket { rh =>
@@ -118,7 +122,7 @@ class BoatController(mapboxToken: AccessToken,
   }
 
   private def secureJson[T, W: Writes](parse: RequestHeader => Either[SingleError, T])(run: BoatRequest[T] => Future[W]) =
-    secureAction(parse)(req => run(req).map { w => Ok(Json.toJson(w)) } )
+    secureAction(parse)(req => run(req).map { w => Ok(Json.toJson(w)) })
 
   private def secureAction[T](parse: RequestHeader => Either[SingleError, T])(run: BoatRequest[T] => Future[Result]) =
     authAction(authAppOrWeb) { (email, rh) =>
@@ -218,17 +222,24 @@ class BoatController(mapboxToken: AccessToken,
       Future.successful(Right(Username(user)))
     }
 
-  private def authAppToken(rh: RequestHeader): Future[Either[IdentityError, Username]] =
-    authApp(rh).getOrElse(Future.successful(Left(MissingCredentials(rh))))
+  private def authAppToken(rh: RequestHeader): Future[Either[IdentityError, UserInfo]] =
+    googleProfile(rh).getOrElse(Future.successful(Left(MissingCredentials(rh))))
 
   private def authApp(rh: RequestHeader): Option[Future[Either[IdentityError, Username]]] =
+    googleProfile(rh).map { f =>
+      f.mapR(_.username)
+    }
+
+  private def googleProfile(rh: RequestHeader): Option[Future[Either[IdentityError, UserInfo]]] =
     googleAuth.auth(rh).map { f =>
-      f.flatMap { outcome =>
-        outcome.fold(
-          err => Future.successful(Left(err)),
-          email => auther.authEmail(email).map { outcome => outcome.map(_.username) }
-        )
+      f.flatMapRight { email =>
+        auther.authEmail(email)
       }
+    }
+
+  private def profile(rh: RequestHeader): Future[Either[IdentityError, UserInfo]] =
+    authAppOrWeb(rh).flatMapRight { email =>
+      auther.authEmail(email)
     }
 
   private def authAppOrWeb(rh: RequestHeader): Future[Either[IdentityError, Email]] = {
@@ -237,19 +248,12 @@ class BoatController(mapboxToken: AccessToken,
     googleAuth.auth(rh).getOrElse(authFromSession)
   }
 
-//  def authQuery(rh: RequestHeader): Future[Either[IdentityError, Username]] =
-//    queryAuthBoat(rh, Left(MissingToken(rh))).map(_.map(_.map(_.user).getOrElse(anonUser)))
-
   def queryAuthBoat(rh: RequestHeader, onNoQuery: => Either[IdentityError, Option[JoinedBoat]]): Future[Either[IdentityError, Option[JoinedBoat]]] =
     rh.getQueryString(BoatTokenQuery).map { token =>
       auther.authBoat(BoatToken(token)).map(_.map(Option.apply))
     }.getOrElse {
       Future.successful(onNoQuery)
     }
-
-//  def authOrAnon(rh: RequestHeader) = optionalAuth(rh).map(e => e.map(bi => bi.map(_.user).getOrElse(Usernames.anon)))
-
-//  def authSecure(rh: RequestHeader) = optionalAuth(rh).map(e => e.flatMap(_.toRight(InvalidCredentials(None))))
 
   def optionalAuth(rh: RequestHeader): Future[Either[IdentityError, Option[BoatInfo]]] =
     authSessionEmail(rh).map(opt => Right(opt))
