@@ -11,6 +11,15 @@ import scala.concurrent.Future
 trait UserManager {
   def authUser(token: UserToken): Future[Either[IdentityError, UserInfo]]
 
+  /** Retrieves user information for the user with the given email address. If the user does not exist, one is created
+    * with the email address as the username. This enables user login without an explicit signup step.
+    *
+    * The email address is expected to be in possession of the user, meaning we have extracted it from a validated
+    * Google ID token when calling this method.
+    *
+    * @param email email address of the user
+    * @return user info for `email`
+    */
   def authEmail(email: Email): Future[Either[IdentityError, UserInfo]]
 
   def authBoat(token: BoatToken): Future[Either[IdentityError, JoinedBoat]]

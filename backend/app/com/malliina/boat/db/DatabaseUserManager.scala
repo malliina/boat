@@ -22,11 +22,27 @@ class DatabaseUserManager(val db: BoatSchema)(implicit ec: ExecutionContext)
   import db._
   import db.api._
 
+  val userInserts = usersTable.map(_.forInserts).returning(usersTable.map(_.id))
+
   override def authUser(token: UserToken): Future[Either[IdentityError, UserInfo]] =
     withUserAuth(usersTable.filter(_.token === token))
 
-  override def authEmail(email: Email): Future[Either[IdentityError, UserInfo]] =
-    withUserAuth(usersTable.filter(u => u.email.isDefined && u.email === email))
+  override def authEmail(email: Email): Future[Either[IdentityError, UserInfo]] = {
+    val action = for {
+      id <- getOrCreate(email)
+      info <- userAuthAction(usersTable.filter(_.id === id))
+    } yield info
+    db.run(action.transactionally)
+  }
+
+  private def getOrCreate(email: Email): DBIOAction[UserId, NoStream, Effect.All] =
+    usersTable.filter(u => u.email.isDefined && u.email === email).result.flatMap { rows =>
+      rows.headOption.map { user =>
+        DBIO.successful(user.id)
+      }.getOrElse {
+        userInserts += NewUser(Username(email.email), Option(email), "", UserToken.random(), enabled = true)
+      }
+    }
 
   override def users: Future[Seq[UserInfo]] = action {
     userInfos(usersTable)
@@ -34,13 +50,16 @@ class DatabaseUserManager(val db: BoatSchema)(implicit ec: ExecutionContext)
 
   private def withUserAuth(filteredUsers: Query[UsersTable, DataUser, Seq]): Future[Either[IdentityError, UserInfo]] =
     action {
-      userInfos(filteredUsers).map { users =>
-        users.headOption.map { profile =>
-          if (profile.enabled) Right(profile)
-          else Left(UserDisabled(profile.username))
-        }.getOrElse {
-          Left(InvalidCredentials(None))
-        }
+      userAuthAction(filteredUsers)
+    }
+
+  private def userAuthAction(filteredUsers: Query[UsersTable, DataUser, Seq]) =
+    userInfos(filteredUsers).map { users =>
+      users.headOption.map { profile =>
+        if (profile.enabled) Right(profile)
+        else Left(UserDisabled(profile.username))
+      }.getOrElse {
+        Left(InvalidCredentials(None))
       }
     }
 
@@ -102,8 +121,7 @@ class DatabaseUserManager(val db: BoatSchema)(implicit ec: ExecutionContext)
   }
 
   override def addUser(user: NewUser): Future[Either[AlreadyExists, UserId]] = {
-    val action = usersTable.map(_.forInserts).returning(usersTable.map(_.id)) += user
-    db.run(action).map(id => Right(id)).recover {
+    db.run(userInserts += user).map(id => Right(id)).recover {
       case sqle: SQLException if sqle.getMessage contains "primary key violation" =>
         Left(AlreadyExists(user.username))
     }
