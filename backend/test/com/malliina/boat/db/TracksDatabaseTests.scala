@@ -33,7 +33,7 @@ class TracksDatabaseTests extends BaseSuite {
     val tdb = TracksDatabase(db, mat.executionContext)
     val london = Coord(0.13, 51.5)
     val sanfran = Coord(-122.4, 37.8)
-    val user = NewUser(Username("test-agg-user"), None, "", UserToken.random(), enabled = true)
+    val user = NewUser(Username("test-agg-user"), None, UserToken.random(), enabled = true)
 
     def coord(c: Coord, speed: Speed, track: TrackId, boat: BoatId, user: UserId) = {
       FullCoord(c, LocalTime.now(), LocalDate.now(), speed, Temperature.zeroCelsius, 1.meters, 0.meters,

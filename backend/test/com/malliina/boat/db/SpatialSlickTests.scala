@@ -81,7 +81,7 @@ class SpatialSlickTests extends BaseSuite {
         .sum
 
     val action = for {
-      user <- userInserts += NewUser(Username("test-run"), None, "whatever", UserToken("test-token"), enabled = true)
+      user <- userInserts += NewUser(Username("test-run"), None, UserToken("test-token"), enabled = true)
       boat <- boatInserts += BoatInput(BoatName("test"), BoatToken("boat-token"), user)
       track <- trackInserts += TrackInput.empty(TrackName("test-track"), boat)
       sanfranId <- coordInserts += TrackPointInput(1, 2, sanfran, Speed.zero, Temperature.zeroCelsius, Distance.zero, Distance.zero, Instant.now, track, 1, None, Distance.zero)
