@@ -153,12 +153,12 @@ class BoatSchema(ds: DataSource, conf: ProfileConf)
     init()
     val addAnon = usersTable.filter(_.user === Usernames.anon).exists.result.flatMap { exists =>
       if (exists) DBIO.successful(())
-      else userInserts += NewUser(Usernames.anon, None, "unused", UserToken.random(), enabled = true)
+      else userInserts += NewUser(Usernames.anon, None, UserToken.random(), enabled = true)
     }
     await(run(addAnon))
   }
 
-  class SentencesTable(tag: Tag) extends Table[SentenceRow](tag, "sentences2") {
+  class SentencesTable(tag: Tag) extends Table[SentenceRow](tag, "sentences") {
     def id = column[SentenceKey]("id", O.AutoInc, O.PrimaryKey)
 
     def sentence = column[RawSentence]("sentence", O.Length(128))
@@ -326,9 +326,9 @@ class BoatSchema(ds: DataSource, conf: ProfileConf)
 
     def added = column[Instant]("added", O.SqlType(CreatedTimestampType))
 
-    def forInserts = (user, email, passHash, token, enabled) <> ((NewUser.apply _).tupled, NewUser.unapply)
+    def forInserts = (user, email, token, enabled) <> ((NewUser.apply _).tupled, NewUser.unapply)
 
-    def * = (id, user, email, passHash, token, enabled, added) <> ((DataUser.apply _).tupled, DataUser.unapply)
+    def * = (id, user, email, token, enabled, added) <> ((DataUser.apply _).tupled, DataUser.unapply)
   }
 
   def first[T, R](q: Query[T, R, Seq], onNotFound: => String)(implicit ec: ExecutionContext) =

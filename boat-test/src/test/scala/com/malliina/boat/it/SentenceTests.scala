@@ -2,6 +2,7 @@ package com.malliina.boat.it
 
 import akka.stream.scaladsl.Sink
 import com.malliina.boat._
+import com.malliina.boat.db.NewUser
 import com.malliina.values.{Password, Username}
 import play.api.libs.json.JsValue
 
@@ -34,7 +35,7 @@ class SentenceTests extends BoatTests {
   ignore("sent events are not received by unrelated viewer") {
     val testUser = Username("User1")
     val testPass = Password("demo")
-    await(components.users.addUser(testUser, testPass))
+    await(components.users.addUser(NewUser(testUser, None, UserToken.random(), enabled = true)))
     val creds = Option(Creds(testUser, testPass))
     openTestBoat(BoatNames.random(), creds) { boat =>
       val authPromise = Promise[CoordsEvent]()

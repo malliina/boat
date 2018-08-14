@@ -8,13 +8,11 @@ import com.malliina.values.{Email, UserId, Username}
 case class DataUser(id: UserId,
                     username: Username,
                     email: Option[Email],
-                    passwordHash: String,
                     token: UserToken,
                     enabled: Boolean,
                     added: Instant)
 
 case class NewUser(username: Username,
                    email: Option[Email],
-                   passwordHash: String,
                    token: UserToken,
                    enabled: Boolean)

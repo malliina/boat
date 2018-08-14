@@ -26,11 +26,6 @@ trait UserManager {
 
   def boats(user: Email): Future[Seq[BoatInfo]]
 
-  def updatePassword(user: Username, newPass: Password): Future[Unit]
-
-  def addUser(user: Username, pass: Password): Future[Either[AlreadyExists, UserId]] =
-    addUser(NewUser(user, None, hash(user, pass), UserToken.random(), enabled = true))
-
   def addUser(user: NewUser): Future[Either[AlreadyExists, UserId]]
 
   def deleteUser(user: Username): Future[Either[UserDoesNotExist, Unit]]

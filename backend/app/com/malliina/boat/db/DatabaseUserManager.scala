@@ -40,7 +40,7 @@ class DatabaseUserManager(val db: BoatSchema)(implicit ec: ExecutionContext)
       rows.headOption.map { user =>
         DBIO.successful(user.id)
       }.getOrElse {
-        userInserts += NewUser(Username(email.email), Option(email), "", UserToken.random(), enabled = true)
+        userInserts += NewUser(Username(email.email), Option(email), UserToken.random(), enabled = true)
       }
     }
 
@@ -108,17 +108,6 @@ class DatabaseUserManager(val db: BoatSchema)(implicit ec: ExecutionContext)
         acc :+ BoatInfo(row.boat, row.boatName, row.username, Seq(newRow))
       }
     }
-
-  override def updatePassword(user: Username, newPass: Password): Future[Unit] = {
-    val action = usersTable
-      .filter(u => u.user === user)
-      .map(_.passHash)
-      .update(hash(user, newPass))
-    db.run(action).map { changed =>
-      if (changed > 0) log.info(s"Changed password for '$user'.")
-      else log.warn(s"Failed to change password for '$user'.")
-    }
-  }
 
   override def addUser(user: NewUser): Future[Either[AlreadyExists, UserId]] = {
     db.run(userInserts += user).map(id => Right(id)).recover {
