@@ -1,4 +1,4 @@
-# agent
+# Agent
 
 Run the agent software on a small computer and connect it to your chartplotter.
 
@@ -7,7 +7,7 @@ Raspbian.
 
 ## Installation
  
-1. Download the latest version from https://www.boat-tracker.com/files
+1. Download the latest version from [www.boat-tracker.com/files](https://www.boat-tracker.com/files)
 1. Install the package: `dpkg -i <boat-agent_x.x.x_all.deb>`
 1. Open a web browser and connect to the HTTP server on port 8080
 1. In the web form, input the IP address and HTTP port of your chartplotter

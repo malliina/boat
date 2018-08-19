@@ -47,6 +47,7 @@ lazy val it = Project("integration-tests", file("boat-test"))
   .dependsOn(backend, backend % "test->test", agent)
 
 lazy val backendSettings = playSettings ++ Seq(
+  unmanagedResourceDirectories in Compile += baseDirectory.value / "docs",
   libraryDependencies ++= Seq(
     //    "net.sf.marineapi" % "marineapi" % "0.13.0-SNAPSHOT",
     "com.vividsolutions" % "jts" % "1.13",
@@ -58,7 +59,8 @@ lazy val backendSettings = playSettings ++ Seq(
     "org.flywaydb" % "flyway-core" % "5.1.4",
     "org.apache.commons" % "commons-text" % "1.4",
     "com.malliina" %% "logstreams-client" % "1.1.0",
-    "com.amazonaws" % "aws-java-sdk-s3" % "1.11.385",
+    "com.amazonaws" % "aws-java-sdk-s3" % "1.11.390",
+    "com.vladsch.flexmark" % "flexmark-html-parser" % "0.34.18",
     "com.malliina" %% "play-social" % utilPlayVersion,
     utilPlayDep,
     utilPlayDep % Test classifier "tests"

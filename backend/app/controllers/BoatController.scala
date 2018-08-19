@@ -93,7 +93,7 @@ class BoatController(mapboxToken: AccessToken,
       e.map { boat =>
         // adds metadata to messages from boats
         val transformer = jsonMessageFlowTransformer.map[BoatEvent, FrontEvent](
-          json => BoatEvent(json, boat),
+          in => BoatEvent(in, boat),
           out => Json.toJson(out)
         )
 
@@ -267,7 +267,7 @@ class BoatController(mapboxToken: AccessToken,
       Future.successful(None)
     }
 
-  def sessionEmail(rh: RequestHeader): Option[Email] =
+  private def sessionEmail(rh: RequestHeader): Option[Email] =
     rh.session.get(EmailKey).map(Email.apply)
 
   private def authAction[T](makeAuth: RequestHeader => Future[Either[IdentityError, T]])(code: (T, RequestHeader) => Future[Result]) =
@@ -290,10 +290,11 @@ class BoatController(mapboxToken: AccessToken,
       Redirect(routes.Social.google())
     }
 
-  def unauth = Unauthorized(Errors(SingleError("Unauthorized.")))
+  private def unauth = Unauthorized(Errors(SingleError("Unauthorized.")))
 
-  private def trackOrRandom(rh: RequestHeader) =
-    rh.headers.get(TrackNameHeader).map(TrackName.apply).getOrElse(TrackNames.random())
+  private def trackOrRandom(rh: RequestHeader): TrackName =
+    TrackNames.random()
+  //    rh.headers.get(TrackNameHeader).map(TrackName.apply).getOrElse(TrackNames.random())
 
   private def saveRecovered(coords: FullCoord): Future[FullCoord] =
     db.saveCoords(coords).map { _ => coords }.recover { case t =>

@@ -5,6 +5,7 @@ import java.nio.charset.StandardCharsets
 
 import com.malliina.boat.BoatInfo
 import com.malliina.boat.FrontKeys._
+import com.malliina.boat.docs.Docs
 import com.malliina.boat.html.BoatHtml.callAttr
 import com.malliina.html.Tags
 import com.malliina.measure.Distance
@@ -41,7 +42,9 @@ class BoatHtml(jsFile: String) extends Tags(scalatags.Text) {
     (t: Builder, a: Attr, v: T) => t.setAttr(a.name, Builder.GenericAttrValueSource(v.value))
   }
 
-  def index(msg: String) = page(PageConf(h1(msg)))
+  def index(msg: String): TagPage = page(PageConf(h1(msg)))
+
+  def docs: TagPage = page(PageConf(Docs.agent, bodyClasses = Seq("docs-agent")))
 
   def map(boat: Option[BoatInfo]) = page(
     PageConf(
@@ -54,7 +57,7 @@ class BoatHtml(jsFile: String) extends Tags(scalatags.Text) {
                 span(`class` := "dropdown-button", "Tracks"),
                 div(`class` := "dropdown-content", id := DropdownContentId)(
                   b.tracks.map { t =>
-                    a(`class` := "track-link", href := routes.BoatController.index().url + s"?track=${urlEncode(t.trackName)}")(
+                    a(`class` := "track-link", href := reverse.index().url + s"?track=${urlEncode(t.trackName)}")(
                       span(t.trackName),
                       span(short(t.distance)),
                       span(t.startEndRange)
@@ -122,6 +125,7 @@ class BoatHtml(jsFile: String) extends Tags(scalatags.Text) {
       head(
         meta(charset := "utf-8"),
         titleTag("Boat Tracker"),
+        cssLinkHashed("https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css", "sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm"),
         cssLink(reverse.versioned("css/main.css")),
         cssLink("https://fonts.googleapis.com/css?family=Roboto:100,300,400,500,700"),
         content.css,
@@ -135,7 +139,10 @@ class BoatHtml(jsFile: String) extends Tags(scalatags.Text) {
   )
 }
 
-case class PageConf(content: Modifier, bodyClasses: Seq[String] = Nil, css: Modifier = PageConf.empty, js: Modifier = PageConf.empty)
+case class PageConf(content: Modifier,
+                    bodyClasses: Seq[String] = Nil,
+                    css: Modifier = PageConf.empty,
+                    js: Modifier = PageConf.empty)
 
 object PageConf {
   val empty: Modifier = ""

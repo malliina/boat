@@ -8,7 +8,7 @@ import com.malliina.boat.html.BoatHtml
 import com.malliina.http.OkClient
 import com.malliina.play.app.DefaultApp
 import com.typesafe.config.ConfigFactory
-import controllers.{AssetsComponents, BoatController, FileController, Social}
+import controllers._
 import play.api.ApplicationLoader.Context
 import play.api.mvc.EssentialFilter
 import play.api.routing.Router
@@ -47,7 +47,7 @@ class AppComponents(readConf: Configuration => AppConf, context: Context)
   val csps = Seq(
     "default-src 'self' 'unsafe-inline' *.mapbox.com",
     "font-src 'self' data: https://fonts.gstatic.com",
-    "style-src 'self' https://fonts.googleapis.com *.mapbox.com",
+    "style-src 'self' https://maxcdn.bootstrapcdn.com https://fonts.googleapis.com *.mapbox.com",
     "connect-src * https://*.tiles.mapbox.com https://api.mapbox.com",
     "img-src 'self' data: blob:",
     "child-src blob:",
@@ -78,7 +78,8 @@ class AppComponents(readConf: Configuration => AppConf, context: Context)
   val home = new BoatController(
     mapboxToken, html, users, googleAuth, tracks,
     controllerComponents, assets)(actorSystem, materializer)
-  override val router: Router = new Routes(httpErrorHandler, home, signIn, files)
+  val docs = new DocsController(html, controllerComponents)
+  override val router: Router = new Routes(httpErrorHandler, home, signIn, docs, files)
 
   applicationLifecycle.addStopHook(() => Future.successful {
     schema.close()

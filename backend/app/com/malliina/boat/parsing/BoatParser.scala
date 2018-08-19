@@ -31,7 +31,7 @@ object BoatParser {
   def parseMulti(sentences: Seq[KeyedSentence]): Seq[ParsedSentence] =
     sentences.map(parse).flatMap(e => e.asOption(handleError))
 
-  def readSentences(event: BoatEvent) =
+  def readSentences(event: BoatEvent): Either[JsError, SentencesEvent] =
     read[SentencesEvent](event.message)
 
   /** Parses the following values from NNEA 0183 sentences:
