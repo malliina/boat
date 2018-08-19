@@ -34,7 +34,13 @@ class AppComponents(readConf: Configuration => AppConf, context: Context)
 
   override val configuration = context.initialConfiguration ++ LocalConf.localConf
   val appConf = readConf(configuration)
-  override lazy val allowedHostsConfig = AllowedHostsConfig(Seq("boat.malliina.com", "localhost"))
+  val allowedHosts = Seq(
+    "www.boat-tracker.com",
+    "boat-tracker.com",
+    "boat.malliina.com",
+    "localhost"
+  )
+  override lazy val allowedHostsConfig = AllowedHostsConfig(allowedHosts)
 
   override def httpFilters: Seq[EssentialFilter] = Seq(csrfFilter, securityHeadersFilter)
 

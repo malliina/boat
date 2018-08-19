@@ -7,13 +7,13 @@ A solution for tracking boats.
 
 This repository contains the following modules:
 
-- a boat client (agent) in folder *client*
+- a boat agent in folder *client*
 - a server in *backend*
 - a frontend in *frontend*
 - shared code in *shared*
 - integration tests in *boat-test*
 
-Check the latest version at [https://boat.malliina.com/](https://boat.malliina.com/).
+Check the latest version at [www.boat-tracker.com](https://www.boat-tracker.com/).
 
 ## License
 

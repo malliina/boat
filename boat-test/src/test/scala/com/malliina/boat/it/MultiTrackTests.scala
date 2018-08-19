@@ -6,7 +6,7 @@ import tests.BaseSuite
 
 class MultiTrackTests extends BaseSuite with BoatSockets {
   //  def url = FullUrl.ws("localhost:9000", reverse.boats().toString)
-  def url = FullUrl.wss("boat.malliina.com", reverse.boats().toString)
+  def url = FullUrl.wss("www.boat-tracker.com", reverse.boats().toString)
 
   val track1 = Seq(
     "$SDDPT,23.9,0.0,*43",

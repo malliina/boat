@@ -20,7 +20,7 @@ import scala.concurrent.{Future, Promise}
 object WebSocketClient {
   private val log = Logging(getClass)
 
-  val ProdUrl = FullUrl.wss("boat.malliina.com", "/ws/boats")
+  val ProdUrl = FullUrl.wss("www.boat-tracker.com", "/ws/boats")
 
   def apply(url: FullUrl, headers: List[KeyValue], as: ActorSystem, mat: Materializer): WebSocketClient =
     new WebSocketClient(url, headers)(as, mat)

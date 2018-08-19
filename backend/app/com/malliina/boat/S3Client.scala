@@ -24,7 +24,7 @@ object S3Client {
         DefaultAWSCredentialsProviderChain.getInstance()
       )
     )
-    new S3Client(builder.withRegion(Regions.EU_WEST_1).build(), "agent.malliina.com")
+    new S3Client(builder.withRegion(Regions.EU_WEST_1).build(), "agent.boat-tracker.com")
   }
 }
 
