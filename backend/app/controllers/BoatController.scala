@@ -11,7 +11,7 @@ import com.malliina.boat._
 import com.malliina.boat.auth.GoogleTokenAuth
 import com.malliina.boat.db._
 import com.malliina.boat.html.BoatHtml
-import com.malliina.boat.http.{BoatQuery, BoatRequest, TrackQuery}
+import com.malliina.boat.http.{BoatEmailRequest, BoatQuery, BoatRequest, TrackQuery}
 import com.malliina.boat.parsing.{BoatParser, FullCoord, ParsedSentence}
 import com.malliina.concurrent.ExecutionContexts.cached
 import com.malliina.values.{Email, Username}
@@ -19,6 +19,7 @@ import controllers.Assets.Asset
 import controllers.BoatController.log
 import controllers.Social.{EmailKey, GoogleCookie, ProviderCookieName}
 import play.api.Logger
+import play.api.data.Form
 import play.api.libs.json.{JsValue, Json, Writes}
 import play.api.mvc.WebSocket.MessageFlowTransformer.jsonMessageFlowTransformer
 import play.api.mvc._
@@ -39,6 +40,8 @@ class BoatController(mapboxToken: AccessToken,
                      comps: ControllerComponents,
                      assets: AssetsBuilder)(implicit as: ActorSystem, mat: Materializer)
   extends AbstractController(comps) with Streams {
+
+  val boatNameForm = Form[BoatName]("boatName" -> BoatNames.mapping)
 
   val UserSessionKey = "user"
   val anonUser = Usernames.anon
@@ -69,12 +72,13 @@ class BoatController(mapboxToken: AccessToken,
 
   errors.runWith(Sink.foreach(err => log.error(s"JSON error for '${err.boat}': '${err.error}'.")))
 
-  def index = authAction(optionalAuth) { (user, rh) =>
+  def index = authAction(optionalAuth) { req =>
+    val user = req.user
     val u = user.map(_.user).getOrElse(anonUser)
     val cookie = Cookie(TokenCookieName, mapboxToken.token, httpOnly = false)
     val result = Ok(html.map(user))
       .withCookies(cookie)
-      .addingToSession(UserSessionKey -> u.name)(rh)
+      .addingToSession(UserSessionKey -> u.name)(req.req)
     Future.successful(result)
   }
 
@@ -82,11 +86,20 @@ class BoatController(mapboxToken: AccessToken,
     Ok(Json.toJson(AppMeta.default))
   }
 
-  def me = authAction(profile) { (user, _) =>
-    Future.successful(Ok(Json.toJson(UserContainer(user))))
+  def me = authAction(profile) { req =>
+    Future.successful(Ok(Json.toJson(UserContainer(req.user))))
   }
 
-  def pingAuth = authAction(authAppToken) { (_, _) => Future.successful(Ok(Json.toJson(AppMeta.default))) }
+  def createBoat = boatAction(req => db.addBoat(req.body, req.user.id))
+
+  def renameBoat(id: BoatId) = boatAction(req => db.renameBoat(id, req.user.id, req.body))
+
+  private def boatAction(code: BoatRequest[UserInfo, BoatName] => Future[BoatRow]) =
+    parsedAuth(parse.form(boatNameForm, onErrors = (err: Form[BoatName]) => formError(err)))(authAppToken) { req =>
+      code(req).map { boat => Ok(Json.obj("boat" -> boat.toBoat)) }
+    }
+
+  def pingAuth = authAction(authAppToken) { _ => Future.successful(Ok(Json.toJson(AppMeta.default))) }
 
   def boats = WebSocket { rh =>
     authBoat(rh).map { e =>
@@ -121,16 +134,23 @@ class BoatController(mapboxToken: AccessToken,
     db.track(track, req.email, req.query)
   }
 
-  private def secureJson[T, W: Writes](parse: RequestHeader => Either[SingleError, T])(run: BoatRequest[T] => Future[W]) =
+  private def secureJson[T, W: Writes](parse: RequestHeader => Either[SingleError, T])(run: BoatEmailRequest[T] => Future[W]) =
     secureAction(parse)(req => run(req).map { w => Ok(Json.toJson(w)) })
 
-  private def secureAction[T](parse: RequestHeader => Either[SingleError, T])(run: BoatRequest[T] => Future[Result]) =
-    authAction(authAppOrWeb) { (email, rh) =>
-      parse(rh).fold(
+  private def secureAction[T](parse: RequestHeader => Either[SingleError, T])(run: BoatEmailRequest[T] => Future[Result]) =
+    authAction(authAppOrWeb) { req =>
+      parse(req.req).fold(
         err => Future.successful(BadRequest(Errors(err))),
-        t => run(BoatRequest(t, email, rh))
+        t => run(BoatEmailRequest(t, req.user, req.req))
       )
     }
+
+  def formError[T](errors: Form[T]) = {
+    log.error(s"Form failure. ${errors.errors}")
+    badRequest(SingleError("Invalid input."))
+  }
+
+  def badRequest(error: SingleError) = BadRequest(Errors(error))
 
   def updates = WebSocket.acceptOrResult[JsValue, FrontEvent] { rh =>
     makeResult(auth(rh), rh).map { outcome =>
@@ -196,7 +216,7 @@ class BoatController(mapboxToken: AccessToken,
       )
     }
 
-  def boatAuth(rh: RequestHeader): Future[Either[IdentityError, BoatMeta]] =
+  def boatAuth(rh: RequestHeader): Future[Either[IdentityError, BoatTrackMeta]] =
     rh.headers.get(BoatTokenHeader).map(BoatToken.apply).map { token =>
       auther.authBoat(token).map { e =>
         e.map { info =>
@@ -270,8 +290,15 @@ class BoatController(mapboxToken: AccessToken,
   private def sessionEmail(rh: RequestHeader): Option[Email] =
     rh.session.get(EmailKey).map(Email.apply)
 
-  private def authAction[T](makeAuth: RequestHeader => Future[Either[IdentityError, T]])(code: (T, RequestHeader) => Future[Result]) =
-    Action.async { req => makeResult(makeAuth(req), req).flatMap { e => e.fold(Future.successful, t => code(t, req)) } }
+  private def authAction[U](authenticate: RequestHeader => Future[Either[IdentityError, U]])(code: BoatRequest[U, AnyContent] => Future[Result]) =
+    parsedAuth(parse.default)(authenticate)(code)
+
+  private def parsedAuth[U, B](p: BodyParser[B])(authenticate: RequestHeader => Future[Either[IdentityError, U]])(code: BoatRequest[U, B] => Future[Result]) =
+    Action(p).async { req =>
+      makeResult(authenticate(req), req).flatMap { e =>
+        e.fold(Future.successful, t => code(BoatRequest(t, req)))
+      }
+    }
 
   private def makeResult[T](f: Future[Either[IdentityError, T]], rh: RequestHeader): Future[Either[Result, T]] =
     f.map { e =>
@@ -294,6 +321,7 @@ class BoatController(mapboxToken: AccessToken,
 
   private def trackOrRandom(rh: RequestHeader): TrackName =
     TrackNames.random()
+
   //    rh.headers.get(TrackNameHeader).map(TrackName.apply).getOrElse(TrackNames.random())
 
   private def saveRecovered(coords: FullCoord): Future[FullCoord] =

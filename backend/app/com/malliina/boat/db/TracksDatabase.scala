@@ -38,8 +38,11 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext) extends 
 
   implicit object JoinedShape extends CaseClassShape(LiftedJoined.tupled, Joined.tupled)
 
-  override def join(meta: BoatMeta): Future[TrackMeta] =
+  override def join(meta: BoatTrackMeta): Future[TrackMeta] =
     action(boatId(meta))
+
+  def addBoat(boat: BoatName, user: UserId): Future[BoatRow] =
+    action(saveBoat(boat, user))
 
   override def saveSentences(sentences: SentencesEvent): Future[Seq[KeyedSentence]] = {
     val from = sentences.from
@@ -151,16 +154,16 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext) extends 
     query.result.map { rows => collectPoints(rows) }
   }
 
-  override def renameBoat(old: BoatMeta, newName: BoatName): Future[BoatRow] = {
+  override def renameBoat(boat: BoatId, user: UserId, newName: BoatName): Future[BoatRow] = {
     val action = for {
-      id <- db.first(boatsView.filter(b => b.username === old.user && b.boatName === old.boat).map(_.boat), s"Boat not found: '${old.boat}'.")
+      id <- db.first(boatsView.filter(b => b.user === user && b.boat === boat).map(_.boat), s"Boat not found: '$boat'.")
       _ <- boatsTable.filter(_.id === id).map(_.name).update(newName)
-      updated <- db.first(boatsTable.filter(_.id === id), s"Boat not found: '${old.boat}'.")
-    } yield updated
-    db.run(action).map { maybeBoat =>
-      log.info(s"Renamed boat '${old.boat}' owned by '${old.user}' to '$newName'.")
-      maybeBoat
+      updated <- db.first(boatsTable.filter(_.id === id), s"Boat not found: '$id'.")
+    } yield {
+      log.info(s"Renamed boat '$id' to '$newName'.")
+      updated
     }
+    db.run(action)
   }
 
   private def rangedCoords(limits: TimeRange) =
@@ -201,7 +204,7 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext) extends 
     }
   }
 
-  private def boatId(from: BoatMeta) =
+  private def boatId(from: BoatTrackMeta) =
     trackMetas.filter(t => t.username === from.user && t.boatName === from.boat && t.trackName === from.track).result.headOption.flatMap { maybeTrack =>
       maybeTrack.map { track =>
         DBIO.successful(track)
@@ -210,7 +213,7 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext) extends 
       }
     }.transactionally
 
-  private def prepareBoat(from: BoatMeta) =
+  private def prepareBoat(from: BoatTrackMeta) =
     for {
       userRow <- db.first(usersTable.filter(_.user === from.user), s"User not found: '${from.user}'.")
       user = userRow.id
@@ -239,18 +242,21 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext) extends 
       track
     }
 
-  private def registerBoat(from: BoatMeta, user: UserId) =
+  private def registerBoat(from: BoatTrackMeta, user: UserId) =
     boatsTable.filter(b => b.name === from.boat).exists.result.flatMap { exists =>
       if (exists) DBIO.failed(new Exception(s"Boat name '${from.boat}' is already taken and therefore not available for '${from.user}'."))
       else saveBoat(from, user)
     }
 
-  private def saveBoat(from: BoatMeta, user: UserId) =
+  private def saveBoat(from: BoatMeta, user: UserId): DBIOAction[BoatRow, NoStream, Effect.All] =
+    saveBoat(from.boat, user)
+
+  private def saveBoat(name: BoatName, user: UserId): DBIOAction[BoatRow, NoStream, Effect.All] =
     for {
-      boatId <- boatInserts += BoatInput(from.boat, BoatTokens.random(), user)
+      boatId <- boatInserts += BoatInput(name, BoatTokens.random(), user)
       boat <- db.first(boatsTable.filter(_.id === boatId), s"Boat not found: '$boatId'.")
     } yield {
-      log.info(s"Registered boat '${from.boat}' with ID '${boat.id}' owned by '${from.user}'.")
+      log.info(s"Registered boat '$name' with ID '${boat.id}' owned by '$user'.")
       boat
     }
 

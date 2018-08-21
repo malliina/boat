@@ -81,12 +81,14 @@ object Usernames {
   val anon = Username("anon")
 }
 
+trait BoatTrackMeta extends BoatMeta {
+  def track: TrackName
+}
+
 trait BoatMeta {
   def user: Username
 
   def boat: BoatName
-
-  def track: TrackName
 }
 
 case class BoatId(id: Long) extends WrappedId
@@ -144,7 +146,7 @@ object TrackRef {
   implicit val json = Json.format[TrackRef]
 }
 
-case class BoatUser(track: TrackName, boat: BoatName, user: Username) extends BoatMeta
+case class BoatUser(track: TrackName, boat: BoatName, user: Username) extends BoatTrackMeta
 
 case class BoatInfo(boatId: BoatId, boat: BoatName, user: Username, tracks: Seq[TrackRef])
 

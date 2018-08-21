@@ -5,6 +5,7 @@ import java.nio.file.Paths
 import com.malliina.boat.auth.GoogleTokenAuth
 import com.malliina.boat.db._
 import com.malliina.boat.html.BoatHtml
+import com.malliina.boat.http.CSRFConf._
 import com.malliina.http.OkClient
 import com.malliina.play.app.DefaultApp
 import com.typesafe.config.ConfigFactory
@@ -14,6 +15,7 @@ import play.api.mvc.EssentialFilter
 import play.api.routing.Router
 import play.api.{BuiltInComponentsFromContext, Configuration, Mode}
 import play.filters.HttpFiltersComponents
+import play.filters.csrf.CSRFConfig
 import play.filters.headers.SecurityHeadersConfig
 import play.filters.hosts.AllowedHostsConfig
 import router.Routes
@@ -41,6 +43,13 @@ class AppComponents(readConf: Configuration => AppConf, context: Context)
     "localhost"
   )
   override lazy val allowedHostsConfig = AllowedHostsConfig(allowedHosts)
+
+  override lazy val csrfConfig = CSRFConfig(
+    tokenName = CsrfTokenName,
+    cookieName = Option(CsrfCookieName),
+    headerName = CsrfHeaderName,
+    shouldProtect = rh => !rh.headers.get(CsrfHeaderName).contains(CsrfTokenNoCheck)
+  )
 
   override def httpFilters: Seq[EssentialFilter] = Seq(csrfFilter, securityHeadersFilter)
 

@@ -71,7 +71,8 @@ lazy val backendSettings = playSettings ++ Seq(
   ),
   routesImport ++= Seq(
     "com.malliina.boat.Bindables._",
-    "com.malliina.boat.TrackName"
+    "com.malliina.boat.TrackName",
+    "com.malliina.boat.BoatName"
   ),
   pipelineStages := Seq(digest, gzip),
   scalaJSProjects := Seq(frontend),

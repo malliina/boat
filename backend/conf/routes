@@ -1,17 +1,19 @@
-GET        /                                controllers.BoatController.index
-GET        /pingAuth                        controllers.BoatController.pingAuth
-GET        /health                          controllers.BoatController.health
-GET        /users/me                        controllers.BoatController.me
-GET        /tracks                          controllers.BoatController.tracks
-GET        /tracks/:track                   controllers.BoatController.summary(track: com.malliina.boat.TrackName)
-GET        /tracks/:track/trail             controllers.BoatController.track(track: com.malliina.boat.TrackName)
-GET        /ws/updates                      controllers.BoatController.updates
-GET        /ws/boats                        controllers.BoatController.boats
-GET        /distances                       controllers.BoatController.distances
-GET        /sign-in/google                  controllers.Social.google
-GET        /sign-in/callbacks/google        controllers.Social.googleCallback
-GET        /docs/agent                      controllers.DocsController.agent
+GET          /                                controllers.BoatController.index
+GET          /pingAuth                        controllers.BoatController.pingAuth
+GET          /health                          controllers.BoatController.health
+GET          /users/me                        controllers.BoatController.me
+POST         /boats                           controllers.BoatController.createBoat
+PATCH        /boats/:boat                     controllers.BoatController.renameBoat(boat: com.malliina.boat.BoatId)
+GET          /tracks                          controllers.BoatController.tracks
+GET          /tracks/:track                   controllers.BoatController.summary(track: com.malliina.boat.TrackName)
+GET          /tracks/:track/trail             controllers.BoatController.track(track: com.malliina.boat.TrackName)
+GET          /ws/updates                      controllers.BoatController.updates
+GET          /ws/boats                        controllers.BoatController.boats
+GET          /distances                       controllers.BoatController.distances
+GET          /sign-in/google                  controllers.Social.google
+GET          /sign-in/callbacks/google        controllers.Social.googleCallback
+GET          /docs/agent                      controllers.DocsController.agent
 
-GET        /files                           controllers.FileController.list
-GET        /files/*file                     controllers.FileController.download(file)
-GET        /assets/*file                    controllers.BoatController.versioned(path = "/public", file: Asset)
+GET          /files                           controllers.FileController.list
+GET          /files/*file                     controllers.FileController.download(file)
+GET          /assets/*file                    controllers.BoatController.versioned(path = "/public", file: Asset)

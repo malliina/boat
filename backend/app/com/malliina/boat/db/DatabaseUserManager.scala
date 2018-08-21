@@ -3,8 +3,8 @@ package com.malliina.boat.db
 import java.sql.SQLException
 
 import com.malliina.boat.db.DatabaseUserManager.log
-import com.malliina.boat.{Boat, BoatInfo, BoatRow, BoatToken, JoinedBoat, JoinedTrack, UserInfo, UserToken}
-import com.malliina.values.{Email, Password, UserId, Username}
+import com.malliina.boat.{Boat, BoatInfo, BoatInput, BoatNames, BoatRow, BoatToken, BoatTokens, JoinedBoat, JoinedTrack, UserInfo, UserToken}
+import com.malliina.values.{Email, UserId, Username}
 import play.api.Logger
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -40,7 +40,10 @@ class DatabaseUserManager(val db: BoatSchema)(implicit ec: ExecutionContext)
       rows.headOption.map { user =>
         DBIO.successful(user.id)
       }.getOrElse {
-        userInserts += NewUser(Username(email.email), Option(email), UserToken.random(), enabled = true)
+        for {
+          userId <- userInserts += NewUser(Username(email.email), Option(email), UserToken.random(), enabled = true)
+          _ <- boatInserts += BoatInput(BoatNames.random(), BoatTokens.random(), userId)
+        } yield userId
       }
     }
 

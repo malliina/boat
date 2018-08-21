@@ -5,6 +5,7 @@ import java.time.{Instant, LocalDate, LocalTime, ZoneOffset}
 import com.malliina.boat.parsing.FullCoord
 import com.malliina.measure.{Distance, Speed, Temperature}
 import com.malliina.values._
+import play.api.data.Mapping
 import play.api.http.Writeable
 import play.api.libs.json._
 import play.api.mvc.PathBindable
@@ -98,6 +99,8 @@ object Errors {
 }
 
 object BoatNames {
+  val mapping: Mapping[BoatName] = play.api.data.Forms.nonEmptyText.transform(s => BoatName(s), b => b.name)
+
   def random() = BoatName(Utils.randomString(6))
 }
 
@@ -112,11 +115,19 @@ object BoatTokens {
 object Bindables {
   implicit val trackName: PathBindable[TrackName] =
     PathBindable.bindableString.transform[TrackName](s => TrackName(s), t => t.name)
+
+  implicit val boatName: PathBindable[BoatName] =
+    PathBindable.bindableString.transform[BoatName](s => BoatName(s), t => t.name)
+
+  implicit val boatId: PathBindable[BoatId] =
+    PathBindable.bindableLong.transform[BoatId](s => BoatId(s), id => id.id)
 }
 
 case class BoatInput(name: BoatName, token: BoatToken, owner: UserId)
 
-case class BoatRow(id: BoatId, name: BoatName, token: BoatToken, owner: UserId, added: Instant)
+case class BoatRow(id: BoatId, name: BoatName, token: BoatToken, owner: UserId, added: Instant) {
+  def toBoat = Boat(id, name, token, added.toEpochMilli)
+}
 
 case class JoinedBoat(boat: BoatId, boatName: BoatName, boatToken: BoatToken,
                       user: UserId, username: Username, email: Option[Email])
