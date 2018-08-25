@@ -7,10 +7,14 @@ import com.vladsch.flexmark.util.options.MutableDataSet
 import scalatags.Text.RawFrag
 
 object Docs extends Docs {
-  def agent: RawFrag = toHtml(markdownAsString("Agent"))
+  def agent: RawFrag = fromFile("Agent")
+
+  def privacyPolicy: RawFrag = fromFile("PrivacyPolicy")
 }
 
 trait Docs {
+  def fromFile(file: String) = toHtml(markdownAsString(file))
+
   def markdownAsString(docName: String) =
     FileUtilities.readerFrom(s"docs/$docName.md")(_.mkString(FileUtilities.lineSep))
 

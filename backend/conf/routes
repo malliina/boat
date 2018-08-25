@@ -13,6 +13,7 @@ GET          /distances                       controllers.BoatController.distanc
 GET          /sign-in/google                  controllers.Social.google
 GET          /sign-in/callbacks/google        controllers.Social.googleCallback
 GET          /docs/agent                      controllers.DocsController.agent
+GET          /legal/privacy                   controllers.DocsController.privacyPolicy
 
 GET          /files                           controllers.FileController.list
 GET          /files/*file                     controllers.FileController.download(file)
