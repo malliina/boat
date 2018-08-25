@@ -7,6 +7,7 @@ import com.malliina.boat.{Boat, BoatInfo, BoatInput, BoatNames, BoatRow, BoatTok
 import com.malliina.values.{Email, UserId, Username}
 import play.api.Logger
 
+import scala.collection.immutable
 import scala.concurrent.{ExecutionContext, Future}
 
 object DatabaseUserManager {
@@ -71,7 +72,7 @@ class DatabaseUserManager(val db: BoatSchema)(implicit ec: ExecutionContext)
       collectUsers(rows)
     }
 
-  private def collectUsers(rows: Seq[(DataUser, Option[BoatRow])]) =
+  private def collectUsers(rows: Seq[(DataUser, Option[BoatRow])]): Vector[UserInfo] =
     rows.foldLeft(Vector.empty[UserInfo]) { case (acc, (user, boat)) =>
       val idx = acc.indexWhere(_.id == user.id)
       val newBoats = boat.toSeq.map(b => Boat(b.id, b.name, b.token, b.added.toEpochMilli))

@@ -34,7 +34,7 @@ interface.
 If this agent is not good enough for you, you can send NMEA 0183 sentences to boat-tracker.com using the HTTP API 
 directly.
 
-1. Open a WebSocket to https://www.boat-tracker.com/ws/boats
+1. Open a WebSocket to wss://www.boat-tracker.com/ws/boats
 1. Optionally, provide your boat token in header `X-Token` when opening the WebSocket.
 1. Send NMEA 0183 sentences over the socket as JSON-formatted text messages
 
