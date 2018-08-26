@@ -10,6 +10,10 @@ class DocsController(html: BoatHtml, comps: ControllerComponents)
     Ok(html.docs)
   }
 
+  def support = Action {
+    Ok(html.support)
+  }
+
   def privacyPolicy = Action {
     Ok(html.privacyPolicy)
   }

@@ -1,6 +1,6 @@
 package com.malliina
 
-import com.malliina.boat.Execution.cached
+import com.malliina.concurrent.Execution.cached
 
 import scala.concurrent.Future
 

@@ -46,6 +46,8 @@ class BoatHtml(jsFile: String) extends Tags(scalatags.Text) {
 
   def docs: TagPage = markdownPage(Docs.agent)
 
+  def support: TagPage = markdownPage(Docs.support)
+
   def privacyPolicy: TagPage = markdownPage(Docs.privacyPolicy)
 
   private def markdownPage(md: RawFrag) = page(PageConf(md, bodyClasses = Seq("docs-agent")))

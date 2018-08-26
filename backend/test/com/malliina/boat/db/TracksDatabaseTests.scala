@@ -10,7 +10,7 @@ import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.{Flow, Sink, Source}
 import com.malliina.boat.parsing.{BoatParser, FullCoord}
 import com.malliina.boat.{BoatId, BoatInput, BoatName, BoatNames, BoatTokens, BoatUser, Coord, KeyedSentence, LocalConf, RawSentence, SentencesEvent, TrackId, TrackInput, TrackMetaShort, TrackNames, TrackPointId, TrackRow, UserToken}
-import com.malliina.boat.Execution.cached
+import com.malliina.concurrent.Execution.cached
 import com.malliina.measure.{DistanceInt, Speed, SpeedInt, Temperature}
 import com.malliina.util.FileUtils
 import com.malliina.values.{UserId, Username}

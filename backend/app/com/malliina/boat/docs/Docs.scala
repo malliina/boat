@@ -10,6 +10,8 @@ import scala.io.Source
 object Docs extends Docs {
   def agent: RawFrag = fromFile("Agent")
 
+  def support = fromFile("Support")
+
   def privacyPolicy: RawFrag = fromFile("PrivacyPolicy")
 }
 

@@ -1,4 +1,4 @@
-package com.malliina.boat
+package com.malliina.concurrent
 
 import java.util.concurrent.Executors
 

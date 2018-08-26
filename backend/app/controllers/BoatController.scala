@@ -7,7 +7,7 @@ import akka.stream.Materializer
 import akka.stream.scaladsl.{BroadcastHub, Flow, Keep, MergeHub, Sink, Source}
 import akka.{Done, NotUsed}
 import com.malliina.boat.Constants._
-import com.malliina.boat.Execution.cached
+import com.malliina.concurrent.Execution.cached
 import com.malliina.boat._
 import com.malliina.boat.auth.GoogleTokenAuth
 import com.malliina.boat.db._

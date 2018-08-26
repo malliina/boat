@@ -3,7 +3,7 @@ package com.malliina.boat.db
 import java.time.Instant
 
 import com.malliina.boat.{BoatInput, BoatName, BoatToken, Coord, TrackId, TrackInput, TrackName, TrackPointInput, TrackPointRow, UserToken}
-import com.malliina.boat.Execution.cached
+import com.malliina.concurrent.Execution.cached
 import com.malliina.measure.{Distance, Speed, SpeedInt, Temperature}
 import com.malliina.values.Username
 import tests.BaseSuite
