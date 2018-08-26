@@ -13,7 +13,9 @@ This repository contains the following modules:
 - shared code in *shared*
 - integration tests in *boat-test*
 
-Check the latest version at [www.boat-tracker.com](https://www.boat-tracker.com/).
+The web app is deployed to [www.boat-tracker.com](https://www.boat-tracker.com/).
+
+The iOS app codebase is in [this repo](https://github.com/malliina/boattracker-ios).
 
 ## License
 
