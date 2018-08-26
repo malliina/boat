@@ -4,15 +4,15 @@ import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 
 import com.malliina.boat.{BoatNames, RawSentence, SentencesMessage}
-import com.malliina.file.FileUtilities
 import com.malliina.http.FullUrl
+import com.malliina.util.FileUtils
 
 import scala.collection.JavaConverters.asScalaBufferConverter
 
 class ManualBoatTests extends BoatTests {
   //  val testFile = FileUtilities.userHome.resolve(".boat/Log2.txt")
   //  val testFile = FileUtilities.userHome.resolve(".boat/nmea0183-standard.log")
-  val testFile = FileUtilities.userHome.resolve(".boat/Log.txt")
+  val testFile = FileUtils.userHome.resolve(".boat/Log.txt")
 
   def sentences = Files.readAllLines(testFile, StandardCharsets.UTF_8).asScala.map(RawSentence.apply)
 

@@ -1,10 +1,11 @@
 package com.malliina.boat.docs
 
-import com.malliina.file.FileUtilities
 import com.vladsch.flexmark.html.HtmlRenderer
 import com.vladsch.flexmark.parser.Parser
 import com.vladsch.flexmark.util.options.MutableDataSet
 import scalatags.Text.RawFrag
+
+import scala.io.Source
 
 object Docs extends Docs {
   def agent: RawFrag = fromFile("Agent")
@@ -13,10 +14,12 @@ object Docs extends Docs {
 }
 
 trait Docs {
+  val lineSep = sys.props("line.separator")
+
   def fromFile(file: String) = toHtml(markdownAsString(file))
 
-  def markdownAsString(docName: String) =
-    FileUtilities.readerFrom(s"docs/$docName.md")(_.mkString(FileUtilities.lineSep))
+  def markdownAsString(docName: String): String =
+    Source.fromResource(s"docs/$docName.md").getLines().toList.mkString(lineSep)
 
   /**
     * @param markdownSource markdown

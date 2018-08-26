@@ -2,7 +2,7 @@ package com.malliina.boat.db
 
 import com.malliina.boat.Coord
 import com.malliina.boat.db.BoatSchema.NumThreads
-import com.malliina.concurrent.ExecutionContexts.cached
+import com.malliina.boat.Execution.cached
 import com.vividsolutions.jts.geom.Point
 import javax.sql.DataSource
 import slick.jdbc.{GetResult, H2Profile, PositionedResult}

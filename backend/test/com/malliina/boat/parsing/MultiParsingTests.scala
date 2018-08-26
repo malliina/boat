@@ -2,15 +2,13 @@ package com.malliina.boat.parsing
 
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
-import java.time.Instant
 
 import akka.Done
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.{Flow, Sink, Source}
-import com.malliina.boat.{BoatId, BoatName, BoatToken, JoinedTrack, KeyedSentence, RawSentence, SentenceKey, TrackId, TrackMetaShort, TrackName}
-import com.malliina.file.FileUtilities
-import com.malliina.measure.Distance
+import com.malliina.boat.{BoatId, BoatName, KeyedSentence, RawSentence, SentenceKey, TrackId, TrackMetaShort, TrackName}
+import com.malliina.util.FileUtils
 import com.malliina.values.{UserId, Username}
 import tests.BaseSuite
 
@@ -33,7 +31,7 @@ class MultiParsingTests extends BaseSuite {
   implicit val mat = ActorMaterializer()
 
   //  val testFile = FileUtilities.userHome.resolve(".boat/nmea0183-standard.log")
-  val testFile = FileUtilities.userHome.resolve(".boat/Log2.txt")
+  val testFile = FileUtils.userHome.resolve(".boat/Log2.txt")
 
   val from = MultiParsingTests.testFrom
 

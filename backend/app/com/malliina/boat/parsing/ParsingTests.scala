@@ -2,7 +2,7 @@ package com.malliina.boat.parsing
 
 import java.io.FileInputStream
 
-import com.malliina.file.FileUtilities
+import com.malliina.util.FileUtils
 import net.sf.marineapi.nmea.event.{SentenceEvent, SentenceListener}
 import net.sf.marineapi.nmea.io.{ExceptionListener, SentenceReader}
 import net.sf.marineapi.nmea.parser.{SentenceFactory, SentenceParser}
@@ -12,7 +12,7 @@ import net.sf.marineapi.provider.event.{PositionEvent, PositionListener}
 import org.scalatest.FunSuite
 
 class ParsingTests extends FunSuite {
-  val testFile = FileUtilities.userHome.resolve(".boat/nmea0183-standard.log")
+  val testFile = FileUtils.userHome.resolve(".boat/nmea0183-standard.log")
 
   ignore("stream") {
     val inStream = new FileInputStream(testFile.toFile)

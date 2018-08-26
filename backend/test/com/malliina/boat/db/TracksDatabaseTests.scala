@@ -10,9 +10,9 @@ import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.{Flow, Sink, Source}
 import com.malliina.boat.parsing.{BoatParser, FullCoord}
 import com.malliina.boat.{BoatId, BoatInput, BoatName, BoatNames, BoatTokens, BoatUser, Coord, KeyedSentence, LocalConf, RawSentence, SentencesEvent, TrackId, TrackInput, TrackMetaShort, TrackNames, TrackPointId, TrackRow, UserToken}
-import com.malliina.concurrent.ExecutionContexts.cached
-import com.malliina.file.FileUtilities
+import com.malliina.boat.Execution.cached
 import com.malliina.measure.{DistanceInt, Speed, SpeedInt, Temperature}
+import com.malliina.util.FileUtils
 import com.malliina.values.{UserId, Username}
 import play.api.Mode
 import tests.BaseSuite
@@ -105,7 +105,7 @@ class TracksDatabaseTests extends BaseSuite {
     val trackName = TrackNames.random()
     val track = await(tdb.join(BoatUser(trackName, BoatName("Amina"), Username("mle"))), 10.seconds)
     println(s"Using $track")
-    val s: Source[RawSentence, NotUsed] = fromFile(FileUtilities.userHome.resolve(".boat/Log2107.txt"))
+    val s: Source[RawSentence, NotUsed] = fromFile(FileUtils.userHome.resolve(".boat/Log2107.txt"))
       .drop(231306)
       .filter(_ != RawSentence.initialZda)
     val events = s.map(s => SentencesEvent(Seq(s), track.short))

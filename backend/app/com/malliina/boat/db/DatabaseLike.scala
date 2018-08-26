@@ -2,8 +2,8 @@ package com.malliina.boat.db
 
 import java.sql.SQLException
 
+import com.malliina.boat.Execution.cached
 import com.malliina.boat.db.DatabaseLike.log
-import com.malliina.concurrent.ExecutionContexts.cached
 import play.api.Logger
 import slick.jdbc.JdbcProfile
 import slick.jdbc.meta.MTable

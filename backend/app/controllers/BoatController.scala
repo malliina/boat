@@ -7,13 +7,13 @@ import akka.stream.Materializer
 import akka.stream.scaladsl.{BroadcastHub, Flow, Keep, MergeHub, Sink, Source}
 import akka.{Done, NotUsed}
 import com.malliina.boat.Constants._
+import com.malliina.boat.Execution.cached
 import com.malliina.boat._
 import com.malliina.boat.auth.GoogleTokenAuth
 import com.malliina.boat.db._
 import com.malliina.boat.html.BoatHtml
 import com.malliina.boat.http.{BoatEmailRequest, BoatQuery, BoatRequest, TrackQuery}
 import com.malliina.boat.parsing.{BoatParser, FullCoord, ParsedSentence}
-import com.malliina.concurrent.ExecutionContexts.cached
 import com.malliina.values.{Email, Username}
 import controllers.Assets.Asset
 import controllers.BoatController.log
