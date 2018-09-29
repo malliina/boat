@@ -72,7 +72,8 @@ object WebServer {
   def hash(pass: String): String = DigestUtils.md5Hex(pass)
 }
 
-class WebServer(host: String, port: Int, agentInstance: AgentInstance)(implicit as: ActorSystem, mat: Materializer) extends JsonSupport {
+class WebServer(host: String, port: Int, agentInstance: AgentInstance)(implicit as: ActorSystem, mat: Materializer)
+  extends JsonSupport {
   implicit val ec = as.dispatcher
 
   implicit val tokenUn = Unmarshaller.strict[String, BoatToken](BoatToken.apply)

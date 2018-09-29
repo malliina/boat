@@ -3,7 +3,7 @@ package com.malliina.boat.it
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 
-import com.malliina.boat.{BoatNames, RawSentence, SentencesMessage}
+import com.malliina.boat.{BoatToken, RawSentence, SentencesMessage}
 import com.malliina.http.FullUrl
 import com.malliina.util.FileUtils
 
@@ -26,7 +26,7 @@ class ManualBoatTests extends BoatTests {
   ignore("local GPS reporting") {
     //    println("Lines " + gpsSentences.toList.length)
     val testMessages = relevantSentences.toList.grouped(1000).map(SentencesMessage.apply).toList
-    openBoat(url, BoatNames.random()) { boat =>
+    openRandomBoat(url) { boat =>
       testMessages.zipWithIndex.map { case (msg, idx) =>
         println(s"Sending batch $idx/${testMessages.length}...")
         boat.send(msg)
@@ -35,9 +35,20 @@ class ManualBoatTests extends BoatTests {
     }
   }
 
-  ignore("slow GPS reporting") {
+  ignore("slow anon GPS reporting") {
     val testMessages = relevantSentences.toList.grouped(30).map(SentencesMessage.apply).slice(50, 100).toList
-    openBoat(url, BoatNames.random()) { boat =>
+    openRandomBoat(url) { boat =>
+      testMessages.foreach { msg =>
+        boat.send(msg)
+        Thread.sleep(500)
+      }
+    }
+  }
+
+  ignore("slow GPS reporting") {
+    val token = BoatToken("todo")
+    val testMessages = relevantSentences.toList.grouped(30).map(SentencesMessage.apply).slice(50, 100).toList
+    openBoat(url, Right(token)) { boat =>
       testMessages.foreach { msg =>
         boat.send(msg)
         Thread.sleep(500)

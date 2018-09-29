@@ -30,7 +30,6 @@ object WebSocketClient {
 }
 
 class WebSocketClient(url: FullUrl, headers: List[KeyValue])(implicit as: ActorSystem, mat: Materializer) {
-  log.info(s"Using '$url'.")
   val validHeaders = headers.map(kv => HttpHeader.parse(kv.key, kv.value)).collect {
     case Ok(header, _) => header
   }
@@ -55,6 +54,7 @@ class WebSocketClient(url: FullUrl, headers: List[KeyValue])(implicit as: ActorS
   }
 
   def connectInOut[T: Writes](in: Sink[Message, Future[Done]], out: Source[T, NotUsed]): Future[Done] = {
+    log.info(s"Connecting to '$url'...")
     val messageSource = out.map(t => TextMessage(Json.stringify(Json.toJson(t))))
     val flow = Flow.fromSinkAndSourceMat(in, messageSource)(Keep.left).via(switch.flow)
     val (upgrade, closed) = Http().singleWebSocketRequest(WebSocketRequest(Uri(url.url), validHeaders), flow)

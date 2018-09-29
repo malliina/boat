@@ -79,7 +79,7 @@ class BoatController(mapboxToken: AccessToken,
     val result = Ok(html.map(user))
       .withCookies(cookie)
       .addingToSession(UserSessionKey -> u.name)(req.req)
-    Future.successful(result)
+    fut(result)
   }
 
   def health = Action {
@@ -87,7 +87,7 @@ class BoatController(mapboxToken: AccessToken,
   }
 
   def me = authAction(profile) { req =>
-    Future.successful(Ok(Json.toJson(UserContainer(req.user))))
+    fut(Ok(Json.toJson(UserContainer(req.user))))
   }
 
   def createBoat = boatAction(req => db.addBoat(req.body, req.user.id))
@@ -140,7 +140,7 @@ class BoatController(mapboxToken: AccessToken,
   private def secureAction[T](parse: RequestHeader => Either[SingleError, T])(run: BoatEmailRequest[T] => Future[Result]) =
     authAction(authAppOrWeb) { req =>
       parse(req.req).fold(
-        err => Future.successful(BadRequest(Errors(err))),
+        err => fut(BadRequest(Errors(err))),
         t => run(BoatEmailRequest(t, req.user, req.req))
       )
     }
@@ -211,7 +211,7 @@ class BoatController(mapboxToken: AccessToken,
   def authBoat(rh: RequestHeader): Future[Either[Result, TrackMeta]] =
     makeResult(boatAuth(rh), rh).flatMap { e =>
       e.fold(
-        err => Future.successful(Left(err)),
+        err => fut(Left(err)),
         boat => db.join(boat).map(Right.apply)
       )
     }
@@ -224,22 +224,18 @@ class BoatController(mapboxToken: AccessToken,
         }
       }
     }.getOrElse {
-      auth(rh).map { e =>
-        e.map { user =>
-          val boatName = rh.headers.get(BoatNameHeader).map(BoatName.apply).getOrElse(BoatNames.random())
-          BoatUser(trackOrRandom(rh), boatName, user)
-        }
-      }
+      val boatName = rh.headers.get(BoatNameHeader).map(BoatName.apply).getOrElse(BoatNames.random())
+      fut(Right(BoatUser(trackOrRandom(rh), boatName, anonUser)))
     }
 
   def auth(rh: RequestHeader): Future[Either[IdentityError, Username]] =
     authApp(rh)
       .orElse(authSessionUser(rh))
-      .getOrElse(Future.successful(Right(anonUser)))
+      .getOrElse(fut(Right(anonUser)))
 
   def authSessionUser(rh: RequestHeader) =
     rh.session.get(UserSessionKey).filter(_ != Usernames.anon.name).map { user =>
-      Future.successful(Right(Username(user)))
+      fut(Right(Username(user)))
     }
 
   private def authAppToken(rh: RequestHeader): Future[Either[IdentityError, UserInfo]] =
@@ -263,7 +259,7 @@ class BoatController(mapboxToken: AccessToken,
     }
 
   private def authAppOrWeb(rh: RequestHeader): Future[Either[IdentityError, Email]] = {
-    def authFromSession = Future.successful(sessionEmail(rh).toRight(MissingCredentials(rh)))
+    def authFromSession = fut(sessionEmail(rh).toRight(MissingCredentials(rh)))
 
     googleAuth.auth(rh).getOrElse(authFromSession)
   }
@@ -272,7 +268,7 @@ class BoatController(mapboxToken: AccessToken,
     rh.getQueryString(BoatTokenQuery).map { token =>
       auther.authBoat(BoatToken(token)).map(_.map(Option.apply))
     }.getOrElse {
-      Future.successful(onNoQuery)
+      fut(onNoQuery)
     }
 
   def optionalAuth(rh: RequestHeader): Future[Either[IdentityError, Option[BoatInfo]]] =
@@ -284,7 +280,7 @@ class BoatController(mapboxToken: AccessToken,
         boats.headOption
       }
     }.getOrElse {
-      Future.successful(None)
+      fut(None)
     }
 
   private def sessionEmail(rh: RequestHeader): Option[Email] =
@@ -296,7 +292,7 @@ class BoatController(mapboxToken: AccessToken,
   private def parsedAuth[U, B](p: BodyParser[B])(authenticate: RequestHeader => Future[Either[IdentityError, U]])(code: BoatRequest[U, B] => Future[Result]) =
     Action(p).async { req =>
       makeResult(authenticate(req), req).flatMap { e =>
-        e.fold(Future.successful, t => code(BoatRequest(t, req)))
+        e.fold(fut, t => code(BoatRequest(t, req)))
       }
     }
 
@@ -328,4 +324,6 @@ class BoatController(mapboxToken: AccessToken,
         log.error(s"Unable to save coords.", t)
         Nil
       }
+
+  def fut[T](t: T): Future[T] = Future.successful(t)
 }

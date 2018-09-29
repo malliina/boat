@@ -1,8 +1,6 @@
 package com.malliina.boat.it
 
 import akka.actor.ActorSystem
-import akka.http.scaladsl.model.HttpHeader
-import akka.http.scaladsl.model.HttpHeader.ParsingResult.Ok
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.{Sink, Source, SourceQueue}
 import akka.{Done, NotUsed}
@@ -27,17 +25,24 @@ abstract class ServerSuite[T <: BuiltInComponents](build: Context => T)
 }
 
 abstract class BoatTests extends TestAppSuite with BoatSockets {
-  def openTestBoat[T](boat: BoatName, creds: Option[Creds] = None)(code: TestBoat => T): T = {
-    openBoat(urlFor(reverse.boats()), boat, creds)(code)
+  def openTestBoat[T](boat: BoatName)(code: TestBoat => T): T = {
+    openBoat(urlFor(reverse.boats()), Left(boat))(code)
   }
 
   def openViewerSocket[T](in: Sink[JsValue, Future[Done]], creds: Option[Creds] = None)(code: WebSocketClient => T): T = {
     val out = Source.maybe[JsValue].mapMaterializedValue(_ => NotUsed)
-    openWebSocket(reverse.updates(), BoatNames.random(), creds, in, out)(code)
+    val headers = creds.map { c =>
+      KeyValue(HttpUtil.Authorization, HttpUtil.authorizationValue(c.user, c.pass.pass))
+    }.toList
+    openWebSocket(reverse.updates(), creds, in, out, headers)(code)
   }
 
-  def openWebSocket[T](path: Call, boat: BoatName, creds: Option[Creds], in: Sink[JsValue, Future[Done]], out: Source[JsValue, NotUsed])(code: WebSocketClient => T): T = {
-    openSocket(urlFor(path), boat, in, out, creds)(code)
+  def openWebSocket[T](path: Call,
+                       creds: Option[Creds],
+                       in: Sink[JsValue, Future[Done]],
+                       out: Source[JsValue, NotUsed],
+                       headers: List[KeyValue])(code: WebSocketClient => T): T = {
+    openSocket(urlFor(path), in, out, headers)(code)
   }
 
   def urlFor(call: Call) = FullUrl("ws", s"localhost:$port", call.toString)
@@ -49,19 +54,22 @@ trait BoatSockets {
   implicit val as = ActorSystem()
   implicit val mat = ActorMaterializer()
 
-  def openBoat[T](url: FullUrl, boat: BoatName, creds: Option[Creds] = None)(code: TestBoat => T): T = {
+  def openRandomBoat[T](url: FullUrl)(code: TestBoat => T): T =
+    openBoat(url, Left(BoatNames.random()))(code)
+
+  def openBoat[T](url: FullUrl, boat: Either[BoatName, BoatToken])(code: TestBoat => T): T = {
+    val headers = boat.fold(
+      name => KeyValue(Constants.BoatNameHeader, name.name),
+      t => KeyValue(Constants.BoatTokenHeader, t.token)
+    )
     val (queue, src) = Streaming.sourceQueue[JsValue](mat)
-    openSocket(url, boat, Sink.ignore, src, creds) { client =>
+    openSocket(url, Sink.ignore, src, List(headers)) { client =>
       code(new TestBoat(queue, client))
     }
   }
 
-  def openSocket[T](url: FullUrl, boat: BoatName, in: Sink[JsValue, Future[Done]], out: Source[JsValue, NotUsed], creds: Option[Creds] = None)(code: WebSocketClient => T): T = {
-    val authHeaders = creds.map { c =>
-      KeyValue(HttpUtil.Authorization, HttpUtil.authorizationValue(c.user, c.pass.pass))
-    }.toList
-    val boatHeader = KeyValue(Constants.BoatNameHeader, boat.name)
-    val client = WebSocketClient(url, authHeaders :+ boatHeader, as, mat)
+  def openSocket[T](url: FullUrl, in: Sink[JsValue, Future[Done]], out: Source[JsValue, NotUsed], headers: List[KeyValue])(code: WebSocketClient => T): T = {
+    val client = WebSocketClient(url, headers, as, mat)
     try {
       client.connectJson(in, out)
       await(client.initialConnection)
@@ -75,10 +83,6 @@ trait BoatSockets {
     def send[T: Writes](t: T) = await(queue.offer(Option(Json.toJson(t))), 30.seconds)
 
     def close(): Unit = queue.offer(None)
-  }
-
-  private def newHeader(key: String, value: String): HttpHeader = {
-    HttpHeader.parse(key, value).asInstanceOf[Ok].header
   }
 }
 

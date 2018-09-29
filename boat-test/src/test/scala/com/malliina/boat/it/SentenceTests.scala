@@ -37,7 +37,7 @@ class SentenceTests extends BoatTests {
     val testPass = Password("demo")
     await(components.users.addUser(NewUser(testUser, None, UserToken.random(), enabled = true)))
     val creds = Option(Creds(testUser, testPass))
-    openTestBoat(BoatNames.random(), creds) { boat =>
+    openTestBoat(BoatNames.random()) { boat =>
       val authPromise = Promise[CoordsEvent]()
       val anonPromise = Promise[CoordsEvent]()
       val testMessage = SentencesMessage(Seq(RawSentence("$GPGGA,154106,6008.0079,N,02452.0497,E,1,12,0.60,0,M,19.5,M,,*68")))
