@@ -47,8 +47,6 @@ case class JoinedTrack(track: TrackId, trackName: TrackName, trackAdded: Instant
   val endOrNow = end.getOrElse(Instant.now())
   val duration = (endOrNow.toEpochMilli - startOrNow.toEpochMilli).millis
 
-  def short = TrackMetaShort(track, trackName, boat, boatName, user, username)
-
   def strip = TrackRef(
     track, trackName, boat,
     boatName, user, username,
@@ -163,10 +161,6 @@ object Sentences {
   val Key = SentencesEvent.Key
   implicit val json = Json.format[Sentences]
 }
-
-case class TrackPointId(id: Long) extends WrappedId
-
-object TrackPointId extends IdCompanion[TrackPointId]
 
 case class TrackPointInput(lon: Double,
                            lat: Double,

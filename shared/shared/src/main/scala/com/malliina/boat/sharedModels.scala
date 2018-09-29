@@ -125,6 +125,10 @@ trait TrackMetaLike {
   def username: Username
 }
 
+trait TrackLike extends TrackMetaLike {
+  def duration: Duration
+}
+
 case class TrackMetaShort(track: TrackId, trackName: TrackName,
                           boat: BoatId, boatName: BoatName,
                           user: UserId, username: Username) extends TrackMetaLike
@@ -146,22 +150,16 @@ object TrackRef {
   implicit val json = Json.format[TrackRef]
 }
 
+case class TrackPointId(id: Long) extends WrappedId
+
+object TrackPointId extends IdCompanion[TrackPointId]
+
 case class BoatUser(track: TrackName, boat: BoatName, user: Username) extends BoatTrackMeta
 
 case class BoatInfo(boatId: BoatId, boat: BoatName, user: Username, tracks: Seq[TrackRef])
 
 object BoatInfo {
   implicit val json = Json.format[BoatInfo]
-}
-
-trait TrackLike {
-  def username: Username
-
-  def boatName: BoatName
-
-  def trackName: TrackName
-
-  def duration: Duration
 }
 
 case class TrackBrief(trackName: TrackName, added: String, addedMillis: Long)
@@ -189,7 +187,7 @@ object TrackSummaries {
   implicit val json = Json.format[TrackSummaries]
 }
 
-case class CoordsEvent(coords: Seq[TimedCoord], from: TrackMetaShort) extends BoatFrontEvent {
+case class CoordsEvent(coords: Seq[TimedCoord], from: TrackRef) extends BoatFrontEvent {
   def isEmpty = coords.isEmpty
 
   def sample(every: Int): CoordsEvent =
@@ -231,7 +229,7 @@ sealed trait FrontEvent {
 }
 
 sealed trait BoatFrontEvent extends FrontEvent {
-  def from: TrackMetaShort
+  def from: TrackMetaLike
 
   // Anonymous users receive all live boat updates by design
   override def isIntendedFor(user: Username): Boolean = from.username == user || user == Usernames.anon

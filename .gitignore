@@ -10,3 +10,4 @@ target/
 credentials.txt
 logs
 dist
+.hydra

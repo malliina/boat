@@ -7,10 +7,10 @@ import com.malliina.boat._
 import com.malliina.boat.db.TracksDatabase.log
 import com.malliina.boat.http._
 import com.malliina.boat.parsing.FullCoord
-import com.malliina.measure.Distance
+import com.malliina.measure.{Distance, Speed, SpeedInt}
 import com.malliina.values.{Email, UserId, Username}
 import play.api.Logger
-import com.malliina.measure.{Speed, SpeedInt}
+
 import scala.concurrent.duration.DurationLong
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -20,7 +20,8 @@ object TracksDatabase {
   def apply(db: BoatSchema, ec: ExecutionContext): TracksDatabase = new TracksDatabase(db)(ec)
 }
 
-class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext) extends TracksSource {
+class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext)
+  extends TracksSource {
   val timeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
 
   import db._
@@ -54,17 +55,19 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext) extends 
     insertLogged(action, from, "sentence")
   }
 
-  override def saveCoords(coord: FullCoord): Future[Seq[TrackPointId]] =
-    insertLogged(saveCoordAction(coord).map(id => Seq(id)), coord.from, "coordinate")
+  override def saveCoords(coord: FullCoord): Future[Seq[TrackRef]] =
+    insertLogged(saveCoordAction(coord), coord.from, "coordinate")
 
-  def saveCoordAction(coord: FullCoord) = {
+  def saveCoordAction(coord: FullCoord): DBIOAction[Seq[TrackRef], NoStream, Effect.All] = {
     val track = coord.from.track
     val action = for {
       previous <- pointsTable.filter(_.track === track).sortBy(_.trackIndex.desc).take(1).result
       trackIdx = previous.headOption.map(_.trackIndex).getOrElse(0) + 1
-      diff <- previous.headOption.map { p => distanceCoords(p.coord, coord.coord.bind).result }.getOrElse {
-        DBIO.successful(Distance.zero)
-      }
+      diff <- previous.headOption
+        .map { p => distanceCoords(p.coord, coord.coord.bind).result }
+        .getOrElse {
+          DBIO.successful(Distance.zero)
+        }
       point <- coordInserts += TrackPointInput.forCoord(coord, trackIdx, previous.headOption.map(_.id), diff)
       _ <- sentencePointsTable ++= coord.parts.map(key => SentencePointLink(key, point))
       // Updates aggregates; simulates a materialized view for performance
@@ -78,7 +81,10 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext) extends 
       _ <- trackQuery.map(_.points).update(points)
       distance <- pointsQuery.map(_.diff).sum.result
       _ <- trackQuery.map(_.distance).update(distance.getOrElse(Distance.zero))
-    } yield point
+      ref <- tracksViewNonEmpty.filter(_.track === track).result
+    } yield {
+      ref.map(_.strip)
+    }
     action.transactionally
   }
 
@@ -189,7 +195,7 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext) extends 
         val old = acc(idx)
         acc.updated(idx, old.copy(coords = old.coords :+ coord))
       } else {
-        acc :+ CoordsEvent(Seq(coord), from.short)
+        acc :+ CoordsEvent(Seq(coord), from.strip)
       }
     }
 

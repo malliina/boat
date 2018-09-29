@@ -1,11 +1,10 @@
 package com.malliina.boat
 
 import com.malliina.boat.FrontKeys.{DistanceId, DurationId, TopSpeedId, WaterTempId}
-import com.malliina.measure.Speed
 import org.scalajs.dom.document
 import play.api.libs.json._
 
-import scala.concurrent.duration.{Duration, DurationLong}
+import scala.concurrent.duration.Duration
 import scala.concurrent.{Future, Promise}
 import scala.scalajs.js
 import scala.scalajs.js.JSConverters.genTravConvertible2JSRichGenTrav
@@ -17,9 +16,6 @@ class MapSocket(map: MapboxMap, queryString: String) extends BaseSocket(s"/ws/up
 
   private var mapMode: MapMode = Fit
   private var boats = Map.empty[String, FeatureCollection]
-  private var latestMaxSpeed: Option[Speed] = None
-  private var smallestTime: Option[Long] = None
-  private var largestTime: Option[Long] = None
 
   initImage()
 
@@ -63,7 +59,7 @@ class MapSocket(map: MapboxMap, queryString: String) extends BaseSocket(s"/ws/up
     case other => log.info(s"Unknown event: '$other'.")
   }
 
-  def onCoords(coordsInfo: Seq[TimedCoord], from: TrackMetaLike): Unit = {
+  def onCoords(coordsInfo: Seq[TimedCoord], from: TrackRef): Unit = {
     val coords = coordsInfo.map(_.coord)
     val boat = from.boatName
     val track = trackName(boat)
@@ -99,14 +95,11 @@ class MapSocket(map: MapboxMap, queryString: String) extends BaseSocket(s"/ws/up
     }
     val trail: Seq[Coord] = newTrack.features.flatMap(_.geometry.coords)
     elem(DistanceId).foreach { e =>
-      val totalLength = boats.values.flatMap(fc => fc.features.headOption.map(f => turf.length(toJson(f)))).sum
-      e.innerHTML = s"${formatDouble(totalLength)} km"
+      e.innerHTML = s"${formatDouble(from.distance.toKilometersDouble)} km"
     }
     elem(TopSpeedId).foreach { e =>
-      val maxSpeed = if (coordsInfo.isEmpty) Speed.zero else coordsInfo.map(_.speed).max
-      if (maxSpeed > latestMaxSpeed.getOrElse(Speed.zero)) {
-        e.innerHTML = s"Top ${formatDouble(maxSpeed.toKnots)} kn"
-        latestMaxSpeed = Option(maxSpeed)
+      from.topSpeed.foreach { top =>
+        e.innerHTML = s"Top ${formatDouble(top.toKnotsDouble)} kn"
       }
     }
     elem(WaterTempId).foreach { e =>
@@ -116,22 +109,7 @@ class MapSocket(map: MapboxMap, queryString: String) extends BaseSocket(s"/ws/up
     }
     if (boats.keySet.size == 1) {
       elem(DurationId).foreach { e =>
-        val times = coordsInfo.map(_.boatTimeMillis)
-        val min = times.min
-        val max = times.max
-        if (smallestTime.forall(_ > min)) {
-          smallestTime = Option(min)
-        }
-        if (largestTime.forall(_ < max)) {
-          largestTime = Option(times.max)
-        }
-        for {
-          start <- smallestTime
-          latest <- largestTime
-        } {
-          val duration = (latest - start).millis
-          e.innerHTML = s"Time ${formatDuration(duration)}"
-        }
+        e.innerHTML = s"Time ${formatDuration(from.duration)}"
       }
     }
     // updates the map position, zoom to reflect the updated track(s)

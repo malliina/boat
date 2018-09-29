@@ -8,8 +8,8 @@ import akka.NotUsed
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.{Flow, Sink, Source}
+import com.malliina.boat._
 import com.malliina.boat.parsing.{BoatParser, FullCoord}
-import com.malliina.boat.{BoatId, BoatInput, BoatName, BoatNames, BoatTokens, BoatUser, Coord, KeyedSentence, LocalConf, RawSentence, SentencesEvent, TrackId, TrackInput, TrackMetaShort, TrackNames, TrackPointId, TrackRow, UserToken}
 import com.malliina.concurrent.Execution.cached
 import com.malliina.measure.{DistanceInt, Speed, SpeedInt, Temperature}
 import com.malliina.util.FileUtils
@@ -125,13 +125,13 @@ class TracksDatabaseTests extends BaseSuite {
   }
 
   def processSentences(saveSentences: SentencesEvent => Future[Seq[KeyedSentence]],
-                       saveCoord: FullCoord => Future[Seq[TrackPointId]]) =
+                       saveCoord: FullCoord => Future[Seq[TrackRef]]) =
     Flow[SentencesEvent]
       .via(Flow[SentencesEvent].mapAsync(1)(saveSentences))
       .mapConcat(saved => saved.toList)
       .via(insertPointsFlow(saveCoord))
 
-  def insertPointsFlow(save: FullCoord => Future[Seq[TrackPointId]]): Flow[KeyedSentence, Seq[TrackPointId], NotUsed] = {
+  def insertPointsFlow(save: FullCoord => Future[Seq[TrackRef]]): Flow[KeyedSentence, Seq[TrackRef], NotUsed] = {
     Flow[KeyedSentence]
       .mapConcat(raw => BoatParser.parse(raw).toOption.toList)
       .via(BoatParser.multiFlow())

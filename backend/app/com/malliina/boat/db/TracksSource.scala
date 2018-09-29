@@ -27,7 +27,7 @@ trait TracksSource {
 
   def saveSentences(sentences: SentencesEvent): Future[Seq[KeyedSentence]]
 
-  def saveCoords(coords: FullCoord): Future[Seq[TrackPointId]]
+  def saveCoords(coords: FullCoord): Future[Seq[TrackRef]]
 
   def tracksFor(email: Email, filter: TrackQuery): Future[TrackSummaries]
 

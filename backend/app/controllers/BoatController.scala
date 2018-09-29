@@ -68,7 +68,7 @@ class BoatController(mapboxToken: AccessToken,
   val savedCoords = monitored(onlyOnce(parsedEvents.mapAsync(parallelism = 1)(ce => saveRecovered(ce))), "saved coords")
   val coordsDrainer = savedCoords.runWith(Sink.ignore)
   val errors = lefts(sentencesSource)
-  val frontEvents: Source[CoordsEvent, Future[Done]] = savedCoords.map(dc => CoordsEvent(Seq(dc.timed), dc.from))
+  val frontEvents: Source[CoordsEvent, Future[Done]] = savedCoords.mapConcat[CoordsEvent](identity)
 
   errors.runWith(Sink.foreach(err => log.error(s"JSON error for '${err.boat}': '${err.error}'.")))
 
@@ -319,14 +319,13 @@ class BoatController(mapboxToken: AccessToken,
 
   private def unauth = Unauthorized(Errors(SingleError("Unauthorized.")))
 
-  private def trackOrRandom(rh: RequestHeader): TrackName =
-    TrackNames.random()
+  private def trackOrRandom(rh: RequestHeader): TrackName = TrackNames.random()
 
-  //    rh.headers.get(TrackNameHeader).map(TrackName.apply).getOrElse(TrackNames.random())
-
-  private def saveRecovered(coords: FullCoord): Future[FullCoord] =
-    db.saveCoords(coords).map { _ => coords }.recover { case t =>
-      log.error(s"Unable to save coords.", t)
-      coords
-    }
+  private def saveRecovered(coord: FullCoord): Future[List[CoordsEvent]] =
+    db.saveCoords(coord)
+      .map { refs => refs.map(ref => CoordsEvent(Seq(coord.timed), ref)).toList }
+      .recover { case t =>
+        log.error(s"Unable to save coords.", t)
+        Nil
+      }
 }

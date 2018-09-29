@@ -10,7 +10,7 @@ import sbtcrossproject.CrossPlugin.autoImport.{crossProject => portableProject, 
 val utilPlayVersion = "4.14.0"
 val utilPlayDep = "com.malliina" %% "util-play" % utilPlayVersion
 val primitiveVersion = "1.6.0"
-
+val akkaStreamsVersion = "2.5.17"
 val buildAndUpload = taskKey[FullUrl]("Uploads to S3")
 val upFiles = taskKey[Seq[String]]("lists")
 
@@ -58,16 +58,12 @@ lazy val backendSettings = playSettings ++ Seq(
     "com.zaxxer" % "HikariCP" % "3.2.0",
     "org.flywaydb" % "flyway-core" % "5.1.4",
     "org.apache.commons" % "commons-text" % "1.4",
-    "com.malliina" %% "logstreams-client" % "1.1.0",
-    "com.amazonaws" % "aws-java-sdk-s3" % "1.11.396",
-    "com.vladsch.flexmark" % "flexmark-html-parser" % "0.34.18",
+    "com.malliina" %% "logstreams-client" % "1.2.0",
+    "com.amazonaws" % "aws-java-sdk-s3" % "1.11.419",
+    "com.vladsch.flexmark" % "flexmark-html-parser" % "0.34.44",
     "com.malliina" %% "play-social" % utilPlayVersion,
     utilPlayDep,
     utilPlayDep % Test classifier "tests"
-  ),
-  dependencyOverrides ++= Seq(
-    "com.typesafe.akka" %% "akka-stream" % "2.5.8",
-    "com.typesafe.akka" %% "akka-actor" % "2.5.8"
   ),
   routesImport ++= Seq(
     "com.malliina.boat.Bindables._",
@@ -105,7 +101,7 @@ lazy val frontendSettings = commonSettings ++ Seq(
 
 lazy val sharedSettings = commonSettings ++ Seq(
   libraryDependencies ++= Seq(
-    "com.typesafe.play" %%% "play-json" % "2.6.9",
+    "com.typesafe.play" %%% "play-json" % "2.6.10",
     "com.malliina" %%% "primitives" % primitiveVersion,
     "com.lihaoyi" %%% "scalatags" % "0.6.7"
   )
@@ -129,12 +125,12 @@ lazy val clientSettings = commonSettings ++ Seq(
   },
   libraryDependencies ++= Seq(
     "com.malliina" %% "primitives" % primitiveVersion,
-    "com.neovisionaries" % "nv-websocket-client" % "2.5",
+    "com.neovisionaries" % "nv-websocket-client" % "2.6",
     "org.slf4j" % "slf4j-api" % "1.7.25",
-    "com.malliina" %% "logback-rx" % "1.2.0",
-    "com.typesafe.akka" %% "akka-stream" % "2.5.15",
-    "com.typesafe.akka" %% "akka-http" % "10.1.4",
-    "com.typesafe.akka" %% "akka-http-spray-json" % "10.1.4",
+    "com.malliina" %% "logback-rx" % "1.3.0",
+    "com.typesafe.akka" %% "akka-stream" % akkaStreamsVersion,
+    "com.typesafe.akka" %% "akka-http" % "10.1.5",
+    "com.typesafe.akka" %% "akka-http-spray-json" % "10.1.5",
     "com.lihaoyi" %% "scalatags" % "0.6.7",
     "commons-codec" % "commons-codec" % "1.11",
     "com.neuronrobotics" % "nrjavaserial" % "3.14.0",
@@ -170,7 +166,7 @@ lazy val testSettings = playSettings ++ Seq(
 
 lazy val playSettings = commonSettings ++ Seq(
   dependencyOverrides ++= Seq(
-    "com.typesafe.akka" %% "akka-stream" % "2.5.8",
+    "com.typesafe.akka" %% "akka-stream" % akkaStreamsVersion,
     "com.typesafe.akka" %% "akka-actor" % "2.5.8"
   )
 )
