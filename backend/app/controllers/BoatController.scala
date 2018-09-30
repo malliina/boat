@@ -319,7 +319,7 @@ class BoatController(mapboxToken: AccessToken,
 
   private def saveRecovered(coord: FullCoord): Future[List[CoordsEvent]] =
     db.saveCoords(coord)
-      .map { refs => refs.map(ref => CoordsEvent(Seq(coord.timed), ref)).toList }
+      .map { inserted => List(CoordsEvent(Seq(coord.timed(inserted.point)), inserted.track)) }
       .recover { case t =>
         log.error(s"Unable to save coords.", t)
         Nil

@@ -3,11 +3,13 @@ package com.malliina.boat
 import java.net.URI
 
 import com.malliina.boat.FrontKeys._
+import com.malliina.mapbox.{MapOptions, MapboxMap, mapboxGl}
 import org.scalajs.dom.raw._
 import org.scalajs.dom.{document, window}
 import play.api.libs.json.{Json, Writes}
 
 import scala.scalajs.js.{JSON, URIUtils}
+import scala.util.Try
 
 object MapView {
   def apply(accessToken: AccessToken): MapView = new MapView(accessToken)
@@ -22,7 +24,8 @@ object MapView {
 
 class MapView(accessToken: AccessToken) {
   mapboxGl.accessToken = accessToken.token
-  val queryString = Option(new URI(window.location.href).getQuery).getOrElse("")
+  val href = new URI(window.location.href)
+  val queryString = Option(href.getQuery).getOrElse("")
   val queryParams = queryString.split("&").toList
     .map { kv => kv.split("=").toList }
     .collect { case key :: value :: Nil => key -> value }
@@ -32,17 +35,30 @@ class MapView(accessToken: AccessToken) {
     container = MapId,
     style = "mapbox://styles/malliina/cjgny1fjc008p2so90sbz8nbv",
     center = Coord(lng = 24.9000, lat = 60.1400),
-    zoom = 13
+    zoom = 13,
+    hash = true
   )
   val map = new MapboxMap(mapOptions)
   var socket: Option[MapSocket] = None
 
   map.on("load", () => {
-    socket = Option(new MapSocket(map, queryString))
+    val mode = if (Option(href.getFragment).isDefined) Stay else Fit
+    socket = Option(new MapSocket(map, queryString, mode))
   })
+//  map.on("click", (event: MapMouseEvent) => {
+////    println(JSON.stringify(map.queryRenderedFeatures(event.point)))
+////    new MapboxPopup(PopupOptions(None, None))
+////      .setLngLat(event.lngLat)
+////      .setHTML("<strong>rawr</strong> lion")
+////      .addTo(map)
+//  })
 
   initModal()
   initNav()
+
+  def queryDouble(key: String) = query(key).flatMap(s => Try(s.toDouble).toOption)
+
+  def query(key: String) = queryParams.get(key).flatMap(_.headOption)
 
   def initModal(): Unit = {
     val modal = elem(ModalId)

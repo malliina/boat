@@ -1,6 +1,6 @@
 package com.malliina.boat
 
-import play.api.libs.json.{JsError, Json, Reads, Writes}
+import play.api.libs.json._
 
 case class LineGeometry(`type`: String, coordinates: Seq[Coord]) extends Geometry(LineGeometry.LineString) {
   override def updateCoords(coords: Seq[Coord]): LineGeometry =
@@ -28,7 +28,7 @@ object PointGeometry {
   implicit val json = Json.format[PointGeometry]
 }
 
-sealed abstract class Geometry(typeName: String) {
+sealed abstract class Geometry(val typeName: String) {
   def updateCoords(coords: Seq[Coord]): Geometry
 
   def coords: Seq[Coord]
@@ -50,8 +50,10 @@ object Geometry {
   }
 }
 
-case class Feature(`type`: String, geometry: Geometry) {
-  def addCoords(coords: Seq[Coord]) = copy(geometry = geometry.updateCoords(coords))
+case class Feature(`type`: String, geometry: Geometry, properties: Map[String, JsValue]) {
+  def addCoords(coords: Seq[Coord]) = copy(
+    geometry = geometry.updateCoords(coords)
+  )
 }
 
 object Feature {
@@ -59,7 +61,7 @@ object Feature {
 }
 
 case class FeatureCollection(`type`: String, features: Seq[Feature]) {
-  def addCoords(coords: Seq[Coord]) = copy(features = features.map(_.addCoords(coords)))
+  def addCoords(coords: Seq[Coord]): FeatureCollection = copy(features = features.map(_.addCoords(coords)))
 }
 
 object FeatureCollection {
@@ -93,7 +95,10 @@ object Layout {
   }
 }
 
-case class Paint(`line-color`: String, `line-width`: Int)
+case class Paint(`line-color`: String,
+                 `line-width`: Int,
+                 `line-opacity`: Double,
+                 `line-gap-width`: Double = 0)
 
 object Paint {
   implicit val json = Json.format[Paint]

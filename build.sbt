@@ -103,7 +103,8 @@ lazy val sharedSettings = commonSettings ++ Seq(
   libraryDependencies ++= Seq(
     "com.typesafe.play" %%% "play-json" % "2.6.10",
     "com.malliina" %%% "primitives" % primitiveVersion,
-    "com.lihaoyi" %%% "scalatags" % "0.6.7"
+    "com.lihaoyi" %%% "scalatags" % "0.6.7",
+    "org.scalatest" %%% "scalatest" % "3.0.5" % Test
   )
 )
 

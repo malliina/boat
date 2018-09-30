@@ -125,13 +125,13 @@ class TracksDatabaseTests extends BaseSuite {
   }
 
   def processSentences(saveSentences: SentencesEvent => Future[Seq[KeyedSentence]],
-                       saveCoord: FullCoord => Future[Seq[TrackRef]]) =
+                       saveCoord: FullCoord => Future[InsertedPoint]) =
     Flow[SentencesEvent]
       .via(Flow[SentencesEvent].mapAsync(1)(saveSentences))
       .mapConcat(saved => saved.toList)
       .via(insertPointsFlow(saveCoord))
 
-  def insertPointsFlow(save: FullCoord => Future[Seq[TrackRef]]): Flow[KeyedSentence, Seq[TrackRef], NotUsed] = {
+  def insertPointsFlow(save: FullCoord => Future[InsertedPoint]): Flow[KeyedSentence, InsertedPoint, NotUsed] = {
     Flow[KeyedSentence]
       .mapConcat(raw => BoatParser.parse(raw).toOption.toList)
       .via(BoatParser.multiFlow())

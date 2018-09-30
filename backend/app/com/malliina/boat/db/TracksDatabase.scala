@@ -52,22 +52,23 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext)
         (sentenceInserts += SentenceInput(s, from.track)).map { key => KeyedSentence(key, s, from) }
       }
     }
-    insertLogged(action, from, "sentence")
+    insertLogged(action, from) { ids =>
+      val suffix = if (ids.length > 1) "s" else ""
+      s"${ids.length} sentence$suffix"
+    }
   }
 
-  override def saveCoords(coord: FullCoord): Future[Seq[TrackRef]] =
-    insertLogged(saveCoordAction(coord), coord.from, "coordinate")
+  override def saveCoords(coord: FullCoord): Future[InsertedPoint] =
+    insertLogged(saveCoordAction(coord), coord.from)(_ => "one coordinate")
 
-  def saveCoordAction(coord: FullCoord): DBIOAction[Seq[TrackRef], NoStream, Effect.All] = {
+  def saveCoordAction(coord: FullCoord): DBIOAction[InsertedPoint, NoStream, Effect.All] = {
     val track = coord.from.track
     val action = for {
       previous <- pointsTable.filter(_.track === track).sortBy(_.trackIndex.desc).take(1).result
       trackIdx = previous.headOption.map(_.trackIndex).getOrElse(0) + 1
       diff <- previous.headOption
-        .map { p => distanceCoords(p.coord, coord.coord.bind).result }
-        .getOrElse {
-          DBIO.successful(Distance.zero)
-        }
+        .map(p => distanceCoords(p.coord, coord.coord.bind).result)
+        .getOrElse(DBIO.successful(Distance.zero))
       point <- coordInserts += TrackPointInput.forCoord(coord, trackIdx, previous.headOption.map(_.id), diff)
       _ <- sentencePointsTable ++= coord.parts.map(key => SentencePointLink(key, point))
       // Updates aggregates; simulates a materialized view for performance
@@ -81,9 +82,9 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext)
       _ <- trackQuery.map(_.points).update(points)
       distance <- pointsQuery.map(_.diff).sum.result
       _ <- trackQuery.map(_.distance).update(distance.getOrElse(Distance.zero))
-      ref <- tracksViewNonEmpty.filter(_.track === track).result
+      ref <- first(tracksViewNonEmpty.filter(_.track === track), s"Track not found: '$track'.")
     } yield {
-      ref.map(_.strip)
+      InsertedPoint(point, ref.strip)
     }
     action.transactionally
   }
@@ -184,6 +185,7 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext)
     rows.foldLeft(Vector.empty[CoordsEvent]) { case (acc, (from, point)) =>
       val idx = acc.indexWhere(_.from.track == from.track)
       val coord = TimedCoord(
+        point.id,
         Coord(point.lon, point.lat),
         Instants.format(point.boatTime),
         point.boatTime.toEpochMilli,
@@ -199,13 +201,14 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext)
       }
     }
 
-  private def insertLogged[R](action: DBIOAction[Seq[R], NoStream, Nothing], from: TrackMetaLike, word: String) = {
+  private def insertLogged[R](action: DBIOAction[R, NoStream, Nothing], from: TrackMetaLike)(describe: R => String): Future[R] = {
     db.run(action).map { keys =>
-      val pluralSuffix = if (keys.length == 1) "" else "s"
-      log.info(s"Inserted ${keys.length} $word$pluralSuffix from '${from.boatName}' owned by '${from.username}'.")
+      //      val pluralSuffix = if (keys.length == 1) "" else "s"
+      //      log.info(s"Inserted ${describe(keys)} $word$pluralSuffix from '${from.boatName}' owned by '${from.username}'.")
+      log.info(s"Inserted ${describe(keys)} from '${from.boatName}' owned by '${from.username}'.")
       keys
     }.recoverWith { case t =>
-      log.error(s"Error inserting $word from '${from.boatName}'.", t)
+      log.error(s"Error inserting data for '${from.boatName}'.", t)
       Future.failed(t)
     }
   }

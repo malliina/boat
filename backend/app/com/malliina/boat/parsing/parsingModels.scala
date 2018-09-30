@@ -2,7 +2,7 @@ package com.malliina.boat.parsing
 
 import java.time.{LocalDate, LocalTime, ZoneOffset}
 
-import com.malliina.boat.{Coord, Instants, KeyedSentence, RawSentence, SentenceKey, TimedCoord, TrackId, TrackMetaShort, TrackRef}
+import com.malliina.boat.{Coord, Instants, KeyedSentence, RawSentence, SentenceKey, TimedCoord, TrackId, TrackMetaShort, TrackPointId, TrackRef}
 import com.malliina.measure.{Distance, Speed, Temperature}
 import net.sf.marineapi.nmea.parser.{DataNotAvailableException, SentenceFactory, UnsupportedSentenceException}
 import net.sf.marineapi.nmea.sentence.Sentence
@@ -74,7 +74,8 @@ case class FullCoord(coord: Coord,
 
   def lat = coord.lat
 
-  def timed = TimedCoord(coord, Instants.format(boatTime), boatTime.toEpochMilli, boatSpeed, waterTemp, depth)
+  def timed(id: TrackPointId): TimedCoord =
+    TimedCoord(id, coord, Instants.format(boatTime), boatTime.toEpochMilli, boatSpeed, waterTemp, depth)
 }
 
 sealed trait SentenceError {

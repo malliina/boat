@@ -1,4 +1,7 @@
-package com.malliina.boat
+package com.malliina.mapbox
+
+import com.malliina.boat.Coord
+import org.scalajs.dom.raw.HTMLCanvasElement
 
 import scala.scalajs.js
 import scala.scalajs.js.Dynamic.literal
@@ -6,21 +9,23 @@ import scala.scalajs.js.JSConverters._
 import scala.scalajs.js.annotation.JSGlobal
 
 @js.native
-@JSGlobal("turf")
-object turf extends js.Object {
-  def center(geoJson: js.Any): js.Any = js.native
-
-  def point(coord: js.Array[Double]): js.Any = js.native
-
-  def lineString(coords: js.Array[js.Array[Double]]): js.Any = js.native
-
-  def length(line: js.Any): Double = js.native
-}
-
-@js.native
 @JSGlobal("mapboxgl")
 object mapboxGl extends js.Object {
   var accessToken: String = js.native
+}
+
+@js.native
+@JSGlobal("mapboxgl.Popup")
+class MapboxPopup(options: PopupOptions) extends js.Object {
+  def setLngLat(coord: LngLat): MapboxPopup = js.native
+
+  def setHTML(html: String): MapboxPopup = js.native
+
+  def setText(text: String): MapboxPopup = js.native
+
+  def addTo(map: MapboxMap): Unit = js.native
+
+  def remove(): Unit = js.native
 }
 
 @js.native
@@ -42,9 +47,17 @@ class MapboxMap(options: MapOptions) extends js.Object {
 
   def setLayoutProperty(layer: String, prop: String, value: js.Any): Unit = js.native
 
-  def on(name: String, func: js.Function1[MouseEvent, Unit]): Unit = js.native
+  def queryRenderedFeatures(point: PixelCoord): js.Any = js.native
+
+  def getCanvas(): HTMLCanvasElement = js.native
+
+  def on(name: String, func: js.Function1[MapMouseEvent, Unit]): Unit = js.native
 
   def on(name: String, func: js.Function0[Unit]): Unit = js.native
+
+  def on(name: String, event: String, func: js.Function1[MapMouseEvent, Unit]): Unit = js.native
+
+  def on(name: String, event: String, func: js.Function0[Unit]): Unit = js.native
 }
 
 @js.native
@@ -107,8 +120,19 @@ object LngLat {
 }
 
 @js.native
-trait MouseEvent extends js.Object {
+trait MapMouseEvent extends js.Object {
   def lngLat: LngLat = js.native
+
+  def point: PixelCoord = js.native
+
+  def features: js.Any = js.native
+}
+
+@js.native
+trait PixelCoord extends js.Object {
+  def x: Int = js.native
+
+  def y: Int = js.native
 }
 
 @js.native
@@ -120,9 +144,32 @@ trait MapOptions extends js.Object {
   def center: js.Array[Double] = js.native
 
   def zoom: Double = js.native
+
+  def hash: Boolean = js.native
 }
 
 object MapOptions {
-  def apply(container: String, style: String, center: Coord, zoom: Double) =
-    literal(container = container, style = style, center = Seq(center.lng, center.lat).toJSArray, zoom = zoom).asInstanceOf[MapOptions]
+  def apply(container: String, style: String, center: Coord, zoom: Double, hash: Boolean = false): MapOptions =
+    literal(
+      container = container,
+      style = style,
+      center = Seq(center.lng, center.lat).toJSArray,
+      zoom = zoom,
+      hash = hash
+    ).asInstanceOf[MapOptions]
+}
+
+@js.native
+trait PopupOptions extends js.Object {
+  def className: js.UndefOr[String] = js.native
+
+  def offset: js.UndefOr[Double] = js.native
+
+  def closeButton: Boolean = js.native
+}
+
+object PopupOptions {
+  def apply(className: Option[String], offset: Option[Double], closeButton: Boolean): PopupOptions =
+    literal(className = className.orUndefined, offset = offset.orUndefined, closeButton = closeButton)
+      .asInstanceOf[PopupOptions]
 }

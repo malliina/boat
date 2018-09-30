@@ -10,11 +10,22 @@ import scala.concurrent.duration.Duration
 
 case class Coord(lng: Double, lat: Double) {
   def toArray: Array[Double] = Array(lng, lat)
+
+  def approx: String = {
+    val lngStr = Coord.format(lng)
+    val latStr = Coord.format(lat)
+    s"$lngStr,$latStr"
+  }
 }
 
 object Coord {
+  def format(d: Double): String = {
+    val trunc = (d * 100000).toInt.toDouble / 100000
+    "%1.5f".format(trunc)
+  }
+
   val Key = "coord"
-  implicit val json = Json.format[Coord]
+  implicit val json: OFormat[Coord] = Json.format[Coord]
   // GeoJSON format
   val jsonArray = Format(
     Reads[Coord](json => json.validate[List[Double]].flatMap {
@@ -25,7 +36,8 @@ object Coord {
   )
 }
 
-case class TimedCoord(coord: Coord,
+case class TimedCoord(id: TrackPointId,
+                      coord: Coord,
                       boatTime: String,
                       boatTimeMillis: Long,
                       speed: Speed,
@@ -150,6 +162,12 @@ object TrackRef {
   implicit val json = Json.format[TrackRef]
 }
 
+case class InsertedPoint(point: TrackPointId, track: TrackRef)
+
+object InsertedPoint {
+  implicit val json = Json.format[InsertedPoint]
+}
+
 case class TrackPointId(id: Long) extends WrappedId
 
 object TrackPointId extends IdCompanion[TrackPointId]
@@ -192,12 +210,16 @@ case class CoordsEvent(coords: Seq[TimedCoord], from: TrackRef) extends BoatFron
 
   def sample(every: Int): CoordsEvent =
     copy(coords = coords.grouped(every).flatMap(_.headOption).toList, from)
+
+  def addCoords(newCoords: Seq[TimedCoord]) = copy(coords = coords ++ newCoords)
+
+  def toMap: Map[String, JsValue] = coords.map(tc => tc.id.toString -> Json.toJson(tc)).toMap
 }
 
 object CoordsEvent {
   val Key = "coords"
   implicit val coordJson = Coord.json
-  implicit val json = keyValued(Key, Json.format[CoordsEvent])
+  implicit val json: OFormat[CoordsEvent] = keyValued(Key, Json.format[CoordsEvent])
 }
 
 case class CoordsBatch(events: Seq[CoordsEvent]) extends FrontEvent {
