@@ -1,4 +1,4 @@
-scalaVersion := "2.12.6"
+scalaVersion := "2.12.7"
 
 resolvers ++= Seq(
   Resolver.bintrayRepo("malliina", "maven"),
@@ -9,7 +9,7 @@ classpathTypes += "maven-plugin"
 
 scalacOptions ++= Seq("-unchecked", "-deprecation")
 
-libraryDependencies += "com.amazonaws" % "aws-java-sdk-s3" % "1.11.419"
+libraryDependencies += "com.amazonaws" % "aws-java-sdk-s3" % "1.11.421"
 
 Seq(
   "com.malliina" % "sbt-play" % "1.4.0",

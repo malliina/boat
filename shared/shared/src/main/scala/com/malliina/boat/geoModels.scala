@@ -2,7 +2,26 @@ package com.malliina.boat
 
 import play.api.libs.json._
 
-case class LineGeometry(`type`: String, coordinates: Seq[Coord]) extends Geometry(LineGeometry.LineString) {
+case class MultiLineGeometry(`type`: String, coordinates: Seq[Seq[Coord]])
+  extends Geometry(MultiLineGeometry.MultiLineString) {
+
+  override def updateCoords(coords: Seq[Coord]): MultiLineGeometry =
+    copy(coordinates = coordinates :+ coords)
+
+  override def coords: Seq[Coord] = coordinates.flatten
+
+  def toLine = LineGeometry(`type`, coords)
+}
+
+object MultiLineGeometry {
+  val MultiLineString = "MultiLineString"
+  implicit val coord: Format[Coord] = Coord.jsonArray
+  implicit val json = Json.format[MultiLineGeometry]
+}
+
+case class LineGeometry(`type`: String, coordinates: Seq[Coord])
+  extends Geometry(LineGeometry.LineString) {
+
   override def updateCoords(coords: Seq[Coord]): LineGeometry =
     copy(coordinates = coordinates ++ coords)
 
@@ -15,7 +34,9 @@ object LineGeometry {
   implicit val json = Json.format[LineGeometry]
 }
 
-case class PointGeometry(`type`: String, coordinates: Coord) extends Geometry(PointGeometry.Point) {
+case class PointGeometry(`type`: String, coordinates: Coord)
+  extends Geometry(PointGeometry.Point) {
+
   override def updateCoords(coords: Seq[Coord]): PointGeometry =
     PointGeometry(`type`, coords.headOption.getOrElse(coordinates))
 
@@ -39,11 +60,13 @@ object Geometry {
   val all = Seq(LineGeometry, PointGeometry)
   implicit val writer = Writes[Geometry] {
     case lg@LineGeometry(_, _) => Json.toJson(lg)
+    case mlg@MultiLineGeometry(_, _) => Json.toJson(mlg)
     case pg@PointGeometry(_, _) => Json.toJson(pg)
   }
   implicit val reader = Reads[Geometry] { json =>
     (json \ Geometry.Type).validate[String].flatMap {
       case LineGeometry.LineString => LineGeometry.json.reads(json)
+      case MultiLineGeometry.MultiLineString => MultiLineGeometry.json.reads(json)
       case PointGeometry.Point => PointGeometry.json.reads(json)
       case other => JsError(s"Unsupported geometry type: '$other'.")
     }

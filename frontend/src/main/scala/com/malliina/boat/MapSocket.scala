@@ -2,6 +2,7 @@ package com.malliina.boat
 
 import com.malliina.boat.FrontKeys.{DistanceId, DurationId, TopSpeedId, WaterTempId}
 import com.malliina.mapbox._
+import com.malliina.turf.turf
 import org.scalajs.dom.document
 import play.api.libs.json._
 
@@ -89,30 +90,22 @@ class MapSocket(map: MapboxMap, queryString: String, mode: MapMode)
         map.addLayer(toJson(symbolAnimation(point, coord)))
       }
       map.on("mousemove", thickTrack, e => {
-        //        println("move at " + JSON.stringify(e.features))
-        //        val rendered = map.queryRenderedFeatures(e.point)
-        //        println(JSON.stringify(rendered))
-
-        // TODO this does not work very well and seems less accurate than it could be. Try to improve.
-        val features = asJson[Seq[Feature]](e.features).toOption.getOrElse(Nil)
-          .filter(_.geometry.typeName == LineGeometry.LineString)
-        features.map { feature =>
-          val cs = feature.geometry.coords
-          val op = for {
-            coord <- cs.drop(cs.length / 2).headOption.toRight("No coordinate") // ?
-            comp = coord.approx
-            trail <- trails.get(trackId).toRight("Trail not found")
-            point <- trail.find(_.coord.approx == comp).toRight(s"Coord not found from ${trail.length} coords. Searched '${coord.approx}' from '${trail.map(_.coord.approx).mkString(" ")}'.")
-          } yield {
-            log.debug(s"Matched ${coord.approx} with ${point.coord.approx}")
-            map.getCanvas().style.cursor = "pointer"
-            popup
-              .setLngLat(e.lngLat)
-              .setHTML(BoatHtml.popup(point, from).render.outerHTML)
-              .addTo(map)
-          }
-          op.fold(err => log.debug(err), identity)
+        val trail = trails.getOrElse(trackId, Nil)
+        val all = turf.lineString(trail.map(_.coord.toArray.toJSArray).toArray.toJSArray)
+        val nearestResult = turf.nearestPointOnLine(all, turf.point(Coord(e.lngLat.lng, e.lngLat.lat).toArray.toJSArray))
+        val op = for {
+          feature <- asJson[Feature](nearestResult).left.map(err => s"Feature JSON failed: '$err'.")
+          idxJson <- feature.properties.get("index").toRight("No index in feature properties.")
+          idx <- validate[Int](idxJson).left.map(err => s"Index JSON failed: '$err'.")
+          point <- if (trail.length > idx) Right(trail(idx)) else Left(s"No trail at ${e.lngLat}.")
+        } yield {
+          map.getCanvas().style.cursor = "pointer"
+          popup
+            .setLngLat(e.lngLat)
+            .setHTML(BoatHtml.popup(point, from).render.outerHTML)
+            .addTo(map)
         }
+        op.fold(err => log.info(err), identity)
       })
       map.on("mouseleave", thickTrack, () => {
         map.getCanvas().style.cursor = ""
@@ -227,5 +220,9 @@ class MapSocket(map: MapboxMap, queryString: String, mode: MapMode)
   def toJson[T: Writes](t: T) = JSON.parse(Json.stringify(Json.toJson(t)))
 
   def asJson[T: Reads](in: js.Any): Either[JsError, T] =
-    Json.parse(JSON.stringify(in)).validate[T].asEither.left.map(err => JsError(err))
+    validate[T](Json.parse(JSON.stringify(in)))
+
+  def asEither[T](r: JsResult[T]) = r.asEither.left.map(err => JsError(err))
+
+  def validate[T: Reads](json: JsValue): Either[JsError, T] = asEither(json.validate[T])
 }

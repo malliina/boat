@@ -15,7 +15,7 @@ This repository contains the following modules:
 
 The web app is deployed to [www.boat-tracker.com](https://www.boat-tracker.com/).
 
-The iOS app codebase is in [this repo](https://github.com/malliina/boattracker-ios).
+The iOS app codebase is in repo [boattracker-ios](https://github.com/malliina/boattracker-ios).
 
 ## License
 

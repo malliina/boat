@@ -59,7 +59,7 @@ lazy val backendSettings = playSettings ++ Seq(
     "org.flywaydb" % "flyway-core" % "5.1.4",
     "org.apache.commons" % "commons-text" % "1.4",
     "com.malliina" %% "logstreams-client" % "1.2.0",
-    "com.amazonaws" % "aws-java-sdk-s3" % "1.11.419",
+    "com.amazonaws" % "aws-java-sdk-s3" % "1.11.421",
     "com.vladsch.flexmark" % "flexmark-html-parser" % "0.34.44",
     "com.malliina" %% "play-social" % utilPlayVersion,
     utilPlayDep,
@@ -174,7 +174,7 @@ lazy val playSettings = commonSettings ++ Seq(
 
 lazy val commonSettings = Seq(
   organization := "com.malliina",
-  scalaVersion := "2.12.6",
+  scalaVersion := "2.12.7",
   scalacOptions := Seq("-unchecked", "-deprecation"),
   resolvers ++= Seq(
     Resolver.jcenterRepo,
