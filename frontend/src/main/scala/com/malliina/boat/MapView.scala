@@ -45,13 +45,6 @@ class MapView(accessToken: AccessToken) {
     val mode = if (Option(href.getFragment).isDefined) Stay else Fit
     socket = Option(new MapSocket(map, queryString, mode))
   })
-//  map.on("click", (event: MapMouseEvent) => {
-////    println(JSON.stringify(map.queryRenderedFeatures(event.point)))
-////    new MapboxPopup(PopupOptions(None, None))
-////      .setLngLat(event.lngLat)
-////      .setHTML("<strong>rawr</strong> lion")
-////      .addTo(map)
-//  })
 
   initModal()
   initNav()

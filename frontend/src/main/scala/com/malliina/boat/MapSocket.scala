@@ -21,7 +21,8 @@ class MapSocket(map: MapboxMap, queryString: String, mode: MapMode)
   private var mapMode: MapMode = mode
   private var boats = Map.empty[String, FeatureCollection]
   private var trails = Map.empty[TrackId, Seq[TimedCoord]]
-  val popup = new MapboxPopup(PopupOptions(None, None, closeButton = false))
+  val trackPopup = new MapboxPopup(PopupOptions(None, None, closeButton = false))
+  val boatPopup = new MapboxPopup(PopupOptions(None, None, closeButton = false))
 
   initImage()
 
@@ -88,28 +89,43 @@ class MapSocket(map: MapboxMap, queryString: String, mode: MapMode)
       map.addLayer(toJson(paintedAnimation(thickTrack, Paint("#000", 5, 0))))
       coords.lastOption.map { coord =>
         map.addLayer(toJson(symbolAnimation(point, coord)))
+        map.on("mousemove", point, e => {
+          map.getCanvas().style.cursor = "pointer"
+          trackPopup.remove()
+          boatPopup.setLngLat(e.lngLat).setHTML(from.boatName.name).addTo(map)
+        })
+        map.on("mouseleave", thickTrack, () => {
+          map.getCanvas().style.cursor = ""
+          boatPopup.remove()
+        })
       }
       map.on("mousemove", thickTrack, e => {
-        val trail = trails.getOrElse(trackId, Nil)
-        val all = turf.lineString(trail.map(_.coord.toArray.toJSArray).toArray.toJSArray)
-        val nearestResult = turf.nearestPointOnLine(all, turf.point(Coord(e.lngLat.lng, e.lngLat.lat).toArray.toJSArray))
-        val op = for {
-          feature <- asJson[Feature](nearestResult).left.map(err => s"Feature JSON failed: '$err'.")
-          idxJson <- feature.properties.get("index").toRight("No index in feature properties.")
-          idx <- validate[Int](idxJson).left.map(err => s"Index JSON failed: '$err'.")
-          point <- if (trail.length > idx) Right(trail(idx)) else Left(s"No trail at ${e.lngLat}.")
-        } yield {
-          map.getCanvas().style.cursor = "pointer"
-          popup
-            .setLngLat(e.lngLat)
-            .setHTML(BoatHtml.popup(point, from).render.outerHTML)
-            .addTo(map)
+        val isOnBoatSymbol = asJson[Seq[JsObject]](map.queryRenderedFeatures(e.point))
+          .getOrElse(Nil)
+          .exists(obj => (obj \ "layer" \ "id").asOpt[String].contains(point))
+        if (!isOnBoatSymbol) {
+          val trail = trails.getOrElse(trackId, Nil)
+          // TODO try to fix the toJSArray nonsense
+          val all = turf.lineString(trail.map(_.coord.toArray.toJSArray).toArray.toJSArray)
+          val nearestResult = turf.nearestPointOnLine(all, turf.point(Coord(e.lngLat.lng, e.lngLat.lat).toArray.toJSArray))
+          val op = for {
+            feature <- asJson[Feature](nearestResult).left.map(err => s"Feature JSON failed: '$err'.")
+            idxJson <- feature.properties.get("index").toRight("No index in feature properties.")
+            idx <- validate[Int](idxJson).left.map(err => s"Index JSON failed: '$err'.")
+            nearest <- if (trail.length > idx) Right(trail(idx)) else Left(s"No trail at ${e.lngLat}.")
+          } yield {
+            map.getCanvas().style.cursor = "pointer"
+            trackPopup
+              .setLngLat(e.lngLat)
+              .setHTML(BoatHtml.popup(nearest, from).render.outerHTML)
+              .addTo(map)
+          }
+          op.fold(err => log.info(err), identity)
         }
-        op.fold(err => log.info(err), identity)
       })
       map.on("mouseleave", thickTrack, () => {
         map.getCanvas().style.cursor = ""
-        popup.remove()
+        trackPopup.remove()
       })
     }
     // updates the boat icon
@@ -209,7 +225,7 @@ class MapSocket(map: MapboxMap, queryString: String, mode: MapMode)
   def pointFor(coord: Coord) = collectionFor(PointGeometry("Point", coord), Map.empty)
 
   def collectionFor(geo: Geometry, props: Map[String, JsValue]): FeatureCollection =
-    FeatureCollection("FeatureCollection", Seq(Feature("Feature", geo, props)))
+    FeatureCollection("FeatureCollection", Seq(Feature("Feature", geo, props, None)))
 
   def trackName(boat: BoatName) = s"track-$boat"
 

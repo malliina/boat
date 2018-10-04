@@ -73,8 +73,8 @@ object Geometry {
   }
 }
 
-case class Feature(`type`: String, geometry: Geometry, properties: Map[String, JsValue]) {
-  def addCoords(coords: Seq[Coord]) = copy(
+case class Feature(`type`: String, geometry: Geometry, properties: Map[String, JsValue], layer: Option[JsObject]) {
+  def addCoords(coords: Seq[Coord]): Feature = copy(
     geometry = geometry.updateCoords(coords)
   )
 }
