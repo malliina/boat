@@ -1,11 +1,15 @@
 package com.malliina.mapbox
 
 import com.malliina.boat.Coord
+import org.scalajs.dom
 import org.scalajs.dom.raw.HTMLCanvasElement
+import play.api.libs.json.{Json, Writes}
+import scalatags.JsDom.TypedTag
 
 import scala.scalajs.js
 import scala.scalajs.js.Dynamic.literal
 import scala.scalajs.js.JSConverters._
+import scala.scalajs.js.JSON
 import scala.scalajs.js.annotation.JSGlobal
 
 @js.native
@@ -26,6 +30,18 @@ class MapboxPopup(options: PopupOptions) extends js.Object {
   def addTo(map: MapboxMap): Unit = js.native
 
   def remove(): Unit = js.native
+}
+
+object MapboxPopup {
+
+  implicit class PopupExt(val self: MapboxPopup) extends AnyVal {
+    def show[T <: dom.Element](html: TypedTag[T], coord: LngLat, on: MapboxMap): Unit =
+      self.setHTML(html.render.outerHTML).setLngLat(coord).addTo(on)
+
+    def showText(text: String, coord: LngLat, on: MapboxMap): Unit =
+      self.setText(text).setLngLat(coord).addTo(on)
+  }
+
 }
 
 @js.native
@@ -60,10 +76,24 @@ class MapboxMap(options: MapOptions) extends js.Object {
   def on(name: String, event: String, func: js.Function0[Unit]): Unit = js.native
 }
 
+object MapboxMap {
+
+  implicit class MapExt(val self: MapboxMap) extends AnyVal {
+    def putLayer[T: Writes](t: T): Unit =
+      self.addLayer(JSON.parse(Json.stringify(Json.toJson(t))))
+  }
+
+}
+
 @js.native
 @JSGlobal("mapboxgl.LngLatBounds")
 class LngLatBounds(sw: js.Array[Double], ne: js.Array[Double]) extends js.Object {
   def extend(coord: js.Array[Double]): LngLatBounds = js.native
+}
+
+object LngLatBounds {
+  def apply(coord: Coord): LngLatBounds =
+    new LngLatBounds(coord.toArray.toJSArray, coord.toArray.toJSArray)
 }
 
 @js.native

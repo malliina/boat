@@ -35,6 +35,7 @@ object BoatHtml {
 class BoatHtml(jsFile: String) extends Tags(scalatags.Text) {
   val defer = attr("defer").empty
   val reverse = routes.BoatController
+  val mapboxVersion = "0.49.0"
 
   implicit def wrapFrag[T <: Wrapped](w: T): StringFrag = stringFrag(w.value)
 
@@ -88,9 +89,9 @@ class BoatHtml(jsFile: String) extends Tags(scalatags.Text) {
         about,
       ),
       bodyClasses = Seq(MapClass),
-      cssLink("https://api.tiles.mapbox.com/mapbox-gl-js/v0.44.2/mapbox-gl.css"),
+      cssLink(s"https://api.tiles.mapbox.com/mapbox-gl-js/v$mapboxVersion/mapbox-gl.css"),
       modifier(
-        jsScript("https://api.tiles.mapbox.com/mapbox-gl-js/v0.44.2/mapbox-gl.js"),
+        jsScript(s"https://api.tiles.mapbox.com/mapbox-gl-js/v$mapboxVersion/mapbox-gl.js"),
         jsScript("https://npmcdn.com/@turf/turf/turf.min.js")
       )
     )

@@ -1,9 +1,11 @@
 package com.malliina.boat
 
+import org.scalajs.dom.html.Table
+import scalatags.JsDom.TypedTag
 import scalatags.JsDom.all._
 
 object BoatHtml {
-  def popup(c: TimedCoord, from: TrackRef) = {
+  def popup(c: TimedCoord, from: TrackRef): TypedTag[Table] = {
     val kn = "%.2f".format(c.speed.toKnots)
     table(`class` := "boat-popup")(
       tbody(
