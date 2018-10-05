@@ -16,6 +16,7 @@ import play.api.routing.Router
 import play.api.{BuiltInComponentsFromContext, Configuration, Mode}
 import play.filters.HttpFiltersComponents
 import play.filters.csrf.CSRFConfig
+import play.filters.gzip.GzipFilter
 import play.filters.headers.SecurityHeadersConfig
 import play.filters.hosts.AllowedHostsConfig
 import router.Routes
@@ -51,7 +52,7 @@ class AppComponents(readConf: Configuration => AppConf, context: Context)
     shouldProtect = rh => !rh.headers.get(CsrfHeaderName).contains(CsrfTokenNoCheck)
   )
 
-  override def httpFilters: Seq[EssentialFilter] = Seq(csrfFilter, securityHeadersFilter)
+  override def httpFilters: Seq[EssentialFilter] = Seq(new GzipFilter(), csrfFilter, securityHeadersFilter)
 
   val csps = Seq(
     "default-src 'self' 'unsafe-inline' *.mapbox.com",

@@ -134,6 +134,10 @@ class BoatController(mapboxToken: AccessToken,
     db.track(track, req.email, req.query)
   }
 
+  def full(track: TrackName) = secureJson(TrackQuery.apply) { req =>
+    db.full(track, req.email, req.query)
+  }
+
   private def secureJson[T, W: Writes](parse: RequestHeader => Either[SingleError, T])(run: BoatEmailRequest[T] => Future[W]) =
     secureAction(parse)(req => run(req).map { w => Ok(Json.toJson(w)) })
 

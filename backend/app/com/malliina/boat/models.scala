@@ -194,10 +194,33 @@ case class CombinedCoord(id: TrackPointId,
                          boatTime: Instant,
                          date: LocalDate,
                          track: TrackId,
-                         added: Instant)
+                         added: Instant) {
+  def toFull(sentences: Seq[SentenceRow]): CombinedFullCoord = CombinedFullCoord(
+    id, lon, lat, coord, boatSpeed, waterTemp, depth,
+    depthOffset, boatTime, date, track, added, sentences
+  )
+}
 
 object CombinedCoord {
   implicit val json = Json.format[CombinedCoord]
+}
+
+case class CombinedFullCoord(id: TrackPointId,
+                             lon: Double,
+                             lat: Double,
+                             coord: Coord,
+                             boatSpeed: Speed,
+                             waterTemp: Temperature,
+                             depth: Distance,
+                             depthOffset: Distance,
+                             boatTime: Instant,
+                             date: LocalDate,
+                             track: TrackId,
+                             added: Instant,
+                             sentences: Seq[SentenceRow])
+
+object CombinedFullCoord {
+  implicit val json = Json.format[CombinedFullCoord]
 }
 
 case class TrackPointRow(id: TrackPointId,

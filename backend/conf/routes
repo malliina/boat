@@ -7,6 +7,7 @@ PATCH        /boats/:boat                     controllers.BoatController.renameB
 GET          /tracks                          controllers.BoatController.tracks
 GET          /tracks/:track                   controllers.BoatController.summary(track: com.malliina.boat.TrackName)
 GET          /tracks/:track/trail             controllers.BoatController.track(track: com.malliina.boat.TrackName)
+GET          /tracks/:track/full              controllers.BoatController.full(track: com.malliina.boat.TrackName)
 GET          /ws/updates                      controllers.BoatController.updates
 GET          /ws/boats                        controllers.BoatController.boats
 GET          /distances                       controllers.BoatController.distances

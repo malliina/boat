@@ -132,9 +132,30 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext)
   override def track(track: TrackName, email: Email, query: TrackQuery): Future[Seq[CombinedCoord]] = action {
     // intentionally does not filter on email for now
     pointsTable.map(_.combined).join(tracksTable.filter(t => t.name === track)).on(_.track === _.id).map(_._1)
-      .sortBy(_.boatTime.asc)
+      .sortBy(p => p.boatTime.asc)
       .result
   }
+
+  override def full(track: TrackName, email: Email, query: TrackQuery): Future[Seq[CombinedFullCoord]] = action {
+    sentencesTable
+      .join(sentencePointsTable).on(_.id === _.sentence)
+      .join(pointsTable.map(_.combined).join(tracksTable.filter(t => t.name === track)).on(_.track === _.id).map(_._1)).on(_._2.point === _.id)
+      .map { case ((s, _), p) => (s, p) }
+      .sortBy { case (s, p) => (p.boatTime.asc, p.id.asc, s.added.asc) }
+      .result
+      .map(collect)
+  }
+
+  private def collect(rows: Seq[(SentenceRow, CombinedCoord)]): Seq[CombinedFullCoord] =
+    rows.foldLeft(Vector.empty[CombinedFullCoord]) { case (acc, (s, c)) =>
+      val idx = acc.indexWhere(_.id == c.id)
+      if (idx >= 0) {
+        val old = acc(idx)
+        acc.updated(idx, old.copy(sentences = old.sentences :+ s))
+      } else {
+        acc :+ c.toFull(Seq(s))
+      }
+    }
 
   override def history(user: Username, limits: BoatQuery): Future[Seq[CoordsEvent]] = action {
     val newestTrack = usersTable.filter(_.user === user)
