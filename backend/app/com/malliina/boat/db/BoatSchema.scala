@@ -74,6 +74,10 @@ class BoatSchema(ds: DataSource, conf: ProfileConf)
     case H2Profile => "ST_MaxDistance"
     case _ => "ST_Distance_Sphere"
   }
+  val dateFuncName = impl match {
+    case H2Profile => "truncate"
+    case _ => "date"
+  }
   val distanceCoords = SimpleFunction.binary[Coord, Coord, Distance](distanceFunc)
   val topSpeeds = trackAggregate(_.map(_.boatSpeed).max)
   val topPoints = pointsTable.join(pointsTable.join(topSpeeds).on((p, t) => p.track === t._1 && p.boatSpeed === t._2).groupBy(_._1.track).map { case (t, q) => (t, q.map(_._1.id).min) }).on(_.id === _._2)
@@ -110,7 +114,7 @@ class BoatSchema(ds: DataSource, conf: ProfileConf)
     pointsTable.groupBy(_.track).map { case (t, q) => (t, agg(q)) }
 
   def dateFunc: Rep[Instant] => Rep[LocalDate] =
-    SimpleFunction.unary[Instant, LocalDate]("date")
+    SimpleFunction.unary[Instant, LocalDate](dateFuncName)
 
   case class LiftedJoinedBoat(boat: Rep[BoatId], boatName: Rep[BoatName], token: Rep[BoatToken],
                               user: Rep[UserId], username: Rep[Username], email: Rep[Option[Email]])
