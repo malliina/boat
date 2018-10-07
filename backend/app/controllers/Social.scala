@@ -1,7 +1,7 @@
 package controllers
 
 import com.malliina.http.OkClient
-import com.malliina.play.auth.{AuthConf, BasicAuthHandler, CodeValidationConf, GoogleCodeValidator}
+import com.malliina.play.auth.{AuthConf, BasicAuthHandler, GoogleCodeValidator, OAuthConf}
 import controllers.Social.{EmailKey, GoogleCookie, ProviderCookieName}
 import play.api.mvc.{AbstractController, ControllerComponents, Cookie, DiscardingCookie}
 
@@ -21,14 +21,8 @@ class Social(googleConf: AuthConf, comps: ControllerComponents, http: OkClient)(
 
   val lastIdKey = "last_id"
   val handler = new BasicAuthHandler(routes.BoatController.index(), lastIdKey, sessionKey = EmailKey)
-
-  val googleValidator = GoogleCodeValidator(
-    CodeValidationConf.google(
-      routes.Social.googleCallback(),
-      handler,
-      googleConf,
-      http)
-  )
+  val oauthConf = OAuthConf(routes.Social.googleCallback(), handler, googleConf, http)
+  val googleValidator = GoogleCodeValidator(oauthConf)
 
   def google = Action.async { req => googleValidator.start(req) }
 

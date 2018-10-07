@@ -129,11 +129,13 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext)
     TrackSummary(track.strip, TrackStats(track.points, timeFormatter.format(firstUtc), firstMillis, timeFormatter.format(lastUtc), lastMillis, duration))
   }
 
-  override def track(track: TrackName, email: Email, query: TrackQuery): Future[Seq[CombinedCoord]] = action {
+  override def track(track: TrackName, email: Email, query: TrackQuery): Future[TrackInfo] = action {
     // intentionally does not filter on email for now
-    pointsTable.map(_.combined).join(tracksTable.filter(t => t.name === track)).on(_.track === _.id).map(_._1)
-      .sortBy(p => p.boatTime.asc)
-      .result
+    val points = pointsTable.map(_.combined).join(tracksTable.filter(t => t.name === track)).on(_.track === _.id).map(_._1)
+    for {
+      coords <- points.sortBy(p => p.boatTime.asc).result
+      top <- points.sortBy(_.boatSpeed.desc).take(1).result.headOption
+    } yield TrackInfo(coords, top)
   }
 
   override def full(track: TrackName, email: Email, query: TrackQuery): Future[Seq[CombinedFullCoord]] = action {

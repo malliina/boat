@@ -155,7 +155,7 @@ case class TrackRef(track: TrackId, trackName: TrackName, boat: BoatId,
                     end: String, endMillis: Long, startEndRange: String,
                     duration: Duration, distance: Distance,
                     topSpeed: Option[Speed], avgSpeed: Option[Speed],
-                    avgWaterTemp: Option[Temperature]) extends TrackLike
+                    avgWaterTemp: Option[Temperature], topPoint: TimedCoord) extends TrackLike
 
 object TrackRef {
   implicit val durationFormat = PrimitiveFormats.durationFormat

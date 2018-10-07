@@ -7,7 +7,7 @@ import sbtrelease.ReleasePlugin.autoImport.{ReleaseStep, releaseProcess}
 import sbtrelease.ReleaseStateTransformations._
 import sbtcrossproject.CrossPlugin.autoImport.{crossProject => portableProject, CrossType => PortableType}
 
-val utilPlayVersion = "4.14.0"
+val utilPlayVersion = "4.15.0"
 val utilPlayDep = "com.malliina" %% "util-play" % utilPlayVersion
 val primitiveVersion = "1.6.0"
 val akkaStreamsVersion = "2.5.17"

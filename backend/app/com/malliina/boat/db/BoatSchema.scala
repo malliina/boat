@@ -76,6 +76,7 @@ class BoatSchema(ds: DataSource, conf: ProfileConf)
   }
   val distanceCoords = SimpleFunction.binary[Coord, Coord, Distance](distanceFunc)
   val topSpeeds = trackAggregate(_.map(_.boatSpeed).max)
+  val topPoints = pointsTable.join(pointsTable.join(topSpeeds).on((p, t) => p.track === t._1 && p.boatSpeed === t._2).groupBy(_._1.track).map { case (t, q) => (t, q.map(_._1.id).min) }).on(_.id === _._2)
   val minTimes = trackAggregate(_.map(_.boatTime).min)
   val maxTimes = trackAggregate(_.map(_.boatTime).max)
   val boatsView: Query[LiftedJoinedBoat, JoinedBoat, Seq] = boatsTable.join(usersTable).on(_.owner === _.id)
@@ -86,12 +87,13 @@ class BoatSchema(ds: DataSource, conf: ProfileConf)
       .join(topSpeeds).on(_._2.id === _._1)
       .join(minTimes).on(_._1._2.id === _._1)
       .join(maxTimes).on(_._1._1._2.id === _._1)
-      .map { case ((((boat, track), (_, top)), (_, start)), (_, end)) =>
+      .join(topPoints).on(_._1._1._1._2.id === _._1.track)
+      .map { case (((((boat, track), (_, top)), (_, start)), (_, end)), (point, _)) =>
         LiftedJoinedTrack(
           track.id, track.name, track.added, boat.boat, boat.boatName,
           boat.token, boat.user, boat.username, boat.email, track.points,
           start, end, top, track.avgSpeed, track.avgWaterTemp,
-          track.distance
+          track.distance, point.combined
         )
       }
   val trackMetas: Query[LiftedTrackMeta, TrackMeta, Seq] =
@@ -100,6 +102,8 @@ class BoatSchema(ds: DataSource, conf: ProfileConf)
     }
 
   override val tableQueries = Seq(sentencePointsTable, pointsTable, sentencesTable, tracksTable, boatsTable, usersTable)
+
+  def topSpeedPoint(track: TrackId) = pointsTable.filter(_.track === track).sortBy(_.boatSpeed.desc).take(1)
 
   def trackAggregate[N: JdbcType](agg: Query[TrackPointsTable, TrackPointRow, Seq] => Rep[Option[N]]):
   Query[(Rep[TrackId], Rep[Option[N]]), (TrackId, Option[N]), Seq] =
@@ -119,12 +123,19 @@ class BoatSchema(ds: DataSource, conf: ProfileConf)
 
   implicit object LiftedTrackMetaShape extends CaseClassShape(LiftedTrackMeta.tupled, (TrackMeta.apply _).tupled)
 
+  case class LiftedCoord(id: Rep[TrackPointId], lon: Rep[Double], lat: Rep[Double], coord: Rep[Coord],
+                         boatSpeed: Rep[Speed], waterTemp: Rep[Temperature], depth: Rep[Distance],
+                         depthOffset: Rep[Distance], boatTime: Rep[Instant], date: Rep[LocalDate],
+                         track: Rep[TrackId], added: Rep[Instant])
+
+  implicit object Coordshape extends CaseClassShape(LiftedCoord.tupled, (CombinedCoord.apply _).tupled)
+
   case class LiftedJoinedTrack(track: Rep[TrackId], trackName: Rep[TrackName], trackAdded: Rep[Instant],
                                boat: Rep[BoatId], boatName: Rep[BoatName], boatToken: Rep[BoatToken],
                                user: Rep[UserId], username: Rep[Username], email: Rep[Option[Email]],
                                points: Rep[Int], start: Rep[Option[Instant]], end: Rep[Option[Instant]],
                                topSpeed: Rep[Option[Speed]], avgSpeed: Rep[Option[Speed]],
-                               avgWaterTemp: Rep[Option[Temperature]], length: Rep[Distance])
+                               avgWaterTemp: Rep[Option[Temperature]], length: Rep[Distance], topPoint: LiftedCoord)
 
   implicit object TrackShape extends CaseClassShape(LiftedJoinedTrack.tupled, (JoinedTrack.apply _).tupled)
 
@@ -132,13 +143,6 @@ class BoatSchema(ds: DataSource, conf: ProfileConf)
                               end: Rep[Option[Instant]], topSpeed: Rep[Option[Speed]])
 
   implicit object TrackStatsShape extends CaseClassShape(LiftedTrackStats.tupled, (TrackNumbers.apply _).tupled)
-
-  case class LiftedCoord(id: Rep[TrackPointId], lon: Rep[Double], lat: Rep[Double], coord: Rep[Coord],
-                         boatSpeed: Rep[Speed], waterTemp: Rep[Temperature], depth: Rep[Distance],
-                         depthOffset: Rep[Distance], boatTime: Rep[Instant], date: Rep[LocalDate],
-                         track: Rep[TrackId], added: Rep[Instant])
-
-  implicit object Coordshape extends CaseClassShape(LiftedCoord.tupled, (CombinedCoord.apply _).tupled)
 
   def initBoat()(implicit ec: ExecutionContext) = {
     if (conf.profile == H2Profile) {
