@@ -17,12 +17,13 @@ class MapSocket(map: MapboxMap, queryString: String, mode: MapMode)
 
   val boatIconId = "boat-icon"
   val emptyTrack = lineFor(Nil)
+  val trackPopup = new MapboxPopup(PopupOptions(None, None, closeButton = false))
+  val boatPopup = new MapboxPopup(PopupOptions(Option("popup-boat"), None, closeButton = false))
 
   private var mapMode: MapMode = mode
   private var boats = Map.empty[String, FeatureCollection]
   private var trails = Map.empty[TrackId, Seq[TimedCoord]]
-  val trackPopup = new MapboxPopup(PopupOptions(None, None, closeButton = false))
-  val boatPopup = new MapboxPopup(PopupOptions(Option("popup-boat"), None, closeButton = false))
+  private var topSpeedMarkers = Map.empty[TrackId, ActiveMarker]
 
   initImage()
 
@@ -136,6 +137,17 @@ class MapSocket(map: MapboxMap, queryString: String, mode: MapMode)
     }
     map.getSource(hoverableTrack).foreach { geoJson =>
       geoJson.setData(toJson(newTrack))
+    }
+    val topPoint = from.topPoint
+    val isSameTopSpeed = topSpeedMarkers.get(trackId).exists(m => m.at.id == from.topPoint.id)
+    if (!isSameTopSpeed) {
+      topSpeedMarkers.get(trackId).foreach(_.marker.remove())
+      // https://www.mapbox.com/mapbox-gl-js/example/set-popup/
+      val markerPopup = new MapboxPopup(PopupOptions(None, offset = Option(6), closeButton = false))
+        .setHTML(BoatHtml.popup(topPoint, from).render.outerHTML)
+      val marker = MapboxMarker(BoatHtml.marker(topPoint.speed), topPoint.coord, markerPopup, map)
+      val newTopSpeed = ActiveMarker(marker, topPoint)
+      topSpeedMarkers = topSpeedMarkers.updated(trackId, newTopSpeed)
     }
     val trail: Seq[Coord] = newTrack.features.flatMap(_.geometry.coords)
     elem(DistanceId).foreach { e =>

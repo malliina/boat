@@ -2,6 +2,7 @@ package com.malliina.mapbox
 
 import com.malliina.boat.Coord
 import org.scalajs.dom
+import org.scalajs.dom.html
 import org.scalajs.dom.raw.HTMLCanvasElement
 import play.api.libs.json.{Json, Writes}
 import scalatags.JsDom.TypedTag
@@ -19,6 +20,54 @@ object mapboxGl extends js.Object {
 }
 
 @js.native
+trait MarkerOptions extends js.Object {
+  def element: html.Element
+}
+
+object MarkerOptions {
+  def apply[T <: dom.Element](html: TypedTag[T]): MarkerOptions =
+    literal(element = html.render).asInstanceOf[MarkerOptions]
+}
+
+@js.native
+@JSGlobal("mapboxgl.Marker")
+class MapboxMarker(options: MarkerOptions) extends js.Object {
+  def setLngLat(coord: LngLat): MapboxMarker = js.native
+
+  def setPopup(popup: MapboxPopup): MapboxMarker = js.native
+
+  def addTo(map: MapboxMap): MapboxMarker = js.native
+
+  def remove(): Unit = js.native
+}
+
+object MapboxMarker {
+
+  def apply[T <: dom.Element](html: TypedTag[T], coord: Coord, popup: MapboxPopup, on: MapboxMap) =
+    new MapboxMarker(MarkerOptions(html)).coord(coord).setPopup(popup).addTo(on)
+
+  implicit class MarkerExt(val self: MapboxMarker) extends AnyVal {
+    def coord(coord: Coord): MapboxMarker = self.setLngLat(LngLat(coord.lng, coord.lat))
+  }
+
+}
+
+@js.native
+trait PopupOptions extends js.Object {
+  def className: js.UndefOr[String] = js.native
+
+  def offset: js.UndefOr[Double] = js.native
+
+  def closeButton: Boolean = js.native
+}
+
+object PopupOptions {
+  def apply(className: Option[String], offset: Option[Double], closeButton: Boolean): PopupOptions =
+    literal(className = className.orUndefined, offset = offset.orUndefined, closeButton = closeButton)
+      .asInstanceOf[PopupOptions]
+}
+
+@js.native
 @JSGlobal("mapboxgl.Popup")
 class MapboxPopup(options: PopupOptions) extends js.Object {
   def setLngLat(coord: LngLat): MapboxPopup = js.native
@@ -27,7 +76,7 @@ class MapboxPopup(options: PopupOptions) extends js.Object {
 
   def setText(text: String): MapboxPopup = js.native
 
-  def addTo(map: MapboxMap): Unit = js.native
+  def addTo(map: MapboxMap): MapboxPopup = js.native
 
   def remove(): Unit = js.native
 }
@@ -35,8 +84,11 @@ class MapboxPopup(options: PopupOptions) extends js.Object {
 object MapboxPopup {
 
   implicit class PopupExt(val self: MapboxPopup) extends AnyVal {
-    def show[T <: dom.Element](html: TypedTag[T], coord: LngLat, on: MapboxMap): Unit =
-      self.setHTML(html.render.outerHTML).setLngLat(coord).addTo(on)
+    def show[T <: dom.Element](htmlPayload: TypedTag[T], coord: LngLat, on: MapboxMap): Unit =
+      html(htmlPayload).setLngLat(coord).addTo(on)
+
+    def html[T <: dom.Element](html: TypedTag[T]): MapboxPopup =
+      self.setHTML(html.render.outerHTML)
 
     def showText(text: String, coord: LngLat, on: MapboxMap): Unit =
       self.setText(text).setLngLat(coord).addTo(on)
@@ -187,19 +239,4 @@ object MapOptions {
       zoom = zoom,
       hash = hash
     ).asInstanceOf[MapOptions]
-}
-
-@js.native
-trait PopupOptions extends js.Object {
-  def className: js.UndefOr[String] = js.native
-
-  def offset: js.UndefOr[Double] = js.native
-
-  def closeButton: Boolean = js.native
-}
-
-object PopupOptions {
-  def apply(className: Option[String], offset: Option[Double], closeButton: Boolean): PopupOptions =
-    literal(className = className.orUndefined, offset = offset.orUndefined, closeButton = closeButton)
-      .asInstanceOf[PopupOptions]
 }

@@ -56,8 +56,8 @@ class AppComponents(readConf: Configuration => AppConf, context: Context)
 
   val csps = Seq(
     "default-src 'self' 'unsafe-inline' *.mapbox.com",
-    "font-src 'self' data: https://fonts.gstatic.com",
-    "style-src 'self' https://maxcdn.bootstrapcdn.com https://fonts.googleapis.com *.mapbox.com",
+    "font-src 'self' data: https://fonts.gstatic.com https://use.fontawesome.com",
+    "style-src 'self' https://maxcdn.bootstrapcdn.com https://fonts.googleapis.com *.mapbox.com https://use.fontawesome.com",
     "connect-src * https://*.tiles.mapbox.com https://api.mapbox.com",
     "img-src 'self' data: blob:",
     "child-src blob:",

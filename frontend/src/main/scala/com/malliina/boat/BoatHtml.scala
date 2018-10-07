@@ -1,5 +1,6 @@
 package com.malliina.boat
 
+import com.malliina.measure.Speed
 import org.scalajs.dom.html.Table
 import scalatags.JsDom.TypedTag
 import scalatags.JsDom.all._
@@ -16,5 +17,10 @@ object BoatHtml {
         tr(td(colspan := 2)(c.boatTime))
       )
     )
+  }
+
+  def marker(speed: Speed) = {
+    val kn = "%.0f".format(speed.toKnots)
+    i(`class` := "fas fa-trophy marker-top-speed")
   }
 }
