@@ -8,5 +8,5 @@ import scala.concurrent.{Await, Future}
 abstract class BaseSuite extends FunSuite {
   val reverse = controllers.routes.BoatController
 
-  def await[T](f: Future[T], duration: Duration = 3.seconds): T = Await.result(f, duration)
+  def await[T](f: Future[T], duration: Duration = 10.seconds): T = Await.result(f, duration)
 }

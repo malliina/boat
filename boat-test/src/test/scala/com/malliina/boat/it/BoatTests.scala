@@ -6,7 +6,9 @@ import akka.stream.scaladsl.{Sink, Source, SourceQueue}
 import akka.{Done, NotUsed}
 import com.malliina.boat._
 import com.malliina.boat.client.{HttpUtil, KeyValue, WebSocketClient}
+import com.malliina.boat.push.{APNSHttpResult, BoatNotification, PushSystem}
 import com.malliina.http.FullUrl
+import com.malliina.push.apns.APNSToken
 import com.malliina.values.{Password, Username}
 import play.api.ApplicationLoader.Context
 import play.api.BuiltInComponents
@@ -16,7 +18,16 @@ import tests.{BaseSuite, OneServerPerSuite2}
 
 import scala.concurrent.Future
 
-abstract class TestAppSuite extends ServerSuite(new AppComponents(_ => AppConf("", "", "", ""), _))
+abstract class TestAppSuite extends ServerSuite(new TestAppComponents(_))
+
+class TestAppComponents(ctx: Context) extends AppComponents(_ => AppConf("", "", "", ""), ctx) {
+  override lazy val pushService: PushSystem = NoopPushSystem
+}
+
+object NoopPushSystem extends PushSystem {
+  override def push(notification: BoatNotification, to: APNSToken): Future[Seq[APNSHttpResult]] =
+    Future.successful(Nil)
+}
 
 abstract class ServerSuite[T <: BuiltInComponents](build: Context => T)
   extends BaseSuite
@@ -84,6 +95,7 @@ trait BoatSockets {
 
     def close(): Unit = queue.offer(None)
   }
+
 }
 
 case class Creds(user: Username, pass: Password)

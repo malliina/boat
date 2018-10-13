@@ -6,6 +6,7 @@ import com.malliina.boat.auth.GoogleTokenAuth
 import com.malliina.boat.db._
 import com.malliina.boat.html.BoatHtml
 import com.malliina.boat.http.CSRFConf._
+import com.malliina.boat.push.{PushService, PushSystem}
 import com.malliina.http.OkClient
 import com.malliina.play.app.DefaultApp
 import com.typesafe.config.ConfigFactory
@@ -77,6 +78,8 @@ class AppComponents(readConf: Configuration => AppConf, context: Context)
   val tracks: TracksSource = TracksDatabase(schema, executionContext)
   val mapboxToken = AccessToken(configuration.get[String]("boat.mapbox.token"))
   val http = OkClient.default
+  lazy val pushService: PushSystem = PushService(configuration)
+  lazy val push = PushDatabase(schema, pushService, executionContext)
 
   val googleAuth = GoogleTokenAuth(appConf.iosClientId, http, executionContext)
   val signIn = Social(appConf.web, http, controllerComponents, executionContext)
@@ -85,11 +88,11 @@ class AppComponents(readConf: Configuration => AppConf, context: Context)
     new FileController.BlockingActions(actorSystem, controllerComponents.parsers.default),
     controllerComponents
   )
-  val home = new BoatController(
-    mapboxToken, html, users, googleAuth, tracks,
+  lazy val home = new BoatController(
+    mapboxToken, html, users, googleAuth, tracks, push,
     controllerComponents, assets)(actorSystem, materializer)
   val docs = new DocsController(html, controllerComponents)
-  override val router: Router = new Routes(httpErrorHandler, home, signIn, docs, files)
+  override lazy val router: Router = new Routes(httpErrorHandler, home, signIn, docs, files)
 
   applicationLifecycle.addStopHook(() => Future.successful {
     schema.close()

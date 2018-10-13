@@ -5,7 +5,7 @@ import java.time.{Instant, LocalDate, LocalTime, ZoneOffset}
 import com.malliina.boat.parsing.FullCoord
 import com.malliina.measure.{Distance, Speed, Temperature}
 import com.malliina.values._
-import play.api.data.Mapping
+import play.api.data.{Forms, Mapping}
 import play.api.http.Writeable
 import play.api.libs.json._
 import play.api.mvc.PathBindable
@@ -90,12 +90,32 @@ object Errors {
   implicit val html: Writeable[Errors] = Writeable.writeableOf_JsValue.map[Errors](e => Json.toJson(e))
 
   def apply(error: SingleError): Errors = Errors(Seq(error))
+
+  def apply(message: String): Errors = apply(SingleError(message))
 }
 
 object BoatNames {
-  val mapping: Mapping[BoatName] = play.api.data.Forms.nonEmptyText.transform(s => BoatName(s), b => b.name)
+  val mapping: Mapping[BoatName] = Forms.nonEmptyText.transform(s => BoatName(s), b => b.name)
 
   def random() = BoatName(Utils.randomString(6))
+}
+
+case class SingleToken(token: PushToken)
+
+object SingleToken {
+  implicit val json = Json.format[SingleToken]
+}
+
+case class SimpleMessage(message: String)
+
+object SimpleMessage {
+  implicit val json = Json.format[SimpleMessage]
+}
+
+case class PushPayload(token: PushToken, device: MobileDevice)
+
+object PushPayload {
+  implicit val json = Json.format[PushPayload]
 }
 
 object TrackNames {

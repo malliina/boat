@@ -111,13 +111,48 @@ case class TrackId(id: Long) extends WrappedId
 
 object TrackId extends IdCompanion[TrackId]
 
+case class PushId(id: Long) extends WrappedId
+
+object PushId extends IdCompanion[PushId]
+
+case class PushToken(token: String) extends Wrapped(token)
+
+object PushToken extends StringCompanion[PushToken]
+
+sealed abstract class MobileDevice(val name: String) {
+  override def toString: String = name
+}
+
+object MobileDevice extends ValidatingCompanion[String, MobileDevice] {
+  val Key = "device"
+  val ios: MobileDevice = IOS
+  val all: Seq[MobileDevice] = Seq(IOS)
+
+  def apply(s: String): MobileDevice = build(s).getOrElse(Unknown(s))
+
+  override def build(input: String): Either[ErrorMessage, MobileDevice] =
+    all.find(_.name.toLowerCase == input.toLowerCase).toRight(ErrorMessage(s"Unknown device type: '$input'."))
+
+  override def write(t: MobileDevice): String = t.name
+
+  case object IOS extends MobileDevice("iOS")
+
+  case class Unknown(s: String) extends MobileDevice(s)
+
+}
+
 case class Boat(id: BoatId, name: BoatName, token: BoatToken, addedMillis: Long)
 
 object Boat {
   implicit val json = Json.format[Boat]
 }
 
-case class UserInfo(id: UserId, username: Username, email: Option[Email], boats: Seq[Boat], enabled: Boolean, addedMillis: Long)
+case class UserInfo(id: UserId,
+                    username: Username,
+                    email: Option[Email],
+                    boats: Seq[Boat],
+                    enabled: Boolean,
+                    addedMillis: Long)
 
 object UserInfo {
   implicit val json = Json.format[UserInfo]

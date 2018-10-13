@@ -4,7 +4,7 @@ import java.sql.{PreparedStatement, ResultSet}
 import java.time.{Instant, LocalDate, LocalTime}
 
 import com.malliina.boat.db.SpatialUtils.{coordToBytes, fromBytes}
-import com.malliina.boat.{BoatId, BoatName, BoatToken, Coord, RawSentence, SentenceKey, TrackId, TrackName, TrackPointId, UserToken}
+import com.malliina.boat._
 import com.malliina.measure.{Distance, DistanceDouble, Speed, SpeedDouble, Temperature, TemperatureDouble}
 import com.malliina.values._
 import com.vividsolutions.jts.geom.Point
@@ -36,6 +36,9 @@ class Mappings(val impl: JdbcProfile) {
   implicit val instantMapping = MappedColumnType.base[Instant, java.sql.Timestamp](java.sql.Timestamp.from, _.toInstant)
   implicit val timeMapping = MappedColumnType.base[LocalTime, java.sql.Time](java.sql.Time.valueOf, _.toLocalTime)
   implicit val dateMapping = MappedColumnType.base[LocalDate, java.sql.Date](java.sql.Date.valueOf, _.toLocalDate)
+  implicit val deviceMapping = MappedColumnType.base[MobileDevice, String](_.name, MobileDevice.apply)
+  implicit val pushMapping = stringMapping(PushToken.apply)
+  implicit val pushIdMapping = longMapping(PushId.apply)
 
   class CoordJdbcType(implicit override val classTag: ClassTag[Coord])
     extends impl.DriverJdbcType[Coord] {

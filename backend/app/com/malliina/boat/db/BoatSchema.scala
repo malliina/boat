@@ -63,6 +63,8 @@ class BoatSchema(ds: DataSource, conf: ProfileConf)
   val sentencesTable = TableQuery[SentencesTable]
   val pointsTable = TableQuery[TrackPointsTable]
   val sentencePointsTable = TableQuery[SentencesPointsLink]
+  val pushTable = TableQuery[PushClientsTable]
+  val pushInserts = pushTable.map(_.forInserts).returning(pushTable.map(_.id))
   val sentenceInserts = sentencesTable.map(_.forInserts).returning(sentencesTable.map(_.id))
   val boatInserts = boatsTable.map(_.forInserts).returning(boatsTable.map(_.id))
   val userInserts = usersTable.map(_.forInserts).returning(usersTable.map(_.id))
@@ -105,7 +107,7 @@ class BoatSchema(ds: DataSource, conf: ProfileConf)
       LiftedTrackMeta(t.id, t.name, t.added, b.boat, b.boatName, b.token, b.user, b.username, b.email)
     }
 
-  override val tableQueries = Seq(sentencePointsTable, pointsTable, sentencesTable, tracksTable, boatsTable, usersTable)
+  override val tableQueries = Seq(pushTable, sentencePointsTable, pointsTable, sentencesTable, tracksTable, boatsTable, usersTable)
 
   def topSpeedPoint(track: TrackId) = pointsTable.filter(_.track === track).sortBy(_.boatSpeed.desc).take(1)
 
@@ -337,6 +339,22 @@ class BoatSchema(ds: DataSource, conf: ProfileConf)
     def forInserts = (user, email, token, enabled) <> ((NewUser.apply _).tupled, NewUser.unapply)
 
     def * = (id, user, email, token, enabled, added) <> ((DataUser.apply _).tupled, DataUser.unapply)
+  }
+
+  class PushClientsTable(tag: Tag) extends Table[PushClient](tag, "push_clients") {
+    def id = column[PushId]("id", O.PrimaryKey, O.AutoInc)
+
+    def token = column[PushToken]("token", O.Unique, O.Length(1024))
+
+    def device = column[MobileDevice]("device", O.Length(128))
+
+    def user = column[UserId]("user", O.Length(128))
+
+    def added = column[Instant]("added", O.SqlType(CreatedTimestampType))
+
+    def forInserts = (token, device, user).mapTo[PushInput]
+
+    def * = (id, token, device, user, added) <> ((PushClient.apply _).tupled, PushClient.unapply)
   }
 
   def first[T, R](q: Query[T, R, Seq], onNotFound: => String)(implicit ec: ExecutionContext) =

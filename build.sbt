@@ -13,6 +13,7 @@ val primitiveVersion = "1.6.0"
 val akkaStreamsVersion = "2.5.17"
 val buildAndUpload = taskKey[FullUrl]("Uploads to S3")
 val upFiles = taskKey[Seq[String]]("lists")
+val bootClasspath = taskKey[String]("bootClasspath")
 
 parallelExecution in ThisBuild := false
 
@@ -62,6 +63,7 @@ lazy val backendSettings = playSettings ++ Seq(
     "com.amazonaws" % "aws-java-sdk-s3" % "1.11.421",
     "com.vladsch.flexmark" % "flexmark-html-parser" % "0.34.44",
     "com.malliina" %% "play-social" % utilPlayVersion,
+    "com.malliina" %% "mobile-push" % "1.13.0",
     utilPlayDep,
     utilPlayDep % Test classifier "tests"
   ),
@@ -85,8 +87,28 @@ lazy val backendSettings = playSettings ++ Seq(
     val linuxName = (name in Linux).value
     Seq(
       s"-Dconfig.file=/etc/$linuxName/production.conf",
-      s"-Dlogger.file=/etc/$linuxName/logback-prod.xml"
+      s"-Dlogger.file=/etc/$linuxName/logback-prod.xml",
+      s"-J-Xbootclasspath/p:${bootClasspath.value}"
     )
+  },
+  bootClasspath := {
+    val alpnFile = scriptClasspathOrdering.value
+      .map { case (_, dest) => dest }
+      .find(_.contains("alpn-boot"))
+      .getOrElse(sys.error("Unable to find alpn-boot"))
+    val name = (packageName in Debian).value
+    val installLocation = defaultLinuxInstallLocation.value
+    s"$installLocation/$name/$alpnFile"
+  },
+  javaOptions in Test ++= {
+    val attList = (managedClasspath in Runtime).value
+    for {
+      file <- attList.map(_.data)
+      path = file.getAbsolutePath
+      if path.contains("alpn-boot")
+    } yield {
+      "-Xbootclasspath/p:" + path
+    }
   }
 )
 

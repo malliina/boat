@@ -7,19 +7,21 @@ import akka.stream.Materializer
 import akka.stream.scaladsl.{BroadcastHub, Flow, Keep, MergeHub, Sink, Source}
 import akka.{Done, NotUsed}
 import com.malliina.boat.Constants._
-import com.malliina.concurrent.Execution.cached
 import com.malliina.boat._
 import com.malliina.boat.auth.GoogleTokenAuth
 import com.malliina.boat.db._
 import com.malliina.boat.html.BoatHtml
 import com.malliina.boat.http.{BoatEmailRequest, BoatQuery, BoatRequest, TrackQuery}
 import com.malliina.boat.parsing.{BoatParser, FullCoord, ParsedSentence}
+import com.malliina.boat.push.BoatState
+import com.malliina.concurrent.Execution.cached
 import com.malliina.values.{Email, Username}
 import controllers.Assets.Asset
 import controllers.BoatController.log
 import controllers.Social.{EmailKey, GoogleCookie, ProviderCookieName}
 import play.api.Logger
 import play.api.data.Form
+import play.api.http.Writeable
 import play.api.libs.json.{JsValue, Json, Writes}
 import play.api.mvc.WebSocket.MessageFlowTransformer.jsonMessageFlowTransformer
 import play.api.mvc._
@@ -37,6 +39,7 @@ class BoatController(mapboxToken: AccessToken,
                      auther: UserManager,
                      googleAuth: GoogleTokenAuth,
                      db: TracksSource,
+                     push: PushDatabase,
                      comps: ControllerComponents,
                      assets: AssetsBuilder)(implicit as: ActorSystem, mat: Materializer)
   extends AbstractController(comps) with Streams {
@@ -46,6 +49,8 @@ class BoatController(mapboxToken: AccessToken,
   val UserSessionKey = "user"
   val anonUser = Usernames.anon
   implicit val updatesTransformer = jsonMessageFlowTransformer[JsValue, FrontEvent]
+
+  implicit def writeable[T: Writes] = Writeable.writeableOf_JsValue.map[T](t => Json.toJson(t))
 
   // Publish-Subscribe Akka Streams
   // https://doc.akka.io/docs/akka/2.5/stream/stream-dynamic.html
@@ -87,7 +92,21 @@ class BoatController(mapboxToken: AccessToken,
   }
 
   def me = authAction(profile) { req =>
-    fut(Ok(Json.toJson(UserContainer(req.user))))
+    fut(Ok(UserContainer(req.user)))
+  }
+
+  def enableNotifications = parsedAuth(parse.json[PushPayload])(profile) { req =>
+    val payload = req.body
+    push.enable(PushInput(payload.token, payload.device, req.user.id)).map { _ =>
+      Ok(SimpleMessage("enabled"))
+    }
+  }
+
+  def disableNotifications = parsedAuth(parse.json[SingleToken])(profile) { req =>
+    push.disable(req.body.token, req.user.id).map { disabled =>
+      val msg = if (disabled) "disabled" else "no change"
+      Ok(SimpleMessage(msg))
+    }
   }
 
   def createBoat = boatAction(req => db.addBoat(req.body, req.user.id))
@@ -102,7 +121,9 @@ class BoatController(mapboxToken: AccessToken,
   def pingAuth = authAction(authAppToken) { _ => Future.successful(Ok(Json.toJson(AppMeta.default))) }
 
   def boats = WebSocket { rh =>
-    authBoat(rh).map { e =>
+    authBoat(rh).flatMapR { meta =>
+      push.push(meta, BoatState.Connected).map(_ => meta)
+    }.map { e =>
       e.map { boat =>
         // adds metadata to messages from boats
         val transformer = jsonMessageFlowTransformer.map[BoatEvent, FrontEvent](
@@ -113,7 +134,10 @@ class BoatController(mapboxToken: AccessToken,
         val flow: Flow[BoatEvent, PingEvent, NotUsed] = Flow.fromSinkAndSource(boatSink, Source.maybe[PingEvent])
           .keepAlive(10.seconds, () => PingEvent(Instant.now.toEpochMilli))
           .backpressureTimeout(3.seconds)
-        logTermination(transformer.transform(flow), _ => s"Boat '${boat.boatName}' left.")
+        terminationWatched(transformer.transform(flow)) { _ =>
+          log.info(s"Boat '${boat.boatName}' left.")
+          push.push(boat, BoatState.Disconnected)
+        }
       }
     }
   }
@@ -181,7 +205,7 @@ class BoatController(mapboxToken: AccessToken,
   }
 
   def logTermination[In, Out, Mat](flow: Flow[In, Out, Mat], message: Try[Done] => String): Flow[In, Out, Future[Done]] =
-    terminationWatched(flow)(t => log.info(message(t)))
+    terminationWatched(flow)(t => fut(log.info(message(t))))
 
   def monitored[In, Mat](src: Source[In, Mat], label: String): Source[In, Future[Done]] =
     src.watchTermination()(Keep.right).mapMaterializedValue { done =>
@@ -194,11 +218,10 @@ class BoatController(mapboxToken: AccessToken,
       }
     }
 
-  def terminationWatched[In, Out, Mat](flow: Flow[In, Out, Mat])(onTermination: Try[Done] => Unit): Flow[In, Out, Future[Done]] =
+  def terminationWatched[In, Out, Mat](flow: Flow[In, Out, Mat])(onTermination: Try[Done] => Future[Unit]): Flow[In, Out, Future[Done]] =
     flow.watchTermination()(Keep.right).mapMaterializedValue { done =>
-      done.transform { t =>
-        onTermination(t)
-        t
+      done.transformWith { t =>
+        onTermination(t).transform { _ => t }
       }
     }
 
@@ -212,7 +235,7 @@ class BoatController(mapboxToken: AccessToken,
     * @param rh request
     * @return
     */
-  def authBoat(rh: RequestHeader): Future[Either[Result, TrackMeta]] =
+  private def authBoat(rh: RequestHeader): Future[Either[Result, TrackMeta]] =
     makeResult(boatAuth(rh), rh).flatMap { e =>
       e.fold(
         err => fut(Left(err)),
@@ -220,7 +243,7 @@ class BoatController(mapboxToken: AccessToken,
       )
     }
 
-  def boatAuth(rh: RequestHeader): Future[Either[IdentityError, BoatTrackMeta]] =
+  private def boatAuth(rh: RequestHeader): Future[Either[IdentityError, BoatTrackMeta]] =
     rh.headers.get(BoatTokenHeader).map(BoatToken.apply).map { token =>
       auther.authBoat(token).map { e =>
         e.map { info =>
@@ -232,12 +255,12 @@ class BoatController(mapboxToken: AccessToken,
       fut(Right(BoatUser(trackOrRandom(rh), boatName, anonUser)))
     }
 
-  def auth(rh: RequestHeader): Future[Either[IdentityError, Username]] =
+  private def auth(rh: RequestHeader): Future[Either[IdentityError, Username]] =
     authApp(rh)
       .orElse(authSessionUser(rh))
       .getOrElse(fut(Right(anonUser)))
 
-  def authSessionUser(rh: RequestHeader) =
+  private def authSessionUser(rh: RequestHeader) =
     rh.session.get(UserSessionKey).filter(_ != Usernames.anon.name).map { user =>
       fut(Right(Username(user)))
     }

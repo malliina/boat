@@ -21,7 +21,7 @@ object TracksDatabase {
 }
 
 class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext)
-  extends TracksSource {
+  extends DatabaseOps(db) with TracksSource {
   val timeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
 
   import db._
@@ -291,6 +291,4 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext)
       log.info(s"Registered boat '$name' with ID '${boat.id}' owned by '$user'.")
       boat
     }
-
-  private def action[R](a: DBIOAction[R, NoStream, Nothing]): Future[R] = db.run(a)
 }
