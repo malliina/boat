@@ -19,8 +19,6 @@ object BoatHtml {
     )
   }
 
-  def marker(speed: Speed) = {
-    val kn = "%.0f".format(speed.toKnots)
+  def marker(speed: Speed) =
     i(`class` := "fas fa-trophy marker-top-speed")
-  }
 }

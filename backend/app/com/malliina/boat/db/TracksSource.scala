@@ -39,7 +39,7 @@ trait TracksSource {
 
   def track(track: TrackName, user: Email, query: TrackQuery): Future[TrackInfo]
 
-  def full(track: TrackName, user: Email, query: TrackQuery): Future[Seq[CombinedFullCoord]]
+  def full(track: TrackName, user: Email, query: TrackQuery): Future[FullTrack]
 
   def history(user: Username, limits: BoatQuery): Future[Seq[CoordsEvent]]
 }

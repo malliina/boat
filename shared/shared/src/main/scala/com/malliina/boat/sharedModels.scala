@@ -9,6 +9,9 @@ import play.api.libs.json._
 import scala.concurrent.duration.Duration
 
 case class Coord(lng: Double, lat: Double) {
+
+  override def toString = s"($lng, $lat)"
+
   def toArray: Array[Double] = Array(lng, lat)
 
   def approx: String = {

@@ -1,12 +1,12 @@
 package com.malliina.boat
 
-import com.malliina.boat.FrontKeys.{DistanceId, DurationId, TopSpeedId, WaterTempId}
+import com.malliina.boat.BoatFormats._
+import com.malliina.boat.FrontKeys._
 import com.malliina.mapbox._
 import com.malliina.turf.turf
 import org.scalajs.dom.document
 import play.api.libs.json._
 
-import scala.concurrent.duration.Duration
 import scala.concurrent.{Future, Promise}
 import scala.scalajs.js
 import scala.scalajs.js.JSConverters.genTravConvertible2JSRichGenTrav
@@ -151,17 +151,21 @@ class MapSocket(map: MapboxMap, queryString: String, mode: MapMode)
     }
     val trail: Seq[Coord] = newTrack.features.flatMap(_.geometry.coords)
     elem(DistanceId).foreach { e =>
-      e.innerHTML = s"${formatDouble(from.distance.toKilometersDouble)} km"
+      e.innerHTML = s"${formatDistance(from.distance)} km"
     }
     elem(TopSpeedId).foreach { e =>
       from.topSpeed.foreach { top =>
-        e.innerHTML = s"Top ${formatDouble(top.toKnotsDouble)} kn"
+        e.innerHTML = s"Top ${formatSpeed(top)} kn"
       }
     }
     elem(WaterTempId).foreach { e =>
       coordsInfo.lastOption.map(_.waterTemp).foreach { temp =>
-        e.innerHTML = s"Water ${formatTemp(temp.toCelsius)} ℃"
+        e.innerHTML = s"Water ${formatTemp(temp)} ℃"
       }
+    }
+    elem(FullLinkId).foreach { e =>
+      e.classList.remove(Hidden)
+      e.setAttribute("href", s"/tracks/${from.trackName}/full")
     }
     if (boats.keySet.size == 1) {
       elem(DurationId).foreach { e =>
@@ -207,19 +211,6 @@ class MapSocket(map: MapboxMap, queryString: String, mode: MapMode)
     } yield nearest
   }
 
-  def formatDuration(d: Duration): String = {
-    val seconds = d.toSeconds
-    val s = seconds % 60
-    val m = (seconds / 60) % 60
-    val h = (seconds / (60 * 60)) % 24
-    if (h > 0) "%d:%02d:%02d".format(h, m, s)
-    else "%02d:%02d".format(m, s)
-  }
-
-  def formatDouble(d: Double) = "%.3f".format(d)
-
-  def formatTemp(d: Double) = "%.1f".format(d)
-
   // https://www.movable-type.co.uk/scripts/latlong.html
   def bearing(from: Coord, to: Coord): Double = {
     val dLon = to.lng - from.lng
@@ -233,12 +224,12 @@ class MapSocket(map: MapboxMap, queryString: String, mode: MapMode)
 
   def toDeg(rad: Double) = rad * 180 / Math.PI
 
-  def lineFor(coords: Seq[Coord]) = collectionFor(LineGeometry("LineString", coords), Map.empty)
+  def lineFor(coords: Seq[Coord]) = collectionFor(LineGeometry(coords), Map.empty)
 
-  def pointFor(coord: Coord) = collectionFor(PointGeometry("Point", coord), Map.empty)
+  def pointFor(coord: Coord) = collectionFor(PointGeometry(coord), Map.empty)
 
   def collectionFor(geo: Geometry, props: Map[String, JsValue]): FeatureCollection =
-    FeatureCollection("FeatureCollection", Seq(Feature("Feature", geo, props, None)))
+    FeatureCollection(Seq(Feature(geo, props)))
 
   def trackName(boat: BoatName) = s"track-$boat"
 

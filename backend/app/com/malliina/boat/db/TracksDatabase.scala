@@ -138,14 +138,22 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext)
     } yield TrackInfo(coords, top)
   }
 
-  override def full(track: TrackName, email: Email, query: TrackQuery): Future[Seq[CombinedFullCoord]] = action {
-    sentencesTable
+  override def full(track: TrackName, email: Email, query: TrackQuery): Future[FullTrack] = action {
+    val limitedPoints = pointsTable.map(_.combined).join(tracksTable.filter(t => t.name === track)).on(_.track === _.id).map(_._1)
+      .sortBy(p => (p.boatTime.asc, p.id.asc, p.added.asc))
+      .drop(query.limits.offset)
+      .take(query.limits.limit)
+    val coordsAction = sentencesTable
       .join(sentencePointsTable).on(_.id === _.sentence)
-      .join(pointsTable.map(_.combined).join(tracksTable.filter(t => t.name === track)).on(_.track === _.id).map(_._1)).on(_._2.point === _.id)
+      .join(limitedPoints).on(_._2.point === _.id)
       .map { case ((s, _), p) => (s, p) }
       .sortBy { case (s, p) => (p.boatTime.asc, p.id.asc, s.added.asc) }
       .result
       .map(collect)
+    for {
+      trackStats <- first(tracksViewNonEmpty.filter(_.trackName === track), s"Track not found: '$track'.")
+      coords <- coordsAction
+    } yield FullTrack(trackStats.strip, coords)
   }
 
   private def collect(rows: Seq[(SentenceRow, CombinedCoord)]): Seq[CombinedFullCoord] =

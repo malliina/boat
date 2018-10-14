@@ -3,7 +3,7 @@ package com.malliina.boat
 import play.api.libs.json._
 
 case class MultiLineGeometry(`type`: String, coordinates: Seq[Seq[Coord]])
-  extends Geometry(MultiLineGeometry.MultiLineString) {
+  extends Geometry(MultiLineGeometry.Key) {
 
   override def updateCoords(coords: Seq[Coord]): MultiLineGeometry =
     copy(coordinates = coordinates :+ coords)
@@ -14,13 +14,13 @@ case class MultiLineGeometry(`type`: String, coordinates: Seq[Seq[Coord]])
 }
 
 object MultiLineGeometry {
-  val MultiLineString = "MultiLineString"
+  val Key = "MultiLineString"
   implicit val coord: Format[Coord] = Coord.jsonArray
   implicit val json = Json.format[MultiLineGeometry]
 }
 
 case class LineGeometry(`type`: String, coordinates: Seq[Coord])
-  extends Geometry(LineGeometry.LineString) {
+  extends Geometry(LineGeometry.Key) {
 
   override def updateCoords(coords: Seq[Coord]): LineGeometry =
     copy(coordinates = coordinates ++ coords)
@@ -29,13 +29,15 @@ case class LineGeometry(`type`: String, coordinates: Seq[Coord])
 }
 
 object LineGeometry {
-  val LineString = "LineString"
+  val Key = "LineString"
   implicit val coord = Coord.jsonArray
   implicit val json = Json.format[LineGeometry]
+
+  def apply(coords: Seq[Coord]): LineGeometry = LineGeometry(Key, coords)
 }
 
 case class PointGeometry(`type`: String, coordinates: Coord)
-  extends Geometry(PointGeometry.Point) {
+  extends Geometry(PointGeometry.Key) {
 
   override def updateCoords(coords: Seq[Coord]): PointGeometry =
     PointGeometry(`type`, coords.headOption.getOrElse(coordinates))
@@ -44,9 +46,11 @@ case class PointGeometry(`type`: String, coordinates: Coord)
 }
 
 object PointGeometry {
-  val Point = "Point"
+  val Key = "Point"
   implicit val coord = Coord.jsonArray
   implicit val json = Json.format[PointGeometry]
+
+  def apply(point: Coord): PointGeometry = PointGeometry(Key, point)
 }
 
 sealed abstract class Geometry(val typeName: String) {
@@ -65,9 +69,9 @@ object Geometry {
   }
   implicit val reader = Reads[Geometry] { json =>
     (json \ Geometry.Type).validate[String].flatMap {
-      case LineGeometry.LineString => LineGeometry.json.reads(json)
-      case MultiLineGeometry.MultiLineString => MultiLineGeometry.json.reads(json)
-      case PointGeometry.Point => PointGeometry.json.reads(json)
+      case LineGeometry.Key => LineGeometry.json.reads(json)
+      case MultiLineGeometry.Key => MultiLineGeometry.json.reads(json)
+      case PointGeometry.Key => PointGeometry.json.reads(json)
       case other => JsError(s"Unsupported geometry type: '$other'.")
     }
   }
@@ -80,7 +84,11 @@ case class Feature(`type`: String, geometry: Geometry, properties: Map[String, J
 }
 
 object Feature {
+  val Key = "Feature"
   implicit val json = Json.format[Feature]
+
+  def apply(geometry: Geometry, properties: Map[String, JsValue]): Feature =
+    Feature(Key, geometry, properties, None)
 }
 
 case class FeatureCollection(`type`: String, features: Seq[Feature]) {
@@ -88,7 +96,10 @@ case class FeatureCollection(`type`: String, features: Seq[Feature]) {
 }
 
 object FeatureCollection {
+  val Key = "FeatureCollection"
   implicit val json = Json.format[FeatureCollection]
+
+  def apply(fs: Seq[Feature]): FeatureCollection = FeatureCollection(Key, fs)
 }
 
 case class AnimationSource(`type`: String, data: FeatureCollection)

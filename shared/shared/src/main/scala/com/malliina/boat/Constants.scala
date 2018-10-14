@@ -17,6 +17,7 @@ object FrontKeys {
   val DropdownContentId = "dropdown-content"
   val DropdownLinkId = "dropdown-link"
   val DurationId = "duration"
+  val FullLinkId = "full-list-link"
   val Hidden = "hidden"
   val MapClass = "map"
   val MapId = "map"

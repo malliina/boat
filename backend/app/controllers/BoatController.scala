@@ -158,8 +158,11 @@ class BoatController(mapboxToken: AccessToken,
     db.track(track, req.email, req.query)
   }
 
-  def full(track: TrackName) = secureJson(TrackQuery.apply) { req =>
-    db.full(track, req.email, req.query)
+  def full(track: TrackName) = secureAction(rh => TrackQuery.withDefault(rh, defaultLimit = 100)) { req =>
+    db.full(track, req.email, req.query).map { track =>
+      if (req.rh.getQueryString("json").isDefined) Ok(track)
+      else Ok(html.list(track, req.query.limits))
+    }
   }
 
   private def secureJson[T, W: Writes](parse: RequestHeader => Either[SingleError, T])(run: BoatEmailRequest[T] => Future[W]) =

@@ -47,11 +47,13 @@ object SortOrder extends EnumLike[SortOrder] {
 case class TrackQuery(sort: TrackSort, order: SortOrder, limits: Limits)
 
 object TrackQuery {
-  def apply(rh: RequestHeader): Either[SingleError, TrackQuery] =
+  def apply(rh: RequestHeader): Either[SingleError, TrackQuery] = withDefault(rh)
+
+  def withDefault(rh: RequestHeader, defaultLimit: Int = Limits.DefaultLimit): Either[SingleError, TrackQuery] =
     for {
       sort <- TrackSort(rh)
       order <- SortOrder(rh)
-      limits <- Limits(rh)
+      limits <- Limits(rh, defaultLimit)
     } yield TrackQuery(sort, order, limits)
 }
 
@@ -119,7 +121,9 @@ object BoatQuery {
     QueryStringBindable.bindableBoolean.bind(NewestKey, rh.queryString).getOrElse(Right(default)).left.map(SingleError.apply)
 }
 
-case class Limits(limit: Int, offset: Int)
+case class Limits(limit: Int, offset: Int) {
+  def page = offset / limit + 1
+}
 
 object Limits {
   val Limit = "limit"
@@ -134,9 +138,9 @@ object Limits {
     QueryStringBindable.bindableInt.bind(key, rh.queryString).getOrElse(Right(default))
       .left.map(SingleError.apply)
 
-  def apply(rh: RequestHeader): Either[SingleError, Limits] = {
+  def apply(rh: RequestHeader, defaultLimit: Int = DefaultLimit): Either[SingleError, Limits] = {
     for {
-      limit <- readIntOrElse(rh, Limit, DefaultLimit)
+      limit <- readIntOrElse(rh, Limit, defaultLimit)
       offset <- readIntOrElse(rh, Offset, DefaultOffset)
     } yield Limits(limit, offset)
   }

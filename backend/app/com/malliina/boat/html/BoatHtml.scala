@@ -3,10 +3,11 @@ package com.malliina.boat.html
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 
-import com.malliina.boat.BoatInfo
 import com.malliina.boat.FrontKeys._
 import com.malliina.boat.docs.Docs
 import com.malliina.boat.html.BoatHtml.callAttr
+import com.malliina.boat.http.Limits
+import com.malliina.boat.{BoatInfo, FullTrack}
 import com.malliina.html.Tags
 import com.malliina.measure.Distance
 import com.malliina.play.tags.TagPage
@@ -45,6 +46,9 @@ class BoatHtml(jsFile: String) extends Tags(scalatags.Text) {
 
   def index(msg: String): TagPage = page(PageConf(h1(msg)))
 
+  def list(track: FullTrack, current: Limits) =
+    page(PageConf(TrackList(track, current)))
+
   def docs: TagPage = markdownPage(Docs.agent)
 
   def support: TagPage = markdownPage(Docs.support)
@@ -76,6 +80,7 @@ class BoatHtml(jsFile: String) extends Tags(scalatags.Text) {
               span(id := DurationId, `class` := "nav-text duration")(""),
               span(id := TopSpeedId, `class` := "nav-text top-speed")(""),
               span(id := WaterTempId, `class` := "nav-text water-temp")(""),
+              iconLink(a, FullLinkId, s"full-list-link $Hidden", "list", "List"),
               standaloneQuestion("question-nav nav-icon")
             )
           )

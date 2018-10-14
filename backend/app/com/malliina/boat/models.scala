@@ -247,6 +247,14 @@ object CombinedFullCoord {
   implicit val json = Json.format[CombinedFullCoord]
 }
 
+case class FullTrack(track: TrackRef, coords: Seq[CombinedFullCoord]) {
+  def name = track.trackName
+}
+
+object FullTrack {
+  implicit val json = Json.format[FullTrack]
+}
+
 case class TrackPointRow(id: TrackPointId,
                          lon: Double,
                          lat: Double,
