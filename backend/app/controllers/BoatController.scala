@@ -44,7 +44,7 @@ class BoatController(mapboxToken: AccessToken,
                      assets: AssetsBuilder)(implicit as: ActorSystem, mat: Materializer)
   extends AbstractController(comps) with Streams {
 
-  val boatNameForm = Form[BoatName]("boatName" -> BoatNames.mapping)
+  val boatNameForm = Form[BoatName](BoatNames.Key -> BoatNames.mapping)
 
   val UserSessionKey = "user"
   val anonUser = Usernames.anon

@@ -95,6 +95,7 @@ object Errors {
 }
 
 object BoatNames {
+  val Key = "boatName"
   val mapping: Mapping[BoatName] = Forms.nonEmptyText.transform(s => BoatName(s), b => b.name)
 
   def random() = BoatName(Utils.randomString(6))

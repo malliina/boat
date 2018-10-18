@@ -9,8 +9,8 @@ import scala.concurrent.ExecutionContext
 
 object Social {
   val EmailKey = "email"
-  val ProviderCookieName = "provider"
   val GoogleCookie = "google"
+  val ProviderCookieName = "provider"
 
   def apply(authConf: AuthConf, http: OkClient, comps: ControllerComponents, ec: ExecutionContext) =
     new Social(authConf, comps, http)(ec)
@@ -19,12 +19,13 @@ object Social {
 class Social(googleConf: AuthConf, comps: ControllerComponents, http: OkClient)(implicit ec: ExecutionContext)
   extends AbstractController(comps) {
 
-  val lastIdKey = "last_id"
-  val handler = new BasicAuthHandler(routes.BoatController.index(), lastIdKey, sessionKey = EmailKey)
+  val handler = BasicAuthHandler(routes.BoatController.index(), sessionKey = EmailKey)
   val oauthConf = OAuthConf(routes.Social.googleCallback(), handler, googleConf, http)
   val googleValidator = GoogleCodeValidator(oauthConf)
 
-  def google = Action.async { req => googleValidator.start(req) }
+  def google = Action.async { req =>
+    googleValidator.startHinted(req, req.cookies.get(handler.lastIdKey).map(_.value))
+  }
 
   def googleCallback = Action.async { req =>
     googleValidator.validateCallback(req).map { r =>
@@ -36,6 +37,6 @@ class Social(googleConf: AuthConf, comps: ControllerComponents, http: OkClient)(
   def logout = Action {
     Redirect(routes.BoatController.index())
       .withNewSession
-      .discardingCookies(DiscardingCookie(ProviderCookieName))
+      .discardingCookies(DiscardingCookie(ProviderCookieName), DiscardingCookie(handler.lastIdKey))
   }
 }
