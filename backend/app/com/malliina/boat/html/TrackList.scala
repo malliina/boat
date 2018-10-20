@@ -4,7 +4,7 @@ import java.time.Instant
 
 import com.malliina.boat.BoatFormats._
 import com.malliina.boat.http.Limits
-import com.malliina.boat.{BoatFormats, FullTrack, Instants, TrackName}
+import com.malliina.boat.{BoatFormats, FullTrack, Instants, TrackName, TrackRef}
 import com.malliina.measure.{Distance, Speed, Temperature}
 import com.malliina.values.Wrapped
 import controllers.routes
@@ -40,7 +40,7 @@ object TrackList {
         description("Duration", BoatFormats.formatDuration(track.track.duration)),
         description("Top speed", topSpeed),
       ),
-      pagination(track.name, current),
+      pagination(track.track, current),
       table(`class` := "table table-hover")(
         thead(tr(th("Coordinate"), th("Speed"), th("Time"))),
         tbody(
@@ -54,7 +54,7 @@ object TrackList {
           }
         )
       ),
-      pagination(track.name, current)
+      pagination(track.track, current)
     )
   }
 
@@ -62,13 +62,22 @@ object TrackList {
     dt(`class` := "col-sm-2")(labelText), dd(`class` := "col-sm-10")(value)
   )
 
-  private def pagination(track: TrackName, current: Limits) = tag("nav")(aria.label := "Navigation")(
-    ul(`class` := "pagination justify-content-center")(
-      pageLink(track, current.copy(offset = math.max(current.offset - 100, 0)), "Previous"),
-      pageLink(track, current, "" + current.page, isActive = true),
-      pageLink(track, current.copy(offset = current.offset + 100), "Next")
+  private def pagination(track: TrackRef, current: Limits) = {
+    val pageSize = 100
+    val trackName = track.trackName
+    val hasMore = current.offset + pageSize < track.points
+    val prevOffset = math.max(current.offset - pageSize, 0)
+    val lastOffset = ((track.points - 1) / pageSize) * pageSize
+    tag("nav")(aria.label := "Navigation")(
+      ul(`class` := "pagination justify-content-center")(
+        pageLink(trackName, Limits(pageSize, 0), "First", isDisabled = current.offset == 0),
+        pageLink(trackName, current.copy(offset = prevOffset), "Previous", isDisabled = current.offset == 0),
+        pageLink(trackName, current, "" + current.page, isActive = true),
+        pageLink(trackName, current.copy(offset = current.offset + pageSize), "Next", isDisabled = !hasMore),
+        pageLink(trackName, Limits(pageSize, lastOffset), "Last", isDisabled = lastOffset == current.offset)
+      )
     )
-  )
+  }
 
   private def pageLink(track: TrackName, to: Limits, text: String, isActive: Boolean = false, isDisabled: Boolean = false) = {
     val base = routes.BoatController.full(track)

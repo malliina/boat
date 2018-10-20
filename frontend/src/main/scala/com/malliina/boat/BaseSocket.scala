@@ -4,8 +4,7 @@ import com.malliina.boat.BaseSocket.Ping
 import com.malliina.http.FullUrl
 import org.scalajs.dom
 import org.scalajs.dom.CloseEvent
-import org.scalajs.dom.raw.{ErrorEvent, Event, MessageEvent}
-import org.scalajs.jquery.{JQuery, jQuery}
+import org.scalajs.dom.raw.{Event, MessageEvent}
 import play.api.libs.json._
 
 import scala.util.Try

@@ -107,7 +107,7 @@ lazy val backendSettings = playSettings ++ Seq(
       path = file.getAbsolutePath
       if path.contains("alpn-boot")
     } yield {
-      "-Xbootclasspath/p:" + path
+      s"-Xbootclasspath/p:$path"
     }
   }
 )
@@ -115,7 +115,6 @@ lazy val backendSettings = playSettings ++ Seq(
 lazy val frontendSettings = commonSettings ++ Seq(
   libraryDependencies ++= Seq(
     "org.scala-js" %%% "scalajs-dom" % "0.9.6",
-    "be.doeraene" %%% "scalajs-jquery" % "0.9.4",
     "org.scalatest" %%% "scalatest" % "3.0.5" % Test
   ),
   scalaJSUseMainModuleInitializer := true
