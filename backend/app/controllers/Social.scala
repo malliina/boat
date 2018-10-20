@@ -6,6 +6,7 @@ import controllers.Social.{EmailKey, GoogleCookie, ProviderCookieName}
 import play.api.mvc.{AbstractController, ControllerComponents, Cookie, DiscardingCookie}
 
 import scala.concurrent.ExecutionContext
+import scala.concurrent.duration.{Duration, DurationInt}
 
 object Social {
   val EmailKey = "email"
@@ -18,7 +19,7 @@ object Social {
 
 class Social(googleConf: AuthConf, comps: ControllerComponents, http: OkClient)(implicit ec: ExecutionContext)
   extends AbstractController(comps) {
-
+  val providerCookieDuration: Duration = 3650.days
   val handler = BasicAuthHandler(routes.BoatController.index(), sessionKey = EmailKey)
   val oauthConf = OAuthConf(routes.Social.googleCallback(), handler, googleConf, http)
   val googleValidator = GoogleCodeValidator(oauthConf)
@@ -29,7 +30,8 @@ class Social(googleConf: AuthConf, comps: ControllerComponents, http: OkClient)(
 
   def googleCallback = Action.async { req =>
     googleValidator.validateCallback(req).map { r =>
-      if (r.header.status < 400) r.withCookies(Cookie(ProviderCookieName, GoogleCookie))
+      val cookie = Cookie(ProviderCookieName, GoogleCookie, Option(providerCookieDuration.toSeconds.toInt))
+      if (r.header.status < 400) r.withCookies(cookie)
       else r
     }
   }

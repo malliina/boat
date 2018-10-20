@@ -9,7 +9,7 @@ import sbtcrossproject.CrossPlugin.autoImport.{crossProject => portableProject, 
 
 val utilPlayVersion = "4.16.0"
 val utilPlayDep = "com.malliina" %% "util-play" % utilPlayVersion
-val primitiveVersion = "1.6.0"
+val primitiveVersion = "1.6.1"
 val akkaStreamsVersion = "2.5.17"
 val buildAndUpload = taskKey[FullUrl]("Uploads to S3")
 val upFiles = taskKey[Seq[String]]("lists")
@@ -59,7 +59,7 @@ lazy val backendSettings = playSettings ++ Seq(
     "com.zaxxer" % "HikariCP" % "3.2.0",
     "org.flywaydb" % "flyway-core" % "5.1.4",
     "org.apache.commons" % "commons-text" % "1.4",
-    "com.malliina" %% "logstreams-client" % "1.2.0",
+    "com.malliina" %% "logstreams-client" % "1.3.0",
     "com.amazonaws" % "aws-java-sdk-s3" % "1.11.421",
     "com.vladsch.flexmark" % "flexmark-html-parser" % "0.34.44",
     "com.malliina" %% "play-social" % utilPlayVersion,
