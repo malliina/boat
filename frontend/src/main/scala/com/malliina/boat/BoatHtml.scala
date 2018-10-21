@@ -29,8 +29,8 @@ object BoatHtml {
         symbol.construction.fold(empty)(c => row(lang.construction, c.in(lang))),
         if (symbol.navMark == NavMark.NotApplicable) empty
         else row(lang.navigation, symbol.navMark.in(lang)),
-        row(lang.name, symbol.name(lang)),
-        row(lang.location, symbol.location(lang))
+        symbol.name(lang).fold(empty)(n => row(lang.name, n)),
+        symbol.location(lang).fold(empty)(l => row(lang.location, l))
       )
     )
 

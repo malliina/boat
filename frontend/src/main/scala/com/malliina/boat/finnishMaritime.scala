@@ -204,19 +204,21 @@ object Flotation {
 case class MarineSymbol(owner: String,
                         exteriorLight: Boolean,
                         topSign: Boolean,
-                        nameFi: String,
-                        nameSe: String,
-                        locationFi: String,
-                        locationSe: String,
+                        nameFi: Option[String],
+                        nameSe: Option[String],
+                        locationFi: Option[String],
+                        locationSe: Option[String],
                         flotation: Flotation,
                         state: String,
                         lit: Boolean,
                         aidType: AidType,
                         navMark: NavMark,
                         construction: Option[ConstructionInfo]) {
-  def name(lang: Lang) = if (lang == Swedish) nameSe else nameFi
+  def name(lang: Lang): Option[String] =
+    if (lang == Swedish) nameSe.orElse(nameFi) else nameFi.orElse(nameSe)
 
-  def location(lang: Lang) = if (lang == Swedish) locationSe else locationFi
+  def location(lang: Lang): Option[String] =
+    if (lang == Swedish) locationSe.orElse(locationFi) else locationFi.orElse(locationSe)
 }
 
 /**
@@ -237,16 +239,19 @@ object MarineSymbol {
       case other => JsError(s"Unexpected string, must be K or E: '$other'.")
     }
   }
+  val nonEmpty = Reads[Option[String]] { json =>
+    json.validate[String].map(_.trim).map(s => if (s.nonEmpty) Option(s) else None)
+  }
 
   implicit val reader = Reads[MarineSymbol] { json =>
     for {
       owner <- (json \ "OMISTAJA").validate[String]
       topSign <- (json \ "HUIPPUMERK").validate[Boolean](boolNum)
       fasadi <- (json \ "FASADIVALO").validate[Boolean](boolNum)
-      nameFi <- (json \ "NIMIR").validate[String]
-      nameSe <- (json \ "NIMIS").validate[String]
-      locationFi <- (json \ "SIJAINTIS").validate[String]
-      locationSe <- (json \ "SIJAINTIR").validate[String]
+      nameFi <- (json \ "NIMIR").validate[Option[String]](nonEmpty)
+      nameSe <- (json \ "NIMIS").validate[Option[String]](nonEmpty)
+      locationFi <- (json \ "SIJAINTIS").validate[Option[String]](nonEmpty)
+      locationSe <- (json \ "SIJAINTIR").validate[Option[String]](nonEmpty)
       flotation <- (json \ "SUBTYPE").validate[Flotation]
       state <- (json \ "TILA").validate[String]
       lit <- (json \ "VALAISTU").validate[Boolean](boolString)

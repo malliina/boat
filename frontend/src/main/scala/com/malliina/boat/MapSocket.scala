@@ -10,7 +10,6 @@ import play.api.libs.json._
 
 import scala.concurrent.{Future, Promise}
 import scala.scalajs.js.JSConverters.genTravConvertible2JSRichGenTrav
-import scala.scalajs.js.JSON
 
 class MapSocket(map: MapboxMap, queryString: String, mode: MapMode)
   extends BaseSocket(s"/ws/updates?$queryString") {
@@ -29,7 +28,7 @@ class MapSocket(map: MapboxMap, queryString: String, mode: MapMode)
   initImage()
 
   map.on("click", e => {
-//    log.info(JSON.stringify(map.queryRenderedFeatures(e.point)))
+    //    log.info(JSON.stringify(map.queryRenderedFeatures(e.point)))
     val features = map.queryRendered(e.point).fold(
       err => {
         log.info(s"Failed to parse features '${err.error}' in '${err.json}'.")
@@ -48,7 +47,8 @@ class MapSocket(map: MapboxMap, queryString: String, mode: MapMode)
           log.info(err.describe)
         },
         ok => {
-          markPopup.show(BoatHtml.markPopup(ok), e.lngLat, map)
+          val target = feature.geometry.coords.headOption.map(LngLat.apply).getOrElse(e.lngLat)
+          markPopup.show(BoatHtml.markPopup(ok), target, map)
         }
       )
     }
