@@ -4,6 +4,7 @@ import play.api.libs.json._
 
 case class MultiLineGeometry(`type`: String, coordinates: Seq[Seq[Coord]])
   extends Geometry(MultiLineGeometry.Key) {
+  override type Self = MultiLineGeometry
 
   override def updateCoords(coords: Seq[Coord]): MultiLineGeometry =
     copy(coordinates = coordinates :+ coords)
@@ -21,6 +22,7 @@ object MultiLineGeometry {
 
 case class LineGeometry(`type`: String, coordinates: Seq[Coord])
   extends Geometry(LineGeometry.Key) {
+  type Self = LineGeometry
 
   override def updateCoords(coords: Seq[Coord]): LineGeometry =
     copy(coordinates = coordinates ++ coords)
@@ -38,6 +40,7 @@ object LineGeometry {
 
 case class PointGeometry(`type`: String, coordinates: Coord)
   extends Geometry(PointGeometry.Key) {
+  type Self = PointGeometry
 
   override def updateCoords(coords: Seq[Coord]): PointGeometry =
     PointGeometry(`type`, coords.headOption.getOrElse(coordinates))
@@ -53,8 +56,38 @@ object PointGeometry {
   def apply(point: Coord): PointGeometry = PointGeometry(Key, point)
 }
 
+case class MultiPolygon(`type`: String, coordinates: Seq[Seq[Seq[Coord]]]) extends Geometry(MultiPolygon.Key) {
+  override type Self = MultiPolygon
+
+  override def updateCoords(coords: Seq[Coord]): MultiPolygon = copy(coordinates = coordinates :+ Seq(coords))
+
+  override def coords: Seq[Coord] = coordinates.flatten.flatten
+}
+
+object MultiPolygon {
+  val Key = "MultiPolygon"
+  implicit val coord = Coord.jsonArray
+  implicit val json = Json.format[MultiPolygon]
+}
+
+case class Polygon(`type`: String, coordinates: Seq[Seq[Coord]]) extends Geometry(Polygon.Key) {
+  override type Self = Polygon
+
+  override def updateCoords(cs: Seq[Coord]): Polygon = copy(coordinates = coordinates :+ cs)
+
+  override def coords = coordinates.flatten
+}
+
+object Polygon {
+  val Key = "Polygon"
+  implicit val coord = Coord.jsonArray
+  implicit val json = Json.format[Polygon]
+}
+
 sealed abstract class Geometry(val typeName: String) {
-  def updateCoords(coords: Seq[Coord]): Geometry
+  type Self <: Geometry
+
+  def updateCoords(coords: Seq[Coord]): Self
 
   def coords: Seq[Coord]
 }
@@ -66,13 +99,17 @@ object Geometry {
     case lg@LineGeometry(_, _) => Json.toJson(lg)
     case mlg@MultiLineGeometry(_, _) => Json.toJson(mlg)
     case pg@PointGeometry(_, _) => Json.toJson(pg)
+    case mp@MultiPolygon(_, _) => Json.toJson(mp)
+    case p@Polygon(_, _) => Json.toJson(p)
   }
   implicit val reader = Reads[Geometry] { json =>
     (json \ Geometry.Type).validate[String].flatMap {
       case LineGeometry.Key => LineGeometry.json.reads(json)
       case MultiLineGeometry.Key => MultiLineGeometry.json.reads(json)
       case PointGeometry.Key => PointGeometry.json.reads(json)
-      case other => JsError(s"Unsupported geometry type: '$other'.")
+      case MultiPolygon.Key => MultiPolygon.json.reads(json)
+      case Polygon.Key => Polygon.json.reads(json)
+      case other => JsError(s"Unsupported geometry type '$other'. JSON was '$json'.")
     }
   }
 }

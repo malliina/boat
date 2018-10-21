@@ -1,11 +1,11 @@
 import com.malliina.http.FullUrl
 import com.malliina.sbtplay.PlayProject
+import sbtcrossproject.CrossPlugin.autoImport.{CrossType => PortableType, crossProject => portableProject}
+import sbtrelease.ReleasePlugin.autoImport.{ReleaseStep, releaseProcess}
+import sbtrelease.ReleaseStateTransformations._
 
 import scala.sys.process.Process
 import scala.util.Try
-import sbtrelease.ReleasePlugin.autoImport.{ReleaseStep, releaseProcess}
-import sbtrelease.ReleaseStateTransformations._
-import sbtcrossproject.CrossPlugin.autoImport.{crossProject => portableProject, CrossType => PortableType}
 
 val utilPlayVersion = "4.16.0"
 val utilPlayDep = "com.malliina" %% "util-play" % utilPlayVersion
@@ -19,7 +19,7 @@ parallelExecution in ThisBuild := false
 
 lazy val boatRoot = project.in(file("."))
   .settings(commonSettings: _*)
-  .aggregate(backend, frontend, agent, it)
+  .aggregate(backend, frontend, agent, it, utils)
 
 lazy val backend = PlayProject.linux("boat", file("backend"))
   .settings(backendSettings: _*)
@@ -46,6 +46,9 @@ lazy val agent = project.in(file("client"))
 lazy val it = Project("integration-tests", file("boat-test"))
   .settings(testSettings: _*)
   .dependsOn(backend, backend % "test->test", agent)
+
+lazy val utils = project.in(file("utils"))
+  .settings(utilsSettings: _*)
 
 lazy val backendSettings = playSettings ++ Seq(
   unmanagedResourceDirectories in Compile += baseDirectory.value / "docs",
@@ -172,11 +175,19 @@ lazy val clientSettings = commonSettings ++ Seq(
     setReleaseVersion,
     commitReleaseVersion,
     tagRelease,
-//    ReleaseStep(action = releaseStepCommand("buildAndUpload")),
-//    publishArtifacts, // : ReleaseStep, checks whether `publishTo` is properly set up
+    //    ReleaseStep(action = releaseStepCommand("buildAndUpload")),
+    //    publishArtifacts, // : ReleaseStep, checks whether `publishTo` is properly set up
     setNextVersion,
     commitNextVersion,
     pushChanges // : ReleaseStep, also checks that an upstream branch is properly configured
+  )
+)
+
+lazy val utilsSettings = basicSettings ++ Seq(
+  resolvers += "GeoTools" at "http://download.osgeo.org/webdav/geotools/",
+  libraryDependencies ++= Seq(
+    "org.geotools" % "gt-shapefile" % "20.0",
+    "org.scalatest" %% "scalatest" % "3.0.5" % Test
   )
 )
 
@@ -193,10 +204,7 @@ lazy val playSettings = commonSettings ++ Seq(
   )
 )
 
-lazy val commonSettings = Seq(
-  organization := "com.malliina",
-  scalaVersion := "2.12.7",
-  scalacOptions := Seq("-unchecked", "-deprecation"),
+lazy val commonSettings = basicSettings ++ Seq(
   resolvers ++= Seq(
     Resolver.jcenterRepo,
     Resolver.bintrayRepo("malliina", "maven"),
@@ -206,6 +214,12 @@ lazy val commonSettings = Seq(
     "com.typesafe.akka" %% "akka-http-core" % "10.1.1",
     "com.typesafe.akka" %% "akka-parsing" % "10.1.1"
   )
+)
+
+lazy val basicSettings = Seq(
+  organization := "com.malliina",
+  scalaVersion := "2.12.7",
+  scalacOptions := Seq("-unchecked", "-deprecation")
 )
 
 def gitHash: String =

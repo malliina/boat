@@ -1,10 +1,10 @@
 package com.malliina.mapbox
 
-import com.malliina.boat.Coord
+import com.malliina.boat.{Coord, Feature, JsonError, Parsing}
 import org.scalajs.dom
 import org.scalajs.dom.html
 import org.scalajs.dom.raw.HTMLCanvasElement
-import play.api.libs.json.{Json, Writes}
+import play.api.libs.json.Writes
 import scalatags.JsDom.TypedTag
 
 import scala.scalajs.js
@@ -62,7 +62,7 @@ trait PopupOptions extends js.Object {
 }
 
 object PopupOptions {
-  def apply(className: Option[String], offset: Option[Double], closeButton: Boolean): PopupOptions =
+  def apply(className: Option[String] = None, offset: Option[Double] = None, closeButton: Boolean = false): PopupOptions =
     literal(className = className.orUndefined, offset = offset.orUndefined, closeButton = closeButton)
       .asInstanceOf[PopupOptions]
 }
@@ -82,6 +82,7 @@ class MapboxPopup(options: PopupOptions) extends js.Object {
 }
 
 object MapboxPopup {
+  def apply(options: PopupOptions): MapboxPopup = new MapboxPopup(options)
 
   implicit class PopupExt(val self: MapboxPopup) extends AnyVal {
     def show[T <: dom.Element](htmlPayload: TypedTag[T], coord: LngLat, on: MapboxMap): Unit =
@@ -123,16 +124,24 @@ class MapboxMap(options: MapOptions) extends js.Object {
 
   def on(name: String, func: js.Function0[Unit]): Unit = js.native
 
-  def on(name: String, event: String, func: js.Function1[MapMouseEvent, Unit]): Unit = js.native
+  def on(name: String, layer: String, func: js.Function1[MapMouseEvent, Unit]): Unit = js.native
 
-  def on(name: String, event: String, func: js.Function0[Unit]): Unit = js.native
+  def on(name: String, layer: String, func: js.Function0[Unit]): Unit = js.native
 }
 
 object MapboxMap {
 
   implicit class MapExt(val self: MapboxMap) extends AnyVal {
     def putLayer[T: Writes](t: T): Unit =
-      self.addLayer(JSON.parse(Json.stringify(Json.toJson(t))))
+      self.addLayer(JSON.parse(Parsing.stringify(t)))
+
+    def queryRendered(point: PixelCoord): Either[JsonError, Seq[Feature]] =
+      Parsing.asJson[Seq[Feature]](self.queryRenderedFeatures(point))
+
+    def onHover(layerId: String)(in: MapMouseEvent => Unit, out: MapMouseEvent => Unit): Unit = {
+      self.on("mousemove", layerId, e => in(e))
+      self.on("mouseleave", layerId, e => out(e))
+    }
   }
 
 }

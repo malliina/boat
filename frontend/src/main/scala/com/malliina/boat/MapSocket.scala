@@ -2,13 +2,13 @@ package com.malliina.boat
 
 import com.malliina.boat.BoatFormats._
 import com.malliina.boat.FrontKeys._
+import com.malliina.boat.Parsing._
 import com.malliina.mapbox._
 import com.malliina.turf.turf
 import org.scalajs.dom.document
 import play.api.libs.json._
 
 import scala.concurrent.{Future, Promise}
-import scala.scalajs.js
 import scala.scalajs.js.JSConverters.genTravConvertible2JSRichGenTrav
 import scala.scalajs.js.JSON
 
@@ -17,8 +17,9 @@ class MapSocket(map: MapboxMap, queryString: String, mode: MapMode)
 
   val boatIconId = "boat-icon"
   val emptyTrack = lineFor(Nil)
-  val trackPopup = new MapboxPopup(PopupOptions(None, None, closeButton = false))
-  val boatPopup = new MapboxPopup(PopupOptions(Option("popup-boat"), None, closeButton = false))
+  val trackPopup = MapboxPopup(PopupOptions())
+  val boatPopup = MapboxPopup(PopupOptions(className = Option("popup-boat")))
+  val markPopup = MapboxPopup(PopupOptions())
 
   private var mapMode: MapMode = mode
   private var boats = Map.empty[String, FeatureCollection]
@@ -26,6 +27,38 @@ class MapSocket(map: MapboxMap, queryString: String, mode: MapMode)
   private var topSpeedMarkers = Map.empty[TrackId, ActiveMarker]
 
   initImage()
+
+  map.on("click", e => {
+//    log.info(JSON.stringify(map.queryRenderedFeatures(e.point)))
+    val features = map.queryRendered(e.point).fold(
+      err => {
+        log.info(s"Failed to parse features '${err.error}' in '${err.json}'.")
+        Nil
+      },
+      identity
+    )
+    val symbol = features.find { f =>
+      f.geometry.typeName == "Point" &&
+        f.layer.exists(obj => (obj \ "type").asOpt[String].exists(t => t == "symbol" || t == "circle"))
+    }
+    symbol.fold(markPopup.remove()) { feature =>
+      val symbol = validate[MarineSymbol](JsObject(feature.properties))
+      symbol.fold(
+        err => {
+          log.info(err.describe)
+        },
+        ok => {
+          markPopup.show(BoatHtml.markPopup(ok), e.lngLat, map)
+        }
+      )
+    }
+  })
+  MapboxStyles.clickableLayers.foreach { id =>
+    map.onHover(id)(
+      in = _ => map.getCanvas().style.cursor = "pointer",
+      out = _ => map.getCanvas().style.cursor = ""
+    )
+  }
 
   def initImage(): Future[Unit] = {
     val p = Promise[Unit]()
@@ -107,7 +140,7 @@ class MapSocket(map: MapboxMap, queryString: String, mode: MapMode)
         if (!isOnBoatSymbol) {
           val op = nearest(e.lngLat, trails.getOrElse(trackId, Nil))(_.coord).map { near =>
             map.getCanvas().style.cursor = "pointer"
-            trackPopup.show(BoatHtml.popup(near, from), e.lngLat, map)
+            trackPopup.show(BoatHtml.trackPopup(near, from), e.lngLat, map)
           }
           op.fold(err => log.info(err), identity)
         }
@@ -144,7 +177,7 @@ class MapSocket(map: MapboxMap, queryString: String, mode: MapMode)
       topSpeedMarkers.get(trackId).foreach(_.marker.remove())
       // https://www.mapbox.com/mapbox-gl-js/example/set-popup/
       val markerPopup = new MapboxPopup(PopupOptions(None, offset = Option(6), closeButton = false))
-        .setHTML(BoatHtml.popup(topPoint, from).render.outerHTML)
+        .setHTML(BoatHtml.trackPopup(topPoint, from).render.outerHTML)
       val marker = MapboxMarker(BoatHtml.marker(topPoint.speed), topPoint.coord, markerPopup, map)
       val newTopSpeed = ActiveMarker(marker, topPoint)
       topSpeedMarkers = topSpeedMarkers.updated(trackId, newTopSpeed)
@@ -236,13 +269,4 @@ class MapSocket(map: MapboxMap, queryString: String, mode: MapMode)
   def pointName(boat: BoatName) = s"boat-$boat"
 
   def elem(id: String) = Option(document.getElementById(id))
-
-  def toJson[T: Writes](t: T) = JSON.parse(Json.stringify(Json.toJson(t)))
-
-  def asJson[T: Reads](in: js.Any): Either[JsError, T] =
-    validate[T](Json.parse(JSON.stringify(in)))
-
-  def asEither[T](r: JsResult[T]) = r.asEither.left.map(err => JsError(err))
-
-  def validate[T: Reads](json: JsValue): Either[JsError, T] = asEither(json.validate[T])
 }
