@@ -247,7 +247,8 @@ case class CoordsEvent(coords: Seq[TimedCoord], from: TrackRef) extends BoatFron
   def isEmpty = coords.isEmpty
 
   def sample(every: Int): CoordsEvent =
-    copy(coords = coords.grouped(every).flatMap(_.headOption).toList, from)
+    if (every <= 1) this
+    else copy(coords = coords.grouped(every).flatMap(_.headOption).toList, from)
 
   def addCoords(newCoords: Seq[TimedCoord]) = copy(coords = coords ++ newCoords)
 

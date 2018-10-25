@@ -1,18 +1,16 @@
 package com.malliina.boat
 
 import com.malliina.boat.BoatFormats._
-import com.malliina.boat.FrontKeys._
 import com.malliina.boat.Parsing._
 import com.malliina.mapbox._
 import com.malliina.turf.turf
-import org.scalajs.dom.document
 import play.api.libs.json._
 
 import scala.concurrent.{Future, Promise}
 import scala.scalajs.js.JSConverters.genTravConvertible2JSRichGenTrav
 
 class MapSocket(map: MapboxMap, queryString: String, mode: MapMode)
-  extends BaseSocket(s"/ws/updates?$queryString") {
+  extends BoatSocket(s"/ws/updates?$queryString") {
 
   val boatIconId = "boat-icon"
   val emptyTrack = lineFor(Nil)
@@ -91,18 +89,7 @@ class MapSocket(map: MapboxMap, queryString: String, mode: MapMode)
     Option(paint)
   )
 
-  override def handlePayload(payload: JsValue): Unit =
-    payload.validate[FrontEvent].map(consume).recover { case err => onJsonFailure(err) }
-
-  def consume(event: FrontEvent): Unit = event match {
-    case ce@CoordsEvent(coords, _) if coords.nonEmpty => onCoords(ce)
-    case CoordsBatch(coords) if coords.nonEmpty => coords.foreach(e => onCoords(e))
-    case SentencesEvent(_, _) => ()
-    case PingEvent(_) => ()
-    case other => log.info(s"Unknown event: '$other'.")
-  }
-
-  def onCoords(event: CoordsEvent): Unit = {
+  override def onCoords(event: CoordsEvent): Unit = {
     val from = event.from
     val trackId = from.track
     val coordsInfo = event.coords
@@ -176,7 +163,7 @@ class MapSocket(map: MapboxMap, queryString: String, mode: MapMode)
     if (!isSameTopSpeed) {
       topSpeedMarkers.get(trackId).foreach(_.marker.remove())
       // https://www.mapbox.com/mapbox-gl-js/example/set-popup/
-      val markerPopup = new MapboxPopup(PopupOptions(None, offset = Option(6), closeButton = false))
+      val markerPopup = new MapboxPopup(PopupOptions(offset = Option(6)))
         .setHTML(BoatHtml.trackPopup(topPoint, from).render.outerHTML)
       val marker = MapboxMarker(BoatHtml.marker(topPoint.speed), topPoint.coord, markerPopup, map)
       val newTopSpeed = ActiveMarker(marker, topPoint)
@@ -199,6 +186,10 @@ class MapSocket(map: MapboxMap, queryString: String, mode: MapMode)
     elem(FullLinkId).foreach { e =>
       e.classList.remove(Hidden)
       e.setAttribute("href", s"/tracks/${from.trackName}/full")
+    }
+    elem(GraphLinkId).foreach { e =>
+      e.classList.remove(Hidden)
+      e.setAttribute("href", s"/tracks/${from.trackName}/chart")
     }
     if (boats.keySet.size == 1) {
       elem(DurationId).foreach { e =>
@@ -267,6 +258,4 @@ class MapSocket(map: MapboxMap, queryString: String, mode: MapMode)
   def trackName(boat: BoatName) = s"track-$boat"
 
   def pointName(boat: BoatName) = s"boat-$boat"
-
-  def elem(id: String) = Option(document.getElementById(id))
 }

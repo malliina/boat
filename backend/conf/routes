@@ -10,6 +10,7 @@ GET          /tracks                             controllers.BoatController.trac
 GET          /tracks/:track                      controllers.BoatController.summary(track: com.malliina.boat.TrackName)
 GET          /tracks/:track/trail                controllers.BoatController.track(track: com.malliina.boat.TrackName)
 GET          /tracks/:track/full                 controllers.BoatController.full(track: com.malliina.boat.TrackName)
+GET          /tracks/:track/chart                controllers.BoatController.chart(track: com.malliina.boat.TrackName)
 GET          /ws/updates                         controllers.BoatController.updates
 GET          /ws/boats                           controllers.BoatController.boats
 GET          /distances                          controllers.BoatController.distances

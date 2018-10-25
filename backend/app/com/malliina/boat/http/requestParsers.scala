@@ -4,7 +4,7 @@ import java.time.Instant
 import java.time.format.DateTimeParseException
 import java.time.temporal.ChronoUnit
 
-import com.malliina.boat.{SingleError, TrackName}
+import com.malliina.boat.{Constants, SingleError, TrackName}
 import com.malliina.values.Email
 import play.api.mvc.{QueryStringBindable, Request, RequestHeader}
 
@@ -84,7 +84,11 @@ abstract class EnumLike[T <: Named] {
   * @param tracks tracks to return
   * @param newest true to return the newest track if no tracks are specified, false means all tracks are returned
   */
-case class BoatQuery(limits: Limits, timeRange: TimeRange, tracks: Seq[TrackName], newest: Boolean) {
+case class BoatQuery(limits: Limits,
+                     timeRange: TimeRange,
+                     tracks: Seq[TrackName],
+                     sample: Option[Int],
+                     newest: Boolean) {
   def limit = limits.limit
 
   def offset = limits.offset
@@ -96,28 +100,32 @@ case class BoatQuery(limits: Limits, timeRange: TimeRange, tracks: Seq[TrackName
 
 object BoatQuery {
   val NewestKey = "newest"
+  val SampleKey = "sample"
   val TrackKey = "track"
+  val DefaultSample = Constants.DefaultSample
   val bindTrack: QueryStringBindable[TrackName] =
     QueryStringBindable.bindableString.transform[TrackName](TrackName.apply, _.name)
   val tracksBindable = QueryStringBindable.bindableSeq[TrackName](bindTrack)
 
-  def tracks(tracks: Seq[TrackName]) = BoatQuery(Limits.default, TimeRange(None, None), tracks, newest = false)
+  def tracks(tracks: Seq[TrackName]): BoatQuery =
+    BoatQuery(Limits.default, TimeRange(None, None), tracks, Option(DefaultSample), newest = false)
 
   def recent(now: Instant): BoatQuery =
-    BoatQuery(Limits.default, TimeRange.recent(now), Nil, newest = false)
+    BoatQuery(Limits.default, TimeRange.recent(now), Nil, Option(DefaultSample), newest = false)
 
   def apply(rh: RequestHeader): Either[SingleError, BoatQuery] =
     for {
       limits <- Limits(rh)
       timeRange <- TimeRange(rh)
       tracks <- bindTracks(rh)
-      newest <- bindBool(rh, default = true)
-    } yield BoatQuery(limits, timeRange, tracks, newest)
+      sample <- Limits.readInt(SampleKey, rh)
+      newest <- bindNewest(rh, default = true)
+    } yield BoatQuery(limits, timeRange, tracks, sample, newest)
 
   def bindTracks(rh: RequestHeader): Either[SingleError, Seq[TrackName]] =
     tracksBindable.bind(TrackKey, rh.queryString).map(_.left.map(SingleError.apply)).getOrElse(Right(Nil))
 
-  def bindBool(rh: RequestHeader, default: Boolean) =
+  def bindNewest(rh: RequestHeader, default: Boolean) =
     QueryStringBindable.bindableBoolean.bind(NewestKey, rh.queryString).getOrElse(Right(default)).left.map(SingleError.apply)
 }
 
@@ -138,12 +146,16 @@ object Limits {
     QueryStringBindable.bindableInt.bind(key, rh.queryString).getOrElse(Right(default))
       .left.map(SingleError.apply)
 
-  def apply(rh: RequestHeader, defaultLimit: Int = DefaultLimit): Either[SingleError, Limits] = {
+  def readInt(key: String, rh: RequestHeader): Either[SingleError, Option[Int]] =
+    QueryStringBindable.bindableInt.bind(key, rh.queryString).map(_.map(Option.apply))
+      .getOrElse(Right(None))
+      .left.map(SingleError.apply)
+
+  def apply(rh: RequestHeader, defaultLimit: Int = DefaultLimit): Either[SingleError, Limits] =
     for {
       limit <- readIntOrElse(rh, Limit, defaultLimit)
       offset <- readIntOrElse(rh, Offset, DefaultOffset)
     } yield Limits(limit, offset)
-  }
 }
 
 case class TimeRange(from: Option[Instant], to: Option[Instant])

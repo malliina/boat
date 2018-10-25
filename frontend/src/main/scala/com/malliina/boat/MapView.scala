@@ -1,15 +1,11 @@
 package com.malliina.boat
 
-import java.net.URI
-
-import com.malliina.boat.FrontKeys._
 import com.malliina.mapbox.{MapOptions, MapboxMap, mapboxGl}
 import org.scalajs.dom.raw._
 import org.scalajs.dom.{document, window}
 import play.api.libs.json.{Json, Writes}
 
 import scala.scalajs.js.{JSON, URIUtils}
-import scala.util.Try
 
 object MapView {
   def apply(accessToken: AccessToken): MapView = new MapView(accessToken)
@@ -22,19 +18,12 @@ object MapView {
     .toMap
 }
 
-class MapView(accessToken: AccessToken) {
+class MapView(accessToken: AccessToken) extends BaseFront {
   mapboxGl.accessToken = accessToken.token
-  val href = new URI(window.location.href)
-  val queryString = Option(href.getQuery).getOrElse("")
-  val queryParams = queryString.split("&").toList
-    .map { kv => kv.split("=").toList }
-    .collect { case key :: value :: Nil => key -> value }
-    .groupBy { case (key, _) => key }
-    .mapValues { vs => vs.map { case (_, v) => v } }
   val mapOptions = MapOptions(
     container = MapId,
     style = "mapbox://styles/malliina/cjgny1fjc008p2so90sbz8nbv",
-    center = Coord(lng = 24.9000, lat = 60.1400),
+    center = Coord(lng = 24.9, lat = 60.14),
     zoom = 13,
     hash = true
   )
@@ -43,38 +32,42 @@ class MapView(accessToken: AccessToken) {
 
   map.on("load", () => {
     val mode = if (Option(href.getFragment).isDefined) Stay else Fit
-    socket = Option(new MapSocket(map, queryString, mode))
+    val opts = query(SampleKey).map(_ => queryString).getOrElse(s"$queryString$craftSampleQuery")
+    socket = Option(new MapSocket(map, opts, mode))
   })
 
-  initModal()
+  elem(ModalId).foreach(initModal)
+
   initNav()
 
-  def queryDouble(key: String) = query(key).flatMap(s => Try(s.toDouble).toOption)
+  def craftSampleQuery = {
+    val prefix = if (queryString.isEmpty) "" else "&"
+    s"$prefix$SampleKey=${Constants.DefaultSample}"
+  }
 
-  def query(key: String) = queryParams.get(key).flatMap(_.headOption)
-
-  def initModal(): Unit = {
-    val modal = elem(ModalId)
-
+  def initModal(modal: Element): Unit = {
     def hideModal(): Unit = if (!modal.classList.contains(Hidden)) modal.classList.add(Hidden)
 
     window.addEventListener("click", (e: Event) => if (e.target == modal) hideModal())
     modal.getElementsByClassName(Close).headOption.foreach { node =>
       node.asInstanceOf[HTMLSpanElement].onclick = _ => hideModal()
     }
-    val q = elem(Question).asInstanceOf[HTMLSpanElement]
-    q.onclick = _ => {
-      modal.classList.remove(Hidden)
+    elem(Question).foreach { e =>
+      val q = e.asInstanceOf[HTMLSpanElement]
+      q.onclick = _ => {
+        modal.classList.remove(Hidden)
+      }
     }
   }
 
   def initNav(): Unit = {
-    Option(elem(DropdownLinkId)).map(_.asInstanceOf[HTMLElement]).foreach { e =>
-      val content = htmlElem(DropdownContentId)
-      e.addEventListener("click", (_: Event) => toggleClass(content, Visible))
-      window.addEventListener("click", (e: Event) => {
-        if (e.target == content) htmlElem(DropdownContentId).classList.remove(Visible)
-      })
+    elem(DropdownLinkId).map(_.asInstanceOf[HTMLElement]).foreach { e =>
+      htmlElem(DropdownContentId).foreach { content =>
+        e.addEventListener("click", (_: Event) => toggleClass(content, Visible))
+        window.addEventListener("click", (e: Event) => {
+          if (e.target == content) htmlElem(DropdownContentId).foreach(_.classList.remove(Visible))
+        })
+      }
     }
   }
 
@@ -84,9 +77,7 @@ class MapView(accessToken: AccessToken) {
     else classList.add(className)
   }
 
-  def htmlElem(id: String) = elem(id).asInstanceOf[HTMLElement]
-
-  def elem(id: String) = document.getElementById(id)
+  def htmlElem(id: String) = elem(id).map(_.asInstanceOf[HTMLElement])
 
   def parse[T: Writes](t: T) = JSON.parse(Json.stringify(Json.toJson(t)))
 }

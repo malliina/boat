@@ -165,6 +165,12 @@ class BoatController(mapboxToken: AccessToken,
     }
   }
 
+  def chart(track: TrackName) = secureAction(rh => TrackQuery.withDefault(rh, defaultLimit = 100)) { req =>
+    db.full(track, req.email, req.query).map { full =>
+      Ok(html.chart(full.track))
+    }
+  }
+
   private def secureJson[T, W: Writes](parse: RequestHeader => Either[SingleError, T])(run: BoatEmailRequest[T] => Future[W]) =
     secureAction(parse)(req => run(req).map { w => Ok(Json.toJson(w)) })
 
@@ -194,7 +200,13 @@ class BoatController(mapboxToken: AccessToken,
             else if (user == anonUser) BoatQuery.recent(Instant.now())
             else limits
           val history: Source[CoordsEvent, NotUsed] =
-            Source.fromFuture(db.history(user, historicalLimits)).flatMapConcat(es => Source(es.toList.map(_.sample(4))))
+            Source.fromFuture(db.history(user, historicalLimits)).flatMapConcat { es =>
+              // unless a sample is specified, return about 300 historical points - this optimization is for charts
+              val intelligentSample = math.max(1, es.map(_.coords.length).sum / 300)
+              val actualSample = limits.sample.getOrElse(intelligentSample)
+              log.debug(s"Points ${es.map(_.coords.length).sum} intelligent $intelligentSample actual $actualSample")
+              Source(es.toList.map(_.sample(actualSample)))
+            }
           // disconnects viewers that lag more than 3s
           val flow = Flow.fromSinkAndSource(Sink.ignore, history.concat(frontEvents).filter(_.isIntendedFor(user)))
             .keepAlive(10.seconds, () => PingEvent(Instant.now.toEpochMilli))
