@@ -17,14 +17,12 @@ class ChartsView extends BaseFront {
 }
 
 object ChartSocket {
-  def apply(ctx: CanvasRenderingContext2D, track: TrackName, sample: Option[Int]): ChartSocket = {
-    val sampleQuery = sample.map(s => s"&${FrontKeys.SampleKey}=$s").getOrElse("")
-    new ChartSocket(ctx, s"/ws/updates?track=$track$sampleQuery")
-  }
+  def apply(ctx: CanvasRenderingContext2D, track: TrackName, sample: Option[Int]): ChartSocket =
+    new ChartSocket(ctx, track, sample)
 }
 
-class ChartSocket(ctx: CanvasRenderingContext2D, wsPath: String)
-  extends BoatSocket(wsPath) {
+class ChartSocket(ctx: CanvasRenderingContext2D, track: TrackName, sample: Option[Int])
+  extends BoatSocket(Option(track), sample) {
 
   val seaBlue = "#006994"
   val red = "red"

@@ -32,9 +32,14 @@ class MapView(accessToken: AccessToken) extends BaseFront {
 
   map.on("load", () => {
     val mode = if (Option(href.getFragment).isDefined) Stay else Fit
-    val opts = query(SampleKey).map(_ => queryString).getOrElse(s"$queryString$craftSampleQuery")
-    socket = Option(new MapSocket(map, opts, mode))
+    val sample = queryInt(SampleKey).getOrElse(Constants.DefaultSample)
+    socket = Option(new MapSocket(map, readTrack, Option(sample), mode))
   })
+
+  def readTrack = href.getPath.split('/').toList match {
+    case _ :: "tracks" :: track :: _ => Option(TrackName(track))
+    case _ => None
+  }
 
   elem(ModalId).foreach(initModal)
 

@@ -44,8 +44,6 @@ class BoatHtml(jsFile: String) extends Tags(scalatags.Text) {
     (t: Builder, a: Attr, v: T) => t.setAttr(a.name, Builder.GenericAttrValueSource(v.value))
   }
 
-  def index(msg: String): TagPage = page(PageConf(h1(msg)))
-
   def list(track: FullTrack, current: Limits) = page(PageConf(TrackList(track, current)))
 
   def chart(track: TrackRef) = page(Charts.chart(track))
@@ -69,7 +67,7 @@ class BoatHtml(jsFile: String) extends Tags(scalatags.Text) {
                 span(`class` := "dropdown-button", "Tracks"),
                 div(`class` := "dropdown-content", id := DropdownContentId)(
                   b.tracks.map { t =>
-                    a(`class` := "track-link", href := reverse.index().url + s"?track=${urlEncode(t.trackName)}")(
+                    a(`class` := "track-link", href := reverse.track(t.trackName))(
                       span(t.trackName),
                       span(short(t.distance)),
                       span(t.startEndRange)
@@ -117,8 +115,17 @@ class BoatHtml(jsFile: String) extends Tags(scalatags.Text) {
   def personIcon(cls: String) =
     iconLink(a, PersonLink, cls, "person", "Sign in", href := routes.Social.google().toString)
 
-  def iconLink(tag: ConcreteHtmlTag[String], idValue: String, cls: String, dataGlyph: String, titleValue: String, more: AttrPair*) =
-    tag(id := idValue, `class` := s"oi $cls", data("glyph") := dataGlyph, title := titleValue, aria.hidden := "true", more)
+  def iconLink(tag: ConcreteHtmlTag[String],
+               idValue: String,
+               cls: String,
+               dataGlyph: String,
+               titleValue: String,
+               more: AttrPair*) =
+    tag(id := idValue,
+      `class` := s"oi $cls",
+      data("glyph") := dataGlyph,
+      title := titleValue,
+      aria.hidden := "true", more)
 
   def about = div(id := ModalId, `class` := s"$Modal $Hidden")(
     div(`class` := "modal-content")(
@@ -140,8 +147,12 @@ class BoatHtml(jsFile: String) extends Tags(scalatags.Text) {
         meta(charset := "utf-8"),
         titleTag("Boat Tracker"),
         deviceWidthViewport,
-        cssLinkHashed("https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css", "sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm"),
-        cssLinkHashed("https://use.fontawesome.com/releases/v5.3.1/css/all.css", "sha384-mzrmE5qonljUremFsqc01SB46JvROS7bZs3IO2EmfFsd15uHvIt+Y8vEf7N7fWAU"),
+        cssLinkHashed(
+          "https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css",
+          "sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm"),
+        cssLinkHashed(
+          "https://use.fontawesome.com/releases/v5.3.1/css/all.css",
+          "sha384-mzrmE5qonljUremFsqc01SB46JvROS7bZs3IO2EmfFsd15uHvIt+Y8vEf7N7fWAU"),
         cssLink(reverse.versioned("css/main.css")),
         cssLink("https://fonts.googleapis.com/css?family=Roboto:100,300,400,500,700"),
         content.css,

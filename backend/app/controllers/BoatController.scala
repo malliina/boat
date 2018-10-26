@@ -21,7 +21,7 @@ import controllers.BoatController.log
 import controllers.Social.{EmailKey, GoogleCookie, ProviderCookieName}
 import play.api.Logger
 import play.api.data.Form
-import play.api.http.Writeable
+import play.api.http.{MimeTypes, Writeable}
 import play.api.libs.json.{JsValue, Json, Writes}
 import play.api.mvc.WebSocket.MessageFlowTransformer.jsonMessageFlowTransformer
 import play.api.mvc._
@@ -79,12 +79,51 @@ class BoatController(mapboxToken: AccessToken,
 
   def index = authAction(optionalAuth) { req =>
     val user = req.user
-    val u = user.map(_.user).getOrElse(anonUser)
+    val u: Username = user.map(_.user).getOrElse(anonUser)
     val cookie = Cookie(TokenCookieName, mapboxToken.token, httpOnly = false)
     val result = Ok(html.map(user))
       .withCookies(cookie)
       .addingToSession(UserSessionKey -> u.name)(req.req)
     fut(result)
+  }
+
+  def tracks = secureJson(TrackQuery.apply) { req =>
+    db.tracksFor(req.email, req.query)
+  }
+
+  def distances = secureJson(_ => Right(())) { req =>
+    db.distances(req.email)
+  }
+
+  def track(track: TrackName) = EssentialAction { rh =>
+    val action = respond(rh)(
+      html = index,
+      json = summary(track)
+    )
+    action(rh)
+  }
+
+  def summary(track: TrackName) = secureJson(TrackQuery.apply) { _ =>
+    db.summary(track)
+  }
+
+  def trail(track: TrackName) = secureJson(TrackQuery.apply) { req =>
+    db.track(track, req.email, req.query)
+  }
+
+  def full(track: TrackName) = secureAction(rh => TrackQuery.withDefault(rh, defaultLimit = 100)) { req =>
+    db.full(track, req.email, req.query).map { track =>
+      respond(req.rh)(
+        html = Ok(html.list(track, req.query.limits)),
+        json = Ok(track)
+      )
+    }
+  }
+
+  def chart(track: TrackName) = secureAction(rh => TrackQuery.withDefault(rh, defaultLimit = 100)) { req =>
+    db.full(track, req.email, req.query).map { full =>
+      Ok(html.chart(full.track))
+    }
   }
 
   def health = Action {
@@ -139,35 +178,6 @@ class BoatController(mapboxToken: AccessToken,
           push.push(boat, BoatState.Disconnected)
         }
       }
-    }
-  }
-
-  def tracks = secureJson(TrackQuery.apply) { req =>
-    db.tracksFor(req.email, req.query)
-  }
-
-  def summary(track: TrackName) = secureJson(TrackQuery.apply) { _ =>
-    db.summary(track)
-  }
-
-  def distances = secureJson(_ => Right(())) { req =>
-    db.distances(req.email)
-  }
-
-  def track(track: TrackName) = secureJson(TrackQuery.apply) { req =>
-    db.track(track, req.email, req.query)
-  }
-
-  def full(track: TrackName) = secureAction(rh => TrackQuery.withDefault(rh, defaultLimit = 100)) { req =>
-    db.full(track, req.email, req.query).map { track =>
-      if (req.rh.getQueryString("json").isDefined) Ok(track)
-      else Ok(html.list(track, req.query.limits))
-    }
-  }
-
-  def chart(track: TrackName) = secureAction(rh => TrackQuery.withDefault(rh, defaultLimit = 100)) { req =>
-    db.full(track, req.email, req.query).map { full =>
-      Ok(html.chart(full.track))
     }
   }
 
@@ -368,4 +378,8 @@ class BoatController(mapboxToken: AccessToken,
       }
 
   def fut[T](t: T): Future[T] = Future.successful(t)
+
+  def respond[A](rh: RequestHeader)(html: => A, json: => A): A =
+    if (rh.accepts(MimeTypes.HTML) && rh.getQueryString("json").isEmpty) html
+    else json
 }

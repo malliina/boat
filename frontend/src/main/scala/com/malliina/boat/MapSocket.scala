@@ -9,8 +9,8 @@ import play.api.libs.json._
 import scala.concurrent.{Future, Promise}
 import scala.scalajs.js.JSConverters.genTravConvertible2JSRichGenTrav
 
-class MapSocket(map: MapboxMap, queryString: String, mode: MapMode)
-  extends BoatSocket(s"/ws/updates?$queryString") {
+class MapSocket(map: MapboxMap, track: Option[TrackName], sample: Option[Int], mode: MapMode)
+  extends BoatSocket(track, sample) {
 
   val boatIconId = "boat-icon"
   val emptyTrack = lineFor(Nil)
@@ -110,32 +110,36 @@ class MapSocket(map: MapboxMap, queryString: String, mode: MapMode)
       map.putLayer(paintedAnimation(hoverableTrack, Paint("#000", 5, 0)))
       coords.lastOption.map { coord =>
         map.putLayer(symbolAnimation(point, coord))
-        map.on("mousemove", point, e => {
-          map.getCanvas().style.cursor = "pointer"
-          trackPopup.remove()
-          boatPopup.showText(from.boatName.name, e.lngLat, map)
-        })
-        map.on("mouseleave", point, () => {
-          map.getCanvas().style.cursor = ""
-          boatPopup.remove()
-        })
-      }
-      map.on("mousemove", hoverableTrack, e => {
-        val isOnBoatSymbol = asJson[Seq[JsObject]](map.queryRenderedFeatures(e.point))
-          .getOrElse(Nil)
-          .exists(obj => (obj \ "layer" \ "id").asOpt[String].contains(point))
-        if (!isOnBoatSymbol) {
-          val op = nearest(e.lngLat, trails.getOrElse(trackId, Nil))(_.coord).map { near =>
+        map.onHover(point)(
+          in => {
             map.getCanvas().style.cursor = "pointer"
-            trackPopup.show(BoatHtml.trackPopup(near, from), e.lngLat, map)
+            trackPopup.remove()
+            boatPopup.showText(from.boatName.name, in.lngLat, map)
+          },
+          _ => {
+            map.getCanvas().style.cursor = ""
+            boatPopup.remove()
           }
-          op.fold(err => log.info(err), identity)
+        )
+      }
+      map.onHover(hoverableTrack)(
+        in => {
+          val isOnBoatSymbol = asJson[Seq[JsObject]](map.queryRenderedFeatures(in.point))
+            .getOrElse(Nil)
+            .exists(obj => (obj \ "layer" \ "id").asOpt[String].contains(point))
+          if (!isOnBoatSymbol) {
+            val op = nearest(in.lngLat, trails.getOrElse(trackId, Nil))(_.coord).map { near =>
+              map.getCanvas().style.cursor = "pointer"
+              trackPopup.show(BoatHtml.trackPopup(near, from), in.lngLat, map)
+            }
+            op.fold(err => log.info(err), identity)
+          }
+        },
+        _ => {
+          map.getCanvas().style.cursor = ""
+          trackPopup.remove()
         }
-      })
-      map.on("mouseleave", hoverableTrack, () => {
-        map.getCanvas().style.cursor = ""
-        trackPopup.remove()
-      })
+      )
     }
     // updates the boat icon
     map.getSource(point).foreach { geoJson =>
@@ -163,8 +167,8 @@ class MapSocket(map: MapboxMap, queryString: String, mode: MapMode)
     if (!isSameTopSpeed) {
       topSpeedMarkers.get(trackId).foreach(_.marker.remove())
       // https://www.mapbox.com/mapbox-gl-js/example/set-popup/
-      val markerPopup = new MapboxPopup(PopupOptions(offset = Option(6)))
-        .setHTML(BoatHtml.trackPopup(topPoint, from).render.outerHTML)
+      val markerPopup = MapboxPopup(PopupOptions(offset = Option(6)))
+        .html(BoatHtml.trackPopup(topPoint, from))
       val marker = MapboxMarker(BoatHtml.marker(topPoint.speed), topPoint.coord, markerPopup, map)
       val newTopSpeed = ActiveMarker(marker, topPoint)
       topSpeedMarkers = topSpeedMarkers.updated(trackId, newTopSpeed)

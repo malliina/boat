@@ -66,7 +66,9 @@ object BoatName extends StringCompanion[BoatName]
 
 case class TrackName(name: String) extends Wrapped(name)
 
-object TrackName extends StringCompanion[TrackName]
+object TrackName extends StringCompanion[TrackName] {
+  val Key = "track"
+}
 
 case class BoatToken(token: String) extends Wrapped(token)
 

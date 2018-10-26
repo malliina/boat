@@ -2,7 +2,20 @@ package com.malliina.boat
 
 import play.api.libs.json.JsValue
 
+object BoatSocket {
+  def query(track: Option[TrackName], sample: Option[Int]): String = {
+    val kvs = (track.map(t => TrackName.Key -> t.name) ++ sample.map(s => FrontKeys.SampleKey -> s.toString))
+      .map { case (k, v) => s"$k=$v" }
+      .mkString("&")
+    if (kvs.nonEmpty) s"?$kvs" else ""
+  }
+
+}
+
 abstract class BoatSocket(path: String) extends BaseSocket(path) with BaseFront {
+  def this(track: Option[TrackName], sample: Option[Int]) =
+    this(s"/ws/updates${BoatSocket.query(track, sample)}")
+
   override def handlePayload(payload: JsValue): Unit =
     payload.validate[FrontEvent].map(consume).recover { case err => onJsonFailure(err) }
 
