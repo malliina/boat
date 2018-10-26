@@ -27,19 +27,8 @@ object TrackList {
   implicit def wrappedHtml[T <: Wrapped](w: Wrapped): StringFrag = stringFrag(w.value)
 
   def apply(track: FullTrack, current: Limits): Modifier = {
-    val topSpeed: Speed = track.track.topSpeed.getOrElse(Speed.zero)
     div(`class` := "container")(
-      div(`class` := "row")(
-        div(`class` := "col-md-12")(
-          h1(track.track.boatName)
-        )
-      ),
-      dl(`class` := "row")(
-        description("Track", track.name),
-        description("Time", track.track.startEndRange),
-        description("Duration", BoatFormats.formatDuration(track.track.duration)),
-        description("Top speed", topSpeed),
-      ),
+      namedInfoBox(track.track),
       pagination(track.track, current),
       table(`class` := "table table-hover")(
         thead(tr(th("Coordinate"), th("Speed"), th("Time"))),
@@ -55,6 +44,23 @@ object TrackList {
         )
       ),
       pagination(track.track, current)
+    )
+  }
+
+  def namedInfoBox(track: TrackRef): Modifier = {
+    val topSpeed: Speed = track.topSpeed.getOrElse(Speed.zero)
+    modifier(
+      div(`class` := "row")(
+        div(`class` := "col-md-12")(
+          h1(track.boatName)
+        )
+      ),
+      dl(`class` := "row")(
+        description("Track", track.trackName),
+        description("Time", track.startEndRange),
+        description("Duration", BoatFormats.formatDuration(track.duration)),
+        description("Top speed", topSpeed),
+      )
     )
   }
 

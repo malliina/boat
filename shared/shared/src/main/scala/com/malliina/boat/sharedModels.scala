@@ -43,6 +43,7 @@ case class TimedCoord(id: TrackPointId,
                       coord: Coord,
                       boatTime: String,
                       boatTimeMillis: Long,
+                      boatTimeOnly: String,
                       speed: Speed,
                       waterTemp: Temperature,
                       depth: Distance) {

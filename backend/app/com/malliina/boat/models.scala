@@ -217,7 +217,10 @@ case class CombinedCoord(id: TrackPointId,
     depthOffset, boatTime, date, track, added, sentences
   )
 
-  def timed = TimedCoord(id, coord, Instants.format(boatTime), boatTime.toEpochMilli, boatSpeed, waterTemp, depth)
+  def timed = TimedCoord(
+    id, coord, Instants.format(boatTime), boatTime.toEpochMilli,
+    Instants.formatTime(boatTime), boatSpeed, waterTemp, depth
+  )
 }
 
 object CombinedCoord {

@@ -220,6 +220,7 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext)
         Coord(point.lon, point.lat),
         Instants.format(point.boatTime),
         point.boatTime.toEpochMilli,
+        Instants.formatTime(point.boatTime),
         point.boatSpeed,
         point.waterTemp,
         point.depth

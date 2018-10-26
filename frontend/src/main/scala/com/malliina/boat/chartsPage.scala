@@ -49,7 +49,7 @@ class ChartSocket(ctx: CanvasRenderingContext2D, wsPath: String)
       borderColor = Seq(red),
       borderWidth = 2
     )
-    val chartData = ChartData(coords.map(_.boatTime), Seq(depths, speeds))
+    val chartData = ChartData(coords.map(_.boatTimeOnly), Seq(depths, speeds))
     Chart(ctx, ChartSpecs.line(chartData))
   }
 }
