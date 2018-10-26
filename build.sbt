@@ -184,9 +184,10 @@ lazy val clientSettings = commonSettings ++ Seq(
 )
 
 lazy val utilsSettings = basicSettings ++ Seq(
-  resolvers += "GeoTools" at "http://download.osgeo.org/webdav/geotools/",
+  resolvers += "GeoTools" at "https://download.osgeo.org/webdav/geotools/",
   libraryDependencies ++= Seq(
-    "org.geotools" % "gt-shapefile" % "20.0",
+    "javax.media" % "jai_core" % "1.1.3" from "https://download.osgeo.org/webdav/geotools/javax/media/jai_core/1.1.3/jai_core-1.1.3.jar",
+    "org.geotools" % "gt-shapefile" % "20.0" exclude("javax.media", "jai_core"),
     "org.scalatest" %% "scalatest" % "3.0.5" % Test
   )
 )
