@@ -1,9 +1,9 @@
 package com.malliina.boat.db
 
 import com.malliina.boat.db.PushDatabase.log
-import com.malliina.boat.push.{BoatNotification, BoatState, PushSystem}
+import com.malliina.boat.push.{APNSHttpResult, BoatNotification, BoatState, PushSystem}
 import com.malliina.boat.{MobileDevice, PushId, PushToken, TrackMeta}
-import com.malliina.push.apns.APNSToken
+import com.malliina.push.apns.{APNSToken, BadDeviceToken}
 import com.malliina.values.UserId
 import play.api.Logger
 
@@ -47,8 +47,22 @@ class PushDatabase(val db: BoatSchema, val push: PushSystem)(implicit ec: Execut
     }
     for {
       tokens <- eligibleTokens
-      _ <- Future.traverse(tokens.map(_.token))(token => push.push(notification, APNSToken(token.token)))
+      results <- Future.traverse(tokens.map(_.token))(token => push.push(notification, APNSToken(token.token)))
+      _ <- handle(results.flatten)
     } yield ()
+  }
 
+  private def handle(results: Seq[APNSHttpResult]): Future[Int] = {
+    val badTokens = results.filter(_.error.contains(BadDeviceToken)).map(bad => PushToken(bad.token.token))
+    if (badTokens.isEmpty) {
+      Future.successful(0)
+    } else {
+      action {
+        pushTable.filter(t => t.device === MobileDevice.ios && t.token.inSet(badTokens)).delete.map { changed =>
+          log.info(s"Removed $changed bad tokens based on response from APNs: ${badTokens.mkString(", ")}")
+          changed
+        }
+      }
+    }
   }
 }
