@@ -1,6 +1,6 @@
 package com.malliina.boat.auth
 
-import com.malliina.boat.db.{IdentityError, JWTError}
+import com.malliina.boat.db.{IdentityException, JWTError, MissingCredentials}
 import com.malliina.http.OkClient
 import com.malliina.play.auth.{AuthError, IdToken, InvalidClaims, KeyClient}
 import com.malliina.values.Email
@@ -25,9 +25,13 @@ object GoogleTokenAuth {
 }
 
 class GoogleTokenAuth(client: KeyClient)(implicit ec: ExecutionContext) {
-  def auth(rh: RequestHeader): Option[Future[Either[IdentityError, Email]]] =
+  def authEmail(rh: RequestHeader): Future[Email] =
     GoogleTokenAuth.readAuthToken(rh).map { token =>
-      validate(IdToken(token)).map(_.left.map(err => JWTError(rh, err)))
+      validate(IdToken(token)).flatMap { e =>
+        e.fold(err => Future.failed(IdentityException(JWTError(rh, err))), email => Future.successful(email))
+      }
+    }.getOrElse {
+      Future.failed(IdentityException(MissingCredentials(rh)))
     }
 
   def validate(token: IdToken): Future[Either[AuthError, Email]] =

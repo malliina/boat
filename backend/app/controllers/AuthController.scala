@@ -1,0 +1,74 @@
+package controllers
+
+import com.malliina.boat.auth.GoogleTokenAuth
+import com.malliina.boat.db._
+import com.malliina.boat.http.BoatRequest
+import com.malliina.boat.{Errors, SingleError, UserInfo}
+import com.malliina.values.Email
+import controllers.AuthController.log
+import controllers.Social.{EmailKey, GoogleCookie, ProviderCookieName}
+import play.api.Logger
+import play.api.http.Writeable
+import play.api.libs.json.{Json, Writes}
+import play.api.mvc._
+
+import scala.concurrent.{ExecutionContext, Future}
+
+object AuthController {
+  private val log = Logger(getClass)
+}
+
+abstract class AuthController(googleAuth: GoogleTokenAuth,
+                              auther: UserManager,
+                              comps: ControllerComponents) extends AbstractController(comps) {
+  implicit val ec: ExecutionContext = comps.executionContext
+
+  implicit def writeable[T: Writes] = Writeable.writeableOf_JsValue.map[T](t => Json.toJson(t))
+
+  protected def authAction[U](authenticate: RequestHeader => Future[U])(code: BoatRequest[U, AnyContent] => Future[Result]) =
+    parsedAuth(parse.default)(authenticate)(code)
+
+  protected def parsedAuth[U, B](p: BodyParser[B])(authenticate: RequestHeader => Future[U])(code: BoatRequest[U, B] => Future[Result]) =
+    Action(p).async { req =>
+      recovered(authenticate(req), req).flatMap { e =>
+        e.fold(fut, t => code(BoatRequest(t, req)))
+      }
+    }
+
+  protected def googleProfile(rh: RequestHeader): Future[UserInfo] =
+    googleAuth.authEmail(rh).flatMap { email => auther.authEmail(email) }
+
+  protected def profile(rh: RequestHeader): Future[UserInfo] =
+    authAppOrWeb(rh).flatMap { email =>
+      auther.authEmail(email)
+    }
+
+  protected def authAppOrWeb(rh: RequestHeader): Future[Email] = {
+    googleAuth.authEmail(rh).recoverWith {
+      case mce: MissingCredentialsException =>
+        sessionEmail(rh).map(email => Future.successful(email)).getOrElse(Future.failed(mce))
+    }
+  }
+
+  protected def sessionEmail(rh: RequestHeader): Option[Email] =
+    rh.session.get(EmailKey).map(Email.apply)
+
+  protected def recovered[T](f: Future[T], rh: RequestHeader): Future[Either[Result, T]] =
+    f.map[Either[Result, T]](t => Right(t)).recover {
+      case mce: MissingCredentialsException =>
+        Left(checkLoginCookie(mce.rh).getOrElse(unauth))
+      case ie: IdentityException =>
+        log.warn(s"Authentication failed from '$rh': '${ie.error}'.")
+        Left(unauth)
+    }
+
+  private def checkLoginCookie(rh: RequestHeader): Option[Result] =
+    rh.cookies.get(ProviderCookieName).filter(_.value == GoogleCookie).map { _ =>
+      log.info(s"Redir to login")
+      Redirect(routes.Social.google())
+    }
+
+  private def unauth = Unauthorized(Errors(SingleError("Unauthorized.")))
+
+  def fut[T](t: T): Future[T] = Future.successful(t)
+}

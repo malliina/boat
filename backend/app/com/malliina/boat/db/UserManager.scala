@@ -1,6 +1,6 @@
 package com.malliina.boat.db
 
-import com.malliina.boat.{BoatInfo, BoatToken, JoinedBoat, UserInfo, UserToken}
+import com.malliina.boat.{BoatInfo, BoatToken, JoinedBoat, UserInfo}
 import com.malliina.play.auth.AuthError
 import com.malliina.values.{Email, Password, UserId, Username}
 import org.apache.commons.codec.digest.DigestUtils
@@ -9,8 +9,6 @@ import play.api.mvc.RequestHeader
 import scala.concurrent.Future
 
 trait UserManager {
-  def authUser(token: UserToken): Future[Either[IdentityError, UserInfo]]
-
   /** Retrieves user information for the user with the given email address. If the user does not exist, one is created
     * with the email address as the username, and with a newly created randomly named boat. This enables user login
     * without an explicit signup step.
@@ -21,9 +19,9 @@ trait UserManager {
     * @param email email address of the user
     * @return user info for `email`
     */
-  def authEmail(email: Email): Future[Either[IdentityError, UserInfo]]
+  def authEmail(email: Email): Future[UserInfo]
 
-  def authBoat(token: BoatToken): Future[Either[IdentityError, JoinedBoat]]
+  def authBoat(token: BoatToken): Future[JoinedBoat]
 
   def boats(user: Email): Future[Seq[BoatInfo]]
 
@@ -54,3 +52,16 @@ case class MissingToken(rh: RequestHeader) extends IdentityError
 case class MissingCredentials(rh: RequestHeader) extends IdentityError
 
 case class JWTError(rh: RequestHeader, error: AuthError) extends IdentityError
+
+class MissingCredentialsException(error: MissingCredentials) extends IdentityException(error) {
+  def rh = error.rh
+}
+
+class IdentityException(val error: IdentityError) extends Exception
+
+object IdentityException {
+  def apply(error: IdentityError): IdentityException = error match {
+    case mc@MissingCredentials(_) => new MissingCredentialsException(mc)
+    case other => new IdentityException(other)
+  }
+}

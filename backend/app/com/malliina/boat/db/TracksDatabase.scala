@@ -151,10 +151,17 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext)
       .result
       .map(collect)
     for {
-      trackStats <- first(tracksViewNonEmpty.filter(_.trackName === track), s"Track not found: '$track'.")
+      trackStats <- namedTrack(track)
       coords <- coordsAction
     } yield FullTrack(trackStats.strip, coords)
   }
+
+  override def ref(track: TrackName): Future[TrackRef] = action {
+    namedTrack(track).map(_.strip)
+  }
+
+  private def namedTrack(track: TrackName) =
+    first(tracksViewNonEmpty.filter(_.trackName === track), s"Track not found: '$track'.")
 
   private def collect(rows: Seq[(SentenceRow, CombinedCoord)]): Seq[CombinedFullCoord] =
     rows.foldLeft(Vector.empty[CombinedFullCoord]) { case (acc, (s, c)) =>

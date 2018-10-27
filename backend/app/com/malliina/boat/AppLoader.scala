@@ -88,11 +88,13 @@ class AppComponents(readConf: Configuration => AppConf, context: Context)
     new FileController.BlockingActions(actorSystem, controllerComponents.parsers.default),
     controllerComponents
   )
-  lazy val home = new BoatController(
+  lazy val pushCtrl = new PushController(push, googleAuth, users, controllerComponents)
+  lazy val appCtrl = new AppController(googleAuth, users, controllerComponents)
+  lazy val boatCtrl = new BoatController(
     mapboxToken, html, users, googleAuth, tracks, push,
     controllerComponents, assets)(actorSystem, materializer)
   val docs = new DocsController(html, controllerComponents)
-  override lazy val router: Router = new Routes(httpErrorHandler, home, signIn, docs, files)
+  override lazy val router: Router = new Routes(httpErrorHandler, boatCtrl, appCtrl, pushCtrl, signIn, docs, files)
 
   applicationLifecycle.addStopHook(() => Future.successful {
     schema.close()

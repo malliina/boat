@@ -27,11 +27,6 @@ object StackedAxes {
     literal(stacked = stacked).asInstanceOf[StackedAxes]
 }
 
-//@js.native
-//trait LineData extends js.Object {
-//  def
-//}
-
 @js.native
 trait Axes extends js.Object {
   def ticks: TickOptions = js.native
@@ -66,7 +61,7 @@ object ChartOptions {
 trait DataSet extends js.Object {
   def label: String = js.native
 
-  def data: js.Array[Int] = js.native
+  def data: js.Array[Double] = js.native
 
   def backgroundColor: js.Array[String] = js.native
 
@@ -110,6 +105,19 @@ trait ChartData extends js.Object {
 object ChartData {
   def apply(labels: Seq[String], datasets: Seq[DataSet]): ChartData =
     literal(labels = labels.toJSArray, datasets = datasets.toJSArray).asInstanceOf[ChartData]
+
+  implicit class ChartDataOps(val self: ChartData) extends AnyVal {
+    def append(labels: Seq[String], datasets: Map[String, Seq[Double]]): Unit = {
+      self.labels.push(labels: _*)
+      for {
+        (label, values) <- datasets
+        dataset <- self.datasets.find(_.label == label).toSeq
+      } {
+        dataset.data.push(values: _*)
+      }
+    }
+  }
+
 }
 
 @js.native
@@ -131,7 +139,11 @@ object ChartSpecs {
 
 @js.native
 @JSGlobal("Chart")
-class Chart(ctx: CanvasRenderingContext2D, options: ChartSpecs) extends js.Object
+class Chart(ctx: CanvasRenderingContext2D, options: ChartSpecs) extends js.Object {
+  def data: ChartData = js.native
+
+  def update(): Unit = js.native
+}
 
 object Chart {
   def apply(ctx: CanvasRenderingContext2D, options: ChartSpecs): Chart =

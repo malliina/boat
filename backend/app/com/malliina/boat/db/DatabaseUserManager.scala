@@ -25,15 +25,14 @@ class DatabaseUserManager(val db: BoatSchema)(implicit ec: ExecutionContext)
 
   val userInserts = usersTable.map(_.forInserts).returning(usersTable.map(_.id))
 
-  override def authUser(token: UserToken): Future[Either[IdentityError, UserInfo]] =
-    withUserAuth(usersTable.filter(_.token === token))
-
-  override def authEmail(email: Email): Future[Either[IdentityError, UserInfo]] = {
+  override def authEmail(email: Email): Future[UserInfo] = {
     val action = for {
       id <- getOrCreate(email)
       info <- userAuthAction(usersTable.filter(_.id === id))
     } yield info
-    db.run(action.transactionally)
+    db.run(action.transactionally).flatMap { e =>
+      e.fold(err => Future.failed(IdentityException(err)), user => Future.successful(user))
+    }
   }
 
   private def getOrCreate(email: Email): DBIOAction[UserId, NoStream, Effect.All] =
@@ -84,8 +83,10 @@ class DatabaseUserManager(val db: BoatSchema)(implicit ec: ExecutionContext)
       }
     }
 
-  override def authBoat(token: BoatToken): Future[Either[IdentityError, JoinedBoat]] = action {
-    boatsView.filter(_.token === token).result.headOption.map(_.toRight(InvalidToken(token)))
+  override def authBoat(token: BoatToken): Future[JoinedBoat] = action {
+    boatsView.filter(_.token === token).result.headOption.flatMap { maybeBoat =>
+      maybeBoat.map(DBIO.successful).getOrElse(DBIO.failed(IdentityException(InvalidToken(token))))
+    }
   }
 
   override def boats(email: Email): Future[Seq[BoatInfo]] = action {

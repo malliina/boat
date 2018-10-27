@@ -36,11 +36,6 @@ class MapView(accessToken: AccessToken) extends BaseFront {
     socket = Option(new MapSocket(map, readTrack, Option(sample), mode))
   })
 
-  def readTrack = href.getPath.split('/').toList match {
-    case _ :: "tracks" :: track :: _ => Option(TrackName(track))
-    case _ => None
-  }
-
   elem(ModalId).foreach(initModal)
 
   initNav()

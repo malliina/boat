@@ -144,6 +144,12 @@ case class BoatRow(id: BoatId, name: BoatName, token: BoatToken, owner: UserId, 
   def toBoat = Boat(id, name, token, added.toEpochMilli)
 }
 
+case class BoatResponse(boat: Boat)
+
+object BoatResponse {
+  implicit val json = Json.format[BoatResponse]
+}
+
 case class JoinedBoat(boat: BoatId, boatName: BoatName, boatToken: BoatToken,
                       user: UserId, username: Username, email: Option[Email])
 

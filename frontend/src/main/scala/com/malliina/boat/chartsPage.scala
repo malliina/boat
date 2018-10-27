@@ -10,9 +10,10 @@ object ChartsView {
 class ChartsView extends BaseFront {
   elem(ChartsId).foreach { e =>
     val ctx = e.asInstanceOf[HTMLCanvasElement].getContext("2d").asInstanceOf[CanvasRenderingContext2D]
-    val track = TrackName(href.getPath.split('/')(2))
-    val sample = queryInt(SampleKey)
-    ChartSocket(ctx, track, sample)
+    readTrack.foreach { track =>
+      val sample = queryInt(SampleKey)
+      ChartSocket(ctx, track, sample)
+    }
   }
 }
 
@@ -21,34 +22,49 @@ object ChartSocket {
     new ChartSocket(ctx, track, sample)
 }
 
+/** Initializes an empty chart, then appends data in `onCoords`.
+  *
+  * @param ctx canvas
+  * @param track track
+  * @param sample 1 = full accuracy, None = intelligent
+  */
 class ChartSocket(ctx: CanvasRenderingContext2D, track: TrackName, sample: Option[Int])
   extends BoatSocket(Option(track), sample) {
 
   val seaBlue = "#006994"
   val red = "red"
 
+  val depthLabel = "Depth"
+  val speedLabel = "Speed"
+
+  val depths = DataSet(
+    label = depthLabel,
+    fill = Option(false),
+    data = Nil,
+    backgroundColor = Seq(seaBlue),
+    pointRadius = 1,
+    borderColor = Seq(seaBlue),
+    borderWidth = 2
+  )
+  val speeds = DataSet(
+    label = speedLabel,
+    fill = Option(false),
+    data = Nil,
+    backgroundColor = Seq(red),
+    pointRadius = 1,
+    borderColor = Seq(red),
+    borderWidth = 2
+  )
+  val chartData = ChartData(Nil, Seq(depths, speeds))
+  val chart = Chart(ctx, ChartSpecs.line(chartData))
+
   override def onCoords(event: CoordsEvent): Unit = {
     val coords = event.coords
-    val depths = DataSet(
-      label = "Depth",
-      fill = Option(false),
-      data = coords.map(_.depth.toMetersDouble),
-      backgroundColor = Seq(seaBlue),
-      pointRadius = 1,
-      borderColor = Seq(seaBlue),
-      borderWidth = 2
-    )
-    val speeds = DataSet(
-      label = "Speed",
-      fill = Option(false),
-      data = coords.map(c => math.rint(c.speed.toKnotsDouble * 100) / 100),
-      backgroundColor = Seq(red),
-      pointRadius = 1,
-      borderColor = Seq(red),
-      borderWidth = 2
-    )
-    val chartData = ChartData(coords.map(_.boatTimeOnly), Seq(depths, speeds))
-    Chart(ctx, ChartSpecs.line(chartData))
+    chart.data.append(coords.map(_.boatTimeOnly), Map(
+      depthLabel -> coords.map(_.depth.toMetersDouble),
+      speedLabel -> coords.map(c => math.rint(c.speed.toKnotsDouble * 100) / 100)
+    ))
+    chart.update()
   }
 }
 

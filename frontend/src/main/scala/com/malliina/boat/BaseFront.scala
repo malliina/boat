@@ -16,6 +16,11 @@ trait BaseFront extends FrontKeys {
     .groupBy { case (key, _) => key }
     .mapValues { vs => vs.map { case (_, v) => v } }
 
+  def readTrack = href.getPath.split('/').toList match {
+    case _ :: "tracks" :: track :: _ => Option(TrackName(track))
+    case _ => None
+  }
+
   def queryDouble(key: String) = query(key).flatMap(s => Try(s.toDouble).toOption)
 
   def queryInt(key: String) = query(key).flatMap(s => Try(s.toInt).toOption)
