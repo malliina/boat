@@ -89,10 +89,10 @@ class AppComponents(readConf: Configuration => AppConf, context: Context)
     controllerComponents
   )
   lazy val pushCtrl = new PushController(push, googleAuth, users, controllerComponents)
-  lazy val appCtrl = new AppController(googleAuth, users, controllerComponents)
+  lazy val appCtrl = new AppController(googleAuth, users, assets, controllerComponents)
   lazy val boatCtrl = new BoatController(
     mapboxToken, html, users, googleAuth, tracks, push,
-    controllerComponents, assets)(actorSystem, materializer)
+    controllerComponents)(actorSystem, materializer)
   val docs = new DocsController(html, controllerComponents)
   override lazy val router: Router = new Routes(httpErrorHandler, boatCtrl, appCtrl, pushCtrl, signIn, docs, files)
 

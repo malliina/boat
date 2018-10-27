@@ -38,8 +38,7 @@ class BoatController(mapboxToken: AccessToken,
                      googleAuth: GoogleTokenAuth,
                      db: TracksSource,
                      push: PushDatabase,
-                     comps: ControllerComponents,
-                     assets: AssetsBuilder)(implicit as: ActorSystem, mat: Materializer)
+                     comps: ControllerComponents)(implicit as: ActorSystem, mat: Materializer)
   extends AuthController(googleAuth, auther, comps)
     with Streams {
 
@@ -225,9 +224,6 @@ class BoatController(mapboxToken: AccessToken,
         onTermination(t).transform { _ => t }
       }
     }
-
-  def versioned(path: String, file: Asset): Action[AnyContent] =
-    assets.versioned(path, file)
 
   /** Auths with boat token or user/pass. Fails if an invalid token is provided. If no token is provided,
     * tries to auth with user/pass. Fails if invalid user/pass is provided. If no user/pass is provided,
