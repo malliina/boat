@@ -7,7 +7,7 @@ import scalatags.Text.all._
 object Modal {
   def about = div(id := ModalId, `class` := s"${FrontKeys.Modal} $Hidden")(
     div(`class` := "modal-content")(
-      span(`class` := "close")(raw("&times;")),
+      i(`class` := "close fas fa-times"),
       a(`class` := "badge-ios", href := "https://itunes.apple.com/us/app/boat-tracker/id1434203398?ls=1&mt=8"),
       hr(`class` := "modal-divider"),
       h2("Merikartta-aineistot"),
@@ -15,7 +15,9 @@ object Modal {
       h2("Java Marine API"),
       p(a(href := "http://www.gnu.org/licenses/lgpl-3.0-standalone.html")("GNU LGPL"), " ", a(href := "https://ktuukkan.github.io/marine-api/")("https://ktuukkan.github.io/marine-api/")),
       h2("Open Iconic"),
-      p("Open Iconic — ", a(href := "https://www.useiconic.com/open")("www.useiconic.com/open")),
+      p(a(href := "https://www.useiconic.com/open")("www.useiconic.com/open")),
+      h2("Font Awesome"),
+      p(a(href := "https://fontawesome.com")("fontawesome.com")),
       h2("Inspiration"),
       p("Inspired by ", a(href := "https://github.com/iaue/poiju.io")("POIJU.IO"), ".")
     )

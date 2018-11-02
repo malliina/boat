@@ -66,7 +66,7 @@ lazy val backendSettings = playSettings ++ Seq(
     "com.amazonaws" % "aws-java-sdk-s3" % "1.11.421",
     "com.vladsch.flexmark" % "flexmark-html-parser" % "0.34.44",
     "com.malliina" %% "play-social" % utilPlayVersion,
-    "com.malliina" %% "mobile-push" % "1.13.0",
+    "com.malliina" %% "mobile-push" % "1.14.0",
     utilPlayDep,
     utilPlayDep % Test classifier "tests"
   ),

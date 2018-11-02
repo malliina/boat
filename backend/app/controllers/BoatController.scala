@@ -15,7 +15,6 @@ import com.malliina.boat.http.{BoatEmailRequest, BoatQuery, BoatRequest, TrackQu
 import com.malliina.boat.parsing.{BoatParser, FullCoord, ParsedSentence}
 import com.malliina.boat.push.BoatState
 import com.malliina.values.Username
-import controllers.Assets.Asset
 import controllers.BoatController.log
 import play.api.Logger
 import play.api.data.Form
