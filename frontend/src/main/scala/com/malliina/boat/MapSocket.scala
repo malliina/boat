@@ -39,7 +39,7 @@ class MapSocket(map: MapboxMap, track: Option[TrackName], sample: Option[Int], m
         f.layer.exists(obj => (obj \ "type").asOpt[String].exists(t => t == "symbol" || t == "circle"))
     }
     symbol.fold(markPopup.remove()) { feature =>
-      val symbol = validate[MarineSymbol](JsObject(feature.properties))
+      val symbol = validate[MarineSymbol](feature.props)
       symbol.fold(
         err => {
           log.info(err.describe)
@@ -49,6 +49,12 @@ class MapSocket(map: MapboxMap, track: Option[TrackName], sample: Option[Int], m
           markPopup.show(BoatHtml.markPopup(ok), target, map)
         }
       )
+    }
+    val isSymbolClicked = symbol.isDefined
+    if (!isSymbolClicked) {
+      features.flatMap(f => f.props.asOpt[FairwayArea]).headOption.foreach { fairway =>
+        markPopup.show(BoatHtml.fairwayPopup(fairway), e.lngLat, map)
+      }
     }
   })
   MapboxStyles.clickableLayers.foreach { id =>

@@ -1,7 +1,18 @@
 package com.malliina.boat
 
-import com.malliina.boat.MaritimeJson.intReader
+import com.malliina.boat.MaritimeJson.{intReader, meters}
+import com.malliina.measure.Distance
 import play.api.libs.json._
+
+object MaritimeJson {
+
+  import com.malliina.measure.DistanceDouble
+
+  val meters = Reads[Distance] { json => json.validate[Double].map(_.meters) }
+
+  def intReader[T](onError: JsValue => String)(pf: PartialFunction[Int, T]): Reads[T] =
+    Reads[T] { json => json.validate[Int].collect(JsonValidationError(onError(json)))(pf) }
+}
 
 sealed trait Translated {
   def fi: String
@@ -264,7 +275,158 @@ object MarineSymbol {
   }
 }
 
-object MaritimeJson {
-  def intReader[T](onError: JsValue => String)(pf: PartialFunction[Int, T]): Reads[T] =
-    Reads[T] { json => json.validate[Int].collect(JsonValidationError(onError(json)))(pf) }
+case class DepthArea(minDepth: Distance, maxDepth: Distance, when: String)
+
+object DepthArea {
+  implicit val reader = Reads[DepthArea] { json =>
+    for {
+      min <- (json \ "MINDEPTH").validate[Distance](meters)
+      max <- (json \ "MAXDEPTH").validate[Distance](meters)
+      when <- (json \ "IRROTUS_PVM").validate[String]
+    } yield DepthArea(min, max, when)
+  }
+}
+
+sealed abstract class QualityClass(val value: Int)
+
+object QualityClass {
+  val all = Seq(Unknown, One, Two, Three)
+
+  implicit val reader = Reads[QualityClass] { json =>
+    json.validate[Int].flatMap { i =>
+      all.find(_.value == i)
+        .map(JsSuccess(_))
+        .getOrElse(JsError(s"Invalid quality class: '$i'."))
+    }
+  }
+
+  case object Unknown extends QualityClass(0)
+
+  case object One extends QualityClass(1)
+
+  case object Two extends QualityClass(2)
+
+  case object Three extends QualityClass(3)
+
+}
+
+sealed abstract class FairwayType(val fi: String, val se: String, val en: String) extends Translated
+
+object FairwayType {
+  implicit val reader: Reads[FairwayType] = intReader[FairwayType](json => s"Unknown fairway type: '$json'.") {
+    case 1 => Navigation
+    case 2 => Anchoring
+    case 3 => Meetup
+    case 4 => HarborPool
+    case 5 => Turn
+    case 6 => Channel
+    case 7 => CoastTraffic
+    case 8 => Core
+    case 9 => Special
+    case 10 => Lock
+    case 11 => Secured
+    case 12 => Helcom
+    case 13 => Pilot
+  }
+
+  case object Navigation extends FairwayType("Navigointialue", "", "")
+
+  case object Anchoring extends FairwayType("Ankkurointialue", "", "")
+
+  case object Meetup extends FairwayType("Ohitus- ja kohtaamisalue", "", "")
+
+  case object HarborPool extends FairwayType("Satama-allas", "", "")
+
+  case object Turn extends FairwayType("Kääntöallas", "", "")
+
+  case object Channel extends FairwayType("Kanava", "", "")
+
+  case object CoastTraffic extends FairwayType("Rannikkoliikenteen alue", "", "")
+
+  case object Core extends FairwayType("Veneilyn runkoväylä", "", "")
+
+  case object Special extends FairwayType("Erikoisalue", "", "")
+
+  case object Lock extends FairwayType("Sulku", "", "")
+
+  case object Secured extends FairwayType("Varmistettu lisäalue", "", "")
+
+  case object Helcom extends FairwayType("HELCOM-alue", "", "")
+
+  case object Pilot extends FairwayType("Luotsin otto- ja jättöalue", "", "")
+
+}
+
+sealed abstract class FairwayState(val fi: String, val se: String, val en: String) extends Translated
+
+object FairwayState {
+  implicit val reader: Reads[FairwayState] = intReader[FairwayState](json => s"Unknown fairway state: '$json'.") {
+    case 1 => Confirmed
+    case 2 => Aihio
+    case 3 => MayChange
+    case 4 => ChangeAihio
+    case 5 => MayBeRemoved
+    case 6 => Removed
+  }
+
+  case object Confirmed extends FairwayState("Vahvistettu", "", "")
+
+  case object Aihio extends FairwayState("Aihio", "", "")
+
+  case object MayChange extends FairwayState("Muutoksen alainen", "", "")
+
+  case object ChangeAihio extends FairwayState("Muutosaihio", "", "")
+
+  case object MayBeRemoved extends FairwayState("Poiston alainen", "", "")
+
+  case object Removed extends FairwayState("Poistettu", "", "")
+
+}
+
+sealed abstract class MarkType(val fi: String, val se: String, val en: String) extends Translated
+
+object MarkType {
+  implicit val reader: Reads[MarkType] = intReader[MarkType](json => s"Unknown mark type: '$json'.") {
+    case 0 => Unknown
+    case 1 => Lateral
+    case 2 => Cardinal
+  }
+
+  case object Unknown extends MarkType("Tuntematon", "Okänd", "Unknown")
+
+  case object Lateral extends MarkType("Lateraali", "Lateral", "Lateral")
+
+  case object Cardinal extends MarkType("Kardinaali", "Kardinal", "Cardinal")
+
+}
+
+/** <p>Väyläalue, farledsområde.
+  *
+  * <p>harrow depth = haraussyvyys
+  *
+  * @see Vesiväyläaineistojen tietosisällön kuvaus
+  * @see https://julkaisut.liikennevirasto.fi/pdf3/ohje_2011_vesivayliin_liittyvia_fi.pdf
+  */
+case class FairwayArea(owner: String,
+                       quality: QualityClass,
+                       fairwayType: FairwayType,
+                       fairwayDepth: Distance,
+                       harrowDepth: Distance,
+                       comparisonLevel: String,
+                       state: FairwayState,
+                       markType: Option[MarkType])
+
+object FairwayArea {
+  implicit val reader: Reads[FairwayArea] = Reads[FairwayArea] { json =>
+    for {
+      owner <- (json \ "OMISTAJA").validate[String]
+      quality <- (json \ "LAATULK").validate[QualityClass]
+      fairwayType <- (json \ "VAYALUE_TY").validate[FairwayType]
+      fairwayDepth <- (json \ "VAYALUE_SY").validate[Distance](meters)
+      harrowDepth <- (json \ "HARAUS_SYV").validate[Distance](meters)
+      comparison <- (json \ "VERT_TASO").validate[String]
+      state <- (json \ "TILA").validate[FairwayState]
+      mark <- (json \ "MERK_LAJI").validateOpt[MarkType]
+    } yield FairwayArea(owner, quality, fairwayType, fairwayDepth, harrowDepth, comparison, state, mark)
+  }
 }

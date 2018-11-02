@@ -118,6 +118,8 @@ case class Feature(`type`: String, geometry: Geometry, properties: Map[String, J
   def addCoords(coords: Seq[Coord]): Feature = copy(
     geometry = geometry.updateCoords(coords)
   )
+
+  def props = JsObject(properties)
 }
 
 object Feature {
