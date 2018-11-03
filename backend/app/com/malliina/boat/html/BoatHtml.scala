@@ -134,6 +134,7 @@ class BoatHtml(jsFile: String) extends Tags(scalatags.Text) {
         meta(charset := "utf-8"),
         titleTag("Boat Tracker"),
         deviceWidthViewport,
+        link(rel := "icon", `type` := "image/png", href := "/assets/img/favicon.png"),
         cssLinkHashed(
           "https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css",
           "sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm"),
