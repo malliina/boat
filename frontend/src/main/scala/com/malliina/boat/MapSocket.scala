@@ -4,6 +4,7 @@ import com.malliina.boat.BoatFormats._
 import com.malliina.boat.Parsing._
 import com.malliina.mapbox._
 import com.malliina.turf.turf
+import com.malliina.util.EitherOps
 import play.api.libs.json._
 
 import scala.concurrent.{Future, Promise}
@@ -17,6 +18,7 @@ class MapSocket(map: MapboxMap, track: Option[TrackName], sample: Option[Int], m
   val trackPopup = MapboxPopup(PopupOptions())
   val boatPopup = MapboxPopup(PopupOptions(className = Option("popup-boat")))
   val markPopup = MapboxPopup(PopupOptions())
+  val html = Popups(Lang.Finnish)
 
   private var mapMode: MapMode = mode
   private var boats = Map.empty[String, FeatureCollection]
@@ -26,34 +28,32 @@ class MapSocket(map: MapboxMap, track: Option[TrackName], sample: Option[Int], m
   initImage()
 
   map.on("click", e => {
-    //    log.info(JSON.stringify(map.queryRenderedFeatures(e.point)))
-    val features = map.queryRendered(e.point).fold(
-      err => {
-        log.info(s"Failed to parse features '${err.error}' in '${err.json}'.")
-        Nil
-      },
-      identity
-    )
+    val features = map.queryRendered(e.point).recover { err =>
+      log.info(s"Failed to parse features '${err.error}' in '${err.json}'.")
+      Nil
+    }
     val symbol = features.find { f =>
       f.geometry.typeName == "Point" &&
         f.layer.exists(obj => (obj \ "type").asOpt[String].exists(t => t == "symbol" || t == "circle"))
     }
     symbol.fold(markPopup.remove()) { feature =>
       val symbol = validate[MarineSymbol](feature.props)
-      symbol.fold(
-        err => {
-          log.info(err.describe)
-        },
-        ok => {
-          val target = feature.geometry.coords.headOption.map(LngLat.apply).getOrElse(e.lngLat)
-          markPopup.show(BoatHtml.markPopup(ok), target, map)
-        }
-      )
+      symbol.map { ok =>
+        val target = feature.geometry.coords.headOption.map(LngLat.apply).getOrElse(e.lngLat)
+        markPopup.show(html.mark(ok), target, map)
+      }.recover { err =>
+        log.info(err.describe)
+      }
     }
-    val isSymbolClicked = symbol.isDefined
-    if (!isSymbolClicked) {
-      features.flatMap(f => f.props.asOpt[FairwayArea]).headOption.foreach { fairway =>
-        markPopup.show(BoatHtml.fairwayPopup(fairway), e.lngLat, map)
+    if (symbol.isEmpty) {
+      val maybeFairway = features.flatMap(f => f.props.asOpt[FairwayArea]).headOption
+      maybeFairway.foreach { fairway =>
+        markPopup.show(html.fairway(fairway), e.lngLat, map)
+      }
+      if (maybeFairway.isEmpty) {
+        features.flatMap(f => f.props.asOpt[DepthArea]).headOption.foreach { depthArea =>
+          markPopup.show(html.depthArea(depthArea), e.lngLat, map)
+        }
       }
     }
   })
@@ -136,7 +136,7 @@ class MapSocket(map: MapboxMap, track: Option[TrackName], sample: Option[Int], m
           if (!isOnBoatSymbol) {
             val op = nearest(in.lngLat, trails.getOrElse(trackId, Nil))(_.coord).map { near =>
               map.getCanvas().style.cursor = "pointer"
-              trackPopup.show(BoatHtml.trackPopup(near, from), in.lngLat, map)
+              trackPopup.show(html.track(near, from), in.lngLat, map)
             }
             op.fold(err => log.info(err), identity)
           }
@@ -174,8 +174,8 @@ class MapSocket(map: MapboxMap, track: Option[TrackName], sample: Option[Int], m
       topSpeedMarkers.get(trackId).foreach(_.marker.remove())
       // https://www.mapbox.com/mapbox-gl-js/example/set-popup/
       val markerPopup = MapboxPopup(PopupOptions(offset = Option(6)))
-        .html(BoatHtml.trackPopup(topPoint, from))
-      val marker = MapboxMarker(BoatHtml.marker(topPoint.speed), topPoint.coord, markerPopup, map)
+        .html(html.track(topPoint, from))
+      val marker = MapboxMarker(html.marker(topPoint.speed), topPoint.coord, markerPopup, map)
       val newTopSpeed = ActiveMarker(marker, topPoint)
       topSpeedMarkers = topSpeedMarkers.updated(trackId, newTopSpeed)
     }

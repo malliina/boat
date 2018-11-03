@@ -22,8 +22,8 @@ sealed trait Translated {
   def en: String
 
   def in(lang: Lang): String =
-    if (lang == Finnish) fi
-    else if (lang == Swedish) se
+    if (lang == Lang.Finnish) fi
+    else if (lang == Lang.Swedish) se
     else en
 }
 
@@ -226,10 +226,10 @@ case class MarineSymbol(owner: String,
                         navMark: NavMark,
                         construction: Option[ConstructionInfo]) {
   def name(lang: Lang): Option[String] =
-    if (lang == Swedish) nameSe.orElse(nameFi) else nameFi.orElse(nameSe)
+    if (lang == Lang.Swedish) nameSe.orElse(nameFi) else nameFi.orElse(nameSe)
 
   def location(lang: Lang): Option[String] =
-    if (lang == Swedish) locationSe.orElse(locationFi) else locationFi.orElse(locationSe)
+    if (lang == Lang.Swedish) locationSe.orElse(locationFi) else locationFi.orElse(locationSe)
 }
 
 /**
@@ -282,7 +282,7 @@ object DepthArea {
     for {
       min <- (json \ "MINDEPTH").validate[Distance](meters)
       max <- (json \ "MAXDEPTH").validate[Distance](meters)
-      when <- (json \ "IRROTUS_PVM").validate[String]
+      when <- (json \ "IRROTUS_PV").validate[String]
     } yield DepthArea(min, max, when)
   }
 }

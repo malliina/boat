@@ -3,12 +3,16 @@ package com.malliina.boat
 import com.malliina.measure.{Distance, Speed}
 import scalatags.JsDom.all._
 
-object BoatHtml {
+object Popups {
+  def apply(lang: Lang) = new Popups(lang)
+}
+
+class Popups(lang: Lang) {
   val empty = modifier()
 
-  def trackPopup(c: TimedCoord, from: TrackRef, lang: Lang = Finnish) = {
+  def track(c: TimedCoord, from: TrackRef) = {
     val kn = "%.2f".format(c.speed.toKnots)
-    popupTable(from.boatName.name)(
+    titledTable(from.boatName.name)(
       row(lang.speed, s"$kn kn"),
       row(lang.water, c.waterTemp.formatCelsius),
       row(lang.depth, c.depth.short),
@@ -16,8 +20,8 @@ object BoatHtml {
     )
   }
 
-  def markPopup(symbol: MarineSymbol, lang: Lang = Finnish) =
-    popupTable(symbol.owner)(
+  def mark(symbol: MarineSymbol) =
+    titledTable(symbol.owner)(
       row(lang.`type`, symbol.aidType.in(lang)),
       symbol.construction.fold(empty)(c => row(lang.construction, c.in(lang))),
       if (symbol.navMark == NavMark.NotApplicable) empty
@@ -26,13 +30,21 @@ object BoatHtml {
       symbol.location(lang).fold(empty)(l => row(lang.location, l))
     )
 
-  def fairwayPopup(fairway: FairwayArea, lang: Lang = Finnish) = {
+  def fairway(fairway: FairwayArea) = {
     val labels = lang.fairway
-    popupTable(fairway.owner)(
+    titledTable(fairway.owner)(
       row(labels.fairwayType, fairway.fairwayType.in(lang)),
       row(labels.fairwayDepth, asMeters(fairway.fairwayDepth)),
       row(labels.harrowDepth, asMeters(fairway.harrowDepth)),
       fairway.markType.fold(empty)(markType => row(labels.markType, markType.in(lang)))
+    )
+  }
+
+  def depthArea(depthArea: DepthArea) = {
+    val labels = lang.depths
+    popupTable(
+      row(labels.minDepth, asMeters(depthArea.minDepth)),
+      row(labels.maxDepth, asMeters(depthArea.maxDepth))
     )
   }
 
@@ -44,10 +56,15 @@ object BoatHtml {
     s"$value m"
   }
 
-  private def popupTable(title: String)(content: Modifier*) =
+  private def titledTable(title: String)(content: Modifier*) =
+    popupTable(
+      tr(td(colspan := 2)(title)),
+      content
+    )
+
+  private def popupTable(content: Modifier*) =
     table(`class` := "boat-popup")(
       tbody(
-        tr(td(colspan := 2)(title)),
         content
       )
     )
