@@ -8,6 +8,8 @@ import com.malliina.util.EitherOps
 import play.api.libs.json._
 
 import scala.concurrent.{Future, Promise}
+import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
+import scala.scalajs.js
 import scala.scalajs.js.JSConverters.genTravConvertible2JSRichGenTrav
 
 class MapSocket(map: MapboxMap, track: Option[TrackName], sample: Option[Int], mode: MapMode)
@@ -64,15 +66,18 @@ class MapSocket(map: MapboxMap, track: Option[TrackName], sample: Option[Int], m
     )
   }
 
-  def initImage(): Future[Unit] = {
-    val p = Promise[Unit]()
-    map.loadImage("/assets/img/boat-resized-opt-20.png", (err, data) => {
-      if (err == null) {
-        map.addImage(boatIconId, data)
-        p.success(())
-      } else {
-        p.failure(new Exception("Failed to load icon."))
-      }
+  def initImage(): Future[Unit] =
+    load("/assets/img/boat-resized-opt-20.png").map { image =>
+      map.addImage(boatIconId, image)
+    }.recover {
+      case t => log.error(t)
+    }
+
+  def load(uri: String): Future[js.Any] = {
+    val p = Promise[js.Any]()
+    map.loadImage(uri, (err, data) => {
+      if (err == null) p.success(data)
+      else p.failure(new Exception(s"Failed to load '$uri'."))
     })
     p.future
   }
