@@ -17,6 +17,30 @@ The web app is deployed to [www.boat-tracker.com](https://www.boat-tracker.com/)
 
 The iOS app codebase is in repo [boattracker-ios](https://github.com/malliina/boattracker-ios).
 
+## Agent
+
+The agent 
+
+- listens to NMEA1803 sentences in the boat; plotter connectivity is over WLAN or cable
+- sends received sentences over a WebSocket to [boat-tracker.com](https://www.boat-tracker.com/)
+
+## Backend
+
+The backend 
+
+- receives sentences from connected agents
+- processes and saves sentences
+- sends updates to any connected web or mobile clients
+
+## Frontend
+
+The frontend 
+
+- is the web app at [www.boat-tracker.com](https://www.boat-tracker.com/)
+- shows historical tracks
+- updates live tracks in near-real-time as received from the backend
+- provides a map view, table view and charts for visualization
+
 ## License
 
 Licensed under the 3-Clause BSD License.
