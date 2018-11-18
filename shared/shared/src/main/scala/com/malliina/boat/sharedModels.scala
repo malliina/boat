@@ -227,14 +227,7 @@ object TrackBrief {
   implicit val json = Json.format[TrackBrief]
 }
 
-case class TrackStats(points: Int, first: String, firstMillis: Long, last: String, lastMillis: Long, duration: Duration)
-
-object TrackStats {
-  implicit val durationFormat = PrimitiveFormats.durationFormat
-  implicit val json = Json.format[TrackStats]
-}
-
-case class TrackSummary(track: TrackRef, stats: TrackStats)
+case class TrackSummary(track: TrackRef)
 
 object TrackSummary {
   implicit val json = Json.format[TrackSummary]

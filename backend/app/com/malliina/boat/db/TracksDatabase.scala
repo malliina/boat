@@ -1,6 +1,5 @@
 package com.malliina.boat.db
 
-import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 
 import com.malliina.boat._
@@ -11,7 +10,6 @@ import com.malliina.measure.{Distance, Speed, SpeedInt}
 import com.malliina.values.{Email, UserId, Username}
 import play.api.Logger
 
-import scala.concurrent.duration.DurationLong
 import scala.concurrent.{ExecutionContext, Future}
 
 object TracksDatabase {
@@ -118,16 +116,7 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext)
     }
   }
 
-  private def trackSummary(track: JoinedTrack) = {
-    val first = track.start.get
-    val last = track.end.get
-    val firstMillis = first.toEpochMilli
-    val lastMillis = last.toEpochMilli
-    val duration = (lastMillis - firstMillis).millis
-    val firstUtc = first.atOffset(ZoneOffset.UTC)
-    val lastUtc = last.atOffset(ZoneOffset.UTC)
-    TrackSummary(track.strip, TrackStats(track.points, timeFormatter.format(firstUtc), firstMillis, timeFormatter.format(lastUtc), lastMillis, duration))
-  }
+  private def trackSummary(track: JoinedTrack) = TrackSummary(track.strip)
 
   override def track(track: TrackName, email: Email, query: TrackQuery): Future[TrackInfo] = action {
     // intentionally does not filter on email for now
