@@ -37,7 +37,7 @@ class AppComponents(readConf: Configuration => AppConf, context: Context)
     with AssetsComponents {
 
   override val configuration = context.initialConfiguration ++ LocalConf.localConf
-  val appConf = readConf(configuration)
+  val appConf: AppConf = readConf(configuration)
   val allowedHosts = Seq(
     "www.boat-tracker.com",
     "boat-tracker.com",
@@ -81,7 +81,7 @@ class AppComponents(readConf: Configuration => AppConf, context: Context)
   lazy val pushService: PushSystem = PushService(configuration)
   lazy val push = PushDatabase(schema, pushService, executionContext)
 
-  val googleAuth = GoogleTokenAuth(appConf.iosClientId, http, executionContext)
+  val googleAuth = GoogleTokenAuth(appConf.webClientId, appConf.iosClientId, http, executionContext)
   val signIn = Social(appConf.web, http, controllerComponents, executionContext)
   val files = new FileController(
     S3Client(),

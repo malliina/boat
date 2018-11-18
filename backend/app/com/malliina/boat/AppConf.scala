@@ -3,7 +3,10 @@ package com.malliina.boat
 import com.malliina.play.auth.AuthConf
 import play.api.Configuration
 
-case class AppConf(iosClientId: String, webClientId: String, webClientSecret: String, mapboxToken: String) {
+case class AppConf(iosClientId: String,
+                   webClientId: String,
+                   webClientSecret: String,
+                   mapboxToken: String) {
   def web = AuthConf(webClientId, webClientSecret)
 }
 
