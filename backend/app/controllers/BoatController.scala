@@ -43,7 +43,7 @@ class BoatController(mapboxToken: AccessToken,
 
   val boatNameForm = Form[BoatName](BoatNames.Key -> BoatNames.mapping)
 
-  val UserSessionKey = "user"
+  val UserSessionKey = "boatUser"
   val anonUser = Usernames.anon
   implicit val updatesTransformer = jsonMessageFlowTransformer[JsValue, FrontEvent]
 

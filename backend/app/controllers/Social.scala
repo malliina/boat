@@ -9,9 +9,9 @@ import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.{Duration, DurationInt}
 
 object Social {
-  val EmailKey = "email"
+  val EmailKey = "boatEmail"
   val GoogleCookie = "google"
-  val ProviderCookieName = "provider"
+  val ProviderCookieName = "boatProvider"
 
   def apply(authConf: AuthConf, http: OkClient, comps: ControllerComponents, ec: ExecutionContext) =
     new Social(authConf, comps, http)(ec)
@@ -20,7 +20,7 @@ object Social {
 class Social(googleConf: AuthConf, comps: ControllerComponents, http: OkClient)(implicit ec: ExecutionContext)
   extends AbstractController(comps) {
   val providerCookieDuration: Duration = 3650.days
-  val handler = BasicAuthHandler(routes.BoatController.index(), sessionKey = EmailKey)
+  val handler = BasicAuthHandler(routes.BoatController.index(), sessionKey = EmailKey, lastIdKey = "boatLastId")
   val oauthConf = OAuthConf(routes.Social.googleCallback(), handler, googleConf, http)
   val googleValidator = GoogleCodeValidator(oauthConf)
 
