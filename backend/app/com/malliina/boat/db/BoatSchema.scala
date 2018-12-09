@@ -229,14 +229,6 @@ class BoatSchema(ds: DataSource, conf: ProfileConf)
       onDelete = ForeignKeyAction.Cascade
     )
 
-    def previous = column[Option[TrackPointId]]("previous")
-
-    def previousConstraint = foreignKey("points_previous_fk", previous, pointsTable)(
-      _.id.?,
-      onUpdate = ForeignKeyAction.Cascade,
-      onDelete = ForeignKeyAction.Cascade
-    )
-
     def diff = column[Distance]("diff", O.Default(Distance.zero))
 
     def diffIdx = index("points_track_diff_idx", (track, diff))
@@ -246,11 +238,11 @@ class BoatSchema(ds: DataSource, conf: ProfileConf)
 
     def added = column[Instant]("added", O.SqlType(CreatedTimestampType))
 
-    def forInserts = (lon, lat, coord, boatSpeed, waterTemp, depth, depthOffset, boatTime, track, trackIndex, previous, diff) <> ((TrackPointInput.apply _).tupled, TrackPointInput.unapply)
+    def forInserts = (lon, lat, coord, boatSpeed, waterTemp, depth, depthOffset, boatTime, track, trackIndex, diff) <> ((TrackPointInput.apply _).tupled, TrackPointInput.unapply)
 
     def combined = LiftedCoord(id, lon, lat, coord, boatSpeed, waterTemp, depth, depthOffset, boatTime, dateFunc(boatTime), track, added)
 
-    def * = (id, lon, lat, coord, boatSpeed, waterTemp, depth, depthOffset, boatTime, track, trackIndex, previous, diff, added) <> ((TrackPointRow.apply _).tupled, TrackPointRow.unapply)
+    def * = (id, lon, lat, coord, boatSpeed, waterTemp, depth, depthOffset, boatTime, track, trackIndex, diff, added) <> ((TrackPointRow.apply _).tupled, TrackPointRow.unapply)
   }
 
   class SentencesPointsLink(tag: Tag) extends Table[SentencePointLink](tag, "sentence_points") {

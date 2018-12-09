@@ -8,6 +8,14 @@ import play.api.libs.json._
 
 import scala.concurrent.duration.Duration
 
+/** Date and time in ISO8601 format. Not using java.time.* because scala.js does not support it fully.
+  *
+  * @param dateTime e.g. 2007-04-05T14:30Z
+  */
+case class ISODateTime(dateTime: String) extends Wrapped(dateTime)
+
+object ISODateTime extends StringCompanion[ISODateTime]
+
 case class Coord(lng: Double, lat: Double) {
 
   override def toString = s"($lng, $lat)"
@@ -41,7 +49,7 @@ object Coord {
 
 case class TimedCoord(id: TrackPointId,
                       coord: Coord,
-                      boatTime: String,
+                      boatTime: ISODateTime,
                       boatTimeMillis: Long,
                       boatTimeOnly: String,
                       speed: Speed,
@@ -192,8 +200,8 @@ object TrackMetaShort {
 
 case class TrackRef(track: TrackId, trackName: TrackName, boat: BoatId,
                     boatName: BoatName, user: UserId, username: Username,
-                    points: Int, start: String, startMillis: Long,
-                    end: String, endMillis: Long, startEndRange: String,
+                    points: Int, start: ISODateTime, startMillis: Long,
+                    end: ISODateTime, endMillis: Long, startEndRange: String,
                     duration: Duration, distance: Distance,
                     topSpeed: Option[Speed], avgSpeed: Option[Speed],
                     avgWaterTemp: Option[Temperature], topPoint: TimedCoord) extends TrackLike

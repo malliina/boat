@@ -22,7 +22,7 @@ object TrackList {
 
   implicit def tempHtml(t: Temperature): StringFrag = stringFrag(formatTemp(t))
 
-  implicit def instantHtml(i: Instant): StringFrag = stringFrag(Instants.format(i))
+  implicit def instantHtml(i: Instant): StringFrag = stringFrag(Instants.format(i).dateTime)
 
   implicit def wrappedHtml[T <: Wrapped](w: Wrapped): StringFrag = stringFrag(w.value)
 

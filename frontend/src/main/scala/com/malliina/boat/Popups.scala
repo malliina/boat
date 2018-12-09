@@ -16,7 +16,7 @@ class Popups(lang: Lang) {
       row(lang.speed, s"$kn kn"),
       row(lang.water, c.waterTemp.formatCelsius),
       row(lang.depth, c.depth.short),
-      tr(td(colspan := 2)(c.boatTime))
+      tr(td(colspan := 2)(c.boatTime.dateTime))
     )
   }
 

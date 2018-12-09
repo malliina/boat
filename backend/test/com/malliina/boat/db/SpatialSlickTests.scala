@@ -1,11 +1,8 @@
 package com.malliina.boat.db
 
-import java.time.Instant
-
-import com.malliina.boat.{BoatInput, BoatName, BoatToken, Coord, TrackId, TrackInput, TrackName, TrackPointInput, TrackPointRow, UserToken}
+import com.malliina.boat.{Coord, TrackId}
 import com.malliina.concurrent.Execution.cached
-import com.malliina.measure.{Distance, Speed, SpeedInt, Temperature}
-import com.malliina.values.Username
+import com.malliina.measure.{Speed, SpeedInt}
 import tests.BaseSuite
 
 import scala.concurrent.Future
@@ -67,53 +64,6 @@ class SpatialSlickTests extends BaseSuite {
     runAndAwait(action, 10000.seconds)
   }
 
-  ignore("ST_Distance_Sphere") {
-    val db = BoatSchema(conf)
-    import db._
-    import db.api._
-    val london = Coord(0.13, 51.5)
-    val sanfran = Coord(-122.4, 37.8)
-
-    def computeDistance(coords: Query[TrackPointsTable, TrackPointRow, Seq]): Rep[Option[Distance]] =
-      coords
-        .join(coords).on((c1, c2) => c1.track === c2.track && c1.id === c2.previous)
-        .map { case (c1, c2) => distanceCoords(c1.coord, c2.coord) }
-        .sum
-
-    val action = for {
-      user <- userInserts += NewUser(Username("test-run"), None, UserToken("test-token"), enabled = true)
-      boat <- boatInserts += BoatInput(BoatName("test"), BoatToken("boat-token"), user)
-      track <- trackInserts += TrackInput.empty(TrackName("test-track"), boat)
-      sanfranId <- coordInserts += TrackPointInput(1, 2, sanfran, Speed.zero, Temperature.zeroCelsius, Distance.zero, Distance.zero, Instant.now, track, 1, None, Distance.zero)
-      previous <- pointsTable.filter(_.track === track).sortBy(_.trackIndex.desc).take(1).result
-      trackIdx = previous.headOption.map(_.trackIndex).getOrElse(0) + 1
-      diff <- previous.headOption.map { p => distanceCoords(p.coord, london.bind).result }.getOrElse {
-        DBIO.successful(Distance.zero)
-      }
-      londonId <- coordInserts += TrackPointInput(1, 2, london, Speed.zero, Temperature.zeroCelsius, Distance.zero, Distance.zero, Instant.now, track, trackIdx, Option(sanfranId), diff)
-      distance <- computeDistance(pointsTable.filter(_.track === track)).result
-      londonDiff <- pointsTable.filter(_.id === londonId).map(_.diff).result.headOption
-      _ <- usersTable.filter(_.id === user).delete
-    } yield (distance, londonDiff)
-    val d = db.runAndAwait(action.transactionally)
-    println(d)
-  }
-
-  ignore("migrate diffs") {
-    val db = BoatSchema(conf)
-    import db._
-    import db.api._
-    val coords = pointsTable
-    val diffs = coords
-      .join(coords).on((c1, c2) => c1.track === c2.track && c1.id === c2.previous)
-      .map { case (c1, c2) => (c2.id, distanceCoords(c1.coord, c2.coord)) }
-    val action = diffs.result.flatMap { rows =>
-      val updates = rows.map { case (id, diff) => pointsTable.filter(_.id === id).map(_.diff).update(diff) }
-      DBIO.sequence(updates)
-    }
-    db.runAndAwait(action, 36000.seconds)
-  }
-
   ignore("filter grouping") {
     val db = BoatSchema(conf)
     import db._
@@ -138,12 +88,11 @@ class SpatialSlickTests extends BaseSuite {
     }
   }
 
-  def sequentially[T, R](ts: List[T])(code: T => Future[R]): Future[List[R]] = {
+  def sequentially[T, R](ts: List[T])(code: T => Future[R]): Future[List[R]] =
     ts match {
       case head :: tail => code(head).flatMap { t => sequentially(tail)(code).map { ts => t :: ts } }
       case _ => Future.successful(Nil)
     }
-  }
 
   def timed[T](f: => Future[T]): Future[T] = {
     val start = System.currentTimeMillis()

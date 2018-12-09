@@ -8,13 +8,15 @@ import java.time.{Instant, ZoneId}
   * Scala.js does not support java.time.* fully.
   */
 object Instants {
+
   val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+    //  val formatter = DateTimeFormatter.ISO_DATE_TIME
     .withZone(ZoneId.systemDefault())
 
   val timeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss")
     .withZone(ZoneId.systemDefault())
 
-  def format(i: Instant): String = formatter.format(i)
+  def format(i: Instant): ISODateTime = ISODateTime(formatter.format(i))
 
   def formatTime(i: Instant): String = timeFormatter.format(i)
 

@@ -67,7 +67,7 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext)
       diff <- previous.headOption
         .map(p => distanceCoords(p.coord, coord.coord.bind).result)
         .getOrElse(DBIO.successful(Distance.zero))
-      point <- coordInserts += TrackPointInput.forCoord(coord, trackIdx, previous.headOption.map(_.id), diff)
+      point <- coordInserts += TrackPointInput.forCoord(coord, trackIdx, diff)
       _ <- sentencePointsTable ++= coord.parts.map(key => SentencePointLink(key, point))
       // Updates aggregates; simulates a materialized view for performance
       trackQuery = tracksTable.filter(t => t.id === track)

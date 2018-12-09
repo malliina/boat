@@ -12,6 +12,7 @@ import com.malliina.play.app.DefaultApp
 import com.typesafe.config.ConfigFactory
 import controllers._
 import play.api.ApplicationLoader.Context
+import play.api.http.HttpConfiguration
 import play.api.mvc.EssentialFilter
 import play.api.routing.Router
 import play.api.{BuiltInComponentsFromContext, Configuration, Mode}
@@ -66,6 +67,10 @@ class AppComponents(readConf: Configuration => AppConf, context: Context)
   )
   val csp = csps mkString "; "
   override lazy val securityHeadersConfig = SecurityHeadersConfig(contentSecurityPolicy = Option(csp))
+  val defaultHttpConf = HttpConfiguration.fromConfiguration(configuration, environment)
+  // Sets sameSite = None, otherwise the Google auth redirect will wipe out the session state
+  override lazy val httpConfiguration =
+    defaultHttpConf.copy(session = defaultHttpConf.session.copy(cookieName = "boatSession", sameSite = None))
 
   val mode = environment.mode
   val html = BoatHtml(mode)

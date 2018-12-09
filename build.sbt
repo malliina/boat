@@ -7,10 +7,10 @@ import sbtrelease.ReleaseStateTransformations._
 import scala.sys.process.Process
 import scala.util.Try
 
-val utilPlayVersion = "4.16.0"
+val utilPlayVersion = "4.17.0"
 val utilPlayDep = "com.malliina" %% "util-play" % utilPlayVersion
-val primitiveVersion = "1.6.1"
-val akkaStreamsVersion = "2.5.17"
+val primitiveVersion = "1.7.1"
+val akkaVersion = "2.5.17"
 val buildAndUpload = taskKey[FullUrl]("Uploads to S3")
 val upFiles = taskKey[Seq[String]]("lists")
 val bootClasspath = taskKey[String]("bootClasspath")
@@ -60,13 +60,14 @@ lazy val backendSettings = playSettings ++ Seq(
     "org.orbisgis" % "h2gis" % "1.4.0",
     "mysql" % "mysql-connector-java" % "5.1.47",
     "com.zaxxer" % "HikariCP" % "3.2.0",
-    "org.flywaydb" % "flyway-core" % "5.1.4",
-    "org.apache.commons" % "commons-text" % "1.4",
+    "org.flywaydb" % "flyway-core" % "5.2.4",
+    "org.apache.commons" % "commons-text" % "1.6",
     "com.malliina" %% "logstreams-client" % "1.3.0",
-    "com.amazonaws" % "aws-java-sdk-s3" % "1.11.421",
-    "com.vladsch.flexmark" % "flexmark-html-parser" % "0.34.44",
+    "com.amazonaws" % "aws-java-sdk-s3" % "1.11.466",
+    "com.vladsch.flexmark" % "flexmark-html-parser" % "0.34.58",
     "com.malliina" %% "play-social" % utilPlayVersion,
-    "com.malliina" %% "mobile-push" % "1.14.0",
+    "com.malliina" %% "mobile-push" % "1.15.0",
+    "com.typesafe.akka" %% "akka-slf4j" % akkaVersion,
     utilPlayDep,
     utilPlayDep % Test classifier "tests"
   ),
@@ -152,8 +153,8 @@ lazy val clientSettings = commonSettings ++ Seq(
     "com.malliina" %% "primitives" % primitiveVersion,
     "com.neovisionaries" % "nv-websocket-client" % "2.6",
     "org.slf4j" % "slf4j-api" % "1.7.25",
-    "com.malliina" %% "logback-rx" % "1.3.0",
-    "com.typesafe.akka" %% "akka-stream" % akkaStreamsVersion,
+    "com.malliina" %% "logback-rx" % "1.4.0",
+    "com.typesafe.akka" %% "akka-stream" % akkaVersion,
     "com.typesafe.akka" %% "akka-http" % "10.1.5",
     "com.typesafe.akka" %% "akka-http-spray-json" % "10.1.5",
     "com.lihaoyi" %% "scalatags" % "0.6.7",
@@ -198,22 +199,13 @@ lazy val testSettings = playSettings ++ Seq(
   )
 )
 
-lazy val playSettings = commonSettings ++ Seq(
-  dependencyOverrides ++= Seq(
-    "com.typesafe.akka" %% "akka-stream" % akkaStreamsVersion,
-    "com.typesafe.akka" %% "akka-actor" % "2.5.8"
-  )
-)
+lazy val playSettings = commonSettings
 
 lazy val commonSettings = basicSettings ++ Seq(
   resolvers ++= Seq(
     Resolver.jcenterRepo,
     Resolver.bintrayRepo("malliina", "maven"),
     Resolver.mavenLocal
-  ),
-  dependencyOverrides ++= Seq(
-    "com.typesafe.akka" %% "akka-http-core" % "10.1.1",
-    "com.typesafe.akka" %% "akka-parsing" % "10.1.1"
   )
 )
 

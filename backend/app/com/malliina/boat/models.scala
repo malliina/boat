@@ -195,15 +195,14 @@ case class TrackPointInput(lon: Double,
                            boatTime: Instant,
                            track: TrackId,
                            trackIndex: Int,
-                           previous: Option[TrackPointId],
                            diff: Distance)
 
 object TrackPointInput {
-  def forCoord(c: FullCoord, trackIndex: Int, previous: Option[TrackPointId], diff: Distance): TrackPointInput =
+  def forCoord(c: FullCoord, trackIndex: Int, diff: Distance): TrackPointInput =
     TrackPointInput(
       c.lng, c.lat, c.coord, c.boatSpeed,
       c.waterTemp, c.depth, c.depthOffset, c.boatTime,
-      c.from.track, trackIndex, previous, diff)
+      c.from.track, trackIndex, diff)
 }
 
 case class CombinedCoord(id: TrackPointId,
@@ -276,7 +275,6 @@ case class TrackPointRow(id: TrackPointId,
                          boatTime: Instant,
                          track: TrackId,
                          trackIndex: Int,
-                         previous: Option[TrackPointId],
                          diff: Distance,
                          added: Instant) {
   def dateTimeUtc = boatTime.atOffset(ZoneOffset.UTC)

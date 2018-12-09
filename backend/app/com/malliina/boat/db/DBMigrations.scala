@@ -4,10 +4,11 @@ import org.flywaydb.core.Flyway
 
 object DBMigrations {
   def run(conf: DatabaseConf): Unit = {
-    val flyway = new Flyway()
-    flyway.setDataSource(conf.url, conf.user, conf.pass)
-    flyway.setBaselineOnMigrate(true)
-    flyway.setBaselineVersionAsString("5")
+    val flyway = Flyway.configure()
+      .dataSource(conf.url, conf.user, conf.pass)
+      .baselineOnMigrate(true)
+      .baselineVersion("6")
+      .load()
     if (flyway.info().current() == null) {
       flyway.baseline()
     }
