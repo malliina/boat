@@ -17,7 +17,7 @@ val bootClasspath = taskKey[String]("bootClasspath")
 
 parallelExecution in ThisBuild := false
 
-lazy val boatRoot = project.in(file("."))
+lazy val boat = project.in(file("."))
   .settings(commonSettings: _*)
   .aggregate(backend, frontend, agent, it, utils)
 

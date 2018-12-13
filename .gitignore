@@ -11,3 +11,5 @@ credentials.txt
 logs
 dist
 .hydra
+site
+.bloop

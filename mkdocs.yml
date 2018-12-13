@@ -1,0 +1,11 @@
+site_name: Boat-Tracker
+site_author: Michael Skogberg
+
+theme:
+  name: 'material'
+
+nav:
+  - Develop: index.md
+  - HTTP Endpoints: endpoints.md
+
+copyright: Copyright &copy; 2018 <a href="https://github.com/malliina">Michael Skogberg</a>
