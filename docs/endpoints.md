@@ -1,5 +1,7 @@
 # Endpoints
 
+HTTP endpoints return JSON.
+
 ## GET /users/me
 
 Returns user information including any boats:
