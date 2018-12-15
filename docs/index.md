@@ -1,7 +1,8 @@
 # Develop
 
 Develop [Boat-Tracker](https://www.boat-tracker.com) clients using this JSON API. 
-The [iOS app](https://itunes.apple.com/us/app/boat-tracker/id1434203398?ls=1&mt=8) and web app both use this API.
+The [iOS app](https://itunes.apple.com/us/app/boat-tracker/id1434203398?ls=1&mt=8) and 
+[web app](https://www.boat-tracker.com) both use this API.
 
 ## Versioning
 
