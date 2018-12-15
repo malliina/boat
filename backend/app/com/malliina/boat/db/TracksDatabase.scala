@@ -95,10 +95,6 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext)
   override def tracks(user: Username, filter: TrackQuery): Future[Tracks] =
     trackList(tracksViewNonEmpty.filter(t => t.username === user), filter)
 
-  override def summary(track: TrackName): Future[TrackSummary] = action {
-    first(tracksViewNonEmpty.filter(_.trackName === track), s"Track not found: '$track'.").map(trackSummary)
-  }
-
   override def distances(email: Email): Future[Seq[EasyDistance]] = action {
     tracksTable.result.map { rows => rows.map { row => EasyDistance(row.id, row.distance) } }
   }
@@ -117,8 +113,6 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext)
         Tracks(rows.map(_.strip))
       }
     }
-
-  private def trackSummary(track: JoinedTrack) = TrackSummary(track.strip)
 
   override def track(track: TrackName, email: Email, query: TrackQuery): Future[TrackInfo] = action {
     // intentionally does not filter on email for now

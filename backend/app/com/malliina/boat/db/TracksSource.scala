@@ -33,9 +33,7 @@ trait TracksSource {
 
   def tracks(user: Username, query: TrackQuery): Future[Tracks]
 
-  def distances(email: Email): Future[Seq[EasyDistance]]
-
-  def summary(track: TrackName): Future[TrackSummary]
+  def ref(track: TrackName): Future[TrackRef]
 
   def track(track: TrackName, user: Email, query: TrackQuery): Future[TrackInfo]
 
@@ -43,5 +41,5 @@ trait TracksSource {
 
   def history(user: Username, limits: BoatQuery): Future[Seq[CoordsEvent]]
 
-  def ref(track: TrackName): Future[TrackRef]
+  def distances(email: Email): Future[Seq[EasyDistance]]
 }

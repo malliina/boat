@@ -47,6 +47,9 @@ case class JoinedTrack(track: TrackId, trackName: TrackName, trackAdded: Instant
   val endOrNow = end.getOrElse(Instant.now())
   val duration = (endOrNow.toEpochMilli - startOrNow.toEpochMilli).millis
 
+  /**
+    * @return a Scala.js -compatible representation of this track
+    */
   def strip = TrackRef(
     track, trackName, boat,
     boatName, user, username,

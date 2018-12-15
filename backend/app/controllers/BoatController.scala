@@ -102,13 +102,13 @@ class BoatController(mapboxToken: AccessToken,
   def track(track: TrackName) = EssentialAction { rh =>
     val action = respond(rh)(
       html = index,
-      json = summary(track)
+      json = ref(track)
     )
     action(rh)
   }
 
-  def summary(track: TrackName) = secureJson(TrackQuery.apply) { _ =>
-    db.summary(track)
+  def ref(track: TrackName) = secureJson(TrackQuery.apply) { _ =>
+    db.ref(track)
   }
 
   def trail(track: TrackName) = secureJson(TrackQuery.apply) { req =>
@@ -124,7 +124,7 @@ class BoatController(mapboxToken: AccessToken,
     }
   }
 
-  def chart(track: TrackName) = secureTrack { req =>
+  def chart(track: TrackName) = secureTrack { _ =>
     db.ref(track).map { ref =>
       Ok(html.chart(ref))
     }
