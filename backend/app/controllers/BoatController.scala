@@ -86,8 +86,10 @@ class BoatController(mapboxToken: AccessToken,
   def tracks = secureAction(TrackQuery.apply) { req =>
     db.tracksFor(req.email, req.query).map { tracks =>
       // Made a mistake in an early API and it's used in early iOS versions.
+      // First checks the latest version, then browsers always get the latest since they accept */*.
       val json =
-        if (req.rh.accepts(Version1)) Json.toJson(TrackSummaries(tracks.tracks.map(t => TrackSummary(t))))
+        if (req.rh.accepts(Version2)) Json.toJson(tracks)
+        else if (req.rh.accepts(Version1)) Json.toJson(TrackSummaries(tracks.tracks.map(t => TrackSummary(t))))
         else Json.toJson(tracks)
       Ok(json)
     }
