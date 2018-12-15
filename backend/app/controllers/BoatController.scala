@@ -95,10 +95,6 @@ class BoatController(mapboxToken: AccessToken,
     }
   }
 
-  def distances = secureJson(_ => Right(())) { req =>
-    db.distances(req.email)
-  }
-
   def track(track: TrackName) = EssentialAction { rh =>
     val action = respond(rh)(
       html = index,

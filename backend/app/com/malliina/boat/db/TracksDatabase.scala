@@ -95,10 +95,6 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext)
   override def tracks(user: Username, filter: TrackQuery): Future[Tracks] =
     trackList(tracksViewNonEmpty.filter(t => t.username === user), filter)
 
-  override def distances(email: Email): Future[Seq[EasyDistance]] = action {
-    tracksTable.result.map { rows => rows.map { row => EasyDistance(row.id, row.distance) } }
-  }
-
   private def trackList(trackQuery: Query[LiftedJoinedTrack, JoinedTrack, Seq], filter: TrackQuery): Future[Tracks] =
     action {
       val query = trackQuery.sortBy { ljt =>

@@ -31,12 +31,6 @@ object AppMeta {
   val default = AppMeta(BuildInfo.name, BuildInfo.version, BuildInfo.gitHash)
 }
 
-case class EasyDistance(track: TrackId, distance: Distance)
-
-object EasyDistance {
-  implicit val json = Json.format[EasyDistance]
-}
-
 case class JoinedTrack(track: TrackId, trackName: TrackName, trackAdded: Instant,
                        boat: BoatId, boatName: BoatName, boatToken: BoatToken,
                        user: UserId, username: Username, email: Option[Email],

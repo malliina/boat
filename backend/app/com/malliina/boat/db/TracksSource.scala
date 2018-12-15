@@ -40,6 +40,4 @@ trait TracksSource {
   def full(track: TrackName, user: Email, query: TrackQuery): Future[FullTrack]
 
   def history(user: Username, limits: BoatQuery): Future[Seq[CoordsEvent]]
-
-  def distances(email: Email): Future[Seq[EasyDistance]]
 }
