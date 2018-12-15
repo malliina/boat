@@ -328,10 +328,36 @@ system. Clients must</p>
 <p>Error responses use the following JSON format:</p>
 <pre><code>{
     "errors": [
-        { "message": "This is an error message." }
+        { 
+            "message": "JWT expired.",
+            "key": "token_expired" 
+        }
     ]
 }
 </code></pre>
+<p>Error keys include but are not limited to:</p>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>token_expired</td>
+<td>The JWT has expired. The client should obtain a new one from Google and try again.</td>
+</tr>
+<tr>
+<td>input</td>
+<td>The client provided invalid input. Check your inputs.</td>
+</tr>
+<tr>
+<td>generic</td>
+<td>Most likely clients cannot recover from this.</td>
+</tr>
+</tbody>
+</table>
                 
                   
                 
