@@ -1,16 +1,28 @@
 # Develop
 
-Develop Boat-Tracker clients using this JSON API.
+Develop [Boat-Tracker](https://www.boat-tracker.com) clients using this JSON API. 
+The [iOS app](https://itunes.apple.com/us/app/boat-tracker/id1434203398?ls=1&mt=8) and web app both use this API.
 
-## General
+## Versioning
+
+The JSON API is versioned. Specify the API version in the `Accept` HTTP header. The following versions are currently
+supported:
+
+- application/vnd.boat.v1+json
+- application/vnd.boat.v2+json
+
+The documentation covers the latest API version (v2), therefore use the following header:
+
+    Accept application/vnd.boat.v2+json
 
 ## Authentication
 
 Boat-Tracker uses Google's [OAuth 2.0](https://developers.google.com/identity/protocols/OpenIDConnect) authentication 
 system. Clients must
 
+1. Initiate the OAuth 2.0 flow with Google
 1. Obtain an ID token upon successful authentication with Google
-1. Deliver the ID token to the Boat-Tracker backend when making authenticated API calls 
+1. Deliver the ID token to the Boat-Tracker backend when making authenticated API calls
 
 Set the ID token in the `Authorization` header under the `Bearer` scheme:
 
