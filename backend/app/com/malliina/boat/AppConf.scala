@@ -6,7 +6,7 @@ import play.api.Configuration
 case class AppConf(iosClientId: String,
                    webClientId: String,
                    webClientSecret: String,
-                   mapboxToken: String) {
+                   mapboxToken: AccessToken) {
   def web = AuthConf(webClientId, webClientSecret)
 }
 
@@ -15,6 +15,6 @@ object AppConf {
     conf.get[String]("boat.google.ios.id"),
     conf.get[String]("boat.google.web.id"),
     conf.get[String]("boat.google.web.secret"),
-    conf.get[String]("boat.mapbox.token")
+    AccessToken(conf.get[String]("boat.mapbox.token"))
   )
 }

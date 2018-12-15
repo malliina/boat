@@ -1,6 +1,6 @@
 package controllers
 
-import com.malliina.boat.auth.GoogleTokenAuth
+import com.malliina.boat.auth.EmailAuth
 import com.malliina.boat.db._
 import com.malliina.boat.http.BoatRequest
 import com.malliina.boat.{Errors, SingleError, UserInfo}
@@ -18,7 +18,7 @@ object AuthController {
   private val log = Logger(getClass)
 }
 
-abstract class AuthController(googleAuth: GoogleTokenAuth,
+abstract class AuthController(googleAuth: EmailAuth,
                               auther: UserManager,
                               comps: ControllerComponents) extends AbstractController(comps) {
   implicit val ec: ExecutionContext = comps.executionContext

@@ -29,11 +29,11 @@ trait TracksSource {
 
   def saveCoords(coords: FullCoord): Future[InsertedPoint]
 
-  def tracksFor(email: Email, filter: TrackQuery): Future[TrackSummaries]
+  def tracksFor(email: Email, filter: TrackQuery): Future[Tracks]
+
+  def tracks(user: Username, query: TrackQuery): Future[Tracks]
 
   def distances(email: Email): Future[Seq[EasyDistance]]
-
-  def tracks(user: Username, query: TrackQuery): Future[TrackSummaries]
 
   def summary(track: TrackName): Future[TrackSummary]
 

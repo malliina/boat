@@ -8,7 +8,7 @@ import akka.stream.scaladsl.{BroadcastHub, Flow, Keep, MergeHub, Sink, Source}
 import akka.{Done, NotUsed}
 import com.malliina.boat.Constants._
 import com.malliina.boat._
-import com.malliina.boat.auth.GoogleTokenAuth
+import com.malliina.boat.auth.EmailAuth
 import com.malliina.boat.db._
 import com.malliina.boat.html.BoatHtml
 import com.malliina.boat.http.{BoatEmailRequest, BoatQuery, BoatRequest, TrackQuery}
@@ -34,12 +34,13 @@ object BoatController {
 class BoatController(mapboxToken: AccessToken,
                      html: BoatHtml,
                      auther: UserManager,
-                     googleAuth: GoogleTokenAuth,
+                     googleAuth: EmailAuth,
                      db: TracksSource,
                      push: PushDatabase,
                      comps: ControllerComponents)(implicit as: ActorSystem, mat: Materializer)
   extends AuthController(googleAuth, auther, comps)
-    with Streams {
+    with Streams
+    with ContentVersions {
 
   val boatNameForm = Form[BoatName](BoatNames.Key -> BoatNames.mapping)
 
@@ -82,8 +83,14 @@ class BoatController(mapboxToken: AccessToken,
     fut(result)
   }
 
-  def tracks = secureJson(TrackQuery.apply) { req =>
-    db.tracksFor(req.email, req.query)
+  def tracks = secureAction(TrackQuery.apply) { req =>
+    db.tracksFor(req.email, req.query).map { tracks =>
+      // Made a mistake in an early API and it's used in early iOS versions.
+      val json =
+        if (req.rh.accepts(Version1)) Json.toJson(TrackSummaries(tracks.tracks.map(t => TrackSummary(t))))
+        else Json.toJson(tracks)
+      Ok(json)
+    }
   }
 
   def distances = secureJson(_ => Right(())) { req =>

@@ -28,7 +28,7 @@ object GoogleTokenAuth {
     }
 }
 
-class GoogleTokenAuth(web: KeyClient, ios: KeyClient)(implicit ec: ExecutionContext) {
+class GoogleTokenAuth(web: KeyClient, ios: KeyClient)(implicit ec: ExecutionContext) extends EmailAuth {
   private val log = Logger(getClass)
 
   def authEmail(rh: RequestHeader): Future[Email] =
@@ -40,7 +40,7 @@ class GoogleTokenAuth(web: KeyClient, ios: KeyClient)(implicit ec: ExecutionCont
       Future.failed(IdentityException(MissingCredentials(rh)))
     }
 
-  def validate(token: IdToken): Future[Either[AuthError, Email]] =
+  private def validate(token: IdToken): Future[Either[AuthError, Email]] =
     validate(token, web).flatMap { e =>
       e.fold(err => {
         log.info(s"Failed to validate token '$token': '${err.message}', falling back to iOS client ID validation...")
@@ -50,7 +50,7 @@ class GoogleTokenAuth(web: KeyClient, ios: KeyClient)(implicit ec: ExecutionCont
       })
     }
 
-  def validate(token: IdToken, client: KeyClient): Future[Either[AuthError, Email]] =
+  private def validate(token: IdToken, client: KeyClient): Future[Either[AuthError, Email]] =
     client.validate(token).map { outcome =>
       outcome.flatMap { v =>
         val parsed = v.parsed

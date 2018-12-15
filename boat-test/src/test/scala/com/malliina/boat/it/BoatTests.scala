@@ -6,28 +6,17 @@ import akka.stream.scaladsl.{Sink, Source, SourceQueue}
 import akka.{Done, NotUsed}
 import com.malliina.boat._
 import com.malliina.boat.client.{HttpUtil, KeyValue, WebSocketClient}
-import com.malliina.boat.push.{APNSHttpResult, BoatNotification, PushSystem}
 import com.malliina.http.FullUrl
-import com.malliina.push.apns.APNSToken
 import com.malliina.values.{Password, Username}
 import play.api.ApplicationLoader.Context
 import play.api.BuiltInComponents
 import play.api.libs.json.{JsValue, Json, Writes}
 import play.api.mvc.Call
-import tests.{BaseSuite, OneServerPerSuite2}
+import tests.{BaseSuite, OneServerPerSuite2, TestComponents}
 
 import scala.concurrent.Future
 
-abstract class TestAppSuite extends ServerSuite(new TestAppComponents(_))
-
-class TestAppComponents(ctx: Context) extends AppComponents(_ => AppConf("", "", "", ""), ctx) {
-  override lazy val pushService: PushSystem = NoopPushSystem
-}
-
-object NoopPushSystem extends PushSystem {
-  override def push(notification: BoatNotification, to: APNSToken): Future[Seq[APNSHttpResult]] =
-    Future.successful(Nil)
-}
+abstract class TestAppSuite extends ServerSuite(TestComponents.apply)
 
 abstract class ServerSuite[T <: BuiltInComponents](build: Context => T)
   extends BaseSuite

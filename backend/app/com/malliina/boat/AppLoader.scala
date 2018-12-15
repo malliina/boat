@@ -2,7 +2,7 @@ package com.malliina.boat
 
 import java.nio.file.Paths
 
-import com.malliina.boat.auth.GoogleTokenAuth
+import com.malliina.boat.auth.{EmailAuth, GoogleTokenAuth}
 import com.malliina.boat.db._
 import com.malliina.boat.html.BoatHtml
 import com.malliina.boat.http.CSRFConf._
@@ -23,22 +23,40 @@ import play.filters.headers.SecurityHeadersConfig
 import play.filters.hosts.AllowedHostsConfig
 import router.Routes
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 object LocalConf {
   val localConfFile = Paths.get(sys.props("user.home")).resolve(".boat/boat.conf")
   val localConf = Configuration(ConfigFactory.parseFile(localConfFile.toFile))
 }
 
-class AppLoader extends DefaultApp(new AppComponents(conf => AppConf(conf), _))
+class AppLoader extends DefaultApp(new AppComponents((conf, http, ec) => new ProdAppBuilder(conf, http, ec), _))
 
-class AppComponents(readConf: Configuration => AppConf, context: Context)
+// Put modules that have different implementations in dev, prod or tests here.
+trait AppBuilder {
+  def appConf: AppConf
+
+  def pushService: PushSystem
+
+  def emailAuth: EmailAuth
+}
+
+class ProdAppBuilder(conf: Configuration, http: OkClient, ec: ExecutionContext) extends AppBuilder {
+  override val appConf = AppConf(conf)
+  override val pushService = PushService(conf)
+  override val emailAuth = GoogleTokenAuth(appConf.webClientId, appConf.iosClientId, http, ec)
+}
+
+class AppComponents(init: (Configuration, OkClient, ExecutionContext) => AppBuilder, context: Context)
   extends BuiltInComponentsFromContext(context)
     with HttpFiltersComponents
     with AssetsComponents {
 
-  override val configuration = context.initialConfiguration ++ LocalConf.localConf
-  val appConf: AppConf = readConf(configuration)
+  val http = OkClient.default
+  override val configuration: Configuration = context.initialConfiguration ++ LocalConf.localConf
+  val builder = init(configuration, http, executionContext)
+
+  val appConf = builder.appConf
   val allowedHosts = Seq(
     "www.boat-tracker.com",
     "boat-tracker.com",
@@ -81,12 +99,10 @@ class AppComponents(readConf: Configuration => AppConf, context: Context)
   schema.initBoat()(executionContext)
   val users: UserManager = DatabaseUserManager(schema, executionContext)
   val tracks: TracksSource = TracksDatabase(schema, executionContext)
-  val mapboxToken = AccessToken(configuration.get[String]("boat.mapbox.token"))
-  val http = OkClient.default
-  lazy val pushService: PushSystem = PushService(configuration)
+  lazy val pushService: PushSystem = builder.pushService
   lazy val push = PushDatabase(schema, pushService, executionContext)
 
-  val googleAuth = GoogleTokenAuth(appConf.webClientId, appConf.iosClientId, http, executionContext)
+  val googleAuth: EmailAuth = builder.emailAuth
   val signIn = Social(appConf.web, http, controllerComponents, executionContext)
   val files = new FileController(
     S3Client(),
@@ -96,7 +112,7 @@ class AppComponents(readConf: Configuration => AppConf, context: Context)
   lazy val pushCtrl = new PushController(push, googleAuth, users, controllerComponents)
   lazy val appCtrl = new AppController(googleAuth, users, assets, controllerComponents)
   lazy val boatCtrl = new BoatController(
-    mapboxToken, html, users, googleAuth, tracks, push,
+    appConf.mapboxToken, html, users, googleAuth, tracks, push,
     controllerComponents)(actorSystem, materializer)
   val docs = new DocsController(html, controllerComponents)
   override lazy val router: Router = new Routes(httpErrorHandler, boatCtrl, appCtrl, pushCtrl, signIn, docs, files)

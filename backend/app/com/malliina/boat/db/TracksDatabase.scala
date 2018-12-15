@@ -19,7 +19,9 @@ object TracksDatabase {
 }
 
 class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext)
-  extends DatabaseOps(db) with TracksSource {
+  extends DatabaseOps(db)
+    with TracksSource {
+
   val timeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
 
   import db._
@@ -87,10 +89,10 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext)
     action.transactionally
   }
 
-  override def tracksFor(email: Email, filter: TrackQuery): Future[TrackSummaries] =
+  override def tracksFor(email: Email, filter: TrackQuery): Future[Tracks] =
     trackList(tracksViewNonEmpty.filter(t => t.email.isDefined && t.email === email), filter)
 
-  override def tracks(user: Username, filter: TrackQuery): Future[TrackSummaries] =
+  override def tracks(user: Username, filter: TrackQuery): Future[Tracks] =
     trackList(tracksViewNonEmpty.filter(t => t.username === user), filter)
 
   override def summary(track: TrackName): Future[TrackSummary] = action {
@@ -101,20 +103,20 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext)
     tracksTable.result.map { rows => rows.map { row => EasyDistance(row.id, row.distance) } }
   }
 
-  private def trackList(trackQuery: Query[LiftedJoinedTrack, JoinedTrack, Seq], filter: TrackQuery) = action {
-    val query = trackQuery.sortBy { ljt =>
-      (filter.sort, filter.order) match {
-        case (TrackSort.Recent, SortOrder.Desc) => ljt.end.desc.nullsLast
-        case (TrackSort.Recent, SortOrder.Asc) => ljt.end.asc.nullsLast
-        case (TrackSort.Points, SortOrder.Desc) => ljt.points.desc.nullsLast
-        case _ => ljt.points.asc.nullsLast
+  private def trackList(trackQuery: Query[LiftedJoinedTrack, JoinedTrack, Seq], filter: TrackQuery): Future[Tracks] =
+    action {
+      val query = trackQuery.sortBy { ljt =>
+        (filter.sort, filter.order) match {
+          case (TrackSort.Recent, SortOrder.Desc) => ljt.end.desc.nullsLast
+          case (TrackSort.Recent, SortOrder.Asc) => ljt.end.asc.nullsLast
+          case (TrackSort.Points, SortOrder.Desc) => ljt.points.desc.nullsLast
+          case _ => ljt.points.asc.nullsLast
+        }
+      }
+      query.result.map { rows =>
+        Tracks(rows.map(_.strip))
       }
     }
-    //    query.result.statements.toList foreach println
-    query.result.map { rows =>
-      TrackSummaries(rows.map(trackSummary))
-    }
-  }
 
   private def trackSummary(track: JoinedTrack) = TrackSummary(track.strip)
 
@@ -281,7 +283,7 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext)
 
   private def registerBoat(from: BoatTrackMeta, user: UserId) =
     boatsTable.filter(b => b.name === from.boat).exists.result.flatMap { exists =>
-      if (exists) DBIO.failed(new Exception(s"Boat name '${from.boat}' is already taken and therefore not available for '${from.user}'."))
+      if (exists) fail(s"Boat name '${from.boat}' is already taken and therefore not available for '${from.user}'.")
       else saveBoat(from, user)
     }
 
@@ -296,4 +298,6 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext)
       log.info(s"Registered boat '$name' with ID '${boat.id}' owned by '$user'.")
       boat
     }
+
+  private def fail(message: String) = DBIO.failed(new Exception(message))
 }

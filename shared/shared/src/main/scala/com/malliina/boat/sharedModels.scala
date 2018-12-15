@@ -247,6 +247,12 @@ object TrackSummaries {
   implicit val json = Json.format[TrackSummaries]
 }
 
+case class Tracks(tracks: Seq[TrackRef])
+
+object Tracks {
+  implicit val json = Json.format[Tracks]
+}
+
 case class CoordsEvent(coords: Seq[TimedCoord], from: TrackRef) extends BoatFrontEvent {
   def isEmpty = coords.isEmpty
 

@@ -1,15 +1,13 @@
 package controllers
 
-import com.malliina.boat.auth.GoogleTokenAuth
+import com.malliina.boat.auth.EmailAuth
 import com.malliina.boat.db.UserManager
 import com.malliina.boat.{AppMeta, UserContainer}
 import controllers.Assets.Asset
 import play.api.libs.json.Json
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
 
-import scala.concurrent.Future
-
-class AppController(googleAuth: GoogleTokenAuth,
+class AppController(googleAuth: EmailAuth,
                     auther: UserManager,
                     assets: AssetsBuilder,
                     comps: ControllerComponents) extends AuthController(googleAuth, auther, comps) {
@@ -18,7 +16,7 @@ class AppController(googleAuth: GoogleTokenAuth,
   }
 
   def pingAuth = authAction(googleProfile) { _ =>
-    Future.successful(Ok(Json.toJson(AppMeta.default)))
+    fut(Ok(Json.toJson(AppMeta.default)))
   }
 
   def me = authAction(profile) { req =>

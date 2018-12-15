@@ -1,6 +1,6 @@
 package controllers
 
-import com.malliina.boat.auth.GoogleTokenAuth
+import com.malliina.boat.auth.EmailAuth
 import com.malliina.boat.db.{PushDatabase, PushInput, UserManager}
 import com.malliina.boat.http.BoatRequest
 import com.malliina.boat.{PushPayload, SimpleMessage, SingleToken, UserInfo}
@@ -10,7 +10,7 @@ import play.api.mvc.{ControllerComponents, Result}
 import scala.concurrent.Future
 
 class PushController(push: PushDatabase,
-                     googleAuth: GoogleTokenAuth,
+                     googleAuth: EmailAuth,
                      auther: UserManager,
                      comps: ControllerComponents) extends AuthController(googleAuth, auther, comps) {
   def enableNotifications = jsonAuth[PushPayload] { req =>
