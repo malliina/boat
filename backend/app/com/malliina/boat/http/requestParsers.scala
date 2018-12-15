@@ -77,7 +77,7 @@ abstract class EnumLike[T <: Named] {
 
   def apply(key: String, rh: RequestHeader): Option[Either[SingleError, T]] =
     QueryStringBindable.bindableString.bind(key, rh.queryString)
-      .map(e => e.flatMap(s => all.find(_.name == s).toRight(SingleError(s"Unknown $key value: '$s'."))))
+      .map(e => e.flatMap(s => all.find(_.name == s).toRight(SingleError.input(s"Unknown $key value: '$s'."))))
 }
 
 /**
@@ -123,10 +123,10 @@ object BoatQuery {
     } yield BoatQuery(limits, timeRange, tracks, sample, newest)
 
   def bindTracks(rh: RequestHeader): Either[SingleError, Seq[TrackName]] =
-    tracksBindable.bind(TrackKey, rh.queryString).map(_.left.map(SingleError.apply)).getOrElse(Right(Nil))
+    tracksBindable.bind(TrackKey, rh.queryString).map(_.left.map(SingleError.input)).getOrElse(Right(Nil))
 
   def bindNewest(rh: RequestHeader, default: Boolean) =
-    QueryStringBindable.bindableBoolean.bind(NewestKey, rh.queryString).getOrElse(Right(default)).left.map(SingleError.apply)
+    QueryStringBindable.bindableBoolean.bind(NewestKey, rh.queryString).getOrElse(Right(default)).left.map(SingleError.input)
 }
 
 case class Limits(limit: Int, offset: Int) {
@@ -144,12 +144,12 @@ object Limits {
 
   def readIntOrElse(rh: RequestHeader, key: String, default: Int): Either[SingleError, Int] =
     QueryStringBindable.bindableInt.bind(key, rh.queryString).getOrElse(Right(default))
-      .left.map(SingleError.apply)
+      .left.map(SingleError.input)
 
   def readInt(key: String, rh: RequestHeader): Either[SingleError, Option[Int]] =
     QueryStringBindable.bindableInt.bind(key, rh.queryString).map(_.map(Option.apply))
       .getOrElse(Right(None))
-      .left.map(SingleError.apply)
+      .left.map(SingleError.input)
 
   def apply(rh: RequestHeader, defaultLimit: Int = DefaultLimit): Either[SingleError, Limits] =
     for {
@@ -185,6 +185,6 @@ object TimeRange {
       Right(Instant.parse(in))
     } catch {
       case dte: DateTimeParseException =>
-        Left(SingleError(s"Invalid instant: '$in'. ${dte.getMessage}"))
+        Left(SingleError.input(s"Invalid instant: '$in'. ${dte.getMessage}"))
     }
 }

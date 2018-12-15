@@ -4,6 +4,7 @@ import java.time.{Instant, LocalDate, LocalTime, ZoneOffset}
 
 import com.malliina.boat.parsing.FullCoord
 import com.malliina.measure.{Distance, Speed, Temperature}
+import com.malliina.play.auth.JWTError
 import com.malliina.values._
 import play.api.data.{Forms, Mapping}
 import play.api.http.Writeable
@@ -74,10 +75,15 @@ object BoatEvent {
 
 case class BoatJsonError(error: JsError, boat: BoatEvent)
 
-case class SingleError(message: String)
+case class SingleError(message: String, key: String)
 
 object SingleError {
   implicit val json = Json.format[SingleError]
+
+  def input(message: String) = apply(message, "input")
+
+  def forJWT(error: JWTError): SingleError =
+    SingleError(error.message, error.key)
 }
 
 case class Errors(errors: Seq[SingleError])
@@ -88,7 +94,7 @@ object Errors {
 
   def apply(error: SingleError): Errors = Errors(Seq(error))
 
-  def apply(message: String): Errors = apply(SingleError(message))
+  def apply(message: String): Errors = apply(SingleError(message, "generic"))
 }
 
 object BoatNames {

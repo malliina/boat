@@ -36,7 +36,9 @@ abstract class AuthController(googleAuth: EmailAuth,
     }
 
   protected def googleProfile(rh: RequestHeader): Future[UserInfo] =
-    googleAuth.authEmail(rh).flatMap { email => auther.authEmail(email) }
+    googleAuth.authEmail(rh).flatMap { email =>
+      auther.authEmail(email)
+    }
 
   protected def profile(rh: RequestHeader): Future[UserInfo] =
     authAppOrWeb(rh).flatMap { email =>
@@ -58,7 +60,11 @@ abstract class AuthController(googleAuth: EmailAuth,
         Left(checkLoginCookie(mce.rh).getOrElse(unauth))
       case ie: IdentityException =>
         log.warn(s"Authentication failed from '$rh': '${ie.error}'.")
-        Left(unauth)
+        val error: SingleError = ie.error match {
+          case JWTError(_, err) => SingleError(err.message, err.key)
+          case _ => unauthError
+        }
+        Left(Unauthorized(Errors(error)))
     }
 
   private def checkLoginCookie(rh: RequestHeader): Option[Result] =
@@ -67,7 +73,9 @@ abstract class AuthController(googleAuth: EmailAuth,
       Redirect(routes.Social.google())
     }
 
-  private def unauth = Unauthorized(Errors(SingleError("Unauthorized.")))
+  private def unauth = Unauthorized(Errors(unauthError))
+
+  def unauthError = SingleError("Unauthorized.", "unauthorized")
 
   def fut[T](t: T): Future[T] = Future.successful(t)
 }

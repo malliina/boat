@@ -217,7 +217,7 @@ class BoatController(mapboxToken: AccessToken,
 
   def formError[T](errors: Form[T]) = {
     log.error(s"Form failure. ${errors.errors}")
-    badRequest(SingleError("Invalid input."))
+    badRequest(SingleError.input("Invalid form input."))
   }
 
   def badRequest(error: SingleError) = BadRequest(Errors(error))
