@@ -13,9 +13,13 @@ This repository contains the following modules:
 - shared code in *shared*
 - integration tests in *boat-test*
 
-The web app is deployed to [www.boat-tracker.com](https://www.boat-tracker.com/).
+The server and frontend is deployed to [www.boat-tracker.com](https://www.boat-tracker.com/).
 
-The iOS app codebase is in repo [boattracker-ios](https://github.com/malliina/boattracker-ios).
+The iOS app is in repo [boattracker-ios](https://github.com/malliina/boattracker-ios).
+
+The Android app is in repo [boattracker-android](https://github.com/malliina/boattracker-android).
+
+API documentation is available at [docs.boat-tracker.com](https://docs.boat-tracker.com).
 
 ## Agent
 
@@ -23,6 +27,7 @@ The agent
 
 - listens to NMEA1803 sentences in the boat; plotter connectivity is over WLAN or cable
 - sends received sentences over a WebSocket to [boat-tracker.com](https://www.boat-tracker.com/)
+- is typically installed on a Raspberry Pi with a 3G module, powered by the boat or external battery
 
 ## Backend
 
