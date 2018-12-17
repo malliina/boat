@@ -73,7 +73,7 @@ class BoatController(mapboxToken: AccessToken,
 
   errors.runWith(Sink.foreach(err => log.error(s"JSON error for '${err.boat}': '${err.error}'.")))
 
-  def index = authAction(optionalAuth) { req =>
+  def index = authAction(optionalWebAuth) { req =>
     val maybeBoat = req.user
     val u: Username = maybeBoat.map(_.user).getOrElse(anonUser)
     val cookie = Cookie(TokenCookieName, mapboxToken.token, httpOnly = false)
@@ -263,13 +263,23 @@ class BoatController(mapboxToken: AccessToken,
   private def authApp(rh: RequestHeader): Future[Username] =
     googleProfile(rh).map(_.username)
 
-  private def optionalAuth(rh: RequestHeader): Future[Option[BoatInfo]] =
+  /** Optional authentication for the web.
+    *
+    * <p>If the user has a session, read it and return authenticated user info.
+    * <p>If the user has no session, but a Google auth cookie, redirect to the social login to start the OAuth flow.
+    * <p>If the user has no session and no auth cookie, return None which means unauthenticated mode.
+    */
+  private def optionalWebAuth(rh: RequestHeader): Future[Option[BoatInfo]] =
     sessionEmail(rh).map { email =>
       auther.boats(email).map { boats =>
         boats.headOption
       }
     }.getOrElse {
-      fut(None)
+      googleCookie(rh).map { _ =>
+        Future.failed(new MissingCredentialsException(MissingCredentials(rh)))
+      }.getOrElse {
+        fut(None)
+      }
     }
 
   private def trackOrRandom(rh: RequestHeader): TrackName = TrackNames.random()

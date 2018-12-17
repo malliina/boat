@@ -68,10 +68,13 @@ abstract class AuthController(googleAuth: EmailAuth,
     }
 
   private def checkLoginCookie(rh: RequestHeader): Option[Result] =
-    rh.cookies.get(ProviderCookieName).filter(_.value == GoogleCookie).map { _ =>
+    googleCookie(rh).map { _ =>
       log.info(s"Redir to login")
       Redirect(routes.Social.google())
     }
+
+  protected def googleCookie(rh: RequestHeader): Option[Cookie] =
+    rh.cookies.get(ProviderCookieName).filter(_.value == GoogleCookie)
 
   private def unauth = Unauthorized(Errors(unauthError))
 
