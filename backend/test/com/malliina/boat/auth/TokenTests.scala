@@ -9,7 +9,7 @@ import scala.collection.JavaConverters.mapAsScalaMapConverter
 class TokenTests extends BaseSuite {
   ignore("google token validation") {
     val in = "token_here"
-    val client = KeyClient.google("client_id", OkClient.default)
+    val client = KeyClient.google(Seq("client_id"), OkClient.default)
     val outcome = await(client.validate(IdToken(in)))
     assert(outcome.isRight)
     val v = outcome.right.get

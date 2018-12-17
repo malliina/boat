@@ -19,7 +19,7 @@ object AuthController {
 }
 
 abstract class AuthController(googleAuth: EmailAuth,
-                              auther: UserManager,
+                              users: UserManager,
                               comps: ControllerComponents) extends AbstractController(comps) {
   implicit val ec: ExecutionContext = comps.executionContext
 
@@ -37,12 +37,12 @@ abstract class AuthController(googleAuth: EmailAuth,
 
   protected def googleProfile(rh: RequestHeader): Future[UserInfo] =
     googleAuth.authEmail(rh).flatMap { email =>
-      auther.authEmail(email)
+      users.userInfo(email)
     }
 
   protected def profile(rh: RequestHeader): Future[UserInfo] =
     authAppOrWeb(rh).flatMap { email =>
-      auther.authEmail(email)
+      users.userInfo(email)
     }
 
   protected def authAppOrWeb(rh: RequestHeader): Future[Email] =

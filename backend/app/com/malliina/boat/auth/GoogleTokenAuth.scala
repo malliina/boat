@@ -2,37 +2,33 @@ package com.malliina.boat.auth
 
 import com.malliina.boat.db.{IdentityException, JWTError, MissingCredentials}
 import com.malliina.http.OkClient
-import com.malliina.play.auth.{AuthError, IdToken, InvalidClaims, KeyClient}
+import com.malliina.play.auth.{Auth, AuthError, IdToken, InvalidClaims, KeyClient}
 import com.malliina.values.Email
 import play.api.Logger
-import play.api.http.HeaderNames.AUTHORIZATION
 import play.api.mvc.RequestHeader
 
 import scala.concurrent.{ExecutionContext, Future}
 
 object GoogleTokenAuth {
+  /** The Android app uses the web client ID while the iOS app uses the iOS client ID.
+    *
+    * @param webClientId android apps
+    * @param iosClientId ios apps
+    */
   def apply(webClientId: String,
             iosClientId: String,
             http: OkClient,
             ec: ExecutionContext): GoogleTokenAuth =
-    new GoogleTokenAuth(KeyClient.google(webClientId, http), KeyClient.google(iosClientId, http))(ec)
-
-  def readAuthToken(rh: RequestHeader, scheme: String = "Bearer"): Option[String] =
-    rh.headers.get(AUTHORIZATION).flatMap { authInfo =>
-      authInfo.split(" ") match {
-        case Array(name, value) if name.toLowerCase == scheme.toLowerCase =>
-          Option(value)
-        case _ =>
-          None
-      }
-    }
+    new GoogleTokenAuth(KeyClient.google(Seq(webClientId, iosClientId), http))(ec)
 }
 
-class GoogleTokenAuth(web: KeyClient, ios: KeyClient)(implicit ec: ExecutionContext) extends EmailAuth {
+/** Validates Google ID tokens and extracts the email address.
+  */
+class GoogleTokenAuth(validator: KeyClient)(implicit ec: ExecutionContext) extends EmailAuth {
   private val log = Logger(getClass)
 
   def authEmail(rh: RequestHeader): Future[Email] =
-    GoogleTokenAuth.readAuthToken(rh).map { token =>
+    Auth.readAuthToken(rh).map { token =>
       validate(IdToken(token)).flatMap { e =>
         e.fold(err => Future.failed(IdentityException(JWTError(rh, err))), email => Future.successful(email))
       }
@@ -41,17 +37,7 @@ class GoogleTokenAuth(web: KeyClient, ios: KeyClient)(implicit ec: ExecutionCont
     }
 
   private def validate(token: IdToken): Future[Either[AuthError, Email]] =
-    validate(token, web).flatMap { e =>
-      e.fold(err => {
-        log.info(s"Failed to validate token '$token': '${err.message}', falling back to iOS client ID validation...")
-        validate(token, ios)
-      }, email => {
-        Future.successful(Right(email))
-      })
-    }
-
-  private def validate(token: IdToken, client: KeyClient): Future[Either[AuthError, Email]] =
-    client.validate(token).map { outcome =>
+    validator.validate(token).map { outcome =>
       outcome.flatMap { v =>
         val parsed = v.parsed
         parsed.read(parsed.claims.getBooleanClaim("email_verified"), "email_verified").flatMap { isVerified =>

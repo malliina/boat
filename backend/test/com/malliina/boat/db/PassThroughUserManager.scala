@@ -11,7 +11,7 @@ object PassThroughUserManager extends UserManager {
 //  val god = DataUser(UserId(1L), Username("test"), None, "", UserToken.random(), enabled = true, added = Instant.now())
   val god = UserInfo(UserId(1L), Username("test"), None, Nil, enabled = true, addedMillis = Instant.now().toEpochMilli)
 
-  def authEmail(email: Email): Future[UserInfo] = fut(god)
+  def userInfo(email: Email): Future[UserInfo] = fut(god)
 
   def authBoat(token: BoatToken): Future[JoinedBoat] = Future.failed(IdentityException(InvalidToken(token)))
 

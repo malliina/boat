@@ -7,7 +7,7 @@ import sbtrelease.ReleaseStateTransformations._
 import scala.sys.process.Process
 import scala.util.Try
 
-val utilPlayVersion = "4.17.0"
+val utilPlayVersion = "4.18.1"
 val utilPlayDep = "com.malliina" %% "util-play" % utilPlayVersion
 val primitiveVersion = "1.7.1"
 val akkaVersion = "2.5.17"
@@ -17,7 +17,7 @@ val bootClasspath = taskKey[String]("bootClasspath")
 
 parallelExecution in ThisBuild := false
 
-lazy val boat = project.in(file("."))
+lazy val boatRoot = project.in(file("."))
   .settings(commonSettings: _*)
   .aggregate(backend, frontend, agent, it, utils)
 
@@ -211,7 +211,7 @@ lazy val commonSettings = basicSettings ++ Seq(
 
 lazy val basicSettings = Seq(
   organization := "com.malliina",
-  scalaVersion := "2.12.7",
+  scalaVersion := "2.12.8",
   scalacOptions := Seq("-unchecked", "-deprecation")
 )
 

@@ -1,9 +1,10 @@
 package tests
 
-import com.malliina.boat.auth.{EmailAuth, GoogleTokenAuth}
+import com.malliina.boat.auth.EmailAuth
 import com.malliina.boat.db.{IdentityException, MissingCredentials}
 import com.malliina.boat.push.{APNSHttpResult, BoatNotification, PushSystem}
 import com.malliina.boat.{AccessToken, AppBuilder, AppComponents, AppConf}
+import com.malliina.play.auth.Auth
 import com.malliina.push.apns.APNSToken
 import com.malliina.values.Email
 import play.api.ApplicationLoader.Context
@@ -38,6 +39,6 @@ object TestEmailAuth extends EmailAuth {
   val testEmail = Email("test@example.com")
 
   override def authEmail(rh: RequestHeader): Future[Email] =
-    if (GoogleTokenAuth.readAuthToken(rh).contains(testToken)) Future.successful(testEmail)
+    if (Auth.readAuthToken(rh).contains(testToken)) Future.successful(testEmail)
     else Future.failed(IdentityException(MissingCredentials(rh)))
 }

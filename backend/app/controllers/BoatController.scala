@@ -130,11 +130,6 @@ class BoatController(mapboxToken: AccessToken,
 
   def renameBoat(id: BoatId) = boatAction(req => db.renameBoat(id, req.user.id, req.body))
 
-  private def boatAction(code: BoatRequest[UserInfo, BoatName] => Future[BoatRow]): Action[BoatName] =
-    parsedAuth(parse.form(boatNameForm, onErrors = (err: Form[BoatName]) => formError(err)))(googleProfile) { req =>
-      code(req).map { boat => Ok(BoatResponse(boat.toBoat)) }
-    }
-
   def boats = WebSocket { rh =>
     authBoat(rh).flatMapR { meta =>
       push.push(meta, BoatState.Connected).map(_ => meta)
@@ -162,7 +157,7 @@ class BoatController(mapboxToken: AccessToken,
       outcome.flatMap { user =>
         BoatQuery(rh).map { limits =>
           log.info(s"Viewer '$user' joined.")
-          // Show recent tracks for non-anon users
+          // Show only recent tracks for anon users
           val historicalLimits: BoatQuery =
             if (limits.tracks.nonEmpty && user == anonUser) BoatQuery.tracks(limits.tracks)
             else if (user == anonUser) BoatQuery.recent(Instant.now())
@@ -187,10 +182,15 @@ class BoatController(mapboxToken: AccessToken,
     }
   }
 
-  def logTermination[In, Out, Mat](flow: Flow[In, Out, Mat], message: Try[Done] => String): Flow[In, Out, Future[Done]] =
+  private def boatAction(code: BoatRequest[UserInfo, BoatName] => Future[BoatRow]): Action[BoatName] =
+    parsedAuth(parse.form(boatNameForm, onErrors = (err: Form[BoatName]) => formError(err)))(googleProfile) { req =>
+      code(req).map { boat => Ok(BoatResponse(boat.toBoat)) }
+    }
+
+  private def logTermination[In, Out, Mat](flow: Flow[In, Out, Mat], message: Try[Done] => String): Flow[In, Out, Future[Done]] =
     terminationWatched(flow)(t => fut(log.info(message(t))))
 
-  def monitored[In, Mat](src: Source[In, Mat], label: String): Source[In, Future[Done]] =
+  private def monitored[In, Mat](src: Source[In, Mat], label: String): Source[In, Future[Done]] =
     src.watchTermination()(Keep.right).mapMaterializedValue { done =>
       done.transform { tryDone =>
         tryDone.fold(
@@ -215,14 +215,14 @@ class BoatController(mapboxToken: AccessToken,
       )
     }
 
-  def formError[T](errors: Form[T]) = {
+  private def formError[T](errors: Form[T]) = {
     log.error(s"Form failure. ${errors.errors}")
     badRequest(SingleError.input("Invalid form input."))
   }
 
-  def badRequest(error: SingleError) = BadRequest(Errors(error))
+  private def badRequest(error: SingleError) = BadRequest(Errors(error))
 
-  def terminationWatched[In, Out, Mat](flow: Flow[In, Out, Mat])(onTermination: Try[Done] => Future[Unit]): Flow[In, Out, Future[Done]] =
+  private def terminationWatched[In, Out, Mat](flow: Flow[In, Out, Mat])(onTermination: Try[Done] => Future[Unit]): Flow[In, Out, Future[Done]] =
     flow.watchTermination()(Keep.right).mapMaterializedValue { done =>
       done.transformWith { t =>
         onTermination(t).transform { _ => t }

@@ -19,6 +19,7 @@ object Social {
 
 class Social(googleConf: AuthConf, comps: ControllerComponents, http: OkClient)(implicit ec: ExecutionContext)
   extends AbstractController(comps) {
+
   val providerCookieDuration: Duration = 3650.days
   val handler = BasicAuthHandler(routes.BoatController.index(), sessionKey = EmailKey, lastIdKey = "boatLastId")
   val oauthConf = OAuthConf(routes.Social.googleCallback(), handler, googleConf, http)

@@ -25,7 +25,7 @@ class DatabaseUserManager(val db: BoatSchema)(implicit ec: ExecutionContext)
 
   val userInserts = usersTable.map(_.forInserts).returning(usersTable.map(_.id))
 
-  override def authEmail(email: Email): Future[UserInfo] = {
+  override def userInfo(email: Email): Future[UserInfo] = {
     val action = for {
       id <- getOrCreate(email)
       info <- userAuthAction(usersTable.filter(_.id === id))

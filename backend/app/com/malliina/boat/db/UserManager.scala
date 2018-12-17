@@ -19,7 +19,7 @@ trait UserManager {
     * @param email email address of the user
     * @return user info for `email`
     */
-  def authEmail(email: Email): Future[UserInfo]
+  def userInfo(email: Email): Future[UserInfo]
 
   def authBoat(token: BoatToken): Future[JoinedBoat]
 
