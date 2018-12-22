@@ -223,6 +223,20 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#post-usersnotifications" title="POST /users/notifications" class="md-nav__link">
+    POST /users/notifications
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#post-usersnotificationsdisable" title="POST /users/notifications/disable" class="md-nav__link">
+    POST /users/notifications/disable
+  </a>
+  
+</li>
+      
       
       
       
@@ -264,6 +278,20 @@
         <li class="md-nav__item">
   <a href="#get-tracks" title="GET /tracks" class="md-nav__link">
     GET /tracks
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#post-usersnotifications" title="POST /users/notifications" class="md-nav__link">
+    POST /users/notifications
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#post-usersnotificationsdisable" title="POST /users/notifications/disable" class="md-nav__link">
+    POST /users/notifications/disable
   </a>
   
 </li>
@@ -332,6 +360,73 @@
             }
         }
     ]
+}
+</code></pre>
+<p>The following units are used:</p>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Unit</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>duration</td>
+<td>seconds</td>
+</tr>
+<tr>
+<td>distance</td>
+<td>meters</td>
+</tr>
+<tr>
+<td>speed</td>
+<td>knots</td>
+</tr>
+<tr>
+<td>topSpeed</td>
+<td>knots</td>
+</tr>
+<tr>
+<td>avgSpeed</td>
+<td>knots</td>
+</tr>
+<tr>
+<td>avgWaterTemp</td>
+<td>celsius</td>
+</tr>
+</tbody>
+</table>
+<h2 id="post-usersnotifications">POST /users/notifications</h2>
+<p>Subscribes to push notifications:</p>
+<pre><code>{
+    "token": "device_token",
+    "device": "ios"
+}
+</code></pre>
+<p>Key <em>device</em> must be one of:</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ios</td>
+<td>iOS token</td>
+</tr>
+<tr>
+<td>android</td>
+<td>Android token</td>
+</tr>
+</tbody>
+</table>
+<h2 id="post-usersnotificationsdisable">POST /users/notifications/disable</h2>
+<p>Unsubscribes from push notifications:</p>
+<pre><code>{
+    "token": "device_token",
 }
 </code></pre>
                 
