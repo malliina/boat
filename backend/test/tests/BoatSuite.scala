@@ -1,11 +1,10 @@
 package tests
 
 import com.malliina.boat.auth.EmailAuth
-import com.malliina.boat.db.{IdentityException, MissingCredentials}
-import com.malliina.boat.push.{APNSHttpResult, BoatNotification, PushSystem}
+import com.malliina.boat.db.{IdentityException, MissingCredentials, PushDevice}
+import com.malliina.boat.push._
 import com.malliina.boat.{AccessToken, AppBuilder, AppComponents, AppConf}
 import com.malliina.play.auth.Auth
-import com.malliina.push.apns.APNSToken
 import com.malliina.values.Email
 import play.api.ApplicationLoader.Context
 import play.api.mvc.RequestHeader
@@ -25,13 +24,13 @@ object TestComponents {
 
 object TestAppBuilder extends AppBuilder {
   override val appConf = AppConf("", "", "", AccessToken(""))
-  override val pushService: PushSystem = NoopPushSystem
+  override val pushService: PushEndpoint = NoopPushSystem
   override val emailAuth = TestEmailAuth
 }
 
-object NoopPushSystem extends PushSystem {
-  override def push(notification: BoatNotification, to: APNSToken): Future[Seq[APNSHttpResult]] =
-    Future.successful(Nil)
+object NoopPushSystem extends PushEndpoint {
+  override def push(notification: BoatNotification, to: PushDevice): Future[PushSummary] =
+    Future.successful(PushSummary.empty)
 }
 
 object TestEmailAuth extends EmailAuth {

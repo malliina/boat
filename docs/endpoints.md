@@ -52,3 +52,38 @@ Returns tracks driven:
             }
         ]
     }
+
+The following units are used:
+
+| Key | Unit
+|-----|------
+| duration | seconds
+| distance | meters
+| speed | knots
+| topSpeed | knots
+| avgSpeed | knots
+| avgWaterTemp | celsius
+
+## POST /users/notifications
+
+Subscribes to push notifications:
+
+    {
+        "token": "device_token",
+        "device": "ios"
+    }
+
+Key *device* must be one of:
+
+| Value | Meaning
+|-------|---------
+| ios | iOS token
+| android | Android token
+
+## POST /users/notifications/disable
+
+Unsubscribes from push notifications:
+
+    {
+        "token": "device_token",
+    }

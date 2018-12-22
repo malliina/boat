@@ -333,7 +333,7 @@ class BoatSchema(ds: DataSource, conf: ProfileConf)
     def * = (id, user, email, token, enabled, added) <> ((DataUser.apply _).tupled, DataUser.unapply)
   }
 
-  class PushClientsTable(tag: Tag) extends Table[PushClient](tag, "push_clients") {
+  class PushClientsTable(tag: Tag) extends Table[PushDevice](tag, "push_clients") {
     def id = column[PushId]("id", O.PrimaryKey, O.AutoInc)
 
     def token = column[PushToken]("token", O.Unique, O.Length(1024))
@@ -346,7 +346,7 @@ class BoatSchema(ds: DataSource, conf: ProfileConf)
 
     def forInserts = (token, device, user).mapTo[PushInput]
 
-    def * = (id, token, device, user, added) <> ((PushClient.apply _).tupled, PushClient.unapply)
+    def * = (id, token, device, user, added) <> ((PushDevice.apply _).tupled, PushDevice.unapply)
   }
 
   def first[T, R](q: Query[T, R, Seq], onNotFound: => String)(implicit ec: ExecutionContext) =

@@ -9,6 +9,7 @@ import play.api.libs.json.Json
 sealed abstract class BoatState(val name: String) extends Named
 
 object BoatState extends ValidatingCompanion[String, BoatState] {
+  val Key = "state"
   val all = Seq(Connected, Disconnected)
 
   override def build(input: String): Either[ErrorMessage, BoatState] =
@@ -22,7 +23,9 @@ object BoatState extends ValidatingCompanion[String, BoatState] {
 
 }
 
-case class BoatNotification(boatName: BoatName, state: BoatState)
+case class BoatNotification(boatName: BoatName, state: BoatState) {
+  def message = s"$boatName $state"
+}
 
 object BoatNotification {
   implicit val json = Json.format[BoatNotification]

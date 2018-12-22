@@ -70,7 +70,9 @@ object AccessToken extends StringCompanion[AccessToken]
 
 case class BoatName(name: String) extends Wrapped(name)
 
-object BoatName extends StringCompanion[BoatName]
+object BoatName extends StringCompanion[BoatName] {
+  val Key = "boatName"
+}
 
 case class TrackName(name: String) extends Wrapped(name)
 
@@ -149,7 +151,9 @@ object MobileDevice extends ValidatingCompanion[String, MobileDevice] {
 
   override def write(t: MobileDevice): String = t.name
 
-  case object IOS extends MobileDevice("iOS")
+  case object IOS extends MobileDevice("ios")
+
+  case object Android extends MobileDevice("android")
 
   case class Unknown(s: String) extends MobileDevice(s)
 

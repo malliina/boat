@@ -6,7 +6,7 @@ import com.malliina.boat.auth.{EmailAuth, GoogleTokenAuth}
 import com.malliina.boat.db._
 import com.malliina.boat.html.BoatHtml
 import com.malliina.boat.http.CSRFConf._
-import com.malliina.boat.push.{PushService, PushSystem}
+import com.malliina.boat.push._
 import com.malliina.http.OkClient
 import com.malliina.play.app.DefaultApp
 import com.typesafe.config.ConfigFactory
@@ -36,14 +36,14 @@ class AppLoader extends DefaultApp(new AppComponents((conf, http, ec) => new Pro
 trait AppBuilder {
   def appConf: AppConf
 
-  def pushService: PushSystem
+  def pushService: PushEndpoint
 
   def emailAuth: EmailAuth
 }
 
 class ProdAppBuilder(conf: Configuration, http: OkClient, ec: ExecutionContext) extends AppBuilder {
   override val appConf = AppConf(conf)
-  override val pushService = PushService(conf)
+  override val pushService: PushEndpoint = BoatPushService(conf, ec)
   override val emailAuth = GoogleTokenAuth(appConf.webClientId, appConf.iosClientId, http, ec)
 }
 
@@ -99,7 +99,7 @@ class AppComponents(init: (Configuration, OkClient, ExecutionContext) => AppBuil
   schema.initBoat()(executionContext)
   val users: UserManager = DatabaseUserManager(schema, executionContext)
   val tracks: TracksSource = TracksDatabase(schema, executionContext)
-  lazy val pushService: PushSystem = builder.pushService
+  lazy val pushService: PushEndpoint = builder.pushService
   lazy val push = PushDatabase(schema, pushService, executionContext)
 
   val googleAuth: EmailAuth = builder.emailAuth
