@@ -141,8 +141,8 @@ class BoatHtml(jsFile: String) extends Tags(scalatags.Text) {
         cssLinkHashed(
           "https://use.fontawesome.com/releases/v5.3.1/css/all.css",
           "sha384-mzrmE5qonljUremFsqc01SB46JvROS7bZs3IO2EmfFsd15uHvIt+Y8vEf7N7fWAU"),
+        cssLink(reverseApp.versioned("css/fonts.css")),
         cssLink(reverseApp.versioned("css/main.css")),
-        cssLink("https://fonts.googleapis.com/css?family=Roboto:100,300,400,500,700"),
         content.css,
         content.js,
         script(`type` := MimeTypes.JAVASCRIPT, defer, src := reverseApp.versioned(jsFile))
