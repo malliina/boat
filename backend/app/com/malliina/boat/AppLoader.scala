@@ -12,7 +12,7 @@ import com.malliina.play.app.DefaultApp
 import com.typesafe.config.ConfigFactory
 import controllers._
 import play.api.ApplicationLoader.Context
-import play.api.http.HttpConfiguration
+import play.api.http.{HttpConfiguration, HttpErrorHandler}
 import play.api.mvc.EssentialFilter
 import play.api.routing.Router
 import play.api.{BuiltInComponentsFromContext, Configuration, Mode}
@@ -52,6 +52,7 @@ class AppComponents(init: (Configuration, OkClient, ExecutionContext) => AppBuil
     with HttpFiltersComponents
     with AssetsComponents {
 
+  override lazy val httpErrorHandler: HttpErrorHandler = BoatErrorHandler
   val http = OkClient.default
   override val configuration: Configuration = context.initialConfiguration ++ LocalConf.localConf
   val builder = init(configuration, http, executionContext)

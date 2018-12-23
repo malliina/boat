@@ -38,16 +38,14 @@ class APNSPush(sandbox: APNSTokenClient, prod: APNSTokenClient) extends PushClie
     val message = APNSMessage.simple(notification.message)
       .copy(data = Map("meta" -> Json.toJson(notification)))
     val request = APNSRequest.withTopic(topic, message)
-    val pushSandbox = sandbox.push(to, request).map(fold(_, to, useLog = false))
-    val pushProd = prod.push(to, request).map(fold(_, to, useLog = true))
-    Future.sequence(Seq(pushSandbox, pushProd)).map { rs =>
+    val pushSandbox = sandbox.push(to, request).map(fold(_, to, useLog = false)).map(_ => PushSummary.empty)
+    val pushProd = prod.push(to, request).map(fold(_, to, useLog = true)).map { result =>
       PushSummary(
-        rs.filter(_.error.contains(BadDeviceToken)).map { bdt =>
-          PushToken(bdt.token.token)
-        },
+        if (result.error.contains(BadDeviceToken)) Seq(PushToken(result.token.token)) else Nil,
         Nil
       )
     }
+    Future.sequence(Seq(pushSandbox, pushProd)).map(_.fold(PushSummary.empty)(_ ++ _))
   }
 
   private def fold(result: Either[APNSError, APNSIdentifier], token: APNSToken, useLog: Boolean): APNSHttpResult =

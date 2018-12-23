@@ -156,19 +156,12 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext)
     }
 
   override def history(user: Username, limits: BoatQuery): Future[Seq[CoordsEvent]] = action {
-    val newestTrack = usersTable.filter(_.user === user)
-      .join(boatsTable).on(_.id === _.owner)
-      .join(tracksTable).on(_._2.id === _.boat)
-      .sortBy(_._2.added.desc)
-      .map(_._2)
-      .take(1)
-    //    newestTrack.result.statements.toList foreach println
     // Intentionally, you can view any track if you know its key.
     // Alternatively, we could filter tracks by user and make that optional.
     val eligibleTracks =
-    if (limits.tracks.nonEmpty) tracksViewNonEmpty.filter(t => t.trackName.inSet(limits.tracks))
-    else if (limits.newest) tracksViewNonEmpty.join(newestTrack).on(_.track === _.id).map(_._1)
-    else tracksViewNonEmpty
+      if (limits.tracks.nonEmpty) tracksViewNonEmpty.filter(t => t.trackName.inSet(limits.tracks))
+      else if (limits.newest) tracksViewNonEmpty.filter(_.username === user).sortBy(_.trackAdded.desc).take(1)
+      else tracksViewNonEmpty
     //    eligibleTracks.result.statements.toList foreach println
     val query = eligibleTracks
       .join(rangedCoords(limits.timeRange)).on(_.track === _.track)

@@ -19,9 +19,9 @@ class ManualBoatTests extends BoatTests {
   // def relevantSentences = sentences.drop(10000).filter(s => s.sentence.startsWith("$GPGGA") || s.sentence.startsWith("$GPZDA"))
   def relevantSentences = sentences
 
-  def url = FullUrl.ws("localhost:9000", reverse.boats().toString)
+//  def url = FullUrl.ws("localhost:9000", reverse.boats().toString)
 
-  //  def url = FullUrl.wss("boat.malliina.com", reverse.boats().toString)
+  def url = FullUrl.wss("www.boat-tracker.com", reverse.boats().toString)
 
   ignore("local GPS reporting") {
     //    println("Lines " + gpsSentences.toList.length)
@@ -53,6 +53,13 @@ class ManualBoatTests extends BoatTests {
         boat.send(msg)
         Thread.sleep(500)
       }
+    }
+  }
+
+  ignore("boat can connect") {
+    val token = BoatToken("todo")
+    openBoat(url, Right(token)) { boat =>
+      Thread.sleep(10000)
     }
   }
 }
