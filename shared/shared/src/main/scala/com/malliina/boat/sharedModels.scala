@@ -141,8 +141,7 @@ sealed abstract class MobileDevice(val name: String) {
 
 object MobileDevice extends ValidatingCompanion[String, MobileDevice] {
   val Key = "device"
-  val ios: MobileDevice = IOS
-  val all: Seq[MobileDevice] = Seq(IOS)
+  val all: Seq[MobileDevice] = Seq(IOS, Android)
 
   def apply(s: String): MobileDevice = build(s).getOrElse(Unknown(s))
 
