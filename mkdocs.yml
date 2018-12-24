@@ -7,5 +7,6 @@ theme:
 nav:
   - Develop: index.md
   - HTTP Endpoints: endpoints.md
+  - Agent: agent.md
 
 copyright: Copyright &copy; 2018 <a href="https://github.com/malliina">Michael Skogberg</a>
