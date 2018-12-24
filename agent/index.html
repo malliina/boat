@@ -38,7 +38,7 @@
     
     
       
-        <title>HTTP Endpoints - Boat-Tracker</title>
+        <title>Agent - Boat-Tracker</title>
       
     
     
@@ -74,7 +74,7 @@
     <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
     <label class="md-overlay" data-md-component="overlay" for="__drawer"></label>
     
-      <a href="#endpoints" tabindex="1" class="md-skip">
+      <a href="#agent" tabindex="1" class="md-skip">
         Skip to content
       </a>
     
@@ -100,7 +100,7 @@
                 Boat-Tracker
               </span>
               <span class="md-header-nav__topic">
-                HTTP Endpoints
+                Agent
               </span>
             
           
@@ -181,6 +181,18 @@
       
       
 
+
+  <li class="md-nav__item">
+    <a href="../endpoints/" title="HTTP Endpoints" class="md-nav__link">
+      HTTP Endpoints
+    </a>
+  </li>
+
+    
+      
+      
+      
+
   
 
 
@@ -192,11 +204,11 @@
     
     
       <label class="md-nav__link md-nav__link--active" for="__toc">
-        HTTP Endpoints
+        Agent
       </label>
     
-    <a href="./" title="HTTP Endpoints" class="md-nav__link md-nav__link--active">
-      HTTP Endpoints
+    <a href="./" title="Agent" class="md-nav__link md-nav__link--active">
+      Agent
     </a>
     
       
@@ -210,29 +222,15 @@
     <ul class="md-nav__list" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#get-usersme" title="GET /users/me" class="md-nav__link">
-    GET /users/me
+  <a href="#installation" title="Installation" class="md-nav__link">
+    Installation
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#get-tracks" title="GET /tracks" class="md-nav__link">
-    GET /tracks
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#post-usersnotifications" title="POST /users/notifications" class="md-nav__link">
-    POST /users/notifications
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#post-usersnotificationsdisable" title="POST /users/notifications/disable" class="md-nav__link">
-    POST /users/notifications/disable
+  <a href="#custom-implementations" title="Custom implementations" class="md-nav__link">
+    Custom implementations
   </a>
   
 </li>
@@ -245,18 +243,6 @@
   
 </nav>
     
-  </li>
-
-    
-      
-      
-      
-
-
-  <li class="md-nav__item">
-    <a href="../agent/" title="Agent" class="md-nav__link">
-      Agent
-    </a>
   </li>
 
     
@@ -281,29 +267,15 @@
     <ul class="md-nav__list" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#get-usersme" title="GET /users/me" class="md-nav__link">
-    GET /users/me
+  <a href="#installation" title="Installation" class="md-nav__link">
+    Installation
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#get-tracks" title="GET /tracks" class="md-nav__link">
-    GET /tracks
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#post-usersnotifications" title="POST /users/notifications" class="md-nav__link">
-    POST /users/notifications
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#post-usersnotificationsdisable" title="POST /users/notifications/disable" class="md-nav__link">
-    POST /users/notifications/disable
+  <a href="#custom-implementations" title="Custom implementations" class="md-nav__link">
+    Custom implementations
   </a>
   
 </li>
@@ -325,120 +297,46 @@
               
                 
                 
-                <h1 id="endpoints">Endpoints</h1>
-<p>HTTP endpoints return JSON.</p>
-<h2 id="get-usersme">GET /users/me</h2>
-<p>Returns user information including any boats:</p>
+                <h1 id="agent">Agent</h1>
+<p>Run the agent software on a small computer and connect it to your chartplotter.</p>
+<p>The agent runs as a Systemd service and exposes an HTTP server on port 8080. It is tested on a Raspberry Pi 3 running
+Raspbian.</p>
+<h2 id="installation">Installation</h2>
+<ol>
+<li>Download the <a href="https://www.boat-tracker.com/files/boat-agent_0.1.2_all.deb">latest version</a> from <a href="https://www.boat-tracker.com/files">www.boat-tracker.com/files</a></li>
+<li>Install the package: <code>dpkg -i &lt;boat-agent_x.x.x_all.deb&gt;</code></li>
+<li>Open a web browser and connect to the HTTP server on port 8080</li>
+<li>In the web form, input the IP address and HTTP port of your chartplotter</li>
+<li>Optionally, input the boat token available in the iOS app</li>
+<li>Connect this agent to the same network as your chartplotter</li>
+<li>The agent establishes a TCP connection to your chartplotter and receives NMEA 0183 messages</li>
+</ol>
+<p>Alternatively, you can configure the plotter IP/port -combination in a configuration file set by the <code>conf.dir</code> system
+property containing the following format:</p>
 <pre><code>{
-    "user": {
-        "id": 123,
-        "username": "jack",
-        "email": "jack@example.com",
-        "boats": [
-            {
-                "id": 12,
-                "name: "Her Highness",
-                "token": "abc123"
-            }
-        ],
-        "enabled": true
-    }
+  "host": "10.0.0.1",
+  "port": 10033,
+  "token": "abcd1234",
+  "enabled": true
 }
 </code></pre>
-<h2 id="get-tracks">GET /tracks</h2>
-<p>Returns tracks driven:</p>
+<p>Optionally, sign in to the iOS app to obtain a boat token. A token assigns any NMEA 0183 messages to the user with
+the given token, and subsequently the user can view any tracks recorded with the given token from the iOS app or web
+interface.</p>
+<h2 id="custom-implementations">Custom implementations</h2>
+<p>If this agent is not good enough for you, you can send NMEA 0183 sentences to boat-tracker.com using the HTTP API 
+directly.</p>
+<ol>
+<li>Open a WebSocket to wss://www.boat-tracker.com/ws/boats</li>
+<li>Optionally, provide your boat token in header <code>X-Token</code> when opening the WebSocket.</li>
+<li>Send NMEA 0183 sentences over the socket as JSON-formatted text messages</li>
+</ol>
+<p>The JSON messages must be of the following format:</p>
 <pre><code>{
-    "tracks": [
-        {
-            "track": 123,
-            "trackName": "abc",
-            "boat": 12,
-            "boatName": "Her Highness",
-            "user": 123,
-            "username": "jack",
-            "points": 42,
-            "duration": 3500,
-            "distance": 1234,
-            "topSpeed": 24.1,
-            "avgSpeed": 23.2,
-            "avgWaterTemp": 6.1,
-            "topPoint": {
-                "id": 123,
-                "coord": {
-                    "lng": 60.24,
-                    "lat": 24.1
-                },
-                "speed": 24.1
-            }
-        }
-    ]
-}
-</code></pre>
-<p>The following units are used:</p>
-<table>
-<thead>
-<tr>
-<th>Key</th>
-<th>Unit</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>duration</td>
-<td>seconds</td>
-</tr>
-<tr>
-<td>distance</td>
-<td>meters</td>
-</tr>
-<tr>
-<td>speed</td>
-<td>knots</td>
-</tr>
-<tr>
-<td>topSpeed</td>
-<td>knots</td>
-</tr>
-<tr>
-<td>avgSpeed</td>
-<td>knots</td>
-</tr>
-<tr>
-<td>avgWaterTemp</td>
-<td>celsius</td>
-</tr>
-</tbody>
-</table>
-<h2 id="post-usersnotifications">POST /users/notifications</h2>
-<p>Subscribes to push notifications:</p>
-<pre><code>{
-    "token": "device_token",
-    "device": "ios"
-}
-</code></pre>
-<p>Key <em>device</em> must be one of:</p>
-<table>
-<thead>
-<tr>
-<th>Value</th>
-<th>Meaning</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>ios</td>
-<td>iOS token</td>
-</tr>
-<tr>
-<td>android</td>
-<td>Android token</td>
-</tr>
-</tbody>
-</table>
-<h2 id="post-usersnotificationsdisable">POST /users/notifications/disable</h2>
-<p>Unsubscribes from push notifications:</p>
-<pre><code>{
-    "token": "device_token",
+  "sentences": [
+    "$GPGGA,174239,6110.2076,N,06450.5518,E,1,12,0.50,0,M,19.5,M,,*63",
+    "$GPZDA,141735,04,05,2018,-03,00*69"
+  ]
 }
 </code></pre>
                 
@@ -461,7 +359,7 @@
     <div class="md-footer-nav">
       <nav class="md-footer-nav__inner md-grid">
         
-          <a href=".." title="Develop" class="md-flex md-footer-nav__link md-footer-nav__link--prev" rel="prev">
+          <a href="../endpoints/" title="HTTP Endpoints" class="md-flex md-footer-nav__link md-footer-nav__link--prev" rel="prev">
             <div class="md-flex__cell md-flex__cell--shrink">
               <i class="md-icon md-icon--arrow-back md-footer-nav__button"></i>
             </div>
@@ -470,25 +368,11 @@
                 <span class="md-footer-nav__direction">
                   Previous
                 </span>
-                Develop
+                HTTP Endpoints
               </span>
             </div>
           </a>
         
-        
-          <a href="../agent/" title="Agent" class="md-flex md-footer-nav__link md-footer-nav__link--next" rel="next">
-            <div class="md-flex__cell md-flex__cell--stretch md-footer-nav__title">
-              <span class="md-flex__ellipsis">
-                <span class="md-footer-nav__direction">
-                  Next
-                </span>
-                Agent
-              </span>
-            </div>
-            <div class="md-flex__cell md-flex__cell--shrink">
-              <i class="md-icon md-icon--arrow-forward md-footer-nav__button"></i>
-            </div>
-          </a>
         
       </nav>
     </div>
