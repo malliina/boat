@@ -1,10 +1,11 @@
 package com.malliina.turf
 
 import scala.scalajs.js
-import scala.scalajs.js.annotation.JSGlobal
+import scala.scalajs.js.annotation.JSImport
 
 @js.native
-@JSGlobal("turf")
+// I think the first parameter here must match the name of a module in npmDependencies in build.sbt
+@JSImport("@turf/turf", JSImport.Default)
 object turf extends js.Object {
   def center(geoJson: js.Any): js.Any = js.native
 

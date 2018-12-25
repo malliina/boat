@@ -46,6 +46,21 @@ The frontend
 - updates live tracks in near-real-time as received from the backend
 - provides a map view, table view and charts for visualization
 
+## Releases
+
+To release a new version of the agent, run
+
+    sbt release
+    
+To upload a new downloadable `.deb` binary to S3, run
+
+    sbt buildAndUpload
+    
+This will make a binary available at [www.boat-tracker.com/files](https://www.boat-tracker.com/files).
+
+Creating the binary requires a Linux operating system with certain packages installed,
+therefore it is currently a separate step from the release process.
+
 ## License
 
 Licensed under the 3-Clause BSD License.

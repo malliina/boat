@@ -18,7 +18,6 @@ object Charts extends Tags(scalatags.Text) {
 
   private def page(content: Modifier*) = PageConf(
     content,
-    bodyClasses = Seq(ChartsClass),
-    js = modifier(jsScript("https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.7.2/Chart.bundle.js"))
+    bodyClasses = Seq(ChartsClass)
   )
 }

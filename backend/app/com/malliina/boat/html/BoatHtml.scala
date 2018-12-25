@@ -28,16 +28,19 @@ object BoatHtml {
   def apply(mode: Mode): BoatHtml = apply(mode == Mode.Prod)
 
   def apply(isProd: Boolean): BoatHtml = {
-    val jsFile = if (isProd) "frontend-opt.js" else "frontend-fastopt.js"
-    new BoatHtml(jsFile)
+    val name = "frontend"
+    val jsFiles =
+      if (isProd) Seq(s"$name-opt-library.js", s"$name-opt-loader.js", s"$name-opt.js")
+      else Seq(s"$name-fastopt-library.js", s"$name-fastopt-loader.js", s"$name-fastopt.js")
+    new BoatHtml(jsFiles)
   }
 }
 
-class BoatHtml(jsFile: String) extends Tags(scalatags.Text) {
+class BoatHtml(jsFiles: Seq[String]) extends Tags(scalatags.Text) {
   val defer = attr("defer").empty
   val reverse = routes.BoatController
   val reverseApp = routes.AppController
-  val mapboxVersion = "0.49.0"
+  val mapboxVersion = "0.52.0"
 
   implicit def wrapFrag[T <: Wrapped](w: T): StringFrag = stringFrag(w.value)
 
@@ -62,7 +65,7 @@ class BoatHtml(jsFile: String) extends Tags(scalatags.Text) {
       modifier(
         boat.map { b =>
           modifier(
-            div(id := "navbar", `class` := "navbar")(
+            div(id := "navbar", `class` := "navbar navbar-boat")(
               span(`class` := "nav-text")(b.boat),
               div(`class` := "dropdown nav-text", id := DropdownLinkId)(
                 span(`class` := "dropdown-button", "Tracks"),
@@ -95,11 +98,11 @@ class BoatHtml(jsFile: String) extends Tags(scalatags.Text) {
         Modal.about,
       ),
       bodyClasses = Seq(MapClass),
-      cssLink(s"https://api.tiles.mapbox.com/mapbox-gl-js/v$mapboxVersion/mapbox-gl.css"),
-      modifier(
-        jsScript(s"https://api.tiles.mapbox.com/mapbox-gl-js/v$mapboxVersion/mapbox-gl.js"),
-        jsScript("https://npmcdn.com/@turf/turf/turf.min.js")
-      )
+      cssLink(s"https://api.tiles.mapbox.com/mapbox-gl-js/v$mapboxVersion/mapbox-gl.css")
+//      modifier(
+//        jsScript(s"https://api.tiles.mapbox.com/mapbox-gl-js/v$mapboxVersion/mapbox-gl.js"),
+//        jsScript("https://npmcdn.com/@turf/turf@5.1.6/turf.min.js")
+//      )
     )
   )
 
@@ -145,7 +148,9 @@ class BoatHtml(jsFile: String) extends Tags(scalatags.Text) {
         cssLink(reverseApp.versioned("css/main.css")),
         content.css,
         content.js,
-        script(`type` := MimeTypes.JAVASCRIPT, defer, src := reverseApp.versioned(jsFile))
+        jsFiles.map { jsFile =>
+          script(`type` := MimeTypes.JAVASCRIPT, defer, src := reverseApp.versioned(jsFile))
+        }
       ),
       body(`class` := content.bodyClasses.mkString(" "))(
         content.content
