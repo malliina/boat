@@ -26,6 +26,7 @@ class MapSocket(map: MapboxMap, track: Option[TrackName], sample: Option[Int], m
   private var boats = Map.empty[String, FeatureCollection]
   private var trails = Map.empty[TrackId, Seq[TimedCoord]]
   private var topSpeedMarkers = Map.empty[TrackId, ActiveMarker]
+  private var isTrackHover: Boolean = false
 
   initImage()
 
@@ -40,14 +41,18 @@ class MapSocket(map: MapboxMap, track: Option[TrackName], sample: Option[Int], m
     }
     symbol.fold(markPopup.remove()) { feature =>
       val symbol = validate[MarineSymbol](feature.props)
+      val target = feature.geometry.coords.headOption.map(LngLat.apply).getOrElse(e.lngLat)
       symbol.map { ok =>
-        val target = feature.geometry.coords.headOption.map(LngLat.apply).getOrElse(e.lngLat)
         markPopup.show(html.mark(ok), target, map)
+      }.recoverWith { _ =>
+        validate[MinimalMarineSymbol](feature.props).map { ok =>
+          markPopup.show(html.minimalMark(ok), target, map)
+        }
       }.recover { err =>
         log.info(err.describe)
       }
     }
-    if (symbol.isEmpty) {
+    if (symbol.isEmpty && !isTrackHover) {
       val maybeFairway = features.flatMap(f => f.props.asOpt[FairwayArea]).headOption
       maybeFairway.foreach { fairway =>
         markPopup.show(html.fairway(fairway), e.lngLat, map)
@@ -141,6 +146,7 @@ class MapSocket(map: MapboxMap, track: Option[TrackName], sample: Option[Int], m
           if (!isOnBoatSymbol) {
             val op = nearest(in.lngLat, trails.getOrElse(trackId, Nil))(_.coord).map { near =>
               map.getCanvas().style.cursor = "pointer"
+              isTrackHover = true
               trackPopup.show(html.track(near, from), in.lngLat, map)
             }
             op.fold(err => log.info(err), identity)
@@ -148,6 +154,7 @@ class MapSocket(map: MapboxMap, track: Option[TrackName], sample: Option[Int], m
         },
         _ => {
           map.getCanvas().style.cursor = ""
+          isTrackHover = false
           trackPopup.remove()
         }
       )

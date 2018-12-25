@@ -7,14 +7,15 @@ abstract class Lang(val name: String,
                     val construction: String,
                     val speed: String,
                     val water: String,
-                    val depth: String) {
+                    val depth: String,
+                    val influence: String) {
   def fairway: FairwayLang
 
   def depths: DepthLang
 }
 
 object Lang {
-  object Finnish extends Lang("Nimi", "Sijainti", "Tyyppi", "Navigointi", "Rakenne", "Nopeus", "Vesi", "Syvyys") {
+  object Finnish extends Lang("Nimi", "Sijainti", "Tyyppi", "Navigointi", "Rakenne", "Nopeus", "Vesi", "Syvyys", "Vaikutusalue") {
     override val fairway = FairwayLang(
       "Laatuluokka", "Väyläalueen tyyppi", "Väyläalueen syvyys",
       "Haraussyvyys", "Vertaustaso", "Väylän tila",
@@ -22,7 +23,7 @@ object Lang {
     override val depths = DepthLang("Syvyys min", "Syvyys max")
   }
 
-  object Swedish extends Lang("Namn", "Plats", "Typ", "Navigering", "Struktur", "Hastighet", "Vatten", "Djup") {
+  object Swedish extends Lang("Namn", "Plats", "Typ", "Navigering", "Struktur", "Hastighet", "Vatten", "Djup", "Område") {
     override val fairway = FairwayLang("", "", "", "", "", "", "")
     override val depths = DepthLang("Djup min", "Djup max")
   }

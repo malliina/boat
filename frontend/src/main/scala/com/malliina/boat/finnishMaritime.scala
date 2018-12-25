@@ -14,6 +14,8 @@ object MaritimeJson {
     Reads[T] { json => json.validate[Int].collect(JsonValidationError(onError(json)))(pf) }
 }
 
+/** A Translateable typeclass is maybe a more appropriate abstraction. Can it be done compactly?
+  */
 sealed trait Translated {
   def fi: String
 
@@ -212,6 +214,22 @@ object Flotation {
   }
 }
 
+trait SymbolLike {
+  def nameFi: Option[String]
+
+  def nameSe: Option[String]
+
+  def locationFi: Option[String]
+
+  def locationSe: Option[String]
+
+  def name(lang: Lang): Option[String] =
+    if (lang == Lang.Swedish) nameSe.orElse(nameFi) else nameFi.orElse(nameSe)
+
+  def location(lang: Lang): Option[String] =
+    if (lang == Lang.Swedish) locationSe.orElse(locationFi) else locationFi.orElse(locationSe)
+}
+
 case class MarineSymbol(owner: String,
                         exteriorLight: Boolean,
                         topSign: Boolean,
@@ -224,13 +242,7 @@ case class MarineSymbol(owner: String,
                         lit: Boolean,
                         aidType: AidType,
                         navMark: NavMark,
-                        construction: Option[ConstructionInfo]) {
-  def name(lang: Lang): Option[String] =
-    if (lang == Lang.Swedish) nameSe.orElse(nameFi) else nameFi.orElse(nameSe)
-
-  def location(lang: Lang): Option[String] =
-    if (lang == Lang.Swedish) locationSe.orElse(locationFi) else locationFi.orElse(locationSe)
-}
+                        construction: Option[ConstructionInfo]) extends SymbolLike
 
 /**
   * @see Vesiväyläaineistojen tietosisällön kuvaus
@@ -270,7 +282,34 @@ object MarineSymbol {
       navMark <- (json \ "NAVL_TYYP").validate[NavMark]
       construction <- (json \ "RAKT_TYYP").validateOpt[ConstructionInfo]
     } yield {
-      MarineSymbol(owner, fasadi, topSign, nameFi, nameSe, locationFi, locationSe, flotation, state, lit, aidType, navMark, construction)
+      MarineSymbol(
+        owner, fasadi, topSign, nameFi, nameSe,
+        locationFi, locationSe, flotation, state,
+        lit, aidType, navMark, construction
+      )
+    }
+  }
+}
+
+case class MinimalMarineSymbol(owner: String,
+                               nameFi: Option[String],
+                               nameSe: Option[String],
+                               locationFi: Option[String],
+                               locationSe: Option[String],
+                               influence: ZoneOfInfluence) extends SymbolLike
+
+object MinimalMarineSymbol {
+  val nonEmpty = MarineSymbol.nonEmpty
+  implicit val reader: Reads[MinimalMarineSymbol] = Reads[MinimalMarineSymbol] { json =>
+    for {
+      owner <- (json \ "OMISTAJA").validate[String]
+      nameFi <- (json \ "NIMIR").validate[Option[String]](nonEmpty)
+      nameSe <- (json \ "NIMIS").validate[Option[String]](nonEmpty)
+      locationFi <- (json \ "SIJAINTIS").validate[Option[String]](nonEmpty)
+      locationSe <- (json \ "SIJAINTIR").validate[Option[String]](nonEmpty)
+      influence <- (json \ "VAIKUTUSAL").validate[ZoneOfInfluence]
+    } yield {
+      MinimalMarineSymbol(owner, nameFi, nameSe, locationFi, locationSe, influence)
     }
   }
 }
@@ -429,4 +468,24 @@ object FairwayArea {
       mark <- (json \ "MERK_LAJI").validateOpt[MarkType]
     } yield FairwayArea(owner, quality, fairwayType, fairwayDepth, harrowDepth, comparison, state, mark)
   }
+}
+
+sealed abstract class ZoneOfInfluence(val fi: String, val se: String, val en: String) extends Translated
+
+object ZoneOfInfluence {
+  implicit val reader: Reads[ZoneOfInfluence] = Reads[ZoneOfInfluence] { json =>
+    json.validate[String].flatMap {
+      case "A" => JsSuccess(Area)
+      case "V" => JsSuccess(Fairway)
+      case "AV" => JsSuccess(AreaAndFairway)
+      case other => JsError(s"Unexpected zone of influence: '$other'.")
+    }
+  }
+
+  case object Area extends ZoneOfInfluence("Alue", "Område", "Area")
+
+  case object Fairway extends ZoneOfInfluence("Väylä", "Farled", "Fairway")
+
+  case object AreaAndFairway extends ZoneOfInfluence("Alue ja väylä", "Område och farled", "Area and fairway")
+
 }

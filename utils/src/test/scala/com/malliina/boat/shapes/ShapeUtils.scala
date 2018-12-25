@@ -3,7 +3,7 @@ package com.malliina.boat.shapes
 import java.io.FileInputStream
 import java.nio.channels.FileChannel
 import java.nio.charset.StandardCharsets
-import java.nio.file.{Path, StandardOpenOption}
+import java.nio.file.{Files, Path, Paths, StandardOpenOption}
 
 import org.geotools.data.DataStoreFinder
 import org.geotools.data.shapefile.dbf.{DbaseFileReader, DbaseFileWriter}
@@ -27,8 +27,9 @@ class ShapeUtils extends FunSuite {
   }
 
   ignore("modify dbf file") {
-    val inFile: Path = ???
-    val outFile: Path = ???
+    val inFile: Path = Paths.get(???)
+    val outFile: Path = Paths.get(???)
+    Files.createFile(outFile)
     val inChannel = new FileInputStream(inFile.toFile).getChannel
     val reader = new DbaseFileReader(inChannel, true, StandardCharsets.ISO_8859_1)
 

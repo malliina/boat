@@ -30,6 +30,13 @@ class Popups(lang: Lang) {
       symbol.location(lang).fold(empty)(l => row(lang.location, l))
     )
 
+  def minimalMark(symbol: MinimalMarineSymbol) =
+    titledTable(symbol.owner)(
+      symbol.name(lang).fold(empty)(n => row(lang.name, n)),
+      symbol.location(lang).fold(empty)(l => row(lang.location, l)),
+      row(lang.influence, symbol.influence.in(lang))
+    )
+
   def fairway(fairway: FairwayArea) = {
     val labels = lang.fairway
     titledTable(fairway.owner)(
