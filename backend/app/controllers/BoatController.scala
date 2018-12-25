@@ -18,7 +18,7 @@ import com.malliina.values.Username
 import controllers.BoatController.log
 import play.api.Logger
 import play.api.data.Form
-import play.api.http.MimeTypes
+import play.api.http.{MimeTypes, Writeable}
 import play.api.libs.json.{JsValue, Json, Writes}
 import play.api.mvc.WebSocket.MessageFlowTransformer.jsonMessageFlowTransformer
 import play.api.mvc._
@@ -43,6 +43,7 @@ class BoatController(mapboxToken: AccessToken,
     with ContentVersions {
 
   val boatNameForm = Form[BoatName](BoatNames.Key -> BoatNames.mapping)
+  val trackTitleForm = Form[TrackTitle](TrackTitle.Key -> TrackTitles.mapping)
 
   val UserSessionKey = "boatUser"
   val anonUser = Usernames.anon
@@ -126,9 +127,11 @@ class BoatController(mapboxToken: AccessToken,
     }
   }
 
-  def createBoat = boatAction(req => db.addBoat(req.body, req.user.id))
+  def modifyTitle(track: TrackName) = trackTitleAction { req => db.modifyTitle(track, req.body, req.user.id) }
 
-  def renameBoat(id: BoatId) = boatAction(req => db.renameBoat(id, req.user.id, req.body))
+  def createBoat = boatAction { req => db.addBoat(req.body, req.user.id) }
+
+  def renameBoat(id: BoatId) = boatAction { req => db.renameBoat(id, req.body, req.user.id) }
 
   def boats = WebSocket { rh =>
     authBoat(rh).flatMapR { meta =>
@@ -183,8 +186,14 @@ class BoatController(mapboxToken: AccessToken,
   }
 
   private def boatAction(code: BoatRequest[UserInfo, BoatName] => Future[BoatRow]): Action[BoatName] =
-    parsedAuth(parse.form(boatNameForm, onErrors = (err: Form[BoatName]) => formError(err)))(googleProfile) { req =>
-      code(req).map { boat => Ok(BoatResponse(boat.toBoat)) }
+    formAction(boatNameForm) { req => code(req).map { b => BoatResponse(b.toBoat) } }
+
+  private def trackTitleAction(code: BoatRequest[UserInfo, TrackTitle] => Future[JoinedTrack]): Action[TrackTitle] =
+    formAction(trackTitleForm) { req => code(req).map(t => TrackResponse(t.strip)) }
+
+  private def formAction[T, W: Writeable](form: Form[T])(code: BoatRequest[UserInfo, T] => Future[W]): Action[T] =
+    parsedAuth(parse.form(form, onErrors = (err: Form[T]) => formError(err)))(googleProfile) { req =>
+      code(req).map { w => Ok(w) }
     }
 
   private def logTermination[In, Out, Mat](flow: Flow[In, Out, Mat], message: Try[Done] => String): Flow[In, Out, Future[Done]] =
@@ -229,9 +238,18 @@ class BoatController(mapboxToken: AccessToken,
       }
     }
 
-  /** Auths with boat token or user/pass. Fails if an invalid token is provided. If no token is provided,
-    * tries to auth with user/pass. Fails if invalid user/pass is provided. If no user/pass is provided,
-    * falls back to the anonymous user.
+  /** Auths with boat token or user/pass. If no credentials are provided, falls back to the anonymous user.
+    *
+    * Authentication attempts are made in the following order:
+    *
+    * <ol>
+    *   <li>Token auth</li>
+    *   <li>User/pass auth</li>
+    *   <li>Fallback to anonymous user</li>
+    * </ol>
+    *
+    * Authentication fails if any provided credentials are invalid. The next step is only taken if no credentials are
+    * provided.
     *
     * @param rh request
     * @return

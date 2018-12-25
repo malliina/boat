@@ -159,9 +159,9 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext)
     // Intentionally, you can view any track if you know its key.
     // Alternatively, we could filter tracks by user and make that optional.
     val eligibleTracks =
-      if (limits.tracks.nonEmpty) tracksViewNonEmpty.filter(t => t.trackName.inSet(limits.tracks))
-      else if (limits.newest) tracksViewNonEmpty.filter(_.username === user).sortBy(_.trackAdded.desc).take(1)
-      else tracksViewNonEmpty
+    if (limits.tracks.nonEmpty) tracksViewNonEmpty.filter(t => t.trackName.inSet(limits.tracks))
+    else if (limits.newest) tracksViewNonEmpty.filter(_.username === user).sortBy(_.trackAdded.desc).take(1)
+    else tracksViewNonEmpty
     //    eligibleTracks.result.statements.toList foreach println
     val query = eligibleTracks
       .join(rangedCoords(limits.timeRange)).on(_.track === _.track)
@@ -173,16 +173,30 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext)
     query.result.map { rows => collectPoints(rows) }
   }
 
-  override def renameBoat(boat: BoatId, user: UserId, newName: BoatName): Future[BoatRow] = {
+  def modifyTitle(track: TrackName, title: TrackTitle, user: UserId): Future[JoinedTrack] = {
+    val action = for {
+      id <- first(tracksViewNonEmpty.filter(t => t.trackName === track && t.user === user).map(_.track), s"Track not found: '$track'.")
+      _ <- tracksTable
+        .filter(_.id === id).map(t => (t.name, t.title))
+        .update((TrackNames(title), Option(title)))
+      updated <- first(tracksViewNonEmpty.filter(_.track === id), s"Track ID not found: '$id'.")
+    } yield {
+      log.info(s"Modified title of track '$id' to '$title' normalized to '${updated.trackName}'.")
+      updated
+    }
+    db.run(action.transactionally)
+  }
+
+  override def renameBoat(boat: BoatId, newName: BoatName, user: UserId): Future[BoatRow] = {
     val action = for {
       id <- db.first(boatsView.filter(b => b.user === user && b.boat === boat).map(_.boat), s"Boat not found: '$boat'.")
       _ <- boatsTable.filter(_.id === id).map(_.name).update(newName)
-      updated <- db.first(boatsTable.filter(_.id === id), s"Boat not found: '$id'.")
+      updated <- first(boatsTable.filter(_.id === id), s"Boat not found: '$id'.")
     } yield {
       log.info(s"Renamed boat '$id' to '$newName'.")
       updated
     }
-    db.run(action)
+    db.run(action.transactionally)
   }
 
   private def rangedCoords(limits: TimeRange) =

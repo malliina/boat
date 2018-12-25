@@ -29,10 +29,8 @@ object BoatHtml {
 
   def apply(isProd: Boolean): BoatHtml = {
     val name = "frontend"
-    val jsFiles =
-      if (isProd) Seq(s"$name-opt-library.js", s"$name-opt-loader.js", s"$name-opt.js")
-      else Seq(s"$name-fastopt-library.js", s"$name-fastopt-loader.js", s"$name-fastopt.js")
-    new BoatHtml(jsFiles)
+    val opt = if (isProd) "opt" else "fastopt"
+    new BoatHtml(Seq(s"$name-$opt-library.js", s"$name-$opt-loader.js", s"$name-$opt.js"))
   }
 }
 
@@ -99,10 +97,6 @@ class BoatHtml(jsFiles: Seq[String]) extends Tags(scalatags.Text) {
       ),
       bodyClasses = Seq(MapClass),
       cssLink(s"https://api.tiles.mapbox.com/mapbox-gl-js/v$mapboxVersion/mapbox-gl.css")
-//      modifier(
-//        jsScript(s"https://api.tiles.mapbox.com/mapbox-gl-js/v$mapboxVersion/mapbox-gl.js"),
-//        jsScript("https://npmcdn.com/@turf/turf@5.1.6/turf.min.js")
-//      )
     )
   )
 

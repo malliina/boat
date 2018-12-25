@@ -80,6 +80,7 @@ lazy val backendSettings = playSettings ++ Seq(
   pipelineStages := Seq(digest, gzip),
   scalaJSProjects := Seq(frontend),
   pipelineStages in Assets := Seq(scalaJSPipeline),
+//  npmAssets ++= NpmAssets.ofProject(client) { modules => (modules / "font-awesome").allPaths }.value,
   buildInfoKeys := Seq[BuildInfoKey](name, version, scalaVersion, "gitHash" -> gitHash),
   buildInfoPackage := "com.malliina.boat",
   // linux packaging
@@ -126,6 +127,7 @@ lazy val frontendSettings = commonSettings ++ Seq(
     "@turf/turf" -> "5.1.6",
     "mapbox-gl" -> "0.52.0",
     "chart.js" -> "2.7.3"
+//    "@fortawesome/fontawesome-free" -> "5.6.3"
   ),
   version in webpack := "4.27.1",
   emitSourceMaps := false,

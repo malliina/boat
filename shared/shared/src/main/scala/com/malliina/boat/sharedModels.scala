@@ -80,6 +80,13 @@ object TrackName extends StringCompanion[TrackName] {
   val Key = "track"
 }
 
+case class TrackTitle(title: String) extends Wrapped(title)
+
+object TrackTitle extends StringCompanion[TrackTitle] {
+  val Key = "title"
+  val MaxLength = 191
+}
+
 case class BoatToken(token: String) extends Wrapped(token)
 
 object BoatToken extends StringCompanion[BoatToken]
@@ -201,13 +208,13 @@ object TrackMetaShort {
   implicit val json = Json.format[TrackMetaShort]
 }
 
-case class TrackRef(track: TrackId, trackName: TrackName, boat: BoatId,
-                    boatName: BoatName, user: UserId, username: Username,
-                    points: Int, start: ISODateTime, startMillis: Long,
-                    end: ISODateTime, endMillis: Long, startEndRange: String,
-                    duration: Duration, distance: Distance,
-                    topSpeed: Option[Speed], avgSpeed: Option[Speed],
-                    avgWaterTemp: Option[Temperature], topPoint: TimedCoord) extends TrackLike
+case class TrackRef(track: TrackId, trackName: TrackName, trackTitle: Option[TrackTitle],
+                    boat: BoatId, boatName: BoatName, user: UserId,
+                    username: Username, points: Int, start: ISODateTime,
+                    startMillis: Long, end: ISODateTime, endMillis: Long,
+                    startEndRange: String, duration: Duration, distance: Distance,
+                    topSpeed: Option[Speed], avgSpeed: Option[Speed], avgWaterTemp: Option[Temperature],
+                    topPoint: TimedCoord) extends TrackLike
 
 object TrackRef {
   implicit val durationFormat = PrimitiveFormats.durationFormat

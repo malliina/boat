@@ -39,6 +39,7 @@ class Mappings(val impl: JdbcProfile) {
   implicit val deviceMapping = MappedColumnType.base[MobileDevice, String](_.name, MobileDevice.apply)
   implicit val pushMapping = stringMapping(PushToken.apply)
   implicit val pushIdMapping = longMapping(PushId.apply)
+  implicit val trackTitleMapping = stringMapping(TrackTitle.apply)
 
   class CoordJdbcType(implicit override val classTag: ClassTag[Coord])
     extends impl.DriverJdbcType[Coord] {

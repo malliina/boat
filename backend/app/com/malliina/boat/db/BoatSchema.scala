@@ -82,7 +82,12 @@ class BoatSchema(ds: DataSource, conf: ProfileConf)
   }
   val distanceCoords = SimpleFunction.binary[Coord, Coord, Distance](distanceFunc)
   val topSpeeds = trackAggregate(_.map(_.boatSpeed).max)
-  val topPoints = pointsTable.join(pointsTable.join(topSpeeds).on((p, t) => p.track === t._1 && p.boatSpeed === t._2).groupBy(_._1.track).map { case (t, q) => (t, q.map(_._1.id).min) }).on(_.id === _._2)
+  val topPoints = pointsTable
+    .join(pointsTable.join(topSpeeds)
+      .on((p, t) => p.track === t._1 && p.boatSpeed === t._2)
+      .groupBy(_._1.track)
+      .map { case (t, q) => (t, q.map(_._1.id).min) })
+    .on(_.id === _._2)
   val minTimes = trackAggregate(_.map(_.boatTime).min)
   val maxTimes = trackAggregate(_.map(_.boatTime).max)
   val boatsView: Query[LiftedJoinedBoat, JoinedBoat, Seq] = boatsTable.join(usersTable).on(_.owner === _.id)
@@ -96,7 +101,7 @@ class BoatSchema(ds: DataSource, conf: ProfileConf)
       .join(topPoints).on(_._1._1._1._2.id === _._1.track)
       .map { case (((((boat, track), (_, top)), (_, start)), (_, end)), (point, _)) =>
         LiftedJoinedTrack(
-          track.id, track.name, track.added, boat.boat, boat.boatName,
+          track.id, track.name, track.title, track.added, boat.boat, boat.boatName,
           boat.token, boat.user, boat.username, boat.email, track.points,
           start, end, top, track.avgSpeed, track.avgWaterTemp,
           track.distance, point.combined
@@ -136,11 +141,11 @@ class BoatSchema(ds: DataSource, conf: ProfileConf)
 
   implicit object Coordshape extends CaseClassShape(LiftedCoord.tupled, (CombinedCoord.apply _).tupled)
 
-  case class LiftedJoinedTrack(track: Rep[TrackId], trackName: Rep[TrackName], trackAdded: Rep[Instant],
-                               boat: Rep[BoatId], boatName: Rep[BoatName], boatToken: Rep[BoatToken],
-                               user: Rep[UserId], username: Rep[Username], email: Rep[Option[Email]],
-                               points: Rep[Int], start: Rep[Option[Instant]], end: Rep[Option[Instant]],
-                               topSpeed: Rep[Option[Speed]], avgSpeed: Rep[Option[Speed]],
+  case class LiftedJoinedTrack(track: Rep[TrackId], trackName: Rep[TrackName], trackTitle: Rep[Option[TrackTitle]],
+                               trackAdded: Rep[Instant], boat: Rep[BoatId], boatName: Rep[BoatName],
+                               boatToken: Rep[BoatToken], user: Rep[UserId], username: Rep[Username],
+                               email: Rep[Option[Email]], points: Rep[Int], start: Rep[Option[Instant]],
+                               end: Rep[Option[Instant]], topSpeed: Rep[Option[Speed]], avgSpeed: Rep[Option[Speed]],
                                avgWaterTemp: Rep[Option[Temperature]], length: Rep[Distance], topPoint: LiftedCoord)
 
   implicit object TrackShape extends CaseClassShape(LiftedJoinedTrack.tupled, (JoinedTrack.apply _).tupled)
@@ -278,6 +283,8 @@ class BoatSchema(ds: DataSource, conf: ProfileConf)
 
     def distance = column[Distance]("distance")
 
+    def title = column[Option[TrackTitle]]("title", O.Length(191), O.Unique)
+
     def added = column[Instant]("added", O.SqlType(CreatedTimestampType))
 
     def boatConstraint = foreignKey("tracks_boat_fk", boat, boatsTable)(
@@ -288,7 +295,7 @@ class BoatSchema(ds: DataSource, conf: ProfileConf)
 
     def forInserts = (name, boat, avgSpeed, avgWaterTemp, points, distance) <> ((TrackInput.apply _).tupled, TrackInput.unapply)
 
-    def * = (id, name, boat, avgSpeed, avgWaterTemp, points, distance, added) <> ((TrackRow.apply _).tupled, TrackRow.unapply)
+    def * = (id, name, boat, avgSpeed, avgWaterTemp, points, distance, title, added) <> ((TrackRow.apply _).tupled, TrackRow.unapply)
   }
 
   class BoatsTable(tag: Tag) extends Table[BoatRow](tag, "boats") {

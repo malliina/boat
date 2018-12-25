@@ -32,11 +32,11 @@ object AppMeta {
   val default = AppMeta(BuildInfo.name, BuildInfo.version, BuildInfo.gitHash)
 }
 
-case class JoinedTrack(track: TrackId, trackName: TrackName, trackAdded: Instant,
-                       boat: BoatId, boatName: BoatName, boatToken: BoatToken,
-                       user: UserId, username: Username, email: Option[Email],
-                       points: Int, start: Option[Instant], end: Option[Instant],
-                       topSpeed: Option[Speed], avgSpeed: Option[Speed],
+case class JoinedTrack(track: TrackId, trackName: TrackName, trackTitle: Option[TrackTitle],
+                       trackAdded: Instant, boat: BoatId, boatName: BoatName,
+                       boatToken: BoatToken, user: UserId, username: Username,
+                       email: Option[Email], points: Int, start: Option[Instant],
+                       end: Option[Instant], topSpeed: Option[Speed], avgSpeed: Option[Speed],
                        avgWaterTemp: Option[Temperature], distance: Distance, topPoint: CombinedCoord) extends TrackLike {
   val startOrNow = start.getOrElse(Instant.now())
   val endOrNow = end.getOrElse(Instant.now())
@@ -46,7 +46,7 @@ case class JoinedTrack(track: TrackId, trackName: TrackName, trackAdded: Instant
     * @return a Scala.js -compatible representation of this track
     */
   def strip = TrackRef(
-    track, trackName, boat,
+    track, trackName, trackTitle, boat,
     boatName, user, username,
     points, Instants.format(startOrNow), startOrNow.toEpochMilli,
     Instants.format(endOrNow), endOrNow.toEpochMilli, Instants.formatRange(startOrNow, endOrNow),
@@ -124,6 +124,14 @@ object PushPayload {
 
 object TrackNames {
   def random() = TrackName(Utils.randomString(6))
+
+  def apply(title: TrackTitle): TrackName = TrackName(Utils.normalize(title.title).take(50))
+}
+
+object TrackTitles {
+  val MaxLength = 191
+  val mapping: Mapping[TrackTitle] = Forms.nonEmptyText.verifying(_.length <= TrackTitle.MaxLength)
+    .transform(s => TrackTitle(s), t => t.title)
 }
 
 object BoatTokens {
@@ -153,6 +161,12 @@ object BoatResponse {
   implicit val json = Json.format[BoatResponse]
 }
 
+case class TrackResponse(track: TrackRef)
+
+object TrackResponse {
+  implicit val json = Json.format[TrackResponse]
+}
+
 case class JoinedBoat(boat: BoatId, boatName: BoatName, boatToken: BoatToken,
                       user: UserId, username: Username, email: Option[Email])
 
@@ -165,7 +179,8 @@ object TrackInput {
 
 case class TrackRow(id: TrackId, name: TrackName, boat: BoatId,
                     avgSpeed: Option[Speed], avgWaterTemp: Option[Temperature],
-                    points: Int, distance: Distance, added: Instant)
+                    points: Int, distance: Distance, title: Option[TrackTitle],
+                    added: Instant)
 
 case class SentenceKey(id: Long) extends WrappedId
 

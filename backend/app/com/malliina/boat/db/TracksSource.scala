@@ -8,9 +8,11 @@ import com.malliina.values.{Email, UserId, Username}
 import scala.concurrent.Future
 
 trait TracksSource {
+  def modifyTitle(track: TrackName, title: TrackTitle, user: UserId): Future[JoinedTrack]
+
   def addBoat(boat: BoatName, user: UserId): Future[BoatRow]
 
-  def renameBoat(boat: BoatId, user: UserId, newName: BoatName): Future[BoatRow]
+  def renameBoat(boat: BoatId, newName: BoatName, user: UserId): Future[BoatRow]
 
   /** If the given track and boat exist and are owned by the user, returns the track info.
     *
