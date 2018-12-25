@@ -27,8 +27,8 @@ class ShapeUtils extends FunSuite {
   }
 
   ignore("modify dbf file") {
-    val inFile: Path = Paths.get(???)
-    val outFile: Path = Paths.get(???)
+    val inFile: Path = Paths.get("")
+    val outFile: Path = Paths.get("")
     Files.createFile(outFile)
     val inChannel = new FileInputStream(inFile.toFile).getChannel
     val reader = new DbaseFileReader(inChannel, true, StandardCharsets.ISO_8859_1)
