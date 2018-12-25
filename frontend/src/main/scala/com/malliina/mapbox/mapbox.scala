@@ -11,10 +11,10 @@ import scala.scalajs.js
 import scala.scalajs.js.Dynamic.literal
 import scala.scalajs.js.JSConverters._
 import scala.scalajs.js.JSON
-import scala.scalajs.js.annotation.JSGlobal
+import scala.scalajs.js.annotation.JSImport
 
 @js.native
-@JSGlobal("mapboxgl")
+@JSImport("mapbox-gl", JSImport.Default)
 object mapboxGl extends js.Object {
   var accessToken: String = js.native
 }
@@ -30,7 +30,7 @@ object MarkerOptions {
 }
 
 @js.native
-@JSGlobal("mapboxgl.Marker")
+@JSImport("mapbox-gl", "Marker")
 class MapboxMarker(options: MarkerOptions) extends js.Object {
   def setLngLat(coord: LngLat): MapboxMarker = js.native
 
@@ -68,7 +68,7 @@ object PopupOptions {
 }
 
 @js.native
-@JSGlobal("mapboxgl.Popup")
+@JSImport("mapbox-gl", "Popup")
 class MapboxPopup(options: PopupOptions) extends js.Object {
   def setLngLat(coord: LngLat): MapboxPopup = js.native
 
@@ -98,7 +98,7 @@ object MapboxPopup {
 }
 
 @js.native
-@JSGlobal("mapboxgl.Map")
+@JSImport("mapbox-gl", "Map")
 class MapboxMap(options: MapOptions) extends js.Object {
   def flyTo(options: FlyOptions): Unit = js.native
 
@@ -147,7 +147,7 @@ object MapboxMap {
 }
 
 @js.native
-@JSGlobal("mapboxgl.LngLatBounds")
+@JSImport("mapbox-gl", "LngLatBounds")
 class LngLatBounds(sw: js.Array[Double], ne: js.Array[Double]) extends js.Object {
   def extend(coord: js.Array[Double]): LngLatBounds = js.native
 }

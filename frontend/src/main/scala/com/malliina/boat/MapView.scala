@@ -38,7 +38,7 @@ class MapView(accessToken: AccessToken) extends BaseFront {
 
   elem(ModalId).foreach(initModal)
 
-  initNav()
+  initNavDropdown()
 
   def craftSampleQuery = {
     val prefix = if (queryString.isEmpty) "" else "&"
@@ -60,8 +60,8 @@ class MapView(accessToken: AccessToken) extends BaseFront {
     }
   }
 
-  def initNav(): Unit = {
-    elem(DropdownLinkId).map(_.asInstanceOf[HTMLElement]).foreach { e =>
+  def initNavDropdown(): Unit = {
+    htmlElem(DropdownLinkId).foreach { e =>
       htmlElem(DropdownContentId).foreach { content =>
         e.addEventListener("click", (_: Event) => toggleClass(content, Visible))
         window.addEventListener("click", (e: Event) => {

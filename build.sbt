@@ -22,12 +22,13 @@ lazy val boatRoot = project.in(file("."))
   .aggregate(backend, frontend, agent, it, utils)
 
 lazy val backend = PlayProject.linux("boat", file("backend"))
+  .enablePlugins(WebScalaJSBundlerPlugin)
   .settings(backendSettings: _*)
   .dependsOn(crossJvm)
 
 lazy val frontend = project.in(file("frontend"))
   .settings(frontendSettings: _*)
-  .enablePlugins(ScalaJSPlugin)
+  .enablePlugins(ScalaJSBundlerPlugin, ScalaJSWeb)
   .dependsOn(crossJs)
 
 lazy val cross = portableProject(JSPlatform, JVMPlatform)
@@ -121,7 +122,15 @@ lazy val frontendSettings = commonSettings ++ Seq(
     "org.scala-js" %%% "scalajs-dom" % "0.9.6",
     "org.scalatest" %%% "scalatest" % "3.0.5" % Test
   ),
-  scalaJSUseMainModuleInitializer := true
+  npmDependencies in Compile ++= Seq(
+    "@turf/turf" -> "5.1.6",
+    "mapbox-gl" -> "0.52.0",
+    "chart.js" -> "2.7.3"
+  ),
+  version in webpack := "4.27.1",
+  emitSourceMaps := false,
+  scalaJSUseMainModuleInitializer := true,
+  webpackBundlingMode := BundlingMode.LibraryOnly()
 )
 
 lazy val sharedSettings = commonSettings ++ Seq(

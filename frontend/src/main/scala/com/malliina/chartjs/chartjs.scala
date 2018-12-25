@@ -5,7 +5,7 @@ import org.scalajs.dom.raw.CanvasRenderingContext2D
 import scala.scalajs.js
 import scala.scalajs.js.Dynamic.literal
 import scala.scalajs.js.JSConverters._
-import scala.scalajs.js.annotation.{JSGlobal, JSName}
+import scala.scalajs.js.annotation.{JSImport, JSName}
 
 @js.native
 trait TickOptions extends js.Object {
@@ -138,7 +138,7 @@ object ChartSpecs {
 }
 
 @js.native
-@JSGlobal("Chart")
+@JSImport("chart.js", JSImport.Default)
 class Chart(ctx: CanvasRenderingContext2D, options: ChartSpecs) extends js.Object {
   def data: ChartData = js.native
 
