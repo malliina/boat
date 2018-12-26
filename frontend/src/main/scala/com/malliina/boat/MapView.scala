@@ -8,9 +8,13 @@ import play.api.libs.json.{Json, Writes}
 import scala.scalajs.js.{JSON, URIUtils}
 
 object MapView {
+  def apply(): Either[NotFound, MapView] =
+    readCookie(Constants.TokenCookieName).map(t => apply(AccessToken(t)))
+
   def apply(accessToken: AccessToken): MapView = new MapView(accessToken)
 
-  def apply(): MapView = apply(AccessToken(cookies(Constants.TokenCookieName)))
+  def readCookie(key: String): Either[NotFound, String] =
+    cookies.get(key).toRight(NotFound(key))
 
   def cookies = URIUtils.decodeURIComponent(document.cookie).split(";").toList
     .map(_.trim.split("=").toList)
@@ -33,7 +37,7 @@ class MapView(accessToken: AccessToken) extends BaseFront {
   map.on("load", () => {
     val mode = if (Option(href.getFragment).isDefined) Stay else Fit
     val sample = queryInt(SampleKey).getOrElse(Constants.DefaultSample)
-    socket = Option(new MapSocket(map, readTrack, Option(sample), mode))
+    socket = Option(new MapSocket(map, readTrack.toOption, Option(sample), mode))
   })
 
   elem(ModalId).foreach(initModal)
@@ -46,16 +50,13 @@ class MapView(accessToken: AccessToken) extends BaseFront {
   }
 
   def initModal(modal: Element): Unit = {
-    def hideModal(): Unit = if (!modal.classList.contains(Hidden)) modal.classList.add(Hidden)
-
-    window.addEventListener("click", (e: Event) => if (e.target == modal) hideModal())
+    window.addEventListener("click", (e: Event) => if (e.target == modal) modal.hide())
     modal.getElementsByClassName(Close).headOption.foreach { node =>
-      node.asInstanceOf[HTMLSpanElement].onclick = _ => hideModal()
+      node.asInstanceOf[HTMLSpanElement].onclick = _ => modal.hide()
     }
-    elem(Question).foreach { e =>
-      val q = e.asInstanceOf[HTMLSpanElement]
+    elemAs[HTMLSpanElement](Question).foreach { q =>
       q.onclick = _ => {
-        modal.classList.remove(Hidden)
+        modal.show()
       }
     }
   }

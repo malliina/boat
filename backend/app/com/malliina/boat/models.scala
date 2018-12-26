@@ -33,9 +33,9 @@ object AppMeta {
 }
 
 case class JoinedTrack(track: TrackId, trackName: TrackName, trackTitle: Option[TrackTitle],
-                       trackAdded: Instant, boat: BoatId, boatName: BoatName,
-                       boatToken: BoatToken, user: UserId, username: Username,
-                       email: Option[Email], points: Int, start: Option[Instant],
+                       canonical: TrackCanonical, trackAdded: Instant, boat: BoatId,
+                       boatName: BoatName, boatToken: BoatToken, user: UserId,
+                       username: Username, email: Option[Email], points: Int, start: Option[Instant],
                        end: Option[Instant], topSpeed: Option[Speed], avgSpeed: Option[Speed],
                        avgWaterTemp: Option[Temperature], distance: Distance, topPoint: CombinedCoord) extends TrackLike {
   val startOrNow = start.getOrElse(Instant.now())
@@ -46,9 +46,9 @@ case class JoinedTrack(track: TrackId, trackName: TrackName, trackTitle: Option[
     * @return a Scala.js -compatible representation of this track
     */
   def strip = TrackRef(
-    track, trackName, trackTitle, boat,
-    boatName, user, username,
-    points, Instants.format(startOrNow), startOrNow.toEpochMilli,
+    track, trackName, trackTitle, canonical,
+    boat, boatName, user, username, points,
+    Instants.format(startOrNow), startOrNow.toEpochMilli,
     Instants.format(endOrNow), endOrNow.toEpochMilli, Instants.formatRange(startOrNow, endOrNow),
     duration, distance, topSpeed, avgSpeed,
     avgWaterTemp, topPoint.timed
@@ -161,26 +161,22 @@ object BoatResponse {
   implicit val json = Json.format[BoatResponse]
 }
 
-case class TrackResponse(track: TrackRef)
-
-object TrackResponse {
-  implicit val json = Json.format[TrackResponse]
-}
-
 case class JoinedBoat(boat: BoatId, boatName: BoatName, boatToken: BoatToken,
                       user: UserId, username: Username, email: Option[Email])
 
 case class TrackInput(name: TrackName, boat: BoatId, avgSpeed: Option[Speed],
-                      avgWaterTemp: Option[Temperature], points: Int, distance: Distance)
+                      avgWaterTemp: Option[Temperature], points: Int, distance: Distance,
+                      canonical: TrackCanonical)
 
 object TrackInput {
-  def empty(name: TrackName, boat: BoatId): TrackInput = TrackInput(name, boat, None, None, 0, Distance.zero)
+  def empty(name: TrackName, boat: BoatId): TrackInput =
+    TrackInput(name, boat, None, None, 0, Distance.zero, TrackCanonical(name))
 }
 
 case class TrackRow(id: TrackId, name: TrackName, boat: BoatId,
                     avgSpeed: Option[Speed], avgWaterTemp: Option[Temperature],
                     points: Int, distance: Distance, title: Option[TrackTitle],
-                    added: Instant)
+                    canonical: TrackCanonical, added: Instant)
 
 case class SentenceKey(id: Long) extends WrappedId
 

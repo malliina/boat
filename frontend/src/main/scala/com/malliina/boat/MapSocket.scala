@@ -206,12 +206,15 @@ class MapSocket(map: MapboxMap, track: Option[TrackName], sample: Option[Int], m
       }
     }
     elem(FullLinkId).foreach { e =>
-      e.classList.remove(Hidden)
+      e.show()
       e.setAttribute("href", s"/tracks/${from.trackName}/full")
     }
     elem(GraphLinkId).foreach { e =>
-      e.classList.remove(Hidden)
+      e.show()
       e.setAttribute("href", s"/tracks/${from.trackName}/chart")
+    }
+    elem(EditTitleId).foreach { e =>
+      e.show()
     }
     if (boats.keySet.size == 1) {
       elem(DurationId).foreach { e =>

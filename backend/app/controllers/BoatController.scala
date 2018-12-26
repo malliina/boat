@@ -127,7 +127,10 @@ class BoatController(mapboxToken: AccessToken,
     }
   }
 
-  def modifyTitle(track: TrackName) = trackTitleAction { req => db.modifyTitle(track, req.body, req.user.id) }
+  def modifyTitle(track: TrackName) = trackTitleAction { req =>
+    log.info(s"Modifying title of '$track' to '${req.body}'...")
+    db.modifyTitle(track, req.body, req.user.id)
+  }
 
   def createBoat = boatAction { req => db.addBoat(req.body, req.user.id) }
 
@@ -192,7 +195,7 @@ class BoatController(mapboxToken: AccessToken,
     formAction(trackTitleForm) { req => code(req).map(t => TrackResponse(t.strip)) }
 
   private def formAction[T, W: Writeable](form: Form[T])(code: BoatRequest[UserInfo, T] => Future[W]): Action[T] =
-    parsedAuth(parse.form(form, onErrors = (err: Form[T]) => formError(err)))(googleProfile) { req =>
+    parsedAuth(parse.form(form, onErrors = (err: Form[T]) => formError(err)))(profile) { req =>
       code(req).map { w => Ok(w) }
     }
 

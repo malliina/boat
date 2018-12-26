@@ -1,13 +1,22 @@
 package com.malliina.boat
 
-import com.malliina.boat.FrontKeys.{ChartsClass, MapClass}
 import org.scalajs.dom
 
-object Frontend {
+object Frontend extends BodyClasses {
+  val log: BaseLogger = BaseLogger.console
+
   def main(args: Array[String]): Unit = {
     val bodyClasses = dom.document.body.classList
-    if (bodyClasses.contains(MapClass)) MapView()
-    else if (bodyClasses.contains(ChartsClass)) ChartsView()
-    else ()
+
+    def contains(cls: String) = bodyClasses.contains(cls)
+
+    val init: Either[NotFound, _] =
+      if (contains(MapClass)) MapView()
+      else if (contains(ChartsClass)) ChartsView()
+      else if (contains(ListClass)) ListView()
+      else Right(())
+    init.left.foreach { notFound =>
+      log.info(s"Initialization error. Not found: '${notFound.id}'.")
+    }
   }
 }

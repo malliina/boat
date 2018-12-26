@@ -9,7 +9,7 @@ object Charts extends Tags(scalatags.Text) {
   // https://cdnjs.com/libraries/Chart.js
   def chart(track: TrackRef) = page(
     div(`class` := "container")(
-      TrackList.namedInfoBox(track)
+      SentencesPage.namedInfoBox(track)
     ),
     div(`class` := "container-fluid")(
       canvas(id := ChartsId, `class` := "charts-canvas", width := "400", height := "400")

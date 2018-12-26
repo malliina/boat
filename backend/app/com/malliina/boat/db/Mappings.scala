@@ -40,6 +40,7 @@ class Mappings(val impl: JdbcProfile) {
   implicit val pushMapping = stringMapping(PushToken.apply)
   implicit val pushIdMapping = longMapping(PushId.apply)
   implicit val trackTitleMapping = stringMapping(TrackTitle.apply)
+  implicit val canonicalMapping = stringMapping(TrackCanonical.apply)
 
   class CoordJdbcType(implicit override val classTag: ClassTag[Coord])
     extends impl.DriverJdbcType[Coord] {

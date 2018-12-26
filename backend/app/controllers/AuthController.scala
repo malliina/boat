@@ -57,6 +57,7 @@ abstract class AuthController(googleAuth: EmailAuth,
   protected def recovered[T](f: Future[T], rh: RequestHeader): Future[Either[Result, T]] =
     f.map[Either[Result, T]](t => Right(t)).recover {
       case mce: MissingCredentialsException =>
+        log.info(s"Missing credentials in '$rh'.")
         Left(checkLoginCookie(mce.rh).getOrElse(unauth))
       case ie: IdentityException =>
         log.warn(s"Authentication failed from '$rh': '${ie.error}'.")

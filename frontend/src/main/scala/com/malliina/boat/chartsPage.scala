@@ -3,17 +3,17 @@ package com.malliina.boat
 import com.malliina.chartjs._
 import org.scalajs.dom.raw.{CanvasRenderingContext2D, HTMLCanvasElement}
 
-object ChartsView {
-  def apply() = new ChartsView
+object ChartsView extends BaseFront {
+  def apply(): Either[NotFound, ChartsView] = elem(ChartsId).map { e =>
+    new ChartsView(e.asInstanceOf[HTMLCanvasElement])
+  }
 }
 
-class ChartsView extends BaseFront {
-  elem(ChartsId).foreach { e =>
-    val ctx = e.asInstanceOf[HTMLCanvasElement].getContext("2d").asInstanceOf[CanvasRenderingContext2D]
-    readTrack.foreach { track =>
-      val sample = queryInt(SampleKey)
-      ChartSocket(ctx, track, sample)
-    }
+class ChartsView(canvas: HTMLCanvasElement) extends BaseFront {
+  val ctx = canvas.getContext("2d").asInstanceOf[CanvasRenderingContext2D]
+  readTrack.foreach { track =>
+    val sample = queryInt(SampleKey)
+    ChartSocket(ctx, track, sample)
   }
 }
 
@@ -24,8 +24,8 @@ object ChartSocket {
 
 /** Initializes an empty chart, then appends data in `onCoords`.
   *
-  * @param ctx canvas
-  * @param track track
+  * @param ctx    canvas
+  * @param track  track
   * @param sample 1 = full accuracy, None = intelligent
   */
 class ChartSocket(ctx: CanvasRenderingContext2D, track: TrackName, sample: Option[Int])

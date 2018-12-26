@@ -87,6 +87,12 @@ object TrackTitle extends StringCompanion[TrackTitle] {
   val MaxLength = 191
 }
 
+case class TrackCanonical(name: String) extends Wrapped(name)
+
+object TrackCanonical extends StringCompanion[TrackCanonical] {
+  def apply(name: TrackName): TrackCanonical = TrackCanonical(name.name)
+}
+
 case class BoatToken(token: String) extends Wrapped(token)
 
 object BoatToken extends StringCompanion[BoatToken]
@@ -209,16 +215,24 @@ object TrackMetaShort {
 }
 
 case class TrackRef(track: TrackId, trackName: TrackName, trackTitle: Option[TrackTitle],
-                    boat: BoatId, boatName: BoatName, user: UserId,
-                    username: Username, points: Int, start: ISODateTime,
+                    canonical: TrackCanonical, boat: BoatId, boatName: BoatName,
+                    user: UserId, username: Username, points: Int, start: ISODateTime,
                     startMillis: Long, end: ISODateTime, endMillis: Long,
                     startEndRange: String, duration: Duration, distance: Distance,
                     topSpeed: Option[Speed], avgSpeed: Option[Speed], avgWaterTemp: Option[Temperature],
-                    topPoint: TimedCoord) extends TrackLike
+                    topPoint: TimedCoord) extends TrackLike {
+  def describe = trackTitle.map(_.title).getOrElse(trackName.name)
+}
 
 object TrackRef {
   implicit val durationFormat = PrimitiveFormats.durationFormat
   implicit val json = Json.format[TrackRef]
+}
+
+case class TrackResponse(track: TrackRef)
+
+object TrackResponse {
+  implicit val json = Json.format[TrackResponse]
 }
 
 case class InsertedPoint(point: TrackPointId, track: TrackRef)

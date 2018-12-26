@@ -46,7 +46,8 @@ class BoatHtml(jsFiles: Seq[String]) extends Tags(scalatags.Text) {
     (t: Builder, a: Attr, v: T) => t.setAttr(a.name, Builder.GenericAttrValueSource(v.value))
   }
 
-  def list(track: FullTrack, current: Limits) = page(PageConf(TrackList(track, current)))
+  def list(track: FullTrack, current: Limits) =
+    page(PageConf(SentencesPage(track, current), bodyClasses = Seq(ListClass)))
 
   def chart(track: TrackRef) = page(Charts.chart(track))
 
@@ -70,7 +71,7 @@ class BoatHtml(jsFiles: Seq[String]) extends Tags(scalatags.Text) {
                 div(`class` := "dropdown-content", id := DropdownContentId)(
                   b.tracks.map { t =>
                     a(`class` := "track-link", href := reverse.track(t.trackName))(
-                      span(t.trackName),
+                      span(t.describe),
                       span(short(t.distance)),
                       span(t.startEndRange)
                     )

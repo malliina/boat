@@ -1,5 +1,7 @@
 package com.malliina
 
+import com.malliina.boat.FrontKeys.Hidden
+import org.scalajs.dom.raw.Element
 import org.scalajs.dom.{DOMList, Node}
 
 package object boat {
@@ -14,6 +16,15 @@ package object boat {
     override def length: Int = nodes.length
 
     override def apply(idx: Int): T = nodes(idx)
+  }
+
+  implicit class ElementOps(val e: Element) extends AnyVal {
+    def hide(): Unit = {
+      val classes = e.classList
+      if (!classes.contains(Hidden)) classes.add(Hidden)
+    }
+
+    def show(): Unit = e.classList.remove(Hidden)
   }
 
 }

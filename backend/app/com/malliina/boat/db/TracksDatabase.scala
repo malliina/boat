@@ -177,11 +177,11 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext)
     val action = for {
       id <- first(tracksViewNonEmpty.filter(t => t.trackName === track && t.user === user).map(_.track), s"Track not found: '$track'.")
       _ <- tracksTable
-        .filter(_.id === id).map(t => (t.name, t.title))
-        .update((TrackNames(title), Option(title)))
+        .filter(_.id === id).map(t => (t.canonical, t.title))
+        .update((TrackCanonical(Utils.normalize(title.title)), Option(title)))
       updated <- first(tracksViewNonEmpty.filter(_.track === id), s"Track ID not found: '$id'.")
     } yield {
-      log.info(s"Modified title of track '$id' to '$title' normalized to '${updated.trackName}'.")
+      log.info(s"Modified title of track '$id' to '$title' normalized to '${updated.canonical}'.")
       updated
     }
     db.run(action.transactionally)
