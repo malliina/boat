@@ -5,6 +5,8 @@
 
 A solution for tracking boats.
 
+![Solution](docs/images/boat.png)
+
 This repository contains the following modules:
 
 - a boat agent in folder *client*
