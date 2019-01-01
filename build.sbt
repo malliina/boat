@@ -27,9 +27,9 @@ lazy val backend = PlayProject.linux("boat", file("backend"))
   .dependsOn(crossJvm)
 
 lazy val frontend = project.in(file("frontend"))
-  .settings(frontendSettings: _*)
   .enablePlugins(ScalaJSBundlerPlugin, ScalaJSWeb)
   .dependsOn(crossJs)
+  .settings(frontendSettings: _*)
 
 lazy val cross = portableProject(JSPlatform, JVMPlatform)
   .crossType(PortableType.Full)
@@ -65,7 +65,7 @@ lazy val backendSettings = playSettings ++ Seq(
     "org.apache.commons" % "commons-text" % "1.6",
     "com.amazonaws" % "aws-java-sdk-s3" % "1.11.466",
     "com.vladsch.flexmark" % "flexmark-html-parser" % "0.34.58",
-    "com.malliina" %% "logstreams-client" % "1.3.0",
+    "com.malliina" %% "logstreams-client" % "1.4.0",
     "com.malliina" %% "play-social" % utilPlayVersion,
     "com.malliina" %% "mobile-push" % "1.16.0",
     "com.typesafe.akka" %% "akka-slf4j" % akkaVersion,
