@@ -7,7 +7,7 @@ import com.malliina.boat.FrontKeys._
 import com.malliina.boat.docs.Docs
 import com.malliina.boat.html.BoatHtml.callAttr
 import com.malliina.boat.http.Limits
-import com.malliina.boat.{BoatInfo, FullTrack, TrackRef}
+import com.malliina.boat.{BoatInfo, FullTrack, Lang, TrackRef}
 import com.malliina.html.Tags
 import com.malliina.measure.Distance
 import com.malliina.play.tags.TagPage
@@ -67,7 +67,7 @@ class BoatHtml(jsFiles: Seq[String]) extends Tags(scalatags.Text) {
             div(id := "navbar", `class` := "navbar navbar-boat")(
               span(`class` := "nav-text")(b.boat),
               div(`class` := "dropdown nav-text", id := DropdownLinkId)(
-                span(`class` := "dropdown-button", "Tracks"),
+                span(`class` := "dropdown-button",  Lang(b.language).tracks),
                 div(`class` := "dropdown-content", id := DropdownContentId)(
                   b.tracks.map { t =>
                     a(`class` := "track-link", href := reverse.track(t.trackName))(

@@ -8,10 +8,13 @@ import play.api.libs.json.{Json, Writes}
 import scala.scalajs.js.{JSON, URIUtils}
 
 object MapView {
-  def apply(): Either[NotFound, MapView] =
-    readCookie(Constants.TokenCookieName).map(t => apply(AccessToken(t)))
+  def apply(): Either[NotFound, MapView] = {
+    val lang = readCookie(CookieNames.LanguageName).map(Language.apply).getOrElse(Language.default)
+    readCookie(CookieNames.TokenCookieName).map(t => apply(AccessToken(t), lang))
+  }
 
-  def apply(accessToken: AccessToken): MapView = new MapView(accessToken)
+  def apply(accessToken: AccessToken, language: Language): MapView =
+    new MapView(accessToken, language)
 
   def readCookie(key: String): Either[NotFound, String] =
     cookies.get(key).toRight(NotFound(key))
@@ -22,7 +25,7 @@ object MapView {
     .toMap
 }
 
-class MapView(accessToken: AccessToken) extends BaseFront {
+class MapView(accessToken: AccessToken, language: Language) extends BaseFront {
   mapboxGl.accessToken = accessToken.token
   val mapOptions = MapOptions(
     container = MapId,
@@ -37,7 +40,7 @@ class MapView(accessToken: AccessToken) extends BaseFront {
   map.on("load", () => {
     val mode = if (Option(href.getFragment).isDefined) Stay else Fit
     val sample = queryInt(SampleKey).getOrElse(Constants.DefaultSample)
-    socket = Option(new MapSocket(map, readTrack.toOption, Option(sample), mode))
+    socket = Option(new MapSocket(map, readTrack.toOption, Option(sample), mode, language))
   })
 
   elem(ModalId).foreach(initModal)
@@ -78,7 +81,7 @@ class MapView(accessToken: AccessToken) extends BaseFront {
     else classList.add(className)
   }
 
-  def htmlElem(id: String) = elem(id).map(_.asInstanceOf[HTMLElement])
+  def htmlElem(id: String) = elemAs[HTMLElement](id)
 
   def parse[T: Writes](t: T) = JSON.parse(Json.stringify(Json.toJson(t)))
 }

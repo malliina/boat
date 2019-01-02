@@ -51,11 +51,6 @@ class DatabaseUserManager(val db: BoatSchema)(implicit ec: ExecutionContext)
     userInfos(usersTable)
   }
 
-  private def withUserAuth(filteredUsers: Query[UsersTable, DataUser, Seq]): Future[Either[IdentityError, UserInfo]] =
-    action {
-      userAuthAction(filteredUsers)
-    }
-
   private def userAuthAction(filteredUsers: Query[UsersTable, DataUser, Seq]) =
     userInfos(filteredUsers).map { users =>
       users.headOption.map { profile =>
@@ -79,7 +74,7 @@ class DatabaseUserManager(val db: BoatSchema)(implicit ec: ExecutionContext)
         val old = acc(idx)
         acc.updated(idx, old.copy(boats = old.boats ++ newBoats))
       } else {
-        acc :+ UserInfo(user.id, user.username, user.email, newBoats, user.enabled, user.added.toEpochMilli)
+        acc :+ UserInfo(user.id, user.username, user.email, user.language, newBoats, user.enabled, user.added.toEpochMilli)
       }
     }
 
@@ -110,7 +105,7 @@ class DatabaseUserManager(val db: BoatSchema)(implicit ec: ExecutionContext)
         val old = acc(boatIdx)
         acc.updated(boatIdx, old.copy(tracks = old.tracks :+ newRow))
       } else {
-        acc :+ BoatInfo(row.boat, row.boatName, row.username, Seq(newRow))
+        acc :+ BoatInfo(row.boat, row.boatName, row.username, row.language, Seq(newRow))
       }
     }
 

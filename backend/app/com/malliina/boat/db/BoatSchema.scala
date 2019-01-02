@@ -91,7 +91,7 @@ class BoatSchema(ds: DataSource, conf: ProfileConf)
   val minTimes = trackAggregate(_.map(_.boatTime).min)
   val maxTimes = trackAggregate(_.map(_.boatTime).max)
   val boatsView: Query[LiftedJoinedBoat, JoinedBoat, Seq] = boatsTable.join(usersTable).on(_.owner === _.id)
-    .map { case (b, u) => LiftedJoinedBoat(b.id, b.name, b.token, u.id, u.user, u.email) }
+    .map { case (b, u) => LiftedJoinedBoat(b.id, b.name, b.token, u.id, u.user, u.email, u.language) }
   val tracksViewNonEmpty: Query[LiftedJoinedTrack, JoinedTrack, Seq] =
     boatsView
       .join(tracksTable).on(_.boat === _.boat)
@@ -102,7 +102,7 @@ class BoatSchema(ds: DataSource, conf: ProfileConf)
       .map { case (((((boat, track), (_, top)), (_, start)), (_, end)), (point, _)) =>
         LiftedJoinedTrack(
           track.id, track.name, track.title, track.canonical, track.added, boat.boat, boat.boatName,
-          boat.token, boat.user, boat.username, boat.email, track.points,
+          boat.token, boat.user, boat.username, boat.email, boat.language, track.points,
           start, end, top, track.avgSpeed, track.avgWaterTemp,
           track.distance, point.combined
         )
@@ -124,7 +124,8 @@ class BoatSchema(ds: DataSource, conf: ProfileConf)
     SimpleFunction.unary[Instant, LocalDate](dateFuncName)
 
   case class LiftedJoinedBoat(boat: Rep[BoatId], boatName: Rep[BoatName], token: Rep[BoatToken],
-                              user: Rep[UserId], username: Rep[Username], email: Rep[Option[Email]])
+                              user: Rep[UserId], username: Rep[Username], email: Rep[Option[Email]],
+                              language: Rep[Language])
 
   implicit object JoinedBoatShape extends CaseClassShape(LiftedJoinedBoat.tupled, JoinedBoat.tupled)
 
@@ -144,7 +145,7 @@ class BoatSchema(ds: DataSource, conf: ProfileConf)
   case class LiftedJoinedTrack(track: Rep[TrackId], trackName: Rep[TrackName], trackTitle: Rep[Option[TrackTitle]],
                                canonical: Rep[TrackCanonical], trackAdded: Rep[Instant], boat: Rep[BoatId],
                                boatName: Rep[BoatName], boatToken: Rep[BoatToken], user: Rep[UserId],
-                               username: Rep[Username], email: Rep[Option[Email]], points: Rep[Int],
+                               username: Rep[Username], email: Rep[Option[Email]], language: Rep[Language], points: Rep[Int],
                                start: Rep[Option[Instant]], end: Rep[Option[Instant]], topSpeed: Rep[Option[Speed]],
                                avgSpeed: Rep[Option[Speed]], avgWaterTemp: Rep[Option[Temperature]],
                                length: Rep[Distance], topPoint: LiftedCoord)
@@ -334,13 +335,15 @@ class BoatSchema(ds: DataSource, conf: ProfileConf)
 
     def token = column[UserToken]("token", O.Length(128), O.Unique)
 
+    def language = column[Language]("language", O.Length(64), O.Default(Language.default))
+
     def enabled = column[Boolean]("enabled")
 
     def added = column[Instant]("added", O.SqlType(CreatedTimestampType))
 
     def forInserts = (user, email, token, enabled) <> ((NewUser.apply _).tupled, NewUser.unapply)
 
-    def * = (id, user, email, token, enabled, added) <> ((DataUser.apply _).tupled, DataUser.unapply)
+    def * = (id, user, email, token, language, enabled, added) <> ((DataUser.apply _).tupled, DataUser.unapply)
   }
 
   class PushClientsTable(tag: Tag) extends Table[PushDevice](tag, "push_clients") {

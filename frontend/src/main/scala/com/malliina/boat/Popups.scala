@@ -21,7 +21,7 @@ class Popups(lang: Lang) {
   }
 
   def mark(symbol: MarineSymbol) =
-    titledTable(symbol.owner)(
+    titledTable(symbol.ownerName(lang))(
       row(lang.`type`, symbol.aidType.in(lang)),
       symbol.construction.fold(empty)(c => row(lang.construction, c.in(lang))),
       if (symbol.navMark == NavMark.NotApplicable) empty
@@ -31,29 +31,25 @@ class Popups(lang: Lang) {
     )
 
   def minimalMark(symbol: MinimalMarineSymbol) =
-    titledTable(symbol.owner)(
+    titledTable(symbol.ownerName(lang))(
       symbol.name(lang).fold(empty)(n => row(lang.name, n)),
       symbol.location(lang).fold(empty)(l => row(lang.location, l)),
       row(lang.influence, symbol.influence.in(lang))
     )
 
-  def fairway(fairway: FairwayArea) = {
-    val labels = lang.fairway
-    titledTable(fairway.owner)(
-      row(labels.fairwayType, fairway.fairwayType.in(lang)),
-      row(labels.fairwayDepth, asMeters(fairway.fairwayDepth)),
-      row(labels.harrowDepth, asMeters(fairway.harrowDepth)),
-      fairway.markType.fold(empty)(markType => row(labels.markType, markType.in(lang)))
+  def fairway(fairway: FairwayArea) =
+    titledTable(fairway.ownerName(lang))(
+      row(lang.fairwayType, fairway.fairwayType.in(lang)),
+      row(lang.fairwayDepth, asMeters(fairway.fairwayDepth)),
+      row(lang.harrowDepth, asMeters(fairway.harrowDepth)),
+      fairway.markType.fold(empty)(markType => row(lang.markType, markType.in(lang)))
     )
-  }
 
-  def depthArea(depthArea: DepthArea) = {
-    val labels = lang.depths
+  def depthArea(depthArea: DepthArea) =
     popupTable(
-      row(labels.minDepth, asMeters(depthArea.minDepth)),
-      row(labels.maxDepth, asMeters(depthArea.maxDepth))
+      row(lang.minDepth, asMeters(depthArea.minDepth)),
+      row(lang.maxDepth, asMeters(depthArea.maxDepth))
     )
-  }
 
   private def asMeters(d: Distance) = {
     val value = "%.2f".format(d.toMetersDouble)

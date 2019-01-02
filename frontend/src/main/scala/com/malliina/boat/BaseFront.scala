@@ -2,7 +2,7 @@ package com.malliina.boat
 
 import java.net.URI
 
-import org.scalajs.dom.raw.Element
+import org.scalajs.dom.raw.{Element, HTMLAnchorElement}
 import org.scalajs.dom.window
 
 import scala.util.Try
@@ -27,6 +27,8 @@ trait BaseFront extends FrontKeys {
   def queryInt(key: String) = query(key).flatMap(s => Try(s.toInt).toOption)
 
   def query(key: String) = queryParams.get(key).flatMap(_.headOption)
+
+  def anchor(id: String) = elemAs[HTMLAnchorElement](id)
 
   def elemAs[T](id: String) = elem(id).map(_.asInstanceOf[T])
 

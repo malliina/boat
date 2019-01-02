@@ -2,16 +2,24 @@ package com.malliina.boat
 
 object Constants extends Constants
 
-trait Constants {
+trait Constants extends CookieNames with BoatHeaders {
+  val BoatTokenQuery = "token"
+  val DefaultSample = 4
+}
 
+object BoatHeaders extends BoatHeaders
+
+trait BoatHeaders {
   val BoatNameHeader = "X-Boat"
   val BoatTokenHeader = "X-Token"
-  val BoatTokenQuery = "token"
-
-  val DefaultSample = 4
-
-  val TokenCookieName = "mapboxToken"
   val TrackNameHeader = "X-Track"
+}
+
+object CookieNames extends CookieNames
+
+trait CookieNames {
+  val LanguageName = "lang"
+  val TokenCookieName = "mapboxToken"
 }
 
 object FrontKeys extends FrontKeys

@@ -35,7 +35,7 @@ object AppMeta {
 case class JoinedTrack(track: TrackId, trackName: TrackName, trackTitle: Option[TrackTitle],
                        canonical: TrackCanonical, trackAdded: Instant, boat: BoatId,
                        boatName: BoatName, boatToken: BoatToken, user: UserId,
-                       username: Username, email: Option[Email], points: Int, start: Option[Instant],
+                       username: Username, email: Option[Email], language: Language, points: Int, start: Option[Instant],
                        end: Option[Instant], topSpeed: Option[Speed], avgSpeed: Option[Speed],
                        avgWaterTemp: Option[Temperature], distance: Distance, topPoint: CombinedCoord) extends TrackLike {
   val startOrNow = start.getOrElse(Instant.now())
@@ -47,7 +47,7 @@ case class JoinedTrack(track: TrackId, trackName: TrackName, trackTitle: Option[
     */
   def strip = TrackRef(
     track, trackName, trackTitle, canonical,
-    boat, boatName, user, username, points,
+    boat, boatName, user, username, language, points,
     Instants.format(startOrNow), startOrNow.toEpochMilli,
     Instants.format(endOrNow), endOrNow.toEpochMilli, Instants.formatRange(startOrNow, endOrNow),
     duration, distance, topSpeed, avgSpeed,
@@ -162,7 +162,8 @@ object BoatResponse {
 }
 
 case class JoinedBoat(boat: BoatId, boatName: BoatName, boatToken: BoatToken,
-                      user: UserId, username: Username, email: Option[Email])
+                      user: UserId, username: Username, email: Option[Email],
+                      language: Language)
 
 case class TrackInput(name: TrackName, boat: BoatId, avgSpeed: Option[Speed],
                       avgWaterTemp: Option[Temperature], points: Int, distance: Distance,

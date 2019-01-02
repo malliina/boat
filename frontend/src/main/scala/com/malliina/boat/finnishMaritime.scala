@@ -214,6 +214,18 @@ object Flotation {
   }
 }
 
+trait Owned {
+  def owner: String
+
+  /**
+    * @return a translated name of the owner, best effort
+    */
+  def ownerName(lang: Lang): String =
+    if (owner == Lang.Finnish.transportAgency) lang.transportAgency
+    else if (owner == Lang.Finnish.defenceForces) lang.defenceForces
+    else owner
+}
+
 trait SymbolLike {
   def nameFi: Option[String]
 
@@ -242,10 +254,11 @@ case class MarineSymbol(owner: String,
                         lit: Boolean,
                         aidType: AidType,
                         navMark: NavMark,
-                        construction: Option[ConstructionInfo]) extends SymbolLike
+                        construction: Option[ConstructionInfo]) extends SymbolLike with Owned
 
 /**
   * @see Vesiväyläaineistojen tietosisällön kuvaus
+  * @see https://www.liikennevirasto.fi/documents/20473/38174/Vesiv%C3%A4yl%C3%A4aineistojen+tietosis%C3%A4ll%C3%B6n+kuvaus/68b5f496-19a3-4b3d-887c-971e3366f01e
   */
 object MarineSymbol {
   val boolNum = Reads[Boolean] { json =>
@@ -296,7 +309,7 @@ case class MinimalMarineSymbol(owner: String,
                                nameSe: Option[String],
                                locationFi: Option[String],
                                locationSe: Option[String],
-                               influence: ZoneOfInfluence) extends SymbolLike
+                               influence: ZoneOfInfluence) extends SymbolLike with Owned
 
 object MinimalMarineSymbol {
   val nonEmpty = MarineSymbol.nonEmpty
@@ -363,36 +376,36 @@ object FairwayType {
     case 8 => Core
     case 9 => Special
     case 10 => Lock
-    case 11 => Secured
+    case 11 => ConfirmedExtra
     case 12 => Helcom
     case 13 => Pilot
   }
 
-  case object Navigation extends FairwayType("Navigointialue", "", "")
+  case object Navigation extends FairwayType("Navigointialue", "Navigeringsområde", "Navigation")
 
-  case object Anchoring extends FairwayType("Ankkurointialue", "", "")
+  case object Anchoring extends FairwayType("Ankkurointialue", "Ankringsområde", "Anchoring area")
 
-  case object Meetup extends FairwayType("Ohitus- ja kohtaamisalue", "", "")
+  case object Meetup extends FairwayType("Ohitus- ja kohtaamisalue", "Mötespunkt", "Overtaking and meetup")
 
-  case object HarborPool extends FairwayType("Satama-allas", "", "")
+  case object HarborPool extends FairwayType("Satama-allas", "Hamnbassäng", "Harbor pool")
 
-  case object Turn extends FairwayType("Kääntöallas", "", "")
+  case object Turn extends FairwayType("Kääntöallas", "Vändområde", "Turn area")
 
-  case object Channel extends FairwayType("Kanava", "", "")
+  case object Channel extends FairwayType("Kanava", "Kanal", "Channel")
 
-  case object CoastTraffic extends FairwayType("Rannikkoliikenteen alue", "", "")
+  case object CoastTraffic extends FairwayType("Rannikkoliikenteen alue", "Kusttrafik", "Coast traffic")
 
-  case object Core extends FairwayType("Veneilyn runkoväylä", "", "")
+  case object Core extends FairwayType("Runkoväylä", "Huvudled", "Main fairway")
 
-  case object Special extends FairwayType("Erikoisalue", "", "")
+  case object Special extends FairwayType("Erikoisalue", "Specialområde", "Special area")
 
-  case object Lock extends FairwayType("Sulku", "", "")
+  case object Lock extends FairwayType("Sulku", "Sluss", "Lock")
 
-  case object Secured extends FairwayType("Varmistettu lisäalue", "", "")
+  case object ConfirmedExtra extends FairwayType("Varmistettu lisäalue", "Försäkrat område", "Confirmed area")
 
-  case object Helcom extends FairwayType("HELCOM-alue", "", "")
+  case object Helcom extends FairwayType("HELCOM-alue", "HELCOM-område", "HELCOM area")
 
-  case object Pilot extends FairwayType("Luotsin otto- ja jättöalue", "", "")
+  case object Pilot extends FairwayType("Luotsin otto- ja jättöalue", "Plats där lots möter", "Pilot boarding place")
 
 }
 
@@ -408,17 +421,17 @@ object FairwayState {
     case 6 => Removed
   }
 
-  case object Confirmed extends FairwayState("Vahvistettu", "", "")
+  case object Confirmed extends FairwayState("Vahvistettu", "Bekräftat", "Confirmed")
 
-  case object Aihio extends FairwayState("Aihio", "", "")
+  case object Aihio extends FairwayState("Aihio", "Pågående", "Unfinished")
 
-  case object MayChange extends FairwayState("Muutoksen alainen", "", "")
+  case object MayChange extends FairwayState("Muutoksen alainen", "Ändras", "Changing")
 
-  case object ChangeAihio extends FairwayState("Muutosaihio", "", "")
+  case object ChangeAihio extends FairwayState("Muutosaihio", "Ändring", "Change")
 
-  case object MayBeRemoved extends FairwayState("Poiston alainen", "", "")
+  case object MayBeRemoved extends FairwayState("Poiston alainen", "Tags bort", "May be removed")
 
-  case object Removed extends FairwayState("Poistettu", "", "")
+  case object Removed extends FairwayState("Poistettu", "Borttagen", "Removed")
 
 }
 
@@ -445,6 +458,7 @@ object MarkType {
   *
   * @see Vesiväyläaineistojen tietosisällön kuvaus
   * @see https://julkaisut.liikennevirasto.fi/pdf3/ohje_2011_vesivayliin_liittyvia_fi.pdf
+  * @see http://merisanasto.kyamk.fi/aakkos.php
   */
 case class FairwayArea(owner: String,
                        quality: QualityClass,
@@ -453,7 +467,7 @@ case class FairwayArea(owner: String,
                        harrowDepth: Distance,
                        comparisonLevel: String,
                        state: FairwayState,
-                       markType: Option[MarkType])
+                       markType: Option[MarkType]) extends Owned
 
 object FairwayArea {
   implicit val reader: Reads[FairwayArea] = Reads[FairwayArea] { json =>

@@ -12,15 +12,16 @@ import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 import scala.scalajs.js
 import scala.scalajs.js.JSConverters.genTravConvertible2JSRichGenTrav
 
-class MapSocket(map: MapboxMap, track: Option[TrackName], sample: Option[Int], mode: MapMode)
+class MapSocket(map: MapboxMap, track: Option[TrackName], sample: Option[Int], mode: MapMode, language: Language)
   extends BoatSocket(track, sample) {
 
+  val lang = Lang(language)
   val boatIconId = "boat-icon"
   val emptyTrack = lineFor(Nil)
   val trackPopup = MapboxPopup(PopupOptions())
   val boatPopup = MapboxPopup(PopupOptions(className = Option("popup-boat")))
   val markPopup = MapboxPopup(PopupOptions())
-  val html = Popups(Lang.Finnish)
+  val html = Popups(lang)
 
   private var mapMode: MapMode = mode
   private var boats = Map.empty[String, FeatureCollection]
@@ -203,28 +204,28 @@ class MapSocket(map: MapboxMap, track: Option[TrackName], sample: Option[Int], m
     }
     elem(TopSpeedId).foreach { e =>
       from.topSpeed.foreach { top =>
-        e.innerHTML = s"Top ${formatSpeed(top)} kn"
+        e.innerHTML = s"${lang.top} ${formatSpeed(top)} kn"
       }
     }
     elem(WaterTempId).foreach { e =>
       coordsInfo.lastOption.map(_.waterTemp).foreach { temp =>
-        e.innerHTML = s"Water ${formatTemp(temp)} ℃"
+        e.innerHTML = s"${lang.water} ${formatTemp(temp)} ℃"
       }
     }
-    elem(FullLinkId).foreach { e =>
+    anchor(FullLinkId).foreach { e =>
       e.show()
-      e.setAttribute("href", s"/tracks/${from.trackName}/full")
+      e.href = s"/tracks/${from.trackName}/full"
     }
-    elem(GraphLinkId).foreach { e =>
+    anchor(GraphLinkId).foreach { e =>
       e.show()
-      e.setAttribute("href", s"/tracks/${from.trackName}/chart")
+      e.href = s"/tracks/${from.trackName}/chart"
     }
     elem(EditTitleId).foreach { e =>
       e.show()
     }
     if (boats.keySet.size == 1) {
       elem(DurationId).foreach { e =>
-        e.innerHTML = s"Time ${formatDuration(from.duration)}"
+        e.innerHTML = s"${lang.duration} ${formatDuration(from.duration)}"
       }
     }
     // updates the map position, zoom to reflect the updated track(s)

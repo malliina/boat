@@ -122,6 +122,15 @@ object Usernames {
   val anon = Username("anon")
 }
 
+case class Language(code: String) extends Wrapped(code)
+
+object Language extends StringCompanion[Language] {
+  val english = Language("en")
+  val finnish = Language("fi")
+  val swedish = Language("se")
+  val default = finnish
+}
+
 trait BoatTrackMeta extends BoatMeta {
   def track: TrackName
 }
@@ -180,6 +189,7 @@ object Boat {
 case class UserInfo(id: UserId,
                     username: Username,
                     email: Option[Email],
+                    language: Language,
                     boats: Seq[Boat],
                     enabled: Boolean,
                     addedMillis: Long)
@@ -216,7 +226,7 @@ object TrackMetaShort {
 
 case class TrackRef(track: TrackId, trackName: TrackName, trackTitle: Option[TrackTitle],
                     canonical: TrackCanonical, boat: BoatId, boatName: BoatName,
-                    user: UserId, username: Username, points: Int, start: ISODateTime,
+                    user: UserId, username: Username, language: Language, points: Int, start: ISODateTime,
                     startMillis: Long, end: ISODateTime, endMillis: Long,
                     startEndRange: String, duration: Duration, distance: Distance,
                     topSpeed: Option[Speed], avgSpeed: Option[Speed], avgWaterTemp: Option[Temperature],
@@ -247,7 +257,7 @@ object TrackPointId extends IdCompanion[TrackPointId]
 
 case class BoatUser(track: TrackName, boat: BoatName, user: Username) extends BoatTrackMeta
 
-case class BoatInfo(boatId: BoatId, boat: BoatName, user: Username, tracks: Seq[TrackRef])
+case class BoatInfo(boatId: BoatId, boat: BoatName, user: Username, language: Language, tracks: Seq[TrackRef])
 
 object BoatInfo {
   implicit val json = Json.format[BoatInfo]
