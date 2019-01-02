@@ -1,7 +1,7 @@
 package com.malliina
 
 import com.malliina.boat.FrontKeys.Hidden
-import org.scalajs.dom.raw.Element
+import org.scalajs.dom.raw.{Element, Event, EventTarget}
 import org.scalajs.dom.{DOMList, Node}
 
 package object boat {
@@ -25,6 +25,12 @@ package object boat {
     }
 
     def show(): Unit = e.classList.remove(Hidden)
+  }
+
+  implicit class EventTargetOps(val et: EventTarget) {
+    def addOnClick(code: Event => Unit): Unit = addClickListener[Event](code)
+
+    def addClickListener[E <: Event](code: E => Unit): Unit = et.addEventListener("click", code)
   }
 
 }

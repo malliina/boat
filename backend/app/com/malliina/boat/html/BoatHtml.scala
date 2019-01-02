@@ -78,6 +78,7 @@ class BoatHtml(jsFiles: Seq[String]) extends Tags(scalatags.Text) {
                   }
                 )
               ),
+              span(id := TitleId, `class` := "nav-text title")(""),
               span(id := DistanceId, `class` := "nav-text distance")(""),
               span(id := DurationId, `class` := "nav-text duration")(""),
               span(id := TopSpeedId, `class` := "nav-text top-speed")(""),

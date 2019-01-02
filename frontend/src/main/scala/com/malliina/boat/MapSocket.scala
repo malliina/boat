@@ -192,6 +192,12 @@ class MapSocket(map: MapboxMap, track: Option[TrackName], sample: Option[Int], m
       topSpeedMarkers = topSpeedMarkers.updated(trackId, newTopSpeed)
     }
     val trail: Seq[Coord] = newTrack.features.flatMap(_.geometry.coords)
+    elem(TitleId).foreach { e =>
+      from.trackTitle.foreach { title =>
+        e.classList.add("show")
+        e.innerHTML = title.title
+      }
+    }
     elem(DistanceId).foreach { e =>
       e.innerHTML = s"${formatDistance(from.distance)} km"
     }

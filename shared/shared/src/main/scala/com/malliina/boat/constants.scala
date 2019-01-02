@@ -16,14 +16,9 @@ trait Constants {
 
 object FrontKeys extends FrontKeys
 
-trait FrontKeys extends BodyClasses with ListKeys {
+trait FrontKeys extends BodyClasses with ListKeys with NavKeys {
   val ChartsId = "charts"
   val Close = "close"
-  val DistanceId = "distance"
-  val DropdownContentId = "dropdown-content"
-  val DropdownLinkId = "dropdown-link"
-  val DurationId = "duration"
-
   val FullLinkId = "full-list-link"
   val GraphLinkId = "graph-link"
   val Hidden = "hidden"
@@ -31,12 +26,23 @@ trait FrontKeys extends BodyClasses with ListKeys {
   val Modal = "modal"
   val ModalId = "modal"
   val PersonLink = "person-link"
+
+  val SampleKey = "sample"
+  val Visible = "visible"
+}
+
+trait NavKeys {
+  val DropdownContentId = "dropdown-content"
+  val DropdownLinkId = "dropdown-link"
+
+  val DistanceId = "distance"
+  val DurationId = "duration"
+  val TitleId = "text-title"
+  val TopSpeedId = "top-speed"
+  val WaterTempId = "water-temp"
+
   val Question = "question-link"
   val QuestionNav = "question-nav"
-  val SampleKey = "sample"
-  val TopSpeedId = "top-speed"
-  val Visible = "visible"
-  val WaterTempId = "water-temp"
 }
 
 trait ListKeys {

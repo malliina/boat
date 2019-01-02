@@ -45,6 +45,21 @@
   &.duration {
     width: 150px;
   }
+
+  &.title {
+    display: none;
+
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
+  }
+
+  &.show {
+    @media @desktops {
+      display: block;
+      max-width: 300px;
+    }
+  }
 }
 
 .nav-icon {

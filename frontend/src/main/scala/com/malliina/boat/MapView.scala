@@ -50,7 +50,7 @@ class MapView(accessToken: AccessToken) extends BaseFront {
   }
 
   def initModal(modal: Element): Unit = {
-    window.addEventListener("click", (e: Event) => if (e.target == modal) modal.hide())
+    window.addOnClick(e => if (e.target == modal) modal.hide())
     modal.getElementsByClassName(Close).headOption.foreach { node =>
       node.asInstanceOf[HTMLSpanElement].onclick = _ => modal.hide()
     }
@@ -64,10 +64,10 @@ class MapView(accessToken: AccessToken) extends BaseFront {
   def initNavDropdown(): Unit = {
     htmlElem(DropdownLinkId).foreach { e =>
       htmlElem(DropdownContentId).foreach { content =>
-        e.addEventListener("click", (_: Event) => toggleClass(content, Visible))
-        window.addEventListener("click", (e: Event) => {
+        e.addOnClick(_ => toggleClass(content, Visible))
+        window.addOnClick { e =>
           if (e.target == content) htmlElem(DropdownContentId).foreach(_.classList.remove(Visible))
-        })
+        }
       }
     }
   }
