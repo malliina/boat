@@ -347,6 +347,22 @@ object PingEvent {
   implicit val json = keyValued(Key, Json.format[PingEvent])
 }
 
+case class VesselMessages(locations: Seq[VesselLocation], metas: Seq[VesselMetadata]) extends FrontEvent {
+  override def isIntendedFor(user: Username): Boolean = true
+}
+
+object VesselMessages {
+  implicit val json = Json.format[VesselMessages]
+  val empty = VesselMessages(Nil, Nil)
+
+  def apply(msgs: Seq[VesselMessage]): VesselMessages = msgs.foldLeft(empty) { (acc, msg) =>
+    msg match {
+      case loc: VesselLocation => acc.copy(locations = acc.locations :+ loc)
+      case meta: VesselMetadata => acc.copy(metas = acc.metas :+ meta)
+    }
+  }
+}
+
 sealed trait FrontEvent {
   def isIntendedFor(user: Username): Boolean
 }
@@ -360,7 +376,8 @@ sealed trait BoatFrontEvent extends FrontEvent {
 
 object FrontEvent {
   implicit val reader = Reads[FrontEvent] { json =>
-    CoordsEvent.json.reads(json)
+    VesselMessages.json.reads(json)
+      .orElse(CoordsEvent.json.reads(json))
       .orElse(CoordsBatch.json.reads(json))
       .orElse(SentencesEvent.json.reads(json))
       .orElse(PingEvent.json.reads(json))
@@ -370,6 +387,7 @@ object FrontEvent {
     case ce@CoordsEvent(_, _) => CoordsEvent.json.writes(ce)
     case cb@CoordsBatch(_) => CoordsBatch.json.writes(cb)
     case pe@PingEvent(_) => PingEvent.json.writes(pe)
+    case vs@VesselMessages(_, _) => VesselMessages.json.writes(vs)
   }
 }
 

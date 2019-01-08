@@ -17,7 +17,7 @@ class MapSocket(map: MapboxMap,
                 sample: Option[Int],
                 mode: MapMode,
                 language: Language)
-  extends BoatSocket(track, sample) {
+  extends BoatSocket(track, sample) with GeoUtils {
 
   val lang = Lang(language)
   val boatIconId = "boat-icon"
@@ -26,6 +26,7 @@ class MapSocket(map: MapboxMap,
   val boatPopup = MapboxPopup(PopupOptions(className = Option("popup-boat")))
   val markPopup = MapboxPopup(PopupOptions())
   val html = Popups(lang)
+  val ais = AISRenderer(map)
 
   private var mapMode: MapMode = mode
   private var boats = Map.empty[String, FeatureCollection]
@@ -92,21 +93,21 @@ class MapSocket(map: MapboxMap,
     p.future
   }
 
-  def symbolAnimation(id: String, coord: Coord) = Animation(
+  def symbolAnimation(id: String, coord: Coord) = Layer(
     id,
     SymbolLayer,
-    AnimationSource("geojson", pointFor(coord)),
-    ImageLayout(boatIconId, `icon-size` = 1),
+    LayerSource("geojson", pointFor(coord)),
+    Option(ImageLayout(boatIconId, `icon-size` = 1)),
     None
   )
 
-  def animation(id: String) = paintedAnimation(id, Paint("#000", 1, 1))
+  def animation(id: String) = paintedAnimation(id, LinePaint("#000", 1, 1))
 
-  def paintedAnimation(id: String, paint: Paint) = Animation(
+  def paintedAnimation(id: String, paint: LinePaint) = Layer(
     id,
     LineLayer,
-    AnimationSource("geojson", emptyTrack),
-    LineLayout("round", "round"),
+    LayerSource(emptyTrack),
+    Option(LineLayout("round", "round")),
     Option(paint)
   )
 
@@ -128,7 +129,7 @@ class MapSocket(map: MapboxMap,
       log.debug(s"Crafting new track for boat '$boat'...")
       map.putLayer(animation(track))
       // Adds a thicker, transparent trail on top of the visible one, which represents the mouse-hoverable area
-      map.putLayer(paintedAnimation(hoverableTrack, Paint("#000", 5, 0)))
+      map.putLayer(paintedAnimation(hoverableTrack, LinePaint("#000", 5, 0)))
       coords.lastOption.map { coord =>
         map.putLayer(symbolAnimation(point, coord))
         map.onHover(point)(
@@ -258,6 +259,10 @@ class MapSocket(map: MapboxMap,
 
   }
 
+  override def onAIS(messages: VesselMessages): Unit = {
+    ais.onAIS(messages)
+  }
+
   def nearest[T](from: LngLat, on: Seq[T])(c: T => Coord): Either[String, T] = {
     // TODO try to fix the toJSArray nonsense
     val all = turf.lineString(on.map(t => c(t).toArray.toJSArray).toArray.toJSArray)
@@ -284,14 +289,16 @@ class MapSocket(map: MapboxMap,
 
   def toDeg(rad: Double) = rad * 180 / Math.PI
 
+  def trackName(boat: BoatName) = s"track-$boat"
+
+  def pointName(boat: BoatName) = s"boat-$boat"
+}
+
+trait GeoUtils {
   def lineFor(coords: Seq[Coord]) = collectionFor(LineGeometry(coords), Map.empty)
 
   def pointFor(coord: Coord) = collectionFor(PointGeometry(coord), Map.empty)
 
   def collectionFor(geo: Geometry, props: Map[String, JsValue]): FeatureCollection =
     FeatureCollection(Seq(Feature(geo, props)))
-
-  def trackName(boat: BoatName) = s"track-$boat"
-
-  def pointName(boat: BoatName) = s"boat-$boat"
 }

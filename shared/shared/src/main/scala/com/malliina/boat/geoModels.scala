@@ -141,10 +141,13 @@ object FeatureCollection {
   def apply(fs: Seq[Feature]): FeatureCollection = FeatureCollection(Key, fs)
 }
 
-case class AnimationSource(`type`: String, data: FeatureCollection)
+case class LayerSource(`type`: String, data: FeatureCollection)
 
-object AnimationSource {
-  implicit val json = Json.format[AnimationSource]
+object LayerSource {
+  implicit val json = Json.format[LayerSource]
+
+  def apply(data: FeatureCollection): LayerSource =
+    LayerSource("geojson", data)
 }
 
 case class LineLayout(`line-join`: String, `line-cap`: String) extends Layout
@@ -168,13 +171,28 @@ object Layout {
   }
 }
 
-case class Paint(`line-color`: String,
-                 `line-width`: Int,
-                 `line-opacity`: Double,
-                 `line-gap-width`: Double = 0)
+case class CirclePaint(`circle-radius`: Int, `circle-color`: String) extends BasePaint
 
-object Paint {
-  implicit val json = Json.format[Paint]
+object CirclePaint {
+  implicit val json = Json.format[CirclePaint]
+}
+
+case class LinePaint(`line-color`: String,
+                     `line-width`: Int,
+                     `line-opacity`: Double,
+                     `line-gap-width`: Double = 0) extends BasePaint
+
+object LinePaint {
+  implicit val json = Json.format[LinePaint]
+}
+
+sealed trait BasePaint
+
+object BasePaint {
+  implicit val writer = Writes[BasePaint] {
+    case lp@LinePaint(_, _, _, _) => Json.toJson(lp)
+    case cp@CirclePaint(_, _) => Json.toJson(cp)
+  }
 }
 
 sealed abstract class LayerType(val name: String)
@@ -187,12 +205,14 @@ case object LineLayer extends LayerType("line")
 
 case object SymbolLayer extends LayerType("symbol")
 
-case class Animation(id: String,
-                     `type`: LayerType,
-                     source: AnimationSource,
-                     layout: Layout,
-                     paint: Option[Paint])
+case object CircleLayer extends LayerType("circle")
 
-object Animation {
-  implicit val json = Json.writes[Animation]
+case class Layer(id: String,
+                 `type`: LayerType,
+                 source: LayerSource,
+                 layout: Option[Layout],
+                 paint: Option[BasePaint])
+
+object Layer {
+  implicit val json = Json.writes[Layer]
 }

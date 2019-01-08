@@ -69,6 +69,11 @@ lazy val backendSettings = playSettings ++ Seq(
     "com.malliina" %% "play-social" % utilPlayVersion,
     "com.malliina" %% "mobile-push" % "1.16.0",
     "com.typesafe.akka" %% "akka-slf4j" % akkaVersion,
+    "com.typesafe.akka" %% "akka-stream" % akkaVersion,
+    "com.typesafe.akka" %% "akka-http" % "10.1.5",
+    "com.typesafe.akka" %% "akka-http-spray-json" % "10.1.5",
+    "com.neovisionaries" % "nv-websocket-client" % "2.6",
+    "org.eclipse.paho" % "org.eclipse.paho.client.mqttv3" % "1.2.0",
     utilPlayDep,
     utilPlayDep % Test classifier "tests"
   ),

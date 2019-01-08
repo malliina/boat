@@ -1,13 +1,10 @@
 package com.malliina.boat
 
 import com.malliina.boat.MaritimeJson.{intReader, meters}
-import com.malliina.measure.Distance
+import com.malliina.measure.{Distance, DistanceDouble}
 import play.api.libs.json._
 
 object MaritimeJson {
-
-  import com.malliina.measure.DistanceDouble
-
   val meters = Reads[Distance] { json => json.validate[Double].map(_.meters) }
 
   def intReader[T](onError: JsValue => String)(pf: PartialFunction[Int, T]): Reads[T] =
