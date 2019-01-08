@@ -12,7 +12,11 @@ import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 import scala.scalajs.js
 import scala.scalajs.js.JSConverters.genTravConvertible2JSRichGenTrav
 
-class MapSocket(map: MapboxMap, track: Option[TrackName], sample: Option[Int], mode: MapMode, language: Language)
+class MapSocket(map: MapboxMap,
+                track: Option[TrackName],
+                sample: Option[Int],
+                mode: MapMode,
+                language: Language)
   extends BoatSocket(track, sample) {
 
   val lang = Lang(language)

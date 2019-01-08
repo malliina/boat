@@ -131,6 +131,18 @@ object Language extends StringCompanion[Language] {
   val default = finnish
 }
 
+case class ChangeLanguage(language: Language)
+
+object ChangeLanguage {
+  implicit val json = Json.format[ChangeLanguage]
+}
+
+case class SimpleMessage(message: String)
+
+object SimpleMessage {
+  implicit val json = Json.format[SimpleMessage]
+}
+
 trait BoatTrackMeta extends BoatMeta {
   def track: TrackName
 }
@@ -261,6 +273,12 @@ case class BoatInfo(boatId: BoatId, boat: BoatName, user: Username, language: La
 
 object BoatInfo {
   implicit val json = Json.format[BoatInfo]
+}
+
+case class UserBoats(user: Username, language: Language, boats: Seq[BoatInfo])
+
+object UserBoats {
+  val anon = UserBoats(Usernames.anon, Language.default, Nil)
 }
 
 case class TrackBrief(trackName: TrackName, added: String, addedMillis: Long)

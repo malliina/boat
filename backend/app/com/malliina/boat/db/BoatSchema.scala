@@ -204,7 +204,7 @@ class BoatSchema(ds: DataSource, conf: ProfileConf)
 
     def coord = column[Coord]("coord")
 
-    def coordIdx = index("points_track_coord_idx", (track, coord))
+    // def coordIdx = index("points_track_coord_idx", (track, coord))
 
     def boatSpeed = column[Speed]("boat_speed")
 

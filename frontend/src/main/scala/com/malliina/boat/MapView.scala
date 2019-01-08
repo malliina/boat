@@ -7,10 +7,10 @@ import play.api.libs.json.{Json, Writes}
 
 import scala.scalajs.js.{JSON, URIUtils}
 
-object MapView {
+object MapView extends CookieNames {
   def apply(): Either[NotFound, MapView] = {
-    val lang = readCookie(CookieNames.LanguageName).map(Language.apply).getOrElse(Language.default)
-    readCookie(CookieNames.TokenCookieName).map(t => apply(AccessToken(t), lang))
+    val lang = readCookie(LanguageName).map(Language.apply).getOrElse(Language.default)
+    readCookie(TokenCookieName).map(t => apply(AccessToken(t), lang))
   }
 
   def apply(accessToken: AccessToken, language: Language): MapView =

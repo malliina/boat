@@ -10,13 +10,9 @@ object Frontend extends BodyClasses {
 
     def contains(cls: String) = bodyClasses.contains(cls)
 
-    val init: Either[NotFound, _] =
-      if (contains(MapClass)) MapView()
-      else if (contains(ChartsClass)) ChartsView()
-      else if (contains(ListClass)) ListView()
-      else Right(())
-    init.left.foreach { notFound =>
-      log.info(s"Initialization error. Not found: '${notFound.id}'.")
-    }
+    if (contains(MapClass)) MapView()
+    if (contains(ChartsClass)) ChartsView()
+    if (contains(ListClass)) ListView()
+    if (contains(AboutClass)) AboutPage()
   }
 }

@@ -1,9 +1,8 @@
 package com.malliina.boat
 
 import com.malliina.boat.http.CSRFConf
-import org.scalajs.dom.ext.Ajax
 import org.scalajs.dom.raw._
-import play.api.libs.json.Json
+import play.api.libs.json.{JsObject, Json}
 
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 
@@ -17,7 +16,10 @@ object ListView extends BaseFront {
   }
 }
 
-class ListView(form: HTMLFormElement, editIcon: Element, cancel: HTMLButtonElement, log: BaseLogger = BaseLogger.console) extends BaseFront with CSRFConf {
+class ListView(form: HTMLFormElement,
+               editIcon: Element,
+               cancel: HTMLButtonElement,
+               log: BaseLogger = BaseLogger.console) extends BaseFront with CSRFConf {
   val trackRow = document.getElementsByClassName(TrackRow)
 
   editIcon.addEventListener("click", (_: Event) => {
@@ -30,18 +32,9 @@ class ListView(form: HTMLFormElement, editIcon: Element, cancel: HTMLButtonEleme
       track <- readTrack
       in <- elemAs[HTMLInputElement](TitleInputId)
     } {
-      val data = Json.stringify(Json.obj(TrackTitle.Key -> in.value))
-      val headers = Map("Content-Type" -> "application/json", CsrfHeaderName -> CsrfTokenNoCheck)
-      Ajax.put(s"/tracks/$track", data, headers = headers).map { res =>
-        if (res.status == 200) {
-          for {
-            json <- Json.parse(res.responseText).validate[TrackResponse].asEither
-            e <- elemAs[HTMLSpanElement](TrackTitleId)
-          } yield {
-            e.textContent = json.track.describe
-          }
-        } else {
-          log.info(s"Invalid status code '${res.status}'.")
+      put[JsObject, TrackResponse](s"/tracks/$track", Json.obj(TrackTitle.Key -> in.value)).map { res =>
+        elemAs[HTMLSpanElement](TrackTitleId).map { span =>
+          span.textContent = res.track.describe
         }
         form.hide()
         trackRow.foreach(_.show())

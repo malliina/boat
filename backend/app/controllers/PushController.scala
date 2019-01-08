@@ -3,7 +3,7 @@ package controllers
 import com.malliina.boat.auth.EmailAuth
 import com.malliina.boat.db.{PushDatabase, PushInput, UserManager}
 import com.malliina.boat.http.BoatRequest
-import com.malliina.boat.{PushPayload, SimpleMessage, SingleToken, UserInfo}
+import com.malliina.boat.{ChangeLanguage, PushPayload, SimpleMessage, SingleToken, UserInfo}
 import play.api.libs.json.Reads
 import play.api.mvc.{ControllerComponents, Result}
 
@@ -23,6 +23,13 @@ class PushController(push: PushDatabase,
   def disableNotifications = jsonAuth[SingleToken] { req =>
     push.disable(req.body.token, req.user.id).map { disabled =>
       val msg = if (disabled) "disabled" else "no change"
+      Ok(SimpleMessage(msg))
+    }
+  }
+
+  def changeLanguage = jsonAuth[ChangeLanguage] { req =>
+    auther.changeLanguage(req.user.id, req.body.language).map { changed =>
+      val msg = if (changed) "changed" else "no change"
       Ok(SimpleMessage(msg))
     }
   }

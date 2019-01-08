@@ -110,12 +110,6 @@ object SingleToken {
   implicit val json = Json.format[SingleToken]
 }
 
-case class SimpleMessage(message: String)
-
-object SimpleMessage {
-  implicit val json = Json.format[SimpleMessage]
-}
-
 case class PushPayload(token: PushToken, device: MobileDevice)
 
 object PushPayload {

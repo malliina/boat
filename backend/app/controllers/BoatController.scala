@@ -77,9 +77,10 @@ class BoatController(mapboxToken: AccessToken,
   def index = authAction(optionalWebAuth) { req =>
     val maybeBoat = req.user
     val u: Username = maybeBoat.map(_.user).getOrElse(anonUser)
-    val cookie = Cookie(TokenCookieName, mapboxToken.token, httpOnly = false)
-    val result = Ok(html.map(maybeBoat))
-      .withCookies(cookie)
+    val tokenCookie = Cookie(TokenCookieName, mapboxToken.token, httpOnly = false)
+    val languageCookie = Cookie(LanguageName, maybeBoat.map(_.language).getOrElse(Language.default).code, httpOnly = false)
+    val result = Ok(html.map(maybeBoat.getOrElse(UserBoats.anon)))
+      .withCookies(tokenCookie, languageCookie)
       .addingToSession(UserSessionKey -> u.name)(req.req)
     fut(result)
   }
@@ -290,14 +291,14 @@ class BoatController(mapboxToken: AccessToken,
     * <p>If the user has no session, but a Google auth cookie, redirect to the social login to start the OAuth flow.
     * <p>If the user has no session and no auth cookie, return None which means unauthenticated mode.
     */
-  private def optionalWebAuth(rh: RequestHeader): Future[Option[BoatInfo]] =
+  private def optionalWebAuth(rh: RequestHeader): Future[Option[UserBoats]] =
     sessionEmail(rh).map { email =>
       auther.boats(email).map { boats =>
-        boats.headOption
+        Option(boats)
       }
     }.getOrElse {
       googleCookie(rh).map { _ =>
-        Future.failed(new MissingCredentialsException(MissingCredentials(rh)))
+        Future.failed(IdentityException.missingCredentials(rh))
       }.getOrElse {
         fut(None)
       }

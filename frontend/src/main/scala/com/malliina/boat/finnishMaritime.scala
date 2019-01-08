@@ -220,10 +220,13 @@ trait Owned {
   /**
     * @return a translated name of the owner, best effort
     */
-  def ownerName(lang: Lang): String =
-    if (owner == Lang.Finnish.transportAgency) lang.transportAgency
-    else if (owner == Lang.Finnish.defenceForces) lang.defenceForces
-    else owner
+  def ownerName(lang: Lang): String = owner match {
+    case Lang.Finnish.transportAgency => lang.transportAgency
+    case Lang.Finnish.defenceForces => lang.defenceForces
+    case Lang.Finnish.portOfHelsinki => lang.portOfHelsinki
+    case Lang.Finnish.cityOfEspoo => lang.cityOfEspoo
+    case _ => owner
+  }
 }
 
 trait SymbolLike {

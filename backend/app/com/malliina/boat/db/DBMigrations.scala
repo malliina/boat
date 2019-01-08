@@ -7,7 +7,7 @@ object DBMigrations {
     val flyway = Flyway.configure()
       .dataSource(conf.url, conf.user, conf.pass)
       .baselineOnMigrate(true)
-      .baselineVersion("6")
+      .baselineVersion("9")
       .load()
     if (flyway.info().current() == null) {
       flyway.baseline()

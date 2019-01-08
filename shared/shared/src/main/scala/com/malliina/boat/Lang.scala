@@ -2,6 +2,9 @@ package com.malliina.boat
 
 sealed abstract class Lang(val transportAgency: String,
                            val defenceForces: String,
+                           val portOfHelsinki: String,
+                           val cityOfHelsinki: String,
+                           val cityOfEspoo: String,
                            val name: String,
                            val location: String,
                            val `type`: String,
@@ -37,7 +40,11 @@ object Lang {
   object English extends Lang(
     "Finnish Transport Agency",
     "Defence forces",
-    "Name", "Location",
+    "Port of Helsinki",
+    "City of Helsinki",
+    "City of Espoo",
+    "Name",
+    "Location",
     "Type",
     "Navigation",
     "Structure",
@@ -62,6 +69,9 @@ object Lang {
   object Finnish extends Lang(
     "Liikennevirasto",
     "Puolustusvoimat",
+    "Helsingin Satama",
+    "Helsingin kaupunki",
+    "Espoon kaupunki",
     "Nimi",
     "Sijainti",
     "Tyyppi",
@@ -88,6 +98,9 @@ object Lang {
   object Swedish extends Lang(
     "Trafikverket",
     "Försvarsmakten",
+    "Helsingfors Hamn",
+    "Helsingfors stad",
+    "Esbo stad",
     "Namn",
     "Plats",
     "Typ",

@@ -7,7 +7,7 @@ import com.malliina.boat.FrontKeys._
 import com.malliina.boat.docs.Docs
 import com.malliina.boat.html.BoatHtml.callAttr
 import com.malliina.boat.http.Limits
-import com.malliina.boat.{BoatInfo, FullTrack, Lang, TrackRef}
+import com.malliina.boat.{FullTrack, Lang, TrackRef, UserBoats, Usernames}
 import com.malliina.html.Tags
 import com.malliina.measure.Distance
 import com.malliina.play.tags.TagPage
@@ -59,48 +59,57 @@ class BoatHtml(jsFiles: Seq[String]) extends Tags(scalatags.Text) {
 
   private def markdownPage(md: RawFrag) = page(PageConf(md, bodyClasses = Seq("docs-agent")))
 
-  def map(boat: Option[BoatInfo]) = page(
-    PageConf(
-      modifier(
-        boat.map { b =>
-          modifier(
-            div(id := "navbar", `class` := "navbar navbar-boat")(
-              span(`class` := "nav-text")(b.boat),
-              div(`class` := "dropdown nav-text", id := DropdownLinkId)(
-                span(`class` := "dropdown-button",  Lang(b.language).tracks),
-                div(`class` := "dropdown-content", id := DropdownContentId)(
-                  b.tracks.map { t =>
-                    a(`class` := "track-link", href := reverse.track(t.trackName))(
-                      span(t.describe),
-                      span(short(t.distance)),
-                      span(t.startEndRange)
-                    )
-                  }
-                )
-              ),
-              span(id := TitleId, `class` := "nav-text title")(""),
-              span(id := DistanceId, `class` := "nav-text distance")(""),
-              span(id := DurationId, `class` := "nav-text duration")(""),
-              span(id := TopSpeedId, `class` := "nav-text top-speed")(""),
-              span(id := WaterTempId, `class` := "nav-text water-temp")(""),
-              iconLink(a, FullLinkId, s"icon-link $Hidden", "list", "List"),
-              iconLink(a, GraphLinkId, s"icon-link $Hidden", "graph", "Graph"),
-              standaloneQuestion("question-nav nav-icon")
+  def map(ub: UserBoats) = {
+    val user = ub.user
+    val isAnon = user == Usernames.anon
+    val mapClass = if (ub.boats.isEmpty) "anon" else "auth"
+    page(
+      PageConf(
+        modifier(
+          ub.boats.headOption.map { b =>
+            modifier(
+              div(id := "navbar", `class` := "navbar navbar-boat")(
+                span(`class` := "nav-text")(b.boat),
+                div(`class` := "dropdown nav-text", id := DropdownLinkId)(
+                  span(`class` := "dropdown-button", Lang(b.language).tracks),
+                  div(`class` := "dropdown-content", id := DropdownContentId)(
+                    b.tracks.map { t =>
+                      a(`class` := "track-link", href := reverse.track(t.trackName))(
+                        span(t.describe),
+                        span(short(t.distance)),
+                        span(t.startEndRange)
+                      )
+                    }
+                  )
+                ),
+                span(id := TitleId, `class` := "nav-text title")(""),
+                span(id := DistanceId, `class` := "nav-text distance")(""),
+                span(id := DurationId, `class` := "nav-text duration")(""),
+                span(id := TopSpeedId, `class` := "nav-text top-speed")(""),
+                span(id := WaterTempId, `class` := "nav-text water-temp")(""),
+                iconLink(a, FullLinkId, s"icon-link $Hidden", "list", "List"),
+                iconLink(a, GraphLinkId, s"icon-link $Hidden", "graph", "Graph"),
+                standaloneQuestion("question-nav nav-icon")
+              )
             )
-          )
-        }.getOrElse {
-          modifier(
-            standaloneQuestion("boat-icon question"),
-            personIcon("boat-icon person")
-          )
-        },
-        div(id := MapId, `class` := boat.fold("mapbox-map anon")(_ => "mapbox-map auth")),
-        Modal.about,
-      ),
-      bodyClasses = Seq(MapClass),
-      cssLink(s"https://api.tiles.mapbox.com/mapbox-gl-js/v$mapboxVersion/mapbox-gl.css")
+          }.getOrElse {
+            if (isAnon) {
+              modifier(
+                standaloneQuestion("boat-icon question"),
+                personIcon("boat-icon person")
+              )
+            } else {
+              standaloneQuestion("boat-icon question")
+            }
+          },
+          div(id := MapId, `class` := s"mapbox-map $mapClass"),
+          About.about(user, ub.language),
+        ),
+        bodyClasses = Seq(s"$MapClass $AboutClass"),
+        cssLink(s"https://api.tiles.mapbox.com/mapbox-gl-js/v$mapboxVersion/mapbox-gl.css")
+      )
     )
-  )
+  }
 
   def short(d: Distance) =
     if (d.toKilometers >= 10) s"${d.toKilometers} km"

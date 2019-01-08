@@ -24,7 +24,7 @@ trait CookieNames {
 
 object FrontKeys extends FrontKeys
 
-trait FrontKeys extends BodyClasses with ListKeys with NavKeys {
+trait FrontKeys extends BodyClasses with ListKeys with NavKeys with AboutKeys {
   val ChartsId = "charts"
   val Close = "close"
   val FullLinkId = "full-list-link"
@@ -37,6 +37,10 @@ trait FrontKeys extends BodyClasses with ListKeys with NavKeys {
 
   val SampleKey = "sample"
   val Visible = "visible"
+}
+
+trait AboutKeys {
+  val LanguageRadios = "language-radios"
 }
 
 trait NavKeys {
@@ -64,7 +68,8 @@ trait ListKeys {
 }
 
 trait BodyClasses {
+  val AboutClass = "about"
   val ChartsClass = "charts"
-  val MapClass = "map"
   val ListClass = "list"
+  val MapClass = "map"
 }

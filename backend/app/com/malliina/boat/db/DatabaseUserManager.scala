@@ -3,11 +3,10 @@ package com.malliina.boat.db
 import java.sql.SQLException
 
 import com.malliina.boat.db.DatabaseUserManager.log
-import com.malliina.boat.{Boat, BoatInfo, BoatInput, BoatNames, BoatRow, BoatToken, BoatTokens, JoinedBoat, JoinedTrack, UserInfo, UserToken}
+import com.malliina.boat.{Boat, BoatInfo, BoatInput, BoatNames, BoatRow, BoatToken, BoatTokens, JoinedBoat, JoinedTrack, Language, UserBoats, UserInfo, UserToken}
 import com.malliina.values.{Email, UserId, Username}
 import play.api.Logger
 
-import scala.collection.immutable
 import scala.concurrent.{ExecutionContext, Future}
 
 object DatabaseUserManager {
@@ -84,8 +83,12 @@ class DatabaseUserManager(val db: BoatSchema)(implicit ec: ExecutionContext)
     }
   }
 
-  override def boats(email: Email): Future[Seq[BoatInfo]] = action {
-    loadBoats(tracksViewNonEmpty.filter(r => r.email.isDefined && r.email === email && r.points > 100))
+  override def boats(email: Email): Future[UserBoats] = action {
+    for {
+      id <- getOrCreate(email)
+      user <- first(usersTable.filter(_.id === id), s"Not found or not enabled: '$email'.")
+      bs <- loadBoats(tracksViewNonEmpty.filter(r => r.user === id && r.points > 100))
+    } yield UserBoats(user.username, user.language, bs)
   }
 
   private def loadBoats(q: Query[LiftedJoinedTrack, JoinedTrack, Seq]) = {
@@ -125,6 +128,16 @@ class DatabaseUserManager(val db: BoatSchema)(implicit ec: ExecutionContext)
         Left(UserDoesNotExist(user))
       }
     }
+
+  def changeLanguage(user: UserId, to: Language): Future[Boolean] = action {
+    usersTable.filter(_.id === user).map(_.language).update(to).map { rows =>
+      val wasChanged = rows > 0
+      if (wasChanged) {
+        log.info(s"Changed language of user ID '$user' to '$to'.")
+      }
+      wasChanged
+    }
+  }
 
   private def action[R](a: DBIOAction[R, NoStream, Nothing]): Future[R] = db.run(a)
 }

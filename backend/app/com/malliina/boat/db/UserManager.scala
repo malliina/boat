@@ -1,6 +1,6 @@
 package com.malliina.boat.db
 
-import com.malliina.boat.{BoatInfo, BoatToken, JoinedBoat, UserInfo}
+import com.malliina.boat.{BoatToken, JoinedBoat, Language, UserBoats, UserInfo}
 import com.malliina.play.auth.AuthError
 import com.malliina.values.{Email, Password, UserId, Username}
 import org.apache.commons.codec.digest.DigestUtils
@@ -23,13 +23,15 @@ trait UserManager {
 
   def authBoat(token: BoatToken): Future[JoinedBoat]
 
-  def boats(user: Email): Future[Seq[BoatInfo]]
+  def boats(user: Email): Future[UserBoats]
 
   def addUser(user: NewUser): Future[Either[AlreadyExists, UserId]]
 
   def deleteUser(user: Username): Future[Either[UserDoesNotExist, Unit]]
 
   def users: Future[Seq[UserInfo]]
+
+  def changeLanguage(user: UserId, to: Language): Future[Boolean]
 
   protected def hash(user: Username, pass: Password): String =
     DigestUtils.md5Hex(user.name + ":" + pass.pass)
@@ -64,4 +66,7 @@ object IdentityException {
     case mc@MissingCredentials(_) => new MissingCredentialsException(mc)
     case other => new IdentityException(other)
   }
+
+  def missingCredentials(rh: RequestHeader): MissingCredentialsException =
+    new MissingCredentialsException(MissingCredentials(rh))
 }
