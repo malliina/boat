@@ -5,6 +5,7 @@ import com.malliina.json.PrimitiveFormats
 import com.malliina.measure.{Distance, Speed, Temperature}
 import com.malliina.values._
 import play.api.libs.json._
+import scalatags.generic.Bundle
 
 import scala.concurrent.duration.Duration
 
@@ -347,20 +348,13 @@ object PingEvent {
   implicit val json = keyValued(Key, Json.format[PingEvent])
 }
 
-case class VesselMessages(locations: Seq[VesselLocation], metas: Seq[VesselMetadata]) extends FrontEvent {
+case class VesselMessages(vessels: Seq[VesselInfo]) extends FrontEvent {
   override def isIntendedFor(user: Username): Boolean = true
 }
 
 object VesselMessages {
   implicit val json = Json.format[VesselMessages]
-  val empty = VesselMessages(Nil, Nil)
-
-  def apply(msgs: Seq[VesselMessage]): VesselMessages = msgs.foldLeft(empty) { (acc, msg) =>
-    msg match {
-      case loc: VesselLocation => acc.copy(locations = acc.locations :+ loc)
-      case meta: VesselMetadata => acc.copy(metas = acc.metas :+ meta)
-    }
-  }
+  val empty = VesselMessages(Nil)
 }
 
 sealed trait FrontEvent {
@@ -387,7 +381,7 @@ object FrontEvent {
     case ce@CoordsEvent(_, _) => CoordsEvent.json.writes(ce)
     case cb@CoordsBatch(_) => CoordsBatch.json.writes(cb)
     case pe@PingEvent(_) => PingEvent.json.writes(pe)
-    case vs@VesselMessages(_, _) => VesselMessages.json.writes(vs)
+    case vs@VesselMessages(_) => VesselMessages.json.writes(vs)
   }
 }
 
@@ -434,4 +428,11 @@ abstract class Companion[Raw, T](implicit jsonFormat: Format[Raw], o: Ordering[R
   )
 
   implicit val ordering: Ordering[T] = o.on(raw)
+}
+
+class ModelHtml[Builder, Output <: FragT, FragT](val bundle: Bundle[Builder, Output, FragT]) {
+
+  import bundle.all._
+
+  implicit def wrappedFrag[T <: Wrapped](t: T): Frag = stringFrag(t.value)
 }

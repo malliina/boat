@@ -16,6 +16,7 @@ object MapboxStyles {
     "cardinal-west",
     "cardinal-south",
     "cardinal-east",
-    "cardinal-north"
+    "cardinal-north",
+    AISRenderer.AisLayer
   )
 }

@@ -18,11 +18,18 @@ class AISTests extends BaseSuite {
   //val ProdUrl = FullUrl.wss("meri.digitraffic.fi:61619", "/mqtt")
   val ProdUrl = FullUrl.wss("meri-test.digitraffic.fi:61619", "/mqtt")
 
-  test("MqttSource") {
+  val as = ActorSystem("test")
+  implicit val mat = ActorMaterializer()(as)
+
+  ignore("MqttSource") {
     val client = MqClient()
-    val as = ActorSystem("test")
-    implicit val mat = ActorMaterializer()(as)
     val fut = client.slow.take(3).runWith(Sink.foreach(msg => println(msg)))
+    await(fut, 100.seconds)
+  }
+
+  ignore("metadata only") {
+    val client = MqClient(MqClient.TestUrl, MqClient.MetadataTopic)
+    val fut = client.vesselMessages.take(4).runWith(Sink.foreach(msg => println(msg)))
     await(fut, 100.seconds)
   }
 
@@ -38,7 +45,7 @@ class AISTests extends BaseSuite {
         val json = Json.parse(message.getPayload)
         val result = topic match {
           case Locations() => VesselLocation.readerGeoJson.reads(json)
-          case Metadata() => VesselMetadata.json.reads(json)
+          case Metadata() => VesselMetadata.readerGeoJson.reads(json)
           case Status() => VesselStatus.reader.reads(json)
           case other => JsError(s"Unknown topic: '$other'. JSON: '$json'.")
         }

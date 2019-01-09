@@ -114,7 +114,10 @@ object Geometry {
   }
 }
 
-case class Feature(`type`: String, geometry: Geometry, properties: Map[String, JsValue], layer: Option[JsObject]) {
+case class Feature(`type`: String,
+                   geometry: Geometry,
+                   properties: Map[String, JsValue],
+                   layer: Option[JsObject]) {
   def addCoords(coords: Seq[Coord]): Feature = copy(
     geometry = geometry.updateCoords(coords)
   )
@@ -125,6 +128,9 @@ case class Feature(`type`: String, geometry: Geometry, properties: Map[String, J
 object Feature {
   val Key = "Feature"
   implicit val json = Json.format[Feature]
+
+  def point(coord: Coord, props: Map[String, JsValue]): Feature =
+    Feature(PointGeometry(coord), props)
 
   def apply(geometry: Geometry, properties: Map[String, JsValue]): Feature =
     Feature(Key, geometry, properties, None)
@@ -156,7 +162,7 @@ object LineLayout {
   implicit val json = Json.format[LineLayout]
 }
 
-case class ImageLayout(`icon-image`: String, `icon-size`: Int) extends Layout
+case class ImageLayout(`icon-image`: String, `icon-size`: Int, `icon-rotate`: Option[Seq[String]] = None) extends Layout
 
 object ImageLayout {
   implicit val json = Json.format[ImageLayout]
@@ -167,7 +173,7 @@ sealed trait Layout
 object Layout {
   implicit val writer = Writes[Layout] {
     case ll@LineLayout(_, _) => Json.toJson(ll)
-    case il@ImageLayout(_, _) => Json.toJson(il)
+    case il@ImageLayout(_, _, _) => Json.toJson(il)
   }
 }
 

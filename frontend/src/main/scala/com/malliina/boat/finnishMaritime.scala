@@ -20,10 +20,12 @@ sealed trait Translated {
 
   def en: String
 
-  def in(lang: Lang): String =
-    if (lang == Lang.Finnish) fi
-    else if (lang == Lang.Swedish) se
-    else en
+  def in(lang: Lang): String = lang match {
+    case Lang.Finnish => fi
+    case Lang.Swedish => se
+    case Lang.English => en
+    case _ => en
+  }
 }
 
 /**

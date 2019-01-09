@@ -1,36 +1,46 @@
 package com.malliina.boat
 
 import com.malliina.mapbox.MapboxMap
+import play.api.libs.json.Json
 
 object AISRenderer {
+  val AisLayer = "ais-vessels"
+
   def apply(map: MapboxMap) = new AISRenderer(map)
 }
 
 class AISRenderer(map: MapboxMap) extends GeoUtils with Parsing {
-  // If we want a trail, we can store a Seq[VesselLocation] instead
-  //  val locations = Map.empty[Mmsi, VesselLocation]
-  //  val metadatas = Map.empty[Mmsi, VesselMetadata]
+  // If we want a trail, we can store a Seq[VesselInfo] instead
+  private var vessels = Map.empty[Mmsi, VesselInfo]
 
-  def onAIS(messages: VesselMessages): Unit = {
-    messages.metas.foreach { meta => updateMetadata(meta) }
-    messages.locations.foreach { loc => renderLocation(loc) }
-  }
+  def info(mmsi: Mmsi): Option[VesselInfo] =
+    vessels.get(mmsi)
 
-  def renderLocation(loc: VesselLocation): Unit = {
-    //    val _ = locations.getOrElse(loc.mmsi, loc)
-    val id = idFor(loc.mmsi)
-    if (map.getSource(id).isEmpty) {
-      map.putLayer(Layer(id, CircleLayer, LayerSource(pointFor(loc.coord)), None, Option(CirclePaint(10, "#007cbf"))))
+  def locationData = FeatureCollection(
+    vessels.values.map { v =>
+      val heading = v.heading.getOrElse(v.cog.toInt)
+      val props = Json.obj(Mmsi.Key -> v.mmsi, VesselInfo.HeadingKey -> heading)
+      Feature.point(v.coord, props.value.toMap)
+    }.toList
+  )
+
+  def onAIS(messages: Seq[VesselInfo]): Unit = {
+    vessels = vessels ++ messages.map { m => m.mmsi -> m }.toMap
+    val id = AISRenderer.AisLayer
+    val src = map.getSource(id)
+    if (src.isEmpty) {
+      val shipLayer = Layer(
+        id,
+        SymbolLayer,
+        LayerSource(locationData),
+        Option(ImageLayout(boatIconId, `icon-size` = 1, Option(Seq("get", VesselInfo.HeadingKey)))),
+        None
+      )
+      map.putLayer(shipLayer)
     } else {
-      map.getSource(id).foreach { geoJson =>
-        geoJson.setData(toJson(pointFor(loc.coord)))
+      src.foreach { geo =>
+        geo.updateData(locationData)
       }
     }
   }
-
-  def updateMetadata(meta: VesselMetadata): Unit = {
-
-  }
-
-  def idFor(mmsi: Mmsi) = s"mmsi-$mmsi"
 }

@@ -57,7 +57,7 @@ class ModelTests extends FunSuite {
         |  "name" : "KLARA"
         |}
       """.stripMargin
-    val result = Json.parse(in).validate[VesselMetadata]
+    val result = VesselMetadata.readerGeoJson.reads(Json.parse(in))
     //println(result)
     assert(result.isSuccess)
   }

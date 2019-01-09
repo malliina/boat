@@ -24,13 +24,13 @@ abstract class BoatSocket(path: String) extends BaseSocket(path) with BaseFront 
     case CoordsBatch(coords) if coords.nonEmpty => coords.foreach(e => onCoords(e))
     case SentencesEvent(_, _) => ()
     case PingEvent(_) => ()
-    case vm@VesselMessages(locs, metas) =>
-      onAIS(vm)
-      log.info(s"Got AIS with ${locs.length} locations and ${metas.length} metadatas.")
+    case VesselMessages(messages) =>
+      onAIS(messages)
+      log.info(s"Got ${messages.length} vessel updates.")
     case other => log.info(s"Unknown event: '$other'.")
   }
 
   def onCoords(event: CoordsEvent): Unit
 
-  def onAIS(messages: VesselMessages): Unit
+  def onAIS(messages: Seq[VesselInfo]): Unit
 }

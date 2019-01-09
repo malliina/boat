@@ -67,7 +67,7 @@ class ChartSocket(ctx: CanvasRenderingContext2D, track: TrackName, sample: Optio
     chart.update()
   }
 
-  override def onAIS(messages: VesselMessages): Unit = ()
+  override def onAIS(messages: Seq[VesselInfo]): Unit = ()
 }
 
 case class ChartValue(label: String, value: Double)

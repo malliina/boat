@@ -1,24 +1,36 @@
 package com.malliina.boat
 
-import com.malliina.measure.{Distance, Speed}
+import com.malliina.measure.{Distance, DistanceM, Speed}
 import scalatags.JsDom.all._
 
 object Popups {
   def apply(lang: Lang) = new Popups(lang)
 }
 
-class Popups(lang: Lang) {
+class Popups(lang: Lang) extends BoatModels {
   val empty = modifier()
 
-  def track(c: TimedCoord, from: TrackRef) = {
-    val kn = "%.2f".format(c.speed.toKnots)
+  def track(c: TimedCoord, from: TrackRef) =
     titledTable(from.boatName.name)(
-      row(lang.speed, s"$kn kn"),
+      row(lang.speed, formatSpeed(c.speed)),
       row(lang.water, c.waterTemp.formatCelsius),
       row(lang.depth, c.depth.short),
       tr(td(colspan := 2)(c.boatTime.dateTime))
     )
+
+  def ais(vessel: VesselInfo) = {
+    val unknownShip = vessel.shipType.isInstanceOf[ShipType.Unknown]
+    titledTable(vessel.name)(
+      if (!unknownShip) row(lang.shipType, vessel.shipType.name(lang)) else empty,
+      row(lang.destination, vessel.destination),
+      row(lang.speed, formatSpeed(vessel.sog)),
+      row(lang.draft, formatDistance(vessel.draft))
+    )
   }
+
+  def formatSpeed(s: Speed) = "%.2f kn".format(s.toKnots)
+
+  def formatDistance(d: DistanceM) = "%.1f m".format(d.toMeters)
 
   def mark(symbol: MarineSymbol) =
     titledTable(symbol.ownerName(lang))(
@@ -59,7 +71,7 @@ class Popups(lang: Lang) {
     s"$value m"
   }
 
-  private def titledTable(title: String)(content: Modifier*) =
+  private def titledTable(title: Modifier)(content: Modifier*) =
     popupTable(
       tr(td(colspan := 2)(title)),
       content
@@ -72,7 +84,8 @@ class Popups(lang: Lang) {
       )
     )
 
-  private def row(title: String, value: String) = tr(td(`class` := "popup-title")(title), td(value))
+  private def row(title: String, value: Modifier) =
+    tr(td(`class` := "popup-title")(title), td(value))
 
   def marker(speed: Speed) =
     i(`class` := "fas fa-trophy marker-top-speed")
