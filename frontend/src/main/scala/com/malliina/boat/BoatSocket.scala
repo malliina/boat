@@ -26,7 +26,7 @@ abstract class BoatSocket(path: String) extends BaseSocket(path) with BaseFront 
     case PingEvent(_) => ()
     case VesselMessages(messages) =>
       onAIS(messages)
-      log.info(s"Got ${messages.length} vessel updates.")
+//      log.info(s"Got ${messages.length} vessel updates.")
     case other => log.info(s"Unknown event: '$other'.")
   }
 

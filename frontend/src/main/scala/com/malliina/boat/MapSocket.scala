@@ -44,7 +44,7 @@ class MapSocket(map: MapboxMap,
       f.geometry.typeName == "Point" &&
         f.layer.exists(obj => (obj \ "type").asOpt[String].exists(t => t == "symbol" || t == "circle"))
     }
-    val vessel = symbol.filter(_.layer.exists(obj => (obj \ "id").asOpt[String].contains(AISRenderer.AisLayer)))
+    val vessel = symbol.filter(_.layer.exists(obj => (obj \ "id").asOpt[String].contains(AISRenderer.AisVesselLayer)))
     vessel.map { feature =>
       val maybeInfo = for {
         mmsi <- (feature.props \ Mmsi.Key).asOpt[Mmsi]

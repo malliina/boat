@@ -132,6 +132,9 @@ object Feature {
   def point(coord: Coord, props: Map[String, JsValue]): Feature =
     Feature(PointGeometry(coord), props)
 
+  def line(coords: Seq[Coord]): Feature =
+    Feature(LineGeometry(coords), Map.empty)
+
   def apply(geometry: Geometry, properties: Map[String, JsValue]): Feature =
     Feature(Key, geometry, properties, None)
 }
@@ -217,7 +220,9 @@ case class Layer(id: String,
                  `type`: LayerType,
                  source: LayerSource,
                  layout: Option[Layout],
-                 paint: Option[BasePaint])
+                 paint: Option[BasePaint],
+                 minzoom: Option[Double] = None,
+                 maxzoom: Option[Double] = None)
 
 object Layer {
   implicit val json = Json.writes[Layer]

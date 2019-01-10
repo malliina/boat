@@ -23,7 +23,7 @@ object MqClient {
   val TestUrl = FullUrl.wss("meri-test.digitraffic.fi:61619", "/mqtt")
   val ProdUrl = FullUrl.wss("meri.digitraffic.fi:61619", "/mqtt")
 
-  def apply(): MqClient = apply(TestUrl, AllDataTopic)
+  def apply(): MqClient = apply(ProdUrl, AllDataTopic)
 
   def apply(url: FullUrl, topic: String): MqClient = new MqClient(url, topic)
 }

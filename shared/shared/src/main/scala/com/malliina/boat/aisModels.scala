@@ -171,7 +171,7 @@ case class VesselInfo(mmsi: Mmsi,
                       sog: Speed,
                       cog: Double,
                       draft: DistanceM,
-                      destination: String,
+                      destination: Option[String],
                       heading: Option[Int])
 
 object VesselInfo {
@@ -226,7 +226,7 @@ case class VesselMetadata(name: VesselName,
                           imo: Long,
                           eta: Long,
                           draft: DistanceM,
-                          destination: String,
+                          destination: Option[String],
                           shipType: ShipType,
                           callSign: String) extends VesselMessage
 
@@ -240,7 +240,7 @@ object VesselMetadata {
       imo <- (json \ "imo").validate[Long]
       eta <- (json \ "eta").validate[Long]
       draft <- (json \ "draught").validate[Int].map { i => DistanceM(i.toDouble / 10) }
-      destination <- (json \ "destination").validate[String]
+      destination <- (json \ "destination").validate[String].map { s => if (s.trim.nonEmpty) Option(s.trim) else None }
       shipType <- (json \ "shipType").validate[Int].map { i => ShipType(i) }
       callSign <- (json \ "callSign").validate[String]
     } yield VesselMetadata(name, mmsi, timestamp, imo, eta, draft, destination, shipType, callSign)
