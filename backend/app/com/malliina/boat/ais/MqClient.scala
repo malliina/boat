@@ -6,7 +6,7 @@ import java.time.Instant
 import akka.NotUsed
 import akka.stream.scaladsl.{RestartSource, Source}
 import com.malliina.boat.ais.MqClient.log
-import com.malliina.boat.{AISMessage, Locations, Metadata, Mmsi, Status, VesselLocation, VesselMessages, VesselMetadata, VesselStatus}
+import com.malliina.boat.{AISMessage, Locations, Metadata, Mmsi, StatusTopic, VesselLocation, VesselMessages, VesselMetadata, VesselStatus}
 import com.malliina.http.FullUrl
 import play.api.Logger
 import play.api.libs.json.{JsError, JsResult, JsSuccess, Json}
@@ -45,7 +45,7 @@ class MqClient(url: FullUrl, topic: String) {
     msg.topic match {
       case Locations() => VesselLocation.readerGeoJson.reads(json)
       case Metadata() => VesselMetadata.readerGeoJson.reads(json)
-      case Status() => VesselStatus.reader.reads(json)
+      case StatusTopic() => VesselStatus.reader.reads(json)
       case other => JsError(s"Unknown topic: '$other'. JSON: '$json'.")
     }
   }

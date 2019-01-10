@@ -267,7 +267,7 @@ object Metadata {
   }
 }
 
-object Status {
+object StatusTopic {
   def unapply(in: String): Boolean = {
     if (in == "vessels/status") true
     else false

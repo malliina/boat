@@ -46,7 +46,7 @@ class AISTests extends BaseSuite {
         val result = topic match {
           case Locations() => VesselLocation.readerGeoJson.reads(json)
           case Metadata() => VesselMetadata.readerGeoJson.reads(json)
-          case Status() => VesselStatus.reader.reads(json)
+          case StatusTopic() => VesselStatus.reader.reads(json)
           case other => JsError(s"Unknown topic: '$other'. JSON: '$json'.")
         }
         if (result.isError)
