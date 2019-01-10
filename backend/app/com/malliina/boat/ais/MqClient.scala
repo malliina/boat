@@ -3,15 +3,15 @@ package com.malliina.boat.ais
 import java.nio.charset.StandardCharsets
 import java.time.Instant
 
-import akka.Done
-import akka.stream.scaladsl.Source
-import com.malliina.boat.{AISMessage, Locations, Metadata, Mmsi, Status, VesselLocation, VesselMessage, VesselMessages, VesselMetadata, VesselStatus}
+import akka.NotUsed
+import akka.stream.scaladsl.{RestartSource, Source}
+import com.malliina.boat.ais.MqClient.log
+import com.malliina.boat.{AISMessage, Locations, Metadata, Mmsi, Status, VesselLocation, VesselMessages, VesselMetadata, VesselStatus}
 import com.malliina.http.FullUrl
 import play.api.Logger
 import play.api.libs.json.{JsError, JsResult, JsSuccess, Json}
 
 import scala.collection.concurrent.TrieMap
-import scala.concurrent.Future
 import scala.concurrent.duration.DurationInt
 
 object MqClient {
@@ -36,9 +36,11 @@ class MqClient(url: FullUrl, topic: String) {
 
   val date = Instant.now().toEpochMilli
   val settings = MqttSettings(url, s"boattracker-$date", topic, "digitraffic", "digitrafficPassword")
-  val graph = MqttGraph(settings)
-  val src = MqttSource(settings)
-  val parsed: Source[JsResult[AISMessage], Future[Done]] = src.map { msg =>
+  val src = RestartSource.onFailuresWithBackoff(5.seconds, 1800.seconds, 0.2) { () =>
+    log.info(s"Starting MQTT source at '${settings.broker}'...")
+    MqttSource(settings)
+  }
+  val parsed: Source[JsResult[AISMessage], NotUsed] = src.map { msg =>
     val json = Json.parse(msg.payload.decodeString(StandardCharsets.UTF_8))
     msg.topic match {
       case Locations() => VesselLocation.readerGeoJson.reads(json)
@@ -53,6 +55,7 @@ class MqClient(url: FullUrl, topic: String) {
         metadata.get(loc.mmsi).map { meta =>
           Source.single(loc.toInfo(meta))
         }.getOrElse {
+          // Drops location updates for which there is no vessel metadata
           Source.empty
         }
       case vm: VesselMetadata =>
@@ -63,6 +66,6 @@ class MqClient(url: FullUrl, topic: String) {
     }
     case JsError(_) => Source.empty
   }
-  val slow: Source[VesselMessages, Future[Done]] =
+  val slow: Source[VesselMessages, NotUsed] =
     vesselMessages.groupedWithin(maxBatchSize, sendTimeWindow).map(VesselMessages.apply)
 }

@@ -6,12 +6,13 @@ import akka.Done
 import akka.stream.stage.{GraphStageLogic, GraphStageWithMaterializedValue, OutHandler}
 import akka.stream.{Attributes, Outlet, SourceShape}
 import akka.util.ByteString
+import com.malliina.boat.ais.MqttGraph.log
 import org.eclipse.paho.client.mqttv3._
 import play.api.Logger
 
 import scala.collection.mutable
 import scala.concurrent.{Future, Promise}
-import MqttGraph.log
+
 object MqttGraph {
   private val log = Logger(getClass)
 
@@ -29,10 +30,11 @@ class MqttGraph(settings: MqttSettings)
     val subscriptionPromise = Promise[Done]()
     val queue = mutable.Queue[MqMessage]()
     val backpressure = new Semaphore(settings.bufferSize)
+    val broker = settings.broker
 
     val logic: GraphStageLogic = new GraphStageLogic(shape) {
       val onConnect = getAsyncCallback[IMqttAsyncClient] { client =>
-        log.info(s"Connected to '${settings.broker}'.")
+        log.info(s"Connected to '$broker'.")
         client.subscribe(settings.topic, 0)
       }
       val onMessage = getAsyncCallback[MqMessage] { msg =>
@@ -43,6 +45,7 @@ class MqttGraph(settings: MqttSettings)
         }
       }
       val onConnectionLost = getAsyncCallback[Throwable] { ex =>
+        log.info(s"Connection lost to '$broker'.", ex)
         failStage(ex)
       }
 
@@ -74,7 +77,7 @@ class MqttGraph(settings: MqttSettings)
         val connectOptions = new MqttConnectOptions
         connectOptions.setUserName(settings.user)
         connectOptions.setPassword(settings.pass.toCharArray)
-        log.info(s"Connecting to '${settings.broker}'...")
+        log.info(s"Connecting to '$broker'...")
         client.connect(connectOptions, (), new IMqttActionListener {
           override def onSuccess(asyncActionToken: IMqttToken): Unit =
             onConnect.invoke(client)

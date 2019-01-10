@@ -74,6 +74,7 @@ class BoatController(mapboxToken: AccessToken,
   val frontEvents: Source[CoordsEvent, Future[Done]] = savedCoords.mapConcat[CoordsEvent](identity)
   val aisClient = MqClient()
   val ais = monitored(onlyOnce(aisClient.slow), "AIS messages")
+  ais.runWith(Sink.ignore)
 
   errors.runWith(Sink.foreach(err => log.error(s"JSON error for '${err.boat}': '${err.error}'.")))
 
