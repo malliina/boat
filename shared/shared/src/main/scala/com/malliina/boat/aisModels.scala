@@ -11,6 +11,7 @@ import play.api.libs.json._
 sealed abstract class ShipType(val code: Int) {
   def name(lang: Lang): String = this match {
     case WingInGround(_) => lang.wingInGround
+    case SearchAndRescueAircraft => lang.searchAndRescueAircraft
     case Fishing => lang.fishing
     case Tug(_) => lang.tug
     case Dredger => lang.dredger
@@ -27,11 +28,11 @@ sealed abstract class ShipType(val code: Int) {
     case LocalVessel(_) => lang.localVessel
     case MedicalTransport => lang.medicalTransport
     case SpecialCraft => lang.specialCraft
+    case Passenger(_) => lang.passenger
     case Cargo(_) => lang.cargo
     case Tanker(_) => lang.tanker
     case Other(_) => lang.other
     case Unknown(_) => lang.unknown
-    case _ => lang.unknown
   }
 }
 

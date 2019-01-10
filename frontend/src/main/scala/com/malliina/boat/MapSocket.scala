@@ -52,6 +52,7 @@ class MapSocket(map: MapboxMap,
       } yield info
       (feature.props \ Mmsi.Key).asOpt[Mmsi].flatMap { mmsi => ais.info(mmsi) }
       maybeInfo.map { vessel =>
+//        log.info(s"Selected vessel $vessel.")
         val target = feature.geometry.coords.headOption.map(LngLat.apply).getOrElse(e.lngLat)
         markPopup.show(html.ais(vessel), target, map)
       }.getOrElse {

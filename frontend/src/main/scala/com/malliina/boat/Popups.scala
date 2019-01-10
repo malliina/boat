@@ -21,8 +21,8 @@ class Popups(lang: Lang) extends BoatModels {
   def ais(vessel: VesselInfo) = {
     val unknownShip = vessel.shipType.isInstanceOf[ShipType.Unknown]
     titledTable(vessel.name)(
-      if (!unknownShip) row(lang.shipType, vessel.shipType.name(lang)) else empty,
       row(lang.destination, vessel.destination),
+      if (!unknownShip) row(lang.shipType, vessel.shipType.name(lang)) else empty,
       row(lang.speed, formatSpeed(vessel.sog)),
       row(lang.draft, formatDistance(vessel.draft))
     )
