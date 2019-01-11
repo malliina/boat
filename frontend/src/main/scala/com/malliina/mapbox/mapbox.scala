@@ -98,6 +98,20 @@ object MapboxPopup {
 }
 
 @js.native
+trait QueryOptions extends js.Object {
+  def layers: js.UndefOr[js.Array[String]] = js.native
+}
+
+object QueryOptions {
+  def layer(id: String) = apply(Seq(id))
+
+  def apply(layers: Seq[String]): QueryOptions =
+    literal(layers = layers.toJSArray).asInstanceOf[QueryOptions]
+
+  def all: QueryOptions = literal().asInstanceOf[QueryOptions]
+}
+
+@js.native
 @JSImport("mapbox-gl", "Map")
 class MapboxMap(options: MapOptions) extends js.Object {
   def flyTo(options: FlyOptions): Unit = js.native
@@ -116,7 +130,7 @@ class MapboxMap(options: MapOptions) extends js.Object {
 
   def setLayoutProperty(layer: String, prop: String, value: js.Any): Unit = js.native
 
-  def queryRenderedFeatures(point: PixelCoord): js.Any = js.native
+  def queryRenderedFeatures(point: PixelCoord, options: QueryOptions): js.Any = js.native
 
   def getCanvas(): HTMLCanvasElement = js.native
 
@@ -135,8 +149,8 @@ object MapboxMap {
     def putLayer[T: Writes](t: T): Unit =
       self.addLayer(JSON.parse(Parsing.stringify(t)))
 
-    def queryRendered(point: PixelCoord): Either[JsonError, Seq[Feature]] =
-      Parsing.asJson[Seq[Feature]](self.queryRenderedFeatures(point))
+    def queryRendered(point: PixelCoord, options: QueryOptions = QueryOptions.all): Either[JsonError, Seq[Feature]] =
+      Parsing.asJson[Seq[Feature]](self.queryRenderedFeatures(point, options))
 
     def onHover(layerId: String)(in: MapMouseEvent => Unit, out: MapMouseEvent => Unit): Unit = {
       self.on("mousemove", layerId, e => in(e))

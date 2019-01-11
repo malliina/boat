@@ -28,17 +28,20 @@ object MqClient {
   def apply(url: FullUrl, topic: String): MqClient = new MqClient(url, topic)
 }
 
+/** Locally caches vessel metadata, then merges it with location data as it is received.
+  *
+  * @param url WebSocket URL
+  * @param topic MQTT topic
+  */
 class MqClient(url: FullUrl, topic: String) {
   private val metadata = TrieMap.empty[Mmsi, VesselMetadata]
 
-  val maxBatchSize = 100
-  val sendTimeWindow = 2.seconds
-
-  val date = Instant.now().toEpochMilli
-  val settings = MqttSettings(url, s"boattracker-$date", topic, "digitraffic", "digitrafficPassword")
-  val src = RestartSource.onFailuresWithBackoff(5.seconds, 1800.seconds, 0.2) { () =>
+  private val maxBatchSize = 100
+  private val sendTimeWindow = 2.seconds
+  private val settings = MqttSettings(url, newClientId, topic, "digitraffic", "digitrafficPassword")
+  private val src = RestartSource.onFailuresWithBackoff(5.seconds, 12.hours, 0.2) { () =>
     log.info(s"Starting MQTT source at '${settings.broker}'...")
-    MqttSource(settings)
+    MqttSource(settings.copy(clientId = newClientId))
   }
   val parsed: Source[JsResult[AISMessage], NotUsed] = src.map { msg =>
     val json = Json.parse(msg.payload.decodeString(StandardCharsets.UTF_8))
@@ -68,4 +71,8 @@ class MqClient(url: FullUrl, topic: String) {
   }
   val slow: Source[VesselMessages, NotUsed] =
     vesselMessages.groupedWithin(maxBatchSize, sendTimeWindow).map(VesselMessages.apply)
+
+  private def newClientId = s"boattracker-$date"
+
+  private def date = Instant.now().toEpochMilli
 }

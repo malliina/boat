@@ -218,7 +218,9 @@ object VesselLocation {
 
 case class VesselName(name: String) extends Wrapped(name)
 
-object VesselName extends StringCompanion[VesselName]
+object VesselName extends StringCompanion[VesselName] {
+  val Key = "name"
+}
 
 case class VesselMetadata(name: VesselName,
                           mmsi: Mmsi,

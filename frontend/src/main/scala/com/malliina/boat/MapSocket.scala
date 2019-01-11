@@ -12,7 +12,7 @@ import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 import scala.scalajs.js
 import scala.scalajs.js.JSConverters.genTravConvertible2JSRichGenTrav
 
-class MapSocket(map: MapboxMap,
+class MapSocket(val map: MapboxMap,
                 track: Option[TrackName],
                 sample: Option[Int],
                 mode: MapMode,
@@ -50,7 +50,6 @@ class MapSocket(map: MapboxMap,
         mmsi <- (feature.props \ Mmsi.Key).asOpt[Mmsi]
         info <- ais.info(mmsi)
       } yield info
-      (feature.props \ Mmsi.Key).asOpt[Mmsi].flatMap { mmsi => ais.info(mmsi) }
       maybeInfo.map { vessel =>
 //        log.info(s"Selected vessel $vessel.")
         val target = feature.geometry.coords.headOption.map(LngLat.apply).getOrElse(e.lngLat)
@@ -108,13 +107,13 @@ class MapSocket(map: MapboxMap,
     p.future
   }
 
-  def lineLayer(id: String) = trackLineLayer(id, LinePaint("#000", 1, 1))
+  def lineLayer(id: String) = trackLineLayer(id, LinePaint(LinePaint.black, 1, 1))
 
   def trackLineLayer(id: String, paint: LinePaint) = Layer(
     id,
     LineLayer,
     LayerSource(emptyTrack),
-    Option(LineLayout("round", "round")),
+    Option(LineLayout.round),
     Option(paint)
   )
 
@@ -154,7 +153,7 @@ class MapSocket(map: MapboxMap,
       }
       map.onHover(hoverableTrack)(
         in => {
-          val isOnBoatSymbol = asJson[Seq[JsObject]](map.queryRenderedFeatures(in.point))
+          val isOnBoatSymbol = asJson[Seq[JsObject]](map.queryRenderedFeatures(in.point, QueryOptions.all))
             .getOrElse(Nil)
             .exists(obj => (obj \ "layer" \ "id").asOpt[String].contains(point))
           if (!isOnBoatSymbol) {
@@ -181,7 +180,7 @@ class MapSocket(map: MapboxMap,
         // updates bearing
         newTrack.features.flatMap(_.geometry.coords).takeRight(2).toList match {
           case prev :: last :: _ =>
-            map.setLayoutProperty(point, "icon-rotate", bearing(prev, last))
+            map.setLayoutProperty(point, ImageLayout.IconRotate, bearing(prev, last))
           case _ =>
             ()
         }
@@ -304,7 +303,7 @@ class MapSocket(map: MapboxMap,
   def boatSymbolLayer(id: String, coord: Coord) = Layer(
     id,
     SymbolLayer,
-    LayerSource("geojson", pointFor(coord)),
+    LayerSource(pointFor(coord)),
     Option(ImageLayout(boatIconId, `icon-size` = 1)),
     None
   )
@@ -312,6 +311,22 @@ class MapSocket(map: MapboxMap,
 
 trait GeoUtils {
   val boatIconId = "boat-icon"
+
+  def map: MapboxMap
+
+  /**
+    * @return Added or Updated
+    */
+  def updateOrSet(layer: Layer): Outcome = {
+    val src = map.getSource(layer.id)
+    if (src.isEmpty) {
+      map.putLayer(layer)
+      Outcome.Added
+    } else {
+      src.foreach { geo => geo.updateData(layer.source.data) }
+      Outcome.Updated
+    }
+  }
 
   def lineFor(coords: Seq[Coord]) = collectionFor(LineGeometry(coords), Map.empty)
 
