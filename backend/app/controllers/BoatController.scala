@@ -8,6 +8,7 @@ import akka.stream.scaladsl.{BroadcastHub, Flow, Keep, MergeHub, Sink, Source}
 import akka.{Done, NotUsed}
 import com.malliina.boat.Constants._
 import com.malliina.boat._
+import com.malliina.boat.ais.MqClient
 import com.malliina.boat.auth.EmailAuth
 import com.malliina.boat.db._
 import com.malliina.boat.html.BoatHtml
@@ -71,6 +72,9 @@ class BoatController(mapboxToken: AccessToken,
   val coordsDrainer = savedCoords.runWith(Sink.ignore)
   val errors = lefts(sentencesSource)
   val frontEvents: Source[CoordsEvent, Future[Done]] = savedCoords.mapConcat[CoordsEvent](identity)
+  val aisClient = MqClient()
+  val ais = monitored(onlyOnce(aisClient.slow), "AIS messages")
+  ais.runWith(Sink.ignore)
 
   errors.runWith(Sink.foreach(err => log.error(s"JSON error for '${err.boat}': '${err.error}'.")))
 
@@ -178,7 +182,7 @@ class BoatController(mapboxToken: AccessToken,
               Source(es.toList.map(_.sample(actualSample)))
             }
           // disconnects viewers that lag more than 3s
-          val flow = Flow.fromSinkAndSource(Sink.ignore, history.concat(frontEvents).filter(_.isIntendedFor(user)))
+          val flow = Flow.fromSinkAndSource(Sink.ignore, history.concat(frontEvents.merge(ais)).filter(_.isIntendedFor(user)))
             .keepAlive(10.seconds, () => PingEvent(Instant.now.toEpochMilli))
             .backpressureTimeout(3.seconds)
           logTermination(flow, _ => s"Viewer '$user' left.")
@@ -247,9 +251,9 @@ class BoatController(mapboxToken: AccessToken,
     * Authentication attempts are made in the following order:
     *
     * <ol>
-    *   <li>Token auth</li>
-    *   <li>User/pass auth</li>
-    *   <li>Fallback to anonymous user</li>
+    * <li>Token auth</li>
+    * <li>User/pass auth</li>
+    * <li>Fallback to anonymous user</li>
     * </ol>
     *
     * Authentication fails if any provided credentials are invalid. The next step is only taken if no credentials are

@@ -1,10 +1,10 @@
 package com.malliina.mapbox
 
-import com.malliina.boat.{Coord, Feature, JsonError, Parsing}
+import com.malliina.boat.{Coord, Feature, FeatureCollection, JsonError, Parsing}
 import org.scalajs.dom
 import org.scalajs.dom.html
 import org.scalajs.dom.raw.HTMLCanvasElement
-import play.api.libs.json.Writes
+import play.api.libs.json.{Json, Writes}
 import scalatags.JsDom.TypedTag
 
 import scala.scalajs.js
@@ -196,6 +196,13 @@ object EaseOptions {
 @js.native
 trait GeoJsonSource extends js.Object {
   def setData(data: js.Any): Unit = js.native
+}
+
+object GeoJsonSource {
+  implicit class GeoJsonSourceOps(val source: GeoJsonSource) extends AnyVal {
+    def updateData(data: FeatureCollection): Unit =
+      source.setData(JSON.parse(Json.stringify(Json.toJson(data))))
+  }
 }
 
 @js.native

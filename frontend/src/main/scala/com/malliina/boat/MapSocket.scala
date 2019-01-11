@@ -17,15 +17,15 @@ class MapSocket(map: MapboxMap,
                 sample: Option[Int],
                 mode: MapMode,
                 language: Language)
-  extends BoatSocket(track, sample) {
+  extends BoatSocket(track, sample) with GeoUtils {
 
   val lang = Lang(language)
-  val boatIconId = "boat-icon"
   val emptyTrack = lineFor(Nil)
   val trackPopup = MapboxPopup(PopupOptions())
   val boatPopup = MapboxPopup(PopupOptions(className = Option("popup-boat")))
   val markPopup = MapboxPopup(PopupOptions())
   val html = Popups(lang)
+  val ais = AISRenderer(map)
 
   private var mapMode: MapMode = mode
   private var boats = Map.empty[String, FeatureCollection]
@@ -44,20 +44,36 @@ class MapSocket(map: MapboxMap,
       f.geometry.typeName == "Point" &&
         f.layer.exists(obj => (obj \ "type").asOpt[String].exists(t => t == "symbol" || t == "circle"))
     }
-    symbol.fold(markPopup.remove()) { feature =>
-      val symbol = validate[MarineSymbol](feature.props)
-      val target = feature.geometry.coords.headOption.map(LngLat.apply).getOrElse(e.lngLat)
-      symbol.map { ok =>
-        markPopup.show(html.mark(ok), target, map)
-      }.recoverWith { _ =>
-        validate[MinimalMarineSymbol](feature.props).map { ok =>
-          markPopup.show(html.minimalMark(ok), target, map)
+    val vessel = symbol.filter(_.layer.exists(obj => (obj \ "id").asOpt[String].contains(AISRenderer.AisVesselLayer)))
+    vessel.map { feature =>
+      val maybeInfo = for {
+        mmsi <- (feature.props \ Mmsi.Key).asOpt[Mmsi]
+        info <- ais.info(mmsi)
+      } yield info
+      (feature.props \ Mmsi.Key).asOpt[Mmsi].flatMap { mmsi => ais.info(mmsi) }
+      maybeInfo.map { vessel =>
+//        log.info(s"Selected vessel $vessel.")
+        val target = feature.geometry.coords.headOption.map(LngLat.apply).getOrElse(e.lngLat)
+        markPopup.show(html.ais(vessel), target, map)
+      }.getOrElse {
+        log.info(s"Vessel info not found for '${feature.props}'.")
+      }
+    }.getOrElse {
+      symbol.fold(markPopup.remove()) { feature =>
+        val symbol = validate[MarineSymbol](feature.props)
+        val target = feature.geometry.coords.headOption.map(LngLat.apply).getOrElse(e.lngLat)
+        symbol.map { ok =>
+          markPopup.show(html.mark(ok), target, map)
+        }.recoverWith { _ =>
+          validate[MinimalMarineSymbol](feature.props).map { ok =>
+            markPopup.show(html.minimalMark(ok), target, map)
+          }
+        }.recover { err =>
+          log.info(err.describe)
         }
-      }.recover { err =>
-        log.info(err.describe)
       }
     }
-    if (symbol.isEmpty && !isTrackHover) {
+    if (symbol.isEmpty && vessel.isEmpty && !isTrackHover) {
       val maybeFairway = features.flatMap(f => f.props.asOpt[FairwayArea]).headOption
       maybeFairway.foreach { fairway =>
         markPopup.show(html.fairway(fairway), e.lngLat, map)
@@ -92,21 +108,13 @@ class MapSocket(map: MapboxMap,
     p.future
   }
 
-  def symbolAnimation(id: String, coord: Coord) = Animation(
-    id,
-    SymbolLayer,
-    AnimationSource("geojson", pointFor(coord)),
-    ImageLayout(boatIconId, `icon-size` = 1),
-    None
-  )
+  def lineLayer(id: String) = trackLineLayer(id, LinePaint("#000", 1, 1))
 
-  def animation(id: String) = paintedAnimation(id, Paint("#000", 1, 1))
-
-  def paintedAnimation(id: String, paint: Paint) = Animation(
+  def trackLineLayer(id: String, paint: LinePaint) = Layer(
     id,
     LineLayer,
-    AnimationSource("geojson", emptyTrack),
-    LineLayout("round", "round"),
+    LayerSource(emptyTrack),
+    Option(LineLayout("round", "round")),
     Option(paint)
   )
 
@@ -126,11 +134,12 @@ class MapSocket(map: MapboxMap,
     // adds layer if not already added
     if (map.getSource(track).isEmpty) {
       log.debug(s"Crafting new track for boat '$boat'...")
-      map.putLayer(animation(track))
-      // Adds a thicker, transparent trail on top of the visible one, which represents the mouse-hoverable area
-      map.putLayer(paintedAnimation(hoverableTrack, Paint("#000", 5, 0)))
+      map.putLayer(lineLayer(track))
+      // adds a thicker, transparent trail on top of the visible one, which represents the mouse-hoverable area
+      map.putLayer(trackLineLayer(hoverableTrack, LinePaint("#000", 5, 0)))
       coords.lastOption.map { coord =>
-        map.putLayer(symbolAnimation(point, coord))
+        // adds boat icon
+        map.putLayer(boatSymbolLayer(point, coord))
         map.onHover(point)(
           in => {
             map.getCanvas().style.cursor = "pointer"
@@ -168,7 +177,7 @@ class MapSocket(map: MapboxMap,
     map.getSource(point).foreach { geoJson =>
       coords.lastOption.foreach { coord =>
         // updates placement
-        geoJson.setData(toJson(pointFor(coord)))
+        geoJson.updateData(pointFor(coord))
         // updates bearing
         newTrack.features.flatMap(_.geometry.coords).takeRight(2).toList match {
           case prev :: last :: _ =>
@@ -180,10 +189,10 @@ class MapSocket(map: MapboxMap,
     }
     // updates the trail
     map.getSource(track).foreach { geoJson =>
-      geoJson.setData(toJson(newTrack))
+      geoJson.updateData(newTrack)
     }
     map.getSource(hoverableTrack).foreach { geoJson =>
-      geoJson.setData(toJson(newTrack))
+      geoJson.updateData(newTrack)
     }
     val topPoint = from.topPoint
     val isSameTopSpeed = topSpeedMarkers.get(trackId).exists(m => m.at.id == from.topPoint.id)
@@ -258,6 +267,10 @@ class MapSocket(map: MapboxMap,
 
   }
 
+  override def onAIS(messages: Seq[VesselInfo]): Unit = {
+    ais.onAIS(messages)
+  }
+
   def nearest[T](from: LngLat, on: Seq[T])(c: T => Coord): Either[String, T] = {
     // TODO try to fix the toJSArray nonsense
     val all = turf.lineString(on.map(t => c(t).toArray.toJSArray).toArray.toJSArray)
@@ -284,14 +297,26 @@ class MapSocket(map: MapboxMap,
 
   def toDeg(rad: Double) = rad * 180 / Math.PI
 
+  def trackName(boat: BoatName) = s"track-$boat"
+
+  def pointName(boat: BoatName) = s"boat-$boat"
+
+  def boatSymbolLayer(id: String, coord: Coord) = Layer(
+    id,
+    SymbolLayer,
+    LayerSource("geojson", pointFor(coord)),
+    Option(ImageLayout(boatIconId, `icon-size` = 1)),
+    None
+  )
+}
+
+trait GeoUtils {
+  val boatIconId = "boat-icon"
+
   def lineFor(coords: Seq[Coord]) = collectionFor(LineGeometry(coords), Map.empty)
 
   def pointFor(coord: Coord) = collectionFor(PointGeometry(coord), Map.empty)
 
   def collectionFor(geo: Geometry, props: Map[String, JsValue]): FeatureCollection =
     FeatureCollection(Seq(Feature(geo, props)))
-
-  def trackName(boat: BoatName) = s"track-$boat"
-
-  def pointName(boat: BoatName) = s"boat-$boat"
 }

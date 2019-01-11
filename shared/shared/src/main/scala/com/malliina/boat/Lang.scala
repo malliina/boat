@@ -1,5 +1,51 @@
 package com.malliina.boat
 
+trait ShipTypesLang {
+  def wingInGround: String
+
+  def fishing: String
+
+  def tug: String
+
+  def dredger: String
+
+  def diveVessel: String
+
+  def militaryOps: String
+
+  def sailing: String
+
+  def pleasureCraft: String
+
+  def highSpeedCraft: String
+
+  def pilotVessel: String
+
+  def searchAndRescue: String
+
+  def portTender: String
+
+  def antiPollution: String
+
+  def lawEnforce: String
+
+  def localVessel: String
+
+  def medicalTransport: String
+
+  def specialCraft: String
+
+  def passenger: String
+
+  def cargo: String
+
+  def tanker: String
+
+  def other: String
+
+  def unknown: String
+}
+
 sealed abstract class Lang(val transportAgency: String,
                            val defenceForces: String,
                            val portOfHelsinki: String,
@@ -25,7 +71,33 @@ sealed abstract class Lang(val transportAgency: String,
                            val state: String,
                            val markType: String,
                            val minDepth: String,
-                           val maxDepth: String)
+                           val maxDepth: String,
+                           val draft: String,
+                           val destination: String,
+                           val shipType: String,
+                           val wingInGround: String,
+                           val fishing: String,
+                           val tug: String,
+                           val dredger: String,
+                           val diveVessel: String,
+                           val militaryOps: String,
+                           val sailing: String,
+                           val pleasureCraft: String,
+                           val highSpeedCraft: String,
+                           val pilotVessel: String,
+                           val searchAndRescue: String,
+                           val searchAndRescueAircraft: String,
+                           val portTender: String,
+                           val antiPollution: String,
+                           val lawEnforce: String,
+                           val localVessel: String,
+                           val medicalTransport: String,
+                           val specialCraft: String,
+                           val passenger: String,
+                           val cargo: String,
+                           val tanker: String,
+                           val other: String,
+                           val unknown: String)
 
 object Lang {
   val default = Finnish
@@ -63,7 +135,33 @@ object Lang {
     "Fairway state",
     "Mark",
     "Depth min",
-    "Depth max"
+    "Depth max",
+    "Draft",
+    "Destination",
+    "Ship type",
+    "Wing in Ground",
+    "Fishing",
+    "Tug",
+    "Dredger",
+    "Diving Support Vessel",
+    "Military Ops",
+    "Sailing Vessel",
+    "Pleasure Craft",
+    "High-Speed Craft",
+    "Pilot Vessel",
+    "Search and Rescue",
+    "Search and Rescue Aircraft",
+    "Port Tender",
+    "Anti-Pollution",
+    "Patrol Vessel",
+    "Local Vessel",
+    "Hospital Ship",
+    "Special Craft",
+    "Passenger",
+    "Cargo",
+    "Tanker",
+    "Other",
+    "Unknown"
   )
 
   object Finnish extends Lang(
@@ -92,7 +190,33 @@ object Lang {
     "Väylän tila",
     "Merkin laji",
     "Syvyys min",
-    "Syvyys max"
+    "Syvyys max",
+    "Syväys",
+    "Määränpää",
+    "Alus",
+    "Wing in Ground",
+    "Kalastus",
+    "Hinaus",
+    "Ruoppaaja",
+    "Sukellus",
+    "Asevoimat",
+    "Purjehdus",
+    "Huvialus",
+    "Vauhtivene",
+    "Pilot",
+    "Search and Rescue",
+    "Search and Rescue Aircraft",
+    "Satama",
+    "Anti-Pollution",
+    "Patrol Vessel",
+    "Local Vessel",
+    "Hospital Ship",
+    "Special Craft",
+    "Matkustaja",
+    "Rahtilaiva",
+    "Tankkeri",
+    "Muu",
+    "Tuntematon"
   )
 
   object Swedish extends Lang(
@@ -121,7 +245,33 @@ object Lang {
     "Farledens status",
     "Märke",
     "Djup min",
-    "Djup max"
+    "Djup max",
+    "Djupgående",
+    "Destination",
+    "Fartyg",
+    "Wing in Ground",
+    "Fiske",
+    "Bogserbåt",
+    "Mudderverk",
+    "Dykning",
+    "Militär",
+    "Segling",
+    "Nöje",
+    "Fartbåt",
+    "Pilot",
+    "Search and Rescue",
+    "Search and Rescue Aircraft",
+    "Hamn",
+    "Anti-Pollution",
+    "Patrullering",
+    "Lokal",
+    "Sjukhus",
+    "Special",
+    "Passagerar",
+    "Frakt",
+    "Tanker",
+    "Annan",
+    "Okänd"
   )
 
 }

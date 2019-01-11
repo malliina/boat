@@ -1,13 +1,10 @@
 package com.malliina.boat
 
 import com.malliina.boat.MaritimeJson.{intReader, meters}
-import com.malliina.measure.Distance
+import com.malliina.measure.{Distance, DistanceDouble}
 import play.api.libs.json._
 
 object MaritimeJson {
-
-  import com.malliina.measure.DistanceDouble
-
   val meters = Reads[Distance] { json => json.validate[Double].map(_.meters) }
 
   def intReader[T](onError: JsValue => String)(pf: PartialFunction[Int, T]): Reads[T] =
@@ -23,10 +20,12 @@ sealed trait Translated {
 
   def en: String
 
-  def in(lang: Lang): String =
-    if (lang == Lang.Finnish) fi
-    else if (lang == Lang.Swedish) se
-    else en
+  def in(lang: Lang): String = lang match {
+    case Lang.Finnish => fi
+    case Lang.Swedish => se
+    case Lang.English => en
+    case _ => en
+  }
 }
 
 /**
