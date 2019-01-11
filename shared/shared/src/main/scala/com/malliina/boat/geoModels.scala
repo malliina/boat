@@ -129,8 +129,8 @@ object Feature {
   val Key = "Feature"
   implicit val json = Json.format[Feature]
 
-  def point(coord: Coord, props: Map[String, JsValue]): Feature =
-    Feature(PointGeometry(coord), props)
+  def point[W](coord: Coord, props: W)(implicit w: OWrites[W]): Feature =
+    Feature(PointGeometry(coord), w.writes(props).value.toMap)
 
   def line(coords: Seq[Coord]): Feature =
     Feature(LineGeometry(coords), Map.empty)
@@ -163,12 +163,16 @@ case class LineLayout(`line-join`: String, `line-cap`: String) extends Layout
 
 object LineLayout {
   implicit val json = Json.format[LineLayout]
+
+  def round = LineLayout("round", "round")
 }
 
 case class ImageLayout(`icon-image`: String, `icon-size`: Int, `icon-rotate`: Option[Seq[String]] = None) extends Layout
 
 object ImageLayout {
   implicit val json = Json.format[ImageLayout]
+
+  val IconRotate = "icon-rotate"
 }
 
 sealed trait Layout
@@ -193,6 +197,7 @@ case class LinePaint(`line-color`: String,
 
 object LinePaint {
   implicit val json = Json.format[LinePaint]
+  val black = "#000"
 }
 
 sealed trait BasePaint
@@ -226,4 +231,14 @@ case class Layer(id: String,
 
 object Layer {
   implicit val json = Json.writes[Layer]
+}
+
+sealed trait Outcome
+
+object Outcome {
+
+  case object Added extends Outcome
+
+  case object Updated extends Outcome
+
 }
