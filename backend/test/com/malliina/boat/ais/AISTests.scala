@@ -22,7 +22,7 @@ class AISTests extends BaseSuite {
   implicit val mat = ActorMaterializer()(as)
 
   ignore("MqttSource") {
-    val client = MqClient()
+    val client = MqClient.test()
     val fut = client.slow.take(3).runWith(Sink.foreach(msg => println(msg)))
     await(fut, 100.seconds)
   }
