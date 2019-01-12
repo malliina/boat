@@ -1,12 +1,14 @@
 package com.malliina.mapbox
 
-import com.malliina.boat.{Coord, Feature, FeatureCollection, JsonError, Parsing}
+import com.malliina.boat.{Coord, Feature, FeatureCollection, JsonError, Layer, Parsing}
 import org.scalajs.dom
 import org.scalajs.dom.html
 import org.scalajs.dom.raw.HTMLCanvasElement
-import play.api.libs.json.{Json, Writes}
+import play.api.libs.json.Json
 import scalatags.JsDom.TypedTag
 
+import scala.concurrent.{Future, Promise}
+import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 import scala.scalajs.js
 import scala.scalajs.js.Dynamic.literal
 import scala.scalajs.js.JSConverters._
@@ -146,8 +148,8 @@ class MapboxMap(options: MapOptions) extends js.Object {
 object MapboxMap {
 
   implicit class MapExt(val self: MapboxMap) extends AnyVal {
-    def putLayer[T: Writes](t: T): Unit =
-      self.addLayer(JSON.parse(Parsing.stringify(t)))
+    def putLayer(layer: Layer): Unit =
+      self.addLayer(JSON.parse(Parsing.stringify(layer)))
 
     def queryRendered(point: PixelCoord, options: QueryOptions = QueryOptions.all): Either[JsonError, Seq[Feature]] =
       Parsing.asJson[Seq[Feature]](self.queryRenderedFeatures(point, options))
@@ -155,6 +157,20 @@ object MapboxMap {
     def onHover(layerId: String)(in: MapMouseEvent => Unit, out: MapMouseEvent => Unit): Unit = {
       self.on("mousemove", layerId, e => in(e))
       self.on("mouseleave", layerId, e => out(e))
+    }
+
+    def initImage(uri: String, iconId: String): Future[Unit] =
+      fetchImage(uri).map { image =>
+        self.addImage(iconId, image)
+      }
+
+    def fetchImage(uri: String): Future[js.Any] = {
+      val p = Promise[js.Any]()
+      self.loadImage(uri, (err, data) => {
+        if (err == null) p.success(data)
+        else p.failure(new Exception(s"Failed to load '$uri'."))
+      })
+      p.future
     }
   }
 
@@ -213,10 +229,12 @@ trait GeoJsonSource extends js.Object {
 }
 
 object GeoJsonSource {
+
   implicit class GeoJsonSourceOps(val source: GeoJsonSource) extends AnyVal {
     def updateData(data: FeatureCollection): Unit =
       source.setData(JSON.parse(Json.stringify(Json.toJson(data))))
   }
+
 }
 
 @js.native

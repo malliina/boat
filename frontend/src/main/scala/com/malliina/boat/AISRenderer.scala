@@ -5,8 +5,9 @@ import com.malliina.mapbox.{MapboxMap, MapboxPopup, PopupOptions, QueryOptions}
 import play.api.libs.json.Json
 
 object AISRenderer {
-  val AisVesselLayer = "ais-vessels"
   val AisTrailLayer = "ais-vessels-trails"
+  val AisVesselLayer = "ais-vessels"
+
   val MaxTrailLength = 1000
 
   def apply(map: MapboxMap) = new AISRenderer(map)
@@ -44,7 +45,7 @@ class AISRenderer(val map: MapboxMap, val log: BaseLogger = BaseLogger.console)
       Layer(
         AisVesselLayer,
         SymbolLayer,
-        LayerSource(locationData),
+        InlineLayerSource(locationData),
         Option(ImageLayout(boatIconId, `icon-size` = 1, Option(Seq("get", VesselInfo.HeadingKey)))),
         None
       )
@@ -56,7 +57,7 @@ class AISRenderer(val map: MapboxMap, val log: BaseLogger = BaseLogger.console)
       Layer(
         AisTrailLayer,
         LineLayer,
-        LayerSource(trailData),
+        InlineLayerSource(trailData),
         Option(LineLayout.round),
         Option(LinePaint(LinePaint.black, 1, 1)),
         minzoom = Option(10)

@@ -37,6 +37,7 @@ class BoatController(mapboxToken: AccessToken,
                      auther: UserManager,
                      googleAuth: EmailAuth,
                      db: TracksSource,
+                     aisClient: MqClient,
                      push: PushDatabase,
                      comps: ControllerComponents)(implicit as: ActorSystem, mat: Materializer)
   extends AuthController(googleAuth, auther, comps)
@@ -72,7 +73,6 @@ class BoatController(mapboxToken: AccessToken,
   val coordsDrainer = savedCoords.runWith(Sink.ignore)
   val errors = lefts(sentencesSource)
   val frontEvents: Source[CoordsEvent, Future[Done]] = savedCoords.mapConcat[CoordsEvent](identity)
-  val aisClient = MqClient()
   val ais = monitored(onlyOnce(aisClient.slow), "AIS messages")
   ais.runWith(Sink.ignore)
 

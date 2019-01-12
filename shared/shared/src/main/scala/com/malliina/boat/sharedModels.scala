@@ -181,7 +181,8 @@ object MobileDevice extends ValidatingCompanion[String, MobileDevice] {
   def apply(s: String): MobileDevice = build(s).getOrElse(Unknown(s))
 
   override def build(input: String): Either[ErrorMessage, MobileDevice] =
-    all.find(_.name.toLowerCase == input.toLowerCase).toRight(ErrorMessage(s"Unknown device type: '$input'."))
+    all.find(_.name.toLowerCase == input.toLowerCase)
+      .toRight(ErrorMessage(s"Unknown device type: '$input'."))
 
   override def write(t: MobileDevice): String = t.name
 

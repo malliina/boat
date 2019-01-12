@@ -7,9 +7,8 @@ import com.malliina.turf.turf
 import com.malliina.util.EitherOps
 import play.api.libs.json._
 
-import scala.concurrent.{Future, Promise}
+import scala.concurrent.Future
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
-import scala.scalajs.js
 import scala.scalajs.js.JSConverters.genTravConvertible2JSRichGenTrav
 
 class MapSocket(val map: MapboxMap,
@@ -41,17 +40,17 @@ class MapSocket(val map: MapboxMap,
       Nil
     }
     val symbol = features.find { f =>
-      f.geometry.typeName == "Point" &&
-        f.layer.exists(obj => (obj \ "type").asOpt[String].exists(t => t == "symbol" || t == "circle"))
+      f.geometry.typeName == PointGeometry.Key &&
+        f.layer.exists(l => l.`type` == SymbolLayer || l.`type` == CircleLayer)
     }
-    val vessel = symbol.filter(_.layer.exists(obj => (obj \ "id").asOpt[String].contains(AISRenderer.AisVesselLayer)))
+    val vessel = symbol.filter(_.layer.exists(_.id == AISRenderer.AisVesselLayer))
     vessel.map { feature =>
       val maybeInfo = for {
-        mmsi <- (feature.props \ Mmsi.Key).asOpt[Mmsi]
-        info <- ais.info(mmsi)
+        props <- feature.props.asOpt[VesselProps]
+        info <- ais.info(props.mmsi)
       } yield info
       maybeInfo.map { vessel =>
-//        log.info(s"Selected vessel $vessel.")
+        //        log.info(s"Selected vessel $vessel.")
         val target = feature.geometry.coords.headOption.map(LngLat.apply).getOrElse(e.lngLat)
         markPopup.show(html.ais(vessel), target, map)
       }.getOrElse {
@@ -92,27 +91,16 @@ class MapSocket(val map: MapboxMap,
   }
 
   def initImage(): Future[Unit] =
-    load("/assets/img/boat-resized-opt-20.png").map { image =>
-      map.addImage(boatIconId, image)
-    }.recover {
+    map.initImage("/assets/img/boat-resized-opt-20.png", boatIconId).recover {
       case t => log.error(t)
     }
-
-  def load(uri: String): Future[js.Any] = {
-    val p = Promise[js.Any]()
-    map.loadImage(uri, (err, data) => {
-      if (err == null) p.success(data)
-      else p.failure(new Exception(s"Failed to load '$uri'."))
-    })
-    p.future
-  }
 
   def lineLayer(id: String) = trackLineLayer(id, LinePaint(LinePaint.black, 1, 1))
 
   def trackLineLayer(id: String, paint: LinePaint) = Layer(
     id,
     LineLayer,
-    LayerSource(emptyTrack),
+    InlineLayerSource(emptyTrack),
     Option(LineLayout.round),
     Option(paint)
   )
@@ -153,9 +141,7 @@ class MapSocket(val map: MapboxMap,
       }
       map.onHover(hoverableTrack)(
         in => {
-          val isOnBoatSymbol = asJson[Seq[JsObject]](map.queryRenderedFeatures(in.point, QueryOptions.all))
-            .getOrElse(Nil)
-            .exists(obj => (obj \ "layer" \ "id").asOpt[String].contains(point))
+          val isOnBoatSymbol = map.queryRendered(in.point, QueryOptions.all).getOrElse(Nil).exists(_.layer.exists(_.id == point))
           if (!isOnBoatSymbol) {
             val op = nearest(in.lngLat, trails.getOrElse(trackId, Nil))(_.coord).map { near =>
               map.getCanvas().style.cursor = "pointer"
@@ -303,7 +289,7 @@ class MapSocket(val map: MapboxMap,
   def boatSymbolLayer(id: String, coord: Coord) = Layer(
     id,
     SymbolLayer,
-    LayerSource(pointFor(coord)),
+    InlineLayerSource(pointFor(coord)),
     Option(ImageLayout(boatIconId, `icon-size` = 1)),
     None
   )
@@ -323,8 +309,15 @@ trait GeoUtils {
       map.putLayer(layer)
       Outcome.Added
     } else {
-      src.foreach { geo => geo.updateData(layer.source.data) }
-      Outcome.Updated
+      src.map { geo =>
+        layer.source match {
+          case InlineLayerSource(_, data) =>
+            geo.updateData(data)
+            Outcome.Updated
+          case StringLayerSource(_) =>
+            Outcome.Noop
+        }
+      }.getOrElse(Outcome.Noop)
     }
   }
 

@@ -8,7 +8,7 @@ import akka.stream.scaladsl.{RestartSource, Source}
 import com.malliina.boat.ais.MqClient.log
 import com.malliina.boat.{AISMessage, Locations, Metadata, Mmsi, StatusTopic, VesselLocation, VesselMessages, VesselMetadata, VesselStatus}
 import com.malliina.http.FullUrl
-import play.api.Logger
+import play.api.{Logger, Mode}
 import play.api.libs.json.{JsError, JsResult, JsSuccess, Json}
 
 import scala.collection.concurrent.TrieMap
@@ -23,14 +23,15 @@ object MqClient {
   val TestUrl = FullUrl.wss("meri-test.digitraffic.fi:61619", "/mqtt")
   val ProdUrl = FullUrl.wss("meri.digitraffic.fi:61619", "/mqtt")
 
-  def apply(): MqClient = apply(ProdUrl, AllDataTopic)
+  def apply(mode: Mode): MqClient =
+    apply(if (mode == Mode.Prod) ProdUrl else TestUrl, AllDataTopic)
 
   def apply(url: FullUrl, topic: String): MqClient = new MqClient(url, topic)
 }
 
 /** Locally caches vessel metadata, then merges it with location data as it is received.
   *
-  * @param url WebSocket URL
+  * @param url   WebSocket URL
   * @param topic MQTT topic
   */
 class MqClient(url: FullUrl, topic: String) {
