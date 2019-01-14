@@ -35,7 +35,7 @@ class MqttGraph(settings: MqttSettings)
     val logic: GraphStageLogic = new GraphStageLogic(shape) {
       val onConnect = getAsyncCallback[IMqttAsyncClient] { client =>
         log.info(s"Connected to '$broker'.")
-        client.subscribe(settings.topic, 0)
+        client.subscribe(settings.topic, settings.qos.level)
       }
       val onMessage = getAsyncCallback[MqMessage] { msg =>
         if (isAvailable(out)) {

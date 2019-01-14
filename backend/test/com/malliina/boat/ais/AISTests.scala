@@ -6,18 +6,14 @@ import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.Sink
 import com.malliina.boat._
-import com.malliina.http.FullUrl
 import org.eclipse.paho.client.mqttv3._
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence
 import play.api.libs.json.{JsError, Json}
 import tests.BaseSuite
-
+import MqClient.{user, pass, ProdUrl, MetadataTopic, TestUrl}
 import scala.concurrent.duration.DurationInt
 
 class AISTests extends BaseSuite {
-  //val ProdUrl = FullUrl.wss("meri.digitraffic.fi:61619", "/mqtt")
-  val ProdUrl = FullUrl.wss("meri-test.digitraffic.fi:61619", "/mqtt")
-
   val as = ActorSystem("test")
   implicit val mat = ActorMaterializer()(as)
 
@@ -28,7 +24,7 @@ class AISTests extends BaseSuite {
   }
 
   ignore("metadata only") {
-    val client = MqClient(MqClient.TestUrl, MqClient.MetadataTopic)
+    val client = MqClient(TestUrl, MetadataTopic)
     val fut = client.vesselMessages.take(4).runWith(Sink.foreach(msg => println(msg)))
     await(fut, 100.seconds)
   }
@@ -57,8 +53,8 @@ class AISTests extends BaseSuite {
     })
     val opts = new MqttConnectOptions
     opts.setCleanSession(true)
-    opts.setUserName("digitraffic")
-    opts.setPassword("digitrafficPassword".toCharArray)
+    opts.setUserName(user)
+    opts.setPassword(pass.toCharArray)
     opts.setMqttVersion(4)
     client.connect(opts)
     println("Connected")
