@@ -24,9 +24,7 @@ abstract class BoatSocket(path: String) extends BaseSocket(path) with BaseFront 
     case CoordsBatch(coords) if coords.nonEmpty => coords.foreach(e => onCoords(e))
     case SentencesEvent(_, _) => ()
     case PingEvent(_) => ()
-    case VesselMessages(messages) =>
-      onAIS(messages)
-//      log.info(s"Got ${messages.length} vessel updates.")
+    case VesselMessages(messages) => onAIS(messages)
     case other => log.info(s"Unknown event: '$other'.")
   }
 

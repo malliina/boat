@@ -6,11 +6,12 @@ import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.Sink
 import com.malliina.boat._
+import com.malliina.boat.ais.MqClient._
 import org.eclipse.paho.client.mqttv3._
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence
 import play.api.libs.json.{JsError, Json}
 import tests.BaseSuite
-import MqClient.{user, pass, ProdUrl, MetadataTopic, TestUrl}
+
 import scala.concurrent.duration.DurationInt
 
 class AISTests extends BaseSuite {

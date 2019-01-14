@@ -2,6 +2,7 @@ package com.malliina.boat
 
 import com.malliina.boat.AISRenderer.{AisTrailLayer, AisVesselLayer, MaxTrailLength}
 import com.malliina.mapbox.{MapboxMap, MapboxPopup, PopupOptions, QueryOptions}
+import com.malliina.values.ErrorMessage
 import play.api.libs.json.Json
 
 object AISRenderer {
@@ -20,8 +21,8 @@ class AISRenderer(val map: MapboxMap, val log: BaseLogger = BaseLogger.console)
 
   val boatPopup = MapboxPopup(PopupOptions(className = Option("popup-boat")))
 
-  def info(mmsi: Mmsi): Option[VesselInfo] =
-    vessels.get(mmsi).flatMap(_.headOption)
+  def info(mmsi: Mmsi): Either[ErrorMessage, VesselInfo] =
+    vessels.get(mmsi).flatMap(_.headOption).toRight(ErrorMessage(s"MMSI not found: '$mmsi'."))
 
   def locationData = FeatureCollection(
     vessels.values.flatMap(_.headOption).map { v =>
@@ -42,26 +43,17 @@ class AISRenderer(val map: MapboxMap, val log: BaseLogger = BaseLogger.console)
     }.toMap
     vessels = vessels ++ updated
     val outcome = updateOrSet(
-      Layer(
+      Layer.symbol(
         AisVesselLayer,
-        SymbolLayer,
-        InlineLayerSource(locationData),
-        Option(ImageLayout(boatIconId, `icon-size` = 1, Option(Seq("get", VesselInfo.HeadingKey)))),
-        None
+        locationData,
+        ImageLayout(boatIconId, `icon-size` = 1, Option(Seq("get", VesselInfo.HeadingKey)))
       )
     )
     if (outcome == Outcome.Added) {
       initHover(AisVesselLayer)
     }
     updateOrSet(
-      Layer(
-        AisTrailLayer,
-        LineLayer,
-        InlineLayerSource(trailData),
-        Option(LineLayout.round),
-        Option(LinePaint(LinePaint.black, 1, 1)),
-        minzoom = Option(10)
-      )
+      Layer.line(AisTrailLayer, trailData, minzoom = Option(10))
     )
   }
 

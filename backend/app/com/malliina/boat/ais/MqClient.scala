@@ -47,7 +47,10 @@ class MqClient(url: FullUrl, topic: String) {
   private val maxBatchSize = 100
   private val sendTimeWindow = 2.seconds
   private val settings = MqttSettings(url, newClientId, topic, user, pass)
-  private val src = RestartSource.onFailuresWithBackoff(5.seconds, 12.hours, 0.2) { () =>
+  private val src = RestartSource.onFailuresWithBackoff(
+    minBackoff = 5.seconds,
+    maxBackoff = 12.hours,
+    randomFactor = 0.2) { () =>
     log.info(s"Starting MQTT source at '${settings.broker}'...")
     MqttSource(settings.copy(clientId = newClientId))
   }

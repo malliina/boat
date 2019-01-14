@@ -4,7 +4,6 @@ import com.malliina.boat.{Coord, Feature, FeatureCollection, JsonError, Layer, P
 import org.scalajs.dom
 import org.scalajs.dom.html
 import org.scalajs.dom.raw.HTMLCanvasElement
-import play.api.libs.json.Json
 import scalatags.JsDom.TypedTag
 
 import scala.concurrent.{Future, Promise}
@@ -172,6 +171,8 @@ object MapboxMap {
       })
       p.future
     }
+
+    def findSource(id: String): Option[GeoJsonSource] = self.getSource(id).toOption
   }
 
 }
@@ -185,6 +186,11 @@ class LngLatBounds(sw: js.Array[Double], ne: js.Array[Double]) extends js.Object
 object LngLatBounds {
   def apply(coord: Coord): LngLatBounds =
     new LngLatBounds(coord.toArray.toJSArray, coord.toArray.toJSArray)
+
+  implicit class LngLatBoundsExt(val self: LngLatBounds) extends AnyVal {
+    def extendWith(coord: Coord): LngLatBounds =
+      self.extend(coord.toArray.toJSArray)
+  }
 }
 
 @js.native
@@ -193,12 +199,12 @@ trait FitOptions extends js.Object {
 
   def linear: Boolean = js.native
 
-  def maxZoom: js.UndefOr[Int] = js.native
+  def maxZoom: js.UndefOr[Double] = js.native
 }
 
 object FitOptions {
-  def apply(padding: Double, linear: Boolean = false): FitOptions =
-    literal(padding = padding, linear = linear).asInstanceOf[FitOptions]
+  def apply(padding: Double, linear: Boolean = false, maxZoom: Option[Double] = None): FitOptions =
+    literal(padding = padding, linear = linear, maxZoom = maxZoom.orUndefined).asInstanceOf[FitOptions]
 }
 
 @js.native
@@ -231,8 +237,9 @@ trait GeoJsonSource extends js.Object {
 object GeoJsonSource {
 
   implicit class GeoJsonSourceOps(val source: GeoJsonSource) extends AnyVal {
+
     def updateData(data: FeatureCollection): Unit =
-      source.setData(JSON.parse(Json.stringify(Json.toJson(data))))
+      source.setData(Parsing.toJson(data))
   }
 
 }

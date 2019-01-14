@@ -5,6 +5,7 @@ import com.malliina.boat.Parsing._
 import com.malliina.mapbox._
 import com.malliina.turf.turf
 import com.malliina.util.EitherOps
+import com.malliina.values.ErrorMessage
 import play.api.libs.json._
 
 import scala.concurrent.Future
@@ -41,20 +42,20 @@ class MapSocket(val map: MapboxMap,
     }
     val symbol = features.find { f =>
       f.geometry.typeName == PointGeometry.Key &&
-        f.layer.exists(l => l.`type` == SymbolLayer || l.`type` == CircleLayer)
+        f.layer.exists(l => l.`type` == LayerType.Symbol || l.`type` == LayerType.Circle)
     }
     val vessel = symbol.filter(_.layer.exists(_.id == AISRenderer.AisVesselLayer))
     vessel.map { feature =>
       val maybeInfo = for {
-        props <- feature.props.asOpt[VesselProps]
+        props <- validate[VesselProps](feature.props).left.map(err => ErrorMessage(s"JSON error. $err"))
         info <- ais.info(props.mmsi)
       } yield info
       maybeInfo.map { vessel =>
         //        log.info(s"Selected vessel $vessel.")
         val target = feature.geometry.coords.headOption.map(LngLat.apply).getOrElse(e.lngLat)
         markPopup.show(html.ais(vessel), target, map)
-      }.getOrElse {
-        log.info(s"Vessel info not found for '${feature.props}'.")
+      }.recover { err =>
+        log.info(s"Vessel info not available for '${feature.props}'. $err.")
       }
     }.getOrElse {
       symbol.fold(markPopup.remove()) { feature =>
@@ -95,15 +96,9 @@ class MapSocket(val map: MapboxMap,
       case t => log.error(t)
     }
 
-  def lineLayer(id: String) = trackLineLayer(id, LinePaint(LinePaint.black, 1, 1))
+  def lineLayer(id: String) = trackLineLayer(id, LinePaint.thin())
 
-  def trackLineLayer(id: String, paint: LinePaint) = Layer(
-    id,
-    LineLayer,
-    InlineLayerSource(emptyTrack),
-    Option(LineLayout.round),
-    Option(paint)
-  )
+  def trackLineLayer(id: String, paint: LinePaint) = Layer.line(id, emptyTrack, paint, None)
 
   override def onCoords(event: CoordsEvent): Unit = {
     val from = event.from
@@ -119,11 +114,11 @@ class MapSocket(val map: MapboxMap,
     boats = boats.updated(track, newTrack)
     trails = trails.updated(trackId, trails.getOrElse(trackId, Nil) ++ coordsInfo)
     // adds layer if not already added
-    if (map.getSource(track).isEmpty) {
+    if (map.findSource(track).isEmpty) {
       log.debug(s"Crafting new track for boat '$boat'...")
       map.putLayer(lineLayer(track))
       // adds a thicker, transparent trail on top of the visible one, which represents the mouse-hoverable area
-      map.putLayer(trackLineLayer(hoverableTrack, LinePaint("#000", 5, 0)))
+      map.putLayer(trackLineLayer(hoverableTrack, LinePaint(LinePaint.blackColor, 5, 0)))
       coords.lastOption.map { coord =>
         // adds boat icon
         map.putLayer(boatSymbolLayer(point, coord))
@@ -141,7 +136,8 @@ class MapSocket(val map: MapboxMap,
       }
       map.onHover(hoverableTrack)(
         in => {
-          val isOnBoatSymbol = map.queryRendered(in.point, QueryOptions.all).getOrElse(Nil).exists(_.layer.exists(_.id == point))
+          val isOnBoatSymbol = map.queryRendered(in.point, QueryOptions.all).getOrElse(Nil)
+            .exists(_.layer.exists(_.id == point))
           if (!isOnBoatSymbol) {
             val op = nearest(in.lngLat, trails.getOrElse(trackId, Nil))(_.coord).map { near =>
               map.getCanvas().style.cursor = "pointer"
@@ -159,7 +155,7 @@ class MapSocket(val map: MapboxMap,
       )
     }
     // updates the boat icon
-    map.getSource(point).foreach { geoJson =>
+    map.findSource(point).foreach { geoJson =>
       coords.lastOption.foreach { coord =>
         // updates placement
         geoJson.updateData(pointFor(coord))
@@ -173,10 +169,10 @@ class MapSocket(val map: MapboxMap,
       }
     }
     // updates the trail
-    map.getSource(track).foreach { geoJson =>
+    map.findSource(track).foreach { geoJson =>
       geoJson.updateData(newTrack)
     }
-    map.getSource(hoverableTrack).foreach { geoJson =>
+    map.findSource(hoverableTrack).foreach { geoJson =>
       geoJson.updateData(newTrack)
     }
     val topPoint = from.topPoint
@@ -228,25 +224,25 @@ class MapSocket(val map: MapboxMap,
     }
     // updates the map position, zoom to reflect the updated track(s)
     mapMode match {
-      case Fit =>
+      case MapMode.Fit =>
         trail.headOption.foreach { coord =>
           val init = LngLatBounds(coord)
           val bs: LngLatBounds = trail.foldLeft(init) { (bounds, c) =>
-            bounds.extend(c.toArray.toJSArray)
+            bounds.extendWith(c)
           }
           map.fitBounds(bs, FitOptions(20))
         }
-        mapMode = Follow
-      case Follow =>
+        mapMode = MapMode.Follow
+      case MapMode.Follow =>
         if (boats.keySet.size == 1) {
           coords.lastOption.foreach { coord =>
             map.easeTo(EaseOptions(coord))
           }
         } else {
           // does not follow if more than one boats are online, since it's not clear what to follow
-          mapMode = Stay
+          mapMode = MapMode.Stay
         }
-      case Stay =>
+      case MapMode.Stay =>
         ()
     }
 
@@ -286,13 +282,8 @@ class MapSocket(val map: MapboxMap,
 
   def pointName(boat: BoatName) = s"boat-$boat"
 
-  def boatSymbolLayer(id: String, coord: Coord) = Layer(
-    id,
-    SymbolLayer,
-    InlineLayerSource(pointFor(coord)),
-    Option(ImageLayout(boatIconId, `icon-size` = 1)),
-    None
-  )
+  def boatSymbolLayer(id: String, coord: Coord) =
+    Layer.symbol(id, pointFor(coord), ImageLayout(boatIconId, `icon-size` = 1))
 }
 
 trait GeoUtils {
@@ -300,26 +291,19 @@ trait GeoUtils {
 
   def map: MapboxMap
 
-  /**
-    * @return Added or Updated
-    */
-  def updateOrSet(layer: Layer): Outcome = {
-    val src = map.getSource(layer.id)
-    if (src.isEmpty) {
+  def updateOrSet(layer: Layer): Outcome =
+    map.findSource(layer.id).map { geo =>
+      layer.source match {
+        case InlineLayerSource(_, data) =>
+          geo.updateData(data)
+          Outcome.Updated
+        case StringLayerSource(_) =>
+          Outcome.Noop
+      }
+    }.getOrElse {
       map.putLayer(layer)
       Outcome.Added
-    } else {
-      src.map { geo =>
-        layer.source match {
-          case InlineLayerSource(_, data) =>
-            geo.updateData(data)
-            Outcome.Updated
-          case StringLayerSource(_) =>
-            Outcome.Noop
-        }
-      }.getOrElse(Outcome.Noop)
     }
-  }
 
   def lineFor(coords: Seq[Coord]) = collectionFor(LineGeometry(coords), Map.empty)
 

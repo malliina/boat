@@ -38,7 +38,7 @@ class MapView(accessToken: AccessToken, language: Language) extends BaseFront {
   var socket: Option[MapSocket] = None
 
   map.on("load", () => {
-    val mode = if (Option(href.getFragment).isDefined) Stay else Fit
+    val mode = if (Option(href.getFragment).isDefined) MapMode.Stay else MapMode.Fit
     val sample = queryInt(SampleKey).getOrElse(Constants.DefaultSample)
     socket = Option(new MapSocket(map, readTrack.toOption, Option(sample), mode, language))
   })

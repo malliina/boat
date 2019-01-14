@@ -171,7 +171,9 @@ case class LinePaint(`line-color`: String,
 
 object LinePaint {
   implicit val json = Json.format[LinePaint]
-  val black = "#000"
+  val blackColor = "#000"
+
+  def thin(color: String = blackColor) = LinePaint(color, 1, 1)
 }
 
 // Bailout
@@ -192,24 +194,39 @@ object BasePaint {
   }
 }
 
+/**
+  * @see https://www.mapbox.com/mapbox-gl-js/style-spec/#layer-type
+  */
 sealed abstract class LayerType(val name: String)
 
 object LayerType extends ValidatingCompanion[String, LayerType] {
-  val all = Seq(LineLayer, SymbolLayer, CircleLayer)
+  val all = Seq(Background, Fill, Line, Symbol, Raster, Circle, FillExtrusion, HeatMap, HillShade)
 
   override def build(input: String): Either[ErrorMessage, LayerType] =
-    Right(all.find(_.name.toLowerCase == input.toLowerCase).getOrElse(OtherLayer(input)))
+    all.find(_.name.toLowerCase == input.toLowerCase)
+      .toRight(ErrorMessage(s"Unknown layer type: '$input'."))
 
   override def write(t: LayerType): String = t.name
+
+  case object Background extends LayerType("background")
+
+  case object Fill extends LayerType("fill")
+
+  case object Line extends LayerType("line")
+
+  case object Symbol extends LayerType("symbol")
+
+  case object Raster extends LayerType("raster")
+
+  case object Circle extends LayerType("circle")
+
+  case object FillExtrusion extends LayerType("fill-extrusion")
+
+  case object HeatMap extends LayerType("heatmap")
+
+  case object HillShade extends LayerType("hillshade")
+
 }
-
-case object LineLayer extends LayerType("line")
-
-case object SymbolLayer extends LayerType("symbol")
-
-case object CircleLayer extends LayerType("circle")
-
-case class OtherLayer(n: String) extends LayerType(n)
 
 sealed trait LayerSource
 
@@ -238,6 +255,21 @@ case class Layer(id: String,
 
 object Layer {
   implicit val json = Json.format[Layer]
+
+  def line(id: String,
+           data: FeatureCollection,
+           paint: LinePaint = LinePaint.thin(),
+           minzoom: Option[Double] = None) =
+    Layer(
+      id, LayerType.Line, InlineLayerSource(data),
+      Option(LineLayout.round), Option(paint), minzoom
+    )
+
+  def symbol(id: String, data: FeatureCollection, layout: ImageLayout) =
+    Layer(
+      id, LayerType.Symbol, InlineLayerSource(data),
+      Option(layout), None, None, None
+    )
 }
 
 case class Feature(`type`: String,
