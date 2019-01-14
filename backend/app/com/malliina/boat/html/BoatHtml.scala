@@ -7,7 +7,7 @@ import com.malliina.boat.FrontKeys._
 import com.malliina.boat.docs.Docs
 import com.malliina.boat.html.BoatHtml.callAttr
 import com.malliina.boat.http.Limits
-import com.malliina.boat.{FullTrack, Lang, TrackRef, UserBoats, Usernames}
+import com.malliina.boat.{FullTrack, TrackRef, UserBoats, Usernames}
 import com.malliina.html.Tags
 import com.malliina.measure.Distance
 import com.malliina.play.tags.TagPage
@@ -60,6 +60,8 @@ class BoatHtml(jsFiles: Seq[String]) extends Tags(scalatags.Text) {
   private def markdownPage(md: RawFrag) = page(PageConf(md, bodyClasses = Seq("docs-agent")))
 
   def map(ub: UserBoats) = {
+    val lang = BoatLang(ub.language)
+    val about = About(lang.web)
     val user = ub.user
     val isAnon = user == Usernames.anon
     val mapClass = if (ub.boats.isEmpty) "anon" else "auth"
@@ -71,7 +73,7 @@ class BoatHtml(jsFiles: Seq[String]) extends Tags(scalatags.Text) {
               div(id := "navbar", `class` := "navbar navbar-boat")(
                 span(`class` := "nav-text")(b.boat),
                 div(`class` := "dropdown nav-text", id := DropdownLinkId)(
-                  span(`class` := "dropdown-button", Lang(b.language).tracks),
+                  span(`class` := "dropdown-button", lang.lang.tracks),
                   div(`class` := "dropdown-content", id := DropdownContentId)(
                     b.tracks.map { t =>
                       a(`class` := "track-link", href := reverse.track(t.trackName))(
@@ -103,7 +105,7 @@ class BoatHtml(jsFiles: Seq[String]) extends Tags(scalatags.Text) {
             }
           },
           div(id := MapId, `class` := s"mapbox-map $mapClass"),
-          About.about(user, ub.language),
+          about.about(user, ub.language),
         ),
         bodyClasses = Seq(s"$MapClass $AboutClass"),
         cssLink(s"https://api.tiles.mapbox.com/mapbox-gl-js/v$mapboxVersion/mapbox-gl.css")
@@ -162,13 +164,4 @@ class BoatHtml(jsFiles: Seq[String]) extends Tags(scalatags.Text) {
       )
     )
   )
-}
-
-case class PageConf(content: Modifier,
-                    bodyClasses: Seq[String] = Nil,
-                    css: Modifier = PageConf.empty,
-                    js: Modifier = PageConf.empty)
-
-object PageConf {
-  val empty: Modifier = ""
 }

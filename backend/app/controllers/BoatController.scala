@@ -8,7 +8,7 @@ import akka.stream.scaladsl.{BroadcastHub, Flow, Keep, MergeHub, Sink, Source}
 import akka.{Done, NotUsed}
 import com.malliina.boat.Constants._
 import com.malliina.boat._
-import com.malliina.boat.ais.MqClient
+import com.malliina.boat.ais.BoatMqttClient
 import com.malliina.boat.auth.EmailAuth
 import com.malliina.boat.db._
 import com.malliina.boat.html.BoatHtml
@@ -37,7 +37,7 @@ class BoatController(mapboxToken: AccessToken,
                      auther: UserManager,
                      googleAuth: EmailAuth,
                      db: TracksSource,
-                     aisClient: MqClient,
+                     aisClient: BoatMqttClient,
                      push: PushDatabase,
                      comps: ControllerComponents)(implicit as: ActorSystem, mat: Materializer)
   extends AuthController(googleAuth, auther, comps)

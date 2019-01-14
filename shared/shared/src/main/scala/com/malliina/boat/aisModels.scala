@@ -1,15 +1,18 @@
 package com.malliina.boat
 
 import com.malliina.boat.ShipType._
+import com.malliina.json.PrimitiveFormats
 import com.malliina.measure.{DistanceM, Speed}
 import com.malliina.values.{IdCompanion, StringCompanion, Wrapped, WrappedId}
 import play.api.libs.json._
+
+import scala.concurrent.duration.{Duration, DurationLong}
 
 /**
   * @see https://help.marinetraffic.com/hc/en-us/articles/205579997-What-is-the-significance-of-the-AIS-Shiptype-number-
   */
 sealed abstract class ShipType(val code: Int) {
-  def name(lang: Lang): String = this match {
+  def name(lang: ShipTypesLang): String = this match {
     case WingInGround(_) => lang.wingInGround
     case SearchAndRescueAircraft => lang.searchAndRescueAircraft
     case Fishing => lang.fishing
@@ -172,10 +175,14 @@ case class VesselInfo(mmsi: Mmsi,
                       cog: Double,
                       draft: DistanceM,
                       destination: Option[String],
-                      heading: Option[Int])
+                      heading: Option[Int],
+                      eta: Long,
+                      timestampMillis: Long,
+                      timestampFormatted: ISODateTime)
 
 object VesselInfo {
   val HeadingKey = "heading"
+  implicit val df = PrimitiveFormats.durationFormat
   implicit val json = Json.format[VesselInfo]
 }
 
@@ -193,8 +200,12 @@ case class VesselLocation(mmsi: Mmsi,
                           cog: Double,
                           heading: Option[Int],
                           timestamp: Long) extends VesselMessage {
-  def toInfo(meta: VesselMetadata) =
-    VesselInfo(mmsi, meta.name, meta.shipType, coord, sog, cog, meta.draft, meta.destination, heading)
+  def toInfo(meta: VesselMetadata, formattedTime: ISODateTime) = VesselInfo(
+    mmsi, meta.name, meta.shipType,
+    coord, sog, cog,
+    meta.draft, meta.destination, heading,
+    meta.eta, timestamp, formattedTime
+  )
 }
 
 object VesselLocation {
@@ -233,6 +244,7 @@ case class VesselMetadata(name: VesselName,
                           callSign: String) extends VesselMessage
 
 object VesselMetadata {
+  implicit val df = PrimitiveFormats.durationFormat
   implicit val json = Json.format[VesselMetadata]
   val readerGeoJson = Reads[VesselMetadata] { json =>
     for {

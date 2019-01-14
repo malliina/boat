@@ -5,30 +5,24 @@ import com.malliina.boat.{AboutKeys, FrontKeys, Language, Usernames}
 import com.malliina.values.Username
 import scalatags.Text.all._
 
-object About extends AboutKeys {
+object About {
+  def apply(lang: WebLang) = new About(lang)
+}
+
+class About(lang: WebLang) extends AboutKeys {
   val empty = modifier()
 
-  val disclaimerFi = "Lähde: Liikennevirasto. Ei navigointikäyttöön. Ei täytä virallisen merikartan vaatimuksia."
-  val disclaimerSe = "Källa: Trafikverket. Får inte användas för navigationsändamål. Uppfyller inte fordringarna för officiella sjökort."
-  val disclaimerEn = "Source: Finnish Transport Agency. Not for navigational use. Does not meet the requirements for official nautical charts."
-
   def about(user: Username, language: Language) = {
-    val disclaimer = language match {
-      case Language.finnish => disclaimerFi
-      case Language.swedish => disclaimerSe
-      case Language.english => disclaimerEn
-      case _ => disclaimerFi
-    }
     div(id := ModalId, `class` := s"${FrontKeys.Modal} $Hidden")(
       div(`class` := "modal-content")(
         i(`class` := "close fas fa-times"),
         if (user != Usernames.anon) {
           modifier(
-            p(`class` := "text-center", s"Signed in as $user."),
+            p(`class` := "text-center", s"${lang.signedInAs} $user."),
             radios(LanguageRadios, Seq(
-              RadioOptions("radio-se", Language.swedish.code, "Swedish", language == Language.swedish),
-              RadioOptions("radio-fi", Language.finnish.code, "Finnish", language == Language.finnish),
-              RadioOptions("radio-en", Language.english.code, "English", language == Language.english)
+              RadioOptions("radio-se", Language.swedish.code, lang.swedish, language == Language.swedish),
+              RadioOptions("radio-fi", Language.finnish.code, lang.finnish, language == Language.finnish),
+              RadioOptions("radio-en", Language.english.code, lang.english, language == Language.english)
             )),
             hr(`class` := "modal-divider")
           )
@@ -37,16 +31,16 @@ object About extends AboutKeys {
         },
         a(`class` := "badge-ios", href := "https://itunes.apple.com/us/app/boat-tracker/id1434203398?ls=1&mt=8"),
         hr(`class` := "modal-divider"),
-        h2("Merikartta-aineistot"),
-        p(a(href := "https://creativecommons.org/licenses/by/4.0/")("CC 4.0"), " ", disclaimer),
+        h2(lang.maritimeData),
+        p(a(href := "https://creativecommons.org/licenses/by/4.0/")("CC 4.0"), " ", lang.disclaimer),
         h2("Java Marine API"),
         p(a(href := "http://www.gnu.org/licenses/lgpl-3.0-standalone.html")("GNU LGPL"), " ", a(href := "https://ktuukkan.github.io/marine-api/")("https://ktuukkan.github.io/marine-api/")),
         h2("Open Iconic"),
         p(a(href := "https://www.useiconic.com/open")("www.useiconic.com/open")),
         h2("Font Awesome"),
         p(a(href := "https://fontawesome.com")("fontawesome.com")),
-        h2("Inspiration"),
-        p("Inspired by ", a(href := "https://github.com/iaue/poiju.io")("POIJU.IO"), ".")
+        h2("POIJU.IO"),
+        p(a(href := "https://github.com/iaue/poiju.io")("POIJU.IO"))
       )
     )
   }

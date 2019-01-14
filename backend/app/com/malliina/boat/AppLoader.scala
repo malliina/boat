@@ -2,7 +2,7 @@ package com.malliina.boat
 
 import java.nio.file.Paths
 
-import com.malliina.boat.ais.MqClient
+import com.malliina.boat.ais.BoatMqttClient
 import com.malliina.boat.auth.{EmailAuth, GoogleTokenAuth}
 import com.malliina.boat.db._
 import com.malliina.boat.html.BoatHtml
@@ -114,7 +114,7 @@ class AppComponents(init: (Configuration, OkClient, ExecutionContext) => AppBuil
   lazy val pushCtrl = new PushController(push, googleAuth, users, controllerComponents)
   lazy val appCtrl = new AppController(googleAuth, users, assets, controllerComponents)
   lazy val boatCtrl = new BoatController(
-    appConf.mapboxToken, html, users, googleAuth, tracks, MqClient(mode), push,
+    appConf.mapboxToken, html, users, googleAuth, tracks, BoatMqttClient(mode), push,
     controllerComponents)(actorSystem, materializer)
   val docs = new DocsController(html, controllerComponents)
   override lazy val router: Router = new Routes(httpErrorHandler, boatCtrl, appCtrl, pushCtrl, signIn, docs, files)

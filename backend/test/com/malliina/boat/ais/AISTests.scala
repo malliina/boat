@@ -6,7 +6,7 @@ import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.Sink
 import com.malliina.boat._
-import com.malliina.boat.ais.MqClient._
+import com.malliina.boat.ais.BoatMqttClient._
 import org.eclipse.paho.client.mqttv3._
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence
 import play.api.libs.json.{JsError, Json}
@@ -19,13 +19,13 @@ class AISTests extends BaseSuite {
   implicit val mat = ActorMaterializer()(as)
 
   ignore("MqttSource") {
-    val client = MqClient.test()
+    val client = BoatMqttClient.test()
     val fut = client.slow.take(3).runWith(Sink.foreach(msg => println(msg)))
     await(fut, 100.seconds)
   }
 
   ignore("metadata only") {
-    val client = MqClient(TestUrl, MetadataTopic)
+    val client = BoatMqttClient(TestUrl, MetadataTopic)
     val fut = client.vesselMessages.take(4).runWith(Sink.foreach(msg => println(msg)))
     await(fut, 100.seconds)
   }

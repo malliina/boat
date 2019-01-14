@@ -5,8 +5,8 @@ import java.time.Instant
 
 import akka.NotUsed
 import akka.stream.scaladsl.{RestartSource, Source}
-import com.malliina.boat.ais.MqClient.{log, user, pass}
-import com.malliina.boat.{AISMessage, Locations, Metadata, Mmsi, StatusTopic, VesselLocation, VesselMessages, VesselMetadata, VesselStatus}
+import com.malliina.boat.ais.BoatMqttClient.{log, pass, user}
+import com.malliina.boat.{AISMessage, Instants, Locations, Metadata, Mmsi, StatusTopic, VesselLocation, VesselMessages, VesselMetadata, VesselStatus}
 import com.malliina.http.FullUrl
 import play.api.{Logger, Mode}
 import play.api.libs.json.{JsError, JsResult, JsSuccess, Json}
@@ -14,7 +14,7 @@ import play.api.libs.json.{JsError, JsResult, JsSuccess, Json}
 import scala.collection.concurrent.TrieMap
 import scala.concurrent.duration.DurationInt
 
-object MqClient {
+object BoatMqttClient {
   private val log = Logger(getClass)
 
   val user = "digitraffic"
@@ -26,14 +26,14 @@ object MqClient {
   val TestUrl = FullUrl.wss("meri-test.digitraffic.fi:61619", "/mqtt")
   val ProdUrl = FullUrl.wss("meri.digitraffic.fi:61619", "/mqtt")
 
-  def apply(mode: Mode): MqClient =
+  def apply(mode: Mode): BoatMqttClient =
     if (mode == Mode.Prod) prod() else test()
 
   def prod() = apply(ProdUrl, AllDataTopic)
 
   def test() = apply(TestUrl, AllDataTopic)
 
-  def apply(url: FullUrl, topic: String): MqClient = new MqClient(url, topic)
+  def apply(url: FullUrl, topic: String): BoatMqttClient = new BoatMqttClient(url, topic)
 }
 
 /** Locally caches vessel metadata, then merges it with location data as it is received.
@@ -41,11 +41,11 @@ object MqClient {
   * @param url   WebSocket URL
   * @param topic MQTT topic
   */
-class MqClient(url: FullUrl, topic: String) {
+class BoatMqttClient(url: FullUrl, topic: String) {
   private val metadata = TrieMap.empty[Mmsi, VesselMetadata]
 
-  private val maxBatchSize = 100
-  private val sendTimeWindow = 2.seconds
+  private val maxBatchSize = 300
+  private val sendTimeWindow = 5.seconds
   private val settings = MqttSettings(url, newClientId, topic, user, pass)
   private val src = RestartSource.onFailuresWithBackoff(
     minBackoff = 5.seconds,
@@ -67,7 +67,8 @@ class MqClient(url: FullUrl, topic: String) {
     case JsSuccess(msg, _) => msg match {
       case loc: VesselLocation =>
         metadata.get(loc.mmsi).map { meta =>
-          Source.single(loc.toInfo(meta))
+          val dateTime = Instants.format(Instant.ofEpochMilli(loc.timestamp))
+          Source.single(loc.toInfo(meta, dateTime))
         }.getOrElse {
           // Drops location updates for which there is no vessel metadata
           Source.empty
