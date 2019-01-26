@@ -42,14 +42,14 @@ class AISRenderer(val map: MapboxMap, val log: BaseLogger = BaseLogger.console)
       msg.mmsi -> (msg :: vessels.getOrElse(msg.mmsi, Nil)).take(MaxTrailLength)
     }.toMap
     vessels = vessels ++ updated
-    val outcome = updateOrSet(
+    val iconUpdateOutcome = updateOrSet(
       Layer.symbol(
         AisVesselLayer,
         locationData,
         ImageLayout(boatIconId, `icon-size` = 1, Option(Seq("get", VesselInfo.HeadingKey)))
       )
     )
-    if (outcome == Outcome.Added) {
+    if (iconUpdateOutcome == Outcome.Added) {
       initHover(AisVesselLayer)
     }
     updateOrSet(

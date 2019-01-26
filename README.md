@@ -5,6 +5,8 @@
 
 See [Documentation](https://docs.boat-tracker.com).
 
+## Code
+
 This repo is organized as follows:
 
 - a boat agent in folder [agent](agent)
@@ -19,8 +21,6 @@ The server and frontend is deployed to [www.boat-tracker.com](https://www.boat-t
 The iOS app is in repo [boattracker-ios](https://github.com/malliina/boattracker-ios).
 
 The Android app is in repo [boattracker-android](https://github.com/malliina/boattracker-android).
-
-
 
 ## Deploying documentation
 
