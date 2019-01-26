@@ -4,16 +4,15 @@ import java.time.Instant
 
 import akka.actor.ActorSystem
 import akka.stream.Materializer
-import akka.stream.scaladsl.{BroadcastHub, Flow, Keep, MergeHub, Sink, Source}
+import akka.stream.scaladsl.{Flow, Keep, Sink, Source}
 import akka.{Done, NotUsed}
 import com.malliina.boat.Constants._
 import com.malliina.boat._
-import com.malliina.boat.ais.BoatMqttClient
 import com.malliina.boat.auth.EmailAuth
 import com.malliina.boat.db._
 import com.malliina.boat.html.BoatHtml
 import com.malliina.boat.http.{BoatEmailRequest, BoatQuery, BoatRequest, TrackQuery}
-import com.malliina.boat.parsing.{BoatParser, FullCoord, ParsedSentence}
+import com.malliina.boat.parsing.BoatService
 import com.malliina.boat.push.BoatState
 import com.malliina.values.Username
 import controllers.BoatController.log
@@ -36,8 +35,8 @@ class BoatController(mapboxToken: AccessToken,
                      html: BoatHtml,
                      auther: UserManager,
                      googleAuth: EmailAuth,
+                     boats: BoatService,
                      db: TracksSource,
-                     aisClient: BoatMqttClient,
                      push: PushDatabase,
                      comps: ControllerComponents)(implicit as: ActorSystem, mat: Materializer)
   extends AuthController(googleAuth, auther, comps)
@@ -50,33 +49,6 @@ class BoatController(mapboxToken: AccessToken,
   val UserSessionKey = "boatUser"
   val anonUser = Usernames.anon
   implicit val updatesTransformer = jsonMessageFlowTransformer[JsValue, FrontEvent]
-
-  // Publish-Subscribe Akka Streams
-  // https://doc.akka.io/docs/akka/2.5/stream/stream-dynamic.html
-  val (boatSink, viewerSource) = MergeHub.source[BoatEvent](perProducerBufferSize = 16)
-    .toMat(BroadcastHub.sink(bufferSize = 256))(Keep.both)
-    .run()
-  val _ = viewerSource.runWith(Sink.ignore)
-  val sentencesSource = viewerSource.map { boatEvent =>
-    BoatParser.read[SentencesMessage](boatEvent.message)
-      .map(_.toEvent(boatEvent.from.short))
-      .left.map(err => BoatJsonError(err, boatEvent))
-  }
-  val sentences = rights(sentencesSource)
-  val savedSentences = monitored(onlyOnce(sentences.mapAsync(parallelism = 1)(ss => db.saveSentences(ss))), "saved sentences")
-  val sentencesDrainer = savedSentences.runWith(Sink.ignore)
-
-  val parsedSentences = monitored(savedSentences.mapConcat[ParsedSentence](e => BoatParser.parseMulti(e).toList), "parsed sentences")
-  parsedSentences.runWith(Sink.ignore)
-  val parsedEvents: Source[FullCoord, Future[Done]] = parsedSentences.via(BoatParser.multiFlow())
-  val savedCoords = monitored(onlyOnce(parsedEvents.mapAsync(parallelism = 1)(ce => saveRecovered(ce))), "saved coords")
-  val coordsDrainer = savedCoords.runWith(Sink.ignore)
-  val errors = lefts(sentencesSource)
-  val frontEvents: Source[CoordsEvent, Future[Done]] = savedCoords.mapConcat[CoordsEvent](identity)
-  val ais = monitored(onlyOnce(aisClient.slow), "AIS messages")
-  ais.runWith(Sink.ignore)
-
-  errors.runWith(Sink.foreach(err => log.error(s"JSON error for '${err.boat}': '${err.error}'.")))
 
   def index = authAction(optionalWebAuth) { req =>
     val maybeBoat = req.user
@@ -141,7 +113,7 @@ class BoatController(mapboxToken: AccessToken,
 
   def renameBoat(id: BoatId) = boatAction { req => db.renameBoat(id, req.body, req.user.id) }
 
-  def boats = WebSocket { rh =>
+  def boatSocket = WebSocket { rh =>
     authBoat(rh).flatMapR { meta =>
       push.push(meta, BoatState.Connected).map(_ => meta)
     }.map { e =>
@@ -152,7 +124,7 @@ class BoatController(mapboxToken: AccessToken,
           out => Json.toJson(out)
         )
 
-        val flow: Flow[BoatEvent, PingEvent, NotUsed] = Flow.fromSinkAndSource(boatSink, Source.maybe[PingEvent])
+        val flow: Flow[BoatEvent, PingEvent, NotUsed] = Flow.fromSinkAndSource(boats.boatSink, Source.maybe[PingEvent])
           .keepAlive(10.seconds, () => PingEvent(Instant.now.toEpochMilli))
           .backpressureTimeout(3.seconds)
         terminationWatched(transformer.transform(flow)) { _ =>
@@ -163,7 +135,7 @@ class BoatController(mapboxToken: AccessToken,
     }
   }
 
-  def updates = WebSocket.acceptOrResult[JsValue, FrontEvent] { rh =>
+  def clientSocket = WebSocket.acceptOrResult[JsValue, FrontEvent] { rh =>
     recovered(auth(rh), rh).map { outcome =>
       outcome.flatMap { user =>
         BoatQuery(rh).map { limits =>
@@ -182,7 +154,7 @@ class BoatController(mapboxToken: AccessToken,
               Source(es.toList.map(_.sample(actualSample)))
             }
           // disconnects viewers that lag more than 3s
-          val flow = Flow.fromSinkAndSource(Sink.ignore, history.concat(frontEvents.merge(ais)).filter(_.isIntendedFor(user)))
+          val flow = Flow.fromSinkAndSource(Sink.ignore, history.concat(boats.allEvents).filter(_.isIntendedFor(user)))
             .keepAlive(10.seconds, () => PingEvent(Instant.now.toEpochMilli))
             .backpressureTimeout(3.seconds)
           logTermination(flow, _ => s"Viewer '$user' left.")
@@ -309,14 +281,6 @@ class BoatController(mapboxToken: AccessToken,
     }
 
   private def trackOrRandom(rh: RequestHeader): TrackName = TrackNames.random()
-
-  private def saveRecovered(coord: FullCoord): Future[List[CoordsEvent]] =
-    db.saveCoords(coord)
-      .map { inserted => List(CoordsEvent(Seq(coord.timed(inserted.point)), inserted.track)) }
-      .recover { case t =>
-        log.error(s"Unable to save coords.", t)
-        Nil
-      }
 
   private def respond[A](rh: RequestHeader)(html: => A, json: => A): A =
     if (rh.accepts(MimeTypes.HTML) && rh.getQueryString("json").isEmpty) html

@@ -39,7 +39,7 @@ lazy val cross = portableProject(JSPlatform, JVMPlatform)
 lazy val crossJvm = cross.jvm
 lazy val crossJs = cross.js
 
-lazy val agent = project.in(file("client"))
+lazy val agent = project.in(file("agent"))
   .settings(clientSettings: _*)
   .dependsOn(crossJvm)
   .enablePlugins(JavaServerAppPackaging, DebianPlugin, SystemdPlugin)

@@ -21,7 +21,7 @@ class ManualBoatTests extends BoatTests {
 
 //  def url = FullUrl.ws("localhost:9000", reverse.boats().toString)
 
-  def url = FullUrl.wss("www.boat-tracker.com", reverse.boats().toString)
+  def url = FullUrl.wss("www.boat-tracker.com", reverse.boatSocket().toString)
 
   ignore("local GPS reporting") {
     //    println("Lines " + gpsSentences.toList.length)

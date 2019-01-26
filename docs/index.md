@@ -1,51 +1,45 @@
-# Develop
+# Boat-Tracker
 
-Develop [Boat-Tracker](https://www.boat-tracker.com) clients using this JSON API. 
-The [iOS app](https://itunes.apple.com/us/app/boat-tracker/id1434203398?ls=1&mt=8) and 
-[web app](https://www.boat-tracker.com) both use this API.
+A solution for tracking boats.
 
-## Versioning
+![Solution](images/boat.png)
 
-The JSON API is versioned. Specify the API version in the `Accept` HTTP header. The following versions are currently
-supported:
+The Boat-Tracker solution consist of the following components:
 
-- application/vnd.boat.v1+json
-- application/vnd.boat.v2+json
+- a boat agent
+- a backend server
+- a web app
+- native mobile applications (iOS and Android)
 
-The documentation covers the latest API version (v2), therefore use the following header:
+The server and frontend is deployed to [www.boat-tracker.com](https://www.boat-tracker.com/).
 
-    Accept application/vnd.boat.v2+json
+The iOS app is in repo [boattracker-ios](https://github.com/malliina/boattracker-ios).
 
-## Authentication
+The Android app is in repo [boattracker-android](https://github.com/malliina/boattracker-android).
 
-Boat-Tracker uses Google's [OAuth 2.0](https://developers.google.com/identity/protocols/OpenIDConnect) authentication 
-system. Clients must
+API documentation is available at [docs.boat-tracker.com](https://docs.boat-tracker.com).
 
-1. Initiate the OAuth 2.0 flow with Google
-1. Obtain an ID token upon successful authentication with Google
-1. Deliver the ID token to the Boat-Tracker backend when making authenticated API calls
+## Agent
 
-Set the ID token in the `Authorization` header under the `Bearer` scheme:
+The agent 
 
-    Authorization: Bearer google_id_token_goes_here
-    
-## Errors
+- listens to NMEA 0183 sentences in the boat; plotter connectivity is over WLAN or cable
+- sends received sentences over a WebSocket to the backend at [www.boat-tracker.com](https://www.boat-tracker.com/)
+- is typically installed on a Raspberry Pi with a 3G module, powered by the boat or external battery
 
-Error responses use the following JSON format:
+## Backend
 
-    {
-        "errors": [
-            { 
-                "message": "JWT expired.",
-                "key": "token_expired" 
-            }
-        ]
-    }
+The backend 
 
-Error keys include but are not limited to:
+- receives, processes and saves NMEA 0183 sentences from connected agents
+- receives live automatic identification system (AIS) tracking data of vessels in the Gulf of Finland
+- sends location updates to any connected web or mobile clients
 
-| Key | Meaning
-|-----|---------
-| token_expired | The JWT has expired. The client should obtain a new one from Google and try again.
-| input | The client provided invalid input. Check your inputs.
-| generic | Most likely clients cannot recover from this.
+## Frontend
+
+The frontend 
+
+- is the web app at [www.boat-tracker.com](https://www.boat-tracker.com/)
+- updates live tracks as received from the backend
+- shows saved tracks for signed in users
+- provides a map view, table view and charts for visualization

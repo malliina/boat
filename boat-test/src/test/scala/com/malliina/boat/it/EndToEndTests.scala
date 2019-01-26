@@ -37,7 +37,7 @@ class EndToEndTests extends BoatTests {
     }
     val (server, plotter) = Tcp().bind(tcpHost, tcpPort).viaMat(KillSwitches.single)(Keep.both).toMat(incomingSink)(Keep.left).run()
     await(server)
-    val serverUrl = FullUrl.ws(s"localhost:$port", reverse.boats().toString)
+    val serverUrl = FullUrl.ws(s"localhost:$port", reverse.boatSocket().toString)
     val agent = BoatAgent(BoatConf.anon(tcpHost, tcpPort), serverUrl)
     try {
       val p = Promise[JsValue]()
@@ -59,7 +59,7 @@ class EndToEndTests extends BoatTests {
   }
 
   ignore("external unreliable TCP server") {
-    val serverUrl = FullUrl.ws(s"localhost:$port", reverse.boats().toString)
+    val serverUrl = FullUrl.ws(s"localhost:$port", reverse.boatSocket().toString)
     val conf = BoatConf.anon("127.0.0.1", 10104)
     val agent = BoatAgent(conf, serverUrl)
     try {
@@ -83,7 +83,7 @@ class EndToEndTests extends BoatTests {
     }
     val server = Tcp().bind(tcpHost, tcpPort).toMat(incomingSink)(Keep.left).run()
     val binding = await(server)
-    val serverUrl = FullUrl.ws(s"localhost:$port", reverse.boats().toString)
+    val serverUrl = FullUrl.ws(s"localhost:$port", reverse.boatSocket().toString)
     //    val serverUrl = FullUrl.wss("boat.malliina.com", reverse.boats().toString)
     val agent = BoatAgent(BoatConf.anon(tcpHost, tcpPort), serverUrl)
     val p = Promise[JsValue]()

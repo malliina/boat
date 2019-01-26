@@ -26,7 +26,7 @@ abstract class ServerSuite[T <: BuiltInComponents](build: Context => T)
 
 abstract class BoatTests extends TestAppSuite with BoatSockets {
   def openTestBoat[T](boat: BoatName)(code: TestBoat => T): T = {
-    openBoat(urlFor(reverse.boats()), Left(boat))(code)
+    openBoat(urlFor(reverse.boatSocket()), Left(boat))(code)
   }
 
   def openViewerSocket[T](in: Sink[JsValue, Future[Done]], creds: Option[Creds] = None)(code: WebSocketClient => T): T = {
@@ -34,7 +34,7 @@ abstract class BoatTests extends TestAppSuite with BoatSockets {
     val headers = creds.map { c =>
       KeyValue(HttpUtil.Authorization, HttpUtil.authorizationValue(c.user, c.pass.pass))
     }.toList
-    openWebSocket(reverse.updates(), creds, in, out, headers)(code)
+    openWebSocket(reverse.clientSocket(), creds, in, out, headers)(code)
   }
 
   def openWebSocket[T](path: Call,

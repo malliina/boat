@@ -21,10 +21,9 @@ object MqttGraph {
 }
 
 // https://github.com/akka/alpakka/blob/ae2e1e1d44d627ebc66a24ea35993398df7840bc/mqtt/src/main/scala/MqttSource.scala
-class MqttGraph(settings: MqttSettings)
-  extends GraphStageWithMaterializedValue[SourceShape[MqMessage], Future[Done]] {
-
+class MqttGraph(settings: MqttSettings) extends GraphStageWithMaterializedValue[SourceShape[MqMessage], Future[Done]] {
   val out = Outlet[MqMessage]("MqMessage.out")
+  override val shape = SourceShape(out)
 
   override def createLogicAndMaterializedValue(inheritedAttributes: Attributes): (GraphStageLogic, Future[Done]) = {
     val subscriptionPromise = Promise[Done]()
@@ -78,13 +77,17 @@ class MqttGraph(settings: MqttSettings)
         connectOptions.setUserName(settings.user)
         connectOptions.setPassword(settings.pass.toCharArray)
         log.info(s"Connecting to '$broker'...")
-        client.connect(connectOptions, (), new IMqttActionListener {
-          override def onSuccess(asyncActionToken: IMqttToken): Unit =
-            onConnect.invoke(client)
+        client.connect(
+          connectOptions,
+          (),
+          new IMqttActionListener {
+            override def onSuccess(asyncActionToken: IMqttToken): Unit =
+              onConnect.invoke(client)
 
-          override def onFailure(asyncActionToken: IMqttToken, exception: Throwable): Unit =
-            onConnectionLost.invoke(exception)
-        })
+            override def onFailure(asyncActionToken: IMqttToken, exception: Throwable): Unit =
+              onConnectionLost.invoke(exception)
+          }
+        )
         super.preStart()
       }
 
@@ -96,5 +99,4 @@ class MqttGraph(settings: MqttSettings)
     (logic, subscriptionPromise.future)
   }
 
-  override def shape = SourceShape(out)
 }

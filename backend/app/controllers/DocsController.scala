@@ -1,20 +1,18 @@
 package controllers
 
-import com.malliina.boat.html.BoatHtml
+import com.malliina.http.FullUrl
 import play.api.mvc.{AbstractController, ControllerComponents}
 
-class DocsController(html: BoatHtml, comps: ControllerComponents)
+class DocsController(comps: ControllerComponents)
   extends AbstractController(comps) {
 
-  def agent = Action {
-    Ok(html.docs)
-  }
+  def agent = redirect("agent")
 
-  def support = Action {
-    Ok(html.support)
-  }
+  def support = redirect("support")
 
-  def privacyPolicy = Action {
-    Ok(html.privacyPolicy)
+  def privacyPolicy = redirect("privacy")
+
+  def redirect(path: String) = Action {
+    Redirect(FullUrl.https("docs.musicpimp.org", s"/$path/").url)
   }
 }

@@ -3,6 +3,15 @@
 
 # boat-tracker
 
+This repo is organized as follows:
+
+- a boat agent in folder [agent](agent)
+- server-side code in [backend](backend)
+- frontend in [frontend](frontend)
+- shared code in [shared](shared)
+- integration tests in [boat-test](boat-test)
+- documentation in [docs](docs)
+
 A solution for tracking boats.
 
 ![Solution](docs/images/boat.png)
@@ -23,32 +32,13 @@ The Android app is in repo [boattracker-android](https://github.com/malliina/boa
 
 API documentation is available at [docs.boat-tracker.com](https://docs.boat-tracker.com).
 
-## Agent
+## Deploying documentation
 
-The agent 
+The documentation site is hosted on GitHub Pages. To deploy:
 
-- listens to NMEA1803 sentences in the boat; plotter connectivity is over WLAN or cable
-- sends received sentences over a WebSocket to [boat-tracker.com](https://www.boat-tracker.com/)
-- is typically installed on a Raspberry Pi with a 3G module, powered by the boat or external battery
+    mkdocs gh-deploy
 
-## Backend
-
-The backend 
-
-- receives sentences from connected agents
-- processes and saves sentences
-- sends updates to any connected web or mobile clients
-
-## Frontend
-
-The frontend 
-
-- is the web app at [www.boat-tracker.com](https://www.boat-tracker.com/)
-- shows historical tracks
-- updates live tracks in near-real-time as received from the backend
-- provides a map view, table view and charts for visualization
-
-## Releases
+## Releasing the agent
 
 To release a new version of the agent, run
 

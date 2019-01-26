@@ -13,8 +13,8 @@ PUT          /tracks/:track                      controllers.BoatController.modi
 GET          /tracks/:track/trail                controllers.BoatController.trail(track: com.malliina.boat.TrackName)
 GET          /tracks/:track/full                 controllers.BoatController.full(track: com.malliina.boat.TrackName)
 GET          /tracks/:track/chart                controllers.BoatController.chart(track: com.malliina.boat.TrackName)
-GET          /ws/updates                         controllers.BoatController.updates
-GET          /ws/boats                           controllers.BoatController.boats
+GET          /ws/updates                         controllers.BoatController.clientSocket
+GET          /ws/boats                           controllers.BoatController.boatSocket
 GET          /sign-in/google                     controllers.Social.google
 GET          /sign-in/callbacks/google           controllers.Social.googleCallback
 GET          /docs/agent                         controllers.DocsController.agent

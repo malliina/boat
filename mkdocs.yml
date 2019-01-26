@@ -5,8 +5,11 @@ theme:
   name: 'material'
 
 nav:
-  - Develop: index.md
+  - Overview: index.md
+  - Develop: develop.md
   - HTTP Endpoints: endpoints.md
   - Agent: agent.md
+  - Support: support.md
+  - Privacy: privacy.md
 
-copyright: Copyright &copy; 2018 <a href="https://github.com/malliina">Michael Skogberg</a>
+copyright: Copyright &copy; 2019 <a href="https://github.com/malliina">Michael Skogberg</a>

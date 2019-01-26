@@ -4,7 +4,6 @@ import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 
 import com.malliina.boat.FrontKeys._
-import com.malliina.boat.docs.Docs
 import com.malliina.boat.html.BoatHtml.callAttr
 import com.malliina.boat.http.Limits
 import com.malliina.boat.{FullTrack, TrackRef, UserBoats, Usernames}
@@ -50,14 +49,6 @@ class BoatHtml(jsFiles: Seq[String]) extends Tags(scalatags.Text) {
     page(PageConf(SentencesPage(track, current), bodyClasses = Seq(ListClass)))
 
   def chart(track: TrackRef) = page(Charts.chart(track))
-
-  def docs: TagPage = markdownPage(Docs.agent)
-
-  def support: TagPage = markdownPage(Docs.support)
-
-  def privacyPolicy: TagPage = markdownPage(Docs.privacyPolicy)
-
-  private def markdownPage(md: RawFrag) = page(PageConf(md, bodyClasses = Seq("docs-agent")))
 
   def map(ub: UserBoats) = {
     val lang = BoatLang(ub.language)
