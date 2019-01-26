@@ -3,26 +3,16 @@
 
 # boat-tracker
 
+See [Documentation](https://docs.boat-tracker.com).
+
 This repo is organized as follows:
 
 - a boat agent in folder [agent](agent)
 - server-side code in [backend](backend)
-- frontend in [frontend](frontend)
+- frontend code in [frontend](frontend)
 - shared code in [shared](shared)
 - integration tests in [boat-test](boat-test)
 - documentation in [docs](docs)
-
-A solution for tracking boats.
-
-![Solution](docs/images/boat.png)
-
-This repository contains the following modules:
-
-- a boat agent in folder *client*
-- a server in *backend*
-- a frontend in *frontend*
-- shared code in *shared*
-- integration tests in *boat-test*
 
 The server and frontend is deployed to [www.boat-tracker.com](https://www.boat-tracker.com/).
 
@@ -30,7 +20,7 @@ The iOS app is in repo [boattracker-ios](https://github.com/malliina/boattracker
 
 The Android app is in repo [boattracker-android](https://github.com/malliina/boattracker-android).
 
-API documentation is available at [docs.boat-tracker.com](https://docs.boat-tracker.com).
+
 
 ## Deploying documentation
 
