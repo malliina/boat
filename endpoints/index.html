@@ -574,7 +574,14 @@ of supporting functions as documented below.</p>
 }
 </code></pre>
 <h2 id="websocket-wsupdates">WebSocket /ws/updates</h2>
-<p>Clients (web, iOS, Android) receive live boat updates using this WebSocket endpoint. The following event types are used:</p>
+<p>Clients (web, iOS, Android) receive live boat updates using this WebSocket endpoint. The JSON-formatted messages use
+the following general format:</p>
+<pre><code>{
+    "event": "event_type_here",
+    "body": { ... event-specific body goes here ... }
+}
+</code></pre>
+<p>The following event types are used, with examples below:</p>
 <table>
 <thead>
 <tr>
