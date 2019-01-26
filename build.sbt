@@ -14,6 +14,7 @@ val akkaVersion = "2.5.17"
 val buildAndUpload = taskKey[FullUrl]("Uploads to S3")
 val upFiles = taskKey[Seq[String]]("lists")
 val bootClasspath = taskKey[String]("bootClasspath")
+val deployDocs = taskKey[Unit]("Deploys documentation")
 
 parallelExecution in ThisBuild := false
 
@@ -218,6 +219,7 @@ lazy val testSettings = playSettings ++ Seq(
 lazy val playSettings = commonSettings
 
 lazy val commonSettings = basicSettings ++ Seq(
+  deployDocs := Process("mkdocs gh-deploy").run(streams.value.log).exitValue(),
   resolvers ++= Seq(
     Resolver.jcenterRepo,
     Resolver.bintrayRepo("malliina", "maven"),

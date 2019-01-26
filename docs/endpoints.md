@@ -91,11 +91,19 @@ Unsubscribes from push notifications:
 
 ## WebSocket /ws/updates
 
-Clients (web, iOS, Android) receive live boat updates using this WebSocket endpoint. The following event types are used:
+Clients (web, iOS, Android) receive live boat updates using this WebSocket endpoint. The JSON-formatted messages use
+the following general format:
+
+    {
+        "event": "event_type_here",
+        "body": { ... event-specific body goes here ... }
+    }
+
+The following event types are used, with examples below:
 
 | Event | Meaning
 |-------|---------
-| coords | Updated coordinates for boat(s)
+| coords | Updated coordinates for boats
 | vessels | Updated AIS location data for vessels
 | ping | Ping event (can be ignored)
 
