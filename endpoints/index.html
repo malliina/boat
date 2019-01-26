@@ -74,7 +74,7 @@
     <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
     <label class="md-overlay" data-md-component="overlay" for="__drawer"></label>
     
-      <a href="#endpoints" tabindex="1" class="md-skip">
+      <a href="#http-endpoints" tabindex="1" class="md-skip">
         Skip to content
       </a>
     
@@ -222,6 +222,13 @@
     <ul class="md-nav__list" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#units-of-measurement" title="Units of measurement" class="md-nav__link">
+    Units of measurement
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#get-usersme" title="GET /users/me" class="md-nav__link">
     GET /users/me
   </a>
@@ -245,6 +252,47 @@
         <li class="md-nav__item">
   <a href="#post-usersnotificationsdisable" title="POST /users/notifications/disable" class="md-nav__link">
     POST /users/notifications/disable
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#websocket-wsupdates" title="WebSocket /ws/updates" class="md-nav__link">
+    WebSocket /ws/updates
+  </a>
+  
+    <nav class="md-nav">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#updated-coordinates" title="Updated coordinates" class="md-nav__link">
+    Updated coordinates
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#updated-vessel-locations" title="Updated vessel locations" class="md-nav__link">
+    Updated vessel locations
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ping-event" title="Ping event" class="md-nav__link">
+    Ping event
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#websocket-wsboats" title="WebSocket /ws/boats" class="md-nav__link">
+    WebSocket /ws/boats
   </a>
   
 </li>
@@ -317,6 +365,13 @@
     <ul class="md-nav__list" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#units-of-measurement" title="Units of measurement" class="md-nav__link">
+    Units of measurement
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#get-usersme" title="GET /users/me" class="md-nav__link">
     GET /users/me
   </a>
@@ -344,6 +399,47 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#websocket-wsupdates" title="WebSocket /ws/updates" class="md-nav__link">
+    WebSocket /ws/updates
+  </a>
+  
+    <nav class="md-nav">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#updated-coordinates" title="Updated coordinates" class="md-nav__link">
+    Updated coordinates
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#updated-vessel-locations" title="Updated vessel locations" class="md-nav__link">
+    Updated vessel locations
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ping-event" title="Ping event" class="md-nav__link">
+    Ping event
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#websocket-wsboats" title="WebSocket /ws/boats" class="md-nav__link">
+    WebSocket /ws/boats
+  </a>
+  
+</li>
+      
       
       
       
@@ -361,8 +457,45 @@
               
                 
                 
-                <h1 id="endpoints">Endpoints</h1>
-<p>HTTP endpoints return JSON.</p>
+                <h1 id="http-endpoints">HTTP Endpoints</h1>
+<p>HTTP endpoints return JSON. Live tracking data is delivered over WebSockets, while basic HTTP endpoints serve a number
+of supporting functions as documented below.</p>
+<h2 id="units-of-measurement">Units of measurement</h2>
+<p>The following units of measure are used in JSON responses where applicable:</p>
+<table>
+<thead>
+<tr>
+<th>Measurement</th>
+<th>Unit</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Speed</td>
+<td>Knots</td>
+</tr>
+<tr>
+<td>Depth</td>
+<td>Millimeters</td>
+</tr>
+<tr>
+<td>Distance (old)</td>
+<td>Millimeters</td>
+</tr>
+<tr>
+<td>Distance (new)</td>
+<td>Meters</td>
+</tr>
+<tr>
+<td>Draft</td>
+<td>Meters</td>
+</tr>
+<tr>
+<td>Temperature</td>
+<td>Celsius</td>
+</tr>
+</tbody>
+</table>
 <h2 id="get-usersme">GET /users/me</h2>
 <p>Returns user information including any boats:</p>
 <pre><code>{
@@ -390,8 +523,6 @@
             "trackName": "abc",
             "boat": 12,
             "boatName": "Her Highness",
-            "user": 123,
-            "username": "jack",
             "points": 42,
             "duration": 3500,
             "distance": 1234,
@@ -410,41 +541,6 @@
     ]
 }
 </code></pre>
-<p>The following units are used:</p>
-<table>
-<thead>
-<tr>
-<th>Key</th>
-<th>Unit</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>duration</td>
-<td>seconds</td>
-</tr>
-<tr>
-<td>distance</td>
-<td>meters</td>
-</tr>
-<tr>
-<td>speed</td>
-<td>knots</td>
-</tr>
-<tr>
-<td>topSpeed</td>
-<td>knots</td>
-</tr>
-<tr>
-<td>avgSpeed</td>
-<td>knots</td>
-</tr>
-<tr>
-<td>avgWaterTemp</td>
-<td>celsius</td>
-</tr>
-</tbody>
-</table>
 <h2 id="post-usersnotifications">POST /users/notifications</h2>
 <p>Subscribes to push notifications:</p>
 <pre><code>{
@@ -475,6 +571,119 @@
 <p>Unsubscribes from push notifications:</p>
 <pre><code>{
     "token": "device_token",
+}
+</code></pre>
+<h2 id="websocket-wsupdates">WebSocket /ws/updates</h2>
+<p>Clients (web, iOS, Android) receive live boat updates using this WebSocket endpoint. The following event types are used:</p>
+<table>
+<thead>
+<tr>
+<th>Event</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>coords</td>
+<td>Updated coordinates for boat(s)</td>
+</tr>
+<tr>
+<td>vessels</td>
+<td>Updated AIS location data for vessels</td>
+</tr>
+<tr>
+<td>ping</td>
+<td>Ping event (can be ignored)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="updated-coordinates">Updated coordinates</h3>
+<p>Example JSON:</p>
+<pre><code>{
+    "event": "coords",
+    "body": {
+        "coords": [
+            {
+                "coord": {
+                    "lng": 60.24,
+                    "lat": 24.1
+                },
+                "boatTime": "",
+                "speed": 41.1,
+                "waterTemp": 11.2,
+                "depth": 5000
+            }
+        ],
+        "from": {
+            "track": "123",
+            "trackName": "abc",
+            "trackTitle": "Nice ride",
+            "canonical": "nice-ride",
+            "boat:": "456",
+            "boatName": "Amina",
+            "username": "jack",
+            "points": 42,
+            "duration": 3500,
+            "distance": 1234,
+            "topSpeed": 24.1,
+            "avgSpeed": 23.2,
+            "avgWaterTemp": 6.1
+        }
+    }
+}
+</code></pre>
+<h3 id="updated-vessel-locations">Updated vessel locations</h3>
+<p>Example JSON:</p>
+<pre><code>{
+    "event": "vessels",
+    "body": {
+        "vessels": [
+            {
+                "mmsi": 123456,
+                "name": "Amina",
+                "shipType": 80,
+                "coord": {
+                    "lng": 60.24,
+                    "lat": 24.1
+                },
+                "sog": 9.8,
+                "cog": 123.1,
+                "draft": 8.7,
+                "destination": "TALLINN",
+                "eta": 12,
+                "timestampMillis": 123456789,
+                "timestampFormatted": ""
+            }
+        ]
+    }
+}
+</code></pre>
+<h3 id="ping-event">Ping event</h3>
+<p>Example JSON:</p>
+<pre><code>{
+    "event": "ping",
+    "body": {
+        "sent": 123456789
+    }
+}
+</code></pre>
+<h2 id="websocket-wsboats">WebSocket /ws/boats</h2>
+<p>Agents send NMEA 0183 sentences to the backend using this endpoint.</p>
+<p>The JSON-formatted messages must be of the following format:</p>
+<pre><code>{
+  "sentences": [
+    "$GPGGA,174239,6110.2076,N,06450.5518,E,1,12,0.50,0,M,19.5,M,,*63",
+    "$GPZDA,141735,04,05,2018,-03,00*69"
+  ]
+}
+</code></pre>
+<p>Provide newest sentences last in the <em>sentences</em> array.</p>
+<p>The server may send <em>ping</em> events to the agent over the socket at any time:</p>
+<pre><code>{
+    "event": "ping",
+    "body": {
+        "sent": 123456789
+    }
 }
 </code></pre>
                 
