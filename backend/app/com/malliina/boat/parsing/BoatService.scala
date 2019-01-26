@@ -7,7 +7,7 @@ import akka.stream.scaladsl.{BroadcastHub, Keep, MergeHub, Sink, Source}
 import com.malliina.boat.ais.BoatMqttClient
 import com.malliina.boat.db.TracksSource
 import com.malliina.boat.parsing.BoatService.log
-import com.malliina.boat.{BoatEvent, BoatJsonError, CoordsEvent, SentencesMessage, Streams}
+import com.malliina.boat.{BoatEvent, BoatJsonError, CoordsEvent, FrontEvent, SentencesMessage, Streams}
 import play.api.Logger
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -28,23 +28,23 @@ class BoatService(aisClient: BoatMqttClient, db: TracksSource)(implicit as: Acto
     .source[BoatEvent](perProducerBufferSize = 16)
     .toMat(BroadcastHub.sink(bufferSize = 256))(Keep.both)
     .run()
-  val _ = viewerSource.runWith(Sink.ignore)
-  val sentencesSource = viewerSource.map { boatEvent =>
+  private val _ = viewerSource.runWith(Sink.ignore)
+  private val sentencesSource = viewerSource.map { boatEvent =>
     BoatParser
       .read[SentencesMessage](boatEvent.message)
       .map(_.toEvent(boatEvent.from.short))
       .left
       .map(err => BoatJsonError(err, boatEvent))
   }
-  val sentences = rights(sentencesSource)
-  val savedSentences =
+  private val sentences = rights(sentencesSource)
+  private val savedSentences =
     monitored(onlyOnce(sentences.mapAsync(parallelism = 1)(ss => db.saveSentences(ss))), "saved sentences")
-  val sentencesDrainer = savedSentences.runWith(Sink.ignore)
+  private val __ = savedSentences.runWith(Sink.ignore)
 
-  val parsedSentences =
+  private val parsedSentences =
     monitored(savedSentences.mapConcat[ParsedSentence](e => BoatParser.parseMulti(e).toList), "parsed sentences")
   parsedSentences.runWith(Sink.ignore)
-  val parsedEvents: Source[FullCoord, Future[Done]] = parsedSentences.via(BoatParser.multiFlow())
+  private val parsedEvents: Source[FullCoord, Future[Done]] = parsedSentences.via(BoatParser.multiFlow())
   val savedCoords = monitored(onlyOnce(parsedEvents.mapAsync(parallelism = 1)(ce => saveRecovered(ce))), "saved coords")
   val coordsDrainer = savedCoords.runWith(Sink.ignore)
   val errors = lefts(sentencesSource)
@@ -52,7 +52,7 @@ class BoatService(aisClient: BoatMqttClient, db: TracksSource)(implicit as: Acto
   val ais = monitored(onlyOnce(aisClient.slow), "AIS messages")
   ais.runWith(Sink.ignore)
   errors.runWith(Sink.foreach(err => log.error(s"JSON error for '${err.boat}': '${err.error}'.")))
-  val allEvents = frontEvents.merge(ais)
+  val allEvents: Source[FrontEvent, Future[Done]] = frontEvents.merge(ais)
 
   private def monitored[In, Mat](src: Source[In, Mat], label: String): Source[In, Future[Done]] =
     src.watchTermination()(Keep.right).mapMaterializedValue { done =>

@@ -230,21 +230,19 @@ trait TrackLike extends TrackMetaLike {
   def duration: Duration
 }
 
-case class TrackMetaShort(track: TrackId, trackName: TrackName,
-                          boat: BoatId, boatName: BoatName,
-                          user: UserId, username: Username) extends TrackMetaLike
+case class TrackMetaShort(track: TrackId, trackName: TrackName, boat: BoatId,
+                          boatName: BoatName, username: Username) extends TrackMetaLike
 
 object TrackMetaShort {
   implicit val json = Json.format[TrackMetaShort]
 }
 
 case class TrackRef(track: TrackId, trackName: TrackName, trackTitle: Option[TrackTitle],
-                    canonical: TrackCanonical, boat: BoatId, boatName: BoatName,
-                    user: UserId, username: Username, language: Language, points: Int, start: ISODateTime,
-                    startMillis: Long, end: ISODateTime, endMillis: Long,
-                    startEndRange: String, duration: Duration, distance: Distance,
-                    topSpeed: Option[Speed], avgSpeed: Option[Speed], avgWaterTemp: Option[Temperature],
-                    topPoint: TimedCoord) extends TrackLike {
+                    canonical: TrackCanonical, boat: BoatId, boatName: BoatName, username: Username,
+                    points: Int, start: ISODateTime, startMillis: Long, end: ISODateTime,
+                    endMillis: Long, startEndRange: String, duration: Duration,
+                    distance: Distance, topSpeed: Option[Speed], avgSpeed: Option[Speed],
+                    avgWaterTemp: Option[Temperature], topPoint: TimedCoord) extends TrackLike {
   def describe = trackTitle.map(_.title).getOrElse(trackName.name)
 }
 
@@ -326,14 +324,16 @@ object CoordsEvent {
 }
 
 case class CoordsBatch(events: Seq[CoordsEvent]) extends FrontEvent {
-  override def isIntendedFor(user: Username): Boolean = events.forall(_.isIntendedFor(user))
+  override def isIntendedFor(user: Username): Boolean =
+    events.forall(_.isIntendedFor(user))
 }
 
 object CoordsBatch {
   implicit val json = Json.format[CoordsBatch]
 }
 
-case class SentencesEvent(sentences: Seq[RawSentence], from: TrackMetaShort) extends BoatFrontEvent
+case class SentencesEvent(sentences: Seq[RawSentence], from: TrackMetaShort)
+  extends BoatFrontEvent
 
 object SentencesEvent {
   val Key = "sentences"
@@ -354,7 +354,8 @@ case class VesselMessages(vessels: Seq[VesselInfo]) extends FrontEvent {
 }
 
 object VesselMessages {
-  implicit val json = Json.format[VesselMessages]
+  val Key = "vessels"
+  implicit val json = keyValued(Key, Json.format[VesselMessages])
   val empty = VesselMessages(Nil)
 }
 
@@ -366,7 +367,8 @@ sealed trait BoatFrontEvent extends FrontEvent {
   def from: TrackMetaLike
 
   // Anonymous users receive all live boat updates by design
-  override def isIntendedFor(user: Username): Boolean = from.username == user || user == Usernames.anon
+  override def isIntendedFor(user: Username): Boolean =
+    from.username == user || user == Usernames.anon
 }
 
 object FrontEvent {

@@ -37,7 +37,7 @@ class TracksDatabaseTests extends BaseSuite {
 
     def coord(c: Coord, speed: Speed, track: TrackId, boat: BoatId, user: UserId) = {
       FullCoord(c, LocalTime.now(), LocalDate.now(), speed, Temperature.zeroCelsius, 1.meters, 0.meters,
-        TrackMetaShort(track, TrackNames.random(), boat, BoatNames.random(), user, Username("whatever")))
+        TrackMetaShort(track, TrackNames.random(), boat, BoatNames.random(), Username("whatever")))
     }
 
     import db._

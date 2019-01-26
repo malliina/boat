@@ -232,7 +232,7 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext)
     db.run(action).map { keys =>
       //      val pluralSuffix = if (keys.length == 1) "" else "s"
       //      log.info(s"Inserted ${describe(keys)} $word$pluralSuffix from '${from.boatName}' owned by '${from.username}'.")
-      log.info(s"Inserted ${describe(keys)} from '${from.boatName}' owned by '${from.username}'.")
+      log.info(s"Inserted ${describe(keys)} from '${from.boatName}'.")
       keys
     }.recoverWith { case t =>
       log.error(s"Error inserting data for '${from.boatName}'.", t)

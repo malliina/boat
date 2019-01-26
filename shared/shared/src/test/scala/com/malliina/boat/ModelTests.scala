@@ -61,4 +61,9 @@ class ModelTests extends FunSuite {
     //println(result)
     assert(result.isSuccess)
   }
+
+  test("PingEvent JSON") {
+    val json = Json.toJson(PingEvent(123))
+    assert(Json.stringify(json) === """{"event":"ping","body":{"sent":123}}""")
+  }
 }

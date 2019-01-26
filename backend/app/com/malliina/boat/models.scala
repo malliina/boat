@@ -47,7 +47,7 @@ case class JoinedTrack(track: TrackId, trackName: TrackName, trackTitle: Option[
     */
   def strip = TrackRef(
     track, trackName, trackTitle, canonical,
-    boat, boatName, user, username, language, points,
+    boat, boatName, username, points,
     Instants.format(startOrNow), startOrNow.toEpochMilli,
     Instants.format(endOrNow), endOrNow.toEpochMilli, Instants.formatRange(startOrNow, endOrNow),
     duration, distance, topSpeed, avgSpeed,
@@ -60,7 +60,7 @@ case class TrackNumbers(track: TrackId, start: Option[Instant], end: Option[Inst
 case class TrackMeta(track: TrackId, trackName: TrackName, trackAdded: Instant,
                      boat: BoatId, boatName: BoatName, boatToken: BoatToken,
                      user: UserId, username: Username, email: Option[Email]) {
-  def short = TrackMetaShort(track, trackName, boat, boatName, user, username)
+  def short = TrackMetaShort(track, trackName, boat, boatName, username)
 }
 
 object TrackMeta {

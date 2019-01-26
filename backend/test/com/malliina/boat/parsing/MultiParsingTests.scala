@@ -18,9 +18,7 @@ import scala.concurrent.duration.DurationInt
 
 object MultiParsingTests {
   def testFrom = TrackMetaShort(
-    TrackId(1), TrackName("test"),
-    BoatId(1), BoatName("boat"),
-    UserId(1), Username("u")
+    TrackId(1), TrackName("test"), BoatId(1), BoatName("boat"), Username("u")
   )
 
   def listSink[T]: Sink[T, Future[List[T]]] = Sink.fold[List[T], T](Nil)(_ :+ _)

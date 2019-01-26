@@ -176,19 +176,9 @@ class BoatController(mapboxToken: AccessToken,
       code(req).map { w => Ok(w) }
     }
 
-  private def logTermination[In, Out, Mat](flow: Flow[In, Out, Mat], message: Try[Done] => String): Flow[In, Out, Future[Done]] =
+  private def logTermination[In, Out, Mat](flow: Flow[In, Out, Mat],
+                                           message: Try[Done] => String): Flow[In, Out, Future[Done]] =
     terminationWatched(flow)(t => fut(log.info(message(t))))
-
-  private def monitored[In, Mat](src: Source[In, Mat], label: String): Source[In, Future[Done]] =
-    src.watchTermination()(Keep.right).mapMaterializedValue { done =>
-      done.transform { tryDone =>
-        tryDone.fold(
-          t => log.error(s"Error in flow '$label'.", t),
-          _ => log.warn(s"Flow '$label' completed.")
-        )
-        tryDone
-      }
-    }
 
   private def secureTrack(run: BoatEmailRequest[TrackQuery] => Future[Result]) =
     secureAction(rh => TrackQuery.withDefault(rh, defaultLimit = 100))(run)
