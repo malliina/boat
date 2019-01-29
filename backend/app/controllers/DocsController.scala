@@ -13,6 +13,6 @@ class DocsController(comps: ControllerComponents)
   def privacyPolicy = redirect("privacy")
 
   def redirect(path: String) = Action {
-    Redirect(FullUrl.https("docs.musicpimp.org", s"/$path/").url)
+    Redirect(FullUrl.https("docs.boat-tracker.com", s"/$path/").url)
   }
 }
