@@ -18,11 +18,11 @@ val deployDocs = taskKey[Unit]("Deploys documentation")
 
 parallelExecution in ThisBuild := false
 
-lazy val boatRoot = project.in(file("."))
+lazy val boat = project.in(file("."))
   .settings(commonSettings: _*)
   .aggregate(backend, frontend, agent, it, utils)
 
-lazy val backend = PlayProject.linux("boat", file("backend"))
+lazy val backend = PlayProject.linux("backend", file("backend"))
   .enablePlugins(WebScalaJSBundlerPlugin)
   .settings(backendSettings: _*)
   .dependsOn(crossJvm)

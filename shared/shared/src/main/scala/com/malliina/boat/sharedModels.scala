@@ -9,6 +9,15 @@ import scalatags.generic.Bundle
 
 import scala.concurrent.duration.Duration
 
+case class Bearing(bearing: Int)
+
+object Bearing {
+  val north = apply(0)
+  val east = apply(90)
+  val south = apply(180)
+  val west = apply(270)
+}
+
 /** Date and time in ISO8601 format. Not using java.time.* because scala.js does not support it fully.
   *
   * @param dateTime e.g. 2007-04-05T14:30Z

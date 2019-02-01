@@ -23,6 +23,8 @@ object MapView extends CookieNames {
     .map(_.trim.split("=").toList)
     .collect { case key :: value :: _ => key -> value }
     .toMap
+
+  def rotation(vesselHeading: Int, mapBearing: Double) = (360 + (vesselHeading - mapBearing.toInt)) % 360
 }
 
 class MapView(accessToken: AccessToken, language: Language) extends BaseFront {

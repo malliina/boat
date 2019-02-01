@@ -135,6 +135,18 @@ class MapboxMap(options: MapOptions) extends js.Object {
 
   def getCanvas(): HTMLCanvasElement = js.native
 
+  /** The bearing is the compass direction that is "up".
+    *
+    * <ul>
+    *   <li>A bearing of 90° orients the map so that east is up.</li>
+    *   <li>A bearing of -90° orients the map so that west is up.</li>
+    * </ul>
+    *
+    * @return Returns the map's current bearing.
+    * @see https://docs.mapbox.com/mapbox-gl-js/api/#map#getbearing
+    */
+  def getBearing(): Double = js.native
+
   def on(name: String, func: js.Function1[MapMouseEvent, Unit]): Unit = js.native
 
   def on(name: String, func: js.Function0[Unit]): Unit = js.native
@@ -147,6 +159,8 @@ class MapboxMap(options: MapOptions) extends js.Object {
 object MapboxMap {
 
   implicit class MapExt(val self: MapboxMap) extends AnyVal {
+    def bearing = self.getBearing()
+
     def putLayer(layer: Layer): Unit =
       self.addLayer(JSON.parse(Parsing.stringify(layer)))
 
@@ -191,6 +205,7 @@ object LngLatBounds {
     def extendWith(coord: Coord): LngLatBounds =
       self.extend(coord.toArray.toJSArray)
   }
+
 }
 
 @js.native
