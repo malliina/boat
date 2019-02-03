@@ -11,7 +11,7 @@ val utilPlayVersion = "5.0.0"
 val utilPlayDep = "com.malliina" %% "util-play" % utilPlayVersion
 val primitiveVersion = "1.8.1"
 val akkaVersion = "2.5.20"
-val akkaHttpVersion = "10.1.5"
+val akkaHttpVersion = "10.1.7"
 val buildAndUpload = taskKey[FullUrl]("Uploads to S3")
 val upFiles = taskKey[Seq[String]]("lists")
 val bootClasspath = taskKey[String]("bootClasspath")
@@ -91,8 +91,7 @@ val backend = PlayProject
       "org.flywaydb" % "flyway-core" % "5.2.4",
       "org.apache.commons" % "commons-text" % "1.6",
       "com.amazonaws" % "aws-java-sdk-s3" % "1.11.466",
-      "com.vladsch.flexmark" % "flexmark-html-parser" % "0.34.58",
-      "com.malliina" %% "logstreams-client" % "1.4.0",
+      "com.malliina" %% "logstreams-client" % "1.5.0",
       "com.malliina" %% "play-social" % utilPlayVersion,
       "com.malliina" %% "mobile-push" % "1.17.0",
       "com.typesafe.akka" %% "akka-slf4j" % akkaVersion,
