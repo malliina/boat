@@ -74,13 +74,11 @@ val frontend = project
   )
 
 val backend = PlayProject
-  .linux("backend", file("backend"))
+  .linux("boat", file("backend"))
   .enablePlugins(WebScalaJSBundlerPlugin)
   .dependsOn(crossJvm)
   .settings(commonSettings)
   .settings(
-    name in Linux := "boat",
-    packageName in Debian := "boat",
     unmanagedResourceDirectories in Compile += baseDirectory.value / "docs",
     libraryDependencies ++= Seq(
       //    "net.sf.marineapi" % "marineapi" % "0.13.0-SNAPSHOT",
@@ -228,7 +226,7 @@ val utils = project
     )
   )
 
-val boat = project
+val boatRoot = project
   .in(file("."))
   .settings(commonSettings)
   .aggregate(backend, frontend, agent, it, utils)
