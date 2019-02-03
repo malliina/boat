@@ -1,10 +1,10 @@
 package com.malliina.boat
 
-import com.malliina.values.{ErrorMessage, StringCompanion, ValidatingCompanion, Wrapped}
+import com.malliina.json.JsonEnumSet
+import com.malliina.values._
 import play.api.libs.json._
 
-case class MultiLineGeometry(`type`: String, coordinates: Seq[Seq[Coord]])
-  extends Geometry(MultiLineGeometry.Key) {
+case class MultiLineGeometry(`type`: String, coordinates: Seq[Seq[Coord]]) extends Geometry(MultiLineGeometry.Key) {
   override type Self = MultiLineGeometry
 
   override def updateCoords(coords: Seq[Coord]): MultiLineGeometry =
@@ -21,8 +21,7 @@ object MultiLineGeometry {
   implicit val json = Json.format[MultiLineGeometry]
 }
 
-case class LineGeometry(`type`: String, coordinates: Seq[Coord])
-  extends Geometry(LineGeometry.Key) {
+case class LineGeometry(`type`: String, coordinates: Seq[Coord]) extends Geometry(LineGeometry.Key) {
   type Self = LineGeometry
 
   override def updateCoords(coords: Seq[Coord]): LineGeometry =
@@ -39,8 +38,7 @@ object LineGeometry {
   def apply(coords: Seq[Coord]): LineGeometry = LineGeometry(Key, coords)
 }
 
-case class PointGeometry(`type`: String, coordinates: Coord)
-  extends Geometry(PointGeometry.Key) {
+case class PointGeometry(`type`: String, coordinates: Coord) extends Geometry(PointGeometry.Key) {
   type Self = PointGeometry
 
   override def updateCoords(coords: Seq[Coord]): PointGeometry =
@@ -97,20 +95,20 @@ object Geometry {
   val Type = "type"
   val all = Seq(LineGeometry, PointGeometry)
   implicit val writer = Writes[Geometry] {
-    case lg@LineGeometry(_, _) => Json.toJson(lg)
-    case mlg@MultiLineGeometry(_, _) => Json.toJson(mlg)
-    case pg@PointGeometry(_, _) => Json.toJson(pg)
-    case mp@MultiPolygon(_, _) => Json.toJson(mp)
-    case p@Polygon(_, _) => Json.toJson(p)
+    case lg @ LineGeometry(_, _)       => Json.toJson(lg)
+    case mlg @ MultiLineGeometry(_, _) => Json.toJson(mlg)
+    case pg @ PointGeometry(_, _)      => Json.toJson(pg)
+    case mp @ MultiPolygon(_, _)       => Json.toJson(mp)
+    case p @ Polygon(_, _)             => Json.toJson(p)
   }
   implicit val reader = Reads[Geometry] { json =>
     (json \ Geometry.Type).validate[String].flatMap {
-      case LineGeometry.Key => LineGeometry.json.reads(json)
+      case LineGeometry.Key      => LineGeometry.json.reads(json)
       case MultiLineGeometry.Key => MultiLineGeometry.json.reads(json)
-      case PointGeometry.Key => PointGeometry.json.reads(json)
-      case MultiPolygon.Key => MultiPolygon.json.reads(json)
-      case Polygon.Key => Polygon.json.reads(json)
-      case other => JsError(s"Unsupported geometry type '$other'. JSON was '$json'.")
+      case PointGeometry.Key     => PointGeometry.json.reads(json)
+      case MultiPolygon.Key      => MultiPolygon.json.reads(json)
+      case Polygon.Key           => Polygon.json.reads(json)
+      case other                 => JsError(s"Unsupported geometry type '$other'. JSON was '$json'.")
     }
   }
 }
@@ -123,10 +121,23 @@ object LineLayout {
   def round = LineLayout("round", "round")
 }
 
+sealed abstract class IconRotationAlignment(value: String) extends Wrapped(value)
+
+object IconRotationAlignment extends StringEnumCompanion[IconRotationAlignment] {
+  val all = Seq(Map, Viewport, Auto)
+
+  override def write(t: IconRotationAlignment) = t.value
+
+  case object Map extends IconRotationAlignment("map")
+  case object Viewport extends IconRotationAlignment("viewport")
+  case object Auto extends IconRotationAlignment("auto")
+}
+
 case class ImageLayout(`icon-image`: String,
                        `icon-size`: Int,
-                       `icon-rotate`: Option[Seq[String]] = None)
-  extends Layout
+                       `icon-rotate`: Option[Seq[String]] = None,
+                       `icon-rotation-alignment`: IconRotationAlignment = IconRotationAlignment.Map)
+    extends Layout
 
 object ImageLayout {
   implicit val json = Json.format[ImageLayout]
@@ -138,8 +149,12 @@ case class OtherLayout(data: JsObject) extends Layout
 
 object OtherLayout {
   implicit val json = Format[OtherLayout](
-    Reads[OtherLayout] { json => json.validate[JsObject].map(apply) },
-    Writes[OtherLayout] { l => Json.toJson(l.data) }
+    Reads[OtherLayout] { json =>
+      json.validate[JsObject].map(apply)
+    },
+    Writes[OtherLayout] { l =>
+      Json.toJson(l.data)
+    }
   )
 }
 
@@ -147,14 +162,15 @@ sealed trait Layout
 
 object Layout {
   implicit val reader = Reads[Layout] { json =>
-    LineLayout.json.reads(json)
+    LineLayout.json
+      .reads(json)
       .orElse(ImageLayout.json.reads(json))
       .orElse(OtherLayout.json.reads(json))
   }
   implicit val writer = Writes[Layout] {
-    case ll@LineLayout(_, _) => Json.toJson(ll)
-    case il@ImageLayout(_, _, _) => Json.toJson(il)
-    case OtherLayout(data) => data
+    case ll @ LineLayout(_, _)        => Json.toJson(ll)
+    case il @ ImageLayout(_, _, _, _) => Json.toJson(il)
+    case OtherLayout(data)            => data
   }
 }
 
@@ -164,10 +180,8 @@ object CirclePaint {
   implicit val json = Json.format[CirclePaint]
 }
 
-case class LinePaint(`line-color`: String,
-                     `line-width`: Int,
-                     `line-opacity`: Double,
-                     `line-gap-width`: Double = 0) extends BasePaint
+case class LinePaint(`line-color`: String, `line-width`: Int, `line-opacity`: Double, `line-gap-width`: Double = 0)
+    extends BasePaint
 
 object LinePaint {
   implicit val json = Json.format[LinePaint]
@@ -183,14 +197,15 @@ sealed trait BasePaint
 
 object BasePaint {
   implicit val reader = Reads[BasePaint] { json =>
-    LinePaint.json.reads(json)
+    LinePaint.json
+      .reads(json)
       .orElse(CirclePaint.json.reads(json))
       .orElse(json.validate[JsObject].map(OtherPaint.apply))
   }
   implicit val writer = Writes[BasePaint] {
-    case lp@LinePaint(_, _, _, _) => Json.toJson(lp)
-    case cp@CirclePaint(_, _) => Json.toJson(cp)
-    case OtherPaint(data) => data
+    case lp @ LinePaint(_, _, _, _) => Json.toJson(lp)
+    case cp @ CirclePaint(_, _)     => Json.toJson(cp)
+    case OtherPaint(data)           => data
   }
 }
 
@@ -203,41 +218,34 @@ object LayerType extends ValidatingCompanion[String, LayerType] {
   val all = Seq(Background, Fill, Line, Symbol, Raster, Circle, FillExtrusion, HeatMap, HillShade)
 
   override def build(input: String): Either[ErrorMessage, LayerType] =
-    all.find(_.name.toLowerCase == input.toLowerCase)
+    all
+      .find(_.name.toLowerCase == input.toLowerCase)
       .toRight(ErrorMessage(s"Unknown layer type: '$input'."))
 
   override def write(t: LayerType): String = t.name
 
   case object Background extends LayerType("background")
-
   case object Fill extends LayerType("fill")
-
   case object Line extends LayerType("line")
-
   case object Symbol extends LayerType("symbol")
-
   case object Raster extends LayerType("raster")
-
   case object Circle extends LayerType("circle")
-
   case object FillExtrusion extends LayerType("fill-extrusion")
-
   case object HeatMap extends LayerType("heatmap")
-
   case object HillShade extends LayerType("hillshade")
-
 }
 
 sealed trait LayerSource
 
 object LayerSource {
   val reader = Reads[LayerSource] { json =>
-    StringLayerSource.json.reads(json)
+    StringLayerSource.json
+      .reads(json)
       .orElse(InlineLayerSource.json.reads(json))
   }
   val writer = Writes[LayerSource] {
-    case sls@StringLayerSource(_) => StringLayerSource.json.writes(sls)
-    case ils@InlineLayerSource(_, _) => InlineLayerSource.json.writes(ils)
+    case sls @ StringLayerSource(_)    => StringLayerSource.json.writes(sls)
+    case ils @ InlineLayerSource(_, _) => InlineLayerSource.json.writes(ils)
   }
   implicit val json = Format[LayerSource](reader, writer)
 }
@@ -256,26 +264,29 @@ case class Layer(id: String,
 object Layer {
   implicit val json = Json.format[Layer]
 
-  def line(id: String,
-           data: FeatureCollection,
-           paint: LinePaint = LinePaint.thin(),
-           minzoom: Option[Double] = None) =
+  def line(id: String, data: FeatureCollection, paint: LinePaint = LinePaint.thin(), minzoom: Option[Double] = None) =
     Layer(
-      id, LayerType.Line, InlineLayerSource(data),
-      Option(LineLayout.round), Option(paint), minzoom
+      id,
+      LayerType.Line,
+      InlineLayerSource(data),
+      Option(LineLayout.round),
+      Option(paint),
+      minzoom
     )
 
   def symbol(id: String, data: FeatureCollection, layout: ImageLayout) =
     Layer(
-      id, LayerType.Symbol, InlineLayerSource(data),
-      Option(layout), None, None, None
+      id,
+      LayerType.Symbol,
+      InlineLayerSource(data),
+      Option(layout),
+      None,
+      None,
+      None
     )
 }
 
-case class Feature(`type`: String,
-                   geometry: Geometry,
-                   properties: Map[String, JsValue],
-                   layer: Option[Layer]) {
+case class Feature(`type`: String, geometry: Geometry, properties: Map[String, JsValue], layer: Option[Layer]) {
   def addCoords(coords: Seq[Coord]): Feature = copy(
     geometry = geometry.updateCoords(coords)
   )
@@ -324,7 +335,7 @@ object InlineLayerSource {
   implicit val json: OFormat[InlineLayerSource] = (
     (JsPath \ "type").format[String] and
       (JsPath \ "data").lazyFormat[FeatureCollection](FeatureCollection.json)
-    ) (InlineLayerSource.apply, unlift(InlineLayerSource.unapply))
+  )(InlineLayerSource.apply, unlift(InlineLayerSource.unapply))
 
   def apply(data: FeatureCollection): InlineLayerSource =
     InlineLayerSource("geojson", data)
@@ -333,11 +344,7 @@ object InlineLayerSource {
 sealed trait Outcome
 
 object Outcome {
-
   case object Added extends Outcome
-
   case object Updated extends Outcome
-
   case object Noop extends Outcome
-
 }

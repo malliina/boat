@@ -5,10 +5,14 @@ import com.malliina.measure.{Distance, DistanceDouble}
 import play.api.libs.json._
 
 object MaritimeJson {
-  val meters = Reads[Distance] { json => json.validate[Double].map(_.meters) }
+  val meters = Reads[Distance] { json =>
+    json.validate[Double].map(_.meters)
+  }
 
   def intReader[T](onError: JsValue => String)(pf: PartialFunction[Int, T]): Reads[T] =
-    Reads[T] { json => json.validate[Int].collect(JsonValidationError(onError(json)))(pf) }
+    Reads[T] { json =>
+      json.validate[Int].collect(JsonValidationError(onError(json)))(pf)
+    }
 }
 
 /** A Translateable typeclass is maybe a more appropriate abstraction. Can it be done compactly?
@@ -24,7 +28,7 @@ sealed trait Translated {
     case Lang.Finnish => fi
     case Lang.Swedish => se
     case Lang.English => en
-    case _ => en
+    case _            => en
   }
 }
 
@@ -36,38 +40,28 @@ sealed abstract class NavMark(val fi: String, val se: String, val en: String) ex
 object NavMark {
 
   case object Unknown extends NavMark("Tuntematon", "Okänd", "Unknown")
-
   case object Left extends NavMark("Vasen", "Vänster", "Left")
-
   case object Right extends NavMark("Oikea", "Höger", "Right")
-
   case object North extends NavMark("Pohjois", "Nord", "North")
-
   case object South extends NavMark("Etelä", "Söder", "South")
-
   case object West extends NavMark("Länsi", "Väster", "West")
-
   case object East extends NavMark("Itä", "Ost", "East")
-
   case object Rock extends NavMark("Karimerkki", "Grund", "Rocks")
-
   case object SafeWaters extends NavMark("Turvavesimerkki", "Mittledsmärke", "Safe water")
-
   case object Special extends NavMark("Erikoismerkki", "Specialmärke", "Special mark")
-
   case object NotApplicable extends NavMark("Ei sovellettavissa", "Inte tillämpbar", "Not applicable")
 
   implicit val reader: Reads[NavMark] = intReader(json => s"Unknown mark type: '$json'.") {
-    case 0 => Unknown
-    case 1 => Left
-    case 2 => Right
-    case 3 => North
-    case 4 => South
-    case 5 => West
-    case 6 => East
-    case 7 => Rock
-    case 8 => SafeWaters
-    case 9 => Special
+    case 0  => Unknown
+    case 1  => Left
+    case 2  => Right
+    case 3  => North
+    case 4  => South
+    case 5  => West
+    case 6  => East
+    case 7  => Rock
+    case 8  => SafeWaters
+    case 9  => Special
     case 99 => NotApplicable
   }
 }
@@ -80,54 +74,37 @@ sealed abstract class ConstructionInfo(val fi: String, val se: String, val en: S
 object ConstructionInfo {
 
   case object BuoyBeacon extends ConstructionInfo("Poijuviitta", "Bojprick", "Buoy beacon")
-
   case object IceBuoy extends ConstructionInfo("Jääpoiju", "Isboj", "Ice buoy")
-
   case object BeaconBuoy extends ConstructionInfo("Viittapoiju", "Prickboj", "Beacon buoy")
-
   case object SuperBeacon extends ConstructionInfo("Suurviitta", "Storprick", "Super beacon")
-
   case object ExteriorLight extends ConstructionInfo("Fasadivalo", "Ljus", "Exterior light")
-
   case object DayBoard extends ConstructionInfo("Levykummeli", "Panelkummel", "Dayboard")
-
-  case object HelicopterPlatform extends ConstructionInfo("Helikopteritasanne", "Helikopterplatform", "Helicopter platform")
-
+  case object HelicopterPlatform
+      extends ConstructionInfo("Helikopteritasanne", "Helikopterplatform", "Helicopter platform")
   case object RadioMast extends ConstructionInfo("Radiomasto", "Radiomast", "Radio mast")
-
   case object WaterTower extends ConstructionInfo("Vesitorni", "Vattentorn", "Water tower")
-
   case object SmokePipe extends ConstructionInfo("Savupiippu", "Skorsten", "Chimney")
-
   case object RadarTower extends ConstructionInfo("Tutkatorni", "Radartorn", "Radar tower")
-
   case object ChurchTower extends ConstructionInfo("Kirkontorni", "Kyrkotorn", "Church tower")
-
   case object SuperBuoy extends ConstructionInfo("Suurpoiju", "Storboj", "Super buoy")
-
   case object EdgeCairn extends ConstructionInfo("Reunakummeli", "Randkummel", "Edge cairn")
-
   case object CompassCheck extends ConstructionInfo("Kompassintarkistuspaikka", "Kompassplats", "Compass check")
-
   case object BorderMark extends ConstructionInfo("Rajamerkki", "Gränsmärke", "Border mark")
-
   // rajalinjamerkki
   case object BorderLineMark extends ConstructionInfo("Rajalinjamerkki", "Gränslinjemärke", "Border line mark")
-
   // kanavan reunavalo
   case object ChannelEdgeLight extends ConstructionInfo("Kanavan reunavalo", "Kanalens randljus", "Channel edge light")
-
   case object Tower extends ConstructionInfo("Torni", "Torn", "Tower")
 
   implicit val reader: Reads[ConstructionInfo] = intReader(json => s"Unknown construction type: '$json'.") {
-    case 1 => BuoyBeacon
-    case 2 => IceBuoy
-    case 4 => BeaconBuoy
-    case 5 => SuperBeacon
-    case 6 => ExteriorLight
-    case 7 => DayBoard
-    case 8 => HelicopterPlatform
-    case 9 => RadioMast
+    case 1  => BuoyBeacon
+    case 2  => IceBuoy
+    case 4  => BeaconBuoy
+    case 5  => SuperBeacon
+    case 6  => ExteriorLight
+    case 7  => DayBoard
+    case 8  => HelicopterPlatform
+    case 9  => RadioMast
     case 10 => WaterTower
     case 11 => SmokePipe
     case 12 => RadarTower
@@ -150,42 +127,30 @@ sealed abstract class AidType(val fi: String, val se: String, val en: String) ex
 object AidType {
 
   case object Unknown extends AidType("Tuntematon", "Okänd", "Unknown")
-
   case object Lighthouse extends AidType("Merimajakka", "Havsfyr", "Lighthouse")
-
   case object SectorLight extends AidType("Sektoriloisto", "Sektorfyr", "Sector light")
-
   case object LeadingMark extends AidType("Linjamerkki", "Ensmärke", "Leading mark")
-
   case object DirectionalLight extends AidType("Suuntaloisto", "Riktning", "Directional light")
-
   case object MinorLight extends AidType("Apuloisto", "Hjälpfyr", "Minor light")
-
   case object OtherMark extends AidType("Muu merkki", "Annat märke", "Other mark")
-
   case object EdgeMark extends AidType("Reunamerkki", "Randmärke", "Edge mark")
-
   case object RadarTarget extends AidType("Tutkamerkki", "Radarmärke", "Radar target")
-
   case object Buoy extends AidType("Poiju", "Boj", "Buoy")
-
   case object Beacon extends AidType("Viitta", "Prick", "Beacon")
-
   case object SignatureLighthouse extends AidType("Tunnusmajakka", "Båk", "Signature lighthouse")
-
   case object Cairn extends AidType("Kummeli", "Kummel", "Cairn")
 
   implicit val reads: Reads[AidType] = intReader[AidType](json => s"Unknown aid type: '$json'.") {
-    case 0 => Unknown
-    case 1 => Lighthouse
-    case 2 => SectorLight
-    case 3 => LeadingMark
-    case 4 => DirectionalLight
-    case 5 => MinorLight
-    case 6 => OtherMark
-    case 7 => EdgeMark
-    case 8 => RadarTarget
-    case 9 => Buoy
+    case 0  => Unknown
+    case 1  => Lighthouse
+    case 2  => SectorLight
+    case 3  => LeadingMark
+    case 4  => DirectionalLight
+    case 5  => MinorLight
+    case 6  => OtherMark
+    case 7  => EdgeMark
+    case 8  => RadarTarget
+    case 9  => Buoy
     case 10 => Beacon
     case 11 => SignatureLighthouse
     case 13 => Cairn
@@ -196,11 +161,8 @@ object AidType {
 sealed abstract class Flotation(val fi: String, val se: String, val en: String) extends Translated
 
 object Flotation {
-
   case object Floating extends Flotation("Kelluva", "Flytande", "Floating")
-
   case object Solid extends Flotation("Kiinteä", "Fast", "Solid")
-
   case class Other(name: String) extends Flotation("Muu", "Annan", "Other")
 
   implicit val reader: Reads[Flotation] = Reads[Flotation] { json =>
@@ -208,7 +170,7 @@ object Flotation {
       case "KELLUVA" => Floating
       // not a typo
       case "KIINTE" => Solid
-      case other => Other(other)
+      case other    => Other(other)
     }
   }
 }
@@ -221,10 +183,10 @@ trait Owned {
     */
   def ownerName(lang: Lang): String = owner match {
     case Lang.Finnish.transportAgency => lang.transportAgency
-    case Lang.Finnish.defenceForces => lang.defenceForces
-    case Lang.Finnish.portOfHelsinki => lang.portOfHelsinki
-    case Lang.Finnish.cityOfEspoo => lang.cityOfEspoo
-    case _ => owner
+    case Lang.Finnish.defenceForces   => lang.defenceForces
+    case Lang.Finnish.portOfHelsinki  => lang.portOfHelsinki
+    case Lang.Finnish.cityOfEspoo     => lang.cityOfEspoo
+    case _                            => owner
   }
 }
 
@@ -256,7 +218,9 @@ case class MarineSymbol(owner: String,
                         lit: Boolean,
                         aidType: AidType,
                         navMark: NavMark,
-                        construction: Option[ConstructionInfo]) extends SymbolLike with Owned
+                        construction: Option[ConstructionInfo])
+    extends SymbolLike
+    with Owned
 
 /**
   * @see Vesiväyläaineistojen tietosisällön kuvaus
@@ -265,15 +229,15 @@ case class MarineSymbol(owner: String,
 object MarineSymbol {
   val boolNum = Reads[Boolean] { json =>
     json.validate[Int].flatMap {
-      case 0 => JsSuccess(false)
-      case 1 => JsSuccess(true)
+      case 0     => JsSuccess(false)
+      case 1     => JsSuccess(true)
       case other => JsError(s"Unexpected integer, must be 1 or 0: '$other'.")
     }
   }
   val boolString = Reads[Boolean] { json =>
     json.validate[String].flatMap {
-      case "K" => JsSuccess(true)
-      case "E" => JsSuccess(false)
+      case "K"   => JsSuccess(true)
+      case "E"   => JsSuccess(false)
       case other => JsError(s"Unexpected string, must be K or E: '$other'.")
     }
   }
@@ -298,9 +262,19 @@ object MarineSymbol {
       construction <- (json \ "RAKT_TYYP").validateOpt[ConstructionInfo]
     } yield {
       MarineSymbol(
-        owner, fasadi, topSign, nameFi, nameSe,
-        locationFi, locationSe, flotation, state,
-        lit, aidType, navMark, construction
+        owner,
+        fasadi,
+        topSign,
+        nameFi,
+        nameSe,
+        locationFi,
+        locationSe,
+        flotation,
+        state,
+        lit,
+        aidType,
+        navMark,
+        construction
       )
     }
   }
@@ -311,7 +285,9 @@ case class MinimalMarineSymbol(owner: String,
                                nameSe: Option[String],
                                locationFi: Option[String],
                                locationSe: Option[String],
-                               influence: ZoneOfInfluence) extends SymbolLike with Owned
+                               influence: ZoneOfInfluence)
+    extends SymbolLike
+    with Owned
 
 object MinimalMarineSymbol {
   val nonEmpty = MarineSymbol.nonEmpty
@@ -348,7 +324,8 @@ object QualityClass {
 
   implicit val reader = Reads[QualityClass] { json =>
     json.validate[Int].flatMap { i =>
-      all.find(_.value == i)
+      all
+        .find(_.value == i)
         .map(JsSuccess(_))
         .getOrElse(JsError(s"Invalid quality class: '$i'."))
     }
@@ -368,15 +345,15 @@ sealed abstract class FairwayType(val fi: String, val se: String, val en: String
 
 object FairwayType {
   implicit val reader: Reads[FairwayType] = intReader[FairwayType](json => s"Unknown fairway type: '$json'.") {
-    case 1 => Navigation
-    case 2 => Anchoring
-    case 3 => Meetup
-    case 4 => HarborPool
-    case 5 => Turn
-    case 6 => Channel
-    case 7 => CoastTraffic
-    case 8 => Core
-    case 9 => Special
+    case 1  => Navigation
+    case 2  => Anchoring
+    case 3  => Meetup
+    case 4  => HarborPool
+    case 5  => Turn
+    case 6  => Channel
+    case 7  => CoastTraffic
+    case 8  => Core
+    case 9  => Special
     case 10 => Lock
     case 11 => ConfirmedExtra
     case 12 => Helcom
@@ -469,7 +446,8 @@ case class FairwayArea(owner: String,
                        harrowDepth: Distance,
                        comparisonLevel: String,
                        state: FairwayState,
-                       markType: Option[MarkType]) extends Owned
+                       markType: Option[MarkType])
+    extends Owned
 
 object FairwayArea {
   implicit val reader: Reads[FairwayArea] = Reads[FairwayArea] { json =>
@@ -491,9 +469,9 @@ sealed abstract class ZoneOfInfluence(val fi: String, val se: String, val en: St
 object ZoneOfInfluence {
   implicit val reader: Reads[ZoneOfInfluence] = Reads[ZoneOfInfluence] { json =>
     json.validate[String].flatMap {
-      case "A" => JsSuccess(Area)
-      case "V" => JsSuccess(Fairway)
-      case "AV" => JsSuccess(AreaAndFairway)
+      case "A"   => JsSuccess(Area)
+      case "V"   => JsSuccess(Fairway)
+      case "AV"  => JsSuccess(AreaAndFairway)
       case other => JsError(s"Unexpected zone of influence: '$other'.")
     }
   }

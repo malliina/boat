@@ -251,7 +251,7 @@ trait GeoJsonSource extends js.Object {
 
 object GeoJsonSource {
 
-  implicit class GeoJsonSourceOps(val source: GeoJsonSource) extends AnyVal {
+  implicit class GeoJsonSourceExt(val source: GeoJsonSource) extends AnyVal {
 
     def updateData(data: FeatureCollection): Unit =
       source.setData(Parsing.toJson(data))

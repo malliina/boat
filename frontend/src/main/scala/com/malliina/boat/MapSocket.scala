@@ -162,7 +162,7 @@ class MapSocket(val map: MapboxMap,
         // updates bearing
         newTrack.features.flatMap(_.geometry.coords).takeRight(2).toList match {
           case prev :: last :: _ =>
-            map.setLayoutProperty(point, ImageLayout.IconRotate, MapView.rotation(bearing(prev, last).toInt, map.bearing.toInt))
+            map.setLayoutProperty(point, ImageLayout.IconRotate, bearing(prev, last).toInt)
           case _ =>
             ()
         }

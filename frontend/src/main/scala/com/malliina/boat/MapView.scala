@@ -24,10 +24,10 @@ object MapView extends CookieNames {
     .collect { case key :: value :: _ => key -> value }
     .toMap
 
-  def rotation(vesselHeading: Int, mapBearing: Double) = (360 + (vesselHeading - mapBearing.toInt)) % 360
+//  def rotation(vesselHeading: Int, mapBearing: Double) = (360 + (vesselHeading - mapBearing.toInt)) % 360
 }
 
-class MapView(accessToken: AccessToken, language: Language) extends BaseFront {
+class MapView(accessToken: AccessToken, language: Language, val log: BaseLogger = BaseLogger.console) extends BaseFront {
   mapboxGl.accessToken = accessToken.token
   val mapOptions = MapOptions(
     container = MapId,

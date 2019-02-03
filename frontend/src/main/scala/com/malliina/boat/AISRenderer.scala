@@ -28,7 +28,7 @@ class AISRenderer(val map: MapboxMap, val log: BaseLogger = BaseLogger.console)
     vessels.values.flatMap(_.headOption).map { v =>
       val heading = v.heading.getOrElse(v.cog.toInt)
 //      log.info(s"Heading $heading bearing ${map.bearing.toInt} rotation $bearing")
-      Feature.point(v.coord, VesselProps(v.mmsi, v.name, MapView.rotation(heading, map.bearing.toInt)))
+      Feature.point(v.coord, VesselProps(v.mmsi, v.name, heading))
     }.toList
   )
 

@@ -34,7 +34,6 @@ object BoatHtml {
 }
 
 class BoatHtml(jsFiles: Seq[String]) extends Tags(scalatags.Text) {
-  val defer = attr("defer").empty
   val reverse = routes.BoatController
   val reverseApp = routes.AppController
   val mapboxVersion = "0.52.0"
