@@ -79,6 +79,8 @@ val backend = PlayProject
   .dependsOn(crossJvm)
   .settings(commonSettings)
   .settings(
+    name in Linux := "boat",
+    packageName in Debian := "boat",
     unmanagedResourceDirectories in Compile += baseDirectory.value / "docs",
     libraryDependencies ++= Seq(
       //    "net.sf.marineapi" % "marineapi" % "0.13.0-SNAPSHOT",
