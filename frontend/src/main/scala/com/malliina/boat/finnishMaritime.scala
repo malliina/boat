@@ -250,8 +250,8 @@ object MarineSymbol {
       owner <- (json \ "OMISTAJA").validate[String]
       topSign <- (json \ "HUIPPUMERK").validate[Boolean](boolNum)
       fasadi <- (json \ "FASADIVALO").validate[Boolean](boolNum)
-      nameFi <- (json \ "NIMIR").validate[Option[String]](nonEmpty)
-      nameSe <- (json \ "NIMIS").validate[Option[String]](nonEmpty)
+      nameFi <- (json \ "NIMIS").validate[Option[String]](nonEmpty)
+      nameSe <- (json \ "NIMIR").validate[Option[String]](nonEmpty)
       locationFi <- (json \ "SIJAINTIS").validate[Option[String]](nonEmpty)
       locationSe <- (json \ "SIJAINTIR").validate[Option[String]](nonEmpty)
       flotation <- (json \ "SUBTYPE").validate[Flotation]
