@@ -155,7 +155,8 @@ case class MarkLang(markType: String,
                     navigation: String,
                     construction: String,
                     influence: String,
-                    location: String)
+                    location: String,
+                    owner: String)
 
 object MarkLang {
   implicit val json = Json.format[MarkLang]
@@ -228,7 +229,8 @@ object Lang {
       navigation = "Navigation",
       construction = "Structure",
       influence = "Area",
-      location = "Location"
+      location = "Location",
+      owner = "Owner"
     ),
     ais = AisLang(
       draft = "Draft",
@@ -272,7 +274,8 @@ object Lang {
       navigation = "Navigointi",
       construction = "Rakenne",
       influence = "Vaikutusalue",
-      location = "Sijainti"
+      location = "Sijainti",
+      owner = "Omistaja"
     ),
     ais = AisLang(
       draft = "Syväys",
@@ -316,7 +319,8 @@ object Lang {
       navigation = "Navigering",
       construction = "Struktur",
       influence = "Område",
-      location = "Plats"
+      location = "Plats",
+      owner = "Ägare"
     ),
     ais = AisLang(
       draft = "Djupgående",
