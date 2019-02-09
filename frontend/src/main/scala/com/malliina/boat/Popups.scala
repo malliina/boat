@@ -9,22 +9,27 @@ object Popups {
 
 class Popups(lang: Lang) extends BoatModels {
   val empty = modifier()
+  val trackLang = lang.track
+  val markLang = lang.mark
+  val fairwayLang = lang.fairway
+  val aisLang = lang.ais
+  val specialWords = lang.specialWords
 
   def track(c: TimedCoord, from: TrackRef) =
     titledTable(from.boatName.name)(
-      row(lang.speed, formatSpeed(c.speed)),
-      row(lang.water, c.waterTemp.formatCelsius),
-      row(lang.depth, c.depth.short),
+      row(trackLang.speed, formatSpeed(c.speed)),
+      row(trackLang.water, c.waterTemp.formatCelsius),
+      row(trackLang.depth, c.depth.short),
       tr(td(colspan := 2)(c.boatTime.dateTime))
     )
 
   def ais(vessel: VesselInfo) = {
     val unknownShip = vessel.shipType.isInstanceOf[ShipType.Unknown]
     titledTable(vessel.name)(
-      vessel.destination.fold(empty)(d => row(lang.destination, d)),
-      if (!unknownShip) row(lang.shipType, vessel.shipType.name(lang.shipTypes)) else empty,
-      row(lang.speed, formatSpeed(vessel.sog)),
-      row(lang.draft, formatDistance(vessel.draft)),
+      vessel.destination.fold(empty)(d => row(aisLang.destination, d)),
+      if (!unknownShip) row(aisLang.shipType, vessel.shipType.name(lang.shipTypes)) else empty,
+      row(trackLang.speed, formatSpeed(vessel.sog)),
+      row(aisLang.draft, formatDistance(vessel.draft)),
       row(lang.time, vessel.timestampFormatted)
       // row(lang.duration, vessel.eta)
     )
@@ -35,34 +40,34 @@ class Popups(lang: Lang) extends BoatModels {
   def formatDistance(d: DistanceM) = "%.1f m".format(d.toMeters)
 
   def mark(symbol: MarineSymbol) =
-    titledTable(symbol.ownerName(lang))(
-      row(lang.`type`, symbol.aidType.in(lang)),
-      symbol.construction.fold(empty)(c => row(lang.construction, c.in(lang))),
+    titledTable(symbol.ownerName(specialWords))(
+      row(markLang.aidType, symbol.aidType.in(lang)),
+      symbol.construction.fold(empty)(c => row(markLang.construction, c.in(lang))),
       if (symbol.navMark == NavMark.NotApplicable) empty
-      else row(lang.navigation, symbol.navMark.in(lang)),
+      else row(markLang.navigation, symbol.navMark.in(lang)),
       symbol.name(lang).fold(empty)(n => row(lang.name, n)),
-      symbol.location(lang).fold(empty)(l => row(lang.location, l))
+      symbol.location(lang).fold(empty)(l => row(markLang.location, l))
     )
 
   def minimalMark(symbol: MinimalMarineSymbol) =
-    titledTable(symbol.ownerName(lang))(
+    titledTable(symbol.ownerName(specialWords))(
       symbol.name(lang).fold(empty)(n => row(lang.name, n)),
-      symbol.location(lang).fold(empty)(l => row(lang.location, l)),
-      row(lang.influence, symbol.influence.in(lang))
+      symbol.location(lang).fold(empty)(l => row(markLang.location, l)),
+      row(markLang.influence, symbol.influence.in(lang))
     )
 
   def fairway(fairway: FairwayArea) =
-    titledTable(fairway.ownerName(lang))(
-      row(lang.fairwayType, fairway.fairwayType.in(lang)),
-      row(lang.fairwayDepth, asMeters(fairway.fairwayDepth)),
-      row(lang.harrowDepth, asMeters(fairway.harrowDepth)),
-      fairway.markType.fold(empty)(markType => row(lang.markType, markType.in(lang)))
+    titledTable(fairway.ownerName(specialWords))(
+      row(fairwayLang.fairwayType, fairway.fairwayType.in(lang)),
+      row(fairwayLang.fairwayDepth, asMeters(fairway.fairwayDepth)),
+      row(fairwayLang.harrowDepth, asMeters(fairway.harrowDepth)),
+      fairway.markType.fold(empty)(markType => row(markLang.markType, markType.in(lang)))
     )
 
   def depthArea(depthArea: DepthArea) =
     popupTable(
-      row(lang.minDepth, asMeters(depthArea.minDepth)),
-      row(lang.maxDepth, asMeters(depthArea.maxDepth))
+      row(fairwayLang.minDepth, asMeters(depthArea.minDepth)),
+      row(fairwayLang.maxDepth, asMeters(depthArea.maxDepth))
     )
 
   private def asMeters(d: Distance) = {

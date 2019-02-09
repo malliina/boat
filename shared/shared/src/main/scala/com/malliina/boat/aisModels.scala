@@ -12,30 +12,33 @@ import scala.concurrent.duration.{Duration, DurationLong}
   * @see https://help.marinetraffic.com/hc/en-us/articles/205579997-What-is-the-significance-of-the-AIS-Shiptype-number-
   */
 sealed abstract class ShipType(val code: Int) {
-  def name(lang: ShipTypesLang): String = this match {
-    case WingInGround(_) => lang.wingInGround
-    case SearchAndRescueAircraft => lang.searchAndRescueAircraft
-    case Fishing => lang.fishing
-    case Tug(_) => lang.tug
-    case Dredger => lang.dredger
-    case DiveVessel => lang.diveVessel
-    case MilitaryOps => lang.militaryOps
-    case Sailing => lang.sailing
-    case PleasureCraft => lang.pleasureCraft
-    case HighSpeedCraft(_) => lang.highSpeedCraft
-    case PilotVessel => lang.pilotVessel
-    case SearchAndRescue => lang.searchAndRescue
-    case PortTender => lang.portTender
-    case AntiPollution => lang.antiPollution
-    case LawEnforce => lang.lawEnforce
-    case LocalVessel(_) => lang.localVessel
-    case MedicalTransport => lang.medicalTransport
-    case SpecialCraft => lang.specialCraft
-    case Passenger(_) => lang.passenger
-    case Cargo(_) => lang.cargo
-    case Tanker(_) => lang.tanker
-    case Other(_) => lang.other
-    case Unknown(_) => lang.unknown
+  def name(lang: ShipTypesLang): String = {
+    val special = lang.special
+    this match {
+      case WingInGround(_) => lang.wingInGround
+      case SearchAndRescueAircraft => lang.searchAndRescueAircraft
+      case Fishing => special.fishing
+      case Tug(_) => special.tug
+      case Dredger => special.dredger
+      case DiveVessel => special.diveVessel
+      case MilitaryOps => special.militaryOps
+      case Sailing => special.sailing
+      case PleasureCraft => special.pleasureCraft
+      case HighSpeedCraft(_) => lang.highSpeedCraft
+      case PilotVessel => lang.pilotVessel
+      case SearchAndRescue => lang.searchAndRescue
+      case PortTender => lang.portTender
+      case AntiPollution => lang.antiPollution
+      case LawEnforce => lang.lawEnforce
+      case LocalVessel(_) => lang.localVessel
+      case MedicalTransport => lang.medicalTransport
+      case SpecialCraft => lang.specialCraft
+      case Passenger(_) => lang.passenger
+      case Cargo(_) => lang.cargo
+      case Tanker(_) => lang.tanker
+      case Other(_) => lang.other
+      case Unknown(_) => lang.unknown
+    }
   }
 }
 

@@ -49,7 +49,8 @@ object NavMark {
   case object Rock extends NavMark("Karimerkki", "Grund", "Rocks")
   case object SafeWaters extends NavMark("Turvavesimerkki", "Mittledsmärke", "Safe water")
   case object Special extends NavMark("Erikoismerkki", "Specialmärke", "Special mark")
-  case object NotApplicable extends NavMark("Ei sovellettavissa", "Inte tillämpbar", "Not applicable")
+  case object NotApplicable
+      extends NavMark("Ei sovellettavissa", "Inte tillämpbar", "Not applicable")
 
   implicit val reader: Reads[NavMark] = intReader(json => s"Unknown mark type: '$json'.") {
     case 0  => Unknown
@@ -69,7 +70,8 @@ object NavMark {
 /**
   * Rakennetieto (RAKT_TYYP)
   */
-sealed abstract class ConstructionInfo(val fi: String, val se: String, val en: String) extends Translated
+sealed abstract class ConstructionInfo(val fi: String, val se: String, val en: String)
+    extends Translated
 
 object ConstructionInfo {
 
@@ -88,35 +90,39 @@ object ConstructionInfo {
   case object ChurchTower extends ConstructionInfo("Kirkontorni", "Kyrkotorn", "Church tower")
   case object SuperBuoy extends ConstructionInfo("Suurpoiju", "Storboj", "Super buoy")
   case object EdgeCairn extends ConstructionInfo("Reunakummeli", "Randkummel", "Edge cairn")
-  case object CompassCheck extends ConstructionInfo("Kompassintarkistuspaikka", "Kompassplats", "Compass check")
+  case object CompassCheck
+      extends ConstructionInfo("Kompassintarkistuspaikka", "Kompassplats", "Compass check")
   case object BorderMark extends ConstructionInfo("Rajamerkki", "Gränsmärke", "Border mark")
   // rajalinjamerkki
-  case object BorderLineMark extends ConstructionInfo("Rajalinjamerkki", "Gränslinjemärke", "Border line mark")
+  case object BorderLineMark
+      extends ConstructionInfo("Rajalinjamerkki", "Gränslinjemärke", "Border line mark")
   // kanavan reunavalo
-  case object ChannelEdgeLight extends ConstructionInfo("Kanavan reunavalo", "Kanalens randljus", "Channel edge light")
+  case object ChannelEdgeLight
+      extends ConstructionInfo("Kanavan reunavalo", "Kanalens randljus", "Channel edge light")
   case object Tower extends ConstructionInfo("Torni", "Torn", "Tower")
 
-  implicit val reader: Reads[ConstructionInfo] = intReader(json => s"Unknown construction type: '$json'.") {
-    case 1  => BuoyBeacon
-    case 2  => IceBuoy
-    case 4  => BeaconBuoy
-    case 5  => SuperBeacon
-    case 6  => ExteriorLight
-    case 7  => DayBoard
-    case 8  => HelicopterPlatform
-    case 9  => RadioMast
-    case 10 => WaterTower
-    case 11 => SmokePipe
-    case 12 => RadarTower
-    case 13 => ChurchTower
-    case 14 => SuperBuoy
-    case 15 => EdgeCairn
-    case 16 => CompassCheck
-    case 17 => BorderMark
-    case 18 => BorderLineMark
-    case 19 => ChannelEdgeLight
-    case 20 => Tower
-  }
+  implicit val reader: Reads[ConstructionInfo] =
+    intReader(json => s"Unknown construction type: '$json'.") {
+      case 1  => BuoyBeacon
+      case 2  => IceBuoy
+      case 4  => BeaconBuoy
+      case 5  => SuperBeacon
+      case 6  => ExteriorLight
+      case 7  => DayBoard
+      case 8  => HelicopterPlatform
+      case 9  => RadioMast
+      case 10 => WaterTower
+      case 11 => SmokePipe
+      case 12 => RadarTower
+      case 13 => ChurchTower
+      case 14 => SuperBuoy
+      case 15 => EdgeCairn
+      case 16 => CompassCheck
+      case 17 => BorderMark
+      case 18 => BorderLineMark
+      case 19 => ChannelEdgeLight
+      case 20 => Tower
+    }
 }
 
 /**
@@ -181,12 +187,15 @@ trait Owned {
   /**
     * @return a translated name of the owner, best effort
     */
-  def ownerName(lang: Lang): String = owner match {
-    case Lang.Finnish.transportAgency => lang.transportAgency
-    case Lang.Finnish.defenceForces   => lang.defenceForces
-    case Lang.Finnish.portOfHelsinki  => lang.portOfHelsinki
-    case Lang.Finnish.cityOfEspoo     => lang.cityOfEspoo
-    case _                            => owner
+  def ownerName(lang: SpecialWords): String = {
+    val finnishSpecial = Lang.Finnish.specialWords
+    owner match {
+      case finnishSpecial.transportAgency => lang.transportAgency
+      case finnishSpecial.defenceForces   => lang.defenceForces
+      case finnishSpecial.portOfHelsinki  => lang.portOfHelsinki
+      case finnishSpecial.cityOfEspoo     => lang.cityOfEspoo
+      case _                              => owner
+    }
   }
 }
 
@@ -344,27 +353,29 @@ object QualityClass {
 sealed abstract class FairwayType(val fi: String, val se: String, val en: String) extends Translated
 
 object FairwayType {
-  implicit val reader: Reads[FairwayType] = intReader[FairwayType](json => s"Unknown fairway type: '$json'.") {
-    case 1  => Navigation
-    case 2  => Anchoring
-    case 3  => Meetup
-    case 4  => HarborPool
-    case 5  => Turn
-    case 6  => Channel
-    case 7  => CoastTraffic
-    case 8  => Core
-    case 9  => Special
-    case 10 => Lock
-    case 11 => ConfirmedExtra
-    case 12 => Helcom
-    case 13 => Pilot
-  }
+  implicit val reader: Reads[FairwayType] =
+    intReader[FairwayType](json => s"Unknown fairway type: '$json'.") {
+      case 1  => Navigation
+      case 2  => Anchoring
+      case 3  => Meetup
+      case 4  => HarborPool
+      case 5  => Turn
+      case 6  => Channel
+      case 7  => CoastTraffic
+      case 8  => Core
+      case 9  => Special
+      case 10 => Lock
+      case 11 => ConfirmedExtra
+      case 12 => Helcom
+      case 13 => Pilot
+    }
 
   case object Navigation extends FairwayType("Navigointialue", "Navigeringsområde", "Navigation")
 
   case object Anchoring extends FairwayType("Ankkurointialue", "Ankringsområde", "Anchoring area")
 
-  case object Meetup extends FairwayType("Ohitus- ja kohtaamisalue", "Mötespunkt", "Overtaking and meetup")
+  case object Meetup
+      extends FairwayType("Ohitus- ja kohtaamisalue", "Mötespunkt", "Overtaking and meetup")
 
   case object HarborPool extends FairwayType("Satama-allas", "Hamnbassäng", "Harbor pool")
 
@@ -372,7 +383,8 @@ object FairwayType {
 
   case object Channel extends FairwayType("Kanava", "Kanal", "Channel")
 
-  case object CoastTraffic extends FairwayType("Rannikkoliikenteen alue", "Kusttrafik", "Coast traffic")
+  case object CoastTraffic
+      extends FairwayType("Rannikkoliikenteen alue", "Kusttrafik", "Coast traffic")
 
   case object Core extends FairwayType("Runkoväylä", "Huvudled", "Main fairway")
 
@@ -380,25 +392,31 @@ object FairwayType {
 
   case object Lock extends FairwayType("Sulku", "Sluss", "Lock")
 
-  case object ConfirmedExtra extends FairwayType("Varmistettu lisäalue", "Försäkrat område", "Confirmed area")
+  case object ConfirmedExtra
+      extends FairwayType("Varmistettu lisäalue", "Försäkrat område", "Confirmed area")
 
   case object Helcom extends FairwayType("HELCOM-alue", "HELCOM-område", "HELCOM area")
 
-  case object Pilot extends FairwayType("Luotsin otto- ja jättöalue", "Plats där lots möter", "Pilot boarding place")
+  case object Pilot
+      extends FairwayType("Luotsin otto- ja jättöalue",
+                          "Plats där lots möter",
+                          "Pilot boarding place")
 
 }
 
-sealed abstract class FairwayState(val fi: String, val se: String, val en: String) extends Translated
+sealed abstract class FairwayState(val fi: String, val se: String, val en: String)
+    extends Translated
 
 object FairwayState {
-  implicit val reader: Reads[FairwayState] = intReader[FairwayState](json => s"Unknown fairway state: '$json'.") {
-    case 1 => Confirmed
-    case 2 => Aihio
-    case 3 => MayChange
-    case 4 => ChangeAihio
-    case 5 => MayBeRemoved
-    case 6 => Removed
-  }
+  implicit val reader: Reads[FairwayState] =
+    intReader[FairwayState](json => s"Unknown fairway state: '$json'.") {
+      case 1 => Confirmed
+      case 2 => Aihio
+      case 3 => MayChange
+      case 4 => ChangeAihio
+      case 5 => MayBeRemoved
+      case 6 => Removed
+    }
 
   case object Confirmed extends FairwayState("Vahvistettu", "Bekräftat", "Confirmed")
 
@@ -417,11 +435,12 @@ object FairwayState {
 sealed abstract class MarkType(val fi: String, val se: String, val en: String) extends Translated
 
 object MarkType {
-  implicit val reader: Reads[MarkType] = intReader[MarkType](json => s"Unknown mark type: '$json'.") {
-    case 0 => Unknown
-    case 1 => Lateral
-    case 2 => Cardinal
-  }
+  implicit val reader: Reads[MarkType] =
+    intReader[MarkType](json => s"Unknown mark type: '$json'.") {
+      case 0 => Unknown
+      case 1 => Lateral
+      case 2 => Cardinal
+    }
 
   case object Unknown extends MarkType("Tuntematon", "Okänd", "Unknown")
 
@@ -460,11 +479,13 @@ object FairwayArea {
       comparison <- (json \ "VERT_TASO").validate[String]
       state <- (json \ "TILA").validate[FairwayState]
       mark <- (json \ "MERK_LAJI").validateOpt[MarkType]
-    } yield FairwayArea(owner, quality, fairwayType, fairwayDepth, harrowDepth, comparison, state, mark)
+    } yield
+      FairwayArea(owner, quality, fairwayType, fairwayDepth, harrowDepth, comparison, state, mark)
   }
 }
 
-sealed abstract class ZoneOfInfluence(val fi: String, val se: String, val en: String) extends Translated
+sealed abstract class ZoneOfInfluence(val fi: String, val se: String, val en: String)
+    extends Translated
 
 object ZoneOfInfluence {
   implicit val reader: Reads[ZoneOfInfluence] = Reads[ZoneOfInfluence] { json =>
@@ -480,6 +501,7 @@ object ZoneOfInfluence {
 
   case object Fairway extends ZoneOfInfluence("Väylä", "Farled", "Fairway")
 
-  case object AreaAndFairway extends ZoneOfInfluence("Alue ja väylä", "Område och farled", "Area and fairway")
+  case object AreaAndFairway
+      extends ZoneOfInfluence("Alue ja väylä", "Område och farled", "Area and fairway")
 
 }

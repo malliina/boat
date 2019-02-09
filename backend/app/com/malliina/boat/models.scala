@@ -13,6 +13,19 @@ import play.api.mvc.PathBindable
 
 import scala.concurrent.duration.DurationLong
 
+case class Languages(finnish: Lang, swedish: Lang, english: Lang)
+
+object Languages {
+  implicit val json = Json.format[Languages]
+}
+
+case class ClientConf(languages: Languages)
+
+object ClientConf {
+  implicit val json = Json.format[ClientConf]
+  val default = ClientConf(Languages(Lang.Finnish, Lang.Swedish, Lang.English))
+}
+
 case class UserToken(token: String) extends Wrapped(token)
 
 object UserToken extends StringCompanion[UserToken] {

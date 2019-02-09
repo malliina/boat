@@ -1,257 +1,329 @@
 package com.malliina.boat
 
-trait ShipTypesLang {
-  val wingInGround: String
-  val fishing: String
-  val tug: String
-  val dredger: String
-  val diveVessel: String
-  val militaryOps: String
-  val sailing: String
-  val pleasureCraft: String
-  val highSpeedCraft: String
-  val pilotVessel: String
-  val searchAndRescue: String
-  val searchAndRescueAircraft: String
-  val portTender: String
-  val antiPollution: String
-  val lawEnforce: String
-  val localVessel: String
-  val medicalTransport: String
-  val specialCraft: String
-  val passenger: String
-  val cargo: String
-  val tanker: String
-  val other: String
-  val unknown: String
+import play.api.libs.json.Json
+
+case class SpecialCategory(fishing: String,
+                           tug: String,
+                           dredger: String,
+                           diveVessel: String,
+                           militaryOps: String,
+                           sailing: String,
+                           pleasureCraft: String)
+
+object SpecialCategory {
+  implicit val json = Json.format[SpecialCategory]
 }
+
+case class ShipTypesLang(
+    wingInGround: String,
+    special: SpecialCategory,
+    highSpeedCraft: String,
+    pilotVessel: String,
+    searchAndRescue: String,
+    searchAndRescueAircraft: String,
+    portTender: String,
+    antiPollution: String,
+    lawEnforce: String,
+    localVessel: String,
+    medicalTransport: String,
+    specialCraft: String,
+    passenger: String,
+    cargo: String,
+    tanker: String,
+    other: String,
+    unknown: String
+)
 
 object ShipTypesLang {
+  implicit val json = Json.format[ShipTypesLang]
 
-  object Fi extends ShipTypesLang {
-    val wingInGround = "Wing in Ground"
-    val fishing = "Kalastus"
-    val tug = "Hinaus"
-    val dredger = "Ruoppaaja"
-    val diveVessel = "Sukellus"
-    val militaryOps = "Asevoimat"
-    val sailing = "Purjehdus"
-    val pleasureCraft = "Huvialus"
-    val highSpeedCraft = "Vauhtivene"
-    val pilotVessel = "Pilot"
-    val searchAndRescue = "Search and Rescue"
-    val searchAndRescueAircraft = "Search and Rescue Aircraft"
-    val portTender = "Satama"
-    val antiPollution = "Anti-Pollution"
-    val lawEnforce = "Patrol Vessel"
-    val localVessel = "Local Vessel"
-    val medicalTransport = "Hospital Ship"
-    val specialCraft = "Special Craft"
-    val passenger = "Matkustaja"
-    val cargo = "Rahtilaiva"
-    val tanker = "Tankkeri"
-    val other = "Muu"
-    val unknown = "Tuntematon"
-  }
+  val Fi = ShipTypesLang(
+    wingInGround = "Wing in Ground",
+    special = SpecialCategory(
+      fishing = "Kalastus",
+      tug = "Hinaus",
+      dredger = "Ruoppaaja",
+      diveVessel = "Sukellus",
+      militaryOps = "Asevoimat",
+      sailing = "Purjehdus",
+      pleasureCraft = "Huvialus"
+    ),
+    highSpeedCraft = "Vauhtivene",
+    pilotVessel = "Pilot",
+    searchAndRescue = "Search and Rescue",
+    searchAndRescueAircraft = "Search and Rescue Aircraft",
+    portTender = "Satama",
+    antiPollution = "Anti-Pollution",
+    lawEnforce = "Patrol Vessel",
+    localVessel = "Local Vessel",
+    medicalTransport = "Hospital Ship",
+    specialCraft = "Special Craft",
+    passenger = "Matkustaja",
+    cargo = "Rahtilaiva",
+    tanker = "Tankkeri",
+    other = "Muu",
+    unknown = "Tuntematon"
+  )
 
-  object Se extends ShipTypesLang {
-    val wingInGround = "Wing in Ground"
-    val fishing = "Fiske"
-    val tug = "Bogserbåt"
-    val dredger = "Mudderverk"
-    val diveVessel = "Dykning"
-    val militaryOps = "Militär"
-    val sailing = "Segling"
-    val pleasureCraft = "Nöje"
-    val highSpeedCraft = "Fartbåt"
-    val pilotVessel = "Pilot"
-    val searchAndRescue = "Search and Rescue"
-    val searchAndRescueAircraft = "Search and Rescue Aircraft"
-    val portTender = "Hamn"
-    val antiPollution = "Anti-Pollution"
-    val lawEnforce = "Patrullering"
-    val localVessel = "Lokal"
-    val medicalTransport = "Sjukhus"
-    val specialCraft = "Special"
-    val passenger = "Passagerar"
-    val cargo = "Frakt"
-    val tanker = "Tanker"
-    val other = "Annan"
-    val unknown = "Okänd"
-  }
+  val Se = ShipTypesLang(
+    wingInGround = "Wing in Ground",
+    special = SpecialCategory(
+      fishing = "Fiske",
+      tug = "Bogserbåt",
+      dredger = "Mudderverk",
+      diveVessel = "Dykning",
+      militaryOps = "Militär",
+      sailing = "Segling",
+      pleasureCraft = "Nöje"
+    ),
+    highSpeedCraft = "Fartbåt",
+    pilotVessel = "Pilot",
+    searchAndRescue = "Search and Rescue",
+    searchAndRescueAircraft = "Search and Rescue Aircraft",
+    portTender = "Hamn",
+    antiPollution = "Anti-Pollution",
+    lawEnforce = "Patrullering",
+    localVessel = "Lokal",
+    medicalTransport = "Sjukhus",
+    specialCraft = "Special",
+    passenger = "Passagerar",
+    cargo = "Frakt",
+    tanker = "Tanker",
+    other = "Annan",
+    unknown = "Okänd"
+  )
 
-  object En extends ShipTypesLang {
-    val wingInGround = "Wing in Ground"
-    val fishing = "Fishing"
-    val tug = "Tug"
-    val dredger = "Dredger"
-    val diveVessel = "Diving Support Vessel"
-    val militaryOps = "Military Ops"
-    val sailing = "Sailing Vessel"
-    val pleasureCraft = "Pleasure Craft"
-    val highSpeedCraft = "High-Speed Craft"
-    val pilotVessel = "Pilot Vessel"
-    val searchAndRescue = "Search and Rescue"
-    val searchAndRescueAircraft = "Search and Rescue Aircraft"
-    val portTender = "Port Tender"
-    val antiPollution = "Anti-Pollution"
-    val lawEnforce = "Patrol Vessel"
-    val localVessel = "Local Vessel"
-    val medicalTransport = "Hospital Ship"
-    val specialCraft = "Special Craft"
-    val passenger = "Passenger"
-    val cargo = "Cargo"
-    val tanker = "Tanker"
-    val other = "Other"
-    val unknown = "Unknown"
-  }
-
+  val En = ShipTypesLang(
+    wingInGround = "Wing in Ground",
+    special = SpecialCategory(
+      fishing = "Fishing",
+      tug = "Tug",
+      dredger = "Dredger",
+      diveVessel = "Diving Support Vessel",
+      militaryOps = "Military Ops",
+      sailing = "Sailing Vessel",
+      pleasureCraft = "Pleasure Craft"
+    ),
+    highSpeedCraft = "High-Speed Craft",
+    pilotVessel = "Pilot Vessel",
+    searchAndRescue = "Search and Rescue",
+    searchAndRescueAircraft = "Search and Rescue Aircraft",
+    portTender = "Port Tender",
+    antiPollution = "Anti-Pollution",
+    lawEnforce = "Patrol Vessel",
+    localVessel = "Local Vessel",
+    medicalTransport = "Hospital Ship",
+    specialCraft = "Special Craft",
+    passenger = "Passenger",
+    cargo = "Cargo",
+    tanker = "Tanker",
+    other = "Other",
+    unknown = "Unknown"
+  )
 }
 
-sealed trait Lang {
-  val transportAgency: String
-  val defenceForces: String
-  val portOfHelsinki: String
-  val cityOfHelsinki: String
-  val cityOfEspoo: String
-  val name: String
-  val location: String
-  val `type`: String
-  val navigation: String
-  val construction: String
-  val speed: String
-  val water: String
-  val depth: String
-  val influence: String
-  val top: String
-  val duration: String
-  val tracks: String
-  val qualityClass: String
-  val fairwayType: String
-  val fairwayDepth: String
-  val harrowDepth: String
-  val comparisonLevel: String
-  val state: String
-  val markType: String
-  val minDepth: String
-  val maxDepth: String
-  val draft: String
-  val destination: String
-  val time: String
-  val shipType: String
-  val shipTypes: ShipTypesLang
+case class Fairway(fairwayType: String,
+                   fairwayDepth: String,
+                   harrowDepth: String,
+                   minDepth: String,
+                   maxDepth: String,
+                   state: String)
+
+object Fairway {
+  implicit val json = Json.format[Fairway]
 }
+
+case class AisLang(draft: String, destination: String, shipType: String)
+
+object AisLang {
+  implicit val json = Json.format[AisLang]
+}
+
+case class TrackLang(tracks: String,
+                     speed: String,
+                     water: String,
+                     depth: String,
+                     top: String,
+                     duration: String)
+
+object TrackLang {
+  implicit val json = Json.format[TrackLang]
+}
+
+case class MarkLang(markType: String,
+                    aidType: String,
+                    navigation: String,
+                    construction: String,
+                    influence: String,
+                    location: String)
+
+object MarkLang {
+  implicit val json = Json.format[MarkLang]
+}
+
+case class SpecialWords(transportAgency: String,
+                        defenceForces: String,
+                        portOfHelsinki: String,
+                        cityOfHelsinki: String,
+                        cityOfEspoo: String)
+
+object SpecialWords {
+  implicit val json = Json.format[SpecialWords]
+}
+
+case class Lang(
+    name: String,
+    qualityClass: String,
+    time: String,
+    comparisonLevel: String,
+    specialWords: SpecialWords,
+    fairway: Fairway,
+    track: TrackLang,
+    mark: MarkLang,
+    ais: AisLang,
+    shipTypes: ShipTypesLang
+)
 
 object Lang {
-  val default = Finnish
+  implicit val json = Json.format[Lang]
 
   def apply(language: Language): Lang = language match {
     case Language.swedish => Swedish
     case Language.finnish => Finnish
     case Language.english => English
-    case _ => default
+    case _                => default
   }
 
-  object English extends Lang {
-    val transportAgency = "Finnish Transport Agency"
-    val defenceForces = "Defence forces"
-    val portOfHelsinki = "Port of Helsinki"
-    val cityOfHelsinki = "City of Helsinki"
-    val cityOfEspoo = "City of Espoo"
-    val name = "Name"
-    val `type` = "Type"
-    val location = "Location"
-    val navigation = "Navigation"
-    val construction = "Structure"
-    val speed = "Speed"
-    val water = "Water"
-    val depth = "Depth"
-    val influence = "Area"
-    val top = "Top"
-    val duration = "Time"
-    val tracks = "Trails"
-    val qualityClass = "Quality"
-    val fairwayType = "Fairway type"
-    val fairwayDepth = "Fairway depth"
-    val harrowDepth = "Minimum depth"
-    val comparisonLevel = "Comparison"
-    val state = "Fairway state"
-    val markType = "Mark"
-    val minDepth = "Depth min"
-    val maxDepth = "Depth max"
-    val draft = "Draft"
-    val destination = "Destination"
-    val shipType = "Ship type"
-    val time = "Time"
-    val shipTypes = ShipTypesLang.En
-  }
+  val English = Lang(
+    name = "Name",
+    qualityClass = "Quality",
+    time = "Time",
+    comparisonLevel = "Comparison",
+    specialWords = SpecialWords(
+      transportAgency = "Finnish Transport Agency",
+      defenceForces = "Defence forces",
+      portOfHelsinki = "Port of Helsinki",
+      cityOfHelsinki = "City of Helsinki",
+      cityOfEspoo = "City of Espoo"
+    ),
+    fairway = Fairway(
+      fairwayType = "Fairway type",
+      fairwayDepth = "Fairway depth",
+      harrowDepth = "Minimum depth",
+      minDepth = "Depth min",
+      maxDepth = "Depth max",
+      state = "Fairway state"
+    ),
+    track = TrackLang(
+      tracks = "Trails",
+      speed = "Speed",
+      water = "Water",
+      depth = "Depth",
+      top = "Top",
+      duration = "Time"
+    ),
+    mark = MarkLang(
+      markType = "Mark",
+      aidType = "Type",
+      navigation = "Navigation",
+      construction = "Structure",
+      influence = "Area",
+      location = "Location"
+    ),
+    ais = AisLang(
+      draft = "Draft",
+      destination = "Destination",
+      shipType = "Ship type"
+    ),
+    shipTypes = ShipTypesLang.En
+  )
 
-  object Finnish extends Lang {
-    val transportAgency = "Liikennevirasto"
-    val defenceForces = "Puolustusvoimat"
-    val portOfHelsinki = "Helsingin Satama"
-    val cityOfHelsinki = "Helsingin kaupunki"
-    val cityOfEspoo = "Espoon kaupunki"
-    val name = "Nimi"
-    val location = "Sijainti"
-    val `type` = "Tyyppi"
-    val navigation = "Navigointi"
-    val construction = "Rakenne"
-    val speed = "Nopeus"
-    val water = "Vesi"
-    val depth = "Syvyys"
-    val influence = "Vaikutusalue"
-    val top = "Huippu"
-    val duration = "Kesto"
-    val tracks = "Urat"
-    val qualityClass = "Laatuluokka"
-    val fairwayType = "Väyläalueen laji"
-    val fairwayDepth = "Väyläalueen syvyys"
-    val harrowDepth = "Haraussyvyys"
-    val comparisonLevel = "Vertaustaso"
-    val state = "Väylän tila"
-    val markType = "Merkin laji"
-    val minDepth = "Syvyys min"
-    val maxDepth = "Syvyys max"
-    val draft = "Syväys"
-    val destination = "Määränpää"
-    val time = "Aika"
-    val shipType = "Alus"
-    val shipTypes = ShipTypesLang.Fi
-  }
+  val Finnish = Lang(
+    name = "Nimi",
+    qualityClass = "Laatuluokka",
+    time = "Aika",
+    comparisonLevel = "Vertaustaso",
+    specialWords = SpecialWords(
+      transportAgency = "Liikennevirasto",
+      defenceForces = "Puolustusvoimat",
+      portOfHelsinki = "Helsingin Satama",
+      cityOfHelsinki = "Helsingin kaupunki",
+      cityOfEspoo = "Espoon kaupunki"
+    ),
+    fairway = Fairway(
+      fairwayType = "Väyläalueen laji",
+      fairwayDepth = "Väyläalueen syvyys",
+      harrowDepth = "Haraussyvyys",
+      minDepth = "Syvyys min",
+      maxDepth = "Syvyys max",
+      state = "Väylän tila"
+    ),
+    track = TrackLang(
+      tracks = "Urat",
+      speed = "Nopeus",
+      water = "Vesi",
+      depth = "Syvyys",
+      top = "Huippu",
+      duration = "Kesto"
+    ),
+    mark = MarkLang(
+      markType = "Merkin laji",
+      aidType = "Tyyppi",
+      navigation = "Navigointi",
+      construction = "Rakenne",
+      influence = "Vaikutusalue",
+      location = "Sijainti"
+    ),
+    ais = AisLang(
+      draft = "Syväys",
+      destination = "Määränpää",
+      shipType = "Alus"
+    ),
+    shipTypes = ShipTypesLang.Fi
+  )
 
-  object Swedish extends Lang {
-    val transportAgency = "Trafikverket"
-    val defenceForces = "Försvarsmakten"
-    val portOfHelsinki = "Helsingfors Hamn"
-    val cityOfHelsinki = "Helsingfors stad"
-    val cityOfEspoo = "Esbo stad"
-    val name = "Namn"
-    val location = "Plats"
-    val `type` = "Typ"
-    val navigation = "Navigering"
-    val construction = "Struktur"
-    val speed = "Hastighet"
-    val water = "Vatten"
-    val depth = "Djup"
-    val influence = "Område"
-    val top = "Max"
-    val duration = "Tid"
-    val tracks = "Spår"
-    val qualityClass = "Kvalitet"
-    val fairwayType = "Farledstyp"
-    val fairwayDepth = "Farledens djup"
-    val harrowDepth = "Ramat djup"
-    val comparisonLevel = "Jämförelse"
-    val state = "Farledens status"
-    val markType = "Märke"
-    val minDepth = "Djup min"
-    val maxDepth = "Djup max"
-    val draft = "Djupgående"
-    val destination = "Destination"
-    val time = "Tid"
-    val shipType = "Fartyg"
-    val shipTypes = ShipTypesLang.Se
-  }
-
+  val Swedish = Lang(
+    name = "Namn",
+    qualityClass = "Kvalitet",
+    time = "Tid",
+    comparisonLevel = "Jämförelse",
+    specialWords = SpecialWords(
+      transportAgency = "Trafikverket",
+      defenceForces = "Försvarsmakten",
+      portOfHelsinki = "Helsingfors Hamn",
+      cityOfHelsinki = "Helsingfors stad",
+      cityOfEspoo = "Esbo stad"
+    ),
+    fairway = Fairway(
+      fairwayType = "Farledstyp",
+      fairwayDepth = "Farledens djup",
+      harrowDepth = "Ramat djup",
+      minDepth = "Djup min",
+      maxDepth = "Djup max",
+      state = "Farledens status"
+    ),
+    track = TrackLang(
+      tracks = "Spår",
+      speed = "Hastighet",
+      water = "Vatten",
+      depth = "Djup",
+      top = "Max",
+      duration = "Tid"
+    ),
+    mark = MarkLang(
+      markType = "Märke",
+      aidType = "Typ",
+      navigation = "Navigering",
+      construction = "Struktur",
+      influence = "Område",
+      location = "Plats"
+    ),
+    ais = AisLang(
+      draft = "Djupgående",
+      destination = "Destination",
+      shipType = "Fartyg"
+    ),
+    shipTypes = ShipTypesLang.Se
+  )
+  val default = Finnish
 }
