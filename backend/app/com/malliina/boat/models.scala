@@ -23,7 +23,7 @@ case class ClientConf(languages: Languages)
 
 object ClientConf {
   implicit val json = Json.format[ClientConf]
-  val default = ClientConf(Languages(Lang.Finnish, Lang.Swedish, Lang.English))
+  val default = ClientConf(Languages(Lang.fi, Lang.se, Lang.en))
 }
 
 case class UserToken(token: String) extends Wrapped(token)

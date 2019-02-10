@@ -14,11 +14,11 @@ object BoatLang {
     case _ => default
   }
 
-  object Fi extends BoatLang(WebLang.Fi, Lang.Finnish)
+  object Fi extends BoatLang(WebLang.Fi, Lang.fi)
 
-  object Se extends BoatLang(WebLang.Se, Lang.Swedish)
+  object Se extends BoatLang(WebLang.Se, Lang.se)
 
-  object En extends BoatLang(WebLang.En, Lang.English)
+  object En extends BoatLang(WebLang.En, Lang.en)
 
 }
 
