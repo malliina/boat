@@ -62,8 +62,8 @@ class AppComponents(init: (Configuration, OkClient, ExecutionContext) => AppBuil
   val appConf = builder.appConf
   val allowedHosts = Seq(
     "www.boat-tracker.com",
+    "api.boat-tracker.com",
     "boat-tracker.com",
-    "boat.malliina.com",
     "localhost"
   )
   override lazy val allowedHostsConfig = AllowedHostsConfig(allowedHosts)
