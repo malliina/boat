@@ -40,6 +40,8 @@ abstract class AuthController(googleAuth: EmailAuth,
       users.userInfo(email)
     }
 
+  /** Fails if unauthenticated.
+    */
   protected def profile(rh: RequestHeader): Future[UserInfo] =
     authAppOrWeb(rh).flatMap { email =>
       users.userInfo(email)

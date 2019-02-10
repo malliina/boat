@@ -446,6 +446,7 @@ object SpecialWords {
 }
 
 case class Lang(
+    language: Language,
     name: String,
     qualityClass: String,
     time: String,
@@ -469,6 +470,7 @@ object Lang {
   }
 
   val en = Lang(
+    language = Language.english,
     name = "Name",
     qualityClass = "Quality",
     time = "Time",
@@ -542,6 +544,7 @@ object Lang {
   )
 
   val fi = Lang(
+    language = Language.finnish,
     name = "Nimi",
     qualityClass = "Laatuluokka",
     time = "Aika",
@@ -615,6 +618,7 @@ object Lang {
   )
 
   val se = Lang(
+    language = Language.swedish,
     name = "Namn",
     qualityClass = "Kvalitet",
     time = "Tid",
