@@ -1,6 +1,9 @@
 package com.malliina.boat
 
 object MapboxStyles {
+  val AisTrailLayer = "ais-vessels-trails"
+  val AisVesselLayer = "ais-vessels"
+
   val clickableLayers = Seq(
     "marks-turvavesi",
     "marks-kummeli",
@@ -17,6 +20,6 @@ object MapboxStyles {
     "cardinal-south",
     "cardinal-east",
     "cardinal-north",
-    AISRenderer.AisVesselLayer
+    AisVesselLayer
   )
 }
