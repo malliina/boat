@@ -3,6 +3,7 @@ package com.malliina.boat
 object MapboxStyles {
   val AisTrailLayer = "ais-vessels-trails"
   val AisVesselLayer = "ais-vessels"
+  val AisVesselIcon = "boat-resized-opt-30"
 
   val aisLayers = Seq(AisVesselLayer, AisTrailLayer)
 
