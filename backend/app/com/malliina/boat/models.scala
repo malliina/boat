@@ -19,11 +19,19 @@ object Languages {
   implicit val json = Json.format[Languages]
 }
 
-case class ClientConf(languages: Languages, interactiveLayers: Seq[String])
+case class Layers(marks: Seq[String], ais: Seq[String])
+
+object Layers {
+  implicit val json = Json.format[Layers]
+
+  val default = Layers(MapboxStyles.marksLayers, MapboxStyles.aisLayers)
+}
+
+case class ClientConf(languages: Languages, layers: Layers)
 
 object ClientConf {
   implicit val json = Json.format[ClientConf]
-  val default = ClientConf(Languages(Lang.fi, Lang.se, Lang.en), MapboxStyles.clickableLayers)
+  val default = ClientConf(Languages(Lang.fi, Lang.se, Lang.en), Layers.default)
 }
 
 case class UserToken(token: String) extends Wrapped(token)
