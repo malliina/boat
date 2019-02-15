@@ -1,5 +1,6 @@
 package com.malliina.boat
 
+import com.malliina.http.FullUrl
 import play.api.libs.json.Json
 
 case class FairwayStateLang(
@@ -445,7 +446,79 @@ object SpecialWords {
   implicit val json = Json.format[SpecialWords]
 }
 
+case class TextLink(text: String, url: FullUrl)
+
+object TextLink {
+  implicit val json = Json.format[TextLink]
+
+  def url(link: FullUrl) = TextLink(link.url, link)
+}
+
+case class Attribution(title: String, text: Option[String], links: Seq[TextLink])
+
+object Attribution {
+  implicit val json = Json.format[Attribution]
+
+  def url(title: String, link: FullUrl) = Attribution(title, None, Seq(TextLink.url(link)))
+}
+
+case class AttributionInfo(title: String, attributions: Seq[Attribution])
+
+object AttributionInfo {
+  implicit val json = Json.format[AttributionInfo]
+
+  val fi = translated(
+    "Lisenssit",
+    "Merikartta-aineistot",
+    "Lähde: Liikennevirasto. Ei navigointikäyttöön. Ei täytä virallisen merikartan vaatimuksia.")
+  val se = translated(
+    "Licenser",
+    "Sjökortsmaterial",
+    "Källa: Trafikverket. Får inte användas för navigationsändamål. Uppfyller inte fordringarna för officiella sjökort.")
+  val en = translated(
+    "Attributions",
+    "Nautical charts",
+    "Source: Finnish Transport Agency. Not for navigational use. Does not meet the requirements for official nautical charts."
+  )
+
+  def translated(title: String, maritimeData: String, chartsLicense: String) =
+    AttributionInfo(
+      title,
+      Seq(
+        Attribution(
+          maritimeData,
+          Option(chartsLicense),
+          Seq(TextLink("CC 4.0", FullUrl.https("creativecommons.org", "/licenses/by/4.0/")))
+        ),
+        Attribution(
+          "Java Marine API",
+          None,
+          Seq(
+            TextLink("GNU LGPL",
+                     FullUrl.https("www.gnu.org", "/licenses/lgpl-3.0-standalone.html")),
+            TextLink("Java Marine API", FullUrl.https("ktuukkan.github.io", "/marine-api/"))
+          )
+        ),
+        Attribution.url("Font Awesome", FullUrl.https("fontawesome.com", "/license")),
+        Attribution.url("Open Iconic", FullUrl.https("github.com", "/iconic/open-iconic")),
+        Attribution.url("Inspiration", FullUrl.https("github.com", "/iaue/poiju.io"))
+      )
+    )
+}
+
+case class ProfileLang(username: String,
+                       signedInAs: String,
+                       chooseIdentityProvider: String,
+                       finnish: String,
+                       swedish: String,
+                       english: String)
+
+object ProfileLang {
+  implicit val json = Json.format[ProfileLang]
+}
+
 case class Lang(
+    map: String,
     language: Language,
     name: String,
     qualityClass: String,
@@ -456,7 +529,9 @@ case class Lang(
     track: TrackLang,
     mark: MarkLang,
     ais: AisLang,
-    shipTypes: ShipTypesLang
+    shipTypes: ShipTypesLang,
+    attributions: AttributionInfo,
+    profile: ProfileLang
 )
 
 object Lang {
@@ -470,6 +545,7 @@ object Lang {
   }
 
   val en = Lang(
+    "Map",
     language = Language.english,
     name = "Name",
     qualityClass = "Quality",
@@ -540,10 +616,18 @@ object Lang {
       destination = "Destination",
       shipType = "Ship type"
     ),
-    shipTypes = ShipTypesLang.en
+    shipTypes = ShipTypesLang.en,
+    attributions = AttributionInfo.en,
+    ProfileLang("Username",
+                "Signed in as",
+                "Choose Identity Provider",
+                "Suomeksi",
+                "Svenska",
+                "English")
   )
 
   val fi = Lang(
+    "Kartta",
     language = Language.finnish,
     name = "Nimi",
     qualityClass = "Laatuluokka",
@@ -614,10 +698,18 @@ object Lang {
       destination = "Määränpää",
       shipType = "Alus"
     ),
-    shipTypes = ShipTypesLang.fi
+    shipTypes = ShipTypesLang.fi,
+    AttributionInfo.fi,
+    ProfileLang("Käyttäjätunnus",
+                "Käyttäjätunnus",
+                "Choose Identity Provider",
+                "Suomeksi",
+                "Svenska",
+                "English")
   )
 
   val se = Lang(
+    "Karta",
     language = Language.swedish,
     name = "Namn",
     qualityClass = "Kvalitet",
@@ -688,7 +780,14 @@ object Lang {
       destination = "Destination",
       shipType = "Fartyg"
     ),
-    shipTypes = ShipTypesLang.se
+    shipTypes = ShipTypesLang.se,
+    AttributionInfo.se,
+    ProfileLang("Användarnamn",
+                "Inloggad som",
+                "Choose Identity Provider",
+                "Suomeksi",
+                "Svenska",
+                "English")
   )
   val default = fi
 }
