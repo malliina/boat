@@ -409,12 +409,20 @@ object AisLang {
   implicit val json = Json.format[AisLang]
 }
 
-case class TrackLang(tracks: String,
+case class TrackLang(boats: String,
+                     tracks: String,
                      speed: String,
                      water: String,
                      depth: String,
                      top: String,
-                     duration: String)
+                     duration: String,
+                     distance: String,
+                     topSpeed: String,
+                     avgSpeed: String,
+                     waterTemp: String,
+                     date: String,
+                     trackHistory: String,
+                     graph: String)
 
 object TrackLang {
   implicit val json = Json.format[TrackLang]
@@ -508,6 +516,7 @@ object AttributionInfo {
 
 case class ProfileLang(username: String,
                        signedInAs: String,
+                       logout: String,
                        chooseIdentityProvider: String,
                        finnish: String,
                        swedish: String,
@@ -515,6 +524,34 @@ case class ProfileLang(username: String,
 
 object ProfileLang {
   implicit val json = Json.format[ProfileLang]
+}
+
+case class MessagesLang(failedToLoadProfile: String, noSavedTracks: String)
+
+object MessagesLang {
+  implicit val json = Json.format[MessagesLang]
+}
+
+case class SettingsLang(welcome: String,
+                        welcomeText: String,
+                        laterText: String,
+                        notifications: String,
+                        notificationsText: String,
+                        howItWorks: String,
+                        signIn: String,
+                        signInText: String,
+                        boat: String,
+                        token: String,
+                        tokenText: String,
+                        tokenTextLong: String,
+                        rename: String,
+                        renameBoat: String,
+                        newName: String,
+                        cancel: String,
+                        back: String)
+
+object SettingsLang {
+  implicit val json = Json.format[SettingsLang]
 }
 
 case class Lang(
@@ -531,7 +568,9 @@ case class Lang(
     ais: AisLang,
     shipTypes: ShipTypesLang,
     attributions: AttributionInfo,
-    profile: ProfileLang
+    profile: ProfileLang,
+    messages: MessagesLang,
+    settings: SettingsLang
 )
 
 object Lang {
@@ -591,12 +630,20 @@ object Lang {
       )
     ),
     track = TrackLang(
+      "Boats",
       tracks = "Trails",
       speed = "Speed",
       water = "Water",
       depth = "Depth",
       top = "Top",
-      duration = "Time"
+      duration = "Time",
+      "Distance",
+      "Top Speed",
+      "Avg Speed",
+      "Water Temp",
+      "Date",
+      "Track History",
+      "Graph"
     ),
     mark = MarkLang(
       markType = "Mark",
@@ -620,10 +667,31 @@ object Lang {
     attributions = AttributionInfo.en,
     ProfileLang("Username",
                 "Signed in as",
+                "Logout",
                 "Choose Identity Provider",
                 "Suomeksi",
                 "Svenska",
-                "English")
+                "English"),
+    MessagesLang("Failed to load profile,", "No saved tracks."),
+    SettingsLang(
+      "Welcome",
+      "Add this token to the Boat-Tracker agent software in your boat to save tracks to this app:",
+      "You can later view this token in the Boats section of the app.",
+      "Notifications",
+      "Turn on to receive notifications when your boat connects or disconnects from BoatTracker.",
+      "How it works",
+      "Sign In",
+      "Sign in to view past tracks driven with your boat.",
+      "Boat",
+      "Token",
+      "Add the token to the BoatTracker agent software running in your boat. For more information, see https://www.boat-tracker.com/docs/agent.",
+      "Add the token provided after sign in to the Boat-Tracker agent software running in your boat. Subsequently, tracks driven with the boat are saved to your account and can be viewed in this app. For agent installation instructions, see https://www.boat-tracker.com/docs/agent.",
+      "Rename",
+      "Rename Boat",
+      "Provide a new name",
+      "Cancel",
+      "Back"
+    )
   )
 
   val fi = Lang(
@@ -673,12 +741,20 @@ object Lang {
       )
     ),
     track = TrackLang(
+      "Veneet",
       tracks = "Urat",
       speed = "Nopeus",
       water = "Vesi",
       depth = "Syvyys",
       top = "Huippu",
-      duration = "Kesto"
+      duration = "Kesto",
+      "Matka",
+      "Huippunopeus",
+      "Keskinopeus",
+      "Veden lämpötila",
+      "Päivämäärä",
+      "Edelliset",
+      "Käyrät"
     ),
     mark = MarkLang(
       markType = "Merkin laji",
@@ -702,10 +778,31 @@ object Lang {
     AttributionInfo.fi,
     ProfileLang("Käyttäjätunnus",
                 "Käyttäjätunnus",
-                "Choose Identity Provider",
+                "Kirjaudu ulos",
+                "Valitse kirjautuminen",
                 "Suomeksi",
                 "Svenska",
-                "English")
+                "English"),
+    MessagesLang("Käyttäjätietojen lataus epäonnistui.", "Ei tallennettuja reittejä."),
+    SettingsLang(
+      "Welcome",
+      "Lisää tämä avain veneeseen asennettuun BoatTracker -sovellukseen tallentaaksesi ajettuja matkoja:",
+      "Näet tämän avaimen myöhemmin myös sovelluksen Veneet -osiossa.",
+      "Notifikaatio",
+      "Vastaanota notifikaatio kun veneesi yhdistää BoatTracker -sovellukseen.",
+      "Kuinka tämä toimii",
+      "Kirjaudu sisään",
+      "Kirjaudu sisään ja tallenna ajetut matkat",
+      "Vene",
+      "Avain",
+      "Lisää avain veneeseen asennettuun BoatTracker -sovellukseen. Lisätietoja saat osoitteesta https://docs.boat-tracker.com/agent/.",
+      "Kirjautumisen jälkeen saat avaimen, jolla tallennat ajetut matkat käyttäjätunnuksellesi. Lisätietoja saat osoitteesta https://docs.boat-tracker.com/agent/.",
+      "Uusi nimi",
+      "Nimeä vene",
+      "Uusi nimi",
+      "Keskeytä",
+      "Takaisin"
+    )
   )
 
   val se = Lang(
@@ -755,12 +852,20 @@ object Lang {
       )
     ),
     track = TrackLang(
+      "Båtar",
       tracks = "Spår",
       speed = "Hastighet",
       water = "Vatten",
       depth = "Djup",
       top = "Max",
-      duration = "Tid"
+      duration = "Tid",
+      "Avstånd",
+      "Max hastighet",
+      "Medelhastighet",
+      "Vattentemperatur",
+      "Datum",
+      "Tidigare",
+      "Visualisering"
     ),
     mark = MarkLang(
       markType = "Märke",
@@ -784,10 +889,31 @@ object Lang {
     AttributionInfo.se,
     ProfileLang("Användarnamn",
                 "Inloggad som",
-                "Choose Identity Provider",
+                "Logga ut",
+                "Identifiera dig",
                 "Suomeksi",
                 "Svenska",
-                "English")
+                "English"),
+    MessagesLang("Laddning av profildata misslyckades.", "Inga sparade spår."),
+    SettingsLang(
+      "Välkommen",
+      "Spara den här nyckeln i BoatTracker-appen installerad i din båt för att spara körda rutter:",
+      "Du kan senare läsa nyckeln från sidan Båtar i den här appen.",
+      "Notifikationer",
+      "Få notifikationer när din båt är uppkopplad till BoatTracker.",
+      "Hur det fungerar",
+      "Logga in",
+      "Logga in för att spara spår",
+      "Båt",
+      "Nyckel",
+      "Spara nyckeln i BoatTracker-appen installerad i din båt. För mera information, se https://docs.boat-tracker.com/agent/.",
+      "Inloggning skapar en nyckel du kan spara i BoatTracker-appen installerad i din båt. Med nyckeln sparas körda spår under ditt användarnamn. För mera information, se https://docs.boat-tracker.com/agent/.",
+      "Ändra namn",
+      "Namnge båt",
+      "Ange ett nytt namn",
+      "Avbryt",
+      "Tillbaka"
+    )
   )
   val default = fi
 }
