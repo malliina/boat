@@ -526,7 +526,7 @@ object ProfileLang {
   implicit val json = Json.format[ProfileLang]
 }
 
-case class MessagesLang(failedToLoadProfile: String, noSavedTracks: String)
+case class MessagesLang(loading: String, failedToLoadProfile: String, noSavedTracks: String)
 
 object MessagesLang {
   implicit val json = Json.format[MessagesLang]
@@ -548,7 +548,8 @@ case class SettingsLang(welcome: String,
                         renameBoat: String,
                         newName: String,
                         cancel: String,
-                        back: String)
+                        back: String,
+                        noTracksHelp: String)
 
 object SettingsLang {
   implicit val json = Json.format[SettingsLang]
@@ -672,7 +673,7 @@ object Lang {
                 "Suomeksi",
                 "Svenska",
                 "English"),
-    MessagesLang("Failed to load profile,", "No saved tracks."),
+    MessagesLang("Loading...", "Failed to load profile,", "No saved tracks."),
     SettingsLang(
       "Welcome",
       "Add this token to the Boat-Tracker agent software in your boat to save tracks to this app:",
@@ -690,7 +691,8 @@ object Lang {
       "Rename Boat",
       "Provide a new name",
       "Cancel",
-      "Back"
+      "Back",
+      "Hello! You have no saved tracks. To save tracks, you'll need to connect the BoatTracker agent software to the GPS chartplotter in your boat."
     )
   )
 
@@ -783,10 +785,10 @@ object Lang {
                 "Suomeksi",
                 "Svenska",
                 "English"),
-    MessagesLang("Käyttäjätietojen lataus epäonnistui.", "Ei tallennettuja reittejä."),
+    MessagesLang("Laddar...", "Käyttäjätietojen lataus epäonnistui.", "Ei tallennettuja reittejä."),
     SettingsLang(
       "Welcome",
-      "Lisää tämä avain veneeseen asennettuun BoatTracker -sovellukseen tallentaaksesi ajettuja matkoja:",
+      "Lisää tämä avain veneeseen asennettuun BoatTracker -sovellukseen tallentaaksesi ajettuja reittejä:",
       "Näet tämän avaimen myöhemmin myös sovelluksen Veneet -osiossa.",
       "Notifikaatio",
       "Vastaanota notifikaatio kun veneesi yhdistää BoatTracker -sovellukseen.",
@@ -801,7 +803,8 @@ object Lang {
       "Nimeä vene",
       "Uusi nimi",
       "Keskeytä",
-      "Takaisin"
+      "Takaisin",
+      "Hei! Ei tallennettuja reittejä. Reittien tallennus vaatii BoatTracker -sovelluksen yhdistämisen veneesi karttaplotteriin."
     )
   )
 
@@ -894,7 +897,7 @@ object Lang {
                 "Suomeksi",
                 "Svenska",
                 "English"),
-    MessagesLang("Laddning av profildata misslyckades.", "Inga sparade spår."),
+    MessagesLang("Ladataan...", "Laddning av profildata misslyckades.", "Inga sparade spår."),
     SettingsLang(
       "Välkommen",
       "Spara den här nyckeln i BoatTracker-appen installerad i din båt för att spara körda rutter:",
@@ -912,7 +915,8 @@ object Lang {
       "Namnge båt",
       "Ange ett nytt namn",
       "Avbryt",
-      "Tillbaka"
+      "Tillbaka",
+      "Inga sparade spår. För att spara spår, koppla BoatTracker-appen till båtens plotter."
     )
   )
   val default = fi
