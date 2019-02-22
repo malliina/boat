@@ -60,7 +60,7 @@ class BoatHtml(jsFiles: Seq[String]) extends Tags(scalatags.Text) {
         modifier(
           ub.boats.headOption.map { b =>
             modifier(
-              div(id := "navbar", `class` := "navbar navbar-boat")(
+              div(id := "navbar", `class` := "navbar navbar-boat py-1")(
                 span(`class` := "nav-text")(b.boat),
                 div(`class` := "dropdown nav-text", id := DropdownLinkId)(
                   span(`class` := "dropdown-button", lang.lang.track.tracks),
