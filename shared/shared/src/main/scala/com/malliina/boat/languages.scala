@@ -526,7 +526,7 @@ object ProfileLang {
   implicit val json = Json.format[ProfileLang]
 }
 
-case class MessagesLang(loading: String, failedToLoadProfile: String, noSavedTracks: String)
+case class MessagesLang(loading: String, failedToLoadProfile: String, noSavedTracks: String, notAvailable: String)
 
 object MessagesLang {
   implicit val json = Json.format[MessagesLang]
@@ -673,7 +673,7 @@ object Lang {
                 "Suomeksi",
                 "Svenska",
                 "English"),
-    MessagesLang("Loading...", "Failed to load profile,", "No saved tracks."),
+    MessagesLang("Loading...", "Failed to load profile,", "No saved tracks.", "N/A"),
     SettingsLang(
       "Welcome",
       "Add this token to the Boat-Tracker agent software in your boat to save tracks to this app:",
@@ -785,7 +785,7 @@ object Lang {
                 "Suomeksi",
                 "Svenska",
                 "English"),
-    MessagesLang("Laddar...", "Käyttäjätietojen lataus epäonnistui.", "Ei tallennettuja reittejä."),
+    MessagesLang("Laddar...", "Käyttäjätietojen lataus epäonnistui.", "Ei tallennettuja reittejä.", "N/A"),
     SettingsLang(
       "Welcome",
       "Lisää tämä avain veneeseen asennettuun BoatTracker -sovellukseen tallentaaksesi ajettuja reittejä:",
@@ -897,7 +897,7 @@ object Lang {
                 "Suomeksi",
                 "Svenska",
                 "English"),
-    MessagesLang("Ladataan...", "Laddning av profildata misslyckades.", "Inga sparade spår."),
+    MessagesLang("Ladataan...", "Laddning av profildata misslyckades.", "Inga sparade spår.", "N/A"),
     SettingsLang(
       "Välkommen",
       "Spara den här nyckeln i BoatTracker-appen installerad i din båt för att spara körda rutter:",
