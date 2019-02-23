@@ -155,12 +155,12 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext)
       }
     }
 
-  override def history(user: Username, limits: BoatQuery): Future[Seq[CoordsEvent]] = action {
+  override def history(user: MinimalUserInfo, limits: BoatQuery): Future[Seq[CoordsEvent]] = action {
     // Intentionally, you can view any track if you know its key.
     // Alternatively, we could filter tracks by user and make that optional.
     val eligibleTracks =
     if (limits.tracks.nonEmpty) tracksViewNonEmpty.filter(t => t.trackName.inSet(limits.tracks))
-    else if (limits.newest) tracksViewNonEmpty.filter(_.username === user).sortBy(_.trackAdded.desc).take(1)
+    else if (limits.newest) tracksViewNonEmpty.filter(_.username === user.username).sortBy(_.trackAdded.desc).take(1)
     else tracksViewNonEmpty
     //    eligibleTracks.result.statements.toList foreach println
     val query = eligibleTracks

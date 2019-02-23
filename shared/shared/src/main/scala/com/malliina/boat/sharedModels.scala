@@ -166,9 +166,9 @@ object Usernames {
 case class Language(code: String) extends Wrapped(code)
 
 object Language extends StringCompanion[Language] {
-  val english = Language("en")
-  val finnish = Language("fi")
-  val swedish = Language("se")
+  val english = Language("en-US")
+  val finnish = Language("fi-FI")
+  val swedish = Language("sv-SE")
   val default = finnish
 }
 
@@ -241,13 +241,25 @@ object Boat {
   implicit val json = Json.format[Boat]
 }
 
+trait MinimalUserInfo {
+  def username: Username
+
+  def language: Language
+}
+
+object MinimalUserInfo {
+  def anon: MinimalUserInfo = SimpleUserInfo(Usernames.anon, Language.default)
+}
+
+case class SimpleUserInfo(username: Username, language: Language) extends MinimalUserInfo
+
 case class UserInfo(id: UserId,
                     username: Username,
                     email: Option[Email],
                     language: Language,
                     boats: Seq[Boat],
                     enabled: Boolean,
-                    addedMillis: Long)
+                    addedMillis: Long) extends MinimalUserInfo
 
 object UserInfo {
   implicit val json = Json.format[UserInfo]

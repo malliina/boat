@@ -39,13 +39,14 @@ class BoatController(mapboxToken: AccessToken,
                      db: TracksSource,
                      push: PushDatabase,
                      comps: ControllerComponents)(implicit as: ActorSystem, mat: Materializer)
-  extends AuthController(googleAuth, auther, comps)
+    extends AuthController(googleAuth, auther, comps)
     with Streams
     with ContentVersions {
 
   val boatNameForm = Form[BoatName](BoatNames.Key -> BoatNames.mapping)
   val trackTitleForm = Form[TrackTitle](TrackTitle.Key -> TrackTitles.mapping)
 
+  val LanguageSessionKey = "boatLanguage"
   val UserSessionKey = "boatUser"
   val anonUser = Usernames.anon
   implicit val updatesTransformer = jsonMessageFlowTransformer[JsValue, FrontEvent]
@@ -53,11 +54,14 @@ class BoatController(mapboxToken: AccessToken,
   def index = authAction(optionalWebAuth) { req =>
     val maybeBoat = req.user
     val u: Username = maybeBoat.map(_.user).getOrElse(anonUser)
+    val lang = maybeBoat.map(_.language).getOrElse(Language.default)
     val tokenCookie = Cookie(TokenCookieName, mapboxToken.token, httpOnly = false)
-    val languageCookie = Cookie(LanguageName, maybeBoat.map(_.language).getOrElse(Language.default).code, httpOnly = false)
+    val languageCookie = Cookie(LanguageName,
+                                maybeBoat.map(_.language).getOrElse(Language.default).code,
+                                httpOnly = false)
     val result = Ok(html.map(maybeBoat.getOrElse(UserBoats.anon)))
       .withCookies(tokenCookie, languageCookie)
-      .addingToSession(UserSessionKey -> u.name)(req.req)
+      .addingToSession(UserSessionKey -> u.name, LanguageSessionKey -> lang.code)(req.req)
     fut(result)
   }
 
@@ -67,7 +71,8 @@ class BoatController(mapboxToken: AccessToken,
       // First checks the latest version, then browsers always get the latest since they accept */*.
       val json =
         if (req.rh.accepts(Version2)) Json.toJson(tracks)
-        else if (req.rh.accepts(Version1)) Json.toJson(TrackSummaries(tracks.tracks.map(t => TrackSummary(t))))
+        else if (req.rh.accepts(Version1))
+          Json.toJson(TrackSummaries(tracks.tracks.map(t => TrackSummary(t))))
         else Json.toJson(tracks)
       Ok(json)
     }
@@ -109,9 +114,13 @@ class BoatController(mapboxToken: AccessToken,
     db.modifyTitle(track, req.body, req.user.id)
   }
 
-  def createBoat = boatAction { req => db.addBoat(req.body, req.user.id) }
+  def createBoat = boatAction { req =>
+    db.addBoat(req.body, req.user.id)
+  }
 
-  def renameBoat(id: BoatId) = boatAction { req => db.renameBoat(id, req.body, req.user.id) }
+  def renameBoat(id: BoatId) = boatAction { req =>
+    db.renameBoat(id, req.body, req.user.id)
+  }
 
   def boatSocket = WebSocket { rh =>
     authBoat(rh).flatMapR { meta =>
@@ -124,7 +133,8 @@ class BoatController(mapboxToken: AccessToken,
           out => Json.toJson(out)
         )
 
-        val flow: Flow[BoatEvent, PingEvent, NotUsed] = Flow.fromSinkAndSource(boats.boatSink, Source.maybe[PingEvent])
+        val flow: Flow[BoatEvent, PingEvent, NotUsed] = Flow
+          .fromSinkAndSource(boats.boatSink, Source.maybe[PingEvent])
           .keepAlive(10.seconds, () => PingEvent(Instant.now.toEpochMilli))
           .backpressureTimeout(3.seconds)
         terminationWatched(transformer.transform(flow)) { _ =>
@@ -142,19 +152,22 @@ class BoatController(mapboxToken: AccessToken,
           log.info(s"Viewer '$user' joined.")
           // Show only recent tracks for anon users
           val historicalLimits: BoatQuery =
-            if (limits.tracks.nonEmpty && user == anonUser) BoatQuery.tracks(limits.tracks)
-            else if (user == anonUser) BoatQuery.recent(Instant.now())
+            if (limits.tracks.nonEmpty && user.username == anonUser) BoatQuery.tracks(limits.tracks)
+            else if (user.username == anonUser) BoatQuery.recent(Instant.now())
             else limits
           val history: Source[CoordsEvent, NotUsed] =
             Source.fromFuture(db.history(user, historicalLimits)).flatMapConcat { es =>
               // unless a sample is specified, return about 300 historical points - this optimization is for charts
               val intelligentSample = math.max(1, es.map(_.coords.length).sum / 300)
               val actualSample = limits.sample.getOrElse(intelligentSample)
-              log.debug(s"Points ${es.map(_.coords.length).sum} intelligent $intelligentSample actual $actualSample")
+              log.debug(
+                s"Points ${es.map(_.coords.length).sum} intelligent $intelligentSample actual $actualSample")
               Source(es.toList.map(_.sample(actualSample)))
             }
           // disconnects viewers that lag more than 3s
-          val flow = Flow.fromSinkAndSource(Sink.ignore, history.concat(boats.allEvents).filter(_.isIntendedFor(user)))
+          val flow = Flow
+            .fromSinkAndSource(Sink.ignore,
+                               history.concat(boats.allEvents).filter(_.isIntendedFor(user.username)))
             .keepAlive(10.seconds, () => PingEvent(Instant.now.toEpochMilli))
             .backpressureTimeout(3.seconds)
           logTermination(flow, _ => s"Viewer '$user' left.")
@@ -165,28 +178,45 @@ class BoatController(mapboxToken: AccessToken,
     }
   }
 
-  private def boatAction(code: BoatRequest[UserInfo, BoatName] => Future[BoatRow]): Action[BoatName] =
-    formAction(boatNameForm) { req => code(req).map { b => BoatResponse(b.toBoat) } }
-
-  private def trackTitleAction(code: BoatRequest[UserInfo, TrackTitle] => Future[JoinedTrack]): Action[TrackTitle] =
-    formAction(trackTitleForm) { req => code(req).map(t => TrackResponse(t.strip)) }
-
-  private def formAction[T, W: Writeable](form: Form[T])(code: BoatRequest[UserInfo, T] => Future[W]): Action[T] =
-    parsedAuth(parse.form(form, onErrors = (err: Form[T]) => formError(err)))(profile) { req =>
-      code(req).map { w => Ok(w) }
+  private def boatAction(
+      code: BoatRequest[UserInfo, BoatName] => Future[BoatRow]): Action[BoatName] =
+    formAction(boatNameForm) { req =>
+      code(req).map { b =>
+        BoatResponse(b.toBoat)
+      }
     }
 
-  private def logTermination[In, Out, Mat](flow: Flow[In, Out, Mat],
-                                           message: Try[Done] => String): Flow[In, Out, Future[Done]] =
+  private def trackTitleAction(
+      code: BoatRequest[UserInfo, TrackTitle] => Future[JoinedTrack]): Action[TrackTitle] =
+    formAction(trackTitleForm) { req =>
+      code(req).map(t => TrackResponse(t.strip))
+    }
+
+  private def formAction[T, W: Writeable](form: Form[T])(
+      code: BoatRequest[UserInfo, T] => Future[W]): Action[T] =
+    parsedAuth(parse.form(form, onErrors = (err: Form[T]) => formError(err)))(profile) { req =>
+      code(req).map { w =>
+        Ok(w)
+      }
+    }
+
+  private def logTermination[In, Out, Mat](
+      flow: Flow[In, Out, Mat],
+      message: Try[Done] => String): Flow[In, Out, Future[Done]] =
     terminationWatched(flow)(t => fut(log.info(message(t))))
 
   private def secureTrack(run: BoatEmailRequest[TrackQuery] => Future[Result]) =
     secureAction(rh => TrackQuery.withDefault(rh, defaultLimit = 100))(run)
 
-  private def secureJson[T, W: Writes](parse: RequestHeader => Either[SingleError, T])(run: BoatEmailRequest[T] => Future[W]) =
-    secureAction(parse)(req => run(req).map { w => Ok(Json.toJson(w)) })
+  private def secureJson[T, W: Writes](parse: RequestHeader => Either[SingleError, T])(
+      run: BoatEmailRequest[T] => Future[W]) =
+    secureAction(parse)(req =>
+      run(req).map { w =>
+        Ok(Json.toJson(w))
+    })
 
-  private def secureAction[T](parse: RequestHeader => Either[SingleError, T])(run: BoatEmailRequest[T] => Future[Result]) =
+  private def secureAction[T](parse: RequestHeader => Either[SingleError, T])(
+      run: BoatEmailRequest[T] => Future[Result]) =
     authAction(authAppOrWeb) { req =>
       parse(req.req).fold(
         err => fut(BadRequest(Errors(err))),
@@ -201,10 +231,13 @@ class BoatController(mapboxToken: AccessToken,
 
   private def badRequest(error: SingleError) = BadRequest(Errors(error))
 
-  private def terminationWatched[In, Out, Mat](flow: Flow[In, Out, Mat])(onTermination: Try[Done] => Future[Unit]): Flow[In, Out, Future[Done]] =
+  private def terminationWatched[In, Out, Mat](flow: Flow[In, Out, Mat])(
+      onTermination: Try[Done] => Future[Unit]): Flow[In, Out, Future[Done]] =
     flow.watchTermination()(Keep.right).mapMaterializedValue { done =>
       done.transformWith { t =>
-        onTermination(t).transform { _ => t }
+        onTermination(t).transform { _ =>
+          t
+        }
       }
     }
 
@@ -228,28 +261,36 @@ class BoatController(mapboxToken: AccessToken,
     recovered(boatAuth(rh).flatMap(meta => db.join(meta)), rh)
 
   private def boatAuth(rh: RequestHeader): Future[BoatTrackMeta] =
-    rh.headers.get(BoatTokenHeader).map(BoatToken.apply).map { token =>
-      auther.authBoat(token).map { info =>
-        BoatUser(trackOrRandom(rh), info.boatName, info.username)
+    rh.headers
+      .get(BoatTokenHeader)
+      .map(BoatToken.apply)
+      .map { token =>
+        auther.authBoat(token).map { info =>
+          BoatUser(trackOrRandom(rh), info.boatName, info.username)
+        }
       }
-    }.getOrElse {
-      val boatName = rh.headers.get(BoatNameHeader).map(BoatName.apply).getOrElse(BoatNames.random())
-      fut(BoatUser(trackOrRandom(rh), boatName, anonUser))
-    }
+      .getOrElse {
+        val boatName =
+          rh.headers.get(BoatNameHeader).map(BoatName.apply).getOrElse(BoatNames.random())
+        fut(BoatUser(trackOrRandom(rh), boatName, anonUser))
+      }
 
-  private def auth(rh: RequestHeader): Future[Username] =
+  private def auth(rh: RequestHeader): Future[MinimalUserInfo] =
     authApp(rh).recover {
       case _: MissingCredentialsException =>
-        authSessionUser(rh).getOrElse(anonUser)
+        authSessionUser(rh).getOrElse(MinimalUserInfo.anon)
     }
 
-  private def authSessionUser(rh: RequestHeader): Option[Username] =
+  private def authSessionUser(rh: RequestHeader): Option[MinimalUserInfo] =
     rh.session.get(UserSessionKey).filter(_ != Usernames.anon.name).map { user =>
-      Username(user)
+      SimpleUserInfo(
+        Username(user),
+        rh.session.get(LanguageSessionKey).map(Language.apply).getOrElse(Language.default)
+      )
     }
 
-  private def authApp(rh: RequestHeader): Future[Username] =
-    googleProfile(rh).map(_.username)
+  private def authApp(rh: RequestHeader): Future[MinimalUserInfo] =
+    googleProfile(rh)
 
   /** Optional authentication for the web.
     *

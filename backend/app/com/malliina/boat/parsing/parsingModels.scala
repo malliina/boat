@@ -2,9 +2,24 @@ package com.malliina.boat.parsing
 
 import java.time.{LocalDate, LocalTime, ZoneOffset}
 
-import com.malliina.boat.{Coord, Instants, KeyedSentence, RawSentence, SentenceKey, TimedCoord, TrackId, TrackMetaShort, TrackPointId, TrackRef}
+import com.malliina.boat.{
+  Coord,
+  Instants,
+  KeyedSentence,
+  RawSentence,
+  SentenceKey,
+  TimedCoord,
+  TrackId,
+  TrackMetaShort,
+  TrackPointId,
+  TrackRef
+}
 import com.malliina.measure.{Distance, Speed, Temperature}
-import net.sf.marineapi.nmea.parser.{DataNotAvailableException, SentenceFactory, UnsupportedSentenceException}
+import net.sf.marineapi.nmea.parser.{
+  DataNotAvailableException,
+  SentenceFactory,
+  UnsupportedSentenceException
+}
 import net.sf.marineapi.nmea.sentence.Sentence
 
 trait BoatSentenceParser {
@@ -37,18 +52,24 @@ sealed trait ParsedSentence {
   def key: SentenceKey = sentence.key
 }
 
-case class ParsedCoord(coord: Coord, ggaTime: LocalTime, sentence: KeyedSentence) extends ParsedSentence {
+case class ParsedCoord(coord: Coord, ggaTime: LocalTime, sentence: KeyedSentence)
+    extends ParsedSentence {
   def lng = coord.lng
 
   def lat = coord.lat
 
-  def complete(date: LocalDate, time: LocalTime, boatSpeed: Speed,
-               waterTemp: Temperature, depth: Distance,
-               depthOffset: Distance, parts: Seq[SentenceKey]): FullCoord =
+  def complete(date: LocalDate,
+               time: LocalTime,
+               boatSpeed: Speed,
+               waterTemp: Temperature,
+               depth: Distance,
+               depthOffset: Distance,
+               parts: Seq[SentenceKey]): FullCoord =
     FullCoord(coord, time, date, boatSpeed, waterTemp, depth, depthOffset, from, parts)
 }
 
-case class ParsedDateTime(date: LocalDate, time: LocalTime, sentence: KeyedSentence) extends ParsedSentence
+case class ParsedDateTime(date: LocalDate, time: LocalTime, sentence: KeyedSentence)
+    extends ParsedSentence
 
 case class ParsedBoatSpeed(speed: Speed, sentence: KeyedSentence) extends ParsedSentence
 
@@ -56,7 +77,8 @@ case class ParsedWaterSpeed(speed: Speed, sentence: KeyedSentence) extends Parse
 
 case class WaterTemperature(temp: Temperature, sentence: KeyedSentence) extends ParsedSentence
 
-case class WaterDepth(depth: Distance, offset: Distance, sentence: KeyedSentence) extends ParsedSentence
+case class WaterDepth(depth: Distance, offset: Distance, sentence: KeyedSentence)
+    extends ParsedSentence
 
 case class FullCoord(coord: Coord,
                      time: LocalTime,
@@ -75,8 +97,15 @@ case class FullCoord(coord: Coord,
   def lat = coord.lat
 
   def timed(id: TrackPointId): TimedCoord = TimedCoord(
-    id, coord, Instants.formatDateTime(boatTime), boatTime.toEpochMilli,
-    Instants.formatTime(boatTime), boatSpeed, waterTemp, depth, Instants.timing(boatTime)
+    id,
+    coord,
+    Instants.formatDateTime(boatTime),
+    boatTime.toEpochMilli,
+    Instants.formatTime(boatTime),
+    boatSpeed,
+    waterTemp,
+    depth,
+    Instants.timing(boatTime)
   )
 }
 
@@ -95,7 +124,8 @@ case class UnknownSentence(sentence: RawSentence, detailedMessage: String) exten
 }
 
 case class SuspectTime(sentence: RawSentence) extends SentenceError {
-  override def message = s"Suspect time in '$sentence'. This might mean the plotter is still initializing."
+  override def message =
+    s"Suspect time in '$sentence'. This might mean the plotter is still initializing."
 }
 
 case class SentenceFailure(sentence: RawSentence, e: Exception) extends SentenceError {

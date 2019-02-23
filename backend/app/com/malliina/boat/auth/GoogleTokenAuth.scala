@@ -25,24 +25,30 @@ object GoogleTokenAuth {
 /** Validates Google ID tokens and extracts the email address.
   */
 class GoogleTokenAuth(validator: KeyClient)(implicit ec: ExecutionContext) extends EmailAuth {
-  private val log = Logger(getClass)
+  val EmailKey = "email"
+  val EmailVerified = "email_verified"
 
   def authEmail(rh: RequestHeader): Future[Email] =
-    Auth.readAuthToken(rh).map { token =>
-      validate(IdToken(token)).flatMap { e =>
-        e.fold(err => Future.failed(IdentityException(JWTError(rh, err))), email => Future.successful(email))
+    Auth
+      .readAuthToken(rh)
+      .map { token =>
+        validate(IdToken(token)).flatMap { e =>
+          e.fold(err => Future.failed(IdentityException(JWTError(rh, err))),
+                 email => Future.successful(email))
+        }
       }
-    }.getOrElse {
-      Future.failed(IdentityException(MissingCredentials(rh)))
-    }
+      .getOrElse {
+        Future.failed(IdentityException(MissingCredentials(rh)))
+      }
 
   private def validate(token: IdToken): Future[Either[AuthError, Email]] =
     validator.validate(token).map { outcome =>
       outcome.flatMap { v =>
         val parsed = v.parsed
-        parsed.read(parsed.claims.getBooleanClaim("email_verified"), "email_verified").flatMap { isVerified =>
-          if (isVerified) parsed.readString("email").map(Email.apply)
-          else Left(InvalidClaims(token, "Email not verified."))
+        parsed.read(parsed.claims.getBooleanClaim(EmailVerified), EmailVerified).flatMap {
+          isVerified =>
+            if (isVerified) parsed.readString(EmailKey).map(Email.apply)
+            else Left(InvalidClaims(token, "Email not verified."))
         }
       }
     }
