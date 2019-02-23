@@ -526,10 +526,19 @@ object ProfileLang {
   implicit val json = Json.format[ProfileLang]
 }
 
-case class MessagesLang(loading: String, failedToLoadProfile: String, noSavedTracks: String, notAvailable: String)
+case class MessagesLang(loading: String,
+                        failedToLoadProfile: String,
+                        noSavedTracks: String,
+                        notAvailable: String)
 
 object MessagesLang {
   implicit val json = Json.format[MessagesLang]
+}
+
+case class Formats(date: String, time: String, dateTime: String)
+
+object Formats {
+  implicit val json = Json.format[Formats]
 }
 
 case class SettingsLang(welcome: String,
@@ -549,13 +558,15 @@ case class SettingsLang(welcome: String,
                         newName: String,
                         cancel: String,
                         back: String,
-                        noTracksHelp: String)
+                        noTracksHelp: String,
+                        formats: Formats)
 
 object SettingsLang {
   implicit val json = Json.format[SettingsLang]
 }
 
 case class Lang(
+    appName: String,
     map: String,
     language: Language,
     name: String,
@@ -585,6 +596,7 @@ object Lang {
   }
 
   val en = Lang(
+    "BoatTracker",
     "Map",
     language = Language.english,
     name = "Name",
@@ -692,11 +704,13 @@ object Lang {
       "Provide a new name",
       "Cancel",
       "Back",
-      "Hello! You have no saved tracks. To save tracks, you'll need to connect the BoatTracker agent software to the GPS chartplotter in your boat."
+      "Hello! You have no saved tracks. To save tracks, you'll need to connect the BoatTracker agent software to the GPS chartplotter in your boat.",
+      Formats("dd MMM yyyy", "HH:mm:ss", "dd MMM yyyy HH:mm:ss")
     )
   )
 
   val fi = Lang(
+    "BoatTracker",
     "Kartta",
     language = Language.finnish,
     name = "Nimi",
@@ -785,7 +799,10 @@ object Lang {
                 "Suomeksi",
                 "Svenska",
                 "English"),
-    MessagesLang("Laddar...", "Käyttäjätietojen lataus epäonnistui.", "Ei tallennettuja reittejä.", "N/A"),
+    MessagesLang("Laddar...",
+                 "Käyttäjätietojen lataus epäonnistui.",
+                 "Ei tallennettuja reittejä.",
+                 "N/A"),
     SettingsLang(
       "Welcome",
       "Lisää tämä avain veneeseen asennettuun BoatTracker -sovellukseen tallentaaksesi ajettuja reittejä:",
@@ -804,11 +821,13 @@ object Lang {
       "Uusi nimi",
       "Keskeytä",
       "Takaisin",
-      "Hei! Ei tallennettuja reittejä. Reittien tallennus vaatii BoatTracker -sovelluksen yhdistämisen veneesi karttaplotteriin."
+      "Hei! Ei tallennettuja reittejä. Reittien tallennus vaatii BoatTracker -sovelluksen yhdistämisen veneesi karttaplotteriin.",
+      Formats("dd.MM.yyyy", "HH:mm:ss", "dd.MM.yyyy HH:mm:ss")
     )
   )
 
   val se = Lang(
+    "BoatTracker",
     "Karta",
     language = Language.swedish,
     name = "Namn",
@@ -897,7 +916,10 @@ object Lang {
                 "Suomeksi",
                 "Svenska",
                 "English"),
-    MessagesLang("Ladataan...", "Laddning av profildata misslyckades.", "Inga sparade spår.", "N/A"),
+    MessagesLang("Ladataan...",
+                 "Laddning av profildata misslyckades.",
+                 "Inga sparade spår.",
+                 "N/A"),
     SettingsLang(
       "Välkommen",
       "Spara den här nyckeln i BoatTracker-appen installerad i din båt för att spara körda rutter:",
@@ -916,7 +938,8 @@ object Lang {
       "Ange ett nytt namn",
       "Avbryt",
       "Tillbaka",
-      "Inga sparade spår. För att spara spår, koppla BoatTracker-appen till båtens plotter."
+      "Inga sparade spår. För att spara spår, koppla BoatTracker-appen till båtens plotter.",
+      Formats("dd.MM.yyyy", "HH:mm:ss", "dd.MM.yyyy HH:mm:ss")
     )
   )
   val default = fi
