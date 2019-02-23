@@ -67,7 +67,7 @@ class BoatMqttClient(url: FullUrl, topic: String) {
     case JsSuccess(msg, _) => msg match {
       case loc: VesselLocation =>
         metadata.get(loc.mmsi).map { meta =>
-          val dateTime = Instants.format(Instant.ofEpochMilli(loc.timestamp))
+          val dateTime = Instants.formatDateTime(Instant.ofEpochMilli(loc.timestamp))
           Source.single(loc.toInfo(meta, dateTime))
         }.getOrElse {
           // Drops location updates for which there is no vessel metadata

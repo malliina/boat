@@ -535,10 +535,10 @@ object MessagesLang {
   implicit val json = Json.format[MessagesLang]
 }
 
-case class Formats(date: String, time: String, dateTime: String)
+case class FormatsLang(date: String, time: String, dateTime: String)
 
-object Formats {
-  implicit val json = Json.format[Formats]
+object FormatsLang {
+  implicit val json = Json.format[FormatsLang]
 }
 
 case class SettingsLang(welcome: String,
@@ -559,7 +559,7 @@ case class SettingsLang(welcome: String,
                         cancel: String,
                         back: String,
                         noTracksHelp: String,
-                        formats: Formats)
+                        formats: FormatsLang)
 
 object SettingsLang {
   implicit val json = Json.format[SettingsLang]
@@ -705,7 +705,7 @@ object Lang {
       "Cancel",
       "Back",
       "Hello! You have no saved tracks. To save tracks, you'll need to connect the BoatTracker agent software to the GPS chartplotter in your boat.",
-      Formats("dd MMM yyyy", "HH:mm:ss", "dd MMM yyyy HH:mm:ss")
+      FormatsLang("dd MMM yyyy", "HH:mm:ss", "dd MMM yyyy HH:mm:ss")
     )
   )
 
@@ -822,7 +822,7 @@ object Lang {
       "Keskeytä",
       "Takaisin",
       "Hei! Ei tallennettuja reittejä. Reittien tallennus vaatii BoatTracker -sovelluksen yhdistämisen veneesi karttaplotteriin.",
-      Formats("dd.MM.yyyy", "HH:mm:ss", "dd.MM.yyyy HH:mm:ss")
+      FormatsLang("dd.MM.yyyy", "HH:mm:ss", "dd.MM.yyyy HH:mm:ss")
     )
   )
 
@@ -939,7 +939,7 @@ object Lang {
       "Avbryt",
       "Tillbaka",
       "Inga sparade spår. För att spara spår, koppla BoatTracker-appen till båtens plotter.",
-      Formats("dd.MM.yyyy", "HH:mm:ss", "dd.MM.yyyy HH:mm:ss")
+      FormatsLang("dd.MM.yyyy", "HH:mm:ss", "dd.MM.yyyy HH:mm:ss")
     )
   )
   val default = fi

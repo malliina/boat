@@ -8,18 +8,36 @@ import java.time.{Instant, ZoneId}
   * Scala.js does not support java.time.* fully.
   */
 object Instants {
-
-  val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
-    //  val formatter = DateTimeFormatter.ISO_DATE_TIME
+  val dateFormatter = DateTimeFormatter
+    .ofPattern("yyyy-MM-dd")
     .withZone(ZoneId.systemDefault())
 
-  val timeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss")
+  val dateTimeFormatter = DateTimeFormatter
+    .ofPattern("yyyy-MM-dd HH:mm:ss")
     .withZone(ZoneId.systemDefault())
 
-  def format(i: Instant): ISODateTime = ISODateTime(formatter.format(i))
+  val timeFormatter = DateTimeFormatter
+    .ofPattern("HH:mm:ss")
+    .withZone(ZoneId.systemDefault())
 
-  def formatTime(i: Instant): String = timeFormatter.format(i)
+  def formatDate(i: Instant) = FormattedDate(dateFormatter.format(i))
+
+  def formatDateTime(i: Instant): FormattedDateTime = FormattedDateTime(dateTimeFormatter.format(i))
+
+  def formatTime(i: Instant) = FormattedTime(timeFormatter.format(i))
 
   def formatRange(start: Instant, end: Instant): String =
-    s"${format(start)} - ${formatTime(end)}"
+    s"${formatDateTime(start)} - ${formatTime(end)}"
+
+  def timing(i: Instant) =
+    Timing(Instants.formatDate(i),
+           Instants.formatTime(i),
+           Instants.formatDateTime(i),
+           i.toEpochMilli)
+
+  def times(start: Instant, end: Instant): Times = Times(
+    timing(start),
+    timing(end),
+    Instants.formatRange(start, end)
+  )
 }

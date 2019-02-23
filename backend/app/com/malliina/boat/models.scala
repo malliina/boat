@@ -97,9 +97,9 @@ case class JoinedTrack(track: TrackId,
     boatName,
     username,
     points,
-    Instants.format(startOrNow),
+    Instants.formatDateTime(startOrNow),
     startOrNow.toEpochMilli,
-    Instants.format(endOrNow),
+    Instants.formatDateTime(endOrNow),
     endOrNow.toEpochMilli,
     Instants.formatRange(startOrNow, endOrNow),
     duration,
@@ -107,7 +107,8 @@ case class JoinedTrack(track: TrackId,
     topSpeed,
     avgSpeed,
     avgWaterTemp,
-    topPoint.timed
+    topPoint.timed,
+    Instants.times(startOrNow, endOrNow)
   )
 }
 
@@ -333,12 +334,13 @@ case class CombinedCoord(id: TrackPointId,
   def timed = TimedCoord(
     id,
     coord,
-    Instants.format(boatTime),
+    Instants.formatDateTime(boatTime),
     boatTime.toEpochMilli,
     Instants.formatTime(boatTime),
     boatSpeed,
     waterTemp,
-    depth
+    depth,
+    Instants.timing(boatTime)
   )
 }
 

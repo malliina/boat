@@ -60,7 +60,7 @@ class ChartSocket(ctx: CanvasRenderingContext2D, track: TrackName, sample: Optio
 
   override def onCoords(event: CoordsEvent): Unit = {
     val coords = event.coords
-    chart.data.append(coords.map(_.boatTimeOnly), Map(
+    chart.data.append(coords.map(_.boatTimeOnly.time), Map(
       depthLabel -> coords.map(_.depth.toMetersDouble),
       speedLabel -> coords.map(c => math.rint(c.speed.toKnotsDouble * 100) / 100)
     ))

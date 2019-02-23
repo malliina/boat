@@ -18,13 +18,40 @@ object Bearing {
   val west = apply(270)
 }
 
-/** Date and time in ISO8601 format. Not using java.time.* because scala.js does not support it fully.
-  *
-  * @param dateTime e.g. 2007-04-05T14:30Z
-  */
-case class ISODateTime(dateTime: String) extends Wrapped(dateTime)
+case class FormattedTime(time: String) extends Wrapped(time)
 
-object ISODateTime extends StringCompanion[ISODateTime]
+object FormattedTime extends StringCompanion[FormattedTime]
+
+case class FormattedDate(date: String) extends Wrapped(date)
+
+object FormattedDate extends StringCompanion[FormattedDate]
+
+case class FormattedDateTime(dateTime: String) extends Wrapped(dateTime)
+
+object FormattedDateTime extends StringCompanion[FormattedDateTime]
+
+case class Timing(date: FormattedDate,
+                  time: FormattedTime,
+                  dateTime: FormattedDateTime,
+                  millis: Long)
+
+object Timing {
+  implicit val json = Json.format[Timing]
+}
+
+case class Times(start: Timing, end: Timing, range: String)
+
+object Times {
+  implicit val json = Json.format[Times]
+}
+
+///** Date and time in ISO8601 format. Not using java.time.* because scala.js does not support it fully.
+//  *
+//  * @param dateTime e.g. 2007-04-05T14:30Z
+//  */
+//case class ISODateTime(dateTime: String) extends Wrapped(dateTime)
+//
+//object ISODateTime extends StringCompanion[ISODateTime]
 
 case class Coord(lng: Double, lat: Double) {
 
@@ -49,9 +76,12 @@ object Coord {
   implicit val json: OFormat[Coord] = Json.format[Coord]
   // GeoJSON format
   val jsonArray = Format(
-    Reads[Coord](json => json.validate[List[Double]].flatMap {
-      case lng :: lat :: _ => JsSuccess(Coord(lng, lat))
-      case _ => JsError(s"Expected a JSON array of at least two numbers for coordinates [lng, lat]. Got: '$json'.")
+    Reads[Coord](json =>
+      json.validate[List[Double]].flatMap {
+        case lng :: lat :: _ => JsSuccess(Coord(lng, lat))
+        case _ =>
+          JsError(
+            s"Expected a JSON array of at least two numbers for coordinates [lng, lat]. Got: '$json'.")
     }),
     Writes[Coord](c => Json.toJson(c.toArray))
   )
@@ -59,12 +89,13 @@ object Coord {
 
 case class TimedCoord(id: TrackPointId,
                       coord: Coord,
-                      boatTime: ISODateTime,
+                      boatTime: FormattedDateTime,
                       boatTimeMillis: Long,
-                      boatTimeOnly: String,
+                      boatTimeOnly: FormattedTime,
                       speed: Speed,
                       waterTemp: Temperature,
-                      depth: Distance) {
+                      depth: Distance,
+                      time: Timing) {
   def lng = coord.lng
 
   def lat = coord.lat
@@ -190,7 +221,8 @@ object MobileDevice extends ValidatingCompanion[String, MobileDevice] {
   def apply(s: String): MobileDevice = build(s).getOrElse(Unknown(s))
 
   override def build(input: String): Either[ErrorMessage, MobileDevice] =
-    all.find(_.name.toLowerCase == input.toLowerCase)
+    all
+      .find(_.name.toLowerCase == input.toLowerCase)
       .toRight(ErrorMessage(s"Unknown device type: '$input'."))
 
   override def write(t: MobileDevice): String = t.name
@@ -239,19 +271,38 @@ trait TrackLike extends TrackMetaLike {
   def duration: Duration
 }
 
-case class TrackMetaShort(track: TrackId, trackName: TrackName, boat: BoatId,
-                          boatName: BoatName, username: Username) extends TrackMetaLike
+case class TrackMetaShort(track: TrackId,
+                          trackName: TrackName,
+                          boat: BoatId,
+                          boatName: BoatName,
+                          username: Username)
+    extends TrackMetaLike
 
 object TrackMetaShort {
   implicit val json = Json.format[TrackMetaShort]
 }
 
-case class TrackRef(track: TrackId, trackName: TrackName, trackTitle: Option[TrackTitle],
-                    canonical: TrackCanonical, boat: BoatId, boatName: BoatName, username: Username,
-                    points: Int, start: ISODateTime, startMillis: Long, end: ISODateTime,
-                    endMillis: Long, startEndRange: String, duration: Duration,
-                    distance: Distance, topSpeed: Option[Speed], avgSpeed: Option[Speed],
-                    avgWaterTemp: Option[Temperature], topPoint: TimedCoord) extends TrackLike {
+case class TrackRef(track: TrackId,
+                    trackName: TrackName,
+                    trackTitle: Option[TrackTitle],
+                    canonical: TrackCanonical,
+                    boat: BoatId,
+                    boatName: BoatName,
+                    username: Username,
+                    points: Int,
+                    start: FormattedDateTime,
+                    startMillis: Long,
+                    end: FormattedDateTime,
+                    endMillis: Long,
+                    startEndRange: String,
+                    duration: Duration,
+                    distance: Distance,
+                    topSpeed: Option[Speed],
+                    avgSpeed: Option[Speed],
+                    avgWaterTemp: Option[Temperature],
+                    topPoint: TimedCoord,
+                    times: Times)
+    extends TrackLike {
   def describe = trackTitle.map(_.title).getOrElse(trackName.name)
 }
 
@@ -278,7 +329,11 @@ object TrackPointId extends IdCompanion[TrackPointId]
 
 case class BoatUser(track: TrackName, boat: BoatName, user: Username) extends BoatTrackMeta
 
-case class BoatInfo(boatId: BoatId, boat: BoatName, user: Username, language: Language, tracks: Seq[TrackRef])
+case class BoatInfo(boatId: BoatId,
+                    boat: BoatName,
+                    user: Username,
+                    language: Language,
+                    tracks: Seq[TrackRef])
 
 object BoatInfo {
   implicit val json = Json.format[BoatInfo]
@@ -341,8 +396,7 @@ object CoordsBatch {
   implicit val json = Json.format[CoordsBatch]
 }
 
-case class SentencesEvent(sentences: Seq[RawSentence], from: TrackMetaShort)
-  extends BoatFrontEvent
+case class SentencesEvent(sentences: Seq[RawSentence], from: TrackMetaShort) extends BoatFrontEvent
 
 object SentencesEvent {
   val Key = "sentences"
@@ -382,18 +436,19 @@ sealed trait BoatFrontEvent extends FrontEvent {
 
 object FrontEvent {
   implicit val reader = Reads[FrontEvent] { json =>
-    VesselMessages.json.reads(json)
+    VesselMessages.json
+      .reads(json)
       .orElse(CoordsEvent.json.reads(json))
       .orElse(CoordsBatch.json.reads(json))
       .orElse(SentencesEvent.json.reads(json))
       .orElse(PingEvent.json.reads(json))
   }
   implicit val writer = Writes[FrontEvent] {
-    case se@SentencesEvent(_, _) => SentencesEvent.json.writes(se)
-    case ce@CoordsEvent(_, _) => CoordsEvent.json.writes(ce)
-    case cb@CoordsBatch(_) => CoordsBatch.json.writes(cb)
-    case pe@PingEvent(_) => PingEvent.json.writes(pe)
-    case vs@VesselMessages(_) => VesselMessages.json.writes(vs)
+    case se @ SentencesEvent(_, _) => SentencesEvent.json.writes(se)
+    case ce @ CoordsEvent(_, _)    => CoordsEvent.json.writes(ce)
+    case cb @ CoordsBatch(_)       => CoordsBatch.json.writes(cb)
+    case pe @ PingEvent(_)         => PingEvent.json.writes(pe)
+    case vs @ VesselMessages(_)    => VesselMessages.json.writes(vs)
   }
 }
 
@@ -410,7 +465,8 @@ object BoatJson {
   val EventKey = "event"
   val BodyKey = "body"
 
-  def empty[T](build: => T): OFormat[T] = OFormat[T](Reads(_ => JsSuccess(build)), OWrites[T](_ => Json.obj()))
+  def empty[T](build: => T): OFormat[T] =
+    OFormat[T](Reads(_ => JsSuccess(build)), OWrites[T](_ => Json.obj()))
 
   /** A JSON format for objects of type T that contains a top-level "event" key and further data in "body".
     */

@@ -181,7 +181,7 @@ case class VesselInfo(mmsi: Mmsi,
                       heading: Option[Int],
                       eta: Long,
                       timestampMillis: Long,
-                      timestampFormatted: ISODateTime)
+                      timestampFormatted: FormattedDateTime)
 
 object VesselInfo {
   val HeadingKey = "heading"
@@ -203,7 +203,7 @@ case class VesselLocation(mmsi: Mmsi,
                           cog: Double,
                           heading: Option[Int],
                           timestamp: Long) extends VesselMessage {
-  def toInfo(meta: VesselMetadata, formattedTime: ISODateTime) = VesselInfo(
+  def toInfo(meta: VesselMetadata, formattedTime: FormattedDateTime) = VesselInfo(
     mmsi, meta.name, meta.shipType,
     coord, sog, cog,
     meta.draft, meta.destination, heading,

@@ -213,12 +213,13 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext)
       val coord = TimedCoord(
         point.id,
         Coord(point.lon, point.lat),
-        Instants.format(point.boatTime),
+        Instants.formatDateTime(point.boatTime),
         point.boatTime.toEpochMilli,
         Instants.formatTime(point.boatTime),
         point.boatSpeed,
         point.waterTemp,
-        point.depth
+        point.depth,
+        Instants.timing(point.boatTime)
       )
       if (idx >= 0) {
         val old = acc(idx)
