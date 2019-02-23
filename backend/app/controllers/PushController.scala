@@ -13,6 +13,8 @@ class PushController(push: PushDatabase,
                      googleAuth: EmailAuth,
                      auther: UserManager,
                      comps: ControllerComponents) extends AuthController(googleAuth, auther, comps) {
+  val NoChange = "No change."
+
   def enableNotifications = jsonAuth[PushPayload] { req =>
     val payload = req.body
     push.enable(PushInput(payload.token, payload.device, req.user.id)).map { _ =>
@@ -22,14 +24,15 @@ class PushController(push: PushDatabase,
 
   def disableNotifications = jsonAuth[SingleToken] { req =>
     push.disable(req.body.token, req.user.id).map { disabled =>
-      val msg = if (disabled) "disabled" else "no change"
+      val msg = if (disabled) "Disabled." else NoChange
       Ok(SimpleMessage(msg))
     }
   }
 
   def changeLanguage = jsonAuth[ChangeLanguage] { req =>
-    auther.changeLanguage(req.user.id, req.body.language).map { changed =>
-      val msg = if (changed) "changed" else "no change"
+    val newLanguage = req.body.language
+    auther.changeLanguage(req.user.id, newLanguage).map { changed =>
+      val msg = if (changed) s"Changed language to $newLanguage." else NoChange
       Ok(SimpleMessage(msg))
     }
   }
