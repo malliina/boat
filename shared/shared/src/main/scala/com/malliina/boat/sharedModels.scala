@@ -51,6 +51,8 @@ case class Coord(lng: Double, lat: Double) {
 
   def toArray: Array[Double] = Array(lng, lat)
 
+  def isValid = !lng.isNaN && !lat.isNaN
+
   def approx: String = {
     val lngStr = Coord.format(lng)
     val latStr = Coord.format(lat)

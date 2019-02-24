@@ -167,9 +167,9 @@ class MapSocket(val map: MapboxMap,
     // updates the map position, zoom to reflect the updated track(s)
     mapMode match {
       case MapMode.Fit =>
-        trail.headOption.foreach { coord =>
+        trail.find(_.isValid).foreach { coord =>
           val init = LngLatBounds(coord)
-          val bs: LngLatBounds = trail.foldLeft(init) { (bounds, c) =>
+          val bs: LngLatBounds = trail.filter(_.isValid).foldLeft(init) { (bounds, c) =>
             bounds.extendWith(c)
           }
           map.fitBounds(bs, FitOptions(20))
