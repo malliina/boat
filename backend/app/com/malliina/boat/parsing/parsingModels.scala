@@ -2,24 +2,9 @@ package com.malliina.boat.parsing
 
 import java.time.{LocalDate, LocalTime, ZoneOffset}
 
-import com.malliina.boat.{
-  Coord,
-  Instants,
-  KeyedSentence,
-  RawSentence,
-  SentenceKey,
-  TimedCoord,
-  TrackId,
-  TrackMetaShort,
-  TrackPointId,
-  TrackRef
-}
+import com.malliina.boat.{Coord, Instants, KeyedSentence, RawSentence, SentenceKey, TimeFormatter, TimedCoord, TrackId, TrackMetaShort, TrackPointId}
 import com.malliina.measure.{Distance, Speed, Temperature}
-import net.sf.marineapi.nmea.parser.{
-  DataNotAvailableException,
-  SentenceFactory,
-  UnsupportedSentenceException
-}
+import net.sf.marineapi.nmea.parser.{DataNotAvailableException, SentenceFactory, UnsupportedSentenceException}
 import net.sf.marineapi.nmea.sentence.Sentence
 
 trait BoatSentenceParser {
@@ -96,16 +81,16 @@ case class FullCoord(coord: Coord,
 
   def lat = coord.lat
 
-  def timed(id: TrackPointId): TimedCoord = TimedCoord(
+  def timed(id: TrackPointId, formatter: TimeFormatter): TimedCoord = TimedCoord(
     id,
     coord,
-    Instants.formatDateTime(boatTime),
+    formatter.formatDateTime(boatTime),
     boatTime.toEpochMilli,
-    Instants.formatTime(boatTime),
+    formatter.formatTime(boatTime),
     boatSpeed,
     waterTemp,
     depth,
-    Instants.timing(boatTime)
+    formatter.timing(boatTime)
   )
 }
 

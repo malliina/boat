@@ -12,8 +12,8 @@ object Instants extends TimeFormatter(TimePatterns.fi)
 case class TimePatterns(date: String, time: String, dateTime: String)
 
 object TimePatterns {
-  val fi = TimePatterns("yyyy-MM-dd", "HH:mm:ss", "yyyy-MM-dd HH:mm:ss")
-  val se = TimePatterns("yyyy-MM-dd", "HH:mm:ss", "yyyy-MM-dd HH:mm:ss")
+  val fi = TimePatterns("dd.MM.yyyy", "HH:mm:ss", "dd.MM.yyyy HH:mm:ss")
+  val se = TimePatterns("dd.MM.yyyy", "HH:mm:ss", "dd.MM.yyyy HH:mm:ss")
   val en = TimePatterns("dd MMM yyyy", "HH:mm:ss", "dd MMM yyyy HH:mm:ss")
 }
 

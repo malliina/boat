@@ -5,11 +5,11 @@ import java.time.Instant
 
 import akka.NotUsed
 import akka.stream.scaladsl.{RestartSource, Source}
-import com.malliina.boat.ais.BoatMqttClient.{log, pass, user}
-import com.malliina.boat.{AISMessage, Instants, Locations, Metadata, Mmsi, StatusTopic, VesselLocation, VesselMessages, VesselMetadata, VesselStatus}
+import com.malliina.boat.ais.BoatMqttClient.{AisPair, log, pass, user}
+import com.malliina.boat.{AISMessage, Locations, Metadata, Mmsi, StatusTopic, TimeFormatter, VesselLocation, VesselMetadata, VesselStatus}
 import com.malliina.http.FullUrl
-import play.api.{Logger, Mode}
 import play.api.libs.json.{JsError, JsResult, JsSuccess, Json}
+import play.api.{Logger, Mode}
 
 import scala.collection.concurrent.TrieMap
 import scala.concurrent.duration.DurationInt
@@ -34,6 +34,11 @@ object BoatMqttClient {
   def test() = apply(TestUrl, AllDataTopic)
 
   def apply(url: FullUrl, topic: String): BoatMqttClient = new BoatMqttClient(url, topic)
+
+  case class AisPair(location: VesselLocation, meta: VesselMetadata) {
+    def when = Instant.ofEpochMilli(location.timestamp)
+    def toInfo(formatter: TimeFormatter) = location.toInfo(meta, formatter.formatDateTime(when))
+  }
 }
 
 /** Locally caches vessel metadata, then merges it with location data as it is received.
@@ -67,8 +72,7 @@ class BoatMqttClient(url: FullUrl, topic: String) {
     case JsSuccess(msg, _) => msg match {
       case loc: VesselLocation =>
         metadata.get(loc.mmsi).map { meta =>
-          val dateTime = Instants.formatDateTime(Instant.ofEpochMilli(loc.timestamp))
-          Source.single(loc.toInfo(meta, dateTime))
+          Source.single(AisPair(loc, meta))
         }.getOrElse {
           // Drops location updates for which there is no vessel metadata
           Source.empty
@@ -81,8 +85,9 @@ class BoatMqttClient(url: FullUrl, topic: String) {
     }
     case JsError(_) => Source.empty
   }
-  val slow: Source[VesselMessages, NotUsed] =
-    vesselMessages.groupedWithin(maxBatchSize, sendTimeWindow).map(VesselMessages.apply)
+
+  val slow: Source[Seq[AisPair], NotUsed] =
+    vesselMessages.groupedWithin(maxBatchSize, sendTimeWindow)
 
   private def newClientId = s"boattracker-$date"
 

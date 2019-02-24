@@ -1,11 +1,9 @@
 package com.malliina.boat.html
 
-import java.time.Instant
-
 import com.malliina.boat.BoatFormats._
 import com.malliina.boat.FrontKeys._
 import com.malliina.boat.http.Limits
-import com.malliina.boat.{BoatFormats, FullTrack, Instants, TrackName, TrackRef, TrackTitle}
+import com.malliina.boat.{BoatFormats, FullTrack, TrackName, TrackRef, TrackTitle}
 import com.malliina.measure.{Distance, Speed, Temperature}
 import com.malliina.values.Wrapped
 import controllers.routes
@@ -23,8 +21,6 @@ object SentencesPage {
 
   implicit def tempHtml(t: Temperature): StringFrag = stringFrag(formatTemp(t))
 
-  implicit def instantHtml(i: Instant): StringFrag = stringFrag(Instants.formatDateTime(i).dateTime)
-
   implicit def wrappedHtml[T <: Wrapped](w: Wrapped): StringFrag = stringFrag(w.value)
 
   def apply(track: FullTrack, current: Limits): Modifier = {
@@ -36,9 +32,10 @@ object SentencesPage {
         tbody(
           track.coords.map { c =>
             modifier(
-              tr(td(c.coord.approx), td(c.boatSpeed), td(c.boatTime)),
+              tr(td(c.coord.approx), td(c.boatSpeed), td(c.time.dateTime)),
               c.sentences.map { sentence =>
-                tr(`class` := "row-sm")(td(colspan := 2)(sentence.sentence), td(sentence.added))
+                tr(`class` := "row-sm")(td(colspan := 2)(sentence.sentence),
+                                        td(sentence.time.dateTime))
               }
             )
           }
@@ -56,18 +53,28 @@ object SentencesPage {
           h1(track.boatName)
         )
       ),
-      form(`class` := Hidden, id := EditTitleFormId, method := "PUT", action := routes.BoatController.modifyTitle(track.trackName))(
+      form(`class` := Hidden,
+           id := EditTitleFormId,
+           method := "PUT",
+           action := routes.BoatController.modifyTitle(track.trackName))(
         div(`class` := "form-group row form-title")(
-          label(`for` := "title", `class` := "col-sm-2 col-form-label col-form-label-sm")("Edit title"),
+          label(`for` := "title", `class` := "col-sm-2 col-form-label col-form-label-sm")(
+            "Edit title"),
           div(`class` := "col-sm-7 pr-2")(
-            input(`type` := "text", id := TitleInputId, name := TrackTitle.Key,
+            input(
+              `type` := "text",
+              id := TitleInputId,
+              name := TrackTitle.Key,
               `class` := "form-control form-control-sm input-title",
               track.trackTitle.map(t => value := t.title).getOrElse(modifier()),
-              placeholder := "Evening trip")
+              placeholder := "Evening trip"
+            )
           ),
           div(`class` := "col-3 pl-0")(
             button(`type` := "submit", `class` := "btn btn-sm btn-primary")("Save"),
-            button(`type` := "button", id := CancelEditTrackId, `class` := "btn btn-sm btn-secondary ml-1")("Cancel")
+            button(`type` := "button",
+                   id := CancelEditTrackId,
+                   `class` := "btn btn-sm btn-secondary ml-1")("Cancel")
           )
         )
       ),
@@ -81,10 +88,12 @@ object SentencesPage {
     )
   }
 
-  def editIcon = span(
-    id := EditTitleId, `class` := s"oi icon-link pencil",
-    data("glyph") := "pencil", title := "Edit track title",
-    aria.hidden := "true")
+  def editIcon =
+    span(id := EditTitleId,
+         `class` := s"oi icon-link pencil",
+         data("glyph") := "pencil",
+         title := "Edit track title",
+         aria.hidden := "true")
 
   private def description(labelText: String, value: Modifier) = modifier(
     dt(`class` := "col-sm-2")(labelText),
@@ -100,17 +109,31 @@ object SentencesPage {
     tag("nav")(aria.label := "Navigation")(
       ul(`class` := "pagination justify-content-center")(
         pageLink(trackName, Limits(pageSize, 0), "First", isDisabled = current.offset == 0),
-        pageLink(trackName, current.copy(offset = prevOffset), "Previous", isDisabled = current.offset == 0),
+        pageLink(trackName,
+                 current.copy(offset = prevOffset),
+                 "Previous",
+                 isDisabled = current.offset == 0),
         pageLink(trackName, current, "" + current.page, isActive = true),
-        pageLink(trackName, current.copy(offset = current.offset + pageSize), "Next", isDisabled = !hasMore),
-        pageLink(trackName, Limits(pageSize, lastOffset), "Last", isDisabled = lastOffset == current.offset)
+        pageLink(trackName,
+                 current.copy(offset = current.offset + pageSize),
+                 "Next",
+                 isDisabled = !hasMore),
+        pageLink(trackName,
+                 Limits(pageSize, lastOffset),
+                 "Last",
+                 isDisabled = lastOffset == current.offset)
       )
     )
   }
 
-  private def pageLink(track: TrackName, to: Limits, text: String, isActive: Boolean = false, isDisabled: Boolean = false) = {
+  private def pageLink(track: TrackName,
+                       to: Limits,
+                       text: String,
+                       isActive: Boolean = false,
+                       isDisabled: Boolean = false) = {
     val base = routes.BoatController.full(track)
-    val call = base.copy(url = s"${base.url}?${Limits.Limit}=${to.limit}&${Limits.Offset}=${to.offset}")
+    val call =
+      base.copy(url = s"${base.url}?${Limits.Limit}=${to.limit}&${Limits.Offset}=${to.offset}")
     val liClass = if (isDisabled) "disabled" else ""
     li(`class` := classes("page-item", liClass))(a(`class` := "page-link", href := call)(text))
   }

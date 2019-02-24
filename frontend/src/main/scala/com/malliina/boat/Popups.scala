@@ -20,7 +20,7 @@ class Popups(lang: Lang) extends BoatModels {
       row(trackLang.speed, formatSpeed(c.speed)),
       row(trackLang.water, c.waterTemp.formatCelsius),
       row(trackLang.depth, c.depth.short),
-      tr(td(colspan := 2)(c.boatTime.dateTime))
+      tr(td(colspan := 2)(c.time.dateTime))
     )
 
   def ais(vessel: VesselInfo) = {
@@ -40,20 +40,20 @@ class Popups(lang: Lang) extends BoatModels {
   def formatDistance(d: DistanceM) = "%.1f m".format(d.toMeters)
 
   def mark(symbol: MarineSymbol) =
-    titledTable(symbol.ownerName(specialWords))(
+    titledTable(symbol.name(lang).fold("")(identity))(
       row(markLang.aidType, symbol.aidType.translate(markLang.aidTypes)),
       symbol.construction.fold(empty)(c => row(markLang.construction, c.translate(markLang.structures))),
       if (symbol.navMark == NavMark.NotApplicable) empty
       else row(markLang.navigation, symbol.navMark.translate(markLang.navTypes)),
-      symbol.name(lang).fold(empty)(n => row(lang.name, n)),
-      symbol.location(lang).fold(empty)(l => row(markLang.location, l))
+      symbol.location(lang).fold(empty)(l => row(markLang.location, l)),
+      row(markLang.owner, symbol.ownerName(specialWords))
     )
 
   def minimalMark(symbol: MinimalMarineSymbol) =
-    titledTable(symbol.ownerName(specialWords))(
-      symbol.name(lang).fold(empty)(n => row(lang.name, n)),
+    titledTable(symbol.name(lang).fold("")(identity))(
       symbol.location(lang).fold(empty)(l => row(markLang.location, l)),
-      row(markLang.influence, symbol.influence.translate(fairwayLang.zones))
+      row(markLang.influence, symbol.influence.translate(fairwayLang.zones)),
+      row(markLang.owner, symbol.ownerName(specialWords))
     )
 
   def fairway(fairway: FairwayArea) =
@@ -80,7 +80,7 @@ class Popups(lang: Lang) extends BoatModels {
 
   private def titledTable(title: Modifier)(content: Modifier*) =
     popupTable(
-      tr(td(colspan := 2)(title)),
+      tr(td(colspan := 2, `class` := "popup-title")(title)),
       content
     )
 
@@ -92,7 +92,7 @@ class Popups(lang: Lang) extends BoatModels {
     )
 
   private def row(title: String, value: Modifier) =
-    tr(td(`class` := "popup-title")(title), td(value))
+    tr(td(`class` := "popup-label")(title), td(value))
 
   def marker(speed: Speed) =
     i(`class` := "fas fa-trophy marker-top-speed")

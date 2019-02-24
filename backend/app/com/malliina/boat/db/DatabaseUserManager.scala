@@ -3,7 +3,7 @@ package com.malliina.boat.db
 import java.sql.SQLException
 
 import com.malliina.boat.db.DatabaseUserManager.log
-import com.malliina.boat.{Boat, BoatInfo, BoatInput, BoatNames, BoatRow, BoatToken, BoatTokens, JoinedBoat, JoinedTrack, Language, UserBoats, UserInfo, UserToken}
+import com.malliina.boat.{Boat, BoatInfo, BoatInput, BoatNames, BoatRow, BoatToken, BoatTokens, JoinedBoat, JoinedTrack, Language, TimeFormatter, UserBoats, UserInfo, UserToken}
 import com.malliina.values.{Email, UserId, Username}
 import play.api.Logger
 
@@ -87,23 +87,23 @@ class DatabaseUserManager(val db: BoatSchema)(implicit ec: ExecutionContext)
     for {
       id <- getOrCreate(email)
       user <- first(usersTable.filter(_.id === id), s"Not found or not enabled: '$email'.")
-      bs <- loadBoats(tracksViewNonEmpty.filter(r => r.user === id && r.points > 100))
+      bs <- loadBoats(tracksViewNonEmpty.filter(r => r.user === id && r.points > 100), TimeFormatter(user.language))
     } yield UserBoats(user.username, user.language, bs)
   }
 
-  private def loadBoats(q: Query[LiftedJoinedTrack, JoinedTrack, Seq]) = {
+  private def loadBoats(q: Query[LiftedJoinedTrack, JoinedTrack, Seq], formatter: TimeFormatter) = {
     val tracksAction = q
       .sortBy(r => (r.user, r.boat, r.start.desc, r.trackAdded.desc, r.track.desc))
       .result
     for {
       tracks <- tracksAction
-    } yield collectBoats(tracks)
+    } yield collectBoats(tracks, formatter)
   }
 
-  private def collectBoats(rows: Seq[JoinedTrack]): Seq[BoatInfo] =
+  private def collectBoats(rows: Seq[JoinedTrack], formatter: TimeFormatter): Seq[BoatInfo] =
     rows.foldLeft(Vector.empty[BoatInfo]) { (acc, row) =>
       val boatIdx = acc.indexWhere(b => b.user == row.username && b.boatId == row.boat)
-      val newRow = row.strip
+      val newRow = row.strip(formatter)
       if (boatIdx >= 0) {
         val old = acc(boatIdx)
         acc.updated(boatIdx, old.copy(tracks = old.tracks :+ newRow))

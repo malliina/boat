@@ -86,8 +86,8 @@ class BoatController(mapboxToken: AccessToken,
     action(rh)
   }
 
-  def ref(track: TrackName) = secureJson(TrackQuery.apply) { _ =>
-    db.ref(track)
+  def ref(track: TrackName) = secureJson(TrackQuery.apply) { req =>
+    db.ref(track, req.email)
   }
 
   def trail(track: TrackName) = secureJson(TrackQuery.apply) { req =>
@@ -103,8 +103,8 @@ class BoatController(mapboxToken: AccessToken,
     }
   }
 
-  def chart(track: TrackName) = secureTrack { _ =>
-    db.ref(track).map { ref =>
+  def chart(track: TrackName) = secureTrack { req =>
+    db.ref(track, req.email).map { ref =>
       Ok(html.chart(ref))
     }
   }
@@ -149,10 +149,11 @@ class BoatController(mapboxToken: AccessToken,
     recovered(auth(rh), rh).map { outcome =>
       outcome.flatMap { user =>
         BoatQuery(rh).map { limits =>
-          log.info(s"Viewer '$user' joined.")
+          val username = user.username
+          log.info(s"Viewer '$username' joined.")
           // Show only recent tracks for anon users
           val historicalLimits: BoatQuery =
-            if (limits.tracks.nonEmpty && user.username == anonUser) BoatQuery.tracks(limits.tracks)
+            if (limits.tracks.nonEmpty && username == anonUser) BoatQuery.tracks(limits.tracks)
             else if (user.username == anonUser) BoatQuery.recent(Instant.now())
             else limits
           val history: Source[CoordsEvent, NotUsed] =
@@ -164,13 +165,14 @@ class BoatController(mapboxToken: AccessToken,
                 s"Points ${es.map(_.coords.length).sum} intelligent $intelligentSample actual $actualSample")
               Source(es.toList.map(_.sample(actualSample)))
             }
+          val formatter = TimeFormatter(user.language)
           // disconnects viewers that lag more than 3s
           val flow = Flow
             .fromSinkAndSource(Sink.ignore,
-                               history.concat(boats.allEvents).filter(_.isIntendedFor(user.username)))
+                               history.concat(boats.clientEvents(formatter)).filter(_.isIntendedFor(username)))
             .keepAlive(10.seconds, () => PingEvent(Instant.now.toEpochMilli))
             .backpressureTimeout(3.seconds)
-          logTermination(flow, _ => s"Viewer '$user' left.")
+          logTermination(flow, _ => s"Viewer '$username' left.")
         }.left.map { err =>
           BadRequest(Errors(err))
         }
@@ -189,7 +191,8 @@ class BoatController(mapboxToken: AccessToken,
   private def trackTitleAction(
       code: BoatRequest[UserInfo, TrackTitle] => Future[JoinedTrack]): Action[TrackTitle] =
     formAction(trackTitleForm) { req =>
-      code(req).map(t => TrackResponse(t.strip))
+      val formatter = TimeFormatter(req.user.language)
+      code(req).map { t => TrackResponse(t.strip(formatter)) }
     }
 
   private def formAction[T, W: Writeable](form: Form[T])(

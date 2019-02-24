@@ -33,9 +33,7 @@ trait TracksSource {
 
   def tracksFor(email: Email, filter: TrackQuery): Future[Tracks]
 
-  def tracks(user: Username, query: TrackQuery): Future[Tracks]
-
-  def ref(track: TrackName): Future[TrackRef]
+  def ref(track: TrackName, email: Email): Future[TrackRef]
 
   def track(track: TrackName, user: Email, query: TrackQuery): Future[TrackInfo]
 

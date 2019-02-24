@@ -1,7 +1,5 @@
 package com.malliina.boat.db
 
-import java.time.format.DateTimeFormatter
-
 import com.malliina.boat._
 import com.malliina.boat.db.TracksDatabase.log
 import com.malliina.boat.http._
@@ -19,23 +17,31 @@ object TracksDatabase {
 }
 
 class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext)
-  extends DatabaseOps(db)
+    extends DatabaseOps(db)
     with TracksSource {
-
-  val timeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
 
   import db._
   import db.api._
 
   val minSpeed: Speed = 1.kmh
 
-  case class Joined(sid: SentenceKey, sentence: RawSentence, track: TrackId,
-                    trackName: TrackName, boat: BoatId, boatName: BoatName,
-                    user: UserId, username: Username)
+  case class Joined(sid: SentenceKey,
+                    sentence: RawSentence,
+                    track: TrackId,
+                    trackName: TrackName,
+                    boat: BoatId,
+                    boatName: BoatName,
+                    user: UserId,
+                    username: Username)
 
-  case class LiftedJoined(sid: Rep[SentenceKey], sentence: Rep[RawSentence], track: Rep[TrackId],
-                          trackName: Rep[TrackName], boat: Rep[BoatId], boatName: Rep[BoatName],
-                          user: Rep[UserId], username: Rep[Username])
+  case class LiftedJoined(sid: Rep[SentenceKey],
+                          sentence: Rep[RawSentence],
+                          track: Rep[TrackId],
+                          trackName: Rep[TrackName],
+                          boat: Rep[BoatId],
+                          boatName: Rep[BoatName],
+                          user: Rep[UserId],
+                          username: Rep[Username])
 
   implicit object JoinedShape extends CaseClassShape(LiftedJoined.tupled, Joined.tupled)
 
@@ -49,7 +55,9 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext)
     val from = sentences.from
     val action = DBIO.sequence {
       sentences.sentences.map { s =>
-        (sentenceInserts += SentenceInput(s, from.track)).map { key => KeyedSentence(key, s, from) }
+        (sentenceInserts += SentenceInput(s, from.track)).map { key =>
+          KeyedSentence(key, s, from)
+        }
       }
     }
     insertLogged(action, from) { ids =>
@@ -82,102 +90,132 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext)
       _ <- trackQuery.map(_.points).update(points)
       distance <- pointsQuery.map(_.diff).sum.result
       _ <- trackQuery.map(_.distance).update(distance.getOrElse(Distance.zero))
-      ref <- first(tracksViewNonEmpty.filter(_.track === track), s"Track not found: '$track'.")
+      ref: JoinedTrack <- first(tracksViewNonEmpty.filter(_.track === track),
+                                s"Track not found: '$track'.")
     } yield {
-      InsertedPoint(point, ref.strip)
+      InsertedPoint(point, ref)
     }
     action.transactionally
   }
 
   override def tracksFor(email: Email, filter: TrackQuery): Future[Tracks] =
-    trackList(tracksViewNonEmpty.filter(t => t.email.isDefined && t.email === email), filter)
+    trackList(tracksViewNonEmpty.filter(t => t.email.isDefined && t.email === email), email, filter)
 
-  override def tracks(user: Username, filter: TrackQuery): Future[Tracks] =
-    trackList(tracksViewNonEmpty.filter(t => t.username === user), filter)
-
-  private def trackList(trackQuery: Query[LiftedJoinedTrack, JoinedTrack, Seq], filter: TrackQuery): Future[Tracks] =
-    action {
-      val query = trackQuery.sortBy { ljt =>
-        (filter.sort, filter.order) match {
-          case (TrackSort.Recent, SortOrder.Desc) => ljt.end.desc.nullsLast
-          case (TrackSort.Recent, SortOrder.Asc) => ljt.end.asc.nullsLast
-          case (TrackSort.Points, SortOrder.Desc) => ljt.points.desc.nullsLast
-          case _ => ljt.points.asc.nullsLast
-        }
-      }
-      query.result.map { rows =>
-        Tracks(rows.map(_.strip))
+  private def trackList(trackQuery: Query[LiftedJoinedTrack, JoinedTrack, Seq],
+                        email: Email,
+                        filter: TrackQuery): Future[Tracks] = action {
+    val sortedTracksAction = trackQuery.sortBy { ljt =>
+      (filter.sort, filter.order) match {
+        case (TrackSort.Recent, SortOrder.Desc) => ljt.end.desc.nullsLast
+        case (TrackSort.Recent, SortOrder.Asc)  => ljt.end.asc.nullsLast
+        case (TrackSort.Points, SortOrder.Desc) => ljt.points.desc.nullsLast
+        case _                                  => ljt.points.asc.nullsLast
       }
     }
-
-  override def track(track: TrackName, email: Email, query: TrackQuery): Future[TrackInfo] = action {
-    // intentionally does not filter on email for now
-    val points = pointsTable.map(_.combined).join(tracksTable.filter(t => t.name === track)).on(_.track === _.id).map(_._1)
     for {
-      coords <- points.sortBy(p => p.boatTime.asc).result
-      top <- points.sortBy(_.boatSpeed.desc).take(1).result.headOption
-    } yield TrackInfo(coords, top)
+      user <- userFor(email)
+      rows <- sortedTracksAction.result
+    } yield Tracks(rows.map(_.strip(TimeFormatter(user.language))))
   }
 
+  override def track(track: TrackName, email: Email, query: TrackQuery): Future[TrackInfo] =
+    action {
+      // intentionally does not filter on email for now
+      val points = pointsTable
+        .map(_.combined)
+        .join(tracksTable.filter(t => t.name === track))
+        .on(_.track === _.id)
+        .map(_._1)
+      for {
+        coords <- points.sortBy(p => p.boatTime.asc).result
+        top <- points.sortBy(_.boatSpeed.desc).take(1).result.headOption
+      } yield TrackInfo(coords, top)
+    }
+
   override def full(track: TrackName, email: Email, query: TrackQuery): Future[FullTrack] = action {
-    val limitedPoints = pointsTable.map(_.combined).join(tracksTable.filter(t => t.name === track)).on(_.track === _.id).map(_._1)
+    val limitedPoints = pointsTable
+      .map(_.combined)
+      .join(tracksTable.filter(t => t.name === track))
+      .on(_.track === _.id)
+      .map(_._1)
       .sortBy(p => (p.boatTime.asc, p.id.asc, p.added.asc))
       .drop(query.limits.offset)
       .take(query.limits.limit)
     val coordsAction = sentencesTable
-      .join(sentencePointsTable).on(_.id === _.sentence)
-      .join(limitedPoints).on(_._2.point === _.id)
+      .join(sentencePointsTable)
+      .on(_.id === _.sentence)
+      .join(limitedPoints)
+      .on(_._2.point === _.id)
       .map { case ((s, _), p) => (s, p) }
       .sortBy { case (s, p) => (p.boatTime.asc, p.id.asc, s.added.asc) }
       .result
-      .map(collect)
     for {
+      user <- userFor(email)
       trackStats <- namedTrack(track)
       coords <- coordsAction
-    } yield FullTrack(trackStats.strip, coords)
+    } yield {
+      val formatter = TimeFormatter(user.language)
+      FullTrack(trackStats.strip(formatter), collect(coords, formatter))
+    }
   }
 
-  override def ref(track: TrackName): Future[TrackRef] = action {
-    namedTrack(track).map(_.strip)
+  override def ref(track: TrackName, email: Email): Future[TrackRef] = action {
+    for {
+      user <- userFor(email)
+      joined <- namedTrack(track)
+    } yield joined.strip(TimeFormatter(user.language))
   }
+
+  private def userFor(email: Email) =
+    first(usersTable.filter(_.email === email), s"Email not found: '$email'.")
 
   private def namedTrack(track: TrackName) =
     first(tracksViewNonEmpty.filter(_.trackName === track), s"Track not found: '$track'.")
 
-  private def collect(rows: Seq[(SentenceRow, CombinedCoord)]): Seq[CombinedFullCoord] =
-    rows.foldLeft(Vector.empty[CombinedFullCoord]) { case (acc, (s, c)) =>
-      val idx = acc.indexWhere(_.id == c.id)
-      if (idx >= 0) {
-        val old = acc(idx)
-        acc.updated(idx, old.copy(sentences = old.sentences :+ s))
-      } else {
-        acc :+ c.toFull(Seq(s))
+  private def collect(rows: Seq[(SentenceRow, CombinedCoord)],
+                      formatter: TimeFormatter): Seq[CombinedFullCoord] =
+    rows.foldLeft(Vector.empty[CombinedFullCoord]) {
+      case (acc, (s, c)) =>
+        val idx = acc.indexWhere(_.id == c.id)
+        if (idx >= 0) {
+          val old = acc(idx)
+          acc.updated(idx, old.copy(sentences = old.sentences :+ s.timed(formatter)))
+        } else {
+          acc :+ c.toFull(Seq(s), formatter)
+        }
+    }
+
+  override def history(user: MinimalUserInfo, limits: BoatQuery): Future[Seq[CoordsEvent]] =
+    action {
+      // Intentionally, you can view any track if you know its key.
+      // Alternatively, we could filter tracks by user and make that optional.
+      val eligibleTracks =
+        if (limits.tracks.nonEmpty) tracksViewNonEmpty.filter(t => t.trackName.inSet(limits.tracks))
+        else if (limits.newest)
+          tracksViewNonEmpty.filter(_.username === user.username).sortBy(_.trackAdded.desc).take(1)
+        else tracksViewNonEmpty
+      //    eligibleTracks.result.statements.toList foreach println
+      val query = eligibleTracks
+        .join(rangedCoords(limits.timeRange))
+        .on(_.track === _.track)
+        .sortBy { case (_, point) => point.trackIndex.desc }
+        .drop(limits.offset)
+        .take(limits.limit)
+        .sortBy { case (_, point) => point.trackIndex.asc }
+      //    query.result.statements.toList foreach println
+      query.result.map { rows =>
+        collectPoints(rows, user.language)
       }
     }
 
-  override def history(user: MinimalUserInfo, limits: BoatQuery): Future[Seq[CoordsEvent]] = action {
-    // Intentionally, you can view any track if you know its key.
-    // Alternatively, we could filter tracks by user and make that optional.
-    val eligibleTracks =
-    if (limits.tracks.nonEmpty) tracksViewNonEmpty.filter(t => t.trackName.inSet(limits.tracks))
-    else if (limits.newest) tracksViewNonEmpty.filter(_.username === user.username).sortBy(_.trackAdded.desc).take(1)
-    else tracksViewNonEmpty
-    //    eligibleTracks.result.statements.toList foreach println
-    val query = eligibleTracks
-      .join(rangedCoords(limits.timeRange)).on(_.track === _.track)
-      .sortBy { case (_, point) => point.trackIndex.desc }
-      .drop(limits.offset)
-      .take(limits.limit)
-      .sortBy { case (_, point) => point.trackIndex.asc }
-    //    query.result.statements.toList foreach println
-    query.result.map { rows => collectPoints(rows) }
-  }
-
   def modifyTitle(track: TrackName, title: TrackTitle, user: UserId): Future[JoinedTrack] = {
     val action = for {
-      id <- first(tracksViewNonEmpty.filter(t => t.trackName === track && t.user === user).map(_.track), s"Track not found: '$track'.")
+      id <- first(
+        tracksViewNonEmpty.filter(t => t.trackName === track && t.user === user).map(_.track),
+        s"Track not found: '$track'.")
       _ <- tracksTable
-        .filter(_.id === id).map(t => (t.canonical, t.title))
+        .filter(_.id === id)
+        .map(t => (t.canonical, t.title))
         .update((TrackCanonical(Utils.normalize(title.title)), Option(title)))
       updated <- first(tracksViewNonEmpty.filter(_.track === id), s"Track ID not found: '$id'.")
     } yield {
@@ -189,7 +227,8 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext)
 
   override def renameBoat(boat: BoatId, newName: BoatName, user: UserId): Future[BoatRow] = {
     val action = for {
-      id <- db.first(boatsView.filter(b => b.user === user && b.boat === boat).map(_.boat), s"Boat not found: '$boat'.")
+      id <- db.first(boatsView.filter(b => b.user === user && b.boat === boat).map(_.boat),
+                     s"Boat not found: '$boat'.")
       _ <- boatsTable.filter(_.id === id).map(_.name).update(newName)
       updated <- first(boatsTable.filter(_.id === id), s"Boat not found: '$id'.")
     } yield {
@@ -202,59 +241,75 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext)
   private def rangedCoords(limits: TimeRange) =
     pointsTable.filter { c =>
       limits.from.map(from => c.added >= from).getOrElse(trueColumn) &&
-        limits.to.map(to => c.added <= to).getOrElse(trueColumn)
+      limits.to.map(to => c.added <= to).getOrElse(trueColumn)
     }
 
   private def trueColumn: Rep[Boolean] = valueToConstColumn(true)
 
-  private def collectPoints(rows: Seq[(JoinedTrack, TrackPointRow)]): Seq[CoordsEvent] =
-    rows.foldLeft(Vector.empty[CoordsEvent]) { case (acc, (from, point)) =>
-      val idx = acc.indexWhere(_.from.track == from.track)
-      val coord = TimedCoord(
-        point.id,
-        Coord(point.lon, point.lat),
-        Instants.formatDateTime(point.boatTime),
-        point.boatTime.toEpochMilli,
-        Instants.formatTime(point.boatTime),
-        point.boatSpeed,
-        point.waterTemp,
-        point.depth,
-        Instants.timing(point.boatTime)
-      )
-      if (idx >= 0) {
-        val old = acc(idx)
-        acc.updated(idx, old.copy(coords = old.coords :+ coord))
-      } else {
-        acc :+ CoordsEvent(Seq(coord), from.strip)
-      }
-    }
-
-  private def insertLogged[R](action: DBIOAction[R, NoStream, Nothing], from: TrackMetaLike)(describe: R => String): Future[R] = {
-    db.run(action).map { keys =>
-      //      val pluralSuffix = if (keys.length == 1) "" else "s"
-      //      log.info(s"Inserted ${describe(keys)} $word$pluralSuffix from '${from.boatName}' owned by '${from.username}'.")
-      log.info(s"Inserted ${describe(keys)} from '${from.boatName}'.")
-      keys
-    }.recoverWith { case t =>
-      log.error(s"Error inserting data for '${from.boatName}'.", t)
-      Future.failed(t)
+  private def collectPoints(rows: Seq[(JoinedTrack, TrackPointRow)],
+                            language: Language): Seq[CoordsEvent] = {
+    val formatter = TimeFormatter(language)
+    rows.foldLeft(Vector.empty[CoordsEvent]) {
+      case (acc, (from, point)) =>
+        val idx = acc.indexWhere(_.from.track == from.track)
+        val coord = TimedCoord(
+          point.id,
+          Coord(point.lon, point.lat),
+          formatter.formatDateTime(point.boatTime),
+          point.boatTime.toEpochMilli,
+          formatter.formatTime(point.boatTime),
+          point.boatSpeed,
+          point.waterTemp,
+          point.depth,
+          formatter.timing(point.boatTime)
+        )
+        if (idx >= 0) {
+          val old = acc(idx)
+          acc.updated(idx, old.copy(coords = old.coords :+ coord))
+        } else {
+          acc :+ CoordsEvent(Seq(coord), from.strip(formatter))
+        }
     }
   }
 
-  private def boatId(from: BoatTrackMeta) =
-    trackMetas.filter(t => t.username === from.user && t.boatName === from.boat && t.trackName === from.track).result.headOption.flatMap { maybeTrack =>
-      maybeTrack.map { track =>
-        DBIO.successful(track)
-      }.getOrElse {
-        prepareBoat(from)
+  private def insertLogged[R](action: DBIOAction[R, NoStream, Nothing], from: TrackMetaLike)(
+      describe: R => String): Future[R] = {
+    db.run(action)
+      .map { keys =>
+        log.info(s"Inserted ${describe(keys)} from '${from.boatName}'.")
+        keys
       }
-    }.transactionally
+      .recoverWith {
+        case t =>
+          log.error(s"Error inserting data for '${from.boatName}'.", t)
+          Future.failed(t)
+      }
+  }
+
+  private def boatId(from: BoatTrackMeta) =
+    trackMetas
+      .filter(t =>
+        t.username === from.user && t.boatName === from.boat && t.trackName === from.track)
+      .result
+      .headOption
+      .flatMap { maybeTrack =>
+        maybeTrack.map { track =>
+          DBIO.successful(track)
+        }.getOrElse {
+          prepareBoat(from)
+        }
+      }
+      .transactionally
 
   private def prepareBoat(from: BoatTrackMeta) =
     for {
-      userRow <- db.first(usersTable.filter(_.user === from.user), s"User not found: '${from.user}'.")
+      userRow <- db.first(usersTable.filter(_.user === from.user),
+                          s"User not found: '${from.user}'.")
       user = userRow.id
-      maybeBoat <- boatsTable.filter(b => b.name === from.boat && b.owner === user).result.headOption
+      maybeBoat <- boatsTable
+        .filter(b => b.name === from.boat && b.owner === user)
+        .result
+        .headOption
       boatRow <- maybeBoat.map(b => DBIO.successful(b)).getOrElse(registerBoat(from, user))
       boat = boatRow.id
       track <- prepareTrack(from.track, boat)
@@ -266,7 +321,10 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext)
 
   private def prepareTrack(trackName: TrackName, boat: BoatId) =
     for {
-      maybeTrack <- tracksTable.filter(t => t.name === trackName && t.boat === boat).result.headOption
+      maybeTrack <- tracksTable
+        .filter(t => t.name === trackName && t.boat === boat)
+        .result
+        .headOption
       track <- maybeTrack.map(t => DBIO.successful(t)).getOrElse(saveTrack(trackName, boat))
     } yield track
 
@@ -281,7 +339,9 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext)
 
   private def registerBoat(from: BoatTrackMeta, user: UserId) =
     boatsTable.filter(b => b.name === from.boat).exists.result.flatMap { exists =>
-      if (exists) fail(s"Boat name '${from.boat}' is already taken and therefore not available for '${from.user}'.")
+      if (exists)
+        fail(
+          s"Boat name '${from.boat}' is already taken and therefore not available for '${from.user}'.")
       else saveBoat(from, user)
     }
 

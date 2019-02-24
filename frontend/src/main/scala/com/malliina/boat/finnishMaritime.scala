@@ -227,6 +227,7 @@ trait Owned {
       case finnishSpecial.transportAgency => lang.transportAgency
       case finnishSpecial.defenceForces   => lang.defenceForces
       case finnishSpecial.portOfHelsinki  => lang.portOfHelsinki
+      case finnishSpecial.cityOfHelsinki  => lang.cityOfHelsinki
       case finnishSpecial.cityOfEspoo     => lang.cityOfEspoo
       case _                              => owner
     }

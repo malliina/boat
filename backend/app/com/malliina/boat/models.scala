@@ -88,7 +88,7 @@ case class JoinedTrack(track: TrackId,
   /**
     * @return a Scala.js -compatible representation of this track
     */
-  def strip = TrackRef(
+  def strip(formatter: TimeFormatter) = TrackRef(
     track,
     trackName,
     trackTitle,
@@ -97,19 +97,23 @@ case class JoinedTrack(track: TrackId,
     boatName,
     username,
     points,
-    Instants.formatDateTime(startOrNow),
+    formatter.formatDateTime(startOrNow),
     startOrNow.toEpochMilli,
-    Instants.formatDateTime(endOrNow),
+    formatter.formatDateTime(endOrNow),
     endOrNow.toEpochMilli,
-    Instants.formatRange(startOrNow, endOrNow),
+    formatter.formatRange(startOrNow, endOrNow),
     duration,
     distance,
     topSpeed,
     avgSpeed,
     avgWaterTemp,
-    topPoint.timed,
-    Instants.times(startOrNow, endOrNow)
+    topPoint.timed(formatter),
+    formatter.times(startOrNow, endOrNow)
   )
+}
+
+case class InsertedPoint(point: TrackPointId, track: JoinedTrack) {
+  def strip(formatter: TimeFormatter) = InsertedTrackPoint(point, track.strip(formatter))
 }
 
 case class TrackNumbers(track: TrackId,
@@ -263,10 +267,23 @@ case class SentenceInput(sentence: RawSentence, track: TrackId)
 
 case class KeyedSentence(key: SentenceKey, sentence: RawSentence, from: TrackMetaShort)
 
-case class SentenceRow(id: SentenceKey, sentence: RawSentence, track: TrackId, added: Instant)
+case class SentenceRow(id: SentenceKey, sentence: RawSentence, track: TrackId, added: Instant) {
+  def timed(formatter: TimeFormatter) =
+    TimedSentence(id, sentence, track, added, formatter.timing(added))
+}
 
 object SentenceRow {
   implicit val json = Json.format[SentenceRow]
+}
+
+case class TimedSentence(id: SentenceKey,
+                         sentence: RawSentence,
+                         track: TrackId,
+                         added: Instant,
+                         time: Timing)
+
+object TimedSentence {
+  implicit val json = Json.format[TimedSentence]
 }
 
 case class Sentences(sentences: Seq[RawSentence])
@@ -315,32 +332,34 @@ case class CombinedCoord(id: TrackPointId,
                          date: LocalDate,
                          track: TrackId,
                          added: Instant) {
-  def toFull(sentences: Seq[SentenceRow]): CombinedFullCoord = CombinedFullCoord(
-    id,
-    lon,
-    lat,
-    coord,
-    boatSpeed,
-    waterTemp,
-    depth,
-    depthOffset,
-    boatTime,
-    date,
-    track,
-    added,
-    sentences
-  )
+  def toFull(sentences: Seq[SentenceRow], formatter: TimeFormatter): CombinedFullCoord =
+    CombinedFullCoord(
+      id,
+      lon,
+      lat,
+      coord,
+      boatSpeed,
+      waterTemp,
+      depth,
+      depthOffset,
+      boatTime,
+      date,
+      track,
+      added,
+      sentences.map(_.timed(formatter)),
+      formatter.timing(boatTime)
+    )
 
-  def timed = TimedCoord(
+  def timed(formatter: TimeFormatter) = TimedCoord(
     id,
     coord,
-    Instants.formatDateTime(boatTime),
+    formatter.formatDateTime(boatTime),
     boatTime.toEpochMilli,
-    Instants.formatTime(boatTime),
+    formatter.formatTime(boatTime),
     boatSpeed,
     waterTemp,
     depth,
-    Instants.timing(boatTime)
+    formatter.timing(boatTime)
   )
 }
 
@@ -366,7 +385,8 @@ case class CombinedFullCoord(id: TrackPointId,
                              date: LocalDate,
                              track: TrackId,
                              added: Instant,
-                             sentences: Seq[SentenceRow])
+                             sentences: Seq[TimedSentence],
+                             time: Timing)
 
 object CombinedFullCoord {
   implicit val json = Json.format[CombinedFullCoord]

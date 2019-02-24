@@ -45,14 +45,6 @@ object Times {
   implicit val json = Json.format[Times]
 }
 
-///** Date and time in ISO8601 format. Not using java.time.* because scala.js does not support it fully.
-//  *
-//  * @param dateTime e.g. 2007-04-05T14:30Z
-//  */
-//case class ISODateTime(dateTime: String) extends Wrapped(dateTime)
-//
-//object ISODateTime extends StringCompanion[ISODateTime]
-
 case class Coord(lng: Double, lat: Double) {
 
   override def toString = s"($lng, $lat)"
@@ -329,11 +321,11 @@ object TrackResponse {
   implicit val json = Json.format[TrackResponse]
 }
 
-case class InsertedPoint(point: TrackPointId, track: TrackRef)
+case class InsertedTrackPoint(point: TrackPointId, track: TrackRef)
 
-object InsertedPoint {
-  implicit val json = Json.format[InsertedPoint]
-}
+//object InsertedPoint {
+//  implicit val json = Json.format[InsertedPoint]
+//}
 
 case class TrackPointId(id: Long) extends WrappedId
 
