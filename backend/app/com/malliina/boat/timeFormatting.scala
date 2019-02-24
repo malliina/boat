@@ -3,12 +3,6 @@ package com.malliina.boat
 import java.time.format.DateTimeFormatter
 import java.time.{Instant, ZoneId}
 
-/** Converts java.time.* types to primitives for Scala.js.
-  *
-  * Scala.js does not support java.time.* fully.
-  */
-object Instants extends TimeFormatter(TimePatterns.fi)
-
 case class TimePatterns(date: String, time: String, dateTime: String)
 
 object TimePatterns {

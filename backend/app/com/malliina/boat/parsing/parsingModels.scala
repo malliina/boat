@@ -2,7 +2,7 @@ package com.malliina.boat.parsing
 
 import java.time.{LocalDate, LocalTime, ZoneOffset}
 
-import com.malliina.boat.{Coord, Instants, KeyedSentence, RawSentence, SentenceKey, TimeFormatter, TimedCoord, TrackId, TrackMetaShort, TrackPointId}
+import com.malliina.boat.{Coord, KeyedSentence, RawSentence, SentenceKey, TimeFormatter, TimedCoord, TrackId, TrackMetaShort, TrackPointId}
 import com.malliina.measure.{Distance, Speed, Temperature}
 import net.sf.marineapi.nmea.parser.{DataNotAvailableException, SentenceFactory, UnsupportedSentenceException}
 import net.sf.marineapi.nmea.sentence.Sentence
