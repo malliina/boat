@@ -37,7 +37,7 @@ object BoatMqttClient {
 
   case class AisPair(location: VesselLocation, meta: VesselMetadata) {
     def when = Instant.ofEpochMilli(location.timestamp)
-    def toInfo(formatter: TimeFormatter) = location.toInfo(meta, formatter.formatDateTime(when))
+    def toInfo(formatter: TimeFormatter) = location.toInfo(meta, formatter.timing(when))
   }
 }
 
