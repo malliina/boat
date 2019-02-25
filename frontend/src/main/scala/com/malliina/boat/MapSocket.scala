@@ -177,7 +177,7 @@ class MapSocket(val map: MapboxMap,
         mapMode = MapMode.Follow
       case MapMode.Follow =>
         if (boats.keySet.size == 1) {
-          coords.lastOption.foreach { coord =>
+          coords.filter(_.isValid).lastOption.foreach { coord =>
             map.easeTo(EaseOptions(coord))
           }
         } else {
