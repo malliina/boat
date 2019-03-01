@@ -1,6 +1,6 @@
 package com.malliina.mapbox
 
-import com.malliina.boat.{Coord, Feature, FeatureCollection, JsonError, Layer, Parsing}
+import com.malliina.boat.{Coord, Feature, FeatureCollection, JsonError, Latitude, Layer, Longitude, Parsing}
 import org.scalajs.dom
 import org.scalajs.dom.html
 import org.scalajs.dom.raw.HTMLCanvasElement
@@ -267,8 +267,8 @@ trait LngLat extends js.Object {
 }
 
 object LngLat {
-  def apply(lng: Double, lat: Double): LngLat =
-    literal(lng = lng, lat = lat).asInstanceOf[LngLat]
+  def apply(lng: Longitude, lat: Latitude): LngLat =
+    literal(lng = lng.lng, lat = lat.lat).asInstanceOf[LngLat]
 
   def apply(coord: Coord): LngLat = apply(coord.lng, coord.lat)
 }

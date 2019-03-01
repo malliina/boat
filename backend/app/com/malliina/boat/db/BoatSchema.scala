@@ -135,7 +135,7 @@ class BoatSchema(ds: DataSource, conf: ProfileConf)
 
   implicit object LiftedTrackMetaShape extends CaseClassShape(LiftedTrackMeta.tupled, (TrackMeta.apply _).tupled)
 
-  case class LiftedCoord(id: Rep[TrackPointId], lon: Rep[Double], lat: Rep[Double], coord: Rep[Coord],
+  case class LiftedCoord(id: Rep[TrackPointId], lon: Rep[Longitude], lat: Rep[Latitude], coord: Rep[Coord],
                          boatSpeed: Rep[Speed], waterTemp: Rep[Temperature], depth: Rep[Distance],
                          depthOffset: Rep[Distance], boatTime: Rep[Instant], date: Rep[LocalDate],
                          track: Rep[TrackId], added: Rep[Instant])
@@ -198,13 +198,11 @@ class BoatSchema(ds: DataSource, conf: ProfileConf)
   class TrackPointsTable(tag: Tag) extends Table[TrackPointRow](tag, "points") {
     def id = column[TrackPointId]("id", O.PrimaryKey, O.AutoInc)
 
-    def lon = column[Double]("longitude")
+    def lon = column[Longitude]("longitude")
 
-    def lat = column[Double]("latitude")
+    def lat = column[Latitude]("latitude")
 
     def coord = column[Coord]("coord")
-
-    // def coordIdx = index("points_track_coord_idx", (track, coord))
 
     def boatSpeed = column[Speed]("boat_speed")
 

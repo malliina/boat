@@ -7,6 +7,7 @@ import sbtrelease.ReleaseStateTransformations._
 import scala.sys.process.Process
 import scala.util.Try
 
+val mapboxVersion = "0.53.1"
 val utilPlayVersion = "5.0.0"
 val utilPlayDep = "com.malliina" %% "util-play" % utilPlayVersion
 val primitiveVersion = "1.8.1"
@@ -62,7 +63,7 @@ val frontend = project
     ),
     npmDependencies in Compile ++= Seq(
       "@turf/turf" -> "5.1.6",
-      "mapbox-gl" -> "0.52.0",
+      "mapbox-gl" -> mapboxVersion,
       "chart.js" -> "2.7.3"
       //    "@fortawesome/fontawesome-free" -> "5.6.3"
     ),
@@ -112,7 +113,7 @@ val backend = PlayProject
     scalaJSProjects := Seq(frontend),
     pipelineStages in Assets := Seq(scalaJSPipeline),
     //  npmAssets ++= NpmAssets.ofProject(client) { modules => (modules / "font-awesome").allPaths }.value,
-    buildInfoKeys := Seq[BuildInfoKey](name, version, scalaVersion, "gitHash" -> gitHash),
+    buildInfoKeys := Seq[BuildInfoKey](name, version, scalaVersion, "gitHash" -> gitHash, "mapboxVersion" -> mapboxVersion),
     buildInfoPackage := "com.malliina.boat",
     // linux packaging
     httpPort in Linux := Option("8465"),

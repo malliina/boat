@@ -24,7 +24,7 @@ object SpatialUtils {
   }
 
   def coordToBytes(coord: Coord) = {
-    val point = gf.createPoint(new Coordinate(coord.lng, coord.lat))
+    val point = gf.createPoint(new Coordinate(coord.lng.lng, coord.lat.lat))
     geoToBytes(point)
   }
 

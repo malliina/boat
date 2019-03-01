@@ -6,7 +6,7 @@ import java.nio.charset.StandardCharsets
 import com.malliina.boat.FrontKeys._
 import com.malliina.boat.html.BoatHtml.callAttr
 import com.malliina.boat.http.Limits
-import com.malliina.boat.{FullTrack, TrackRef, UserBoats, Usernames}
+import com.malliina.boat.{BuildInfo, FullTrack, TrackRef, UserBoats, Usernames}
 import com.malliina.html.Tags
 import com.malliina.measure.Distance
 import com.malliina.play.tags.TagPage
@@ -36,7 +36,7 @@ object BoatHtml {
 class BoatHtml(jsFiles: Seq[String]) extends Tags(scalatags.Text) {
   val reverse = routes.BoatController
   val reverseApp = routes.AppController
-  val mapboxVersion = "0.52.0"
+  val mapboxVersion = BuildInfo.mapboxVersion
 
   implicit def wrapFrag[T <: Wrapped](w: T): StringFrag = stringFrag(w.value)
 

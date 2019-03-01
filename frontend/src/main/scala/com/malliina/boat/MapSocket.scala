@@ -4,6 +4,7 @@ import com.malliina.boat.BoatFormats._
 import com.malliina.boat.Parsing._
 import com.malliina.mapbox._
 import com.malliina.turf.turf
+import com.malliina.values.ErrorMessage
 import play.api.libs.json._
 
 import scala.concurrent.Future
@@ -81,12 +82,15 @@ class MapSocket(val map: MapboxMap,
           val isOnBoatSymbol = map.queryRendered(in.point, QueryOptions.all).getOrElse(Nil)
             .exists(_.layer.exists(_.id == point))
           if (!isOnBoatSymbol) {
-            val op = nearest(in.lngLat, trails.getOrElse(trackId, Nil))(_.coord).map { near =>
-              map.getCanvas().style.cursor = "pointer"
-              popups.isTrackHover = true
-              trackPopup.show(html.track(near, from), in.lngLat, map)
+            val lngLat = in.lngLat
+            val op = Coord.build(lngLat.lng, lngLat.lat).flatMap { coord =>
+              nearest(coord, trails.getOrElse(trackId, Nil))(_.coord).map { near =>
+                map.getCanvas().style.cursor = "pointer"
+                popups.isTrackHover = true
+                trackPopup.show(html.track(near, from), in.lngLat, map)
+              }
             }
-            op.fold(err => log.info(err), identity)
+            op.fold(err => log.info(err.message), identity)
           }
         },
         _ => {
@@ -167,9 +171,9 @@ class MapSocket(val map: MapboxMap,
     // updates the map position, zoom to reflect the updated track(s)
     mapMode match {
       case MapMode.Fit =>
-        trail.find(_.isValid).foreach { coord =>
+        trail.foreach { coord =>
           val init = LngLatBounds(coord)
-          val bs: LngLatBounds = trail.filter(_.isValid).foldLeft(init) { (bounds, c) =>
+          val bs: LngLatBounds = trail.foldLeft(init) { (bounds, c) =>
             bounds.extendWith(c)
           }
           map.fitBounds(bs, FitOptions(20))
@@ -177,7 +181,7 @@ class MapSocket(val map: MapboxMap,
         mapMode = MapMode.Follow
       case MapMode.Follow =>
         if (boats.keySet.size == 1) {
-          coords.filter(_.isValid).lastOption.foreach { coord =>
+          coords.lastOption.foreach { coord =>
             map.easeTo(EaseOptions(coord))
           }
         } else {
@@ -194,24 +198,24 @@ class MapSocket(val map: MapboxMap,
     ais.onAIS(messages)
   }
 
-  def nearest[T](from: LngLat, on: Seq[T])(c: T => Coord): Either[String, T] = {
+  def nearest[T](fromCoord: Coord, on: Seq[T])(c: T => Coord): Either[ErrorMessage, T] = {
     // TODO try to fix the toJSArray nonsense
     val all = turf.lineString(on.map(t => c(t).toArray.toJSArray).toArray.toJSArray)
-    val fromCoord = Coord(from.lng, from.lat)
     val nearestResult = turf.nearestPointOnLine(all, turf.point(fromCoord.toArray.toJSArray))
-    for {
+    val result = for {
       feature <- asJson[Feature](nearestResult).left.map(err => s"Feature JSON failed: '$err'.")
       idxJson <- feature.properties.get("index").toRight("No index in feature properties.")
       idx <- validate[Int](idxJson).left.map(err => s"Index JSON failed: '$err'.")
-      nearest <- if (on.length > idx) Right(on(idx)) else Left(s"No trail at $from.")
+      nearest <- if (on.length > idx) Right(on(idx)) else Left(s"No trail at $fromCoord.")
     } yield nearest
+    result.left.map(ErrorMessage.apply)
   }
 
   // https://www.movable-type.co.uk/scripts/latlong.html
   def bearing(from: Coord, to: Coord): Double = {
-    val dLon = to.lng - from.lng
-    val y = Math.sin(dLon) * Math.cos(to.lat)
-    val x = Math.cos(from.lat) * Math.sin(to.lat) - Math.sin(from.lat) * Math.cos(to.lat) * Math.cos(dLon)
+    val dLon = to.lng.lng - from.lng.lng
+    val y = Math.sin(dLon) * Math.cos(to.lat.lat)
+    val x = Math.cos(from.lat.lat) * Math.sin(to.lat.lat) - Math.sin(from.lat.lat) * Math.cos(to.lat.lat) * Math.cos(dLon)
     val brng = toDeg(Math.atan2(y, x))
     360 - ((brng + 360) % 360)
   }

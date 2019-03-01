@@ -12,7 +12,7 @@ import play.api.mvc.RequestHeader
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, ExecutionContext, Future}
 
-abstract class TestAppSuite extends AppSuite(TestComponents.apply) {
+abstract class TestAppSuite extends AppSuite(TestComponents.apply) with CoordHelper {
   implicit val ec: ExecutionContext = components.executionContext
 
   def await[T](f: Future[T], duration: Duration = 10.seconds): T = Await.result(f, duration)

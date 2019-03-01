@@ -293,8 +293,8 @@ object Sentences {
   implicit val json = Json.format[Sentences]
 }
 
-case class TrackPointInput(lon: Double,
-                           lat: Double,
+case class TrackPointInput(lon: Longitude,
+                           lat: Latitude,
                            coord: Coord,
                            boatSpeed: Speed,
                            waterTemp: Temperature,
@@ -321,8 +321,8 @@ object TrackPointInput {
 }
 
 case class CombinedCoord(id: TrackPointId,
-                         lon: Double,
-                         lat: Double,
+                         lon: Longitude,
+                         lat: Latitude,
                          coord: Coord,
                          boatSpeed: Speed,
                          waterTemp: Temperature,
@@ -374,8 +374,8 @@ object TrackInfo {
 }
 
 case class CombinedFullCoord(id: TrackPointId,
-                             lon: Double,
-                             lat: Double,
+                             lon: Longitude,
+                             lat: Latitude,
                              coord: Coord,
                              boatSpeed: Speed,
                              waterTemp: Temperature,
@@ -401,8 +401,8 @@ object FullTrack {
 }
 
 case class TrackPointRow(id: TrackPointId,
-                         lon: Double,
-                         lat: Double,
+                         lon: Longitude,
+                         lat: Latitude,
                          coord: Coord,
                          boatSpeed: Speed,
                          waterTemp: Temperature,
@@ -422,7 +422,7 @@ case class TrackPointRow(id: TrackPointId,
 
 case class SentencePointLink(sentence: SentenceKey, point: TrackPointId)
 
-case class TrackPoint(coord: Coord, time: Instant, waterTemp: Double, wind: Double)
+case class TrackPoint(coord: Coord, time: Instant, waterTemp: Temperature, wind: Double)
 
 object TrackPoint {
   implicit val json = Json.format[TrackPoint]

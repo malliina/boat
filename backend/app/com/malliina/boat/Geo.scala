@@ -25,9 +25,9 @@ abstract class Geo(radius: Distance) {
     * @see https://stackoverflow.com/a/16794680, https://en.wikipedia.org/wiki/Haversine_formula
     */
   def distance(c1: Coord, c2: Coord): Distance = {
-    val latDistance = toRadians(c2.lat - c1.lat)
-    val lonDistance = toRadians(c2.lng - c1.lng)
-    val a = haversine(latDistance) + cos(toRadians(c1.lat)) * cos(toRadians(c2.lat)) * haversine(lonDistance)
+    val latDistance = toRadians(c2.lat.lat - c1.lat.lat)
+    val lonDistance = toRadians(c2.lng.lng - c1.lng.lng)
+    val a = haversine(latDistance) + cos(toRadians(c1.lat.lat)) * cos(toRadians(c2.lat.lat)) * haversine(lonDistance)
     val c = 2 * atan2(sqrt(a), sqrt(1 - a))
     (c * radius.toKilometers).kilometers
   }

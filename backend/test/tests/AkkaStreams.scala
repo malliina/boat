@@ -1,20 +1,18 @@
 package tests
 
-import java.time.{Instant, LocalDate, LocalTime}
+import java.time.{LocalDate, LocalTime}
 
 import akka.NotUsed
 import akka.actor.ActorSystem
 import akka.stream.scaladsl.{BroadcastHub, Flow, Keep, MergeHub, RunnableGraph, Sink, Source}
 import akka.stream.{ActorMaterializer, KillSwitches, UniqueKillSwitch}
 import com.malliina.boat.parsing._
-import com.malliina.boat.{BoatId, BoatName, BoatToken, Coord, JoinedTrack, KeyedSentence, RawSentence, SentenceKey, TrackId, TrackName}
-import com.malliina.measure.{Distance, DistanceInt, SpeedInt, TemperatureInt}
-import com.malliina.values.{UserId, Username}
-import org.scalatest.FunSuite
+import com.malliina.boat.{Coord, KeyedSentence, RawSentence, SentenceKey}
+import com.malliina.measure.{DistanceInt, SpeedInt, TemperatureInt}
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.WebSocket
 
-class AkkaStreams extends FunSuite {
+class AkkaStreams extends BaseSuite {
   implicit val as = ActorSystem("test")
   implicit val mat = ActorMaterializer()(as)
 
@@ -26,30 +24,52 @@ class AkkaStreams extends FunSuite {
     val testTemp = WaterTemperature(10.celsius, keyed(1))
     val testSpeed = ParsedBoatSpeed(40.knots, keyed(2))
     val testDepth = WaterDepth(10.meters, 0.meters, keyed(3))
-    val parsed = Source[ParsedSentence](List(
-      testTemp,
-      testSpeed,
-      testDepth,
-      ParsedDateTime(LocalDate.of(2018, 4, 10), LocalTime.of(10, 11, 1), keyed(4)),
-      ParsedCoord(Coord(1, 2), LocalTime.of(10, 11, 1), keyed(5)),
-      ParsedDateTime(LocalDate.of(2018, 4, 10), LocalTime.of(10, 12, 2), keyed(6)),
-      ParsedCoord(Coord(4, 5), LocalTime.of(10, 12, 2), keyed(7)),
-      ParsedDateTime(LocalDate.of(2018, 4, 11), LocalTime.of(10, 13, 3), keyed(8)),
-      ParsedCoord(Coord(6, 7), LocalTime.of(10, 13, 3), keyed(9)),
-      ParsedCoord(Coord(8, 9), LocalTime.of(0, 1, 4), keyed(10))
-    ))
+    val parsed = Source[ParsedSentence](
+      List(
+        testTemp,
+        testSpeed,
+        testDepth,
+        ParsedDateTime(LocalDate.of(2018, 4, 10), LocalTime.of(10, 11, 1), keyed(4)),
+        ParsedCoord(newCoord(1, 2), LocalTime.of(10, 11, 1), keyed(5)),
+        ParsedDateTime(LocalDate.of(2018, 4, 10), LocalTime.of(10, 12, 2), keyed(6)),
+        ParsedCoord(newCoord(4, 5), LocalTime.of(10, 12, 2), keyed(7)),
+        ParsedDateTime(LocalDate.of(2018, 4, 11), LocalTime.of(10, 13, 3), keyed(8)),
+        ParsedCoord(newCoord(6, 7), LocalTime.of(10, 13, 3), keyed(9)),
+        ParsedCoord(newCoord(8, 9), LocalTime.of(0, 1, 4), keyed(10))
+      ))
 
     def toFull(coord: Coord, time: LocalTime, date: LocalDate, keys: Seq[Long]) =
-      FullCoord(coord, time, date, testSpeed.speed, testTemp.temp, testDepth.depth, testDepth.offset, from, keys.map(SentenceKey.apply))
+      FullCoord(coord,
+                time,
+                date,
+                testSpeed.speed,
+                testTemp.temp,
+                testDepth.depth,
+                testDepth.offset,
+                from,
+                keys.map(SentenceKey.apply))
 
     val expected = List(
-      toFull(Coord(1, 2), LocalTime.of(10, 11, 1), LocalDate.of(2018, 4, 10), Seq(5, 4, 2, 1, 3)),
-      toFull(Coord(4, 5), LocalTime.of(10, 12, 2), LocalDate.of(2018, 4, 10), Seq(7, 6, 2, 1, 3)),
-      toFull(Coord(6, 7), LocalTime.of(10, 13, 3), LocalDate.of(2018, 4, 11), Seq(9, 8, 2, 1, 3)),
-      toFull(Coord(8, 9), LocalTime.of(10, 13, 3), LocalDate.of(2018, 4, 11), Seq(10, 8, 2, 1, 3))
+      toFull(newCoord(1, 2),
+             LocalTime.of(10, 11, 1),
+             LocalDate.of(2018, 4, 10),
+             Seq(5, 4, 2, 1, 3)),
+      toFull(newCoord(4, 5),
+             LocalTime.of(10, 12, 2),
+             LocalDate.of(2018, 4, 10),
+             Seq(7, 6, 2, 1, 3)),
+      toFull(newCoord(6, 7),
+             LocalTime.of(10, 13, 3),
+             LocalDate.of(2018, 4, 11),
+             Seq(9, 8, 2, 1, 3)),
+      toFull(newCoord(8, 9),
+             LocalTime.of(10, 13, 3),
+             LocalDate.of(2018, 4, 11),
+             Seq(10, 8, 2, 1, 3))
     )
     val processed = BoatParser.multi(parsed).take(4)
-    val listSink = Sink.fold[List[FullCoord], FullCoord](List.empty[FullCoord])((acc, dc) => acc :+ dc)
+    val listSink =
+      Sink.fold[List[FullCoord], FullCoord](List.empty[FullCoord])((acc, dc) => acc :+ dc)
     val actual = await(processed.runWith(listSink))
     assert(actual === expected)
   }
@@ -57,7 +77,9 @@ class AkkaStreams extends FunSuite {
   ignore("one-time side-effect") {
     val orig = Source.tick(1.second, 1.second, "msg").take(1)
     // only side-effects once, if others run `src` instead of `effected`
-    val effected = orig.map { msg => println(msg); s"$msg!" }
+    val effected = orig.map { msg =>
+      println(msg); s"$msg!"
+    }
     val pub = effected.runWith(Sink.asPublisher(fanout = true))
     val src = Source.fromPublisher(pub)
     val f1 = src.runForeach(println)
@@ -72,7 +94,7 @@ class AkkaStreams extends FunSuite {
     // Attach a MergeHub Source to the consumer. This will materialize to a
     // corresponding Sink.
     val runnableGraph: RunnableGraph[Sink[String, NotUsed]] =
-    MergeHub.source[String](perProducerBufferSize = 16).to(consumer)
+      MergeHub.source[String](perProducerBufferSize = 16).to(consumer)
 
     // By running/materializing the consumer we get back a Sink, and hence
     // now have access to feed elements into it. This Sink can be materialized
@@ -94,7 +116,7 @@ class AkkaStreams extends FunSuite {
     // (We need to use toMat and Keep.right since by default the materialized
     // value to the left is used)
     val runnableGraph: RunnableGraph[Source[String, NotUsed]] =
-    producer.toMat(BroadcastHub.sink(bufferSize = 256))(Keep.right)
+      producer.toMat(BroadcastHub.sink(bufferSize = 256))(Keep.right)
 
     // By running/materializing the producer, we get back a Source, which
     // gives us access to the elements published by the producer.
@@ -125,12 +147,14 @@ class AkkaStreams extends FunSuite {
   }
 
   ignore("pubsub") {
-    val (sink, source) = MergeHub.source[JsValue](perProducerBufferSize = 16)
+    val (sink, source) = MergeHub
+      .source[JsValue](perProducerBufferSize = 16)
       .toMat(BroadcastHub.sink(bufferSize = 256))(Keep.both)
       .run()
     val _ = source.runWith(Sink.foreach(println))
     val busFlow: Flow[JsValue, JsValue, UniqueKillSwitch] =
-      Flow.fromSinkAndSource(sink, source)
+      Flow
+        .fromSinkAndSource(sink, source)
         .joinMat(KillSwitches.singleBidi[JsValue, JsValue])(Keep.right)
         .backpressureTimeout(3.seconds)
 
@@ -145,6 +169,5 @@ class AkkaStreams extends FunSuite {
       }
     }
   }
-
 
 }

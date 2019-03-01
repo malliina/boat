@@ -19,7 +19,7 @@ class BoatControllerTests extends TestAppSuite {
     val init = for {
       _ <- components.users.addUser(NewUser(user, Option(TestEmailAuth.testEmail), UserToken.random(), enabled = true))
       track <- service.join(BoatUser(TrackNames.random(), BoatNames.random(), user))
-      coord = FullCoord(Coord(60, 24), LocalTime.now(), LocalDate.now(), 10.knots, 10.celsius, 10.meters, 0.meters, track.short)
+      coord = FullCoord(newCoord(60, 24), LocalTime.now(), LocalDate.now(), 10.knots, 10.celsius, 10.meters, 0.meters, track.short)
       p <- service.saveCoords(coord)
     } yield p
     await(init)

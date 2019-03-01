@@ -6,8 +6,6 @@ import com.malliina.measure.{DistanceM, Speed}
 import com.malliina.values.{IdCompanion, StringCompanion, Wrapped, WrappedId}
 import play.api.libs.json._
 
-import scala.concurrent.duration.{Duration, DurationLong}
-
 /**
   * @see https://help.marinetraffic.com/hc/en-us/articles/205579997-What-is-the-significance-of-the-AIS-Shiptype-number-
   */

@@ -45,40 +45,73 @@ object Times {
   implicit val json = Json.format[Times]
 }
 
-case class Coord(lng: Double, lat: Double) {
+trait Degree
+
+case class Latitude(lat: Double) extends AnyVal {
+  override def toString = s"$lat"
+}
+
+object Latitude extends ValidatingCompanion[Double, Latitude] {
+  override def build(input: Double): Either[ErrorMessage, Latitude] =
+    if (input >= -90 && input <= 90) Right(apply(input))
+    else Left(ErrorMessage(s"Invalid latitude: '$input'. Must be between -90 and 90."))
+
+  override def write(t: Latitude): Double = t.lat
+}
+
+case class Longitude(lng: Double) extends AnyVal {
+  override def toString = s"$lng"
+}
+
+object Longitude extends ValidatingCompanion[Double, Longitude] {
+  override def build(input: Double): Either[ErrorMessage, Longitude] =
+    if (input >= -180 && input <= 180) Right(apply(input))
+    else Left(ErrorMessage(s"Invalid longitude: '$input'. Must be between -180 and 180."))
+
+  override def write(t: Longitude): Double = t.lng
+}
+
+case class Coord(lng: Longitude, lat: Latitude) {
 
   override def toString = s"($lng, $lat)"
 
-  def toArray: Array[Double] = Array(lng, lat)
-
-  def isValid = !lng.isNaN && !lat.isNaN
+  def toArray: Array[Double] = Array(lng.lng, lat.lat)
 
   def approx: String = {
-    val lngStr = Coord.format(lng)
-    val latStr = Coord.format(lat)
+    val lngStr = Coord.format(lng.lng)
+    val latStr = Coord.format(lat.lat)
     s"$lngStr,$latStr"
   }
 }
 
 object Coord {
+  val Key = "coord"
+
+  implicit val json: OFormat[Coord] = Json.format[Coord]
+  // GeoJSON format
+  val jsonArray = Format(
+    Reads[Coord] { json =>
+      json.validate[List[Double]].flatMap {
+        case lng :: lat :: _ =>
+          build(lng, lat).fold(err => JsError(err.message), c => JsSuccess(c))
+        case _ =>
+          JsError(
+            s"Expected a JSON array of at least two numbers for coordinates [lng, lat]. Got: '$json'.")
+      }
+    },
+    Writes[Coord] { c => Json.toJson(c.toArray) }
+  )
+
+  def build(lng: Double, lat: Double): Either[ErrorMessage, Coord] =
+    for {
+      longitude <- Longitude.build(lng)
+      latitude <- Latitude.build(lat)
+    } yield Coord(longitude, latitude)
+
   def format(d: Double): String = {
     val trunc = (d * 100000).toInt.toDouble / 100000
     "%1.5f".format(trunc)
   }
-
-  val Key = "coord"
-  implicit val json: OFormat[Coord] = Json.format[Coord]
-  // GeoJSON format
-  val jsonArray = Format(
-    Reads[Coord](json =>
-      json.validate[List[Double]].flatMap {
-        case lng :: lat :: _ => JsSuccess(Coord(lng, lat))
-        case _ =>
-          JsError(
-            s"Expected a JSON array of at least two numbers for coordinates [lng, lat]. Got: '$json'.")
-    }),
-    Writes[Coord](c => Json.toJson(c.toArray))
-  )
 }
 
 case class TimedCoord(id: TrackPointId,
@@ -253,7 +286,8 @@ case class UserInfo(id: UserId,
                     language: Language,
                     boats: Seq[Boat],
                     enabled: Boolean,
-                    addedMillis: Long) extends MinimalUserInfo
+                    addedMillis: Long)
+    extends MinimalUserInfo
 
 object UserInfo {
   implicit val json = Json.format[UserInfo]
@@ -324,10 +358,6 @@ object TrackResponse {
 }
 
 case class InsertedTrackPoint(point: TrackPointId, track: TrackRef)
-
-//object InsertedPoint {
-//  implicit val json = Json.format[InsertedPoint]
-//}
 
 case class TrackPointId(id: Long) extends WrappedId
 

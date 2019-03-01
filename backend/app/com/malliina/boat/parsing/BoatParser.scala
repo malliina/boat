@@ -58,7 +58,7 @@ object BoatParser {
         if (id == SentenceId.GGA.name()) {
           val gga = parsed.asInstanceOf[GGASentence]
           val pos = gga.getPosition
-          Right(ParsedCoord(Coord(pos.getLongitude, pos.getLatitude), toLocalTime(gga.getTime), sentence))
+          Right(ParsedCoord(Coord(Longitude(pos.getLongitude), Latitude(pos.getLatitude)), toLocalTime(gga.getTime), sentence))
         } else if (id == SentenceId.ZDA.name()) {
           val zda = parsed.asInstanceOf[ZDASentence]
           val date = zda.getDate

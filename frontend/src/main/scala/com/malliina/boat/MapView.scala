@@ -19,29 +19,38 @@ object MapView extends CookieNames {
   def readCookie(key: String): Either[NotFound, String] =
     cookies.get(key).toRight(NotFound(key))
 
-  def cookies = URIUtils.decodeURIComponent(document.cookie).split(";").toList
+  def cookies = URIUtils
+    .decodeURIComponent(document.cookie)
+    .split(";")
+    .toList
     .map(_.trim.split("=").toList)
     .collect { case key :: value :: _ => key -> value }
     .toMap
 }
 
-class MapView(accessToken: AccessToken, language: Language, val log: BaseLogger = BaseLogger.console) extends BaseFront {
+class MapView(accessToken: AccessToken,
+              language: Language,
+              val log: BaseLogger = BaseLogger.console)
+    extends BaseFront {
   mapboxGl.accessToken = accessToken.token
   val mapOptions = MapOptions(
     container = MapId,
     style = "mapbox://styles/malliina/cjgny1fjc008p2so90sbz8nbv",
-    center = Coord(lng = 24.9, lat = 60.14),
+    center = Coord(lng = Longitude(24.9), lat = Latitude(60.14)),
     zoom = 13,
     hash = true
   )
   val map = new MapboxMap(mapOptions)
   var socket: Option[MapSocket] = None
 
-  map.on("load", () => {
-    val mode = if (Option(href.getFragment).isDefined) MapMode.Stay else MapMode.Fit
-    val sample = queryInt(SampleKey).getOrElse(Constants.DefaultSample)
-    socket = Option(new MapSocket(map, readTrack.toOption, Option(sample), mode, language))
-  })
+  map.on(
+    "load",
+    () => {
+      val mode = if (Option(href.getFragment).isDefined) MapMode.Stay else MapMode.Fit
+      val sample = queryInt(SampleKey).getOrElse(Constants.DefaultSample)
+      socket = Option(new MapSocket(map, readTrack.toOption, Option(sample), mode, language))
+    }
+  )
 
   elem(ModalId).foreach(initModal)
 

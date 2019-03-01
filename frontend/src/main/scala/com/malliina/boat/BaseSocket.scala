@@ -22,7 +22,7 @@ class BaseSocket(wsPath: String, val log: BaseLogger = BaseLogger.console) {
   def handlePayload(payload: JsValue): Unit = ()
 
   def handleValidated[T: Reads](json: JsValue)(process: T => Unit): Unit =
-    json.validate[T].fold(err => onJsonFailure(JsError(err)), process)
+    json.validate[T].fold(err => onJsonFailure(JsError(err), json), process)
 
   def showConnected(): Unit = {
     setFeedback("Connected to socket.")
@@ -77,7 +77,7 @@ class BaseSocket(wsPath: String, val log: BaseLogger = BaseLogger.console) {
     log error t
   }
 
-  protected def onJsonFailure(result: JsError): Unit = {
+  protected def onJsonFailure(result: JsError, value: JsValue): Unit = {
     log info s"JSON error $result"
   }
 }

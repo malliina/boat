@@ -9,6 +9,7 @@ import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.{Flow, Sink, Source}
 import com.malliina.boat._
+import com.malliina.boat.db.TestData._
 import com.malliina.boat.parsing.{BoatParser, FullCoord}
 import com.malliina.concurrent.Execution.cached
 import com.malliina.measure.{DistanceInt, Speed, SpeedInt, Temperature}
@@ -21,6 +22,11 @@ import scala.collection.JavaConverters.asScalaBufferConverter
 import scala.concurrent.Future
 import scala.concurrent.duration.DurationInt
 
+object TestData {
+  val london = Coord.build(0.13, 51.5).right.get
+  val sanfran = Coord.build(-122.4, 37.8).right.get
+}
+
 class TracksDatabaseTests extends BaseSuite {
   implicit val as = ActorSystem()
   implicit val mat = ActorMaterializer()
@@ -31,13 +37,19 @@ class TracksDatabaseTests extends BaseSuite {
     val db = BoatSchema(conf)
     db.initBoat()
     val tdb = TracksDatabase(db, mat.executionContext)
-    val london = Coord(0.13, 51.5)
-    val sanfran = Coord(-122.4, 37.8)
     val user = NewUser(Username("test-agg-user"), None, UserToken.random(), enabled = true)
 
     def coord(c: Coord, speed: Speed, track: TrackId, boat: BoatId, user: UserId) = {
-      FullCoord(c, LocalTime.now(), LocalDate.now(), speed, Temperature.zeroCelsius, 1.meters, 0.meters,
-        TrackMetaShort(track, TrackNames.random(), boat, BoatNames.random(), Username("whatever")))
+      FullCoord(
+        c,
+        LocalTime.now(),
+        LocalDate.now(),
+        speed,
+        Temperature.zeroCelsius,
+        1.meters,
+        0.meters,
+        TrackMetaShort(track, TrackNames.random(), boat, BoatNames.random(), Username("whatever"))
+      )
     }
 
     import db._
@@ -64,7 +76,8 @@ class TracksDatabaseTests extends BaseSuite {
 
     val action = for {
       users <- usersTable.result
-      ts <- DBIO.sequence(users.map(u => usersTable.filter(_.id === u.id).map(_.token).update(UserToken.random())))
+      ts <- DBIO.sequence(
+        users.map(u => usersTable.filter(_.id === u.id).map(_.token).update(UserToken.random())))
     } yield ts
     await(db.run(action))
   }
@@ -131,7 +144,8 @@ class TracksDatabaseTests extends BaseSuite {
       .mapConcat(saved => saved.toList)
       .via(insertPointsFlow(saveCoord))
 
-  def insertPointsFlow(save: FullCoord => Future[InsertedPoint]): Flow[KeyedSentence, InsertedPoint, NotUsed] = {
+  def insertPointsFlow(
+      save: FullCoord => Future[InsertedPoint]): Flow[KeyedSentence, InsertedPoint, NotUsed] = {
     Flow[KeyedSentence]
       .mapConcat(raw => BoatParser.parse(raw).toOption.toList)
       .via(BoatParser.multiFlow())
@@ -149,7 +163,8 @@ class TracksDatabaseTests extends BaseSuite {
       } yield updated
 
     def updateTrack(track: TrackId, date: LocalDate, newTrack: TrackId) =
-      pointsTable.map(_.combined)
+      pointsTable
+        .map(_.combined)
         .filter((t: LiftedCoord) => t.track === track && t.date === date)
         .map(_.track)
         .update(newTrack)

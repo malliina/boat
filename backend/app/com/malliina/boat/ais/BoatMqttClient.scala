@@ -6,7 +6,17 @@ import java.time.Instant
 import akka.NotUsed
 import akka.stream.scaladsl.{RestartSource, Source}
 import com.malliina.boat.ais.BoatMqttClient.{AisPair, log, pass, user}
-import com.malliina.boat.{AISMessage, Locations, Metadata, Mmsi, StatusTopic, TimeFormatter, VesselLocation, VesselMetadata, VesselStatus}
+import com.malliina.boat.{
+  AISMessage,
+  Locations,
+  Metadata,
+  Mmsi,
+  StatusTopic,
+  TimeFormatter,
+  VesselLocation,
+  VesselMetadata,
+  VesselStatus
+}
 import com.malliina.http.FullUrl
 import play.api.libs.json.{JsError, JsResult, JsSuccess, Json}
 import play.api.{Logger, Mode}
@@ -52,37 +62,40 @@ class BoatMqttClient(url: FullUrl, topic: String) {
   private val maxBatchSize = 300
   private val sendTimeWindow = 5.seconds
   private val settings = MqttSettings(url, newClientId, topic, user, pass)
-  private val src = RestartSource.onFailuresWithBackoff(
-    minBackoff = 5.seconds,
-    maxBackoff = 12.hours,
-    randomFactor = 0.2) { () =>
+  private val src = RestartSource.onFailuresWithBackoff(minBackoff = 5.seconds,
+                                                        maxBackoff = 12.hours,
+                                                        randomFactor = 0.2) { () =>
     log.info(s"Starting MQTT source at '${settings.broker}'...")
     MqttSource(settings.copy(clientId = newClientId))
   }
   val parsed: Source[JsResult[AISMessage], NotUsed] = src.map { msg =>
     val json = Json.parse(msg.payload.decodeString(StandardCharsets.UTF_8))
     msg.topic match {
-      case Locations() => VesselLocation.readerGeoJson.reads(json)
-      case Metadata() => VesselMetadata.readerGeoJson.reads(json)
+      case Locations()   => VesselLocation.readerGeoJson.reads(json)
+      case Metadata()    => VesselMetadata.readerGeoJson.reads(json)
       case StatusTopic() => VesselStatus.reader.reads(json)
-      case other => JsError(s"Unknown topic: '$other'. JSON: '$json'.")
+      case other         => JsError(s"Unknown topic: '$other'. JSON: '$json'.")
     }
   }
   val vesselMessages = parsed.flatMapConcat {
-    case JsSuccess(msg, _) => msg match {
-      case loc: VesselLocation =>
-        metadata.get(loc.mmsi).map { meta =>
-          Source.single(AisPair(loc, meta))
-        }.getOrElse {
-          // Drops location updates for which there is no vessel metadata
+    case JsSuccess(msg, _) =>
+      msg match {
+        case loc: VesselLocation =>
+          metadata
+            .get(loc.mmsi)
+            .map { meta =>
+              Source.single(AisPair(loc, meta))
+            }
+            .getOrElse {
+              // Drops location updates for which there is no vessel metadata
+              Source.empty
+            }
+        case vm: VesselMetadata =>
+          metadata.update(vm.mmsi, vm)
           Source.empty
-        }
-      case vm: VesselMetadata =>
-        metadata.update(vm.mmsi, vm)
-        Source.empty
-      case _ =>
-        Source.empty
-    }
+        case _ =>
+          Source.empty
+      }
     case JsError(_) => Source.empty
   }
 

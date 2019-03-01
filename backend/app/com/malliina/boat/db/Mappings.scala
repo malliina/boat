@@ -42,6 +42,8 @@ class Mappings(val impl: JdbcProfile) {
   implicit val trackTitleMapping = stringMapping(TrackTitle.apply)
   implicit val canonicalMapping = stringMapping(TrackCanonical.apply)
   implicit val languageMapping = stringMapping(Language.apply)
+  implicit val longitudeMapping = MappedColumnType.base[Longitude, Double](_.lng, (lng: Double) => Longitude(lng))
+  implicit val latitudeMapping = MappedColumnType.base[Latitude, Double](_.lat, (lat: Double) => Latitude(lat))
 
   class CoordJdbcType(implicit override val classTag: ClassTag[Coord])
     extends impl.DriverJdbcType[Coord] {
@@ -57,7 +59,7 @@ class Mappings(val impl: JdbcProfile) {
 
     def toCoord(point: Point): Coord = {
       val c = point.getCoordinate
-      Coord(c.x, c.y)
+      Coord(Longitude(c.x), Latitude(c.y))
     }
 
     override def setValue(coord: Coord, p: PreparedStatement, idx: Int): Unit =
