@@ -23,7 +23,7 @@ class StaticBoatTests extends BoatTests {
     openTestBoat(boatName) { boat =>
       val coordPromise = Promise[CoordsEvent]()
       val testMessage = SentencesMessage(testTrack.take(6))
-      val testCoord = Coord(24.89171, 60.1532)
+      val testCoord = Coord.buildOrFail(24.89171, 60.1532)
 
       val sink = Sink.foreach[JsValue] { json =>
         json.validate[CoordsEvent].filter(_.from.boatName == boatName).foreach { c => coordPromise.trySuccess(c) }

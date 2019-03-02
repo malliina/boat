@@ -25,7 +25,7 @@ class SentenceTests extends BoatTests {
         val received = await(sentencePromise.future)
         assert(received.sentences === testMessage.sentences)
         val coords = await(coordPromise.future).coords
-        val expectedCoords = Seq(Coord(24.867495, 60.133465))
+        val expectedCoords = Seq(Coord.buildOrFail(24.867495, 60.133465))
         assert(coords === expectedCoords)
       }
     }

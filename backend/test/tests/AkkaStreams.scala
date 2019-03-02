@@ -30,12 +30,12 @@ class AkkaStreams extends BaseSuite {
         testSpeed,
         testDepth,
         ParsedDateTime(LocalDate.of(2018, 4, 10), LocalTime.of(10, 11, 1), keyed(4)),
-        ParsedCoord(newCoord(1, 2), LocalTime.of(10, 11, 1), keyed(5)),
+        ParsedCoord(Coord.buildOrFail(1, 2), LocalTime.of(10, 11, 1), keyed(5)),
         ParsedDateTime(LocalDate.of(2018, 4, 10), LocalTime.of(10, 12, 2), keyed(6)),
-        ParsedCoord(newCoord(4, 5), LocalTime.of(10, 12, 2), keyed(7)),
+        ParsedCoord(Coord.buildOrFail(4, 5), LocalTime.of(10, 12, 2), keyed(7)),
         ParsedDateTime(LocalDate.of(2018, 4, 11), LocalTime.of(10, 13, 3), keyed(8)),
-        ParsedCoord(newCoord(6, 7), LocalTime.of(10, 13, 3), keyed(9)),
-        ParsedCoord(newCoord(8, 9), LocalTime.of(0, 1, 4), keyed(10))
+        ParsedCoord(Coord.buildOrFail(6, 7), LocalTime.of(10, 13, 3), keyed(9)),
+        ParsedCoord(Coord.buildOrFail(8, 9), LocalTime.of(0, 1, 4), keyed(10))
       ))
 
     def toFull(coord: Coord, time: LocalTime, date: LocalDate, keys: Seq[Long]) =
@@ -50,19 +50,19 @@ class AkkaStreams extends BaseSuite {
                 keys.map(SentenceKey.apply))
 
     val expected = List(
-      toFull(newCoord(1, 2),
+      toFull(Coord.buildOrFail(1, 2),
              LocalTime.of(10, 11, 1),
              LocalDate.of(2018, 4, 10),
              Seq(5, 4, 2, 1, 3)),
-      toFull(newCoord(4, 5),
+      toFull(Coord.buildOrFail(4, 5),
              LocalTime.of(10, 12, 2),
              LocalDate.of(2018, 4, 10),
              Seq(7, 6, 2, 1, 3)),
-      toFull(newCoord(6, 7),
+      toFull(Coord.buildOrFail(6, 7),
              LocalTime.of(10, 13, 3),
              LocalDate.of(2018, 4, 11),
              Seq(9, 8, 2, 1, 3)),
-      toFull(newCoord(8, 9),
+      toFull(Coord.buildOrFail(8, 9),
              LocalTime.of(10, 13, 3),
              LocalDate.of(2018, 4, 11),
              Seq(10, 8, 2, 1, 3))

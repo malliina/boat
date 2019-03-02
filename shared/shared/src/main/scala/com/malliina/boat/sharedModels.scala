@@ -102,6 +102,9 @@ object Coord {
     Writes[Coord] { c => Json.toJson(c.toArray) }
   )
 
+  def buildOrFail(lng: Double, lat: Double): Coord =
+    build(lng, lat).fold(err => throw new Exception(err.message), identity)
+
   def build(lng: Double, lat: Double): Either[ErrorMessage, Coord] =
     for {
       longitude <- Longitude.build(lng)
