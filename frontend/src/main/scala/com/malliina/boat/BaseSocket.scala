@@ -38,13 +38,14 @@ class BaseSocket(wsPath: String, val log: BaseLogger = BaseLogger.console) {
   }
 
   def onMessage(msg: MessageEvent): Unit = {
-    log.debug(s"Got message: ${msg.data.toString}")
-    Try(Json.parse(msg.data.toString)).map { json =>
+    val asString = msg.data.toString
+    log.debug(s"Got message: $asString")
+    Try(Json.parse(asString)).map { json =>
       val isPing = (json \ EventKey).validate[String].filter(_ == Ping).isSuccess
       if (!isPing) {
         handlePayload(json)
       }
-    }.recover { case e => onJsonException(e) }
+    }.recover { case e => onJsonException(asString, e) }
   }
 
   def onConnected(e: Event): Unit = showConnected()
@@ -73,11 +74,11 @@ class BaseSocket(wsPath: String, val log: BaseLogger = BaseLogger.console) {
     log.debug(feedback)
   }
 
-  def onJsonException(t: Throwable): Unit = {
-    log error t
+  def onJsonException(asString: String, t: Throwable): Unit = {
+    log.error(s"JSON error for '$asString'.", t)
   }
 
   protected def onJsonFailure(result: JsError, value: JsValue): Unit = {
-    log info s"JSON error $result"
+    log.info(s"JSON error $result")
   }
 }

@@ -36,7 +36,7 @@ class MapSocket(val map: MapboxMap,
 
   def initImage(): Future[Unit] =
     map.initImage("/assets/img/boat-resized-opt-20.png", boatIconId).recover {
-      case t => log.error(t)
+      case t => log.error("Unable to initialize image.", t)
     }
 
   def lineLayer(id: String) = trackLineLayer(id, LinePaint.thin())
