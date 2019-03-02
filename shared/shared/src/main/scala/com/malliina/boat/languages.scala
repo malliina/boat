@@ -518,6 +518,7 @@ case class ProfileLang(username: String,
                        signedInAs: String,
                        logout: String,
                        chooseIdentityProvider: String,
+                       language: String,
                        finnish: String,
                        swedish: String,
                        english: String)
@@ -563,6 +564,12 @@ case class SettingsLang(welcome: String,
 
 object SettingsLang {
   implicit val json = Json.format[SettingsLang]
+}
+
+case class LanguageInfo(name: String, code: String)
+
+object LanguageInfo {
+  implicit val json = Json.format[LanguageInfo]
 }
 
 case class Lang(
@@ -682,6 +689,7 @@ object Lang {
                 "Signed in as",
                 "Logout",
                 "Choose Identity Provider",
+                "Language",
                 "Suomeksi",
                 "Svenska",
                 "English"),
@@ -796,6 +804,7 @@ object Lang {
                 "Käyttäjätunnus",
                 "Kirjaudu ulos",
                 "Valitse kirjautuminen",
+                "Kieli",
                 "Suomeksi",
                 "Svenska",
                 "English"),
@@ -913,6 +922,7 @@ object Lang {
                 "Inloggad som",
                 "Logga ut",
                 "Identifiera dig",
+                "Språk",
                 "Suomeksi",
                 "Svenska",
                 "English"),
