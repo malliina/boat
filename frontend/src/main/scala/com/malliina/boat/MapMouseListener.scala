@@ -1,7 +1,7 @@
 package com.malliina.boat
 
 import com.malliina.boat.Parsing.validate
-import com.malliina.mapbox.{LngLat, MapboxMap, MapboxPopup, PopupOptions}
+import com.malliina.mapbox.{LngLatLike, MapboxMap, MapboxPopup, PopupOptions}
 import com.malliina.values.ErrorMessage
 import com.malliina.util.EitherOps
 
@@ -32,7 +32,7 @@ class MapMouseListener(map: MapboxMap,
       } yield info
       maybeInfo.map { vessel =>
         //        log.info(s"Selected vessel $vessel.")
-        val target = feature.geometry.coords.headOption.map(LngLat.apply).getOrElse(e.lngLat)
+        val target = feature.geometry.coords.headOption.map(LngLatLike.apply).getOrElse(e.lngLat)
         markPopup.show(html.ais(vessel), target, map)
       }.recover { err =>
         log.info(s"Vessel info not available for '${feature.props}'. $err.")
@@ -40,7 +40,7 @@ class MapMouseListener(map: MapboxMap,
     }.getOrElse {
       symbol.fold(markPopup.remove()) { feature =>
         val symbol = validate[MarineSymbol](feature.props)
-        val target = feature.geometry.coords.headOption.map(LngLat.apply).getOrElse(e.lngLat)
+        val target = feature.geometry.coords.headOption.map(LngLatLike.apply).getOrElse(e.lngLat)
         symbol.map { ok =>
           markPopup.show(html.mark(ok), target, map)
         }.recoverWith { _ =>

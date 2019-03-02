@@ -1,6 +1,15 @@
 package com.malliina.mapbox
 
-import com.malliina.boat.{Coord, Feature, FeatureCollection, JsonError, Latitude, Layer, Longitude, Parsing}
+import com.malliina.boat.{
+  Coord,
+  Feature,
+  FeatureCollection,
+  JsonError,
+  Latitude,
+  Layer,
+  Longitude,
+  Parsing
+}
 import org.scalajs.dom
 import org.scalajs.dom.html
 import org.scalajs.dom.raw.HTMLCanvasElement
@@ -33,7 +42,7 @@ object MarkerOptions {
 @js.native
 @JSImport("mapbox-gl", "Marker")
 class MapboxMarker(options: MarkerOptions) extends js.Object {
-  def setLngLat(coord: LngLat): MapboxMarker = js.native
+  def setLngLat(coord: LngLatLike): MapboxMarker = js.native
 
   def setPopup(popup: MapboxPopup): MapboxMarker = js.native
 
@@ -48,7 +57,7 @@ object MapboxMarker {
     new MapboxMarker(MarkerOptions(html)).coord(coord).setPopup(popup).addTo(on)
 
   implicit class MarkerExt(val self: MapboxMarker) extends AnyVal {
-    def coord(coord: Coord): MapboxMarker = self.setLngLat(LngLat(coord.lng, coord.lat))
+    def coord(coord: Coord): MapboxMarker = self.setLngLat(LngLatLike(coord.lng, coord.lat))
   }
 
 }
@@ -63,15 +72,19 @@ trait PopupOptions extends js.Object {
 }
 
 object PopupOptions {
-  def apply(className: Option[String] = None, offset: Option[Double] = None, closeButton: Boolean = false): PopupOptions =
-    literal(className = className.orUndefined, offset = offset.orUndefined, closeButton = closeButton)
+  def apply(className: Option[String] = None,
+            offset: Option[Double] = None,
+            closeButton: Boolean = false): PopupOptions =
+    literal(className = className.orUndefined,
+            offset = offset.orUndefined,
+            closeButton = closeButton)
       .asInstanceOf[PopupOptions]
 }
 
 @js.native
 @JSImport("mapbox-gl", "Popup")
 class MapboxPopup(options: PopupOptions) extends js.Object {
-  def setLngLat(coord: LngLat): MapboxPopup = js.native
+  def setLngLat(coord: LngLatLike): MapboxPopup = js.native
 
   def setHTML(html: String): MapboxPopup = js.native
 
@@ -86,13 +99,13 @@ object MapboxPopup {
   def apply(options: PopupOptions): MapboxPopup = new MapboxPopup(options)
 
   implicit class PopupExt(val self: MapboxPopup) extends AnyVal {
-    def show[T <: dom.Element](htmlPayload: TypedTag[T], coord: LngLat, on: MapboxMap): Unit =
+    def show[T <: dom.Element](htmlPayload: TypedTag[T], coord: LngLatLike, on: MapboxMap): Unit =
       html(htmlPayload).setLngLat(coord).addTo(on)
 
     def html[T <: dom.Element](html: TypedTag[T]): MapboxPopup =
       self.setHTML(html.render.outerHTML)
 
-    def showText(text: String, coord: LngLat, on: MapboxMap): Unit =
+    def showText(text: String, coord: LngLatLike, on: MapboxMap): Unit =
       self.setText(text).setLngLat(coord).addTo(on)
   }
 
@@ -119,7 +132,7 @@ class MapboxMap(options: MapOptions) extends js.Object {
 
   def easeTo(options: EaseOptions): Unit = js.native
 
-  def fitBounds(bounds: LngLatBounds, options: FitOptions): Unit = js.native
+  def fitBounds(bounds: LngLatBounds): Unit = js.native
 
   def loadImage(url: String, callback: js.Function2[js.Any, js.Any, Unit]): Unit = js.native
 
@@ -164,7 +177,8 @@ object MapboxMap {
     def putLayer(layer: Layer): Unit =
       self.addLayer(JSON.parse(Parsing.stringify(layer)))
 
-    def queryRendered(point: PixelCoord, options: QueryOptions = QueryOptions.all): Either[JsonError, Seq[Feature]] =
+    def queryRendered(point: PixelCoord,
+                      options: QueryOptions = QueryOptions.all): Either[JsonError, Seq[Feature]] =
       Parsing.asJson[Seq[Feature]](self.queryRenderedFeatures(point, options))
 
     def onHover(layerId: String)(in: MapMouseEvent => Unit, out: MapMouseEvent => Unit): Unit = {
@@ -193,33 +207,56 @@ object MapboxMap {
 
 @js.native
 @JSImport("mapbox-gl", "LngLatBounds")
-class LngLatBounds(sw: js.Array[Double], ne: js.Array[Double]) extends js.Object {
-  def extend(coord: js.Array[Double]): LngLatBounds = js.native
+class LngLatBounds(sw: LngLatLike, ne: LngLatLike) extends js.Object {
+  def extend(bounds: LngLatBounds): LngLatBounds = js.native
+  def extend(bounds: LngLat): LngLatBounds = js.native
+  def isEmpty: Boolean = js.native
+  def getSouthWest(): LngLatLike = js.native
+  def getNorthEast(): LngLatLike = js.native
+  def getNorthWest(): LngLatLike = js.native
+  def getSouthEast(): LngLatLike = js.native
 }
 
 object LngLatBounds {
-  def apply(coord: Coord): LngLatBounds =
-    new LngLatBounds(coord.toArray.toJSArray, coord.toArray.toJSArray)
+  def apply(coord: Coord): LngLatBounds = {
+    val sw = LngLat(coord)
+    val ne = LngLat(coord)
+    new LngLatBounds(sw, ne)
+  }
 
   implicit class LngLatBoundsExt(val self: LngLatBounds) extends AnyVal {
     def extendWith(coord: Coord): LngLatBounds =
-      self.extend(coord.toArray.toJSArray)
+      self.extend(LngLat(coord))
   }
 
 }
 
 @js.native
+trait PaddingOptions extends js.Object {
+  def top: Double = js.native
+  def right: Double = js.native
+  def bottom: Double = js.native
+  def left: Double = js.native
+}
+
+object PaddingOptions {
+  def apply(all: Double): PaddingOptions = apply(all, all, all, all)
+
+  def apply(top: Double, right: Double, bottom: Double, left: Double): PaddingOptions =
+    literal(top = top, right = right, bottom = bottom, left = left).asInstanceOf[PaddingOptions]
+}
+
+@js.native
 trait FitOptions extends js.Object {
-  def padding: Double = js.native
-
+  def padding: PaddingOptions = js.native
   def linear: Boolean = js.native
-
   def maxZoom: js.UndefOr[Double] = js.native
 }
 
 object FitOptions {
   def apply(padding: Double, linear: Boolean = false, maxZoom: Option[Double] = None): FitOptions =
-    literal(padding = padding, linear = linear, maxZoom = maxZoom.orUndefined).asInstanceOf[FitOptions]
+    literal(padding = PaddingOptions(padding), linear = linear, maxZoom = maxZoom.orUndefined)
+      .asInstanceOf[FitOptions]
 }
 
 @js.native
@@ -231,17 +268,17 @@ object FlyOptions {
   val SpeedDefault: Double = 1.2d
 
   def apply(center: Coord, speed: Double = SpeedDefault): FlyOptions =
-    literal(center = LngLat(center.lng, center.lat), speed = speed).asInstanceOf[FlyOptions]
+    literal(center = LngLatLike(center), speed = speed).asInstanceOf[FlyOptions]
 }
 
 @js.native
 trait EaseOptions extends js.Object {
-  def center: LngLat = js.native
+  def center: LngLatLike = js.native
 }
 
 object EaseOptions {
   def apply(center: Coord): EaseOptions =
-    literal(center = LngLat(center.lng, center.lat)).asInstanceOf[EaseOptions]
+    literal(center = LngLatLike(center)).asInstanceOf[EaseOptions]
 }
 
 @js.native
@@ -260,25 +297,30 @@ object GeoJsonSource {
 }
 
 @js.native
-trait LngLat extends js.Object {
-  def lng: Double = js.native
+@JSImport("mapbox-gl", "LngLat")
+class LngLat(lng: Double, lat: Double) extends LngLatLike
 
+object LngLat {
+  def apply(coord: Coord): LngLat = new LngLat(coord.lng.lng, coord.lat.lat)
+}
+
+@js.native
+trait LngLatLike extends js.Object {
+  def lng: Double = js.native
   def lat: Double = js.native
 }
 
-object LngLat {
-  def apply(lng: Longitude, lat: Latitude): LngLat =
-    literal(lng = lng.lng, lat = lat.lat).asInstanceOf[LngLat]
+object LngLatLike {
+  def apply(lng: Longitude, lat: Latitude): LngLatLike =
+    literal(lng = lng.lng, lat = lat.lat).asInstanceOf[LngLatLike]
 
-  def apply(coord: Coord): LngLat = apply(coord.lng, coord.lat)
+  def apply(coord: Coord): LngLatLike = apply(coord.lng, coord.lat)
 }
 
 @js.native
 trait MapMouseEvent extends js.Object {
-  def lngLat: LngLat = js.native
-
+  def lngLat: LngLatLike = js.native
   def point: PixelCoord = js.native
-
   def features: js.Any = js.native
 }
 
@@ -292,18 +334,18 @@ trait PixelCoord extends js.Object {
 @js.native
 trait MapOptions extends js.Object {
   def container: String = js.native
-
   def style: String = js.native
-
   def center: js.Array[Double] = js.native
-
   def zoom: Double = js.native
-
   def hash: Boolean = js.native
 }
 
 object MapOptions {
-  def apply(container: String, style: String, center: Coord, zoom: Double, hash: Boolean = false): MapOptions =
+  def apply(container: String,
+            style: String,
+            center: Coord,
+            zoom: Double,
+            hash: Boolean = false): MapOptions =
     literal(
       container = container,
       style = style,
