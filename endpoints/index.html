@@ -243,6 +243,13 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#put-usersme" title="PUT /users/me" class="md-nav__link">
+    PUT /users/me
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#post-usersnotifications" title="POST /users/notifications" class="md-nav__link">
     POST /users/notifications
   </a>
@@ -386,6 +393,13 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#put-usersme" title="PUT /users/me" class="md-nav__link">
+    PUT /users/me
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#post-usersnotifications" title="POST /users/notifications" class="md-nav__link">
     POST /users/notifications
   </a>
@@ -496,6 +510,7 @@ of supporting functions as documented below.</p>
 </tr>
 </tbody>
 </table>
+<p>All units of measure are represented as JSON numbers.</p>
 <h2 id="get-usersme">GET /users/me</h2>
 <p>Returns user information including any boats:</p>
 <pre><code>{
@@ -541,6 +556,35 @@ of supporting functions as documented below.</p>
     ]
 }
 </code></pre>
+<h2 id="put-usersme">PUT /users/me</h2>
+<p>Changes the user's language. Use the following payload:</p>
+<pre><code>{
+    "language": "language_code_here"
+}
+</code></pre>
+<p>The following language codes are supported:</p>
+<table>
+<thead>
+<tr>
+<th>Code</th>
+<th>Language</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>sv-SE</td>
+<td>Swedish</td>
+</tr>
+<tr>
+<td>fi-FI</td>
+<td>Finnish</td>
+</tr>
+<tr>
+<td>en-US</td>
+<td>English</td>
+</tr>
+</tbody>
+</table>
 <h2 id="post-usersnotifications">POST /users/notifications</h2>
 <p>Subscribes to push notifications:</p>
 <pre><code>{
