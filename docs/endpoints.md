@@ -16,6 +16,8 @@ The following units of measure are used in JSON responses where applicable:
 | Draft | Meters
 | Temperature | Celsius
 
+All units of measure are represented as JSON numbers.
+
 ## GET /users/me
 
 Returns user information including any boats:
@@ -64,6 +66,22 @@ Returns tracks driven:
             }
         ]
     }
+
+## PUT /users/me
+
+Changes the user's language. Use the following payload:
+
+    {
+        "language": "language_code_here"
+    }
+    
+The following language codes are supported:
+
+| Code | Language
+|------|---------
+| sv-SE | Swedish
+| fi-FI | Finnish
+| en-US | English
 
 ## POST /users/notifications
 
