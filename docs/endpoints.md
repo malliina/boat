@@ -18,26 +18,6 @@ The following units of measure are used in JSON responses where applicable:
 
 All units of measure are represented as JSON numbers.
 
-## GET /users/me
-
-Returns user information including any boats:
-
-    {
-        "user": {
-            "id": 123,
-            "username": "jack",
-            "email": "jack@example.com",
-            "boats": [
-                {
-                    "id": 12,
-                    "name: "Her Highness",
-                    "token": "abc123"
-                }
-            ],
-            "enabled": true
-        }
-    }
-
 ## GET /tracks
 
 Returns tracks driven:
@@ -67,6 +47,36 @@ Returns tracks driven:
         ]
     }
 
+## PUT /tracks/track_name_here
+
+Modifies the title of the given track:
+
+    {
+        "title": "Evening boating"
+    }
+
+Provide the track name in the URL.
+
+## GET /users/me
+
+Returns user information including any boats:
+
+    {
+        "user": {
+            "id": 123,
+            "username": "jack",
+            "email": "jack@example.com",
+            "boats": [
+                {
+                    "id": 12,
+                    "name: "Her Highness",
+                    "token": "abc123"
+                }
+            ],
+            "enabled": true
+        }
+    }
+
 ## PUT /users/me
 
 Changes the user's language. Use the following payload:
@@ -82,6 +92,16 @@ The following language codes are supported:
 | sv-SE | Swedish
 | fi-FI | Finnish
 | en-US | English
+
+## PATCH /boats/boat_id_here
+
+Changes the name of the given boat:
+
+    {
+        "boatName": "My Lady"
+    }
+
+Obtain boat IDs using the */users/me* endpoint above.
 
 ## POST /users/notifications
 

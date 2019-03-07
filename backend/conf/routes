@@ -1,8 +1,8 @@
 GET          /                                   controllers.BoatController.index
 GET          /pingAuth                           controllers.AppController.pingAuth
 GET          /health                             controllers.AppController.health
-GET          /users/me                           controllers.AppController.me
 GET          /conf                               controllers.AppController.conf
+GET          /users/me                           controllers.AppController.me
 PUT          /users/me                           controllers.PushController.changeLanguage
 POST         /users/notifications                controllers.PushController.enableNotifications
 POST         /users/notifications/disable        controllers.PushController.disableNotifications
