@@ -204,9 +204,13 @@ object BoatTokens {
   def random() = BoatToken(Utils.randomString(8))
 }
 
+// Bindables._ is imported to the routes file, see build.sbt
 object Bindables {
   implicit val trackName: PathBindable[TrackName] =
     PathBindable.bindableString.transform[TrackName](s => TrackName(s), t => t.name)
+
+  implicit val trackCanonical: PathBindable[TrackCanonical] =
+    PathBindable.bindableString.transform[TrackCanonical](s => TrackCanonical(s), t => t.name)
 
   implicit val boatName: PathBindable[BoatName] =
     PathBindable.bindableString.transform[BoatName](s => BoatName(s), t => t.name)

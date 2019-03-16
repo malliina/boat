@@ -161,6 +161,8 @@ object TrackTitle extends StringCompanion[TrackTitle] {
 case class TrackCanonical(name: String) extends Wrapped(name)
 
 object TrackCanonical extends StringCompanion[TrackCanonical] {
+  val Key = "canonical"
+
   def apply(name: TrackName): TrackCanonical = TrackCanonical(name.name)
 }
 

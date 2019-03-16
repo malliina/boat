@@ -166,6 +166,14 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext)
     } yield joined.strip(TimeFormatter(user.language))
   }
 
+  override def canonical(track: TrackCanonical, email: Email): Future[TrackRef] = action {
+    for {
+      user <- userFor(email)
+      joined <- first(tracksViewNonEmpty.filter(t => t.canonical === track),
+                      s"Track not found: '$track'.")
+    } yield joined.strip(TimeFormatter(user.language))
+  }
+
   private def userFor(email: Email) =
     first(usersTable.filter(_.email === email), s"Email not found: '$email'.")
 
@@ -190,10 +198,14 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext)
       // Intentionally, you can view any track if you know its key.
       // Alternatively, we could filter tracks by user and make that optional.
       val eligibleTracks =
-        if (limits.tracks.nonEmpty) tracksViewNonEmpty.filter(t => t.trackName.inSet(limits.tracks))
+        if (limits.tracks.nonEmpty)
+          tracksViewNonEmpty.filter(_.trackName.inSet(limits.tracks))
+        else if (limits.canonicals.nonEmpty)
+          tracksViewNonEmpty.filter(_.canonical.inSet(limits.canonicals))
         else if (limits.newest)
           tracksViewNonEmpty.filter(_.username === user.username).sortBy(_.trackAdded.desc).take(1)
-        else tracksViewNonEmpty
+        else
+          tracksViewNonEmpty
       //    eligibleTracks.result.statements.toList foreach println
       val query = eligibleTracks
         .join(rangedCoords(limits.timeRange))

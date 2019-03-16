@@ -11,7 +11,7 @@ object ChartsView extends BaseFront {
 
 class ChartsView(canvas: HTMLCanvasElement) extends BaseFront {
   val ctx = canvas.getContext("2d").asInstanceOf[CanvasRenderingContext2D]
-  readTrack.foreach { track =>
+  readTrack.toOption.foreach { track =>
     val sample = queryInt(SampleKey)
     ChartSocket(ctx, track, sample)
   }
@@ -29,7 +29,7 @@ object ChartSocket {
   * @param sample 1 = full accuracy, None = intelligent
   */
 class ChartSocket(ctx: CanvasRenderingContext2D, track: TrackName, sample: Option[Int])
-  extends BoatSocket(Option(track), sample) {
+  extends BoatSocket(Name(track), sample) {
 
   val seaBlue = "#006994"
   val red = "red"

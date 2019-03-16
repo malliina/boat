@@ -362,7 +362,7 @@ class BoatSchema(ds: DataSource, conf: ProfileConf)
 
   def first[T, R](q: Query[T, R, Seq], onNotFound: => String)(implicit ec: ExecutionContext) =
     q.result.headOption.flatMap { maybeRow =>
-      maybeRow.map(DBIO.successful).getOrElse(DBIO.failed(new Exception(onNotFound)))
+      maybeRow.map(DBIO.successful).getOrElse(DBIO.failed(new NotFoundException(onNotFound)))
     }
 
 }

@@ -35,6 +35,8 @@ trait TracksSource {
 
   def ref(track: TrackName, email: Email): Future[TrackRef]
 
+  def canonical(track: TrackCanonical, email: Email): Future[TrackRef]
+
   def track(track: TrackName, user: Email, query: TrackQuery): Future[TrackInfo]
 
   def full(track: TrackName, user: Email, query: TrackQuery): Future[FullTrack]

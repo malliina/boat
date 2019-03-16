@@ -35,9 +35,10 @@ trait BaseFront extends FrontKeys with CSRFConf {
     }
   }
 
-  def readTrack: Either[NotFound, TrackName] = href.getPath.split('/').toList match {
-    case _ :: "tracks" :: track :: _ => Right(TrackName(track))
-    case _ => Left(NotFound("track"))
+  def readTrack: TrackState = href.getPath.split('/').toList match {
+    case _ :: "tracks" :: track :: _ => Name(TrackName(track))
+    case _ :: canonical :: Nil => Canonical(TrackCanonical(canonical))
+    case _ => NoTrack
   }
 
   def queryDouble(key: String) = query(key).flatMap(s => Try(s.toDouble).toOption)
@@ -52,6 +53,17 @@ trait BaseFront extends FrontKeys with CSRFConf {
 
   def elem(id: String): Either[NotFound, Element] = Option(document.getElementById(id)).toRight(NotFound(id))
 }
+
+sealed trait TrackState {
+  def toOption: Option[TrackName] = this match {
+    case Name(track) => Option(track)
+    case _ => None
+  }
+}
+
+case class Canonical(track: TrackCanonical) extends TrackState
+case class Name(track: TrackName) extends TrackState
+case object NoTrack extends TrackState
 
 case class NotFound(id: String) {
   override def toString: String = id

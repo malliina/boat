@@ -12,7 +12,7 @@ import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 import scala.scalajs.js.JSConverters.genTravConvertible2JSRichGenTrav
 
 class MapSocket(val map: MapboxMap,
-                track: Option[TrackName],
+                track: TrackState,
                 sample: Option[Int],
                 mode: MapMode,
                 language: Language)

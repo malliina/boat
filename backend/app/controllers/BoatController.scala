@@ -14,7 +14,7 @@ import com.malliina.boat.html.BoatHtml
 import com.malliina.boat.http.{BoatEmailRequest, BoatQuery, BoatRequest, TrackQuery}
 import com.malliina.boat.parsing.BoatService
 import com.malliina.boat.push.BoatState
-import com.malliina.values.Username
+import com.malliina.values.{Email, Username}
 import controllers.BoatController.log
 import play.api.Logger
 import play.api.data.Form
@@ -81,13 +81,21 @@ class BoatController(mapboxToken: AccessToken,
   def track(track: TrackName) = EssentialAction { rh =>
     val action = respond(rh)(
       html = index,
-      json = ref(track)
+      json = fetchTrack(email => db.ref(track, email))
     )
     action(rh)
   }
 
-  def ref(track: TrackName) = secureJson(TrackQuery.apply) { req =>
-    db.ref(track, req.email)
+  def canonical(track: TrackCanonical) = EssentialAction { rh =>
+    val action = respond(rh)(
+      html = index,
+      json = fetchTrack(email => db.canonical(track, email).map(TrackResponse.apply))
+    )
+    action(rh)
+  }
+
+  def fetchTrack[W: Writes](load: Email => Future[W]) = secureJson(TrackQuery.apply) { req =>
+    load(req.email)
   }
 
   def trail(track: TrackName) = secureJson(TrackQuery.apply) { req =>
@@ -168,8 +176,9 @@ class BoatController(mapboxToken: AccessToken,
           val formatter = TimeFormatter(user.language)
           // disconnects viewers that lag more than 3s
           val flow = Flow
-            .fromSinkAndSource(Sink.ignore,
-                               history.concat(boats.clientEvents(formatter)).filter(_.isIntendedFor(username)))
+            .fromSinkAndSource(
+              Sink.ignore,
+              history.concat(boats.clientEvents(formatter)).filter(_.isIntendedFor(username)))
             .keepAlive(10.seconds, () => PingEvent(Instant.now.toEpochMilli))
             .backpressureTimeout(3.seconds)
           logTermination(flow, _ => s"Viewer '$username' left.")
@@ -192,7 +201,9 @@ class BoatController(mapboxToken: AccessToken,
       code: BoatRequest[UserInfo, TrackTitle] => Future[JoinedTrack]): Action[TrackTitle] =
     formAction(trackTitleForm) { req =>
       val formatter = TimeFormatter(req.user.language)
-      code(req).map { t => TrackResponse(t.strip(formatter)) }
+      code(req).map { t =>
+        TrackResponse(t.strip(formatter))
+      }
     }
 
   private def formAction[T, W: Writeable](form: Form[T])(
@@ -223,7 +234,11 @@ class BoatController(mapboxToken: AccessToken,
     authAction(authAppOrWeb) { req =>
       parse(req.req).fold(
         err => fut(BadRequest(Errors(err))),
-        t => run(BoatEmailRequest(t, req.user, req.req))
+        t => run(BoatEmailRequest(t, req.user, req.req)).recover {
+          case nfe: NotFoundException =>
+            log.error(nfe.message)
+            NotFound(Errors(nfe.message))
+        }
       )
     }
 

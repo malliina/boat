@@ -4,7 +4,7 @@ import java.time.Instant
 import java.time.format.DateTimeParseException
 import java.time.temporal.ChronoUnit
 
-import com.malliina.boat.{Constants, SingleError, TrackName}
+import com.malliina.boat.{Constants, SingleError, TrackCanonical, TrackName}
 import com.malliina.values.Email
 import play.api.mvc.{QueryStringBindable, Request, RequestHeader}
 
@@ -49,7 +49,8 @@ case class TrackQuery(sort: TrackSort, order: SortOrder, limits: Limits)
 object TrackQuery {
   def apply(rh: RequestHeader): Either[SingleError, TrackQuery] = withDefault(rh)
 
-  def withDefault(rh: RequestHeader, defaultLimit: Int = Limits.DefaultLimit): Either[SingleError, TrackQuery] =
+  def withDefault(rh: RequestHeader,
+                  defaultLimit: Int = Limits.DefaultLimit): Either[SingleError, TrackQuery] =
     for {
       sort <- TrackSort(rh)
       order <- SortOrder(rh)
@@ -76,8 +77,11 @@ abstract class EnumLike[T <: Named] {
     apply(key, rh).getOrElse(Right(default))
 
   def apply(key: String, rh: RequestHeader): Option[Either[SingleError, T]] =
-    QueryStringBindable.bindableString.bind(key, rh.queryString)
-      .map(e => e.flatMap(s => all.find(_.name == s).toRight(SingleError.input(s"Unknown $key value: '$s'."))))
+    QueryStringBindable.bindableString
+      .bind(key, rh.queryString)
+      .map(e =>
+        e.flatMap(s =>
+          all.find(_.name == s).toRight(SingleError.input(s"Unknown $key value: '$s'."))))
 }
 
 /**
@@ -87,6 +91,7 @@ abstract class EnumLike[T <: Named] {
 case class BoatQuery(limits: Limits,
                      timeRange: TimeRange,
                      tracks: Seq[TrackName],
+                     canonicals: Seq[TrackCanonical],
                      sample: Option[Int],
                      newest: Boolean) {
   def limit = limits.limit
@@ -101,32 +106,49 @@ case class BoatQuery(limits: Limits,
 object BoatQuery {
   val NewestKey = "newest"
   val SampleKey = "sample"
-  val TrackKey = "track"
   val DefaultSample = Constants.DefaultSample
   val bindTrack: QueryStringBindable[TrackName] =
     QueryStringBindable.bindableString.transform[TrackName](TrackName.apply, _.name)
   val tracksBindable = QueryStringBindable.bindableSeq[TrackName](bindTrack)
+  val bindCanonical =
+    QueryStringBindable.bindableString.transform[TrackCanonical](TrackCanonical.apply, _.name)
+  val canonicalsBindable = QueryStringBindable.bindableSeq[TrackCanonical](bindCanonical)
 
   def tracks(tracks: Seq[TrackName]): BoatQuery =
-    BoatQuery(Limits.default, TimeRange(None, None), tracks, Option(DefaultSample), newest = false)
+    BoatQuery(Limits.default,
+              TimeRange(None, None),
+              tracks,
+              Nil,
+              Option(DefaultSample),
+              newest = false)
 
   def recent(now: Instant): BoatQuery =
-    BoatQuery(Limits.default, TimeRange.recent(now), Nil, Option(DefaultSample), newest = false)
+    BoatQuery(Limits.default,
+              TimeRange.recent(now),
+              Nil,
+              Nil,
+              Option(DefaultSample),
+              newest = false)
 
   def apply(rh: RequestHeader): Either[SingleError, BoatQuery] =
     for {
       limits <- Limits(rh)
       timeRange <- TimeRange(rh)
-      tracks <- bindTracks(rh)
+      tracks <- bindSeq(TrackName.Key, tracksBindable, rh)
+      canonicals <- bindSeq(TrackCanonical.Key, canonicalsBindable, rh)
       sample <- Limits.readInt(SampleKey, rh)
       newest <- bindNewest(rh, default = true)
-    } yield BoatQuery(limits, timeRange, tracks, sample, newest)
+    } yield BoatQuery(limits, timeRange, tracks, canonicals, sample, newest)
 
-  def bindTracks(rh: RequestHeader): Either[SingleError, Seq[TrackName]] =
-    tracksBindable.bind(TrackKey, rh.queryString).map(_.left.map(SingleError.input)).getOrElse(Right(Nil))
+  def bindSeq[T](key: String, single: QueryStringBindable[Seq[T]], rh: RequestHeader) =
+    single.bind(key, rh.queryString).map(_.left.map(SingleError.input)).getOrElse(Right(Nil))
 
   def bindNewest(rh: RequestHeader, default: Boolean) =
-    QueryStringBindable.bindableBoolean.bind(NewestKey, rh.queryString).getOrElse(Right(default)).left.map(SingleError.input)
+    QueryStringBindable.bindableBoolean
+      .bind(NewestKey, rh.queryString)
+      .getOrElse(Right(default))
+      .left
+      .map(SingleError.input)
 }
 
 case class Limits(limit: Int, offset: Int) {
@@ -143,13 +165,19 @@ object Limits {
   val default = Limits(DefaultLimit, DefaultOffset)
 
   def readIntOrElse(rh: RequestHeader, key: String, default: Int): Either[SingleError, Int] =
-    QueryStringBindable.bindableInt.bind(key, rh.queryString).getOrElse(Right(default))
-      .left.map(SingleError.input)
+    QueryStringBindable.bindableInt
+      .bind(key, rh.queryString)
+      .getOrElse(Right(default))
+      .left
+      .map(SingleError.input)
 
   def readInt(key: String, rh: RequestHeader): Either[SingleError, Option[Int]] =
-    QueryStringBindable.bindableInt.bind(key, rh.queryString).map(_.map(Option.apply))
+    QueryStringBindable.bindableInt
+      .bind(key, rh.queryString)
+      .map(_.map(Option.apply))
       .getOrElse(Right(None))
-      .left.map(SingleError.input)
+      .left
+      .map(SingleError.input)
 
   def apply(rh: RequestHeader, defaultLimit: Int = DefaultLimit): Either[SingleError, Limits] =
     for {
@@ -177,8 +205,10 @@ object TimeRange {
     } yield TimeRange(from, to)
 
   def bindInstant(key: String, rh: RequestHeader): Either[SingleError, Option[Instant]] =
-    QueryStringBindable.bindableString.bind(key, rh.queryString)
-      .map(e => e.flatMap(parseInstant).map(Option.apply)).getOrElse(Right(None))
+    QueryStringBindable.bindableString
+      .bind(key, rh.queryString)
+      .map(e => e.flatMap(parseInstant).map(Option.apply))
+      .getOrElse(Right(None))
 
   def parseInstant(in: String): Either[SingleError, Instant] =
     try {

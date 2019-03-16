@@ -66,7 +66,7 @@ class BoatHtml(jsFiles: Seq[String]) extends Tags(scalatags.Text) {
                   span(`class` := "dropdown-button", lang.lang.track.tracks),
                   div(`class` := "dropdown-content", id := DropdownContentId)(
                     b.tracks.map { t =>
-                      a(`class` := "track-link", href := reverse.track(t.trackName))(
+                      a(`class` := "track-link", href := reverse.canonical(t.canonical))(
                         span(t.describe),
                         span(short(t.distance)),
                         span(t.startEndRange)
