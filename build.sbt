@@ -64,6 +64,7 @@ val frontend = project
     npmDependencies in Compile ++= Seq(
       "@turf/turf" -> "5.1.6",
       "mapbox-gl" -> mapboxVersion,
+      "@mapbox/mapbox-gl-geocoder" -> "3.1.6",
       "chart.js" -> "2.7.3"
       //    "@fortawesome/fontawesome-free" -> "5.6.3"
     ),

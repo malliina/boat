@@ -64,6 +64,12 @@ class BoatService(aisClient: BoatMqttClient, db: TracksSource)(implicit as: Acto
   errors.runWith(Sink.foreach(err => log.error(s"JSON error for '${err.boat}': '${err.error}'.")))
 //  val allEvents: Source[FrontEvent, Future[Done]] = frontEvents.merge(ais)
 
+
+  /** Location updates of boats (Boat-Tracker) and vessels (AIS).
+    *
+    * @param formatter time formatter
+    * @return location updates of boats (Boat-Tracker) and vessels (AIS).
+    */
   def clientEvents(formatter: TimeFormatter) =
     savedCoords
       .mapConcat[CoordsEvent](

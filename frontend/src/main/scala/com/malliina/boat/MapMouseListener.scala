@@ -24,6 +24,7 @@ class MapMouseListener(map: MapboxMap,
       f.geometry.typeName == PointGeometry.Key &&
         f.layer.exists(l => l.`type` == LayerType.Symbol || l.`type` == LayerType.Circle)
     }
+    // AIS
     val vessel = symbol.filter(_.layer.exists(_.id == AISRenderer.AisVesselLayer))
     vessel.map { feature =>
       val maybeInfo = for {
@@ -38,6 +39,7 @@ class MapMouseListener(map: MapboxMap,
         log.info(s"Vessel info not available for '${feature.props}'. $err.")
       }
     }.getOrElse {
+      // marks
       symbol.fold(markPopup.remove()) { feature =>
         val symbol = validate[MarineSymbol](feature.props)
         val target = feature.geometry.coords.headOption.map(LngLatLike.apply).getOrElse(e.lngLat)

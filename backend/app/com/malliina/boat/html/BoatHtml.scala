@@ -98,7 +98,10 @@ class BoatHtml(jsFiles: Seq[String]) extends Tags(scalatags.Text) {
           about.about(user, ub.language),
         ),
         bodyClasses = Seq(s"$MapClass $AboutClass"),
-        cssLink(s"https://api.tiles.mapbox.com/mapbox-gl-js/v$mapboxVersion/mapbox-gl.css")
+        modifier(
+          cssLink(s"https://api.tiles.mapbox.com/mapbox-gl-js/v$mapboxVersion/mapbox-gl.css"),
+          cssLink(s"https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v3.1.6/mapbox-gl-geocoder.css")
+        )
       )
     )
   }

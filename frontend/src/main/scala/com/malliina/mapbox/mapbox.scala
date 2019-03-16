@@ -1,15 +1,6 @@
 package com.malliina.mapbox
 
-import com.malliina.boat.{
-  Coord,
-  Feature,
-  FeatureCollection,
-  JsonError,
-  Latitude,
-  Layer,
-  Longitude,
-  Parsing
-}
+import com.malliina.boat.{AccessToken, Coord, Feature, FeatureCollection, JsonError, Latitude, Layer, Longitude, Parsing}
 import org.scalajs.dom
 import org.scalajs.dom.html
 import org.scalajs.dom.raw.HTMLCanvasElement
@@ -27,6 +18,28 @@ import scala.scalajs.js.annotation.JSImport
 @JSImport("mapbox-gl", JSImport.Default)
 object mapboxGl extends js.Object {
   var accessToken: String = js.native
+}
+
+@js.native
+trait GeocoderOptions extends js.Object {
+  def accessToken: String
+  def countries: String
+}
+
+object GeocoderOptions {
+  def apply(accessToken: String, countries: Seq[String]): GeocoderOptions =
+    literal(accessToken = accessToken, countries = countries.mkString(",")).asInstanceOf[GeocoderOptions]
+}
+
+@js.native
+@JSImport("@mapbox/mapbox-gl-geocoder", JSImport.Default)
+class MapboxGeocoder(options: GeocoderOptions) extends js.Object {
+
+}
+
+object MapboxGeocoder {
+  def finland(accessToken: AccessToken): MapboxGeocoder =
+    new MapboxGeocoder(GeocoderOptions(accessToken.token, Seq("fi")))
 }
 
 @js.native
@@ -128,6 +141,10 @@ object QueryOptions {
 @js.native
 @JSImport("mapbox-gl", "Map")
 class MapboxMap(options: MapOptions) extends js.Object {
+  def addControl(control: MapboxGeocoder): MapboxMap = js.native
+
+  def removeControl(control: MapboxGeocoder): MapboxMap = js.native
+
   def flyTo(options: FlyOptions): Unit = js.native
 
   def easeTo(options: EaseOptions): Unit = js.native
@@ -178,8 +195,10 @@ object MapboxMap {
       self.addLayer(JSON.parse(Parsing.stringify(layer)))
 
     def queryRendered(point: PixelCoord,
-                      options: QueryOptions = QueryOptions.all): Either[JsonError, Seq[Feature]] =
-      Parsing.asJson[Seq[Feature]](self.queryRenderedFeatures(point, options))
+                      options: QueryOptions = QueryOptions.all): Either[JsonError, Seq[Feature]] = {
+      val fs = self.queryRenderedFeatures(point, options)
+      Parsing.asJson[Seq[Feature]](fs)
+    }
 
     def onHover(layerId: String)(in: MapMouseEvent => Unit, out: MapMouseEvent => Unit): Unit = {
       self.on("mousemove", layerId, e => in(e))

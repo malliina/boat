@@ -1,6 +1,6 @@
 package com.malliina.boat
 
-import com.malliina.mapbox.{MapOptions, MapboxMap, mapboxGl}
+import com.malliina.mapbox.{MapOptions, MapboxGeocoder, MapboxMap, mapboxGl}
 import org.scalajs.dom.raw._
 import org.scalajs.dom.{document, window}
 import play.api.libs.json.{Json, Writes}
@@ -41,6 +41,16 @@ class MapView(accessToken: AccessToken,
     hash = true
   )
   val map = new MapboxMap(mapOptions)
+  val geocoder = MapboxGeocoder.finland(accessToken)
+  var isCoderVisible = false
+
+  elemAs[HTMLDivElement](MapId).right.get.onkeypress = (e: KeyboardEvent) => {
+    if (e.key == "s" && !document.activeElement.isInstanceOf[HTMLInputElement]) {
+      if (isCoderVisible) map.removeControl(geocoder)
+      else map.addControl(geocoder)
+      isCoderVisible = !isCoderVisible
+    }
+  }
   var socket: Option[MapSocket] = None
 
   map.on(
