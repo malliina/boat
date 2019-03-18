@@ -81,6 +81,7 @@ val backend = PlayProject
   .dependsOn(crossJvm)
   .settings(commonSettings)
   .settings(
+    version := "1.0.0",
     unmanagedResourceDirectories in Compile += baseDirectory.value / "docs",
     libraryDependencies ++= Seq(
       //    "net.sf.marineapi" % "marineapi" % "0.13.0-SNAPSHOT",

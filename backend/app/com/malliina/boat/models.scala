@@ -53,11 +53,11 @@ object UserToken extends StringCompanion[UserToken] {
   def random(): UserToken = UserToken(Utils.randomString(length = 8))
 }
 
-case class AppMeta(name: String, version: String, gitHash: String)
+case class AppMeta(name: String, version: String, gitHash: String, mapboxVersion: String)
 
 object AppMeta {
   implicit val json = Json.format[AppMeta]
-  val default = AppMeta(BuildInfo.name, BuildInfo.version, BuildInfo.gitHash)
+  val default = AppMeta(BuildInfo.name, BuildInfo.version, BuildInfo.gitHash, BuildInfo.mapboxVersion)
 }
 
 case class JoinedTrack(track: TrackId,
