@@ -19,22 +19,42 @@ class About(lang: WebLang) extends AboutKeys {
         if (user != Usernames.anon) {
           modifier(
             p(`class` := "text-center", s"${lang.signedInAs} $user."),
-            radios(LanguageRadios, Seq(
-              RadioOptions("radio-se", Language.swedish.code, lang.swedish, language == Language.swedish),
-              RadioOptions("radio-fi", Language.finnish.code, lang.finnish, language == Language.finnish),
-              RadioOptions("radio-en", Language.english.code, lang.english, language == Language.english)
-            )),
+            radios(
+              LanguageRadios,
+              Seq(
+                RadioOptions("radio-se",
+                             Language.swedish.code,
+                             lang.swedish,
+                             language == Language.swedish),
+                RadioOptions("radio-fi",
+                             Language.finnish.code,
+                             lang.finnish,
+                             language == Language.finnish),
+                RadioOptions("radio-en",
+                             Language.english.code,
+                             lang.english,
+                             language == Language.english)
+              )
+            ),
             hr(`class` := "modal-divider")
           )
         } else {
           empty
         },
-        a(`class` := "badge-ios", href := "https://itunes.apple.com/us/app/boat-tracker/id1434203398?ls=1&mt=8"),
+        a(`class` := "badge-ios",
+          href := "https://itunes.apple.com/us/app/boat-tracker/id1434203398?ls=1&mt=8"),
         hr(`class` := "modal-divider"),
         h2(lang.maritimeData),
-        p(a(href := "https://creativecommons.org/licenses/by/4.0/")("CC 4.0"), " ", lang.disclaimer),
+        p(a(href := "https://creativecommons.org/licenses/by/4.0/")("CC 4.0"),
+          " ",
+          lang.disclaimer),
         h2("Java Marine API"),
-        p(a(href := "http://www.gnu.org/licenses/lgpl-3.0-standalone.html")("GNU LGPL"), " ", a(href := "https://ktuukkan.github.io/marine-api/")("https://ktuukkan.github.io/marine-api/")),
+        p(
+          a(href := "http://www.gnu.org/licenses/lgpl-3.0-standalone.html")("GNU LGPL"),
+          " ",
+          a(href := "https://ktuukkan.github.io/marine-api/")(
+            "https://ktuukkan.github.io/marine-api/")
+        ),
         h2("Open Iconic"),
         p(a(href := "https://www.useiconic.com/open")("www.useiconic.com/open")),
         h2("Font Awesome"),
@@ -47,11 +67,15 @@ class About(lang: WebLang) extends AboutKeys {
 
   case class RadioOptions(id: String, value: String, label: String, checked: Boolean)
 
-  def radios(groupName: String, rs: Seq[RadioOptions]) = div(
-    rs.map { radio =>
-      div(`class` := "form-check form-check-inline")(
-        input(`class` := "form-check-input", `type` := "radio", name := groupName, id := radio.id, value := radio.value, if (radio.checked) checked else empty),
-        label(`class` := "form-check-label", `for` := radio.id)(radio.label)
-      )
-    })
+  def radios(groupName: String, rs: Seq[RadioOptions]) = div(rs.map { radio =>
+    div(`class` := "form-check form-check-inline")(
+      input(`class` := "form-check-input",
+            `type` := "radio",
+            name := groupName,
+            id := radio.id,
+            value := radio.value,
+            if (radio.checked) checked else empty),
+      label(`class` := "form-check-label", `for` := radio.id)(radio.label)
+    )
+  })
 }

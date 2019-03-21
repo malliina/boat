@@ -8,9 +8,14 @@ import scala.sys.process.Process
 import scala.util.Try
 
 val mapboxVersion = "0.53.1"
-val utilPlayVersion = "5.0.0"
+val utilPlayVersion = "5.1.0"
+val scalaTestVersion = "3.0.7"
+val scalaTagsVersion = "0.6.7"
 val utilPlayDep = "com.malliina" %% "util-play" % utilPlayVersion
-val primitiveVersion = "1.8.1"
+val utilPlayTestDep = utilPlayDep % Test classifier "tests"
+val scalaTestDep = "org.scalatest" %% "scalatest" % scalaTestVersion % Test
+val nvWebsocketDep = "com.neovisionaries" % "nv-websocket-client" % "2.8"
+val primitiveVersion = "1.9.0"
 val akkaVersion = "2.5.20"
 val akkaHttpVersion = "10.1.7"
 val buildAndUpload = taskKey[FullUrl]("Uploads to S3")
@@ -42,8 +47,8 @@ val cross = portableProject(JSPlatform, JVMPlatform)
   .settings(
     libraryDependencies ++= Seq(
       "com.malliina" %%% "primitives" % primitiveVersion,
-      "com.lihaoyi" %%% "scalatags" % "0.6.7",
-      "org.scalatest" %%% "scalatest" % "3.0.5" % Test
+      "com.lihaoyi" %%% "scalatags" % scalaTagsVersion,
+      "org.scalatest" %%% "scalatest" % scalaTestVersion % Test
     )
   )
 
@@ -59,7 +64,7 @@ val frontend = project
     libraryDependencies ++= Seq(
       "com.typesafe.play" %%% "play-json" % "2.7.1",
       "org.scala-js" %%% "scalajs-dom" % "0.9.6",
-      "org.scalatest" %%% "scalatest" % "3.0.5" % Test
+      "org.scalatest" %%% "scalatest" % scalaTestVersion % Test
     ),
     npmDependencies in Compile ++= Seq(
       "@turf/turf" -> "5.1.6",
@@ -68,11 +73,16 @@ val frontend = project
       "chart.js" -> "2.7.3"
       //    "@fortawesome/fontawesome-free" -> "5.6.3"
     ),
-    npmDevDependencies in Compile += "terser" -> "3.14.1",
+    npmDevDependencies in Compile ++= Seq(
+      "terser" -> "3.14.1",
+      "webpack-merge" -> "4.1.5"
+    ),
     version in webpack := "4.27.1",
     emitSourceMaps := false,
     scalaJSUseMainModuleInitializer := true,
-    webpackBundlingMode := BundlingMode.LibraryOnly()
+    webpackBundlingMode := BundlingMode.LibraryOnly(),
+    webpackConfigFile in fastOptJS := Some(baseDirectory.value / "webpack.dev.config.js"),
+    webpackConfigFile in fullOptJS := Some(baseDirectory.value / "webpack.prod.config.js"),
   )
 
 val backend = PlayProject
@@ -90,21 +100,20 @@ val backend = PlayProject
       "com.h2database" % "h2" % "1.4.196",
       "org.orbisgis" % "h2gis" % "1.4.0",
       "mysql" % "mysql-connector-java" % "5.1.47",
-      "com.zaxxer" % "HikariCP" % "3.2.0",
+      "com.zaxxer" % "HikariCP" % "3.3.1",
       "org.flywaydb" % "flyway-core" % "5.2.4",
       "org.apache.commons" % "commons-text" % "1.6",
       "com.amazonaws" % "aws-java-sdk-s3" % "1.11.466",
       "com.malliina" %% "logstreams-client" % "1.5.0",
       "com.malliina" %% "play-social" % utilPlayVersion,
-      "com.malliina" %% "mobile-push" % "1.17.0",
+      "com.malliina" %% "mobile-push" % "1.18.0",
       "com.typesafe.akka" %% "akka-slf4j" % akkaVersion,
       "com.typesafe.akka" %% "akka-stream" % akkaVersion,
       "com.typesafe.akka" %% "akka-http" % akkaHttpVersion,
       "com.typesafe.akka" %% "akka-http-spray-json" % akkaHttpVersion,
-      "com.neovisionaries" % "nv-websocket-client" % "2.6",
       "org.eclipse.paho" % "org.eclipse.paho.client.mqttv3" % "1.2.0",
       utilPlayDep,
-      utilPlayDep % Test classifier "tests"
+      utilPlayTestDep
     ),
     routesImport ++= Seq(
       "com.malliina.boat.Bindables._",
@@ -176,15 +185,15 @@ val agent = project
     libraryDependencies ++= Seq(
       "com.malliina" %% "primitives" % primitiveVersion,
       "com.malliina" %% "logback-streams" % "1.5.0",
-      "com.neovisionaries" % "nv-websocket-client" % "2.6",
+      nvWebsocketDep,
       "org.slf4j" % "slf4j-api" % "1.7.25",
       "com.typesafe.akka" %% "akka-stream" % akkaVersion,
       "com.typesafe.akka" %% "akka-http" % akkaHttpVersion,
       "com.typesafe.akka" %% "akka-http-spray-json" % akkaHttpVersion,
-      "com.lihaoyi" %% "scalatags" % "0.6.7",
-      "commons-codec" % "commons-codec" % "1.11",
+      "com.lihaoyi" %% "scalatags" % scalaTagsVersion,
+      "commons-codec" % "commons-codec" % "1.12",
       "com.neuronrobotics" % "nrjavaserial" % "3.14.0",
-      "org.scalatest" %% "scalatest" % "3.0.5" % Test
+      scalaTestDep
     ),
     buildAndUpload := {
       val debFile = (packageBin in Debian).value
@@ -213,7 +222,7 @@ val it = Project("integration-tests", file("boat-test"))
   .settings(commonSettings)
   .settings(
     libraryDependencies ++= Seq(
-      utilPlayDep % Test classifier "tests"
+      utilPlayTestDep
     )
   )
 
@@ -225,7 +234,7 @@ val utils = project
     libraryDependencies ++= Seq(
       "javax.media" % "jai_core" % "1.1.3" from "https://download.osgeo.org/webdav/geotools/javax/media/jai_core/1.1.3/jai_core-1.1.3.jar",
       "org.geotools" % "gt-shapefile" % "20.0" exclude ("javax.media", "jai_core"),
-      "org.scalatest" %% "scalatest" % "3.0.5" % Test
+      scalaTestDep
     )
   )
 

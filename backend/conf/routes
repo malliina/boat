@@ -18,6 +18,7 @@ GET          /ws/updates                         controllers.BoatController.clie
 GET          /ws/boats                           controllers.BoatController.boatSocket
 GET          /sign-in/google                     controllers.Social.google
 GET          /sign-in/callbacks/google           controllers.Social.googleCallback
+GET          /sign-out                           controllers.Social.logout
 GET          /docs/agent                         controllers.DocsController.agent
 GET          /docs/support                       controllers.DocsController.support
 GET          /legal/privacy                      controllers.DocsController.privacyPolicy
