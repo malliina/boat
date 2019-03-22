@@ -8,7 +8,7 @@ import scala.sys.process.Process
 import scala.util.Try
 
 val mapboxVersion = "0.53.1"
-val utilPlayVersion = "5.1.0"
+val utilPlayVersion = "5.1.1"
 val scalaTestVersion = "3.0.7"
 val scalaTagsVersion = "0.6.7"
 val utilPlayDep = "com.malliina" %% "util-play" % utilPlayVersion
