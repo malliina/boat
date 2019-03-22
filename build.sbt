@@ -11,13 +11,13 @@ val mapboxVersion = "0.53.1"
 val utilPlayVersion = "5.1.1"
 val scalaTestVersion = "3.0.7"
 val scalaTagsVersion = "0.6.7"
+val primitiveVersion = "1.9.0"
+val akkaVersion = "2.5.20"
+val akkaHttpVersion = "10.1.7"
 val utilPlayDep = "com.malliina" %% "util-play" % utilPlayVersion
 val utilPlayTestDep = utilPlayDep % Test classifier "tests"
 val scalaTestDep = "org.scalatest" %% "scalatest" % scalaTestVersion % Test
 val nvWebsocketDep = "com.neovisionaries" % "nv-websocket-client" % "2.8"
-val primitiveVersion = "1.9.0"
-val akkaVersion = "2.5.20"
-val akkaHttpVersion = "10.1.7"
 val buildAndUpload = taskKey[FullUrl]("Uploads to S3")
 val upFiles = taskKey[Seq[String]]("lists")
 val bootClasspath = taskKey[String]("bootClasspath")
@@ -106,7 +106,7 @@ val backend = PlayProject
       "com.amazonaws" % "aws-java-sdk-s3" % "1.11.466",
       "com.malliina" %% "logstreams-client" % "1.5.0",
       "com.malliina" %% "play-social" % utilPlayVersion,
-      "com.malliina" %% "mobile-push" % "1.18.0",
+      "com.malliina" %% "mobile-push" % "1.18.3",
       "com.typesafe.akka" %% "akka-slf4j" % akkaVersion,
       "com.typesafe.akka" %% "akka-stream" % akkaVersion,
       "com.typesafe.akka" %% "akka-http" % akkaHttpVersion,
