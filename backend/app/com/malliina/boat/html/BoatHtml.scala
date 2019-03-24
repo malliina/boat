@@ -4,7 +4,7 @@ import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 
 import com.malliina.boat.FrontKeys._
-import com.malliina.boat.html.BoatHtml.callAttr
+import com.malliina.boat.html.BoatHtml.{ScriptAssets, callAttr}
 import com.malliina.boat.http.Limits
 import com.malliina.boat.{BuildInfo, FullTrack, TrackRef, UserBoats, Usernames}
 import com.malliina.html.Tags
@@ -29,11 +29,13 @@ object BoatHtml {
   def apply(isProd: Boolean): BoatHtml = {
     val name = "frontend"
     val opt = if (isProd) "opt" else "fastopt"
-    new BoatHtml(Seq(s"$name-$opt-library.js", s"$name-$opt-loader.js", s"$name-$opt.js"))
+    new BoatHtml(ScriptAssets(s"$name-$opt-library.js", s"$name-$opt-loader.js", s"$name-$opt.js"))
   }
+
+  case class ScriptAssets(library: String, loader: String, app: String)
 }
 
-class BoatHtml(jsFiles: Seq[String]) extends Tags(scalatags.Text) {
+class BoatHtml(jsFiles: ScriptAssets) extends Tags(scalatags.Text) {
   val reverse = routes.BoatController
   val reverseApp = routes.AppController
   val mapboxVersion = BuildInfo.mapboxVersion
@@ -147,9 +149,11 @@ class BoatHtml(jsFiles: Seq[String]) extends Tags(scalatags.Text) {
         cssLink(reverseApp.versioned("css/fonts.css")),
         cssLink(reverseApp.versioned("css/main.css")),
         content.scriptsAndStyles,
-        jsFiles.map { jsFile =>
-          script(`type` := MimeTypes.JAVASCRIPT, defer, src := reverseApp.versioned(jsFile))
-        },
+        // Loads mapbox JS before its CSS and without "defer", otherwise the map errored out.
+        // CSS for mapbox is in lateStyles.
+        script(`type` := MimeTypes.JAVASCRIPT, src := reverseApp.versioned(jsFiles.library)),
+        script(`type` := MimeTypes.JAVASCRIPT, src := reverseApp.versioned(jsFiles.loader)),
+        script(`type` := MimeTypes.JAVASCRIPT, defer, src := reverseApp.versioned(jsFiles.app)),
         content.lateStyles
       ),
       body(`class` := content.bodyClasses.mkString(" "))(
