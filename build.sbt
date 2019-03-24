@@ -7,7 +7,7 @@ import sbtrelease.ReleaseStateTransformations._
 import scala.sys.process.Process
 import scala.util.Try
 
-val mapboxVersion = "0.53.0"
+val mapboxVersion = "0.53.1"
 val utilPlayVersion = "5.1.1"
 val scalaTestVersion = "3.0.7"
 val scalaTagsVersion = "0.6.7"
@@ -68,7 +68,7 @@ val frontend = project
     ),
     npmDependencies in Compile ++= Seq(
       "@turf/turf" -> "5.1.6",
-      "mapbox-gl" -> mapboxVersion,
+//      "mapbox-gl" -> mapboxVersion,
       "@mapbox/mapbox-gl-geocoder" -> "3.1.6",
       "chart.js" -> "2.7.3"
       //    "@fortawesome/fontawesome-free" -> "5.6.3"
