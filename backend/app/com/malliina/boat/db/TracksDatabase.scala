@@ -194,7 +194,7 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext)
     }
 
   override def history(user: MinimalUserInfo, limits: BoatQuery): Future[Seq[CoordsEvent]] =
-    action {
+    action(s"Track history for ${user.username}") {
       // Intentionally, you can view any track if you know its key.
       // Alternatively, we could filter tracks by user and make that optional.
       val eligibleTracks =
@@ -216,8 +216,36 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext)
         .sortBy { case (_, point) => point.trackIndex.asc }
       //    query.result.statements.toList foreach println
       query.result.map { rows =>
-        collectPoints(rows, user.language)
+        collectPoints2(rows, user.language)
       }
+    }
+
+  def history2(user: MinimalUserInfo, limits: BoatQuery): Future[Seq[CoordsEvent]] =
+    action(s"Fast track history for ${user.username}") {
+      val eligibleTracks =
+        if (limits.tracks.nonEmpty)
+          tracksViewNonEmpty.filter(_.trackName.inSet(limits.tracks))
+        else if (limits.canonicals.nonEmpty)
+          tracksViewNonEmpty.filter(_.canonical.inSet(limits.canonicals))
+        else if (limits.newest)
+          tracksViewNonEmpty.filter(_.username === user.username).sortBy(_.trackAdded.desc).take(1)
+        else
+          tracksViewNonEmpty
+      def points(trackIds: Seq[TrackId]) = pointsTable.filter { point =>
+        (if (trackIds.nonEmpty) point.track.inSet(trackIds) else trueColumn) &&
+        limits.from.map(from => point.added >= from).getOrElse(trueColumn) &&
+        limits.to.map(to => point.added <= to).getOrElse(trueColumn)
+      }.sortBy { point =>
+        point.trackIndex.desc
+      }.drop(limits.offset)
+        .take(limits.limit)
+        .sortBy { point =>
+          point.trackIndex.asc
+        }
+      for {
+        ts <- eligibleTracks.result
+        ps <- points(ts.map(_.track)).result
+      } yield collectPointsNextGen(ts, ps, user.language)
     }
 
   def modifyTitle(track: TrackName, title: TrackTitle, user: UserId): Future[JoinedTrack] = {
@@ -258,8 +286,39 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext)
 
   private def trueColumn: Rep[Boolean] = valueToConstColumn(true)
 
-  private def collectPoints(rows: Seq[(JoinedTrack, TrackPointRow)],
-                            language: Language): Seq[CoordsEvent] = {
+  private def collectPointsNextGen(tracks: Seq[JoinedTrack],
+                                   points: Seq[TrackPointRow],
+                                   language: Language) = {
+    val formatter = TimeFormatter(language)
+    val ts = tracks.groupBy(_.track).collect {
+      case (key, head +: _) => key -> head
+    }
+    points.foldLeft(Vector.empty[CoordsEvent]) { (acc, point) =>
+      val idx = acc.indexWhere(_.from.track == point.track)
+      val coord = TimedCoord(
+        point.id,
+        Coord(point.lon, point.lat),
+        formatter.formatDateTime(point.boatTime),
+        point.boatTime.toEpochMilli,
+        formatter.formatTime(point.boatTime),
+        point.boatSpeed,
+        point.waterTemp,
+        point.depth,
+        formatter.timing(point.boatTime)
+      )
+      if (idx >= 0) {
+        val old = acc(idx)
+        acc.updated(idx, old.copy(coords = old.coords :+ coord))
+      } else {
+        ts.get(point.track).fold(acc) { track =>
+          acc :+ CoordsEvent(Seq(coord), track.strip(formatter))
+        }
+      }
+    }
+  }
+
+  private def collectPoints2(rows: Seq[(JoinedTrack, TrackPointRow)],
+                             language: Language): Seq[CoordsEvent] = {
     val formatter = TimeFormatter(language)
     rows.foldLeft(Vector.empty[CoordsEvent]) {
       case (acc, (from, point)) =>

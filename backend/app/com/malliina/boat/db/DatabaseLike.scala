@@ -29,13 +29,13 @@ abstract class DatabaseLike(val impl: JdbcProfile, val database: JdbcProfile#API
   def runAndAwait[R](a: DBIOAction[R, NoStream, Nothing], duration: Duration = 20.seconds): R =
     await(run(a), duration)
 
-  def run[R](a: DBIOAction[R, NoStream, Nothing]): Future[R] = {
+  def run[R](a: DBIOAction[R, NoStream, Nothing], label: String = "Database operation"): Future[R] = {
     val start = System.currentTimeMillis()
     database.run(a).map { r =>
       val end = System.currentTimeMillis()
       val durationMillis = end - start
       if (durationMillis > 500) {
-        log.warn(s"Database operation completed in $durationMillis ms.")
+        log.warn(s"$label completed in $durationMillis ms.")
       }
       r
     }

@@ -5,7 +5,7 @@ import play.api.libs.json.Json
 
 class ModelTests extends FunSuite {
   test("coord cheap hash") {
-    val c = Coord(12.1, 13.412456789)
+    val c = Coord(Longitude(12.1), Latitude(13.412456789))
     assert(c.approx === "12.10000,13.41245")
   }
 

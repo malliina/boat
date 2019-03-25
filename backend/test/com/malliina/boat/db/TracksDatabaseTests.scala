@@ -10,6 +10,7 @@ import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.{Flow, Sink, Source}
 import com.malliina.boat._
 import com.malliina.boat.db.TestData._
+import com.malliina.boat.http.BoatQuery
 import com.malliina.boat.parsing.{BoatParser, FullCoord}
 import com.malliina.concurrent.Execution.cached
 import com.malliina.measure.{DistanceInt, Speed, SpeedInt, Temperature}
@@ -20,7 +21,7 @@ import tests.BaseSuite
 
 import scala.collection.JavaConverters.asScalaBufferConverter
 import scala.concurrent.Future
-import scala.concurrent.duration.DurationInt
+import scala.concurrent.duration.{Duration, DurationLong}
 
 object TestData {
   val london = Coord.build(0.13, 51.5).right.get
@@ -30,8 +31,28 @@ object TestData {
 class TracksDatabaseTests extends BaseSuite {
   implicit val as = ActorSystem()
   implicit val mat = ActorMaterializer()
-  //  val conf = DatabaseConf("jdbc:mysql://localhost:3306/boat?useSSL=false", "", "", DatabaseConf.MySQLDriver)
+//  val conf = DatabaseConf("jdbc:mysql://localhost:3306/boat?useSSL=false",
+//                          "user",
+//                          "pass",
+//                          DatabaseConf.MySQLDriver)
   val conf = DatabaseConf.inMemory
+
+  ignore("performance") {
+    val db = BoatSchema(conf)
+    db.initBoat()
+    val tdb = TracksDatabase(db, mat.executionContext)
+    val guettaName = TrackName("todo")
+    def history = tdb.history(SimpleUserInfo(Username("malliina123@gmail.com"), Language.english),
+      BoatQuery.tracks(Seq(guettaName)))
+    val result = await(history)
+  }
+
+  def measured[T](f: => Future[T]): (T, Duration) = {
+    val start = System.currentTimeMillis()
+    val t = await(f)
+    val end = System.currentTimeMillis()
+    (t, (end - start).millis)
+  }
 
   test("inserts update track aggregates") {
     val db = BoatSchema(conf)

@@ -109,7 +109,12 @@ class BoatSchema(ds: DataSource, conf: ProfileConf)
       }
   val trackMetas: Query[LiftedTrackMeta, TrackMeta, Seq] =
     boatsView.join(tracksTable).on(_.boat === _.boat).map { case (b, t) =>
-      LiftedTrackMeta(t.id, t.name, t.added, b.boat, b.boatName, b.token, b.user, b.username, b.email)
+      LiftedTrackMeta(
+        t.id, t.name, t.title, t.canonical,
+        t.added, t.avgSpeed, t.avgWaterTemp, t.points,
+        t.distance, b.boat, b.boatName, b.token,
+        b.user, b.username, b.email
+      )
     }
 
   override val tableQueries = Seq(pushTable, sentencePointsTable, pointsTable, sentencesTable, tracksTable, boatsTable, usersTable)
@@ -129,7 +134,10 @@ class BoatSchema(ds: DataSource, conf: ProfileConf)
 
   implicit object JoinedBoatShape extends CaseClassShape(LiftedJoinedBoat.tupled, JoinedBoat.tupled)
 
-  case class LiftedTrackMeta(track: Rep[TrackId], trackName: Rep[TrackName], trackAdded: Rep[Instant],
+  case class LiftedTrackMeta(track: Rep[TrackId], trackName: Rep[TrackName], trackTitle: Rep[Option[TrackTitle]],
+                             trackCanonical: Rep[TrackCanonical], trackAdded: Rep[Instant],
+                             avgSpeed: Rep[Option[Speed]], avgWaterTemp: Rep[Option[Temperature]],
+                             points: Rep[Int], distance: Rep[Distance],
                              boat: Rep[BoatId], boatName: Rep[BoatName], token: Rep[BoatToken],
                              user: Rep[UserId], username: Rep[Username], email: Rep[Option[Email]])
 

@@ -57,7 +57,8 @@ case class AppMeta(name: String, version: String, gitHash: String, mapboxVersion
 
 object AppMeta {
   implicit val json = Json.format[AppMeta]
-  val default = AppMeta(BuildInfo.name, BuildInfo.version, BuildInfo.gitHash, BuildInfo.mapboxVersion)
+  val default =
+    AppMeta(BuildInfo.name, BuildInfo.version, BuildInfo.gitHash, BuildInfo.mapboxVersion)
 }
 
 case class JoinedTrack(track: TrackId,
@@ -123,7 +124,13 @@ case class TrackNumbers(track: TrackId,
 
 case class TrackMeta(track: TrackId,
                      trackName: TrackName,
+                     trackTitle: Option[TrackTitle],
+                     trackCanonical: TrackCanonical,
                      trackAdded: Instant,
+                     avgSpeed: Option[Speed],
+                     avgWaterTemp: Option[Temperature],
+                     points: Int,
+                     distance: Distance,
                      boat: BoatId,
                      boatName: BoatName,
                      boatToken: BoatToken,
