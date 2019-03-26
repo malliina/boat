@@ -32,10 +32,25 @@ class TracksDatabaseTests extends BaseSuite {
   implicit val as = ActorSystem()
   implicit val mat = ActorMaterializer()
 //  val conf = DatabaseConf("jdbc:mysql://localhost:3306/boat?useSSL=false",
-//                          "user",
-//                          "pass",
+//                          "",
+//                          "",
 //                          DatabaseConf.MySQLDriver)
   val conf = DatabaseConf.inMemory
+
+  ignore("collect rows") {
+    val db = BoatSchema(conf)
+    db.initBoat()
+    val tdb = TracksDatabase(db, mat.executionContext)
+    val guettaName = TrackName("todo")
+    def history =
+      tdb.historyRows(SimpleUserInfo(Username("malliina123@gmail.com"), Language.english),
+                      BoatQuery.tracks(Seq(guettaName)))
+    val result = await(history)
+    val start = System.currentTimeMillis()
+    tdb.collectPointsClassic(result, Language.english)
+    val end = System.currentTimeMillis()
+    println(s"Done in ${end - start} ms")
+  }
 
   ignore("performance") {
     val db = BoatSchema(conf)
@@ -43,7 +58,7 @@ class TracksDatabaseTests extends BaseSuite {
     val tdb = TracksDatabase(db, mat.executionContext)
     val guettaName = TrackName("todo")
     def history = tdb.history(SimpleUserInfo(Username("malliina123@gmail.com"), Language.english),
-      BoatQuery.tracks(Seq(guettaName)))
+                              BoatQuery.tracks(Seq(guettaName)))
     val result = await(history)
   }
 

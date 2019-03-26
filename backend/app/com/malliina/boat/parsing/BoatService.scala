@@ -74,7 +74,7 @@ class BoatService(aisClient: BoatMqttClient, db: TracksSource)(implicit as: Acto
     savedCoords
       .mapConcat[CoordsEvent](
         _.map(ip =>
-          CoordsEvent(Seq(ip.coord.timed(ip.inserted.point, formatter)),
+          CoordsEvent(List(ip.coord.timed(ip.inserted.point, formatter)),
                       ip.inserted.track.strip(formatter))))
       .merge(ais.map(pairs => VesselMessages(pairs.map(_.toInfo(formatter)))))
 

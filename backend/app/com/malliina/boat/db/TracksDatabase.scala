@@ -194,7 +194,17 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext)
         }
     }
 
+  /** Implementation: historyRows returns the coordinates oldest first from the database, then
+    * collectPointsClassic collects them by appending - which reverses the order - therefore,
+    * the returned CoordsEvent has coordinates ordered newest first.
+    */
   override def history(user: MinimalUserInfo, limits: BoatQuery): Future[Seq[CoordsEvent]] =
+    historyRows(user, limits).map { rows =>
+      collectPointsClassic(rows, user.language)
+    }
+
+  // Returns the coordinates last first
+  def historyRows(user: MinimalUserInfo, limits: BoatQuery) =
     action(s"Track history for ${user.username}") {
       // Intentionally, you can view any track if you know its key.
       // Alternatively, we could filter tracks by user and make that optional.
@@ -214,46 +224,50 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext)
         .sortBy { case (_, point) => point.trackIndex.desc }
         .drop(limits.offset)
         .take(limits.limit)
-        .sortBy { case (_, point) => point.trackIndex.asc }
       //    query.result.statements.toList foreach println
       val start = System.currentTimeMillis()
       query.result.map { rows =>
         val end = System.currentTimeMillis()
         val duration = (end - start).millis
         if (duration > 500.millis) {
-          log.warn(s"Completed history query in ${duration.toMillis} ms. Collecting rows...")
+          log.warn(s"Completed history query in ${duration.toMillis} ms.")
         }
-        collectPointsClassic(rows, user.language)
+        rows
       }
     }
 
-  def historyNextGen(user: MinimalUserInfo, limits: BoatQuery): Future[Seq[CoordsEvent]] =
-    action(s"Fast track history for ${user.username}") {
-      val eligibleTracks =
-        if (limits.tracks.nonEmpty)
-          tracksViewNonEmpty.filter(_.trackName.inSet(limits.tracks))
-        else if (limits.canonicals.nonEmpty)
-          tracksViewNonEmpty.filter(_.canonical.inSet(limits.canonicals))
-        else if (limits.newest)
-          tracksViewNonEmpty.filter(_.username === user.username).sortBy(_.trackAdded.desc).take(1)
-        else
-          tracksViewNonEmpty
-      def points(trackIds: Seq[TrackId]) = pointsTable.filter { point =>
-        (if (trackIds.nonEmpty) point.track.inSet(trackIds) else trueColumn) &&
-        limits.from.map(from => point.added >= from).getOrElse(trueColumn) &&
-        limits.to.map(to => point.added <= to).getOrElse(trueColumn)
-      }.sortBy { point =>
-        point.trackIndex.desc
-      }.drop(limits.offset)
-        .take(limits.limit)
-        .sortBy { point =>
-          point.trackIndex.asc
+  def collectPointsClassic(rows: Seq[(JoinedTrack, TrackPointRow)],
+                           language: Language): Seq[CoordsEvent] = {
+    val start = System.currentTimeMillis()
+    val formatter = TimeFormatter(language)
+    val result = rows.foldLeft(Vector.empty[CoordsEvent]) {
+      case (acc, (from, point)) =>
+        val idx = acc.indexWhere(_.from.track == from.track)
+        val coord = TimedCoord(
+          point.id,
+          Coord(point.lon, point.lat),
+          formatter.formatDateTime(point.boatTime),
+          point.boatTime.toEpochMilli,
+          formatter.formatTime(point.boatTime),
+          point.boatSpeed,
+          point.waterTemp,
+          point.depth,
+          formatter.timing(point.boatTime)
+        )
+        if (idx >= 0) {
+          val old = acc(idx)
+          acc.updated(idx, old.copy(coords = coord :: old.coords))
+        } else {
+          acc :+ CoordsEvent(List(coord), from.strip(formatter))
         }
-      for {
-        ts <- eligibleTracks.result
-        ps <- points(ts.map(_.track)).result
-      } yield collectPointsNextGen(ts, ps, user.language)
     }
+    val end = System.currentTimeMillis()
+    val duration = (end - start).millis
+    if (duration > 500.millis) {
+      log.warn(s"Collected ${rows.length} in ${duration.toMillis} ms")
+    }
+    result
+  }
 
   def modifyTitle(track: TrackName, title: TrackTitle, user: UserId): Future[JoinedTrack] = {
     val action = for {
@@ -293,6 +307,34 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext)
 
   private def trueColumn: Rep[Boolean] = valueToConstColumn(true)
 
+  def historyNextGen(user: MinimalUserInfo, limits: BoatQuery): Future[Seq[CoordsEvent]] =
+    action(s"Fast track history for ${user.username}") {
+      val eligibleTracks =
+        if (limits.tracks.nonEmpty)
+          tracksViewNonEmpty.filter(_.trackName.inSet(limits.tracks))
+        else if (limits.canonicals.nonEmpty)
+          tracksViewNonEmpty.filter(_.canonical.inSet(limits.canonicals))
+        else if (limits.newest)
+          tracksViewNonEmpty.filter(_.username === user.username).sortBy(_.trackAdded.desc).take(1)
+        else
+          tracksViewNonEmpty
+      def points(trackIds: Seq[TrackId]) = pointsTable.filter { point =>
+        (if (trackIds.nonEmpty) point.track.inSet(trackIds) else trueColumn) &&
+          limits.from.map(from => point.added >= from).getOrElse(trueColumn) &&
+          limits.to.map(to => point.added <= to).getOrElse(trueColumn)
+      }.sortBy { point =>
+        point.trackIndex.desc
+      }.drop(limits.offset)
+        .take(limits.limit)
+        .sortBy { point =>
+          point.trackIndex.asc
+        }
+      for {
+        ts <- eligibleTracks.result
+        ps <- points(ts.map(_.track)).result
+      } yield collectPointsNextGen(ts, ps, user.language)
+    }
+
   private def collectPointsNextGen(tracks: Seq[JoinedTrack],
                                    points: Seq[TrackPointRow],
                                    language: Language) = {
@@ -318,43 +360,10 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext)
         acc.updated(idx, old.copy(coords = old.coords :+ coord))
       } else {
         ts.get(point.track).fold(acc) { track =>
-          acc :+ CoordsEvent(Seq(coord), track.strip(formatter))
+          acc :+ CoordsEvent(List(coord), track.strip(formatter))
         }
       }
     }
-  }
-
-  private def collectPointsClassic(rows: Seq[(JoinedTrack, TrackPointRow)],
-                                   language: Language): Seq[CoordsEvent] = {
-    val start = System.currentTimeMillis()
-    val formatter = TimeFormatter(language)
-    val result = rows.foldLeft(Vector.empty[CoordsEvent]) {
-      case (acc, (from, point)) =>
-        val idx = acc.indexWhere(_.from.track == from.track)
-        val coord = TimedCoord(
-          point.id,
-          Coord(point.lon, point.lat),
-          formatter.formatDateTime(point.boatTime),
-          point.boatTime.toEpochMilli,
-          formatter.formatTime(point.boatTime),
-          point.boatSpeed,
-          point.waterTemp,
-          point.depth,
-          formatter.timing(point.boatTime)
-        )
-        if (idx >= 0) {
-          val old = acc(idx)
-          acc.updated(idx, old.copy(coords = old.coords :+ coord))
-        } else {
-          acc :+ CoordsEvent(Seq(coord), from.strip(formatter))
-        }
-    }
-    val end = System.currentTimeMillis()
-    val duration = (end - start).millis
-    if (duration > 500.millis) {
-      log.warn(s"Collected ${rows.length} in ${duration.toMillis} ms")
-    }
-    result
   }
 
   private def insertLogged[R](action: DBIOAction[R, NoStream, Nothing], from: TrackMetaLike)(

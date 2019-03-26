@@ -410,7 +410,7 @@ object Tracks {
   implicit val json = Json.format[Tracks]
 }
 
-case class CoordsEvent(coords: Seq[TimedCoord], from: TrackRef) extends BoatFrontEvent {
+case class CoordsEvent(coords: List[TimedCoord], from: TrackRef) extends BoatFrontEvent {
   def isEmpty = coords.isEmpty
 
   def sample(every: Int): CoordsEvent =
