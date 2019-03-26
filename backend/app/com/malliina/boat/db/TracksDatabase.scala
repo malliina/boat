@@ -204,8 +204,10 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext)
     }
 
   // Returns the coordinates last first
-  def historyRows(user: MinimalUserInfo, limits: BoatQuery) =
-    action(s"Track history for ${user.username}") {
+  def historyRows(user: MinimalUserInfo, limits: BoatQuery) = {
+    val keys = (limits.tracks.map(_.name) ++ limits.canonicals.map(_.name)).mkString(", ")
+    val describe = if (keys.isEmpty) "" else s"for tracks $keys"
+    action(s"Track history $describe by user ${user.username}") {
       // Intentionally, you can view any track if you know its key.
       // Alternatively, we could filter tracks by user and make that optional.
       val eligibleTracks =
@@ -218,23 +220,15 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext)
         else
           tracksViewNonEmpty
       //    eligibleTracks.result.statements.toList foreach println
-      val query = eligibleTracks
+      eligibleTracks
         .join(rangedCoords(limits.timeRange))
         .on(_.track === _.track)
         .sortBy { case (_, point) => point.trackIndex.desc }
         .drop(limits.offset)
         .take(limits.limit)
-      //    query.result.statements.toList foreach println
-      val start = System.currentTimeMillis()
-      query.result.map { rows =>
-        val end = System.currentTimeMillis()
-        val duration = (end - start).millis
-        if (duration > 500.millis) {
-          log.warn(s"Completed history query in ${duration.toMillis} ms.")
-        }
-        rows
-      }
+        .result
     }
+  }
 
   def collectPointsClassic(rows: Seq[(JoinedTrack, TrackPointRow)],
                            language: Language): Seq[CoordsEvent] = {
@@ -320,8 +314,8 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext)
           tracksViewNonEmpty
       def points(trackIds: Seq[TrackId]) = pointsTable.filter { point =>
         (if (trackIds.nonEmpty) point.track.inSet(trackIds) else trueColumn) &&
-          limits.from.map(from => point.added >= from).getOrElse(trueColumn) &&
-          limits.to.map(to => point.added <= to).getOrElse(trueColumn)
+        limits.from.map(from => point.added >= from).getOrElse(trueColumn) &&
+        limits.to.map(to => point.added <= to).getOrElse(trueColumn)
       }.sortBy { point =>
         point.trackIndex.desc
       }.drop(limits.offset)
