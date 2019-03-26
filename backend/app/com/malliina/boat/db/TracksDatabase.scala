@@ -7,6 +7,7 @@ import com.malliina.boat.parsing.FullCoord
 import com.malliina.measure.{Distance, Speed, SpeedInt}
 import com.malliina.values.{Email, UserId, Username}
 import play.api.Logger
+import concurrent.duration.DurationLong
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -215,12 +216,18 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext)
         .take(limits.limit)
         .sortBy { case (_, point) => point.trackIndex.asc }
       //    query.result.statements.toList foreach println
+      val start = System.currentTimeMillis()
       query.result.map { rows =>
-        collectPoints2(rows, user.language)
+        val end = System.currentTimeMillis()
+        val duration = (end - start).millis
+        if (duration > 500.millis) {
+          log.warn(s"Completed history query in ${duration.toMillis} ms. Collecting rows...")
+        }
+        collectPointsClassic(rows, user.language)
       }
     }
 
-  def history2(user: MinimalUserInfo, limits: BoatQuery): Future[Seq[CoordsEvent]] =
+  def historyNextGen(user: MinimalUserInfo, limits: BoatQuery): Future[Seq[CoordsEvent]] =
     action(s"Fast track history for ${user.username}") {
       val eligibleTracks =
         if (limits.tracks.nonEmpty)
@@ -317,10 +324,11 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext)
     }
   }
 
-  private def collectPoints2(rows: Seq[(JoinedTrack, TrackPointRow)],
-                             language: Language): Seq[CoordsEvent] = {
+  private def collectPointsClassic(rows: Seq[(JoinedTrack, TrackPointRow)],
+                                   language: Language): Seq[CoordsEvent] = {
+    val start = System.currentTimeMillis()
     val formatter = TimeFormatter(language)
-    rows.foldLeft(Vector.empty[CoordsEvent]) {
+    val result = rows.foldLeft(Vector.empty[CoordsEvent]) {
       case (acc, (from, point)) =>
         val idx = acc.indexWhere(_.from.track == from.track)
         val coord = TimedCoord(
@@ -341,6 +349,12 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext)
           acc :+ CoordsEvent(Seq(coord), from.strip(formatter))
         }
     }
+    val end = System.currentTimeMillis()
+    val duration = (end - start).millis
+    if (duration > 500.millis) {
+      log.warn(s"Collected ${rows.length} in ${duration.toMillis} ms")
+    }
+    result
   }
 
   private def insertLogged[R](action: DBIOAction[R, NoStream, Nothing], from: TrackMetaLike)(
