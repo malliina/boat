@@ -96,12 +96,11 @@ val frontend = project
     scalaJSUseMainModuleInitializer := true,
     webpackBundlingMode := BundlingMode.LibraryOnly(),
     webpackConfigFile in fastOptJS := Some(baseDirectory.value / "webpack.dev.config.js"),
-    webpackConfigFile in fullOptJS := Some(baseDirectory.value / "webpack.prod.config.js"),
+    webpackConfigFile in fullOptJS := Some(baseDirectory.value / "webpack.prod.config.js")
   )
 
-val backend = PlayProject
-  .linux("boat", file("backend"))
-  .enablePlugins(WebScalaJSBundlerPlugin)
+val backend = Project("boat", file("backend"))
+  .enablePlugins(FileTreePlugin, WebScalaJSBundlerPlugin, PlayLinuxPlugin)
   .dependsOn(crossJvm)
   .settings(commonSettings)
   .settings(
@@ -134,8 +133,8 @@ val backend = PlayProject
       "com.malliina.boat.TrackName",
       "com.malliina.boat.BoatName"
     ),
-    pipelineStages := Seq(digest, gzip),
     scalaJSProjects := Seq(frontend),
+    pipelineStages := Seq(digest, gzip),
     pipelineStages in Assets := Seq(scalaJSPipeline),
     //  npmAssets ++= NpmAssets.ofProject(client) { modules => (modules / "font-awesome").allPaths }.value,
     buildInfoKeys := Seq[BuildInfoKey](name, version, scalaVersion, "gitHash" -> gitHash, "mapboxVersion" -> mapboxVersion),

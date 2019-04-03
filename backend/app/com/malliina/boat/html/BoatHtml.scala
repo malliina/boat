@@ -6,7 +6,7 @@ import java.nio.charset.StandardCharsets
 import com.malliina.boat.FrontKeys._
 import com.malliina.boat.html.BoatHtml.{ScriptAssets, callAttr}
 import com.malliina.boat.http.Limits
-import com.malliina.boat.{BuildInfo, FullTrack, TrackRef, UserBoats, Usernames}
+import com.malliina.boat.{AppMeta, FullTrack, TrackRef, UserBoats, Usernames}
 import com.malliina.html.Tags
 import com.malliina.measure.Distance
 import com.malliina.play.tags.TagPage
@@ -38,12 +38,12 @@ object BoatHtml {
 class BoatHtml(jsFiles: ScriptAssets) extends Tags(scalatags.Text) {
   val reverse = routes.BoatController
   val reverseApp = routes.AppController
-  val mapboxVersion = BuildInfo.mapboxVersion
+  val mapboxVersion = AppMeta.default.mapboxVersion
 
   implicit def wrapFrag[T <: Wrapped](w: T): StringFrag = stringFrag(w.value)
 
-  implicit def wrapAttr[T <: Wrapped]: AttrValue[T] = {
-    (t: Builder, a: Attr, v: T) => t.setAttr(a.name, Builder.GenericAttrValueSource(v.value))
+  implicit def wrapAttr[T <: Wrapped]: AttrValue[T] = { (t: Builder, a: Attr, v: T) =>
+    t.setAttr(a.name, Builder.GenericAttrValueSource(v.value))
   }
 
   def list(track: FullTrack, current: Limits) =
@@ -81,8 +81,8 @@ class BoatHtml(jsFiles: ScriptAssets) extends Tags(scalatags.Text) {
                 span(id := DurationId, `class` := "nav-text duration")(""),
                 span(id := TopSpeedId, `class` := "nav-text top-speed")(""),
                 span(id := WaterTempId, `class` := "nav-text water-temp")(""),
-                iconLink(a, FullLinkId, s"icon-link $Hidden", "list", "List"),
-                iconLink(a, GraphLinkId, s"icon-link $Hidden", "graph", "Graph"),
+                fontAwesomeLink(a, FullLinkId, "list", s"icon-link $Hidden", "List"),
+                fontAwesomeLink(a, GraphLinkId, "chart-area", s"icon-link $Hidden", "Graph"),
                 standaloneQuestion("question-nav nav-icon")
               )
             )
@@ -90,7 +90,7 @@ class BoatHtml(jsFiles: ScriptAssets) extends Tags(scalatags.Text) {
             if (isAnon) {
               modifier(
                 standaloneQuestion("boat-icon question"),
-                personIcon("boat-icon person")
+                personIcon("boat-icon user")
               )
             } else {
               standaloneQuestion("boat-icon question")
@@ -102,7 +102,8 @@ class BoatHtml(jsFiles: ScriptAssets) extends Tags(scalatags.Text) {
         bodyClasses = Seq(s"$MapClass $AboutClass"),
         lateStyles = modifier(
           cssLink(s"https://api.tiles.mapbox.com/mapbox-gl-js/v$mapboxVersion/mapbox-gl.css"),
-          cssLink(s"https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v3.1.6/mapbox-gl-geocoder.css")
+          cssLink(
+            s"https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v3.1.6/mapbox-gl-geocoder.css")
         )
       )
     )
@@ -116,22 +117,22 @@ class BoatHtml(jsFiles: ScriptAssets) extends Tags(scalatags.Text) {
   def urlEncode(w: Wrapped): String = URLEncoder.encode(w.value, StandardCharsets.UTF_8.name())
 
   def standaloneQuestion(cls: String) =
-    iconLink(span, Question, cls, "question-mark", "About")
+    fontAwesomeLink(span, Question, "question", cls, "About")
 
   def personIcon(cls: String) =
-    iconLink(a, PersonLink, cls, "person", "Sign in", href := routes.Social.google().toString)
+    fontAwesomeLink(a, PersonLink, "user", cls, "Sign in", href := routes.Social.google().toString)
 
-  def iconLink(tag: ConcreteHtmlTag[String],
-               idValue: String,
-               cls: String,
-               dataGlyph: String,
-               titleValue: String,
-               more: AttrPair*) =
+  def fontAwesomeLink(tag: ConcreteHtmlTag[String],
+                      idValue: String,
+                      faIcon: String,
+                      classes: String,
+                      titleValue: String,
+                      more: AttrPair*) =
     tag(id := idValue,
-      `class` := s"oi $cls",
-      data("glyph") := dataGlyph,
-      title := titleValue,
-      aria.hidden := "true", more)
+        `class` := s"fas fa-$faIcon $classes",
+        title := titleValue,
+        aria.hidden := "true",
+        more)
 
   def page(content: PageConf) = TagPage(
     html(
@@ -140,16 +141,16 @@ class BoatHtml(jsFiles: ScriptAssets) extends Tags(scalatags.Text) {
         titleTag("Boat Tracker"),
         deviceWidthViewport,
         link(rel := "icon", `type` := "image/png", href := "/assets/img/favicon.png"),
-        cssLink(reverseApp.versioned("vendors.css")),
-        cssLink(reverseApp.versioned("fonts.css")),
-        cssLink(reverseApp.versioned("styles.css")),
+        Seq("vendors.css", "fonts.css", "styles.css").map { file =>
+          cssLink(versioned(file))
+        },
         content.scriptsAndStyles,
         // Loads mapbox JS before its CSS and without "defer", otherwise the map errored out.
         // CSS for mapbox is in lateStyles.
-        script(`type` := MimeTypes.JAVASCRIPT, src := reverseApp.versioned(jsFiles.library)),
-        script(`type` := MimeTypes.JAVASCRIPT, src := reverseApp.versioned(jsFiles.loader)),
+        script(`type` := MimeTypes.JAVASCRIPT, src := versioned(jsFiles.library)),
+        script(`type` := MimeTypes.JAVASCRIPT, src := versioned(jsFiles.loader)),
         // Must be defer because it reads the body classList
-        script(`type` := MimeTypes.JAVASCRIPT, defer, src := reverseApp.versioned(jsFiles.app)),
+        script(`type` := MimeTypes.JAVASCRIPT, defer, src := versioned(jsFiles.app)),
         content.lateStyles
       ),
       body(`class` := content.bodyClasses.mkString(" "))(
@@ -157,4 +158,6 @@ class BoatHtml(jsFiles: ScriptAssets) extends Tags(scalatags.Text) {
       )
     )
   )
+
+  def versioned(file: String) = reverseApp.versioned(file)
 }

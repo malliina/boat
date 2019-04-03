@@ -57,8 +57,10 @@ case class AppMeta(name: String, version: String, gitHash: String, mapboxVersion
 
 object AppMeta {
   implicit val json = Json.format[AppMeta]
+//  val default =
+//    AppMeta(BuildInfo.name, BuildInfo.version, BuildInfo.gitHash, BuildInfo.mapboxVersion)
   val default =
-    AppMeta(BuildInfo.name, BuildInfo.version, BuildInfo.gitHash, BuildInfo.mapboxVersion)
+    AppMeta("test", "0.0.1", "abcd123", "0.53.1")
 }
 
 case class JoinedTrack(track: TrackId,

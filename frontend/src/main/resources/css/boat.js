@@ -1,0 +1,1 @@
+import './boat.less';

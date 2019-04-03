@@ -90,8 +90,7 @@ object SentencesPage {
 
   def editIcon =
     span(id := EditTitleId,
-         `class` := s"oi icon-link pencil",
-         data("glyph") := "pencil",
+         `class` := s"fas fa-edit icon-link",
          title := "Edit track title",
          aria.hidden := "true")
 
