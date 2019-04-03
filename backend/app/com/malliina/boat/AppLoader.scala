@@ -53,7 +53,6 @@ class AppComponents(init: (Configuration, OkClient, ExecutionContext) => AppBuil
   extends BuiltInComponentsFromContext(context)
     with HttpFiltersComponents
     with AssetsComponents {
-
   override lazy val httpErrorHandler: HttpErrorHandler = BoatErrorHandler
   val http = OkClient.default
   override val configuration: Configuration = context.initialConfiguration ++ LocalConf.localConf

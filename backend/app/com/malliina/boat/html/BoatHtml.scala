@@ -140,19 +140,15 @@ class BoatHtml(jsFiles: ScriptAssets) extends Tags(scalatags.Text) {
         titleTag("Boat Tracker"),
         deviceWidthViewport,
         link(rel := "icon", `type` := "image/png", href := "/assets/img/favicon.png"),
-        cssLinkHashed(
-          "https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css",
-          "sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm"),
-        cssLinkHashed(
-          "https://use.fontawesome.com/releases/v5.3.1/css/all.css",
-          "sha384-mzrmE5qonljUremFsqc01SB46JvROS7bZs3IO2EmfFsd15uHvIt+Y8vEf7N7fWAU"),
-        cssLink(reverseApp.versioned("css/fonts.css")),
-        cssLink(reverseApp.versioned("css/main.css")),
+        cssLink(reverseApp.versioned("vendors.css")),
+        cssLink(reverseApp.versioned("fonts.css")),
+        cssLink(reverseApp.versioned("styles.css")),
         content.scriptsAndStyles,
         // Loads mapbox JS before its CSS and without "defer", otherwise the map errored out.
         // CSS for mapbox is in lateStyles.
         script(`type` := MimeTypes.JAVASCRIPT, src := reverseApp.versioned(jsFiles.library)),
         script(`type` := MimeTypes.JAVASCRIPT, src := reverseApp.versioned(jsFiles.loader)),
+        // Must be defer because it reads the body classList
         script(`type` := MimeTypes.JAVASCRIPT, defer, src := reverseApp.versioned(jsFiles.app)),
         content.lateStyles
       ),

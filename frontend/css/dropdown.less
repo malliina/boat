@@ -1,0 +1,78 @@
+@import 'boat';
+
+@dropdown-padding: 16px;
+
+.dropdown {
+  position: relative;
+  display: inline-block;
+  cursor: pointer;
+
+  > span {
+    position: relative;
+    padding: 0 24px 0 @dropdown-padding;
+  }
+}
+
+.dropdown-button {
+  &:after {
+    position: absolute;
+    content: "";
+    top: 8px;
+    right: 4px;
+    width: 0;
+    height: 0;
+    border: 6px solid transparent;
+    border-color: black transparent transparent transparent;
+  }
+}
+
+.dropdown-content {
+  display: none;
+  position: absolute;
+  background-color: lightskyblue;
+  min-width: 160px;
+  box-shadow: 0 8px 16px 0 rgba(0, 0, 0, 0.2);
+  z-index: 1000;
+  max-height: 300px;
+  overflow-y: auto;
+  margin-top: 7px;
+  white-space: nowrap;
+
+  &.visible {
+    display: block;
+  }
+
+  > a {
+    cursor: pointer;
+    display: block;
+    text-decoration: none;
+
+    padding: 2px @dropdown-padding;
+
+    &:hover {
+      background-color: #f1f1f1;
+    }
+
+    > span {
+      display: inline-block;
+
+      &:nth-child(1) {
+        width: 250px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      &:nth-child(2) {
+        width: 80px;
+      }
+      &:nth-child(3) {
+        width: 250px;
+      }
+    }
+  }
+}
+
+.track-link {
+  color: black;
+}

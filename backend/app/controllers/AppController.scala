@@ -27,6 +27,12 @@ class AppController(googleAuth: EmailAuth,
 
   def conf = Action { Ok(Json.toJson(ClientConf.default)) }
 
+  /** Controller for webpack-fingerprinted static assets. Check webpack.*.config.js for the
+    * matching path definition.
+    */
+  def static(file: String): Action[AnyContent] =
+    assets.at("/public", s"static/$file", aggressiveCaching = true)
+
   def versioned(path: String, file: Asset): Action[AnyContent] =
     assets.versioned(path, file)
 }
