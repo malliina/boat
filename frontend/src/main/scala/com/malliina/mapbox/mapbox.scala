@@ -149,7 +149,7 @@ class MapboxMap(options: MapOptions) extends js.Object {
 
   def easeTo(options: EaseOptions): Unit = js.native
 
-  def fitBounds(bounds: LngLatBounds): Unit = js.native
+  def fitBounds(bounds: LngLatBounds, options: SimplePaddingOptions): Unit = js.native
 
   def loadImage(url: String, callback: js.Function2[js.Any, js.Any, Unit]): Unit = js.native
 
@@ -251,17 +251,26 @@ object LngLatBounds {
 }
 
 @js.native
+trait SimplePaddingOptions extends js.Object {
+  def padding: Int = js.native
+}
+
+object SimplePaddingOptions {
+  def apply(padding: Int) = literal(padding = padding).asInstanceOf[SimplePaddingOptions]
+}
+
+@js.native
 trait PaddingOptions extends js.Object {
-  def top: Double = js.native
-  def right: Double = js.native
-  def bottom: Double = js.native
-  def left: Double = js.native
+  def top: Int = js.native
+  def right: Int = js.native
+  def bottom: Int = js.native
+  def left: Int = js.native
 }
 
 object PaddingOptions {
-  def apply(all: Double): PaddingOptions = apply(all, all, all, all)
+  def apply(all: Int): PaddingOptions = apply(all, all, all, all)
 
-  def apply(top: Double, right: Double, bottom: Double, left: Double): PaddingOptions =
+  def apply(top: Int, right: Int, bottom: Int, left: Int): PaddingOptions =
     literal(top = top, right = right, bottom = bottom, left = left).asInstanceOf[PaddingOptions]
 }
 
@@ -273,7 +282,7 @@ trait FitOptions extends js.Object {
 }
 
 object FitOptions {
-  def apply(padding: Double, linear: Boolean = false, maxZoom: Option[Double] = None): FitOptions =
+  def apply(padding: Int, linear: Boolean = false, maxZoom: Option[Double] = None): FitOptions =
     literal(padding = PaddingOptions(padding), linear = linear, maxZoom = maxZoom.orUndefined)
       .asInstanceOf[FitOptions]
 }

@@ -45,160 +45,161 @@ class MapSocket(val map: MapboxMap,
   def trackLineLayer(id: String, paint: LinePaint) = Layer.line(id, emptyTrack, paint, None)
 
   override def onCoords(event: CoordsEvent): Unit = {
-      val from = event.from
-      val trackId = from.track
-      val coordsInfo = event.coords
-      val coords = coordsInfo.map(_.coord)
-      val boat = from.boatName
-      val track = trackName(boat)
-      val hoverableTrack = s"$track-thick"
-      val point = pointName(boat)
-      val oldTrack: FeatureCollection = boats.getOrElse(track, emptyTrack)
-      val newTrack: FeatureCollection = oldTrack.addCoords(coords)
-      boats = boats.updated(track, newTrack)
-      trails = trails.updated(trackId, trails.getOrElse(trackId, Nil) ++ coordsInfo)
-      // adds layer if not already added
-      if (map.findSource(track).isEmpty) {
-        log.debug(s"Crafting new track for boat '$boat'...")
-        map.putLayer(lineLayer(track))
-        // adds a thicker, transparent trail on top of the visible one, which represents the mouse-hoverable area
-        map.putLayer(trackLineLayer(hoverableTrack, LinePaint(LinePaint.blackColor, 5, 0)))
-        coords.lastOption.map { coord =>
-          // adds boat icon
-          map.putLayer(boatSymbolLayer(point, coord))
-          map.onHover(point)(
-            in => {
-              map.getCanvas().style.cursor = "pointer"
-              trackPopup.remove()
-              boatPopup.showText(from.boatName.name, in.lngLat, map)
-            },
-            _ => {
-              map.getCanvas().style.cursor = ""
-              boatPopup.remove()
-            }
-          )
-        }
-        map.onHover(hoverableTrack)(
+    val from = event.from
+    val trackId = from.track
+    val coordsInfo = event.coords
+    val coords = coordsInfo.map(_.coord)
+    val boat = from.boatName
+    val track = trackName(boat)
+    val hoverableTrack = s"$track-thick"
+    val point = pointName(boat)
+    val oldTrack: FeatureCollection = boats.getOrElse(track, emptyTrack)
+    val newTrack: FeatureCollection = oldTrack.addCoords(coords)
+    boats = boats.updated(track, newTrack)
+    trails = trails.updated(trackId, trails.getOrElse(trackId, Nil) ++ coordsInfo)
+    // adds layer if not already added
+    if (map.findSource(track).isEmpty) {
+      log.debug(s"Crafting new track for boat '$boat'...")
+      map.putLayer(lineLayer(track))
+      // adds a thicker, transparent trail on top of the visible one, which represents the mouse-hoverable area
+      map.putLayer(trackLineLayer(hoverableTrack, LinePaint(LinePaint.blackColor, 5, 0)))
+      coords.lastOption.map { coord =>
+        // adds boat icon
+        map.putLayer(boatSymbolLayer(point, coord))
+        map.onHover(point)(
           in => {
-            val isOnBoatSymbol = map
-              .queryRendered(in.point, QueryOptions.all)
-              .getOrElse(Nil)
-              .exists(_.layer.exists(_.id == point))
-            if (!isOnBoatSymbol) {
-              val lngLat = in.lngLat
-              val op = Coord.build(lngLat.lng, lngLat.lat).flatMap { coord =>
-                nearest(coord, trails.getOrElse(trackId, Nil))(_.coord).map { near =>
-                  map.getCanvas().style.cursor = "pointer"
-                  popups.isTrackHover = true
-                  trackPopup.show(html.track(near, from), in.lngLat, map)
-                }
-              }
-              op.fold(err => log.info(err.message), identity)
-            }
+            map.getCanvas().style.cursor = "pointer"
+            trackPopup.remove()
+            boatPopup.showText(from.boatName.name, in.lngLat, map)
           },
           _ => {
             map.getCanvas().style.cursor = ""
-            popups.isTrackHover = false
-            trackPopup.remove()
+            boatPopup.remove()
           }
         )
       }
-      // updates the boat icon
-      map.findSource(point).foreach { geoJson =>
-        coords.lastOption.foreach { coord =>
-          // updates placement
-          geoJson.updateData(pointFor(coord))
-          // updates bearing
-          newTrack.features.flatMap(_.geometry.coords).takeRight(2).toList match {
-            case prev :: last :: _ =>
-              map.setLayoutProperty(point, ImageLayout.IconRotate, bearing(prev, last).toInt)
-            case _ =>
-              ()
+      map.onHover(hoverableTrack)(
+        in => {
+          val isOnBoatSymbol = map
+            .queryRendered(in.point, QueryOptions.all)
+            .getOrElse(Nil)
+            .exists(_.layer.exists(_.id == point))
+          if (!isOnBoatSymbol) {
+            val lngLat = in.lngLat
+            val op = Coord.build(lngLat.lng, lngLat.lat).flatMap { coord =>
+              nearest(coord, trails.getOrElse(trackId, Nil))(_.coord).map { near =>
+                map.getCanvas().style.cursor = "pointer"
+                popups.isTrackHover = true
+                trackPopup.show(html.track(near, from), in.lngLat, map)
+              }
+            }
+            op.fold(err => log.info(err.message), identity)
+          }
+        },
+        _ => {
+          map.getCanvas().style.cursor = ""
+          popups.isTrackHover = false
+          trackPopup.remove()
+        }
+      )
+    }
+    // updates the boat icon
+    map.findSource(point).foreach { geoJson =>
+      coords.lastOption.foreach { coord =>
+        // updates placement
+        geoJson.updateData(pointFor(coord))
+        // updates bearing
+        newTrack.features.flatMap(_.geometry.coords).takeRight(2).toList match {
+          case prev :: last :: _ =>
+            map.setLayoutProperty(point, ImageLayout.IconRotate, bearing(prev, last).toInt)
+          case _ =>
+            ()
+        }
+      }
+    }
+    // updates the trail
+    map.findSource(track).foreach { geoJson =>
+      geoJson.updateData(newTrack)
+    }
+    map.findSource(hoverableTrack).foreach { geoJson =>
+      geoJson.updateData(newTrack)
+    }
+    val topPoint = from.topPoint
+    val isSameTopSpeed = topSpeedMarkers.get(trackId).exists(m => m.at.id == from.topPoint.id)
+    if (!isSameTopSpeed) {
+      topSpeedMarkers.get(trackId).foreach(_.marker.remove())
+      // https://www.mapbox.com/mapbox-gl-js/example/set-popup/
+      val markerPopup = MapboxPopup(PopupOptions(offset = Option(6)))
+        .html(html.track(topPoint, from))
+      val marker = MapboxMarker(html.marker(topPoint.speed), topPoint.coord, markerPopup, map)
+      val newTopSpeed = ActiveMarker(marker, topPoint)
+      topSpeedMarkers = topSpeedMarkers.updated(trackId, newTopSpeed)
+    }
+    val trail: Seq[Coord] = newTrack.features.flatMap(_.geometry.coords)
+    elem(TitleId).foreach { e =>
+      from.trackTitle.foreach { title =>
+        e.classList.add("show")
+        e.innerHTML = title.title
+      }
+    }
+    elem(DistanceId).foreach { e =>
+      e.innerHTML = s"${formatDistance(from.distance)} km"
+    }
+    elem(TopSpeedId).foreach { e =>
+      from.topSpeed.foreach { top =>
+        e.innerHTML = s"${trackLang.top} ${formatSpeed(top)} kn"
+      }
+    }
+    elem(WaterTempId).foreach { e =>
+      coordsInfo.lastOption.map(_.waterTemp).foreach { temp =>
+        e.innerHTML = s"${trackLang.water} ${formatTemp(temp)} ℃"
+      }
+    }
+    anchor(FullLinkId).foreach { e =>
+      e.show()
+      e.href = s"/tracks/${from.trackName}/full"
+    }
+    anchor(GraphLinkId).foreach { e =>
+      e.show()
+      e.href = s"/tracks/${from.trackName}/chart"
+    }
+    elem(EditTitleId).foreach { e =>
+      e.show()
+    }
+    if (boats.keySet.size == 1) {
+      elem(DurationId).foreach { e =>
+        e.innerHTML = s"${trackLang.duration} ${formatDuration(from.duration)}"
+      }
+    }
+    // updates the map position, zoom to reflect the updated track(s)
+    mapMode match {
+      case MapMode.Fit =>
+        trail.headOption.foreach { head =>
+          val init = LngLatBounds(head)
+          val bs: LngLatBounds = trail.drop(1).foldLeft(init) { (bounds, c) =>
+            bounds.extend(LngLat(c))
+          }
+          try {
+            map.fitBounds(bs, SimplePaddingOptions(20))
+          } catch {
+            case e: Exception =>
+              log.error(s"Unable to fit using ${bs.getSouthWest()} ${bs.getNorthWest()} ${bs
+                .getNorthEast()} ${bs.getSouthEast()}", e)
           }
         }
-      }
-      // updates the trail
-      map.findSource(track).foreach { geoJson =>
-        geoJson.updateData(newTrack)
-      }
-      map.findSource(hoverableTrack).foreach { geoJson =>
-        geoJson.updateData(newTrack)
-      }
-      val topPoint = from.topPoint
-      val isSameTopSpeed = topSpeedMarkers.get(trackId).exists(m => m.at.id == from.topPoint.id)
-      if (!isSameTopSpeed) {
-        topSpeedMarkers.get(trackId).foreach(_.marker.remove())
-        // https://www.mapbox.com/mapbox-gl-js/example/set-popup/
-        val markerPopup = MapboxPopup(PopupOptions(offset = Option(6)))
-          .html(html.track(topPoint, from))
-        val marker = MapboxMarker(html.marker(topPoint.speed), topPoint.coord, markerPopup, map)
-        val newTopSpeed = ActiveMarker(marker, topPoint)
-        topSpeedMarkers = topSpeedMarkers.updated(trackId, newTopSpeed)
-      }
-      val trail: Seq[Coord] = newTrack.features.flatMap(_.geometry.coords)
-      elem(TitleId).foreach { e =>
-        from.trackTitle.foreach { title =>
-          e.classList.add("show")
-          e.innerHTML = title.title
-        }
-      }
-      elem(DistanceId).foreach { e =>
-        e.innerHTML = s"${formatDistance(from.distance)} km"
-      }
-      elem(TopSpeedId).foreach { e =>
-        from.topSpeed.foreach { top =>
-          e.innerHTML = s"${trackLang.top} ${formatSpeed(top)} kn"
-        }
-      }
-      elem(WaterTempId).foreach { e =>
-        coordsInfo.lastOption.map(_.waterTemp).foreach { temp =>
-          e.innerHTML = s"${trackLang.water} ${formatTemp(temp)} ℃"
-        }
-      }
-      anchor(FullLinkId).foreach { e =>
-        e.show()
-        e.href = s"/tracks/${from.trackName}/full"
-      }
-      anchor(GraphLinkId).foreach { e =>
-        e.show()
-        e.href = s"/tracks/${from.trackName}/chart"
-      }
-      elem(EditTitleId).foreach { e =>
-        e.show()
-      }
-      if (boats.keySet.size == 1) {
-        elem(DurationId).foreach { e =>
-          e.innerHTML = s"${trackLang.duration} ${formatDuration(from.duration)}"
-        }
-      }
-      // updates the map position, zoom to reflect the updated track(s)
-      mapMode match {
-        case MapMode.Fit =>
-          trail.headOption.foreach { head =>
-            val init = LngLatBounds(head)
-            val bs: LngLatBounds = trail.drop(1).foldLeft(init) { (bounds, c) =>
-              bounds.extend(LngLat(c))
-            }
-            try {
-              map.fitBounds(bs)
-            } catch {
-              case e: Exception =>
-                log.error(s"Unable to fit using ${bs.getSouthWest()} ${bs.getNorthWest()} ${bs.getNorthEast()} ${bs.getSouthEast()}", e)
-            }
+        mapMode = MapMode.Follow
+      case MapMode.Follow =>
+        if (boats.keySet.size == 1) {
+          coords.lastOption.foreach { coord =>
+            map.easeTo(EaseOptions(coord))
           }
-          mapMode = MapMode.Follow
-        case MapMode.Follow =>
-          if (boats.keySet.size == 1) {
-            coords.lastOption.foreach { coord =>
-              map.easeTo(EaseOptions(coord))
-            }
-          } else {
-            // does not follow if more than one boats are online, since it's not clear what to follow
-            mapMode = MapMode.Stay
-          }
-        case MapMode.Stay =>
-          ()
-      }
+        } else {
+          // does not follow if more than one boats are online, since it's not clear what to follow
+          mapMode = MapMode.Stay
+        }
+      case MapMode.Stay =>
+        ()
+    }
   }
 
   override def onAIS(messages: Seq[VesselInfo]): Unit = {

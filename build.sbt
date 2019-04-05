@@ -251,10 +251,38 @@ val utils = project
     )
   )
 
+val ensureNode = taskKey[Unit]("Make sure the user uses the correct version of node.js")
+
+ensureNode := {
+  val log = streams.value.log
+  val nodeVersion = Process("node --version")
+    .lineStream(log)
+    .toList
+    .headOption
+    .getOrElse(sys.error(s"Unable to resolve node version."))
+  val validPrefixes = Seq("v8")
+  if (validPrefixes.exists(p => nodeVersion.startsWith(p))) {
+    log.info(s"Using node $nodeVersion")
+  } else {
+    log.info(s"Node $nodeVersion is unlikely to work. Trying to change version using nvm...")
+    Process("nvm use 8").run(log).exitValue()
+  }
+}
+
+val startupTransition: State => State = { s: State =>
+  "boatRoot/ensureNode" :: s
+}
+
 val boatRoot = project
   .in(file("."))
-  .settings(commonSettings)
   .aggregate(backend, frontend, agent, it, utils)
+  .settings(commonSettings)
+  .settings(
+    onLoad in Global := {
+      val old = (onLoad in Global).value
+      startupTransition compose old
+    }
+  )
 
 def gitHash: String =
   Try(Process("git rev-parse --short HEAD").lineStream.head).toOption.getOrElse("unknown")
