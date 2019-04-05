@@ -4,12 +4,13 @@ const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const path = require('path');
 const rootDir = path.resolve(__dirname, '../../../..');
 const cssDir = path.resolve(rootDir, 'src/main/resources/css');
+const vendorsDir = path.resolve(rootDir, 'src/main/resources/vendors');
 
 const WebApp = Merge(ScalaJS, {
   entry: {
     styles: [path.resolve(cssDir, './boat.js')],
     fonts: [path.resolve(cssDir, './fonts.js')],
-    vendors: [path.resolve(cssDir, './vendors.js')]
+    vendors: [path.resolve(vendorsDir, './vendors.js')]
   },
   module: {
     rules: [
@@ -17,7 +18,8 @@ const WebApp = Merge(ScalaJS, {
         test: /\.css$/,
         use: [
           MiniCssExtractPlugin.loader,
-          { loader: 'css-loader', options: { importLoaders: 1, url: true } }
+          { loader: 'css-loader', options: { importLoaders: 1, url: true } },
+          'postcss-loader'
         ]
       },
       {

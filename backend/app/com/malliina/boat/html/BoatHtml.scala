@@ -99,12 +99,7 @@ class BoatHtml(jsFiles: ScriptAssets) extends Tags(scalatags.Text) {
           div(id := MapId, `class` := s"mapbox-map $mapClass"),
           about.about(user, ub.language),
         ),
-        bodyClasses = Seq(s"$MapClass $AboutClass"),
-        lateStyles = modifier(
-          cssLink(s"https://api.tiles.mapbox.com/mapbox-gl-js/v$mapboxVersion/mapbox-gl.css"),
-          cssLink(
-            s"https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v3.1.6/mapbox-gl-geocoder.css")
-        )
+        bodyClasses = Seq(s"$MapClass $AboutClass")
       )
     )
   }
@@ -143,18 +138,13 @@ class BoatHtml(jsFiles: ScriptAssets) extends Tags(scalatags.Text) {
         link(rel := "icon", `type` := "image/png", href := "/assets/img/favicon.png"),
         Seq("vendors.css", "fonts.css", "styles.css").map { file =>
           cssLink(versioned(file))
-        },
-        content.scriptsAndStyles,
-        // Loads mapbox JS before its CSS and without "defer", otherwise the map errored out.
-        // CSS for mapbox is in lateStyles.
-        script(`type` := MimeTypes.JAVASCRIPT, src := versioned(jsFiles.library)),
-        script(`type` := MimeTypes.JAVASCRIPT, src := versioned(jsFiles.loader)),
-        // Must be defer because it reads the body classList
-        script(`type` := MimeTypes.JAVASCRIPT, defer, src := versioned(jsFiles.app)),
-        content.lateStyles
+        }
       ),
       body(`class` := content.bodyClasses.mkString(" "))(
-        content.content
+        content.content,
+        Seq(jsFiles.library, jsFiles.loader, jsFiles.app).map { jsFile =>
+          script(`type` := MimeTypes.JAVASCRIPT, src := versioned(jsFile))
+        }
       )
     )
   )
