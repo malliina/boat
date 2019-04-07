@@ -1,10 +1,10 @@
 package com.malliina.boat
 
-import com.malliina.json.JsonEnumSet
 import com.malliina.values._
 import play.api.libs.json._
 
-case class MultiLineGeometry(`type`: String, coordinates: Seq[Seq[Coord]]) extends Geometry(MultiLineGeometry.Key) {
+case class MultiLineGeometry(`type`: String, coordinates: Seq[Seq[Coord]])
+    extends Geometry(MultiLineGeometry.Key) {
   override type Self = MultiLineGeometry
 
   override def updateCoords(coords: Seq[Coord]): MultiLineGeometry =
@@ -21,7 +21,8 @@ object MultiLineGeometry {
   implicit val json = Json.format[MultiLineGeometry]
 }
 
-case class LineGeometry(`type`: String, coordinates: Seq[Coord]) extends Geometry(LineGeometry.Key) {
+case class LineGeometry(`type`: String, coordinates: Seq[Coord])
+    extends Geometry(LineGeometry.Key) {
   type Self = LineGeometry
 
   override def updateCoords(coords: Seq[Coord]): LineGeometry =
@@ -55,10 +56,12 @@ object PointGeometry {
   def apply(point: Coord): PointGeometry = PointGeometry(Key, point)
 }
 
-case class MultiPolygon(`type`: String, coordinates: Seq[Seq[Seq[Coord]]]) extends Geometry(MultiPolygon.Key) {
+case class MultiPolygon(`type`: String, coordinates: Seq[Seq[Seq[Coord]]])
+    extends Geometry(MultiPolygon.Key) {
   override type Self = MultiPolygon
 
-  override def updateCoords(coords: Seq[Coord]): MultiPolygon = copy(coordinates = coordinates :+ Seq(coords))
+  override def updateCoords(coords: Seq[Coord]): MultiPolygon = copy(
+    coordinates = coordinates :+ Seq(coords))
 
   override def coords: Seq[Coord] = coordinates.flatten.flatten
 }
@@ -180,7 +183,10 @@ object CirclePaint {
   implicit val json = Json.format[CirclePaint]
 }
 
-case class LinePaint(`line-color`: String, `line-width`: Int, `line-opacity`: Double, `line-gap-width`: Double = 0)
+case class LinePaint(`line-color`: String,
+                     `line-width`: Int,
+                     `line-opacity`: Double,
+                     `line-gap-width`: Double = 0)
     extends BasePaint
 
 object LinePaint {
@@ -264,7 +270,10 @@ case class Layer(id: String,
 object Layer {
   implicit val json = Json.format[Layer]
 
-  def line(id: String, data: FeatureCollection, paint: LinePaint = LinePaint.thin(), minzoom: Option[Double] = None) =
+  def line(id: String,
+           data: FeatureCollection,
+           paint: LinePaint = LinePaint.thin(),
+           minzoom: Option[Double] = None) =
     Layer(
       id,
       LayerType.Line,
@@ -286,7 +295,10 @@ object Layer {
     )
 }
 
-case class Feature(`type`: String, geometry: Geometry, properties: Map[String, JsValue], layer: Option[Layer]) {
+case class Feature(`type`: String,
+                   geometry: Geometry,
+                   properties: Map[String, JsValue],
+                   layer: Option[Layer]) {
   def addCoords(coords: Seq[Coord]): Feature = copy(
     geometry = geometry.updateCoords(coords)
   )
@@ -309,7 +321,8 @@ object Feature {
 }
 
 case class FeatureCollection(`type`: String, features: Seq[Feature]) {
-  def addCoords(coords: Seq[Coord]): FeatureCollection = copy(features = features.map(_.addCoords(coords)))
+  def addCoords(coords: Seq[Coord]): FeatureCollection = copy(
+    features = features.map(_.addCoords(coords)))
 }
 
 object FeatureCollection {

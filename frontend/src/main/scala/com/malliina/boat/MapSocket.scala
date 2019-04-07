@@ -1,15 +1,14 @@
 package com.malliina.boat
 
 import com.malliina.boat.BoatFormats._
-import com.malliina.boat.Parsing._
+import com.malliina.geojson.{GeoLineString, GeoPoint}
 import com.malliina.mapbox._
-import com.malliina.turf.turf
+import com.malliina.turf.nearestPointOnLine
 import com.malliina.values.ErrorMessage
 import play.api.libs.json._
 
 import scala.concurrent.Future
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
-import scala.scalajs.js.JSConverters.genTravConvertible2JSRichGenTrav
 
 class MapSocket(val map: MapboxMap,
                 track: TrackState,
@@ -207,16 +206,12 @@ class MapSocket(val map: MapboxMap,
   }
 
   def nearest[T](fromCoord: Coord, on: Seq[T])(c: T => Coord): Either[ErrorMessage, T] = {
-    // TODO try to fix the toJSArray nonsense
-    val all = turf.lineString(on.map(t => c(t).toArray.toJSArray).toArray.toJSArray)
-    val nearestResult = turf.nearestPointOnLine(all, turf.point(fromCoord.toArray.toJSArray))
-    val result = for {
-      feature <- asJson[Feature](nearestResult).left.map(err => s"Feature JSON failed: '$err'.")
-      idxJson <- feature.properties.get("index").toRight("No index in feature properties.")
-      idx <- validate[Int](idxJson).left.map(err => s"Index JSON failed: '$err'.")
-      nearest <- if (on.length > idx) Right(on(idx)) else Left(s"No trail at $fromCoord.")
-    } yield nearest
-    result.left.map(ErrorMessage.apply)
+    val all = GeoLineString(on.map(c))
+    val turfPoint = GeoPoint(fromCoord)
+    val nearestResult = nearestPointOnLine(all, turfPoint)
+    val idx = nearestResult.properties.index
+    if (on.length > idx) Right(on(idx))
+    else Left(ErrorMessage(s"No trail at $fromCoord."))
   }
 
   // https://www.movable-type.co.uk/scripts/latlong.html
