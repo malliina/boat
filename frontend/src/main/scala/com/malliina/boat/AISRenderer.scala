@@ -8,7 +8,7 @@ object AISRenderer {
   val AisTrailLayer = MapboxStyles.AisTrailLayer
   val AisVesselLayer = MapboxStyles.AisVesselLayer
 
-  val MaxTrailLength = 1000
+  val MaxTrailLength = 100
 
   def apply(map: MapboxMap): AISRenderer = new AISRenderer(map)
 }
