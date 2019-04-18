@@ -207,6 +207,7 @@ val agent = project
       "com.neuronrobotics" % "nrjavaserial" % "3.14.0",
       scalaTestDep
     ),
+    releaseUseGlobalVersion := false,
     buildAndUpload := {
       val debFile = (packageBin in Debian).value
       val filename = S3Client.upload(debFile.toPath)
