@@ -186,7 +186,7 @@ val agent = project
       val linuxName = (normalizedName in Debian).value
       Seq(
         s"-Dconf.dir=/usr/share/$linuxName/conf",
-        s"-Dlogger.file=/etc/$linuxName/logback-prod.xml",
+        s"-Dlogback.configurationFile=/etc/$linuxName/logback-prod.xml",
         s"-Dlog.dir=/var/run/$linuxName"
       )
     },

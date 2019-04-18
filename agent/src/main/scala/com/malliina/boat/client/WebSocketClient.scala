@@ -79,7 +79,7 @@ class WebSocketClient(url: FullUrl, headers: List[KeyValue])(implicit as: ActorS
       Done
     }.flatMap { done =>
       if (enabled.get()) {
-        log.warn(s"WebSocket disconnected. Reconnecting after $reconnectInterval...")
+        log.warn(s"WebSocket disconnected. Reconnecting to '$url' after $reconnectInterval...")
         after(reconnectInterval, scheduler)(connectInOut(in, out))
       } else {
         log.info(s"WebSocket disconnected. No more reconnects.")
