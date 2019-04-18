@@ -187,7 +187,7 @@ val agent = project
       Seq(
         s"-Dconf.dir=/usr/share/$linuxName/conf",
         s"-Dlogback.configurationFile=logback-prod.xml",
-        s"-Dlog.dir=/var/run/$linuxName"
+        s"-Dlog.dir=/var/log/$linuxName"
       )
     },
     linuxPackageMappings += {
