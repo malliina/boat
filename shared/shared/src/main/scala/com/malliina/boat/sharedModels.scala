@@ -71,8 +71,11 @@ object Longitude extends ValidatingCompanion[Double, Longitude] {
   override def write(t: Longitude): Double = t.lng
 }
 
-case class Coord(lng: Longitude, lat: Latitude) {
+case class CoordHash(hash: String) extends AnyVal {
+  override def toString: String = hash
+}
 
+case class Coord(lng: Longitude, lat: Latitude) {
   override def toString = s"($lng, $lat)"
 
   def toArray: Array[Double] = Array(lng.lng, lat.lat)
@@ -82,6 +85,8 @@ case class Coord(lng: Longitude, lat: Latitude) {
     val latStr = Coord.format(lat.lat)
     s"$lngStr,$latStr"
   }
+
+  val hash = CoordHash(approx)
 }
 
 object Coord {

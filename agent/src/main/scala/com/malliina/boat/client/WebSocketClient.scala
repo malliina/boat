@@ -44,6 +44,13 @@ class WebSocketClient(url: FullUrl, headers: List[KeyValue])(implicit as: ActorS
   def connect[T: Writes](out: Source[T, NotUsed]): Future[Done] =
     connectInOut(Sink.ignore, out)
 
+  /** Connects to WebSocket server.
+    *
+    * @param in sink for messages received from the server
+    * @param out source of messages sent to the server
+    * @tparam T type of message (JsValue works)
+    * @return a Future that completes when the connection is terminated
+    */
   def connectJson[T: Writes](in: Sink[JsValue, Future[Done]], out: Source[T, NotUsed]): Future[Done] = {
     val incomingSink = in.contramap[Message] {
       case BinaryMessage.Strict(data) => Json.parse(data.iterator.asInputStream)

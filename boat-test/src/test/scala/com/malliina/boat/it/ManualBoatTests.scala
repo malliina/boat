@@ -3,7 +3,7 @@ package com.malliina.boat.it
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 
-import com.malliina.boat.{BoatToken, RawSentence, SentencesMessage}
+import com.malliina.boat.{BoatNames, BoatToken, BoatTokens, RawSentence, SentencesMessage}
 import com.malliina.http.FullUrl
 import com.malliina.util.FileUtils
 
@@ -54,6 +54,13 @@ class ManualBoatTests extends BoatTests {
         Thread.sleep(500)
       }
     }
+  }
+
+  ignore("generate names") {
+    val name = BoatNames.random()
+    val token = BoatTokens.random()
+    println(name)
+    println(token)
   }
 
   ignore("boat can connect") {

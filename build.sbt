@@ -240,12 +240,14 @@ val it = Project("integration-tests", file("boat-test"))
 
 val utils = project
   .in(file("utils"))
+  .dependsOn(crossJvm)
   .settings(basicSettings)
   .settings(
     resolvers += "GeoTools" at "https://download.osgeo.org/webdav/geotools/",
     libraryDependencies ++= Seq(
       "javax.media" % "jai_core" % "1.1.3" from "https://download.osgeo.org/webdav/geotools/javax/media/jai_core/1.1.3/jai_core-1.1.3.jar",
       "org.geotools" % "gt-shapefile" % "20.0" exclude ("javax.media", "jai_core"),
+      "org.geotools" % "gt-geojson" % "20.0" exclude ("javax.media", "jai_core"),
       scalaTestDep
     )
   )

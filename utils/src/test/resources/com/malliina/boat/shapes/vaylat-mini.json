@@ -1,0 +1,71 @@
+{
+  "crs": {
+    "properties": {
+      "name": null
+    },
+    "type": "name"
+  },
+  "features": [
+    {
+      "geometry": {
+        "coordinates": [
+          [
+            [
+              19.9695,
+              60.2832
+            ],
+            [
+              19.973,
+              60.2819
+            ],
+            [
+              19.9764,
+              60.2784
+            ],
+            [
+              19.9743,
+              60.2745
+            ],
+            [
+              19.9752,
+              60.2687
+            ],
+            [
+              19.9788,
+              60.2671
+            ],
+            [
+              19.9921,
+              60.264
+            ],
+            [
+              20.0075,
+              60.2429
+            ]
+          ]
+        ],
+        "type": "MultiLineString"
+      },
+      "id": "fid--3f15d073_16a1d1ec3d7_-78b2",
+      "properties": {
+        "DIAARINRO": "LIVI/06.02.02/2017",
+        "IRROTUS_PV": "2018-04-29T00:51:29",
+        "JNRO": 2675.0,
+        "KULKUSYV1": 3.6,
+        "KULKUSYV2": 3.0,
+        "MERIAL_NR": 4.0,
+        "SELOSTE_AL": "Färjsund",
+        "SELOSTE_PA": "Bartsgårda",
+        "TILA": 1.0,
+        "VAHV_PVM": "2016-08-28T21:00:00.000+0000",
+        "VALAISTUS": 2.0,
+        "VAYLALAJI": 1.0,
+        "VAYLA_LK": "VL5: Veneväylä",
+        "VAY_NIMIRU": "Färjsund-Bartsgårda farled",
+        "VAY_NIMISU": "Färjsund-Bartsgårda väylä"
+      },
+      "type": "Feature"
+    }
+  ],
+  "type": "FeatureCollection"
+}
