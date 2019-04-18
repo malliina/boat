@@ -15,7 +15,7 @@ trait FileStore {
 }
 
 object S3Client extends FileStore {
-  val bucketName = "agent.malliina.com"
+  val bucketName = "agent.boat-tracker.com"
 
   val builder = AmazonS3ClientBuilder.standard().withCredentials(
     new AWSCredentialsProviderChain(
