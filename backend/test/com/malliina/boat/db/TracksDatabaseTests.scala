@@ -1,25 +1,21 @@
 package com.malliina.boat.db
 
-import java.nio.charset.StandardCharsets
-import java.nio.file.{Files, Path}
 import java.time.{LocalDate, LocalTime}
 
 import akka.NotUsed
 import akka.actor.ActorSystem
-import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.{Flow, Sink, Source}
+import akka.stream.{ActorMaterializer, Materializer}
 import com.malliina.boat._
 import com.malliina.boat.db.TestData._
 import com.malliina.boat.http.BoatQuery
 import com.malliina.boat.parsing.{BoatParser, FullCoord}
 import com.malliina.concurrent.Execution.cached
 import com.malliina.measure.{DistanceInt, Speed, SpeedInt, Temperature}
-import com.malliina.util.FileUtils
 import com.malliina.values.{UserId, Username}
 import play.api.Mode
 import tests.BaseSuite
 
-import scala.collection.JavaConverters.asScalaBufferConverter
 import scala.concurrent.Future
 import scala.concurrent.duration.{Duration, DurationLong}
 
@@ -28,7 +24,7 @@ object TestData {
   val sanfran = Coord.build(-122.4, 37.8).right.get
 }
 
-class TracksDatabaseTests extends BaseSuite {
+class TracksDatabaseTests extends TracksTester {
   implicit val as = ActorSystem()
   implicit val mat = ActorMaterializer()
 //  val conf = DatabaseConf("jdbc:mysql://localhost:3306/boat?useSSL=false",
@@ -118,12 +114,6 @@ class TracksDatabaseTests extends BaseSuite {
     await(db.run(action))
   }
 
-  ignore("modify tracks") {
-    val db = BoatSchema(DatabaseConf(Mode.Prod, LocalConf.localConf))
-    val oldTrack = TrackId(175)
-    splitTracksByDate(oldTrack, db)
-  }
-
   ignore("sentences") {
     val (db, tdb) = initDb()
     import db._
@@ -148,67 +138,21 @@ class TracksDatabaseTests extends BaseSuite {
       src.via(insertPointsFlow(tdb.saveCoords)).runWith(Sink.ignore)
     }
   }
+}
 
-  ignore("from file") {
-    val (db, tdb) = initDb()
-    val trackName = TrackNames.random()
-    val track = await(tdb.join(BoatUser(trackName, BoatName("Amina"), Username("mle"))), 10.seconds)
-    println(s"Using $track")
-    val s: Source[RawSentence, NotUsed] = fromFile(FileUtils.userHome.resolve(".boat/Log2107.txt"))
-      .drop(231306)
-      .filter(_ != RawSentence.initialZda)
-    val events = s.map(s => SentencesEvent(Seq(s), track.short))
-    val task = events.via(processSentences(tdb.saveSentences, tdb.saveCoords)).runWith(Sink.ignore)
-    await(task, 30000.seconds)
-    splitTracksByDate(track.track, db)
-  }
-
-  def fromFile(file: Path): Source[RawSentence, NotUsed] =
-    Source(Files.readAllLines(file, StandardCharsets.UTF_8).asScala.map(RawSentence.apply).toList)
-
+abstract class TracksTester extends BaseSuite {
   def initDb() = {
     val db = BoatSchema(DatabaseConf(Mode.Prod, LocalConf.localConf))
     db.init()
-    val tdb = TracksDatabase(db, mat.executionContext)
+    val tdb = TracksDatabase(db, cached)
     (db, tdb)
   }
 
-  def processSentences(saveSentences: SentencesEvent => Future[Seq[KeyedSentence]],
-                       saveCoord: FullCoord => Future[InsertedPoint]) =
-    Flow[SentencesEvent]
-      .via(Flow[SentencesEvent].mapAsync(1)(saveSentences))
-      .mapConcat(saved => saved.toList)
-      .via(insertPointsFlow(saveCoord))
-
   def insertPointsFlow(
-      save: FullCoord => Future[InsertedPoint]): Flow[KeyedSentence, InsertedPoint, NotUsed] = {
+                        save: FullCoord => Future[InsertedPoint])(implicit as: ActorSystem, mat: Materializer): Flow[KeyedSentence, InsertedPoint, NotUsed] = {
     Flow[KeyedSentence]
       .mapConcat(raw => BoatParser.parse(raw).toOption.toList)
       .via(BoatParser.multiFlow())
       .via(Flow[FullCoord].mapAsync(1)(save))
-  }
-
-  def splitTracksByDate(oldTrack: TrackId, db: BoatSchema) = {
-    import db._
-    import db.api._
-
-    def createAndUpdateTrack(date: LocalDate) =
-      for {
-        newTrack <- trackInserts += TrackInput.empty(TrackNames.random(), BoatId(14))
-        updated <- updateTrack(oldTrack, date, newTrack)
-      } yield updated
-
-    def updateTrack(track: TrackId, date: LocalDate, newTrack: TrackId) =
-      pointsTable
-        .map(_.combined)
-        .filter((t: LiftedCoord) => t.track === track && t.date === date)
-        .map(_.track)
-        .update(newTrack)
-
-    val action = for {
-      dates <- pointsTable.filter(_.track === oldTrack).map(_.combined.date).distinct.sorted.result
-      updates <- DBIO.sequence(dates.map(date => createAndUpdateTrack(date)))
-    } yield updates
-    await(db.run(action), 100.seconds)
   }
 }
