@@ -1,7 +1,7 @@
 package com.malliina.boat.shapes
 
 import com.malliina.boat.shapes.Graph.intersection
-import com.malliina.boat.{Coord, CoordHash, Latitude, Longitude}
+import com.malliina.boat.{Coord, CoordHash, Earth, Latitude, Longitude}
 
 import scala.annotation.tailrec
 
@@ -30,9 +30,18 @@ object Graph {
 }
 
 class Graph(val nodes: Map[CoordHash, List[ValueEdge]]) {
+  def coords = nodes.values.flatten.flatMap(es => Seq(es.from, es.to)).toSet
+
+  def nearest(to: Coord) = coords.minBy(c => Earth.distance(c, to))
+
   def edges(es: List[Edge]): Graph = es.foldLeft(this) { (acc, e) =>
     acc.edge(e)
   }
+
+  def contains(edge: Edge): Boolean = contains(edge.from, edge.to) || contains(edge.to, edge.from)
+
+  private def contains(from: Coord, to: Coord): Boolean =
+    nodes.get(from.hash).exists(_.exists(_.to.hash == to.hash))
 
   /** Adds `edge` to the graph. If `edge` intersects another edge, a node is added at the crossing
     * along with four edges: to/from the endpoints of `edge` and to/from the endpoints of the
@@ -42,7 +51,7 @@ class Graph(val nodes: Map[CoordHash, List[ValueEdge]]) {
     * @return a new graph with the edge added
     */
   def edge(edge: Edge): Graph = {
-    if (nodes.get(edge.from.hash).exists(_.exists(_.to.hash == edge.to.hash))) {
+    if (contains(edge)) {
       this
     } else {
       val crossingEdges = nodes.values.flatten.toList.filter(e => !e.isConnected(edge)).flatMap {
@@ -73,14 +82,14 @@ class Graph(val nodes: Map[CoordHash, List[ValueEdge]]) {
       if (crossingEdges.isEmpty) {
         val valued = ValueEdge(edge.from, edge.to, cost(edge.from, edge.to))
         val existing = nodes.get(edge.from.hash)
-        val isNewEdge = !existing.exists(_.exists(_.near(valued)))
+        val isNewEdge = !existing.exists(_.exists(_.isSimilar(valued)))
         val withTo =
           if (nodes.contains(edge.to.hash)) nodes
           else nodes.updated(edge.to.hash, Nil)
         val withToAndFrom =
           if (existing.isEmpty || isNewEdge) {
             val ret = withTo.updated(edge.from.hash, valued :: existing.getOrElse(Nil))
-            println(s"adding $valued to ${existing.getOrElse(Nil).length} edges")
+            println(s"adding $valued to coordinate with ${existing.getOrElse(Nil).length} existing edges")
             ret
           } else {
             withTo
@@ -92,19 +101,18 @@ class Graph(val nodes: Map[CoordHash, List[ValueEdge]]) {
     }
   }
 
-//  nodes
-//    .updated(edge.to, nodes.getOrElse(edge.to, Nil))
-//    .updated(edge.from, valued :: nodes.getOrElse(edge.from, Nil))
-
-  def shortest(from: Coord, to: Coord): Option[ValueRoute] =
-    nodes
-      .get(from.hash)
+  def shortest(from: Coord, to: Coord): Option[ValueRoute] = {
+    val start = nodes.get(from.hash).orElse(nodes.get(nearest(from).hash))
+    val end = nodes.get(to.hash).flatMap(_.headOption.map(_.from)).getOrElse(nearest(to))
+    start
       .map { edges =>
         edges.map(edge => ValueRoute(List(edge)))
       }
       .flatMap { paths =>
-        search(from, to, paths, Map.empty).map(_.reverse)
+        search(from, end, paths, Map.empty).map(_.reverse)
       }
+  }
+
 
   @tailrec
   private def search(from: Coord,
@@ -144,5 +152,6 @@ class Graph(val nodes: Map[CoordHash, List[ValueEdge]]) {
       }
     }
   }
-  private def cost(from: Coord, to: Coord): Double = 1.0
+
+  private def cost(from: Coord, to: Coord): Double = Earth.distance(from, to).toMeters
 }

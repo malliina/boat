@@ -25,7 +25,7 @@ trait EdgeLike {
   def line = Line(from, to)
   def contains(coord: Coord): Boolean = from.hash == coord.hash || to.hash == coord.hash
   def isConnected(other: EdgeLike) = contains(other.from) || contains(other.to)
-  def near(other: EdgeLike) = contains(other.from) && contains(other.to)
+  def isSimilar(other: EdgeLike) = contains(other.from) && contains(other.to)
   def describe = s"(${from.hash} - ${to.hash})"
 }
 
