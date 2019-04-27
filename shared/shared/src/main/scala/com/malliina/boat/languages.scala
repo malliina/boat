@@ -562,6 +562,7 @@ case class SettingsLang(welcome: String,
                         edit: String,
                         cancel: String,
                         back: String,
+                        done: String,
                         noTracksHelp: String,
                         formats: FormatsLang)
 
@@ -718,6 +719,7 @@ object Lang {
       "Edit",
       "Cancel",
       "Back",
+      "Done",
       "Hello! You have no saved tracks. To save tracks, you'll need to connect the BoatTracker agent software to the GPS chartplotter in your boat.",
       FormatsLang("dd MMM yyyy", "HH:mm:ss", "HH:mm", "dd MMM yyyy HH:mm:ss")
     )
@@ -839,6 +841,7 @@ object Lang {
       "Muokkaa",
       "Keskeytä",
       "Takaisin",
+      "Valmis",
       "Hei! Ei tallennettuja reittejä. Reittien tallennus vaatii BoatTracker -sovelluksen yhdistämisen veneesi karttaplotteriin.",
       FormatsLang("dd.MM.yyyy", "HH:mm:ss", "HH:mm", "dd.MM.yyyy HH:mm:ss")
     )
@@ -960,6 +963,7 @@ object Lang {
       "Redigera",
       "Avbryt",
       "Tillbaka",
+      "Färdig",
       "Inga sparade spår. För att spara spår, koppla BoatTracker-appen till båtens plotter.",
       FormatsLang("dd.MM.yyyy", "HH:mm:ss", "HH:mm", "dd.MM.yyyy HH:mm:ss")
     )

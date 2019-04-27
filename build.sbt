@@ -66,14 +66,14 @@ val frontend = project
       "org.scalatest" %%% "scalatest" % scalaTestVersion % Test
     ),
     npmDependencies in Compile ++= Seq(
-      "@turf/turf" -> "5.1.6",
-      "mapbox-gl" -> mapboxVersion,
+      "@fortawesome/fontawesome-free" -> "5.8.1",
       "@mapbox/mapbox-gl-geocoder" -> "3.1.6",
-      "chart.js" -> "2.7.3",
+      "@turf/turf" -> "5.1.6",
       "bootstrap" -> "4.2.1",
+      "chart.js" -> "2.7.3",
       "jquery" -> "3.3.1",
-      "popper.js" -> "1.14.6",
-      "@fortawesome/fontawesome-free" -> "5.8.1"
+      "mapbox-gl" -> mapboxVersion,
+      "popper.js" -> "1.14.6"
     ),
     npmDevDependencies in Compile ++= Seq(
       "autoprefixer" -> "9.4.3",
