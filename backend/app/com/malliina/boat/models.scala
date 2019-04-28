@@ -25,13 +25,13 @@ object AisConf {
   implicit val json = Json.format[AisConf]
 }
 
-case class Layers(marks: Seq[String], ais: AisConf)
+case class Layers(marks: Seq[String], fairways: Seq[String], ais: AisConf)
 
 object Layers {
   implicit val json = Json.format[Layers]
   import MapboxStyles._
 
-  val default = Layers(marksLayers, AisConf(AisVesselLayer, AisTrailLayer, AisVesselIcon))
+  val default = Layers(marksLayers, fairwayLayers, AisConf(AisVesselLayer, AisTrailLayer, AisVesselIcon))
 }
 
 case class ClientConf(languages: Languages, layers: Layers)

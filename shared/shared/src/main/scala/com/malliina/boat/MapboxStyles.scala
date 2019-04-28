@@ -6,6 +6,7 @@ object MapboxStyles {
   val AisVesselIcon = "boat-resized-opt-30"
 
   val aisLayers = Seq(AisVesselLayer, AisTrailLayer)
+  val fairwayLayers = Seq("vaylat")
 
   val marksLayers = Seq(
     "marks-turvavesi",
@@ -22,7 +23,7 @@ object MapboxStyles {
     "cardinal-west",
     "cardinal-south",
     "cardinal-east",
-    "cardinal-north",
+    "cardinal-north"
   )
 
   val clickableLayers = marksLayers ++ Seq(AisVesselLayer)

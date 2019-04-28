@@ -11,11 +11,11 @@ object Graph {
     g.edges(edges)
   }
 
-  def apply(nodes: Map[CoordHash, List[ValueEdge]] = Map.empty): Graph =
+  def apply(nodes: Map[CoordHash, ValueNode] = Map.empty): Graph =
     new Graph(nodes)
 
   def intersection(line1: Line, line2: Line): Option[Coord] = {
-    if (line2.d - line1.d < 0.001) {
+    if (math.abs(line2.d - line1.d) < 0.001) {
       None
     } else {
       val x = (line2.c - line1.c) / (line1.d - line2.d)
@@ -29,8 +29,8 @@ object Graph {
   }
 }
 
-class Graph(val nodes: Map[CoordHash, List[ValueEdge]]) {
-  def coords = nodes.values.flatten.flatMap(es => Seq(es.from, es.to)).toSet
+class Graph(val nodes: Map[CoordHash, ValueNode]) {
+  def coords = nodes.values.flatMap(_.edges).flatMap(es => Seq(es.from, es.to)).toSet
 
   def nearest(to: Coord) = coords.minBy(c => Earth.distance(c, to))
 
@@ -41,7 +41,7 @@ class Graph(val nodes: Map[CoordHash, List[ValueEdge]]) {
   def contains(edge: Edge): Boolean = contains(edge.from, edge.to) || contains(edge.to, edge.from)
 
   private def contains(from: Coord, to: Coord): Boolean =
-    nodes.get(from.hash).exists(_.exists(_.to.hash == to.hash))
+    nodes.get(from.hash).exists(_.links.exists(_.to.hash == to.hash))
 
   /** Adds `edge` to the graph. If `edge` intersects another edge, a node is added at the crossing
     * along with four edges: to/from the endpoints of `edge` and to/from the endpoints of the
@@ -54,42 +54,47 @@ class Graph(val nodes: Map[CoordHash, List[ValueEdge]]) {
     if (contains(edge)) {
       this
     } else {
-      val crossingEdges = nodes.values.flatten.toList.filter(e => !e.isConnected(edge)).flatMap {
-        existingEdge =>
-          intersection(edge.line, existingEdge.line).toList
-            .filter(c => !edge.contains(c))
-            .flatMap { crossing =>
-              val withCrossing = List(
-                Edge(edge.from, crossing),
-                Edge(edge.to, crossing)
-              )
-              val withExisting =
-                if (!existingEdge.contains(crossing)) {
-                  List(
-                    Edge(existingEdge.from, crossing),
-                    Edge(existingEdge.to, crossing)
-                  )
-                } else {
-                  Nil
-                }
-              val ret = withCrossing ++ withExisting
+      val crossingEdges =
+        nodes.values.flatMap(_.edges).toList.filter(e => !e.isConnected(edge)).flatMap {
+          existingEdge =>
+            intersection(edge.line, existingEdge.line).toList
+              .filter(c => !edge.contains(c))
+              .flatMap { crossing =>
+                val withCrossing = List(
+                  Edge(edge.from, crossing),
+                  Edge(edge.to, crossing)
+                )
+                val withExisting =
+                  if (!existingEdge.contains(crossing)) {
+                    List(
+                      Edge(existingEdge.from, crossing),
+                      Edge(existingEdge.to, crossing)
+                    )
+                  } else {
+                    Nil
+                  }
+                val ret = withCrossing ++ withExisting
 //            println(s"${existingEdge.contains(crossing)} for (${existingEdge.from.hash}, ${existingEdge.to.hash}) contains (${crossing.hash})")
-              println(
-                s"${ret.length} edges from crossing at ${crossing.hash} between ${edge.describe} and ${existingEdge.describe}")
-              ret
-            }
-      }
+                println(
+                  s"${ret.length} edges from crossing at ${crossing.hash} between ${edge.describe} and ${existingEdge.describe}")
+                ret
+              }
+        }
       if (crossingEdges.isEmpty) {
-        val valued = ValueEdge(edge.from, edge.to, cost(edge.from, edge.to))
+        val valuedLink = Link(edge.to, cost(edge.from, edge.to))
+        val valued = valuedLink.from(edge.from)
         val existing = nodes.get(edge.from.hash)
-        val isNewEdge = !existing.exists(_.exists(_.isSimilar(valued)))
+        val isNewEdge = !existing.map(_.edges).exists(_.exists(_.isSimilar(valued)))
         val withTo =
           if (nodes.contains(edge.to.hash)) nodes
-          else nodes.updated(edge.to.hash, Nil)
+          else nodes.updated(edge.to.hash, ValueNode(edge.to, Nil))
         val withToAndFrom =
           if (existing.isEmpty || isNewEdge) {
-            val ret = withTo.updated(edge.from.hash, valued :: existing.getOrElse(Nil))
-            println(s"adding $valued to coordinate with ${existing.getOrElse(Nil).length} existing edges")
+            val ret = withTo.updated(
+              edge.from.hash,
+              existing.map(_.link(valuedLink)).getOrElse(ValueNode(edge.from, List(valuedLink))))
+            println(
+              s"adding $valued to coordinate with ${existing.map(_.edges).getOrElse(Nil).length} existing links")
             ret
           } else {
             withTo
@@ -103,17 +108,13 @@ class Graph(val nodes: Map[CoordHash, List[ValueEdge]]) {
 
   def shortest(from: Coord, to: Coord): Option[ValueRoute] = {
     val start = nodes.get(from.hash).orElse(nodes.get(nearest(from).hash))
-    val end = nodes.get(to.hash).flatMap(_.headOption.map(_.from)).getOrElse(nearest(to))
-    start
-      .map { edges =>
-        edges.map(edge => ValueRoute(List(edge)))
-      }
-      .flatMap { paths =>
-        search(from, end, paths, Map.empty).map(_.reverse)
-      }
+    val end = nodes.get(to.hash).map(_.from).getOrElse(nearest(to))
+    start.map { nodes =>
+      nodes.links.map(link => ValueRoute(List(link)))
+    }.flatMap { paths =>
+      search(from, end, paths, Map.empty).map(_.reverse)
+    }
   }
-
-
   @tailrec
   private def search(from: Coord,
                      to: Coord,
@@ -122,8 +123,8 @@ class Graph(val nodes: Map[CoordHash, List[ValueEdge]]) {
     val nextLevel = currentPaths.flatMap { path =>
       path.edges.headOption.toList.flatMap { leaf =>
         nodes.get(leaf.to.hash).toList.flatMap { edges =>
-          edges.map { edge =>
-            edge :: path
+          edges.links.map { link =>
+            link :: path
           }
         }
       }

@@ -29,13 +29,22 @@ trait EdgeLike {
   def describe = s"(${from.hash} - ${to.hash})"
 }
 
+case class Link(to: Coord, cost: Double) {
+  def from(coord: Coord) = ValueEdge(coord, to, cost)
+}
+
 case class Edge(from: Coord, to: Coord) extends EdgeLike
 
 case class ValueEdge(from: Coord, to: Coord, cost: Double) extends EdgeLike
 
-case class ValueRoute(edges: List[ValueEdge]) extends AnyVal {
+case class ValueRoute(edges: List[Link]) extends AnyVal {
   def cost = edges.map(_.cost).sum
-  def ::(next: ValueEdge) = ValueRoute(next :: edges)
+  def ::(next: Link) = ValueRoute(next :: edges)
   def to = edges.headOption.map(_.to)
   def reverse = ValueRoute(edges.reverse)
+}
+
+case class ValueNode(from: Coord, links: List[Link]) {
+  def edges = links.map { link => link.from(from) }
+  def link(l: Link) = ValueNode(from, l :: links)
 }

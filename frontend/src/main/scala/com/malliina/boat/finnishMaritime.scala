@@ -1,13 +1,19 @@
 package com.malliina.boat
 
-import com.malliina.boat.MaritimeJson.{intReader, meters}
-import com.malliina.measure.{Distance, DistanceDouble}
+import com.malliina.boat.MaritimeJson.{doubleReader, intReader, meters}
+import com.malliina.boat.MinimalMarineSymbol.nonEmpty
+import com.malliina.measure.{Distance, DistanceDouble, DistanceM}
 import play.api.libs.json._
 
 object MaritimeJson {
   val meters = Reads[Distance] { json =>
     json.validate[Double].map(_.meters)
   }
+
+  def doubleReader[T](onError: JsValue => String)(pf: PartialFunction[Int, T]): Reads[T] =
+    Reads[T] { json =>
+      json.validate[Double].map(_.toInt).collect(JsonValidationError(onError(json)))(pf)
+    }
 
   def intReader[T](onError: JsValue => String)(pf: PartialFunction[Int, T]): Reads[T] =
     Reads[T] { json =>
@@ -234,17 +240,19 @@ trait Owned {
   }
 }
 
-trait SymbolLike {
+trait NameLike {
   def nameFi: Option[String]
 
   def nameSe: Option[String]
 
+  def name(lang: Lang): Option[String] =
+    if (lang == Lang.se) nameSe.orElse(nameFi) else nameFi.orElse(nameSe)
+}
+
+trait SymbolLike extends NameLike {
   def locationFi: Option[String]
 
   def locationSe: Option[String]
-
-  def name(lang: Lang): Option[String] =
-    if (lang == Lang.se) nameSe.orElse(nameFi) else nameFi.orElse(nameSe)
 
   def location(lang: Lang): Option[String] =
     if (lang == Lang.se) locationSe.orElse(locationFi) else locationFi.orElse(locationSe)
@@ -481,7 +489,7 @@ object MarkType {
   * <p>harrow depth = haraussyvyys
   *
   * @see Vesiväyläaineistojen tietosisällön kuvaus
-  * @see https://julkaisut.liikennevirasto.fi/pdf3/ohje_2011_vesivayliin_liittyvia_fi.pdf
+  * @see https://vayla.fi/documents/20473/38174/Vesiv%C3%A4yl%C3%A4aineistojen+tietosis%C3%A4ll%C3%B6n+kuvaus/68b5f496-19a3-4b3d-887c-971e3366f01e
   * @see http://merisanasto.kyamk.fi/aakkos.php
   */
 case class FairwayArea(owner: String,
@@ -532,4 +540,58 @@ object ZoneOfInfluence {
   case object Area extends ZoneOfInfluence
   case object Fairway extends ZoneOfInfluence
   case object AreaAndFairway extends ZoneOfInfluence
+}
+
+sealed trait FairwayLighting
+
+object FairwayLighting {
+  implicit val reader: Reads[FairwayLighting] =
+    doubleReader(json => s"Unknown fairway lighting: '$json'.") {
+      case 0 => UnknownLighting
+      case 1 => Lighting
+      case 2 => NoLighting
+    }
+  case object NoLighting extends FairwayLighting
+  case object Lighting extends FairwayLighting
+  case object UnknownLighting extends FairwayLighting
+}
+
+sealed trait FairwaySeaType
+
+object FairwaySeaType {
+  implicit val reader: Reads[FairwaySeaType] =
+    doubleReader(json => s"Unknown fairway sea type: '$json'.") {
+      case 1 => SeaFairway
+      case 2 => InnerFairway
+    }
+  // Meriväylä
+  case object SeaFairway extends FairwaySeaType
+  // Sisävesiväylä
+  case object InnerFairway extends FairwaySeaType
+}
+
+case class FairwayInfo(nameFi: Option[String],
+                       nameSe: Option[String],
+                       start: String,
+                       end: String,
+                       depth: DistanceM,
+                       depth2: Option[DistanceM],
+                       depth3: Option[DistanceM],
+                       lighting: FairwayLighting,
+                       classText: String) extends NameLike
+
+object FairwayInfo {
+  implicit val reader = Reads[FairwayInfo] { json =>
+    for {
+      fi <- (json \ "VAY_NIMISU").validate[Option[String]](nonEmpty)
+      se <- (json \ "VAY_NIMIRU").validate[Option[String]](nonEmpty)
+      start <- (json \ "SELOSTE_AL").validate[String]
+      end <- (json \ "SELOSTE_PA").validate[String]
+      depth <- (json \ "KULKUSYV1").validate[DistanceM]
+      depth2 <- (json \ "KULKUSYV2").validateOpt[DistanceM]
+      depth3 <- (json \ "KULKUSYV3").validateOpt[DistanceM]
+      lighting <- (json \ "VALAISTUS").validate[FairwayLighting]
+      clazz <- (json \ "VAYLA_LK").validate[String]
+    } yield FairwayInfo(fi, se, start, end, depth, depth2, depth3, lighting, clazz)
+  }
 }

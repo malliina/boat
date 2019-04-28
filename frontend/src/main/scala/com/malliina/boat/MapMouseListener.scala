@@ -1,9 +1,19 @@
 package com.malliina.boat
 
 import com.malliina.boat.Parsing.validate
-import com.malliina.mapbox.{LngLatLike, MapboxMap, MapboxPopup, PopupOptions}
-import com.malliina.values.ErrorMessage
+import com.malliina.mapbox._
 import com.malliina.util.EitherOps
+
+sealed trait ClickType {
+  def target: LngLatLike
+}
+
+case class VesselClick(props: VesselProps, target: LngLatLike) extends ClickType
+case class SymbolClick(symbol: MarineSymbol, target: LngLatLike) extends ClickType
+case class MinimalClick(symbol: MinimalMarineSymbol, target: LngLatLike) extends ClickType
+case class FairwayClick(area: FairwayArea, target: LngLatLike) extends ClickType
+case class FairwayInfoClick(info: FairwayInfo, target: LngLatLike) extends ClickType
+case class DepthClick(area: DepthArea, target: LngLatLike) extends ClickType
 
 object MapMouseListener {
   def apply(map: MapboxMap, ais: AISRenderer, html: Popups) = new MapMouseListener(map, ais, html)
@@ -11,61 +21,83 @@ object MapMouseListener {
 
 class MapMouseListener(map: MapboxMap,
                        ais: AISRenderer,
-                       html: Popups, val log: BaseLogger = BaseLogger.console) {
+                       html: Popups,
+                       val log: BaseLogger = BaseLogger.console) {
   val markPopup = MapboxPopup(PopupOptions())
   var isTrackHover: Boolean = false
 
-  map.on("click", e => {
+  def parseClick(e: MapMouseEvent): Option[Either[JsonError, ClickType]] = {
     val features = map.queryRendered(e.point).recover { err =>
       log.info(s"Failed to parse features '${err.error}' in '${err.json}'.")
       Nil
     }
-    val symbol = features.find { f =>
+    val symbol: Option[Feature] = features.find { f =>
       f.geometry.typeName == PointGeometry.Key &&
-        f.layer.exists(l => l.`type` == LayerType.Symbol || l.`type` == LayerType.Circle)
+      f.layer.exists(l => l.`type` == LayerType.Symbol || l.`type` == LayerType.Circle)
     }
-    // AIS
-    val vessel = symbol.filter(_.layer.exists(_.id == AISRenderer.AisVesselLayer))
-    vessel.map { feature =>
-      val maybeInfo = for {
-        props <- validate[VesselProps](feature.props).left.map(err => ErrorMessage(s"JSON error. $err"))
-        info <- ais.info(props.mmsi)
-      } yield info
-      maybeInfo.map { vessel =>
-        //        log.info(s"Selected vessel $vessel.")
-        val target = feature.geometry.coords.headOption.map(LngLatLike.apply).getOrElse(e.lngLat)
-        markPopup.show(html.ais(vessel), target, map)
-      }.recover { err =>
-        log.info(s"Vessel info not available for '${feature.props}'. $err.")
+    symbol.map { symbolFeature =>
+      val target =
+        symbolFeature.geometry.coords.headOption.map(LngLatLike.apply).getOrElse(e.lngLat)
+      val props = symbolFeature.props
+      if (symbolFeature.layer.exists(_.id == AISRenderer.AisVesselLayer)) {
+        // AIS
+        validate[VesselProps](props).map(vp => VesselClick(vp, target))
+      } else {
+        // Markers
+        validate[MarineSymbol](props)
+          .map(m => SymbolClick(m, target))
+          .left
+          .flatMap(_ => validate[MinimalMarineSymbol](props).map(m => MinimalClick(m, target)))
       }
-    }.getOrElse {
-      // marks
-      symbol.fold(markPopup.remove()) { feature =>
-        val symbol = validate[MarineSymbol](feature.props)
-        val target = feature.geometry.coords.headOption.map(LngLatLike.apply).getOrElse(e.lngLat)
-        symbol.map { ok =>
-          markPopup.show(html.mark(ok), target, map)
-        }.recoverWith { _ =>
-          validate[MinimalMarineSymbol](feature.props).map { ok =>
-            markPopup.show(html.minimalMark(ok), target, map)
+    }.orElse {
+      markPopup.remove()
+      if (!isTrackHover) {
+//        val fairwayInfo = features.flatMap(_.props.asOpt[FairwayInfo]).headOption.map(FairwayInfoClick(_, e.lngLat))
+        val fairway = features
+          .flatMap(f => f.props.asOpt[FairwayArea])
+          .headOption
+          .map(FairwayClick(_, e.lngLat))
+        val depth =
+          features.flatMap(f => f.props.asOpt[DepthArea]).headOption.map(DepthClick(_, e.lngLat))
+//        fairwayInfo.orElse(fairway.orElse(depth)).map(Right.apply)
+        fairway.orElse(depth).map(Right.apply)
+      } else {
+        None
+      }
+    }
+  }
+
+  map.on(
+    "click",
+    e => {
+      parseClick(e).map {
+        result =>
+          result.map {
+            case VesselClick(boat, target) =>
+              ais
+                .info(boat.mmsi)
+                .map { info =>
+                  markPopup.show(html.ais(info), target, map)
+                }
+                .recover { err =>
+                  log.info(s"Vessel info not available for '$boat'. $err.")
+                }
+            case SymbolClick(marker, target) =>
+              markPopup.show(html.mark(marker), target, map)
+            case MinimalClick(marker, target) =>
+              markPopup.show(html.minimalMark(marker), target, map)
+            case FairwayClick(area, target) =>
+              markPopup.show(html.fairway(area), target, map)
+            case DepthClick(area, target) =>
+              markPopup.show(html.depthArea(area), target, map)
+            case FairwayInfoClick(info, target) =>
+              markPopup.show(html.fairwayInfo(info), target, map)
+          }.recover { err =>
+            log.info(err.describe)
           }
-        }.recover { err =>
-          log.info(err.describe)
-        }
       }
     }
-    if (symbol.isEmpty && vessel.isEmpty && !isTrackHover) {
-      val maybeFairway = features.flatMap(f => f.props.asOpt[FairwayArea]).headOption
-      maybeFairway.foreach { fairway =>
-        markPopup.show(html.fairway(fairway), e.lngLat, map)
-      }
-      if (maybeFairway.isEmpty) {
-        features.flatMap(f => f.props.asOpt[DepthArea]).headOption.foreach { depthArea =>
-          markPopup.show(html.depthArea(depthArea), e.lngLat, map)
-        }
-      }
-    }
-  })
+  )
   MapboxStyles.clickableLayers.foreach { id =>
     map.onHover(id)(
       in = _ => map.getCanvas().style.cursor = "pointer",
