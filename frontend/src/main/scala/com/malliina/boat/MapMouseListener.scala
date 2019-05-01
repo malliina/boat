@@ -52,15 +52,14 @@ class MapMouseListener(map: MapboxMap,
     }.orElse {
       markPopup.remove()
       if (!isTrackHover) {
-//        val fairwayInfo = features.flatMap(_.props.asOpt[FairwayInfo]).headOption.map(FairwayInfoClick(_, e.lngLat))
+        val fairwayInfo = features.flatMap(_.props.asOpt[FairwayInfo]).headOption.map(FairwayInfoClick(_, e.lngLat))
         val fairway = features
           .flatMap(f => f.props.asOpt[FairwayArea])
           .headOption
           .map(FairwayClick(_, e.lngLat))
         val depth =
           features.flatMap(f => f.props.asOpt[DepthArea]).headOption.map(DepthClick(_, e.lngLat))
-//        fairwayInfo.orElse(fairway.orElse(depth)).map(Right.apply)
-        fairway.orElse(depth).map(Right.apply)
+        fairwayInfo.orElse(fairway.orElse(depth)).map(Right.apply)
       } else {
         None
       }

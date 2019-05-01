@@ -20,9 +20,11 @@ import org.scalatest.FunSuite
 import scala.collection.JavaConverters._
 
 class ShapeUtils extends FunSuite {
+  val userHome = Paths.get(sys.props("user.home"))
+
   ignore("write shapefile to geojson with geographic WGS84") {
-    val file = Paths.get(sys.props("user.home")).resolve(".boat/vaylat/vaylat.shp")
-    val fileOut = Paths.get(sys.props("user.home")).resolve(".boat/vaylat/vaylat-geo.json")
+    val file = userHome.resolve(".boat/vaylat/vaylat.shp")
+    val fileOut = userHome.resolve(".boat/vaylat/vaylat-geo.json")
     val store = DataStoreFinder.getDataStore(Map("url" -> file.toUri.toString).asJava)
     //    println(store)
     //    store.getFeatureWriterAppend()
@@ -52,8 +54,8 @@ class ShapeUtils extends FunSuite {
   }
 
   ignore("read shape file") {
-    val file = Paths.get(sys.props("user.home")).resolve(".boat/vaylat/vaylat.shp")
-    val fileOut = Paths.get(sys.props("user.home")).resolve(".boat/vaylat/vaylat.json")
+    val file = userHome.resolve(".boat/vaylat/vaylat.shp")
+    val fileOut = userHome.resolve(".boat/vaylat/vaylat.json")
     val store = DataStoreFinder.getDataStore(Map("url" -> file.toUri.toString).asJava)
 //    println(store)
     val writer = new FeatureJSON()
@@ -96,8 +98,8 @@ class ShapeUtils extends FunSuite {
   }
 
   ignore("modify dbf file") {
-    val inFile: Path = Paths.get("")
-    val outFile: Path = Paths.get("")
+    val inFile: Path = userHome.resolve(".boat/vaylat/vaylat.dbf")
+    val outFile: Path = userHome.resolve(".boat/vaylat/vaylat-utf8.dbf")
     Files.createFile(outFile)
     val inChannel = new FileInputStream(inFile.toFile).getChannel
     val reader = new DbaseFileReader(inChannel, true, StandardCharsets.ISO_8859_1)
