@@ -26,5 +26,5 @@ object MapboxStyles {
     "cardinal-north"
   )
 
-  val clickableLayers = marksLayers ++ Seq(AisVesselLayer)
+  val clickableLayers = marksLayers ++ Seq(AisVesselLayer) ++ fairwayLayers
 }
