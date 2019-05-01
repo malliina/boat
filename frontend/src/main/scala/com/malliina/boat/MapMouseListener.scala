@@ -44,15 +44,15 @@ class MapMouseListener(map: MapboxMap,
         validate[VesselProps](props).map(vp => VesselClick(vp, target))
       } else {
         // Markers
-        validate[MarineSymbol](props)
-          .map(m => SymbolClick(m, target))
-          .left
-          .flatMap(_ => validate[MinimalMarineSymbol](props).map(m => MinimalClick(m, target)))
+        val normalSymbol = validate[MarineSymbol](props).map(m => SymbolClick(m, target))
+        val minimalSymbol = validate[MinimalMarineSymbol](props).map(m => MinimalClick(m, target))
+        normalSymbol.left.flatMap(_ => minimalSymbol)
       }
     }.orElse {
       markPopup.remove()
       if (!isTrackHover) {
-        val fairwayInfo = features.flatMap(_.props.asOpt[FairwayInfo]).headOption.map(FairwayInfoClick(_, e.lngLat))
+        val fairwayInfo =
+          features.flatMap(_.props.asOpt[FairwayInfo]).headOption.map(FairwayInfoClick(_, e.lngLat))
         val fairway = features
           .flatMap(f => f.props.asOpt[FairwayArea])
           .headOption
