@@ -313,6 +313,8 @@ object Feature {
   def point[W](coord: Coord, props: W)(implicit w: OWrites[W]): Feature =
     Feature(PointGeometry(coord), w.writes(props).value.toMap)
 
+  def point(coord: Coord): Feature = Feature(PointGeometry(coord), Map.empty)
+
   def line(coords: Seq[Coord]): Feature =
     Feature(LineGeometry(coords), Map.empty)
 

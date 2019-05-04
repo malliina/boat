@@ -246,6 +246,8 @@ val utils = project
   .settings(
     resolvers += "GeoTools" at "https://download.osgeo.org/webdav/geotools/",
     libraryDependencies ++= Seq(
+      "ch.qos.logback" % "logback-classic" % "1.2.3",
+      "org.slf4j" % "slf4j-api" % "1.7.26",
       "javax.media" % "jai_core" % "1.1.3" from "https://download.osgeo.org/webdav/geotools/javax/media/jai_core/1.1.3/jai_core-1.1.3.jar",
       "org.geotools" % "gt-shapefile" % "20.0" exclude ("javax.media", "jai_core"),
       "org.geotools" % "gt-geojson" % "20.0" exclude ("javax.media", "jai_core"),
