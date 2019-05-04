@@ -4,6 +4,8 @@ import com.malliina.boat.Coord
 import com.malliina.measure.DistanceM
 import play.api.libs.json.Json
 
+import scala.concurrent.duration.FiniteDuration
+
 case class Line(from: Coord, to: Coord) {
   def x1 = from.lng.lng
   def y1 = from.lat.lat
@@ -49,19 +51,32 @@ object ValueEdge {
   implicit val json = Json.format[ValueEdge]
 }
 
-case class ValueRoute(edges: List[Link]) extends AnyVal {
-  def cost = DistanceM(edges.map(_.cost.toMeters).sum)
-  def ::(next: Link) = ValueRoute(next :: edges)
-  def to = edges.headOption.map(_.to)
-  def reverse = ValueRoute(edges.reverse)
-  def finish(from: Coord, to: Coord) = RouteResult(from, to, reverse)
+case class ValueRoute(head: Link, tail: List[Link]) {
+  val to = head.to
+  val edges = head :: tail
+  val cost = DistanceM(edges.map(_.cost.toMeters).sum)
+  def ::(next: Link) = ValueRoute(next, head :: tail)
+
+  def reverse = {
+    tail.lastOption.map { last =>
+      ValueRoute(last, (head :: tail.init).reverse)
+    }.getOrElse {
+      ValueRoute(head, Nil)
+    }
+  }
+
+  def finish(from: Coord, to: Coord, duration: FiniteDuration) =
+    RouteResult(from, to, reverse, duration)
+
   def coords = edges.map(_.to)
 }
 
-case class RouteResult(from: Coord, to: Coord, route: ValueRoute)
+case class RouteResult(from: Coord, to: Coord, route: ValueRoute, duration: FiniteDuration)
 
 case class ValueNode(from: Coord, links: List[Link]) {
-  def edges = links.map { link => link.from(from) }
+  def edges = links.map { link =>
+    link.from(from)
+  }
   def link(l: Link) = ValueNode(from, l :: links)
 }
 

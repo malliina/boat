@@ -56,45 +56,43 @@ class GraphTests extends FunSuite {
   }
 
   test("read geo file") {
-    val graph = Graph.all
-//    val from = 24.37521 lngLat 59.97423
-    val from = 24.8438 lngLat 60.1395
-    val to = 25.2130 lngLat 60.1728
-    val exec = Executors.newCachedThreadPool()
-    val ec = ExecutionContext.fromExecutor(exec)
-    val route = try {
-      Await.result(Future(graph.shortest(from, to))(ec), 20.seconds)
-    } finally {
-      exec.shutdownNow()
-      exec.awaitTermination(10, TimeUnit.SECONDS)
-    }
+    val route = findRoute(from = 24.8438 lngLat 60.1395, to = 25.2130 lngLat 60.1728)
     assert(route.isRight)
     val r = route.right.get
     val cost = r.route.cost
-    println(Json.toJson(toGeo(r)))
     assert(cost > 22.kilometers)
     assert(cost < 22.8.kilometers)
   }
 
-  ignore("read geo file 2") {
+  test("read geo file 2") {
+    val route = findRoute(from = 24.37521 lngLat 59.97423, to = 25.2130 lngLat 60.1728)
+    assert(route.isRight)
+    val r = route.right.get
+    val cost = r.route.cost
+    assert(cost > 55.6.kilometers)
+    assert(cost < 55.7.kilometers)
+  }
+
+  ignore("kemi to kotka") {
+    val aland = 20.2218 lngLat 60.1419
+    val hango = 23.0191 lngLat 59.7750
+    val kemi = 24.4010 lngLat 65.4457
+    val kotka = 26.9771 lngLat 60.4505
+    val route = findRoute(from = aland, to = kotka)
+    assert(route.isRight)
+    println(Json.toJson(toGeo(route.right.get)))
+  }
+
+  private def findRoute(from: Coord, to: Coord) = {
     val graph = Graph.all
-    val from = 24.37521 lngLat 59.97423
-    //    val from = 24.8438 lngLat 60.1395
-    val to = 25.2130 lngLat 60.1728
     val exec = Executors.newCachedThreadPool()
     val ec = ExecutionContext.fromExecutor(exec)
-    val route = try {
+    try {
       Await.result(Future(graph.shortest(from, to))(ec), 30.seconds)
     } finally {
       exec.shutdownNow()
       exec.awaitTermination(10, TimeUnit.SECONDS)
     }
-    assert(route.isRight)
-    val r = route.right.get
-    val cost = r.route.cost
-    println(Json.toJson(toGeo(r)))
-//    assert(cost > 22.kilometers)
-//    assert(cost < 24.kilometers)
   }
 
   ignore("read and write graph") {

@@ -9,8 +9,7 @@ import org.slf4j.LoggerFactory
 import play.api.libs.json.{Format, Json, Reads, Writes}
 
 import scala.annotation.tailrec
-import scala.collection.parallel.ParSeq
-import com.malliina.measure.DistanceIntM
+import scala.concurrent.duration.DurationLong
 
 object Graph {
   val log = LoggerFactory.getLogger(getClass)
@@ -144,6 +143,7 @@ class Graph(val nodes: Map[CoordHash, ValueNode]) {
   }
 
   def shortest(from: Coord, to: Coord): Either[GraphError, RouteResult] = {
+    val startMillis = System.currentTimeMillis()
     log.info(s"Finding shortest route from $from to $to...")
     val start =
       nodes.get(from.hash).orElse(nodes.get(nearest(from).hash)).toRight(UnresolvedFrom(from))
@@ -152,9 +152,9 @@ class Graph(val nodes: Map[CoordHash, ValueNode]) {
       startNode <- start
       _ = log.info(s"Starting from ${startNode.from} and ending at $end...")
       initialPaths = startNode.links.map(link =>
-        ValueRoute(link :: Link(startNode.from, DistanceM.zero) :: Nil))
+        ValueRoute(link, Link(startNode.from, DistanceM.zero) :: Nil))
       result <- search(startNode.from, end, initialPaths, Map.empty).map(_.reverse)
-    } yield result.finish(from, to)
+    } yield result.finish(from, to, (System.currentTimeMillis() - startMillis).millis)
   }
 
   @tailrec
@@ -162,15 +162,14 @@ class Graph(val nodes: Map[CoordHash, ValueNode]) {
                      to: Coord,
                      currentPaths: List[ValueRoute],
                      shortestKnown: Map[CoordHash, ValueRoute]): Either[GraphError, ValueRoute] = {
-//    val candidates = currentPaths.filter(r => r.to.forall(t => shortestKnown.get(t.hash).forall(_.cost > r.cost)))
-    val candidates = shortestKnown.get(to.hash).map(hit => currentPaths.filter(_.cost < hit.cost)).getOrElse(currentPaths)
-    //    log.debug(s"Searching with paths of cost ${currentPaths.map(_.cost).mkString(", ")}...")
+    val candidates = shortestKnown
+      .get(to.hash)
+      .map(hit => currentPaths.filter(_.cost < hit.cost))
+      .getOrElse(currentPaths)
     val nextLevel = candidates.flatMap { path =>
-      path.to.toList.flatMap { leaf =>
-        nodes.get(leaf.hash).toList.flatMap { edges =>
-          edges.links.map { link =>
-            link :: path
-          }
+      nodes.get(path.to.hash).toList.flatMap { edges =>
+        edges.links.map { link =>
+          link :: path
         }
       }
     }
@@ -179,86 +178,29 @@ class Graph(val nodes: Map[CoordHash, ValueNode]) {
       shortestKnown.get(to.hash).toRight(NoRoute(from, to))
     } else {
       val candidateLevel = nextLevel.filter { route =>
-        route.to.exists { leaf =>
-          val hash = leaf.hash
-          !shortestKnown.contains(hash) || shortestKnown.get(hash).exists(_.cost > route.cost)
-        }
+        val hash = route.to.hash
+        !shortestKnown.contains(hash) || shortestKnown.get(hash).exists(_.cost > route.cost)
       }
-      val novel = candidateLevel.flatMap { route =>
-        route.to.map { coord =>
-          coord.hash -> route
-        }
-      }.toMap
-      val (hits, others) = candidateLevel.partition(_.to.exists(_.hash == to.hash))
+      val novel = candidateLevel.groupBy(_.to.hash).mapValues(_.minBy(_.cost))
+      val novelList = novel.values.toList
+      val (hits, others) = novelList.partition(_.to.hash == to.hash)
       val newShortest = shortestKnown ++ novel
-      val shortest = shortestKnown.get(to.hash)
+      val shortest = newShortest.get(to.hash)
       // Hacking if/else in order to maintain tailrec
       if (shortest.isDefined && others.forall(_.cost >= shortest.get.cost)) {
         log.info(s"Found shortest path from $from to $to.")
         Right(shortest.get)
       } else {
         if (hits.nonEmpty && others.nonEmpty) {
+          val hitCost = hits.minBy(_.cost).cost
           val otherCost = others.minBy(_.cost).cost
-          log.info(
-            s"Found path from $from to $to with cost ${hits.minBy(_.cost).cost}. Another path exists with cost $otherCost, therefore continuing search...")
+          log.debug(
+            s"Found path from $from to $to with cost $hitCost. Another path exists with cost $otherCost, therefore continuing search...")
         }
-        search(from, to, candidateLevel, newShortest)
+        search(from, to, novelList, newShortest)
       }
     }
   }
-
-//  @tailrec
-//  private def search(from: Coord,
-//                     to: Coord,
-//                     currentPaths: List[ValueRoute],
-//                     shortestKnown: Map[CoordHash, ValueRoute]): Either[GraphError, ValueRoute] = {
-//    val candidates = currentPaths
-////      shortestKnown.get(to.hash).map(hit => currentPaths.filter(_.cost < hit.cost)).getOrElse(currentPaths)
-////    log.info(s"Searching with ${candidates.size} paths of cost ${candidates.map(_.cost).mkString(", ")}...")
-//    log.info(s"Searching ${candidates.size} paths having ${shortestKnown.size} known routes...")
-//    val nextLevel = candidates.flatMap { path =>
-//      path.to.toList.flatMap { leaf =>
-//        nodes.get(leaf.hash).toList.flatMap { edges =>
-//          edges.links.filter { l =>
-//            shortestKnown.get(l.to.hash).forall(s => s.cost > (l :: path).cost)
-//          }.map { link =>
-//            link :: path
-//          }
-//        }
-//      }
-//    }
-//    if (nextLevel.isEmpty) {
-//      log.info("Search complete, graph exhausted.")
-//      shortestKnown.get(to.hash).toRight(NoRoute(from, to))
-//    } else {
-//      val candidateLevel = nextLevel.filter { route =>
-//        route.edges.headOption.exists { leaf =>
-//          !shortestKnown.contains(leaf.to.hash) || shortestKnown.get(leaf.to.hash).exists(_.cost > route.cost)
-//        }
-//      }
-//      val novel = candidateLevel.flatMap { route =>
-//        route.to.map { coord =>
-//          coord.hash -> route
-//        }
-//      }.toMap
-//      val (hits, others) = candidateLevel.par.partition(_.to.exists(_.hash == to.hash))
-//      val newShortest = shortestKnown ++ novel
-//      val shortest = newShortest.get(to.hash)
-//      // Hacking if/else in order to maintain tailrec
-//      if (shortest.isDefined && others.forall(_.cost >= shortest.get.cost)) {
-//        log.info(s"Found shortest path from $from to $to.")
-//        Right(shortest.get)
-//      } else {
-//        if (hits.nonEmpty && others.nonEmpty) {
-//          val otherCost = others.minBy(_.cost).cost
-//          log.info(
-//            s"Found path from $from to $to with cost ${hits.minBy(_.cost).cost}. Another path exists with cost $otherCost, therefore continuing search...")
-//        }
-////        log.info(s"Next level with ${candidateLevel.size} candidates")
-//        search(from, to, candidateLevel, newShortest)
-//      }
-//    }
-//  }
 
   private def cost(from: Coord, to: Coord): DistanceM = Earth.distance(from, to)
 }
