@@ -18,7 +18,7 @@ const WebApp = Merge(ScalaJS, {
         test: /\.less$/,
         use: [
           MiniCssExtractPlugin.loader,
-          { loader: 'css-loader', options: { importLoaders: 1, url: false } },
+          { loader: 'css-loader', options: { importLoaders: 1, url: true } },
           'postcss-loader',
           'less-loader'
         ]
@@ -34,7 +34,7 @@ const WebApp = Merge(ScalaJS, {
       {
         test: /\.(png|woff|woff2|eot|ttf|svg)$/,
         use: [
-          { loader: 'url-loader', options: { limit: 8192, name: 'static/fonts/[name]-[hash].[ext]' } }
+          { loader: 'url-loader', options: { limit: 8192, name: 'static/assets/[name]-[hash].[ext]' } }
         ],
         exclude: /node_modules/
       },

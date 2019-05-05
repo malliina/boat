@@ -1,6 +1,6 @@
 package com.malliina.boat.graph
 
-import com.malliina.boat.{Coord, Link, RouteSpec}
+import com.malliina.boat.{Coord, Earth, Link, RouteSpec}
 import com.malliina.measure.DistanceM
 import play.api.libs.json.Json
 
@@ -29,9 +29,18 @@ trait EdgeLike {
   def isConnected(other: EdgeLike) = contains(other.from) || contains(other.to)
   def isSimilar(other: EdgeLike) = contains(other.from) && contains(other.to)
   def describe = s"(${from.hash} - ${to.hash})"
+  def withPoint(p: Coord) = PointOnEdge(from, to, p)
 }
 
 case class Edge(from: Coord, to: Coord) extends EdgeLike
+
+case class PointOnEdge(from: Coord, to: Coord, point: Coord) extends EdgeLike {
+  def distanceFrom = Earth.distance(from, point)
+  def distanceTo = Earth.distance(to, point)
+  def closest = if (distanceFrom < distanceTo) from else to
+}
+
+case class RouteEndpoint(desired: Coord, pseudo: Option[Coord], closest: ValueNode)
 
 case class ValueEdge(from: Coord, to: Coord, cost: DistanceM) extends EdgeLike {
   def link = Link(to, cost)

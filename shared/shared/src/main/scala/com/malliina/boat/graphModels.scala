@@ -25,6 +25,8 @@ case class RouteSpec(links: List[Link], cost: DistanceM) {
 
   def finish(from: Coord, to: Coord, duration: FiniteDuration) =
     RouteResult(from, to, this, duration)
+
+  def ::(link: Link) = RouteSpec(link :: links, link.cost + cost)
 }
 
 object RouteSpec {
