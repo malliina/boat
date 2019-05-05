@@ -2,44 +2,42 @@ package com.malliina.boat
 
 import java.net.URI
 
-import com.malliina.boat.http.CSRFConf
-import org.scalajs.dom.ext.Ajax
 import org.scalajs.dom.raw.{Element, HTMLAnchorElement}
 import org.scalajs.dom.window
-import play.api.libs.json.{Json, Reads, Writes}
 
-import scala.concurrent.Future
-import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 import scala.util.Try
 
-trait BaseFront extends FrontKeys with CSRFConf {
+trait BaseFront extends FrontKeys {
   val document = org.scalajs.dom.document
   val href = new URI(window.location.href)
   val queryString = Option(href.getQuery).getOrElse("")
-  val queryParams: Map[String, List[String]] = queryString.split("&").toList
-    .map { kv => kv.split("=").toList }
+  val queryParams: Map[String, List[String]] = queryString
+    .split("&")
+    .toList
+    .map { kv =>
+      kv.split("=").toList
+    }
     .collect { case key :: value :: Nil => key -> value }
     .groupBy { case (key, _) => key }
-    .mapValues { vs => vs.map { case (_, v) => v } }
-
-  def put[W: Writes, R: Reads](uri: String, data: W): Future[R] = {
-    val headers = Map(
-      "Content-Type" -> "application/json",
-      CsrfHeaderName -> CsrfTokenNoCheck
-    )
-    Ajax.put(uri, Json.stringify(Json.toJson(data)), headers = headers).flatMap { xhr =>
-      val status = xhr.status
-      val json = Json.parse(xhr.responseText)
-      if (status >= 200 && status <= 300) Future.successful(json.as[R])
-      else Future.failed(new Exception(s"Invalid response code '$status' from '$uri'."))
+    .mapValues { vs =>
+      vs.map { case (_, v) => v }
     }
+
+  def readTrack: PathState = href.getPath.split('/').toList match {
+    case _ :: "tracks" :: track :: _ => Name(TrackName(track))
+    case _ :: "routes" :: srcLat :: srcLng :: destLat :: destLng :: _ =>
+      val result = for {
+        srcLatD <- toDouble(srcLat)
+        srcLngD <- toDouble(srcLng)
+        destLatD <- toDouble(destLat)
+        destLngD <- toDouble(destLng)
+      } yield RouteRequest(srcLatD, srcLngD, destLatD, destLngD)
+      result.map(e => e.fold(_ => NoTrack, req => Route(req))).getOrElse(NoTrack)
+    case _ :: canonical :: Nil => Canonical(TrackCanonical(canonical))
+    case _                     => NoTrack
   }
 
-  def readTrack: TrackState = href.getPath.split('/').toList match {
-    case _ :: "tracks" :: track :: _ => Name(TrackName(track))
-    case _ :: canonical :: Nil => Canonical(TrackCanonical(canonical))
-    case _ => NoTrack
-  }
+  def toDouble(s: String) = Try(s.toDouble).toOption
 
   def queryDouble(key: String) = query(key).flatMap(s => Try(s.toDouble).toOption)
 
@@ -51,19 +49,21 @@ trait BaseFront extends FrontKeys with CSRFConf {
 
   def elemAs[T](id: String) = elem(id).map(_.asInstanceOf[T])
 
-  def elem(id: String): Either[NotFound, Element] = Option(document.getElementById(id)).toRight(NotFound(id))
+  def elem(id: String): Either[NotFound, Element] =
+    Option(document.getElementById(id)).toRight(NotFound(id))
 }
 
-sealed trait TrackState {
+sealed trait PathState {
   def toOption: Option[TrackName] = this match {
     case Name(track) => Option(track)
-    case _ => None
+    case _           => None
   }
 }
 
-case class Canonical(track: TrackCanonical) extends TrackState
-case class Name(track: TrackName) extends TrackState
-case object NoTrack extends TrackState
+case class Canonical(track: TrackCanonical) extends PathState
+case class Name(track: TrackName) extends PathState
+case class Route(req: RouteRequest) extends PathState
+case object NoTrack extends PathState
 
 case class NotFound(id: String) {
   override def toString: String = id

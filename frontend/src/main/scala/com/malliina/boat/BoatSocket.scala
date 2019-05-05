@@ -3,10 +3,11 @@ package com.malliina.boat
 import play.api.libs.json.JsValue
 
 object BoatSocket {
-  def query(track: TrackState, sample: Option[Int]): String = {
+  def query(track: PathState, sample: Option[Int]): String = {
     val params = track match {
       case Name(name)           => Seq(TrackName.Key -> name.name)
       case Canonical(canonical) => Seq(TrackCanonical.Key -> canonical.name)
+      case Route(req)           => Nil
       case NoTrack              => Nil
     }
     val allParams = params ++ sample.map(s => FrontKeys.SampleKey -> s"$s").toList
@@ -17,7 +18,7 @@ object BoatSocket {
 }
 
 abstract class BoatSocket(path: String) extends BaseSocket(path) with BaseFront {
-  def this(track: TrackState, sample: Option[Int]) =
+  def this(track: PathState, sample: Option[Int]) =
     this(s"/ws/updates${BoatSocket.query(track, sample)}")
 
   override def handlePayload(payload: JsValue): Unit =

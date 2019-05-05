@@ -11,7 +11,8 @@ import scala.concurrent.Future
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 
 class MapSocket(val map: MapboxMap,
-                track: TrackState,
+                pathFinder: PathFinder,
+                track: PathState,
                 sample: Option[Int],
                 mode: MapMode,
                 language: Language)
@@ -25,7 +26,7 @@ class MapSocket(val map: MapboxMap,
   val boatPopup = MapboxPopup(PopupOptions(className = Option("popup-boat")))
   val ais = AISRenderer(map)
   val html = Popups(lang)
-  val popups = MapMouseListener(map, ais, html)
+  val popups = MapMouseListener(map, pathFinder, ais, html)
 
   private var mapMode: MapMode = mode
   private var boats = Map.empty[String, FeatureCollection]
@@ -257,6 +258,9 @@ trait GeoUtils {
         map.putLayer(layer)
         Outcome.Added
       }
+
+  def drawLine(id: String, geoJson: FeatureCollection) =
+    updateOrSet(Layer.line(id, geoJson, LinePaint.thin(), None))
 
   def lineFor(coords: Seq[Coord]) = collectionFor(LineGeometry(coords), Map.empty)
 

@@ -64,7 +64,7 @@ class GraphTests extends FunSuite {
     assert(cost < 22.8.kilometers)
   }
 
-  test("read geo file 2") {
+  test("porkkala to helsinki") {
     val route = findRoute(from = 24.37521 lngLat 59.97423, to = 25.2130 lngLat 60.1728)
     assert(route.isRight)
     val r = route.right.get
@@ -75,24 +75,12 @@ class GraphTests extends FunSuite {
 
   ignore("kemi to kotka") {
     val aland = 20.2218 lngLat 60.1419
-    val hango = 23.0191 lngLat 59.7750
-    val kemi = 24.4010 lngLat 65.4457
+//    val hango = 23.0191 lngLat 59.7750
+//    val kemi = 24.4010 lngLat 65.4457
     val kotka = 26.9771 lngLat 60.4505
     val route = findRoute(from = aland, to = kotka)
     assert(route.isRight)
-    println(Json.toJson(toGeo(route.right.get)))
-  }
-
-  private def findRoute(from: Coord, to: Coord) = {
-    val graph = Graph.all
-    val exec = Executors.newCachedThreadPool()
-    val ec = ExecutionContext.fromExecutor(exec)
-    try {
-      Await.result(Future(graph.shortest(from, to))(ec), 30.seconds)
-    } finally {
-      exec.shutdownNow()
-      exec.awaitTermination(10, TimeUnit.SECONDS)
-    }
+//    println(Json.toJson(toGeo(route.right.get)))
   }
 
   ignore("read and write graph") {
@@ -109,6 +97,18 @@ class GraphTests extends FunSuite {
     val n = graph.nearest(24 lngLat 60)
     println(graph.nodes)
     println(n)
+  }
+
+  private def findRoute(from: Coord, to: Coord) = {
+    val graph = Graph.all
+    val exec = Executors.newCachedThreadPool()
+    val ec = ExecutionContext.fromExecutor(exec)
+    try {
+      Await.result(Future(graph.shortest(from, to))(ec), 30.seconds)
+    } finally {
+      exec.shutdownNow()
+      exec.awaitTermination(10, TimeUnit.SECONDS)
+    }
   }
 
   def toGeo(r: RouteResult) = FeatureCollection(

@@ -1,6 +1,16 @@
 package com.malliina.mapbox
 
-import com.malliina.boat.{AccessToken, Coord, Feature, FeatureCollection, JsonError, Latitude, Layer, Longitude, Parsing}
+import com.malliina.boat.{
+  AccessToken,
+  Coord,
+  Feature,
+  FeatureCollection,
+  JsonError,
+  Latitude,
+  Layer,
+  Longitude,
+  Parsing
+}
 import org.scalajs.dom
 import org.scalajs.dom.html
 import org.scalajs.dom.raw.HTMLCanvasElement
@@ -28,14 +38,13 @@ trait GeocoderOptions extends js.Object {
 
 object GeocoderOptions {
   def apply(accessToken: String, countries: Seq[String]): GeocoderOptions =
-    literal(accessToken = accessToken, countries = countries.mkString(",")).asInstanceOf[GeocoderOptions]
+    literal(accessToken = accessToken, countries = countries.mkString(","))
+      .asInstanceOf[GeocoderOptions]
 }
 
 @js.native
 @JSImport("@mapbox/mapbox-gl-geocoder", JSImport.Default)
-class MapboxGeocoder(options: GeocoderOptions) extends js.Object {
-
-}
+class MapboxGeocoder(options: GeocoderOptions) extends js.Object {}
 
 object MapboxGeocoder {
   def finland(accessToken: AccessToken): MapboxGeocoder =
@@ -56,21 +65,29 @@ object MarkerOptions {
 @JSImport("mapbox-gl", "Marker")
 class MapboxMarker(options: MarkerOptions) extends js.Object {
   def setLngLat(coord: LngLatLike): MapboxMarker = js.native
-
+  def getLngLat(): LngLat = js.native
   def setPopup(popup: MapboxPopup): MapboxMarker = js.native
-
   def addTo(map: MapboxMap): MapboxMarker = js.native
-
   def remove(): Unit = js.native
 }
 
 object MapboxMarker {
 
-  def apply[T <: dom.Element](html: TypedTag[T], coord: Coord, popup: MapboxPopup, on: MapboxMap) =
-    new MapboxMarker(MarkerOptions(html)).coord(coord).setPopup(popup).addTo(on)
+  def apply[T <: dom.Element](html: TypedTag[T],
+                              coord: Coord,
+                              popup: MapboxPopup,
+                              on: MapboxMap): MapboxMarker =
+    new MapboxMarker(MarkerOptions(html)).at(coord).setPopup(popup).addTo(on)
+
+  def apply[T <: dom.Element](html: TypedTag[T], coord: Coord, on: MapboxMap): MapboxMarker =
+    new MapboxMarker(MarkerOptions(html)).at(coord).addTo(on)
 
   implicit class MarkerExt(val self: MapboxMarker) extends AnyVal {
-    def coord(coord: Coord): MapboxMarker = self.setLngLat(LngLatLike(coord.lng, coord.lat))
+    def at(coord: Coord): MapboxMarker = self.setLngLat(LngLatLike(coord.lng, coord.lat))
+    def coord: Coord = {
+      val lngLat = self.getLngLat()
+      Coord(Longitude(lngLat.lng), Latitude(lngLat.lat))
+    }
   }
 
 }
@@ -98,13 +115,9 @@ object PopupOptions {
 @JSImport("mapbox-gl", "Popup")
 class MapboxPopup(options: PopupOptions) extends js.Object {
   def setLngLat(coord: LngLatLike): MapboxPopup = js.native
-
   def setHTML(html: String): MapboxPopup = js.native
-
   def setText(text: String): MapboxPopup = js.native
-
   def addTo(map: MapboxMap): MapboxPopup = js.native
-
   def remove(): Unit = js.native
 }
 

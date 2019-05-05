@@ -1,5 +1,6 @@
 package com.malliina.boat
 
+import com.malliina.mapbox.LngLatLike
 import com.malliina.measure.{Distance, DistanceM, Speed}
 import scalatags.JsDom.all._
 

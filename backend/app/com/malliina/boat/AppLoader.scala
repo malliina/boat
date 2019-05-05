@@ -121,7 +121,8 @@ class AppComponents(init: (Configuration, OkClient, ExecutionContext) => AppBuil
     appConf.mapboxToken, html, users, googleAuth, boatService, tracks, push,
     controllerComponents)(actorSystem, materializer)
   val docs = new DocsController(controllerComponents)
-  override lazy val router: Router = new Routes(httpErrorHandler, boatCtrl, appCtrl, pushCtrl, signIn, docs, files)
+  val graphs = new GraphController(controllerComponents)
+  override lazy val router: Router = new Routes(httpErrorHandler, boatCtrl, appCtrl, pushCtrl, graphs, signIn, docs, files)
 
   applicationLifecycle.addStopHook(() => Future.successful {
     schema.close()

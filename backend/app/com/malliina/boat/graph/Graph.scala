@@ -68,10 +68,6 @@ class Graph(val nodes: Map[CoordHash, ValueNode]) {
 
   def isEmpty = coords.isEmpty
 
-//  def nearest(to: Coord): Either[GraphError, Coord] =
-//    if (isEmpty) Left(EmptyGraph)
-//    else Right(coords.minBy(c => Earth.distance(c, to)))
-
   def nearest(to: Coord): Coord =
     coords.minBy(c => Earth.distance(c, to))
 
@@ -119,7 +115,7 @@ class Graph(val nodes: Map[CoordHash, ValueNode]) {
         }
       if (crossingEdges.isEmpty) {
         val valuedLink = Link(edge.to, cost(edge.from, edge.to))
-        val valued = valuedLink.from(edge.from)
+        val valued = ValueEdge(edge.from, valuedLink.to, valuedLink.cost)
         val existing = nodes.get(edge.from.hash)
         val isNewEdge = !existing.map(_.edges).exists(_.exists(_.isSimilar(valued)))
         val toHash = edge.to.hash
@@ -154,7 +150,11 @@ class Graph(val nodes: Map[CoordHash, ValueNode]) {
       initialPaths = startNode.links.map(link =>
         ValueRoute(link, Link(startNode.from, DistanceM.zero) :: Nil))
       result <- search(startNode.from, end, initialPaths, Map.empty).map(_.reverse)
-    } yield result.finish(from, to, (System.currentTimeMillis() - startMillis).millis)
+    } yield {
+      val duration = (System.currentTimeMillis() - startMillis).millis
+      log.info(s"Found shortest route from $from to $to in $duration")
+      result.finish(from, to, duration)
+    }
   }
 
   @tailrec
@@ -188,7 +188,7 @@ class Graph(val nodes: Map[CoordHash, ValueNode]) {
       val shortest = newShortest.get(to.hash)
       // Hacking if/else in order to maintain tailrec
       if (shortest.isDefined && others.forall(_.cost >= shortest.get.cost)) {
-        log.info(s"Found shortest path from $from to $to.")
+        log.debug(s"Found shortest path from $from to $to.")
         Right(shortest.get)
       } else {
         if (hits.nonEmpty && others.nonEmpty) {

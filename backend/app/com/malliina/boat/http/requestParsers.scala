@@ -4,8 +4,8 @@ import java.time.Instant
 import java.time.format.DateTimeParseException
 import java.time.temporal.ChronoUnit
 
-import com.malliina.boat.{Constants, SingleError, TrackCanonical, TrackName}
-import com.malliina.values.Email
+import com.malliina.boat.{Constants, Coord, Latitude, Longitude, RouteRequest, SingleError, TrackCanonical, TrackName}
+import com.malliina.values.{Email, ErrorMessage}
 import play.api.mvc.{QueryStringBindable, Request, RequestHeader}
 
 import scala.concurrent.duration.DurationInt
@@ -92,6 +92,7 @@ case class BoatQuery(limits: Limits,
                      timeRange: TimeRange,
                      tracks: Seq[TrackName],
                      canonicals: Seq[TrackCanonical],
+                     route: Option[RouteRequest],
                      sample: Option[Int],
                      newest: Boolean) {
   def limit = limits.limit
@@ -119,6 +120,7 @@ object BoatQuery {
               TimeRange(None, None),
               tracks,
               Nil,
+              None,
               Option(DefaultSample),
               newest = false)
 
@@ -127,6 +129,7 @@ object BoatQuery {
               TimeRange.recent(now),
               Nil,
               Nil,
+              None,
               Option(DefaultSample),
               newest = false)
 
@@ -136,9 +139,10 @@ object BoatQuery {
       timeRange <- TimeRange(rh)
       tracks <- bindSeq(TrackName.Key, tracksBindable, rh)
       canonicals <- bindSeq(TrackCanonical.Key, canonicalsBindable, rh)
+      route <- bindRouteRequest(rh)
       sample <- Limits.readInt(SampleKey, rh)
       newest <- bindNewest(rh, default = true)
-    } yield BoatQuery(limits, timeRange, tracks, canonicals, sample, newest)
+    } yield BoatQuery(limits, timeRange, tracks, canonicals, route, sample, newest)
 
   def bindSeq[T](key: String, single: QueryStringBindable[Seq[T]], rh: RequestHeader) =
     single.bind(key, rh.queryString).map(_.left.map(SingleError.input)).getOrElse(Right(Nil))
@@ -149,6 +153,48 @@ object BoatQuery {
       .getOrElse(Right(default))
       .left
       .map(SingleError.input)
+
+  def bindRouteRequest(rh: RequestHeader): Either[SingleError, Option[RouteRequest]] = {
+    val optEither = for {
+      lng1 <- readLongitude("lng1", rh)
+      lat1 <- readLatitude("lat1", rh)
+      lng2 <- readLongitude("lng2", rh)
+      lat2 <- readLatitude("lat2", rh)
+    } yield {
+      for {
+        ln1 <- lng1
+        la1 <- lat1
+        ln2 <- lng2
+        la2 <- lat2
+      } yield RouteRequest(Coord(ln1, la1), Coord(ln2, la2))
+    }
+    optEither.map { e =>
+      e.map(req => Option(req))
+    }.getOrElse {
+      Right(None)
+    }
+  }
+
+  def readLongitude(key: String, rh: RequestHeader) =
+    transformDouble(key, rh)(Longitude.build)
+
+  def readLatitude(key: String, rh: RequestHeader) =
+    transformDouble(key, rh)(Latitude.build)
+
+  def transformDouble[T](key: String, rh: RequestHeader)(
+      transform: Double => Either[ErrorMessage, T]) =
+    readDouble(key, rh).map { e =>
+      e.flatMap { d =>
+        transform(d).left.map { err =>
+          SingleError.input(err.message)
+        }
+      }
+    }
+
+  def readDouble(key: String, rh: RequestHeader) =
+    QueryStringBindable.bindableDouble
+      .bind(key, rh.queryString)
+      .map(_.left.map(SingleError.input))
 }
 
 case class Limits(limit: Int, offset: Int) {

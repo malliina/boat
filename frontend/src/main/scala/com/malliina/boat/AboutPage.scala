@@ -1,5 +1,6 @@
 package com.malliina.boat
 
+import com.malliina.http.HttpClient
 import org.scalajs.dom.raw.HTMLInputElement
 
 object AboutPage {
@@ -15,6 +16,6 @@ class AboutPage extends BaseFront {
   }
 
   def langChanged(to: Language): Unit = {
-    put[ChangeLanguage, SimpleMessage]("/users/me", ChangeLanguage(to))
+    HttpClient.put[ChangeLanguage, SimpleMessage]("/users/me", ChangeLanguage(to))
   }
 }

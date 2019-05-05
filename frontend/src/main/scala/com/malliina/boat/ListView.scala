@@ -1,6 +1,7 @@
 package com.malliina.boat
 
 import com.malliina.boat.http.CSRFConf
+import com.malliina.http.HttpClient
 import org.scalajs.dom.raw._
 import play.api.libs.json.{JsObject, Json}
 
@@ -32,7 +33,7 @@ class ListView(form: HTMLFormElement,
   form.onsubmit = (e: Event) => {
     elemAs[HTMLInputElement](TitleInputId).map { in =>
       readTrack.toOption.map { track =>
-        put[JsObject, TrackResponse](s"/tracks/$track", Json.obj(TrackTitle.Key -> in.value)).map {
+        HttpClient.put[JsObject, TrackResponse](s"/tracks/$track", Json.obj(TrackTitle.Key -> in.value)).map {
           res =>
             elemAs[HTMLSpanElement](TrackTitleId).map { span =>
               span.textContent = res.track.describe

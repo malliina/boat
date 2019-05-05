@@ -110,7 +110,9 @@ object Coord {
             s"Expected a JSON array of at least two numbers for coordinates [lng, lat]. Got: '$json'.")
       }
     },
-    Writes[Coord] { c => Json.toJson(c.toArray) }
+    Writes[Coord] { c =>
+      Json.toJson(c.toArray)
+    }
   )
 
   def buildOrFail(lng: Double, lat: Double): Coord =
@@ -126,6 +128,21 @@ object Coord {
     val trunc = (d * 100000).toInt.toDouble / 100000
     "%1.5f".format(trunc)
   }
+}
+
+case class RouteRequest(from: Coord, to: Coord)
+
+object RouteRequest {
+  implicit val json = Json.format[RouteRequest]
+
+  def apply(srcLat: Double,
+            srcLng: Double,
+            destLat: Double,
+            destLng: Double): Either[ErrorMessage, RouteRequest] =
+    for {
+      from <- Coord.build(srcLng, srcLat)
+      to <- Coord.build(destLng, destLat)
+    } yield RouteRequest(from, to)
 }
 
 case class TimedCoord(id: TrackPointId,
@@ -438,6 +455,8 @@ object CoordsEvent {
   implicit val coordJson = Coord.json
   implicit val json: OFormat[CoordsEvent] = keyValued(Key, Json.format[CoordsEvent])
 }
+
+//case class RouteEvent(route: RouteResult)
 
 case class CoordsBatch(events: Seq[CoordsEvent]) extends FrontEvent {
   override def isIntendedFor(user: Username): Boolean =

@@ -42,13 +42,21 @@ class MapView(accessToken: AccessToken,
   )
   val map = new MapboxMap(mapOptions)
   val geocoder = MapboxGeocoder.finland(accessToken)
+  val pathFinder = PathFinder(map)
   private var isGeocoderVisible = false
 
   elemAs[HTMLDivElement](MapId).right.get.onkeypress = (e: KeyboardEvent) => {
-    if (e.key == "s" && !document.activeElement.isInstanceOf[HTMLInputElement]) {
-      if (isGeocoderVisible) map.removeControl(geocoder)
-      else map.addControl(geocoder)
-      isGeocoderVisible = !isGeocoderVisible
+    if (!document.activeElement.isInstanceOf[HTMLInputElement]) {
+      e.key match {
+        case "s" =>
+          if (isGeocoderVisible) map.removeControl(geocoder)
+          else map.addControl(geocoder)
+          isGeocoderVisible = !isGeocoderVisible
+        case "d" =>
+          pathFinder.toggleState()
+        case _ =>
+          ()
+      }
     }
   }
   var socket: Option[MapSocket] = None
@@ -58,7 +66,7 @@ class MapView(accessToken: AccessToken,
     () => {
       val mode = if (Option(href.getFragment).isDefined) MapMode.Stay else MapMode.Fit
       val sample = queryInt(SampleKey).getOrElse(Constants.DefaultSample)
-      socket = Option(new MapSocket(map, readTrack, Option(sample), mode, language))
+      socket = Option(new MapSocket(map, pathFinder, readTrack, Option(sample), mode, language))
     }
   )
 
