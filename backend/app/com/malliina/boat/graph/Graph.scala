@@ -59,26 +59,6 @@ object Graph {
     apply(ns.map { n =>
       n.from.hash -> n
     }.toMap)
-
-  /**
-    * @see http://www.java2s.com/Code/Java/2D-Graphics-GUI/Returnsclosestpointonsegmenttopoint.htm
-    */
-  def nearestOnLine(edge: EdgeLike, point: Coord): Coord = {
-    val start = edge.from
-    val end = edge.to
-    val x1 = start.lng.lng
-    val y1 = start.lat.lat
-    val x2 = end.lng.lng
-    val y2 = end.lat.lat
-    val px = point.lng.lng
-    val py = point.lat.lat
-    val xDelta = x2 - x1
-    val yDelta = y2 - y1
-    val u = ((px - x1) * xDelta + (py - y1) * yDelta) / (xDelta * xDelta + yDelta * yDelta)
-    if (u < 0) start
-    else if (u > 1) end
-    else Coord(Longitude(x1 + u * xDelta), Latitude(y1 + u * yDelta))
-  }
 }
 
 class Graph(val nodes: Map[CoordHash, ValueNode]) {
@@ -90,19 +70,6 @@ class Graph(val nodes: Map[CoordHash, ValueNode]) {
 
   def nearest(to: Coord): Coord =
     coords.minBy(c => Earth.distance(c, to))
-
-  def nearestAdvanced(to: Coord) = coords.toList
-    .sortBy(Earth.distance(_, to))
-    .take(3)
-    .flatMap { c =>
-      nodes.get(c.hash).toList.flatMap { node =>
-        node.edges.map { edge =>
-          val point = Graph.nearestOnLine(edge, to)
-          edge.withPoint(point)
-        }
-      }
-    }
-    .minBy(near => Earth.distance(near.point, to))
 
   def edges(es: List[Edge]): Graph = es.foldLeft(this) { (acc, e) =>
     acc.edge(e)
