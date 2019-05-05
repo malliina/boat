@@ -152,10 +152,19 @@ class Graph(val nodes: Map[CoordHash, ValueNode]) {
       result <- search(startNode.from, end, initialPaths, Map.empty).map(_.reverse)
     } yield {
       val duration = (System.currentTimeMillis() - startMillis).millis
-      log.info(s"Found shortest route from $from to $to with length ${result.cost} in $duration")
-      result.finish(from, to, duration)
+      val totalCost =
+        result.links.headOption.fold(DistanceM.zero)(head => cost(from, head.to)) +
+          result.cost +
+          result.links.lastOption.fold(DistanceM.zero)(last => cost(last.to, to))
+      val totalFormatted = formatDistance(totalCost)
+      val routeFormatted = formatDistance(result.cost)
+      log.info(
+        s"Found shortest route from $from to $to with route length $routeFormatted and total length $totalFormatted in $duration.")
+      result.finish(from, to, totalCost, duration)
     }
   }
+
+  def formatDistance(d: DistanceM) = "%.3f km".format(d.toKilometers)
 
   @tailrec
   private def search(from: Coord,

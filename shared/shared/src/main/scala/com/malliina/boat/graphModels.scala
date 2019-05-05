@@ -23,8 +23,9 @@ object Link {
 case class RouteSpec(links: List[Link], cost: DistanceM) {
   def coords = links.map(_.to)
 
-  def finish(from: Coord, to: Coord, duration: FiniteDuration) =
-    RouteResult(from, to, this, duration)
+  def finish(from: Coord, to: Coord, totalCost: DistanceM, duration: FiniteDuration) = {
+    RouteResult(from, to, this, totalCost, duration)
+  }
 
   def ::(link: Link) = RouteSpec(link :: links, link.cost + cost)
 }
@@ -35,7 +36,11 @@ object RouteSpec {
   implicit val json = Json.format[RouteSpec]
 }
 
-case class RouteResult(from: Coord, to: Coord, route: RouteSpec, duration: FiniteDuration)
+case class RouteResult(from: Coord,
+                       to: Coord,
+                       route: RouteSpec,
+                       totalCost: DistanceM,
+                       duration: FiniteDuration)
 
 object RouteResult {
   implicit val df: Format[FiniteDuration] = DurationDoubleFormat.json

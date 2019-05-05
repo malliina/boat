@@ -1,5 +1,6 @@
 package com.malliina.boat
 
+import com.malliina.boat.PathFinder._
 import com.malliina.http.HttpClient
 import com.malliina.mapbox.{MapMouseEvent, MapboxMap, MapboxMarker}
 import play.api.libs.json.Json
@@ -8,6 +9,11 @@ import scalatags.JsDom.all._
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 
 object PathFinder {
+  val routeLayer = "route"
+  val routeFirstLayer = "route-first"
+  val routeLastLayer = "route-last"
+  val layerIds = Seq(routeLayer, routeFirstLayer, routeLastLayer)
+
   def apply(map: MapboxMap): PathFinder = new PathFinder(map)
 }
 
@@ -16,7 +22,7 @@ class PathFinder(val map: MapboxMap) extends GeoUtils {
   var start: Option[MapboxMarker] = None
   var end: Option[MapboxMarker] = None
 
-  def toggleState() = state(!isEnabled)
+  def toggleState(): Unit = state(!isEnabled)
 
   def state(enabled: Boolean): Unit = {
     if (enabled) {
@@ -49,30 +55,31 @@ class PathFinder(val map: MapboxMap) extends GeoUtils {
     }
   }
 
-  def findRoute(from: Coord, to: Coord) = {
+  def findRoute(from: Coord, to: Coord) =
     HttpClient.get[RouteResult](s"/routes/${from.lat}/${from.lng}/${to.lat}/${to.lng}").map { res =>
       val route = res.route
       val coords = route.coords
       val coll = FeatureCollection(
-        Seq(Feature(LineGeometry(coords),
-                    Map(RouteSpec.Cost -> Json.toJson(route.cost)))))
-      drawLine("route", coll)
+        Seq(Feature(LineGeometry(coords), Map(RouteSpec.Cost -> Json.toJson(route.cost)))))
+      drawLine(routeLayer, coll)
       coords.headOption.map { start =>
         val init = lineFor(Seq(from, start))
-        drawLine("route-first", init, LinePaint.dashed())
+        drawLine(routeFirstLayer, init, LinePaint.dashed())
       }
       coords.lastOption.foreach { end =>
         val init = lineFor(Seq(end, to))
-        drawLine("route-last", init, LinePaint.dashed())
+        drawLine(routeLastLayer, init, LinePaint.dashed())
       }
     }
-  }
 
   def clear(): Unit = {
     start.foreach(_.remove())
     start = None
     end.foreach(_.remove())
     end = None
+    layerIds.foreach { id =>
+      map.removeLayerAndSourceIfExists(id)
+    }
   }
 
   def startMark(c: Coord) = span(`class` := "marker start")

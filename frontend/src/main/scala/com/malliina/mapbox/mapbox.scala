@@ -172,6 +172,10 @@ class MapboxMap(options: MapOptions) extends js.Object {
 
   def addLayer(layer: js.Any): Unit = js.native
 
+  def removeLayer(id: String): Unit = js.native
+
+  def removeSource(id: String): Unit = js.native
+
   def setLayoutProperty(layer: String, prop: String, value: js.Any): Unit = js.native
 
   def queryRenderedFeatures(point: PixelCoord, options: QueryOptions): js.Any = js.native
@@ -206,6 +210,13 @@ object MapboxMap {
 
     def putLayer(layer: Layer): Unit =
       self.addLayer(JSON.parse(Parsing.stringify(layer)))
+
+    def removeLayerAndSourceIfExists(id: String): Unit = {
+      self.findSource(id).foreach { _ =>
+        self.removeLayer(id)
+        self.removeSource(id)
+      }
+    }
 
     def queryRendered(point: PixelCoord,
                       options: QueryOptions = QueryOptions.all): Either[JsonError, Seq[Feature]] = {
