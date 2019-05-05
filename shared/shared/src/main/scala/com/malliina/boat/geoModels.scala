@@ -186,14 +186,19 @@ object CirclePaint {
 case class LinePaint(`line-color`: String,
                      `line-width`: Int,
                      `line-opacity`: Double,
-                     `line-gap-width`: Double = 0)
+                     `line-gap-width`: Double = 0,
+                     `line-dasharray`: Option[List[Int]] = None)
     extends BasePaint
 
 object LinePaint {
   implicit val json = Json.format[LinePaint]
   val blackColor = "#000"
+  val darkGray = "#A9A9A9"
 
   def thin(color: String = blackColor) = LinePaint(color, 1, 1)
+
+  def dashed(color: String = blackColor) =
+    LinePaint(color, 1, 1, `line-dasharray` = Option(List(2, 4)))
 }
 
 // Bailout
@@ -209,9 +214,9 @@ object BasePaint {
       .orElse(json.validate[JsObject].map(OtherPaint.apply))
   }
   implicit val writer = Writes[BasePaint] {
-    case lp @ LinePaint(_, _, _, _) => Json.toJson(lp)
-    case cp @ CirclePaint(_, _)     => Json.toJson(cp)
-    case OtherPaint(data)           => data
+    case lp @ LinePaint(_, _, _, _, _) => Json.toJson(lp)
+    case cp @ CirclePaint(_, _)        => Json.toJson(cp)
+    case OtherPaint(data)              => data
   }
 }
 

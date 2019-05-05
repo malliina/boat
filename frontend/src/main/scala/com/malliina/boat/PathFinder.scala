@@ -30,7 +30,7 @@ class PathFinder(val map: MapboxMap) extends GeoUtils {
   def updatePath(e: MapMouseEvent) = {
     if (isEnabled) {
       val c = Coord.buildOrFail(e.lngLat.lng, e.lngLat.lat)
-      def endMarker = MapboxMarker(endMark(c), c, map)
+      def endMarker = MapboxMarker(finishMark(c), c, map)
       (start, end) match {
         case (Some(_), Some(oldFinish)) =>
           val newStart = MapboxMarker(startMark(oldFinish.coord), oldFinish.coord, map)
@@ -52,10 +52,19 @@ class PathFinder(val map: MapboxMap) extends GeoUtils {
   def findRoute(from: Coord, to: Coord) = {
     HttpClient.get[RouteResult](s"/routes/${from.lat}/${from.lng}/${to.lat}/${to.lng}").map { res =>
       val route = res.route
+      val coords = route.coords
       val coll = FeatureCollection(
-        Seq(Feature(LineGeometry(route.links.map(_.to)),
+        Seq(Feature(LineGeometry(coords),
                     Map(RouteSpec.Cost -> Json.toJson(route.cost)))))
       drawLine("route", coll)
+      coords.headOption.map { start =>
+        val init = lineFor(Seq(from, start))
+        drawLine("route-first", init, LinePaint.dashed())
+      }
+      coords.lastOption.foreach { end =>
+        val init = lineFor(Seq(end, to))
+        drawLine("route-last", init, LinePaint.dashed())
+      }
     }
   }
 
@@ -66,6 +75,7 @@ class PathFinder(val map: MapboxMap) extends GeoUtils {
     end = None
   }
 
-  def startMark(c: Coord) = span(s"Start at $c")
-  def endMark(c: Coord) = span(s"Finish at $c")
+  def startMark(c: Coord) = span(`class` := "marker start")
+
+  def finishMark(c: Coord) = span(`class` := "marker finish")
 }

@@ -259,8 +259,8 @@ trait GeoUtils {
         Outcome.Added
       }
 
-  def drawLine(id: String, geoJson: FeatureCollection) =
-    updateOrSet(Layer.line(id, geoJson, LinePaint.thin(), None))
+  def drawLine(id: String, geoJson: FeatureCollection, paint: LinePaint = LinePaint.thin()) =
+    updateOrSet(Layer.line(id, geoJson, paint, None))
 
   def lineFor(coords: Seq[Coord]) = collectionFor(LineGeometry(coords), Map.empty)
 
