@@ -18,7 +18,7 @@ object BoatSchema {
   private val log = Logger(getClass)
 
   // Use this for all timestamps, otherwise MySQL applies an ON UPDATE CURRENT_TIMESTAMP clause by default
-  val CreatedTimestampType = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL"
+  val CreatedTimestampType = "TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP(3) NOT NULL"
   val NumThreads = 20
 
   def apply(ds: DataSource, profile: ProfileConf): BoatSchema =
