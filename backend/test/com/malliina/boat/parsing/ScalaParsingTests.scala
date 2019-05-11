@@ -20,19 +20,17 @@ class ScalaParsingTests extends FunSuite {
     }
 
     val strs = ok.map {
-      case GPTMessage(_, depth, _) => s"GPT $depth"
-      case VTGMessage(_, _, _, speed, _) => s"VTG $speed"
-      case MTWMessage(_, temp) => s"MTW $temp"
-      case zda@ZDAMessage(_, _, _, _, _, _, _) => s"ZDA ${zda.dateTimeUtc}"
+      case DPTMessage(_, depth, _)               => s"GPT $depth"
+      case VTGMessage(_, _, _, speed, _)         => s"VTG $speed"
+      case MTWMessage(_, temp)                   => s"MTW $temp"
+      case zda @ ZDAMessage(_, _, _, _, _, _, _) => s"ZDA ${zda.dateTimeUtc}"
       case GGAMessage(_, _, lat, lng, _, _, _, _, _, _) =>
         s"GGA ${lat.toDecimalDegrees} ${lng.toDecimalDegrees}"
     }
-    println(strs)
+    assert(strs.length === track.length)
   }
 
-  test("parse gga coordinates") {
-    //val _ = RawSentence("$GPGGA,152639,6009.1905,N,02453.4979,E,1,12,0.60,-2,M,19.6,M,,*43")
-
+  test("read and convert GGA coordinates from degrees minutes to decimal degrees") {
     val dmLatResult = LatitudeDM.parse("6009.1905,N")
     assert(dmLatResult.isRight)
     val dmLat = dmLatResult.right.get

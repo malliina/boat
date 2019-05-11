@@ -4,28 +4,6 @@ import java.time.{LocalDate, LocalTime, ZoneOffset}
 
 import com.malliina.boat.{Coord, KeyedSentence, RawSentence, SentenceKey, TimeFormatter, TimedCoord, TrackId, TrackMetaShort, TrackPointId}
 import com.malliina.measure.{Distance, Speed, Temperature}
-import net.sf.marineapi.nmea.parser.{DataNotAvailableException, SentenceFactory, UnsupportedSentenceException}
-import net.sf.marineapi.nmea.sentence.Sentence
-
-trait BoatSentenceParser {
-  def parse(in: RawSentence): Either[SentenceError, Sentence]
-}
-
-object DefaultParser {
-  def apply() = new DefaultParser(SentenceFactory.getInstance())
-}
-
-class DefaultParser(parser: SentenceFactory) extends BoatSentenceParser {
-  override def parse(in: RawSentence): Either[SentenceError, Sentence] =
-    try {
-      Right(parser.createParser(in.sentence))
-    } catch {
-      case use: UnsupportedSentenceException =>
-        Left(UnknownSentence(in, use.getMessage))
-      case other: Exception =>
-        Left(SentenceFailure(in, other))
-    }
-}
 
 sealed trait ParsedSentence {
   def sentence: KeyedSentence
@@ -100,9 +78,7 @@ sealed trait SentenceError {
   def message: String
 }
 
-case class MissingData(sentence: RawSentence, e: DataNotAvailableException) extends SentenceError {
-  override def message: String = s"Data not available in '$sentence'. ${e.getMessage}"
-}
+case class InvalidSentence(sentence: RawSentence, message: String) extends SentenceError
 
 case class UnknownSentence(sentence: RawSentence, detailedMessage: String) extends SentenceError {
   override def message: String = s"Unknown sentence: '$sentence'. $detailedMessage"

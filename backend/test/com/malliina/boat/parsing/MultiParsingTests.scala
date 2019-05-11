@@ -9,7 +9,7 @@ import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.{Flow, Sink, Source}
 import com.malliina.boat.{BoatId, BoatName, KeyedSentence, RawSentence, SentenceKey, TrackId, TrackMetaShort, TrackName}
 import com.malliina.util.FileUtils
-import com.malliina.values.{UserId, Username}
+import com.malliina.values.Username
 import tests.BaseSuite
 
 import scala.collection.JavaConverters.asScalaBufferConverter
@@ -18,7 +18,11 @@ import scala.concurrent.duration.DurationInt
 
 object MultiParsingTests {
   def testFrom = TrackMetaShort(
-    TrackId(1), TrackName("test"), BoatId(1), BoatName("boat"), Username("u")
+    TrackId(1),
+    TrackName("test"),
+    BoatId(1),
+    BoatName("boat"),
+    Username("u")
   )
 
   def listSink[T]: Sink[T, Future[List[T]]] = Sink.fold[List[T], T](Nil)(_ :+ _)
@@ -37,15 +41,21 @@ class MultiParsingTests extends BaseSuite {
     Files.readAllLines(testFile, StandardCharsets.UTF_8).asScala.map(RawSentence.apply)
 
   ignore("parse dates and coords") {
-    val flow = Flow[RawSentence].mapConcat(raw => BoatParser.parse(KeyedSentence(SentenceKey(1), raw, from)).toOption.toList)
+    val flow = Flow[RawSentence].mapConcat(raw =>
+      BoatParser.parse(KeyedSentence(SentenceKey(1), raw, from)).toOption.toList)
     val singleParsed = Source(sentences.toList).via(flow)
     val multiParsed = BoatParser.multi(singleParsed)
-    val task = multiParsed.runWith(Sink.foreach(println))
-    await(task, 30.seconds)
+//    val task = multiParsed.runWith(Sink.foreach(println))
+    val start = System.currentTimeMillis()
+    val task = multiParsed.runWith(Sink.seq)
+    val coords = await(task, 30.seconds)
+    val end = System.currentTimeMillis()
+    println(s"${coords.length} coords in ${end - start} ms")
   }
 
   ignore("just parse") {
-    val flow = Flow[RawSentence].mapConcat(raw => BoatParser.parse(KeyedSentence(SentenceKey(1), raw, from)).toOption.toList)
+    val flow = Flow[RawSentence].mapConcat(raw =>
+      BoatParser.parse(KeyedSentence(SentenceKey(1), raw, from)).toOption.toList)
     val singleParsed = Source(sentences.toList).via(flow)
 
     val hm = singleParsed.runWith(MultiParsingTests.listSink[ParsedSentence])
@@ -55,8 +65,12 @@ class MultiParsingTests extends BaseSuite {
   }
 
   ignore("process") {
-    val intSink = Sink.foreach[Int] { i => i + 1 }
-    val stringSink = intSink.contramap[String] { s => s.length }
+    val intSink = Sink.foreach[Int] { i =>
+      i + 1
+    }
+    val stringSink = intSink.contramap[String] { s =>
+      s.length
+    }
     val stringToInt = Flow[String].map(s => s.length)
     val target: Sink[Int, Future[Done]] = ???
     Sink.foreach[String](println)

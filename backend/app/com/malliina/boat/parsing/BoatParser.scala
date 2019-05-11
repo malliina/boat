@@ -1,28 +1,22 @@
 package com.malliina.boat.parsing
 
-import java.time.{LocalDate, LocalTime}
-
 import akka.NotUsed
 import akka.actor.ActorSystem
 import akka.stream.Materializer
 import akka.stream.scaladsl.{Flow, Source}
 import com.malliina.boat._
-import com.malliina.measure.{DistanceDouble, SpeedDouble, TemperatureDouble}
-import net.sf.marineapi.nmea.parser.DataNotAvailableException
-import net.sf.marineapi.nmea.sentence._
-import net.sf.marineapi.nmea.util.{Time => NMEATime}
+import com.malliina.measure.{Distance, Speed}
 import play.api.Logger
 import play.api.libs.json.{JsError, JsValue, Reads}
 
 object BoatParser {
   private val log = Logger(getClass)
 
-  val parser = DefaultParser()
-
   def multi(src: Source[ParsedSentence, NotUsed])(implicit as: ActorSystem, mat: Materializer) =
     src.via(multiFlow())
 
-  def multiFlow()(implicit as: ActorSystem, mat: Materializer): Flow[ParsedSentence, FullCoord, NotUsed] =
+  def multiFlow()(implicit as: ActorSystem,
+                  mat: Materializer): Flow[ParsedSentence, FullCoord, NotUsed] =
     Streams.connected[ParsedSentence, FullCoord](dest => ProcessorActor.props(dest), as)
 
   def read[T: Reads](json: JsValue): Either[JsError, T] =
@@ -51,51 +45,29 @@ object BoatParser {
     * @param sentence NMEA 0183 sentence
     * @return
     */
-  def parse(sentence: KeyedSentence): Either[SentenceError, ParsedSentence] =
-    parser.parse(sentence.sentence).flatMap { parsed =>
-      val id = parsed.getSentenceId
-      try {
-        if (id == SentenceId.GGA.name()) {
-          val gga = parsed.asInstanceOf[GGASentence]
-          val pos = gga.getPosition
-          Right(ParsedCoord(Coord(Longitude(pos.getLongitude), Latitude(pos.getLatitude)), toLocalTime(gga.getTime), sentence))
-        } else if (id == SentenceId.ZDA.name()) {
-          val zda = parsed.asInstanceOf[ZDASentence]
-          val date = zda.getDate
-          val time = zda.getTime
-          if (isSuspect(time)) Left(SuspectTime(sentence.sentence))
-          else Right(ParsedDateTime(LocalDate.of(date.getYear, date.getMonth, date.getDay), toLocalTime(time), sentence))
-        } else if (id == SentenceId.VTG.name()) {
-          val vtg = parsed.asInstanceOf[VTGSentence]
-          Right(ParsedBoatSpeed(vtg.getSpeedKnots.knots, sentence))
-        } else if (id == SentenceId.MTW.name()) {
-          val mtw = parsed.asInstanceOf[MTWSentence]
-          Right(WaterTemperature(mtw.getTemperature.celsius, sentence))
-        } else if (id == SentenceId.DPT.name()) {
-          val dpt = parsed.asInstanceOf[DPTSentence]
-          Right(WaterDepth(dpt.getDepth.meters, dpt.getOffset.meters, sentence))
-        } else {
-          Left(UnknownSentence(sentence.sentence, s"Unsupported sentence: '$sentence'."))
-        }
-      } catch {
-        case dnee: DataNotAvailableException =>
-          Left(MissingData(sentence.sentence, dnee))
-        case e: Exception =>
-          Left(SentenceFailure(sentence.sentence, e))
-      }
+  def parse(sentence: KeyedSentence): Either[SentenceError, ParsedSentence] = {
+    val raw = sentence.sentence
+    TalkedSentence.parse(raw).flatMap {
+      case zda @ ZDAMessage(_, _, _, _, _, _, _) =>
+        if (zda.isSuspect) Left(SuspectTime(raw))
+        else Right(ParsedDateTime(zda.date, zda.timeUtc, sentence))
+      case GGAMessage(_, time, lat, lng, _, _, _, _, _, _) =>
+        Right(ParsedCoord(Coord(lng.toDecimalDegrees, lat.toDecimalDegrees), time, sentence))
+      case VTGMessage(_, _, _, speed, _) =>
+        Right(ParsedBoatSpeed(Speed(speed.toKmh), sentence))
+      case MTWMessage(_, temperature) =>
+        Right(WaterTemperature(temperature, sentence))
+      case DPTMessage(_, depth, offset) =>
+        Right(
+          WaterDepth(Distance(depth.toMillis.toLong), Distance(offset.toMillis.toLong), sentence))
     }
-
-  def toLocalTime(time: NMEATime): LocalTime =
-    LocalTime.of(time.getHour, time.getMinutes, time.getSeconds.toInt)
-
-  def isSuspect(time: NMEATime): Boolean =
-    time.getHour == 0 && time.getMinutes == 0 && (time.getSeconds >= 0 && time.getSeconds <= 15)
+  }
 
   def handleError(err: SentenceError): Unit =
     err match {
       case UnknownSentence(_, message) =>
         log.debug(message)
-      case st@SuspectTime(_) =>
+      case st @ SuspectTime(_) =>
         log.warn(st.message)
       case SentenceFailure(_, ex) =>
         log.error(err.message, ex)

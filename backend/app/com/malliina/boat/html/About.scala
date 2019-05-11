@@ -48,15 +48,6 @@ class About(lang: WebLang) extends AboutKeys {
         p(a(href := "https://creativecommons.org/licenses/by/4.0/")("CC 4.0"),
           " ",
           lang.disclaimer),
-        h2("Java Marine API"),
-        p(
-          a(href := "http://www.gnu.org/licenses/lgpl-3.0-standalone.html")("GNU LGPL"),
-          " ",
-          a(href := "https://ktuukkan.github.io/marine-api/")(
-            "https://ktuukkan.github.io/marine-api/")
-        ),
-        h2("Open Iconic"),
-        p(a(href := "https://www.useiconic.com/open")("www.useiconic.com/open")),
         h2("Font Awesome"),
         p(a(href := "https://fontawesome.com")("fontawesome.com")),
         h2("POIJU.IO"),

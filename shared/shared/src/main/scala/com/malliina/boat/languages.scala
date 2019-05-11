@@ -498,15 +498,6 @@ object AttributionInfo {
           Option(chartsLicense),
           Seq(TextLink("CC 4.0", FullUrl.https("creativecommons.org", "/licenses/by/4.0/")))
         ),
-        Attribution(
-          "Java Marine API",
-          None,
-          Seq(
-            TextLink("GNU LGPL",
-                     FullUrl.https("www.gnu.org", "/licenses/lgpl-3.0-standalone.html")),
-            TextLink("Java Marine API", FullUrl.https("ktuukkan.github.io", "/marine-api/"))
-          )
-        ),
         Attribution.url("Font Awesome", FullUrl.https("fontawesome.com", "/license")),
         Attribution.url("Open Iconic", FullUrl.https("github.com", "/iconic/open-iconic")),
         Attribution.url("Inspiration", FullUrl.https("github.com", "/iaue/poiju.io"))

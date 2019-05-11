@@ -46,7 +46,3 @@ therefore it is currently a separate step from the release process.
 ## License
 
 Licensed under the 3-Clause BSD License.
-
-Uses LGPL -licensed library [marine-api](https://ktuukkan.github.io/marine-api/). Sources in *backend/lib*.
-
-Modify *build.sbt* to change dependencies as needed.
