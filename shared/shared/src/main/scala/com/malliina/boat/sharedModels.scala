@@ -47,7 +47,8 @@ object Times {
 
 trait Degree
 
-/**
+/** Latitude in decimal degrees.
+  *
   * @param lat latitude aka y
   */
 case class Latitude(lat: Double) extends AnyVal {
@@ -62,7 +63,8 @@ object Latitude extends ValidatingCompanion[Double, Latitude] {
   override def write(t: Latitude): Double = t.lat
 }
 
-/**
+/** Longitude in decimal degrees.
+  *
   * @param lng longitude aka x
   */
 case class Longitude(lng: Double) extends AnyVal {
