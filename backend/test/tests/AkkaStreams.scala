@@ -8,7 +8,7 @@ import akka.stream.scaladsl.{BroadcastHub, Flow, Keep, MergeHub, RunnableGraph, 
 import akka.stream.{ActorMaterializer, KillSwitches, UniqueKillSwitch}
 import com.malliina.boat.parsing._
 import com.malliina.boat.{Coord, KeyedSentence, RawSentence, SentenceKey}
-import com.malliina.measure.{DistanceInt, SpeedInt, TemperatureInt}
+import com.malliina.measure.{DistanceIntM, SpeedIntM, TemperatureInt}
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.WebSocket
 

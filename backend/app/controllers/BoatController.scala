@@ -98,10 +98,6 @@ class BoatController(mapboxToken: AccessToken,
     load(req.email)
   }
 
-  def trail(track: TrackName) = secureJson(TrackQuery.apply) { req =>
-    db.track(track, req.email, req.query)
-  }
-
   def full(track: TrackName) = secureTrack { req =>
     db.full(track, req.email, req.query).map { track =>
       respond(req.rh)(

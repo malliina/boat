@@ -4,7 +4,7 @@ import java.time.{Instant, LocalDate}
 
 import com.malliina.boat._
 import com.malliina.boat.db.BoatSchema.{CreatedTimestampType, GetDummy, NumThreads, log}
-import com.malliina.measure.{Distance, Speed, Temperature}
+import com.malliina.measure.{DistanceM, SpeedM, Temperature}
 import com.malliina.values.{Email, UserId, Username}
 import com.zaxxer.hikari.{HikariConfig, HikariDataSource}
 import javax.sql.DataSource
@@ -80,7 +80,7 @@ class BoatSchema(ds: DataSource, conf: ProfileConf)
     case H2Profile => "truncate"
     case _ => "date"
   }
-  val distanceCoords = SimpleFunction.binary[Coord, Coord, Distance](distanceFunc)
+  val distanceCoords = SimpleFunction.binary[Coord, Coord, DistanceM](distanceFunc)
   val topSpeeds = trackAggregate(_.map(_.boatSpeed).max)
   val topPoints = pointsTable
     .join(pointsTable.join(topSpeeds)
@@ -136,16 +136,16 @@ class BoatSchema(ds: DataSource, conf: ProfileConf)
 
   case class LiftedTrackMeta(track: Rep[TrackId], trackName: Rep[TrackName], trackTitle: Rep[Option[TrackTitle]],
                              trackCanonical: Rep[TrackCanonical], trackAdded: Rep[Instant],
-                             avgSpeed: Rep[Option[Speed]], avgWaterTemp: Rep[Option[Temperature]],
-                             points: Rep[Int], distance: Rep[Distance],
+                             avgSpeed: Rep[Option[SpeedM]], avgWaterTemp: Rep[Option[Temperature]],
+                             points: Rep[Int], distance: Rep[DistanceM],
                              boat: Rep[BoatId], boatName: Rep[BoatName], token: Rep[BoatToken],
                              user: Rep[UserId], username: Rep[Username], email: Rep[Option[Email]])
 
   implicit object LiftedTrackMetaShape extends CaseClassShape(LiftedTrackMeta.tupled, (TrackMeta.apply _).tupled)
 
   case class LiftedCoord(id: Rep[TrackPointId], lon: Rep[Longitude], lat: Rep[Latitude], coord: Rep[Coord],
-                         boatSpeed: Rep[Speed], waterTemp: Rep[Temperature], depth: Rep[Distance],
-                         depthOffset: Rep[Distance], boatTime: Rep[Instant], date: Rep[LocalDate],
+                         boatSpeed: Rep[SpeedM], waterTemp: Rep[Temperature], depth: Rep[DistanceM],
+                         depthOffset: Rep[DistanceM], boatTime: Rep[Instant], date: Rep[LocalDate],
                          track: Rep[TrackId], added: Rep[Instant])
 
   implicit object Coordshape extends CaseClassShape(LiftedCoord.tupled, (CombinedCoord.apply _).tupled)
@@ -154,14 +154,14 @@ class BoatSchema(ds: DataSource, conf: ProfileConf)
                                canonical: Rep[TrackCanonical], trackAdded: Rep[Instant], boat: Rep[BoatId],
                                boatName: Rep[BoatName], boatToken: Rep[BoatToken], user: Rep[UserId],
                                username: Rep[Username], email: Rep[Option[Email]], language: Rep[Language], points: Rep[Int],
-                               start: Rep[Option[Instant]], end: Rep[Option[Instant]], topSpeed: Rep[Option[Speed]],
-                               avgSpeed: Rep[Option[Speed]], avgWaterTemp: Rep[Option[Temperature]],
-                               length: Rep[Distance], topPoint: LiftedCoord)
+                               start: Rep[Option[Instant]], end: Rep[Option[Instant]], topSpeed: Rep[Option[SpeedM]],
+                               avgSpeed: Rep[Option[SpeedM]], avgWaterTemp: Rep[Option[Temperature]],
+                               length: Rep[DistanceM], topPoint: LiftedCoord)
 
   implicit object TrackShape extends CaseClassShape(LiftedJoinedTrack.tupled, (JoinedTrack.apply _).tupled)
 
   case class LiftedTrackStats(track: Rep[TrackId], start: Rep[Option[Instant]],
-                              end: Rep[Option[Instant]], topSpeed: Rep[Option[Speed]])
+                              end: Rep[Option[Instant]], topSpeed: Rep[Option[SpeedM]])
 
   implicit object TrackStatsShape extends CaseClassShape(LiftedTrackStats.tupled, (TrackNumbers.apply _).tupled)
 
@@ -212,7 +212,7 @@ class BoatSchema(ds: DataSource, conf: ProfileConf)
 
     def coord = column[Coord]("coord")
 
-    def boatSpeed = column[Speed]("boat_speed")
+    def boatSpeed = column[SpeedM]("boat_speed")
 
     def speedIdx = index("points_track_speed_idx", (track, boatSpeed))
 
@@ -220,11 +220,11 @@ class BoatSchema(ds: DataSource, conf: ProfileConf)
 
     def tempIdx = index("points_track_water_temp_idx", (track, waterTemp))
 
-    def depth = column[Distance]("depthm")
+    def depth = column[DistanceM]("depthm")
 
     def depthIdx = index("points_track_depth_idx", (track, depth))
 
-    def depthOffset = column[Distance]("depth_offsetm")
+    def depthOffset = column[DistanceM]("depth_offsetm")
 
     def boatTime = column[Instant]("boat_time", O.SqlType(CreatedTimestampType))
 
@@ -242,7 +242,7 @@ class BoatSchema(ds: DataSource, conf: ProfileConf)
       onDelete = ForeignKeyAction.Cascade
     )
 
-    def diff = column[Distance]("diff", O.Default(Distance.zero))
+    def diff = column[DistanceM]("diff", O.Default(DistanceM.zero))
 
     def diffIdx = index("points_track_diff_idx", (track, diff))
 
@@ -283,13 +283,13 @@ class BoatSchema(ds: DataSource, conf: ProfileConf)
 
     def boat = column[BoatId]("boat")
 
-    def avgSpeed = column[Option[Speed]]("avg_speed")
+    def avgSpeed = column[Option[SpeedM]]("avg_speed")
 
     def avgWaterTemp = column[Option[Temperature]]("avg_water_temp")
 
     def points = column[Int]("points")
 
-    def distance = column[Distance]("distance")
+    def distance = column[DistanceM]("distance")
 
     def title = column[Option[TrackTitle]]("title", O.Length(191), O.Unique)
 

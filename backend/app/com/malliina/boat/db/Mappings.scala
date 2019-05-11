@@ -3,9 +3,16 @@ package com.malliina.boat.db
 import java.sql.{PreparedStatement, ResultSet}
 import java.time.{Instant, LocalDate, LocalTime}
 
-import com.malliina.boat.db.SpatialUtils.{coordToBytes, fromBytes}
 import com.malliina.boat._
-import com.malliina.measure.{Distance, DistanceDouble, Speed, SpeedDouble, Temperature, TemperatureDouble}
+import com.malliina.boat.db.SpatialUtils.{coordToBytes, fromBytes}
+import com.malliina.measure.{
+  DistanceDoubleM,
+  DistanceM,
+  SpeedDoubleM,
+  SpeedM,
+  Temperature,
+  TemperatureDouble
+}
 import com.malliina.values._
 import com.vividsolutions.jts.geom.Point
 import slick.ast.{BaseTypedType, FieldSymbol}
@@ -30,23 +37,33 @@ class Mappings(val impl: JdbcProfile) {
   implicit val userMapping = stringMapping(Username.apply)
   implicit val userTokenMapping = stringMapping(UserToken.apply)
   implicit val emailMapping = stringMapping(Email.apply)
-  implicit val distanceMappingMeters = MappedColumnType.base[Distance, Double](_.toMetersDouble, (m: Double) => m.meters)
-  implicit val speedMapping = MappedColumnType.base[Speed, Double](_.toKmh, _.kmh)
-  implicit val temperatureMapping = MappedColumnType.base[Temperature, Double](_.toCelsius, _.celsius)
-  implicit val instantMapping = MappedColumnType.base[Instant, java.sql.Timestamp](java.sql.Timestamp.from, _.toInstant)
-  implicit val timeMapping = MappedColumnType.base[LocalTime, java.sql.Time](java.sql.Time.valueOf, _.toLocalTime)
-  implicit val dateMapping = MappedColumnType.base[LocalDate, java.sql.Date](java.sql.Date.valueOf, _.toLocalDate)
-  implicit val deviceMapping = MappedColumnType.base[MobileDevice, String](_.name, MobileDevice.apply)
+  //implicit val distanceMappingMeters = MappedColumnType.base[Distance, Double](_.toMetersDouble, (m: Double) => m.meters)
+  implicit val distanceMapping =
+    MappedColumnType.base[DistanceM, Double](_.toMeters, (m: Double) => m.meters)
+  //implicit val speedMapping = MappedColumnType.base[Speed, Double](_.toKmh, _.kmh)
+  implicit val speedMapping = MappedColumnType.base[SpeedM, Double](_.toKmh, _.kmh)
+  implicit val temperatureMapping =
+    MappedColumnType.base[Temperature, Double](_.toCelsius, _.celsius)
+  implicit val instantMapping =
+    MappedColumnType.base[Instant, java.sql.Timestamp](java.sql.Timestamp.from, _.toInstant)
+  implicit val timeMapping =
+    MappedColumnType.base[LocalTime, java.sql.Time](java.sql.Time.valueOf, _.toLocalTime)
+  implicit val dateMapping =
+    MappedColumnType.base[LocalDate, java.sql.Date](java.sql.Date.valueOf, _.toLocalDate)
+  implicit val deviceMapping =
+    MappedColumnType.base[MobileDevice, String](_.name, MobileDevice.apply)
   implicit val pushMapping = stringMapping(PushToken.apply)
   implicit val pushIdMapping = longMapping(PushId.apply)
   implicit val trackTitleMapping = stringMapping(TrackTitle.apply)
   implicit val canonicalMapping = stringMapping(TrackCanonical.apply)
   implicit val languageMapping = stringMapping(Language.apply)
-  implicit val longitudeMapping = MappedColumnType.base[Longitude, Double](_.lng, (lng: Double) => Longitude(lng))
-  implicit val latitudeMapping = MappedColumnType.base[Latitude, Double](_.lat, (lat: Double) => Latitude(lat))
+  implicit val longitudeMapping =
+    MappedColumnType.base[Longitude, Double](_.lng, (lng: Double) => Longitude(lng))
+  implicit val latitudeMapping =
+    MappedColumnType.base[Latitude, Double](_.lat, (lat: Double) => Latitude(lat))
 
   class CoordJdbcType(implicit override val classTag: ClassTag[Coord])
-    extends impl.DriverJdbcType[Coord] {
+      extends impl.DriverJdbcType[Coord] {
 
     override def sqlType: Int = java.sql.Types.OTHER
 
@@ -75,9 +92,9 @@ class Mappings(val impl: JdbcProfile) {
 
   implicit val coordMapper = new CoordJdbcType
 
-  def stringMapping[T <: Wrapped : ClassTag](apply: String => T): JdbcType[T] with BaseTypedType[T] =
+  def stringMapping[T <: Wrapped: ClassTag](apply: String => T): JdbcType[T] with BaseTypedType[T] =
     MappedColumnType.base[T, String](_.value, apply)
 
-  def longMapping[T <: WrappedId : ClassTag](apply: Long => T): JdbcType[T] with BaseTypedType[T] =
+  def longMapping[T <: WrappedId: ClassTag](apply: Long => T): JdbcType[T] with BaseTypedType[T] =
     MappedColumnType.base[T, Long](_.id, apply)
 }

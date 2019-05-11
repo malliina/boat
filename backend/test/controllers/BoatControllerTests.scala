@@ -5,7 +5,7 @@ import java.time.{LocalDate, LocalTime}
 import com.malliina.boat.db.NewUser
 import com.malliina.boat.parsing.FullCoord
 import com.malliina.boat.{BoatNames, BoatUser, Coord, TrackNames, TrackSummaries, Tracks, UserToken}
-import com.malliina.measure.{DistanceInt, SpeedInt, TemperatureInt}
+import com.malliina.measure.{DistanceIntM, SpeedIntM, TemperatureInt}
 import com.malliina.values.Username
 import play.api.http.HeaderNames.{ACCEPT, AUTHORIZATION}
 import play.api.test.FakeRequest
@@ -17,9 +17,17 @@ class BoatControllerTests extends TestAppSuite {
     val user = Username("test")
     val service = components.tracks
     val init = for {
-      _ <- components.users.addUser(NewUser(user, Option(TestEmailAuth.testEmail), UserToken.random(), enabled = true))
+      _ <- components.users.addUser(
+        NewUser(user, Option(TestEmailAuth.testEmail), UserToken.random(), enabled = true))
       track <- service.join(BoatUser(TrackNames.random(), BoatNames.random(), user))
-      coord = FullCoord(Coord.buildOrFail(60, 24), LocalTime.now(), LocalDate.now(), 10.knots, 10.celsius, 10.meters, 0.meters, track.short)
+      coord = FullCoord(Coord.buildOrFail(60, 24),
+                        LocalTime.now(),
+                        LocalDate.now(),
+                        10.knots,
+                        10.celsius,
+                        10.meters,
+                        0.meters,
+                        track.short)
       p <- service.saveCoords(coord)
     } yield p
     await(init)

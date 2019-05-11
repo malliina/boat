@@ -1,7 +1,6 @@
 package com.malliina.boat
 
-import com.malliina.mapbox.LngLatLike
-import com.malliina.measure.{Distance, DistanceM, Speed}
+import com.malliina.measure.{Distance, DistanceM, SpeedM}
 import scalatags.JsDom.all._
 
 object Popups {
@@ -36,7 +35,7 @@ class Popups(lang: Lang) extends BoatModels {
     )
   }
 
-  def formatSpeed(s: Speed) = "%.2f kn".format(s.toKnots)
+  def formatSpeed(s: SpeedM) = "%.2f kn".format(s.toKnots)
 
   def formatDistance(d: DistanceM) = "%.1f m".format(d.toMeters)
 
@@ -103,6 +102,6 @@ class Popups(lang: Lang) extends BoatModels {
   private def row(title: String, value: Modifier) =
     tr(td(`class` := "popup-label")(title), td(value))
 
-  def marker(speed: Speed) =
+  def marker(speed: SpeedM) =
     i(`class` := "fas fa-trophy marker-top-speed")
 }

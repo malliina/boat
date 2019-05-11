@@ -1,13 +1,13 @@
 package com.malliina.boat
 
-import com.malliina.measure.{Distance, Speed, Temperature}
+import com.malliina.measure.{DistanceM, SpeedM, Temperature}
 
 import scala.concurrent.duration.Duration
 
 object BoatFormats {
-  def formatSpeed(s: Speed) = "%.3f".format(s.toKnotsDouble)
+  def formatSpeed(s: SpeedM) = "%.3f".format(s.toKnots)
 
-  def formatDistance(d: Distance) = "%.3f".format(d.toKilometersDouble)
+  def formatDistance(d: DistanceM) = "%.3f".format(d.toKilometers)
 
   def formatTemp(t: Temperature) = "%.1f".format(t.toCelsius)
 

@@ -143,7 +143,7 @@ class MapSocket(val map: MapboxMap,
       }
     }
     elem(DistanceId).foreach { e =>
-      e.innerHTML = s"${formatDistance(from.distance)} km"
+      e.innerHTML = s"${formatDistance(from.distanceMeters)} km"
     }
     elem(TopSpeedId).foreach { e =>
       from.topSpeed.foreach { top =>

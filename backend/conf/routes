@@ -11,7 +11,6 @@ PATCH        /boats/:boat                                     controllers.BoatCo
 GET          /tracks                                          controllers.BoatController.tracks
 GET          /tracks/:track                                   controllers.BoatController.track(track: com.malliina.boat.TrackName)
 PUT          /tracks/:track                                   controllers.BoatController.modifyTitle(track: com.malliina.boat.TrackName)
-GET          /tracks/:track/trail                             controllers.BoatController.trail(track: com.malliina.boat.TrackName)
 GET          /tracks/:track/full                              controllers.BoatController.full(track: com.malliina.boat.TrackName)
 GET          /tracks/:track/chart                             controllers.BoatController.chart(track: com.malliina.boat.TrackName)
 GET          /routes/:srclat/:srclng/:destlat/:destlng        controllers.GraphController.shortestRoute(srclat: Double, srclng: Double, destlat: Double, destlng: Double)

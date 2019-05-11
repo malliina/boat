@@ -71,7 +71,7 @@ class BoatHtml(jsFiles: ScriptAssets) extends Tags(scalatags.Text) {
                       a(`class` := "track-link", href := reverse.canonical(t.canonical))(
                         span(t.describe),
                         span(short(t.distance)),
-                        span(t.startEndRange)
+                        span(t.times.range)
                       )
                     }
                   )

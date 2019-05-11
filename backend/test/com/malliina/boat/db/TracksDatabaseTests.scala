@@ -11,7 +11,7 @@ import com.malliina.boat.db.TestData._
 import com.malliina.boat.http.BoatQuery
 import com.malliina.boat.parsing.{BoatParser, FullCoord}
 import com.malliina.concurrent.Execution.cached
-import com.malliina.measure.{DistanceInt, Speed, SpeedInt, Temperature}
+import com.malliina.measure.{DistanceIntM, SpeedM, SpeedIntM, Temperature}
 import com.malliina.values.{UserId, Username}
 import play.api.Mode
 import tests.BaseSuite
@@ -71,7 +71,7 @@ class TracksDatabaseTests extends TracksTester {
     val tdb = TracksDatabase(db, mat.executionContext)
     val user = NewUser(Username("test-agg-user"), None, UserToken.random(), enabled = true)
 
-    def coord(c: Coord, speed: Speed, track: TrackId, boat: BoatId, user: UserId) = {
+    def coord(c: Coord, speed: SpeedM, track: TrackId, boat: BoatId, user: UserId) = {
       FullCoord(
         c,
         LocalTime.now(),

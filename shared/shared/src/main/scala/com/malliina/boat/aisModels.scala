@@ -2,7 +2,7 @@ package com.malliina.boat
 
 import com.malliina.boat.ShipType._
 import com.malliina.json.PrimitiveFormats
-import com.malliina.measure.{DistanceM, Speed}
+import com.malliina.measure.{DistanceM, SpeedM}
 import com.malliina.values.{IdCompanion, StringCompanion, Wrapped, WrappedId}
 import play.api.libs.json._
 
@@ -140,7 +140,7 @@ case class VesselInfo(mmsi: Mmsi,
                       name: VesselName,
                       shipType: ShipType,
                       coord: Coord,
-                      sog: Speed,
+                      sog: SpeedM,
                       cog: Double,
                       draft: DistanceM,
                       destination: Option[String],
@@ -166,7 +166,7 @@ sealed trait VesselMessage extends AISMessage {
 
 case class VesselLocation(mmsi: Mmsi,
                           coord: Coord,
-                          sog: Speed,
+                          sog: SpeedM,
                           cog: Double,
                           heading: Option[Int],
                           timestamp: Long)
@@ -190,7 +190,7 @@ case class VesselLocation(mmsi: Mmsi,
 
 object VesselLocation {
 
-  import com.malliina.measure.SpeedDouble
+  import com.malliina.measure.SpeedDoubleM
 
   implicit val json = Json.format[VesselLocation]
   val readerGeoJson = Reads[VesselLocation] { json =>

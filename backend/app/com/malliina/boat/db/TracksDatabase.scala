@@ -4,11 +4,11 @@ import com.malliina.boat._
 import com.malliina.boat.db.TracksDatabase.log
 import com.malliina.boat.http._
 import com.malliina.boat.parsing.FullCoord
-import com.malliina.measure.{Distance, Speed, SpeedInt}
+import com.malliina.measure.{DistanceM, SpeedIntM, SpeedM}
 import com.malliina.values.{Email, UserId, Username}
 import play.api.Logger
-import concurrent.duration.DurationLong
 
+import scala.concurrent.duration.DurationLong
 import scala.concurrent.{ExecutionContext, Future}
 
 object TracksDatabase {
@@ -24,7 +24,7 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext)
   import db._
   import db.api._
 
-  val minSpeed: Speed = 1.kmh
+  val minSpeed: SpeedM = 1.kmh
 
   case class Joined(sid: SentenceKey,
                     sentence: RawSentence,
@@ -77,7 +77,7 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext)
       trackIdx = previous.headOption.map(_.trackIndex).getOrElse(0) + 1
       diff <- previous.headOption
         .map(p => distanceCoords(p.coord, coord.coord.bind).result)
-        .getOrElse(DBIO.successful(Distance.zero))
+        .getOrElse(DBIO.successful(DistanceM.zero))
       point <- coordInserts += TrackPointInput.forCoord(coord, trackIdx, diff)
       _ <- sentencePointsTable ++= coord.parts.map(key => SentencePointLink(key, point))
       // Updates aggregates; simulates a materialized view for performance
@@ -90,7 +90,7 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext)
       points <- pointsQuery.length.result
       _ <- trackQuery.map(_.points).update(points)
       distance <- pointsQuery.map(_.diff).sum.result
-      _ <- trackQuery.map(_.distance).update(distance.getOrElse(Distance.zero))
+      _ <- trackQuery.map(_.distance).update(distance.getOrElse(DistanceM.zero))
       ref: JoinedTrack <- first(tracksViewNonEmpty.filter(_.track === track),
                                 s"Track not found: '$track'.")
     } yield {
@@ -245,6 +245,7 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext)
           formatter.formatTime(point.boatTime),
           point.boatSpeed,
           point.waterTemp,
+          point.depthLegacy,
           point.depth,
           formatter.timing(point.boatTime)
         )
@@ -346,6 +347,7 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext)
         formatter.formatTime(point.boatTime),
         point.boatSpeed,
         point.waterTemp,
+        point.depthLegacy,
         point.depth,
         formatter.timing(point.boatTime)
       )

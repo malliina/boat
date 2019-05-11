@@ -2,7 +2,7 @@ package com.malliina.boat
 
 import com.malliina.boat.BoatJson.keyValued
 import com.malliina.json.PrimitiveFormats
-import com.malliina.measure.{Distance, Speed, Temperature}
+import com.malliina.measure.{Distance, DistanceM, SpeedM, Temperature}
 import com.malliina.values._
 import play.api.libs.json._
 import scalatags.generic.Bundle
@@ -152,9 +152,10 @@ case class TimedCoord(id: TrackPointId,
                       boatTime: FormattedDateTime,
                       boatTimeMillis: Long,
                       boatTimeOnly: FormattedTime,
-                      speed: Speed,
+                      speed: SpeedM,
                       waterTemp: Temperature,
                       depth: Distance,
+                      depthMeters: DistanceM,
                       time: Timing) {
   def lng = coord.lng
 
@@ -365,15 +366,11 @@ case class TrackRef(track: TrackId,
                     boatName: BoatName,
                     username: Username,
                     points: Int,
-                    start: FormattedDateTime,
-                    startMillis: Long,
-                    end: FormattedDateTime,
-                    endMillis: Long,
-                    startEndRange: String,
                     duration: Duration,
                     distance: Distance,
-                    topSpeed: Option[Speed],
-                    avgSpeed: Option[Speed],
+                    distanceMeters: DistanceM,
+                    topSpeed: Option[SpeedM],
+                    avgSpeed: Option[SpeedM],
                     avgWaterTemp: Option[Temperature],
                     topPoint: TimedCoord,
                     times: Times)
@@ -457,8 +454,6 @@ object CoordsEvent {
   implicit val coordJson = Coord.json
   implicit val json: OFormat[CoordsEvent] = keyValued(Key, Json.format[CoordsEvent])
 }
-
-//case class RouteEvent(route: RouteResult)
 
 case class CoordsBatch(events: Seq[CoordsEvent]) extends FrontEvent {
   override def isIntendedFor(user: Username): Boolean =

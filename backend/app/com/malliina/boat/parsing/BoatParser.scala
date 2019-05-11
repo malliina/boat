@@ -5,7 +5,6 @@ import akka.actor.ActorSystem
 import akka.stream.Materializer
 import akka.stream.scaladsl.{Flow, Source}
 import com.malliina.boat._
-import com.malliina.measure.{Distance, Speed}
 import play.api.Logger
 import play.api.libs.json.{JsError, JsValue, Reads}
 
@@ -54,12 +53,11 @@ object BoatParser {
       case GGAMessage(_, time, lat, lng, _, _, _, _, _, _) =>
         Right(ParsedCoord(Coord(lng.toDecimalDegrees, lat.toDecimalDegrees), time, sentence))
       case VTGMessage(_, _, _, speed, _) =>
-        Right(ParsedBoatSpeed(Speed(speed.toKmh), sentence))
+        Right(ParsedBoatSpeed(speed, sentence))
       case MTWMessage(_, temperature) =>
         Right(WaterTemperature(temperature, sentence))
       case DPTMessage(_, depth, offset) =>
-        Right(
-          WaterDepth(Distance(depth.toMillis.toLong), Distance(offset.toMillis.toLong), sentence))
+        Right(WaterDepth(depth, offset, sentence))
     }
   }
 

@@ -62,7 +62,7 @@ class ChartSocket(ctx: CanvasRenderingContext2D, track: TrackName, sample: Optio
     val coords = event.coords
     chart.data.append(coords.map(_.boatTimeOnly.time), Map(
       depthLabel -> coords.map(_.depth.toMetersDouble),
-      speedLabel -> coords.map(c => math.rint(c.speed.toKnotsDouble * 100) / 100)
+      speedLabel -> coords.map(c => math.rint(c.speed.toKnots * 100) / 100)
     ))
     chart.update()
   }

@@ -3,7 +3,7 @@ package com.malliina.boat
 import java.time.{Instant, LocalDate, LocalTime, ZoneOffset}
 
 import com.malliina.boat.parsing.FullCoord
-import com.malliina.measure.{Distance, Speed, Temperature}
+import com.malliina.measure.{Distance, DistanceM, SpeedM, Temperature}
 import com.malliina.play.auth.JWTError
 import com.malliina.values._
 import play.api.data.{Forms, Mapping}
@@ -31,7 +31,8 @@ object Layers {
   implicit val json = Json.format[Layers]
   import MapboxStyles._
 
-  val default = Layers(marksLayers, fairwayLayers, AisConf(AisVesselLayer, AisTrailLayer, AisVesselIcon))
+  val default =
+    Layers(marksLayers, fairwayLayers, AisConf(AisVesselLayer, AisTrailLayer, AisVesselIcon))
 }
 
 case class ClientConf(languages: Languages, layers: Layers)
@@ -78,10 +79,10 @@ case class JoinedTrack(track: TrackId,
                        points: Int,
                        start: Option[Instant],
                        end: Option[Instant],
-                       topSpeed: Option[Speed],
-                       avgSpeed: Option[Speed],
+                       topSpeed: Option[SpeedM],
+                       avgSpeed: Option[SpeedM],
                        avgWaterTemp: Option[Temperature],
-                       distance: Distance,
+                       distance: DistanceM,
                        topPoint: CombinedCoord)
     extends TrackLike {
   val startOrNow = start.getOrElse(Instant.now())
@@ -100,12 +101,8 @@ case class JoinedTrack(track: TrackId,
     boatName,
     username,
     points,
-    formatter.formatDateTime(startOrNow),
-    startOrNow.toEpochMilli,
-    formatter.formatDateTime(endOrNow),
-    endOrNow.toEpochMilli,
-    formatter.formatRange(startOrNow, endOrNow),
     duration,
+    Distance(distance.toMillis.toLong),
     distance,
     topSpeed,
     avgSpeed,
@@ -122,17 +119,17 @@ case class InsertedPoint(point: TrackPointId, track: JoinedTrack) {
 case class TrackNumbers(track: TrackId,
                         start: Option[Instant],
                         end: Option[Instant],
-                        topSpeed: Option[Speed])
+                        topSpeed: Option[SpeedM])
 
 case class TrackMeta(track: TrackId,
                      trackName: TrackName,
                      trackTitle: Option[TrackTitle],
                      trackCanonical: TrackCanonical,
                      trackAdded: Instant,
-                     avgSpeed: Option[Speed],
+                     avgSpeed: Option[SpeedM],
                      avgWaterTemp: Option[Temperature],
                      points: Int,
-                     distance: Distance,
+                     distance: DistanceM,
                      boat: BoatId,
                      boatName: BoatName,
                      boatToken: BoatToken,
@@ -142,15 +139,7 @@ case class TrackMeta(track: TrackId,
   def short = TrackMetaShort(track, trackName, boat, boatName, username)
 }
 
-object TrackMeta {
-  implicit val json = Json.format[TrackMeta]
-}
-
 case class BoatEvent(message: JsValue, from: TrackMeta)
-
-object BoatEvent {
-  implicit val json = Json.format[BoatEvent]
-}
 
 case class BoatJsonError(error: JsError, boat: BoatEvent)
 
@@ -250,24 +239,24 @@ case class JoinedBoat(boat: BoatId,
 
 case class TrackInput(name: TrackName,
                       boat: BoatId,
-                      avgSpeed: Option[Speed],
+                      avgSpeed: Option[SpeedM],
                       avgWaterTemp: Option[Temperature],
                       points: Int,
-                      distance: Distance,
+                      distance: DistanceM,
                       canonical: TrackCanonical)
 
 object TrackInput {
   def empty(name: TrackName, boat: BoatId): TrackInput =
-    TrackInput(name, boat, None, None, 0, Distance.zero, TrackCanonical(name))
+    TrackInput(name, boat, None, None, 0, DistanceM.zero, TrackCanonical(name))
 }
 
 case class TrackRow(id: TrackId,
                     name: TrackName,
                     boat: BoatId,
-                    avgSpeed: Option[Speed],
+                    avgSpeed: Option[SpeedM],
                     avgWaterTemp: Option[Temperature],
                     points: Int,
-                    distance: Distance,
+                    distance: DistanceM,
                     title: Option[TrackTitle],
                     canonical: TrackCanonical,
                     added: Instant)
@@ -309,17 +298,17 @@ object Sentences {
 case class TrackPointInput(lon: Longitude,
                            lat: Latitude,
                            coord: Coord,
-                           boatSpeed: Speed,
+                           boatSpeed: SpeedM,
                            waterTemp: Temperature,
-                           depth: Distance,
-                           depthOffset: Distance,
+                           depth: DistanceM,
+                           depthOffset: DistanceM,
                            boatTime: Instant,
                            track: TrackId,
                            trackIndex: Int,
-                           diff: Distance)
+                           diff: DistanceM)
 
 object TrackPointInput {
-  def forCoord(c: FullCoord, trackIndex: Int, diff: Distance): TrackPointInput =
+  def forCoord(c: FullCoord, trackIndex: Int, diff: DistanceM): TrackPointInput =
     TrackPointInput(c.lng,
                     c.lat,
                     c.coord,
@@ -337,14 +326,17 @@ case class CombinedCoord(id: TrackPointId,
                          lon: Longitude,
                          lat: Latitude,
                          coord: Coord,
-                         boatSpeed: Speed,
+                         boatSpeed: SpeedM,
                          waterTemp: Temperature,
-                         depth: Distance,
-                         depthOffset: Distance,
+                         depth: DistanceM,
+                         depthOffset: DistanceM,
                          boatTime: Instant,
                          date: LocalDate,
                          track: TrackId,
                          added: Instant) {
+  def depthLegacy = Distance(depth.toMillis.toLong)
+  def offsetLegacy = Distance(depthOffset.toMillis.toLong)
+
   def toFull(sentences: Seq[SentenceRow], formatter: TimeFormatter): CombinedFullCoord =
     CombinedFullCoord(
       id,
@@ -353,7 +345,9 @@ case class CombinedCoord(id: TrackPointId,
       coord,
       boatSpeed,
       waterTemp,
+      depthLegacy,
       depth,
+      offsetLegacy,
       depthOffset,
       boatTime,
       date,
@@ -371,29 +365,24 @@ case class CombinedCoord(id: TrackPointId,
     formatter.formatTime(boatTime),
     boatSpeed,
     waterTemp,
+    depthLegacy,
     depth,
     formatter.timing(boatTime)
   )
 }
 
-object CombinedCoord {
-  implicit val json = Json.format[CombinedCoord]
-}
-
 case class TrackInfo(coords: Seq[CombinedCoord], topPoint: Option[CombinedCoord])
-
-object TrackInfo {
-  implicit val json = Json.format[TrackInfo]
-}
 
 case class CombinedFullCoord(id: TrackPointId,
                              lon: Longitude,
                              lat: Latitude,
                              coord: Coord,
-                             boatSpeed: Speed,
+                             boatSpeed: SpeedM,
                              waterTemp: Temperature,
                              depth: Distance,
+                             depthMeters: DistanceM,
                              depthOffset: Distance,
+                             depthOffsetMeters: DistanceM,
                              boatTime: Instant,
                              date: LocalDate,
                              track: TrackId,
@@ -417,19 +406,19 @@ case class TrackPointRow(id: TrackPointId,
                          lon: Longitude,
                          lat: Latitude,
                          coord: Coord,
-                         boatSpeed: Speed,
+                         boatSpeed: SpeedM,
                          waterTemp: Temperature,
-                         depth: Distance,
-                         depthOffset: Distance,
+                         depth: DistanceM,
+                         depthOffset: DistanceM,
                          boatTime: Instant,
                          track: TrackId,
                          trackIndex: Int,
-                         diff: Distance,
+                         diff: DistanceM,
                          added: Instant) {
+  def depthLegacy = Distance(depth.toMillis.toLong)
+  def offsetLegacy = Distance(depthOffset.toMillis.toLong)
   def dateTimeUtc = boatTime.atOffset(ZoneOffset.UTC)
-
   def time = LocalTime.from(dateTimeUtc)
-
   def date = LocalDate.from(dateTimeUtc)
 }
 

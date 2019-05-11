@@ -3,7 +3,7 @@ package com.malliina.boat.db
 import com.malliina.boat.db.TestData._
 import com.malliina.boat.{Coord, TrackId}
 import com.malliina.concurrent.Execution.cached
-import com.malliina.measure.{Speed, SpeedInt}
+import com.malliina.measure.{SpeedM, SpeedIntM}
 import tests.BaseSuite
 
 import scala.concurrent.Future
@@ -78,7 +78,7 @@ class SpatialSlickTests extends BaseSuite {
     val db = BoatSchema(conf)
     import db._
     import db.api._
-    val minSpeed: Speed = 1.kmh
+    val minSpeed: SpeedM = 1.kmh
     val query = pointsTable
       .filter(_.boatSpeed >= minSpeed)
       .groupBy(_.track)

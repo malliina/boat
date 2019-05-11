@@ -4,7 +4,7 @@ import com.malliina.boat.BoatFormats._
 import com.malliina.boat.FrontKeys._
 import com.malliina.boat.http.Limits
 import com.malliina.boat.{BoatFormats, FullTrack, TrackName, TrackRef, TrackTitle}
-import com.malliina.measure.{Distance, Speed, Temperature}
+import com.malliina.measure.{DistanceM, SpeedM, Temperature}
 import com.malliina.values.Wrapped
 import controllers.routes
 import play.api.mvc.Call
@@ -15,9 +15,9 @@ import scala.language.implicitConversions
 object SentencesPage {
   implicit val callAttr = genericAttr[Call]
 
-  implicit def speedHtml(s: Speed): StringFrag = stringFrag(formatSpeed(s))
+  implicit def speedHtml(s: SpeedM): StringFrag = stringFrag(formatSpeed(s))
 
-  implicit def distanceHtml(d: Distance): StringFrag = stringFrag(formatDistance(d))
+  implicit def distanceHtml(d: DistanceM): StringFrag = stringFrag(formatDistance(d))
 
   implicit def tempHtml(t: Temperature): StringFrag = stringFrag(formatTemp(t))
 
@@ -46,7 +46,7 @@ object SentencesPage {
   }
 
   def namedInfoBox(track: TrackRef): Modifier = {
-    val topSpeed: Speed = track.topSpeed.getOrElse(Speed.zero)
+    val topSpeed = track.topSpeed.getOrElse(SpeedM.zero)
     modifier(
       div(`class` := "row")(
         div(`class` := "col-md-12")(
@@ -81,7 +81,7 @@ object SentencesPage {
       dl(`class` := "row")(
         dt(`class` := s"col-sm-2 $TrackRow")("Track"),
         dd(`class` := s"col-sm-10 $TrackRow")(span(id := TrackTitleId)(track.describe), editIcon),
-        description("Time", track.startEndRange),
+        description("Time", track.times.range),
         description("Duration", BoatFormats.formatDuration(track.duration)),
         description("Top speed", topSpeed),
       )
