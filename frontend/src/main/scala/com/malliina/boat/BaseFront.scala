@@ -47,6 +47,8 @@ trait BaseFront extends FrontKeys {
 
   def anchor(id: String) = elemAs[HTMLAnchorElement](id)
 
+  def elemGet[T](id: String) = elemAs[T](id).right.get
+
   def elemAs[T](id: String) = elem(id).map(_.asInstanceOf[T])
 
   def elem(id: String): Either[NotFound, Element] =

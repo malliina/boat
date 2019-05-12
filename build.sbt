@@ -1,4 +1,5 @@
 import com.malliina.http.FullUrl
+import com.malliina.sbt.unix.LinuxKeys.ciBuild
 import sbtcrossproject.CrossPlugin.autoImport.{CrossType => PortableType, crossProject => portableProject}
 import sbtrelease.ReleasePlugin.autoImport.{ReleaseStep, releaseProcess}
 import sbtrelease.ReleaseStateTransformations._
@@ -136,8 +137,8 @@ val backend = Project("boat", file("backend"))
     pipelineStages := Seq(digest, gzip),
     pipelineStages in Assets := Seq(scalaJSPipeline),
     //  npmAssets ++= NpmAssets.ofProject(client) { modules => (modules / "font-awesome").allPaths }.value,
-    buildInfoKeys := Seq[BuildInfoKey](name, version, scalaVersion, "gitHash" -> gitHash, "mapboxVersion" -> mapboxVersion),
-    buildInfoPackage := "com.malliina.boat",
+//    buildInfoKeys := Seq[BuildInfoKey](name, version, scalaVersion, "gitHash" -> gitHash, "mapboxVersion" -> mapboxVersion),
+//    buildInfoPackage := "com.malliina.boat",
     // linux packaging
     httpPort in Linux := Option("8465"),
     httpsPort in Linux := Option("disabled"),

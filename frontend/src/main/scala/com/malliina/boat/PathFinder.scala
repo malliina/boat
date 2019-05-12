@@ -1,8 +1,10 @@
 package com.malliina.boat
 
+import com.malliina.boat.BoatFormats.formatDistance
 import com.malliina.boat.PathFinder._
 import com.malliina.http.HttpClient
 import com.malliina.mapbox.{MapMouseEvent, MapboxMap, MapboxMarker}
+import org.scalajs.dom.raw.{HTMLDivElement, HTMLSpanElement}
 import play.api.libs.json.Json
 import scalatags.JsDom.all._
 
@@ -17,7 +19,9 @@ object PathFinder {
   def apply(map: MapboxMap): PathFinder = new PathFinder(map)
 }
 
-class PathFinder(val map: MapboxMap) extends GeoUtils {
+class PathFinder(val map: MapboxMap) extends GeoUtils with BaseFront {
+  val mapContainer = elemGet[HTMLDivElement](MapId)
+  val routesContainer = elemGet[HTMLDivElement](RoutesContainer)
   var isEnabled: Boolean = false
   var start: Option[MapboxMarker] = None
   var end: Option[MapboxMarker] = None
@@ -27,8 +31,13 @@ class PathFinder(val map: MapboxMap) extends GeoUtils {
   def state(enabled: Boolean): Unit = {
     if (enabled) {
       isEnabled = true
+      mapContainer.classList.add(Routes)
+      routesContainer.classList.add(Enabled)
+      elemAs[HTMLSpanElement](Question).foreach(_.classList.add(Invisible))
     } else {
       isEnabled = false
+      mapContainer.classList.remove(Routes)
+      routesContainer.classList.remove(Enabled)
       clear()
     }
   }
@@ -61,14 +70,15 @@ class PathFinder(val map: MapboxMap) extends GeoUtils {
       val coords = route.coords
       val coll = FeatureCollection(
         Seq(Feature(LineGeometry(coords), Map(RouteSpec.Cost -> Json.toJson(route.cost)))))
+      elemGet[HTMLSpanElement](RouteLength).innerHTML = s"${formatDistance(route.cost)} km"
       drawLine(routeLayer, coll)
       coords.headOption.map { start =>
         val init = lineFor(Seq(from, start))
         drawLine(routeFirstLayer, init, LinePaint.dashed())
       }
       coords.lastOption.foreach { end =>
-        val init = lineFor(Seq(end, to))
-        drawLine(routeLastLayer, init, LinePaint.dashed())
+        val tail = lineFor(Seq(end, to))
+        drawLine(routeLastLayer, tail, LinePaint.dashed())
       }
     }
 

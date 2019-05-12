@@ -49,8 +49,13 @@ class MapView(accessToken: AccessToken,
     if (!document.activeElement.isInstanceOf[HTMLInputElement]) {
       e.key match {
         case "s" =>
-          if (isGeocoderVisible) map.removeControl(geocoder)
-          else map.addControl(geocoder)
+          if (isGeocoderVisible) {
+            map.removeControl(geocoder)
+          } else {
+            map.addControl(geocoder)
+            // focuses the search box when opened
+            focusSearch("mapboxgl-ctrl-geocoder", e)
+          }
           isGeocoderVisible = !isGeocoderVisible
         case "d" =>
           pathFinder.toggleState()
@@ -73,6 +78,19 @@ class MapView(accessToken: AccessToken,
   elem(ModalId).foreach(initModal)
 
   initNavDropdown()
+
+  private def focusSearch(className: String, e: KeyboardEvent) = {
+    document
+      .getElementsByClassName(className)
+      .map(
+        _.getElementsByTagName("input")
+          .map(_.asInstanceOf[HTMLInputElement])
+          .headOption
+          .map { in =>
+            e.preventDefault()
+            in.focus()
+          })
+  }
 
   def craftSampleQuery = {
     val prefix = if (queryString.isEmpty) "" else "&"

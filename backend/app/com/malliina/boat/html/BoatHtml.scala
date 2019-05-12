@@ -84,17 +84,21 @@ class BoatHtml(jsFiles: ScriptAssets) extends Tags(scalatags.Text) {
                 fontAwesomeLink(a, FullLinkId, "list", s"icon-link $Hidden", "List"),
                 fontAwesomeLink(a, GraphLinkId, "chart-area", s"icon-link $Hidden", "Graph"),
                 standaloneQuestion("question-nav nav-icon")
-              )
+              ),
+              routeContainer
             )
           }.getOrElse {
-            if (isAnon) {
-              modifier(
-                standaloneQuestion("boat-icon question"),
-                personIcon("boat-icon user")
-              )
-            } else {
-              standaloneQuestion("boat-icon question")
-            }
+            modifier(
+              routeContainer,
+              if (isAnon) {
+                modifier(
+                  standaloneQuestion("boat-icon question"),
+                  personIcon("boat-icon user")
+                )
+              } else {
+                standaloneQuestion("boat-icon question")
+              }
+            )
           },
           div(id := MapId, `class` := s"mapbox-map $mapClass"),
           about.about(user, ub.language),
@@ -103,6 +107,11 @@ class BoatHtml(jsFiles: ScriptAssets) extends Tags(scalatags.Text) {
       )
     )
   }
+
+  def routeContainer = div(id := RoutesContainer, `class` := RoutesContainer)(
+    span(id := RouteLength, `class` := "nav-text route-length")(""),
+    span(id := RouteText, `class` := "nav-text route-text")("")
+  )
 
   def short(d: Distance) =
     if (d.toKilometers >= 10) s"${d.toKilometers} km"

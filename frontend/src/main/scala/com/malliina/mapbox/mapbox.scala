@@ -44,7 +44,9 @@ object GeocoderOptions {
 
 @js.native
 @JSImport("@mapbox/mapbox-gl-geocoder", JSImport.Default)
-class MapboxGeocoder(options: GeocoderOptions) extends js.Object {}
+class MapboxGeocoder(options: GeocoderOptions) extends js.Object {
+  def clear: Unit = js.native
+}
 
 object MapboxGeocoder {
   def finland(accessToken: AccessToken): MapboxGeocoder =

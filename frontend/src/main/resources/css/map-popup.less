@@ -12,6 +12,16 @@
       top: @navbar-height;
     }
   }
+
+  &.routes {
+    @media @tablets {
+      top: @navbar-routes-height;
+
+      &:not(.auth) {
+        top: @navbar-height;
+      }
+    }
+  }
 }
 
 .boat-icon {

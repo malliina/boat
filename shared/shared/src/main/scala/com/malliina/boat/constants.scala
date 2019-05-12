@@ -27,6 +27,7 @@ object FrontKeys extends FrontKeys
 trait FrontKeys extends BodyClasses with ListKeys with NavKeys with AboutKeys {
   val ChartsId = "charts"
   val Close = "close"
+  val Enabled = "enabled"
   val FullLinkId = "full-list-link"
   val GraphLinkId = "graph-link"
   val Hidden = "hidden"
@@ -34,8 +35,12 @@ trait FrontKeys extends BodyClasses with ListKeys with NavKeys with AboutKeys {
   val Modal = "modal"
   val ModalId = "modal"
   val PersonLink = "person-link"
+  val Routes = "routes"
+  val RoutesContainer = "routes-container"
 
   val SampleKey = "sample"
+
+  val Invisible = "invisible"
   val Visible = "visible"
 }
 
@@ -55,6 +60,9 @@ trait NavKeys {
 
   val Question = "question-link"
   val QuestionNav = "question-nav"
+
+  val RouteLength = "route-length"
+  val RouteText = "route-text"
 }
 
 trait ListKeys {
