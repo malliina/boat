@@ -10,7 +10,7 @@ The following units of measure are used in JSON responses where applicable:
 | Measurement | Unit
 |-------------|-----
 | Speed | Knots
-| Depth | Millimeters
+| Depth | Meters
 | Distance (old) | Millimeters
 | Distance (new) | Meters
 | Draft | Meters
@@ -47,7 +47,7 @@ Returns tracks driven:
         ]
     }
 
-## PUT /tracks/track_name_here
+## PUT /tracks/:track_name
 
 Modifies the title of the given track:
 
@@ -93,7 +93,7 @@ The following language codes are supported:
 | fi-FI | Finnish
 | en-US | English
 
-## PATCH /boats/boat_id_here
+## PATCH /boats/:boat_id
 
 Changes the name of the given boat:
 
@@ -126,6 +126,65 @@ Unsubscribes from push notifications:
     {
         "token": "device_token",
     }
+
+## GET /routes/:srclat/:srclng/:destlat/:destlng
+
+Returns the shortest route between two points along fairways. Provide the source and destination
+coordinates in the request.
+
+Example request:
+
+    GET /routes/60.14729/24.85396/60.11478/24.87489
+    
+Example response:
+
+    {
+        "from": {
+            "lat": 60.14729290768696,
+            "lng": 24.853965806435724
+        },
+        "to": {
+            "lat": 60.1147881804653,
+            "lng": 24.87489090627807
+        },
+        "totalCost": 5498.050648111757,
+        "duration": 0.355,
+        "route": {
+            "cost": 4770.0589143530415,
+            "links": [
+                {
+                    "cost": 0,
+                    "to": {
+                        "lat": 60.149,
+                        "lng": 24.8534
+                    }
+                },
+                {
+                    "cost": 1400.7671712474576,
+                    "to": {
+                        "lat": 60.137,
+                        "lng": 24.8611
+                    }
+                },
+                ...
+                {
+                    "cost": 670.6786486135463,
+                    "to": {
+                        "lat": 60.119,
+                        "lng": 24.8702
+                    }
+                }
+            ]
+        }
+    }
+    
+The response contains the following items:
+
+| Key | Type | Meaning
+|-----|------|---------
+| totalCost | Number | Distance in meters from source to destination, including the distance from the provided coordinates to nearby fairways
+| route.cost | Number | Distance in meters along fairways
+| route.links | Array | The route as an array of hops along fairway points
 
 ## WebSocket /ws/updates
 
