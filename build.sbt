@@ -126,7 +126,9 @@ val backend = Project("boat", file("backend"))
       "com.typesafe.akka" %% "akka-http-spray-json" % akkaHttpVersion,
       "org.eclipse.paho" % "org.eclipse.paho.client.mqttv3" % "1.2.0",
       utilPlayDep,
-      utilPlayTestDep
+      utilPlayTestDep,
+      scalaTestDep,
+      "org.scalatestplus.play" %% "scalatestplus-play" % "4.0.2" % Test
     ),
     routesImport ++= Seq(
       "com.malliina.boat.Bindables._",
