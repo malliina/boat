@@ -1,5 +1,4 @@
 import com.malliina.http.FullUrl
-import com.malliina.sbt.unix.LinuxKeys.ciBuild
 import sbtcrossproject.CrossPlugin.autoImport.{CrossType => PortableType, crossProject => portableProject}
 import sbtrelease.ReleasePlugin.autoImport.{ReleaseStep, releaseProcess}
 import sbtrelease.ReleaseStateTransformations._
@@ -10,7 +9,7 @@ import scala.util.Try
 val mapboxVersion = "0.53.1"
 val utilPlayVersion = "5.1.1"
 val scalaTestVersion = "3.0.7"
-val scalaTagsVersion = "0.6.7"
+val scalaTagsVersion = "0.6.8"
 val primitiveVersion = "1.9.0"
 val akkaVersion = "2.5.20"
 val akkaHttpVersion = "10.1.7"
@@ -63,7 +62,7 @@ val frontend = project
   .settings(
     libraryDependencies ++= Seq(
       "com.typesafe.play" %%% "play-json" % "2.7.1",
-      "org.scala-js" %%% "scalajs-dom" % "0.9.6",
+      "org.scala-js" %%% "scalajs-dom" % "0.9.7",
       "org.scalatest" %%% "scalatest" % scalaTestVersion % Test
     ),
     npmDependencies in Compile ++= Seq(

@@ -64,6 +64,8 @@ class BoatSchema(ds: DataSource, conf: ProfileConf)
   val pointsTable = TableQuery[TrackPointsTable]
   val sentencePointsTable = TableQuery[SentencesPointsLink]
   val pushTable = TableQuery[PushClientsTable]
+  val fairwaysTable = TableQuery[FairwaysTable]
+  val fairwayCoordsTable = TableQuery[FairwayCoordsTable]
   val pushInserts = pushTable.map(_.forInserts).returning(pushTable.map(_.id))
   val sentenceInserts = sentencesTable.map(_.forInserts).returning(sentencesTable.map(_.id))
   val boatInserts = boatsTable.map(_.forInserts).returning(boatsTable.map(_.id))
@@ -117,7 +119,7 @@ class BoatSchema(ds: DataSource, conf: ProfileConf)
       )
     }
 
-  override val tableQueries = Seq(pushTable, sentencePointsTable, pointsTable, sentencesTable, tracksTable, boatsTable, usersTable)
+  override val tableQueries = Seq(pushTable, sentencePointsTable, pointsTable, sentencesTable, tracksTable, boatsTable, usersTable, fairwayCoordsTable, fairwaysTable)
 
   def topSpeedPoint(track: TrackId) = pointsTable.filter(_.track === track).sortBy(_.boatSpeed.desc).take(1)
 
@@ -185,11 +187,8 @@ class BoatSchema(ds: DataSource, conf: ProfileConf)
 
   class SentencesTable(tag: Tag) extends Table[SentenceRow](tag, "sentences") {
     def id = column[SentenceKey]("id", O.AutoInc, O.PrimaryKey)
-
     def sentence = column[RawSentence]("sentence", O.Length(128))
-
     def track = column[TrackId]("track")
-
     def added = column[Instant]("added", O.SqlType(CreatedTimestampType))
 
     def userConstraint = foreignKey("sentences_track_fk", track, tracksTable)(
@@ -205,62 +204,40 @@ class BoatSchema(ds: DataSource, conf: ProfileConf)
 
   class TrackPointsTable(tag: Tag) extends Table[TrackPointRow](tag, "points") {
     def id = column[TrackPointId]("id", O.PrimaryKey, O.AutoInc)
-
     def lon = column[Longitude]("longitude")
-
     def lat = column[Latitude]("latitude")
-
     def coord = column[Coord]("coord")
-
     def boatSpeed = column[SpeedM]("boat_speed")
-
     def speedIdx = index("points_track_speed_idx", (track, boatSpeed))
-
     def waterTemp = column[Temperature]("water_temp")
-
     def tempIdx = index("points_track_water_temp_idx", (track, waterTemp))
-
     def depth = column[DistanceM]("depthm")
-
     def depthIdx = index("points_track_depth_idx", (track, depth))
-
     def depthOffset = column[DistanceM]("depth_offsetm")
-
     def boatTime = column[Instant]("boat_time", O.SqlType(CreatedTimestampType))
-
     def timeIdx = index("points_track_boat_time_idx", (track, boatTime))
-
     def track = column[TrackId]("track")
-
     def trackIndex = column[Int]("track_index", O.Default(0))
-
     def trackIndexIdx = index("points_track_index_idx", trackIndex, unique = false)
+    def added = column[Instant]("added", O.SqlType(CreatedTimestampType))
+    def diff = column[DistanceM]("diff", O.Default(DistanceM.zero))
 
     def trackConstraint = foreignKey("points2_track_fk", track, tracksTable)(
       _.id,
       onUpdate = ForeignKeyAction.Cascade,
       onDelete = ForeignKeyAction.Cascade
     )
-
-    def diff = column[DistanceM]("diff", O.Default(DistanceM.zero))
-
     def diffIdx = index("points_track_diff_idx", (track, diff))
-
     // I think this is the best index for aggregate calculations (group by with avg, sum, max, min)
     def allIdx = index("points_track_all_idx", (track, boatTime, boatSpeed, waterTemp, diff))
 
-    def added = column[Instant]("added", O.SqlType(CreatedTimestampType))
-
     def forInserts = (lon, lat, coord, boatSpeed, waterTemp, depth, depthOffset, boatTime, track, trackIndex, diff) <> ((TrackPointInput.apply _).tupled, TrackPointInput.unapply)
-
     def combined = LiftedCoord(id, lon, lat, coord, boatSpeed, waterTemp, depth, depthOffset, boatTime, dateFunc(boatTime), track, added)
-
     def * = (id, lon, lat, coord, boatSpeed, waterTemp, depth, depthOffset, boatTime, track, trackIndex, diff, added) <> ((TrackPointRow.apply _).tupled, TrackPointRow.unapply)
   }
 
   class SentencesPointsLink(tag: Tag) extends Table[SentencePointLink](tag, "sentence_points") {
     def sentence = column[SentenceKey]("sentence")
-
     def point = column[TrackPointId]("point")
 
     def pKey = primaryKey("sentence_points_pk", (sentence, point))
@@ -278,23 +255,14 @@ class BoatSchema(ds: DataSource, conf: ProfileConf)
 
   class TracksTable(tag: Tag) extends Table[TrackRow](tag, "tracks") {
     def id = column[TrackId]("id", O.PrimaryKey, O.AutoInc)
-
     def name = column[TrackName]("name", O.Length(128))
-
     def boat = column[BoatId]("boat")
-
     def avgSpeed = column[Option[SpeedM]]("avg_speed")
-
     def avgWaterTemp = column[Option[Temperature]]("avg_water_temp")
-
     def points = column[Int]("points")
-
     def distance = column[DistanceM]("distance")
-
     def title = column[Option[TrackTitle]]("title", O.Length(191), O.Unique)
-
     def canonical = column[TrackCanonical]("canonical", O.Length(191), O.Unique)
-
     def added = column[Instant]("added", O.SqlType(CreatedTimestampType))
 
     def boatConstraint = foreignKey("tracks_boat_fk", boat, boatsTable)(
@@ -310,13 +278,9 @@ class BoatSchema(ds: DataSource, conf: ProfileConf)
 
   class BoatsTable(tag: Tag) extends Table[BoatRow](tag, "boats") {
     def id = column[BoatId]("id", O.PrimaryKey, O.AutoInc)
-
     def name = column[BoatName]("name", O.Unique, O.Length(128))
-
     def token = column[BoatToken]("token", O.Unique, O.Length(128))
-
     def owner = column[UserId]("owner")
-
     def added = column[Instant]("added", O.SqlType(CreatedTimestampType))
 
     def userConstraint = foreignKey("boats_owner_fk", owner, usersTable)(
@@ -332,19 +296,12 @@ class BoatSchema(ds: DataSource, conf: ProfileConf)
 
   class UsersTable(tag: Tag) extends Table[DataUser](tag, "users") {
     def id = column[UserId]("id", O.PrimaryKey, O.AutoInc)
-
     def user = column[Username]("user", O.Unique, O.Length(128))
-
     def email = column[Option[Email]]("email", O.Unique, O.Length(128))
-
     def passHash = column[String]("pass_hash", O.Length(512))
-
     def token = column[UserToken]("token", O.Length(128), O.Unique)
-
     def language = column[Language]("language", O.Length(64), O.Default(Language.default))
-
     def enabled = column[Boolean]("enabled")
-
     def added = column[Instant]("added", O.SqlType(CreatedTimestampType))
 
     def forInserts = (user, email, token, enabled) <> ((NewUser.apply _).tupled, NewUser.unapply)
@@ -354,18 +311,50 @@ class BoatSchema(ds: DataSource, conf: ProfileConf)
 
   class PushClientsTable(tag: Tag) extends Table[PushDevice](tag, "push_clients") {
     def id = column[PushId]("id", O.PrimaryKey, O.AutoInc)
-
     def token = column[PushToken]("token", O.Unique, O.Length(1024))
-
     def device = column[MobileDevice]("device", O.Length(128))
-
     def user = column[UserId]("user", O.Length(128))
-
     def added = column[Instant]("added", O.SqlType(CreatedTimestampType))
 
     def forInserts = (token, device, user).mapTo[PushInput]
-
     def * = (id, token, device, user, added) <> ((PushDevice.apply _).tupled, PushDevice.unapply)
+  }
+
+  class FairwaysTable(tag: Tag) extends Table[FairwayRow](tag, "fairways") {
+    def id = column[FairwayId]("id", O.PrimaryKey, O.AutoInc)
+    def nameFi = column[Option[String]]("name_fi", O.Length(128))
+    def nameSe = column[Option[String]]("name_se", O.Length(128))
+    def start = column[Option[String]]("start", O.Length(128))
+    def end = column[Option[String]]("end", O.Length(128))
+    def depth = column[Option[DistanceM]]("depth")
+    def depth2 = column[Option[DistanceM]]("depth2")
+    def depth3 = column[Option[DistanceM]]("depth3")
+    def lighting = column[FairwayLighting]("lighting")
+    def classText = column[String]("class_text")
+    def seaArea = column[SeaArea]("sea_area")
+    def state = column[Double]("state")
+
+    def forInserts = (nameFi, nameSe, start, end, depth, depth2, depth3, lighting, classText, seaArea, state) <> ((FairwayInfo.apply _).tupled, FairwayInfo.unapply)
+    def * = (id, nameFi, nameSe, start, end, depth, depth2, depth3, lighting, classText, seaArea, state) <> ((FairwayRow.apply _).tupled, FairwayRow.unapply)
+  }
+
+  class FairwayCoordsTable(tag: Tag) extends Table[FairwayCoord](tag, "fairway_coords") {
+    def id = column[FairwayCoordId]("id", O.PrimaryKey, O.AutoInc)
+    def coord = column[Coord]("coord")
+    def lat = column[Latitude]("latitude")
+    def lng = column[Longitude]("longitude")
+    def hash = column[CoordHash]("coord_hash", O.Length(191))
+    def fairway = column[FairwayId]("fairway")
+
+    def fairwayConstraint = foreignKey("fairway_coords_fairway_fk", fairway, fairwaysTable)(
+      _.id,
+      onUpdate = ForeignKeyAction.Cascade,
+      onDelete = ForeignKeyAction.Cascade
+    )
+    def hashIdx = index("fairway_coords_coord_hash_idx", hash)
+
+    def forInserts = (coord, lat, lng, hash, fairway) <> ((FairwayCoordInput.apply _).tupled, FairwayCoordInput.unapply)
+    def * = (id, coord, lat, lng, hash, fairway) <> ((FairwayCoord.apply _).tupled, FairwayCoord.unapply)
   }
 
   def first[T, R](q: Query[T, R, Seq], onNotFound: => String)(implicit ec: ExecutionContext) =

@@ -572,3 +572,4 @@ class ModelHtml[Builder, Output <: FragT, FragT](val bundle: Bundle[Builder, Out
 
   implicit def wrappedFrag[T <: Wrapped](t: T): Frag = stringFrag(t.value)
 }
+

@@ -24,7 +24,7 @@ class TracksImporter extends TracksTester {
   implicit val mat = ActorMaterializer()
 
   ignore("import tracks from plotter log file") {
-    val (db, tdb) = initDb()
+    val (db, tdb) = initDbAndTracks()
     val trackName = TrackNames.random()
     val track = await(tdb.join(BoatUser(trackName, BoatName("Amina"), Username("mle"))), 10.seconds)
     println(s"Using $track")

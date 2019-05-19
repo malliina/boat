@@ -102,7 +102,7 @@ class TracksDatabaseTests extends TracksTester {
   }
 
   ignore("init tokens") {
-    val (db, _) = initDb()
+    val (db, _) = initDbAndTracks()
     import db.api._
     import db.usersTable
 
@@ -115,14 +115,9 @@ class TracksDatabaseTests extends TracksTester {
   }
 
   ignore("sentences") {
-    val (db, tdb) = initDb()
+    val (db, tdb) = initDbAndTracks()
     import db._
     import db.api._
-
-    //    val tracks = await(db.run(sentencesTable.filter(t => !t.track.inSet(Set(TrackId(65), TrackId(66)))).map(_.track).distinct.result))
-    //    tracks.foreach { t =>
-    //      await(parseAndInsert(t), 300.seconds)
-    //    }
 
     await(parseAndInsert(TrackId(167)), 300.seconds)
 
@@ -140,10 +135,9 @@ class TracksDatabaseTests extends TracksTester {
   }
 }
 
-abstract class TracksTester extends BaseSuite {
-  def initDb() = {
-    val db = BoatSchema(DatabaseConf(Mode.Prod, LocalConf.localConf))
-    db.init()
+abstract class TracksTester extends DatabaseSuite {
+  def initDbAndTracks() = {
+    val db = initDb()
     val tdb = TracksDatabase(db, cached)
     (db, tdb)
   }

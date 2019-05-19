@@ -1,6 +1,6 @@
 package com.malliina.boat
 
-import com.malliina.measure.{Distance, DistanceM, SpeedM}
+import com.malliina.measure.{DistanceM, SpeedM}
 import scalatags.JsDom.all._
 
 object Popups {
@@ -39,9 +39,9 @@ class Popups(lang: Lang) extends BoatModels {
 
   def formatDistance(d: DistanceM) = "%.1f m".format(d.toMeters)
 
-  private def asMeters(d: Distance) = {
+  private def asMeters(d: DistanceM) = {
     val value = "%.2f"
-      .format(d.toMetersDouble)
+      .format(d.toMeters)
       .stripSuffix("0")
       .stripSuffix("0")
       .stripSuffix(".")
@@ -77,7 +77,9 @@ class Popups(lang: Lang) extends BoatModels {
 
   def fairwayInfo(info: FairwayInfo) =
     titledTable(info.name(lang).fold("")(identity))(
-      row(fairwayLang.fairwayDepth, formatDistance(info.depth)),
+      info.depth.fold(empty) { depth =>
+        row(fairwayLang.fairwayDepth, formatDistance(depth))
+      }
     )
 
   def depthArea(depthArea: DepthArea) =
