@@ -75,16 +75,34 @@ object SeaArea {
       fromIntOrOther(d.toInt)
     }
   }
-  val all = Seq(Unknown,
-                Perameri,
-                Selkameri,
-                Ahvenanmeri,
-                Saaristomeri,
-                Suomenlahti,
-                Itameri,
-                Saimaa,
-                Paijanne,
-                Kokemaenjoki)
+  val all: Seq[SeaArea] = Seq(
+    Unknown,
+    Perameri,
+    Selkameri,
+    Ahvenanmeri,
+    Saaristomeri,
+    Suomenlahti,
+    Itameri,
+    Saimaa,
+    Paijanne,
+    Kokemaenjoki,
+    Oulujarvi,
+    SotkamonJarvet,
+    KuhmonJarvet,
+    KuusamonJarvet,
+    Kiantajarvi,
+    Simojarvi,
+    LokkaPorttipahta,
+    Kemijarvi,
+    Inarinjarvi,
+    Nitsijarvi,
+    Miekkojarvi,
+    Tornionjoki,
+    Ahtarinjarvi,
+    Lappajarvi,
+    Pyhajarvi,
+    Lohjanjarvi
+  )
 
   def fromInt(i: Int) = all.find(_.value == i).toRight(s"Unknown sea area number: '$i'.")
 
@@ -100,6 +118,23 @@ object SeaArea {
   case object Saimaa extends SeaArea(7)
   case object Paijanne extends SeaArea(8)
   case object Kokemaenjoki extends SeaArea(9)
+  case object Oulujarvi extends SeaArea(10)
+  case object SotkamonJarvet extends SeaArea(11)
+  case object KuhmonJarvet extends SeaArea(12)
+  case object KuusamonJarvet extends SeaArea(13)
+  case object Kiantajarvi extends SeaArea(14)
+  case object Simojarvi extends SeaArea(15)
+  case object LokkaPorttipahta extends SeaArea(16)
+  case object Kemijarvi extends SeaArea(17)
+  case object Inarinjarvi extends SeaArea(18)
+  case object Nitsijarvi extends SeaArea(19)
+  case object Miekkojarvi extends SeaArea(20)
+  case object Tornionjoki extends SeaArea(21)
+  case object Ahtarinjarvi extends SeaArea(22)
+  case object Lappajarvi extends SeaArea(23)
+  case object Pyhajarvi extends SeaArea(24)
+  case object Lohjanjarvi extends SeaArea(25)
+
   case class Other(v: Int) extends SeaArea(v)
 }
 
