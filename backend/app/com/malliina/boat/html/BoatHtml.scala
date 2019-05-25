@@ -38,7 +38,7 @@ object BoatHtml {
 class BoatHtml(jsFiles: ScriptAssets) extends Tags(scalatags.Text) {
   val reverse = routes.BoatController
   val reverseApp = routes.AppController
-  val mapboxVersion = AppMeta.default.mapboxVersion
+//  val mapboxVersion = AppMeta.default.mapboxVersion
 
   implicit def wrapFrag[T <: Wrapped](w: T): StringFrag = stringFrag(w.value)
 

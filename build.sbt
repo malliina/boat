@@ -6,7 +6,7 @@ import sbtrelease.ReleaseStateTransformations._
 import scala.sys.process.Process
 import scala.util.Try
 
-val mapboxVersion = "0.53.1"
+val mapboxVersion = "1.0.0"
 val utilPlayVersion = "5.1.1"
 val scalaTestVersion = "3.0.7"
 val scalaTagsVersion = "0.6.8"
@@ -66,31 +66,31 @@ val frontend = project
       "org.scalatest" %%% "scalatest" % scalaTestVersion % Test
     ),
     npmDependencies in Compile ++= Seq(
-      "@fortawesome/fontawesome-free" -> "5.8.1",
-      "@mapbox/mapbox-gl-geocoder" -> "3.1.6",
+      "@fortawesome/fontawesome-free" -> "5.8.2",
+      "@mapbox/mapbox-gl-geocoder" -> "4.3.0",
       "@turf/turf" -> "5.1.6",
-      "bootstrap" -> "4.2.1",
-      "chart.js" -> "2.7.3",
-      "jquery" -> "3.3.1",
+      "bootstrap" -> "4.3.1",
+      "chart.js" -> "2.8.0",
+      "jquery" -> "3.4.1",
       "mapbox-gl" -> mapboxVersion,
-      "popper.js" -> "1.14.6"
+      "popper.js" -> "1.15.0"
     ),
     npmDevDependencies in Compile ++= Seq(
-      "autoprefixer" -> "9.4.3",
-      "cssnano" -> "4.1.8",
-      "css-loader" -> "2.1.0",
+      "autoprefixer" -> "9.5.1",
+      "cssnano" -> "4.1.10",
+      "css-loader" -> "2.1.1",
       "file-loader" -> "3.0.1",
       "less" -> "3.9.0",
-      "less-loader" -> "4.1.0",
-      "mini-css-extract-plugin" -> "0.5.0",
+      "less-loader" -> "5.0.0",
+      "mini-css-extract-plugin" -> "0.6.0",
       "postcss-import" -> "12.0.1",
       "postcss-loader" -> "3.0.0",
-      "postcss-preset-env" -> "6.5.0",
+      "postcss-preset-env" -> "6.6.0",
       "style-loader" -> "0.23.1",
       "url-loader" -> "1.1.2",
-      "webpack-merge" -> "4.1.5"
+      "webpack-merge" -> "4.2.1"
     ),
-    version in webpack := "4.27.1",
+    version in webpack := "4.32.2",
     emitSourceMaps := false,
     scalaJSUseMainModuleInitializer := true,
     webpackBundlingMode := BundlingMode.LibraryOnly(),

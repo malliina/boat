@@ -1,5 +1,7 @@
+import NodeCheckPlugin.autoImport.ncu
 import sbt.Keys._
 import sbt._
+import scalajsbundler.sbtplugin.ScalaJSBundlerPlugin.autoImport.npmUpdate
 
 import scala.sys.process.{Process, ProcessLogger}
 
@@ -8,6 +10,7 @@ object NodeCheckPlugin extends AutoPlugin {
     val checkNode = taskKey[Unit]("Make sure the user uses the correct version of node.js")
     val failMode =
       settingKey[FailMode]("Whether to warn or fail hard when the node version is unsupported")
+    val ncu = taskKey[Int]("Runs npm-check-updates")
   }
   import autoImport.{checkNode, failMode}
 
@@ -16,6 +19,15 @@ object NodeCheckPlugin extends AutoPlugin {
     checkNode := runNodeCheck(streams.value.log, failMode.value),
     onLoad in Global := (onLoad in Global).value andThen { state =>
       "checkNode" :: state
+    }
+  )
+
+  override val projectSettings = Seq(
+    ncu := {
+      val log = streams.value.log
+      val cwd = (crossTarget in (Compile, npmUpdate)).value
+      log.info(s"Running 'ncu' in $cwd...")
+      Process("ncu", cwd).run(log).exitValue()
     }
   )
 

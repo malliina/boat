@@ -34,11 +34,12 @@ object mapboxGl extends js.Object {
 trait GeocoderOptions extends js.Object {
   def accessToken: String
   def countries: String
+  def mapboxgl: js.UndefOr[js.Object]
 }
 
 object GeocoderOptions {
-  def apply(accessToken: String, countries: Seq[String]): GeocoderOptions =
-    literal(accessToken = accessToken, countries = countries.mkString(","))
+  def apply(accessToken: String, countries: Seq[String], mapboxgl: Option[js.Object]): GeocoderOptions =
+    literal(accessToken = accessToken, countries = countries.mkString(","), mapboxgl = mapboxgl.orUndefined)
       .asInstanceOf[GeocoderOptions]
 }
 
@@ -50,7 +51,7 @@ class MapboxGeocoder(options: GeocoderOptions) extends js.Object {
 
 object MapboxGeocoder {
   def finland(accessToken: AccessToken): MapboxGeocoder =
-    new MapboxGeocoder(GeocoderOptions(accessToken.token, Seq("fi")))
+    new MapboxGeocoder(GeocoderOptions(accessToken.token, Seq("fi"), Option(mapboxGl)))
 }
 
 @js.native
