@@ -567,6 +567,98 @@ object LanguageInfo {
   implicit val json = Json.format[LanguageInfo]
 }
 
+case class LimitTypes(speedLimit: String,
+                      noWaves: String,
+                      noWindSurfing: String,
+                      noJetSkiing: String,
+                      noMotorPower: String,
+                      noAnchoring: String,
+                      noStopping: String,
+                      noAttachment: String,
+                      noOvertaking: String,
+                      noRendezVous: String,
+                      speedRecommendation: String)
+
+object LimitTypes {
+  implicit val json = Json.format[LimitTypes]
+}
+
+case class LimitLang(limit: String,
+                     magnitude: String,
+                     length: String,
+                     location: String,
+                     fairwayName: String,
+                     responsible: String,
+                     types: LimitTypes)
+
+object LimitLang {
+  implicit val json = Json.format[LimitLang]
+
+  val fi = LimitLang(
+    "Rajoitukset",
+    "Nopeus",
+    "Pituus",
+    "Sijainti",
+    "Väylän nimi",
+    "Merkinnästä vastaava",
+    LimitTypes(
+      "Nopeusrajoitus",
+      "Aallokon aiheuttamisen kielto",
+      "Purjelautailukielto",
+      "Vesiskootterilla ajo kielletty",
+      "Aluksen kulku moottorivoimaa käyttäen kielletty",
+      "Ankkurin käyttökielto",
+      "Pysäköimiskielto",
+      "Kiinnittymiskielto",
+      "Ohittamiskielto",
+      "Kohtaamiskielto",
+      "Nopeussuositus"
+    )
+  )
+  val se = LimitLang(
+    "Begränsningar",
+    "Hastighet",
+    "Längd",
+    "Plats",
+    "Farledens namn",
+    "Ansvarig",
+    LimitTypes(
+      "Hastighetsbegränsning",
+      "Förbjudet att orsaka vågor",
+      "Vindsurfing förbjudet",
+      "Förbjudet att åka vattenskoter",
+      "Motorkraft förbjudet",
+      "Förbjudet att använda ankare",
+      "Förbjudet att stanna",
+      "Förbjudet att stanna",
+      "Förbjudet att passera",
+      "Mötesförbud",
+      "Hastighetsrekommendation"
+    )
+  )
+  val en = LimitLang(
+    "Limits",
+    "Speed",
+    "Length",
+    "Location",
+    "Fairway name",
+    "Responsible",
+    LimitTypes(
+      "Speed limit",
+      "No waves",
+      "No windsurfing",
+      "No jet skiing",
+      "No motor power",
+      "No anchoring",
+      "No stopping",
+      "No stopping",
+      "No passing",
+      "No meeting",
+      "Speed recommendation"
+    )
+  )
+}
+
 case class Lang(
     appName: String,
     map: String,
@@ -584,7 +676,8 @@ case class Lang(
     attributions: AttributionInfo,
     profile: ProfileLang,
     messages: MessagesLang,
-    settings: SettingsLang
+    settings: SettingsLang,
+    limits: LimitLang
 )
 
 object Lang {
@@ -713,7 +806,8 @@ object Lang {
       "Done",
       "Hello! You have no saved tracks. To save tracks, you'll need to connect the BoatTracker agent software to the GPS chartplotter in your boat.",
       FormatsLang("dd MMM yyyy", "HH:mm:ss", "HH:mm", "dd MMM yyyy HH:mm:ss")
-    )
+    ),
+    LimitLang.en
   )
 
   val fi = Lang(
@@ -835,7 +929,8 @@ object Lang {
       "Valmis",
       "Hei! Ei tallennettuja reittejä. Reittien tallennus vaatii BoatTracker -sovelluksen yhdistämisen veneesi karttaplotteriin.",
       FormatsLang("dd.MM.yyyy", "HH:mm:ss", "HH:mm", "dd.MM.yyyy HH:mm:ss")
-    )
+    ),
+    LimitLang.fi
   )
 
   val se = Lang(
@@ -957,7 +1052,8 @@ object Lang {
       "Färdig",
       "Inga sparade spår. För att spara spår, koppla BoatTracker-appen till båtens plotter.",
       FormatsLang("dd.MM.yyyy", "HH:mm:ss", "HH:mm", "dd.MM.yyyy HH:mm:ss")
-    )
+    ),
+    LimitLang.se
   )
   val default = fi
 }

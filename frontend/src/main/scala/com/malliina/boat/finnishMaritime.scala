@@ -1,9 +1,11 @@
 package com.malliina.boat
 
-import com.malliina.boat.MaritimeJson.intReader
+import com.malliina.boat.MaritimeJson.{intReader, nonEmptyOpt, partialReader}
 import com.malliina.boat.MinimalMarineSymbol.nonEmpty
-import com.malliina.measure.DistanceM
+import com.malliina.measure.{DistanceM, SpeedM}
 import play.api.libs.json._
+
+import scala.util.Try
 
 /** Navigointilaji (NAVL_TYYP)
   */
@@ -251,7 +253,7 @@ case class MarineSymbol(owner: String,
 
 /**
   * @see Vesiväyläaineistojen tietosisällön kuvaus
-  * @see https://www.liikennevirasto.fi/documents/20473/38174/Vesiv%C3%A4yl%C3%A4aineistojen+tietosis%C3%A4ll%C3%B6n+kuvaus/68b5f496-19a3-4b3d-887c-971e3366f01e
+  * @see https://vayla.fi/documents/20473/38174/Vesiv%C3%A4yl%C3%A4aineistojen+tietosis%C3%A4ll%C3%B6n+kuvaus/68b5f496-19a3-4b3d-887c-971e3366f01e
   */
 object MarineSymbol {
   val boolNum = Reads[Boolean] { json =>
@@ -500,16 +502,137 @@ sealed trait ZoneOfInfluence {
 }
 
 object ZoneOfInfluence {
-  implicit val reader: Reads[ZoneOfInfluence] = Reads[ZoneOfInfluence] { json =>
-    json.validate[String].flatMap {
-      case "A"   => JsSuccess(Area)
-      case "V"   => JsSuccess(Fairway)
-      case "AV"  => JsSuccess(AreaAndFairway)
-      case other => JsError(s"Unexpected zone of influence: '$other'.")
+  implicit val reader: Reads[ZoneOfInfluence] =
+    partialReader[String, ZoneOfInfluence](json => s"Unexpected zone of influence: '$json'.") {
+      case "A"  => Area
+      case "V"  => Fairway
+      case "AV" => AreaAndFairway
     }
-  }
 
   case object Area extends ZoneOfInfluence
   case object Fairway extends ZoneOfInfluence
   case object AreaAndFairway extends ZoneOfInfluence
+}
+
+sealed trait LimitType {
+  import LimitType._
+
+  def describe(lang: LimitTypes): String = this match {
+    case SpeedLimit          => lang.speedLimit
+    case NoWaves             => lang.noWaves
+    case NoWindSurfing       => lang.noWindSurfing
+    case NoJetSkiing         => lang.noJetSkiing
+    case NoMotorPower        => lang.noMotorPower
+    case NoAnchoring         => lang.noAnchoring
+    case NoStopping          => lang.noStopping
+    case NoAttachment        => lang.noAttachment
+    case NoOvertaking        => lang.noOvertaking
+    case NoRendezVous        => lang.noRendezVous
+    case SpeedRecommendation => lang.speedRecommendation
+  }
+}
+
+object LimitType {
+  case object SpeedLimit extends LimitType
+  case object NoWaves extends LimitType
+  case object NoWindSurfing extends LimitType
+  case object NoJetSkiing extends LimitType
+  case object NoMotorPower extends LimitType
+  case object NoAnchoring extends LimitType
+  case object NoStopping extends LimitType
+  // Kiinnittymiskielto
+  case object NoAttachment extends LimitType
+  case object NoOvertaking extends LimitType
+  // Kohtaamiskielto
+  case object NoRendezVous extends LimitType
+  case object SpeedRecommendation extends LimitType
+
+  implicit val reader: Reads[LimitType] =
+    partialReader[String, LimitType](json => s"Unknown limit type: '$json'.")(parse)
+
+  def parse: PartialFunction[String, LimitType] = {
+    case "01" => SpeedLimit
+    case "02" => NoWaves
+    case "03" => NoWindSurfing
+    case "04" => NoJetSkiing
+    case "05" => NoMotorPower
+    case "06" => NoAnchoring
+    case "07" => NoStopping
+    case "08" => NoAttachment
+    case "09" => NoOvertaking
+    case "10" => NoRendezVous
+    case "11" => SpeedRecommendation
+  }
+
+  def fromString(s: String): JsResult[Seq[LimitType]] = {
+    val results = s.split(", ").map { limit =>
+      LimitType.parse
+        .lift(limit)
+        .fold[JsResult[LimitType]](JsError(s"Unknown limit type: '$limit'."))(JsSuccess(_))
+    }
+    jsonSeq(results)
+  }
+
+  def jsonSeq[T](results: Seq[JsResult[T]]): JsResult[Seq[T]] =
+    results.foldLeft[JsResult[Seq[T]]](JsSuccess(Nil)) { (acc, t) =>
+      t.fold(
+        err => JsError(err),
+        ok => acc.map(ts => Seq(ok) ++ ts)
+      )
+    }
+}
+
+/**
+  * @param responsible merkinnästä vastaava
+  * @param publishDate kohteen julkaisupäivämäärä
+  */
+case class LimitArea(types: Seq[LimitType],
+                     limit: Option[SpeedM],
+                     length: Option[DistanceM],
+                     responsible: Option[String],
+                     location: Option[String],
+                     fairwayName: String,
+                     publishDate: String) {
+  def describeTypes(lang: LimitTypes) = types.map(lt => lt.describe(lang))
+  def describe(lang: LimitTypes): String = describeTypes(lang).mkString(", ")
+}
+
+object LimitArea {
+  import com.malliina.measure.{DistanceDoubleM, SpeedDoubleM}
+
+  val doubleOptFromString = Reads[Option[Double]] { json =>
+    json.validateOpt[String].flatMap { opt =>
+      opt
+        .map(_.trim)
+        .filter(_.nonEmpty)
+        .map(s => toDouble(s).map(Option(_)))
+        .getOrElse(JsSuccess(None))
+    }
+  }
+
+  def toDouble(s: String) =
+    Try(s.toDouble).fold(_ => JsError(s"Invalid number: '$s'."), ok => JsSuccess(ok))
+
+  /** Example:
+    *
+    * {"MERK_VAST":"",
+    * "IRROTUS_PV":"2018-04-29T00:50:49",
+    * "RAJOITUSTY":"01, 02",
+    * "NIMI_SIJAI":"Tiiliruukinlahti-Rep",
+    * "VAY_NIMISU":"Killingholma-Ströms",
+    * "OBJECTID":"103984",
+    * "PITUUS":"1514",
+    * "SUURUUS":"10"}
+    */
+  implicit val reader = Reads[LimitArea] { json =>
+    for {
+      types <- (json \ "RAJOITUSTY").validate[String].flatMap(LimitType.fromString)
+      limit <- (json \ "SUURUUS").validate[Option[Double]](doubleOptFromString).map(_.map(s => s.kmh))
+      length <- (json \ "PITUUS").validate[Option[Double]](doubleOptFromString).map(_.map(_.meters))
+      responsible <- nonEmptyOpt(json \ "MERK_VAST")
+      location <- nonEmptyOpt(json \ "NIMI_SIJAI")
+      fairwayName <- (json \ "VAY_NIMISU").validate[String]
+      publishDate <- (json \ "IRROTUS_PV").validate[String]
+    } yield LimitArea(types, limit, length, responsible, location, fairwayName, publishDate)
+  }
 }

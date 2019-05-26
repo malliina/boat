@@ -2,7 +2,7 @@ package com.malliina.boat.shapes
 
 import java.io.FileInputStream
 import java.nio.channels.FileChannel
-import java.nio.charset.StandardCharsets
+import java.nio.charset.{Charset, StandardCharsets}
 import java.nio.file.{Files, Path, Paths, StandardOpenOption}
 
 import org.geotools.data.DataStoreFinder
@@ -97,16 +97,34 @@ class ShapeUtils extends FunSuite {
     }
   }
 
-  ignore("modify dbf file") {
-    val inFile: Path = userHome.resolve(".boat/vaylat/vaylat.dbf")
-    val outFile: Path = userHome.resolve(".boat/vaylat/vaylat-utf8.dbf")
-    Files.createFile(outFile)
-    val inChannel = new FileInputStream(inFile.toFile).getChannel
-    val reader = new DbaseFileReader(inChannel, true, StandardCharsets.ISO_8859_1)
+  ignore("convert dbf file from ISO-8859-1 to UTF-8") {
+    changeEncoding(
+      userHome.resolve(".boat/vaylat/vaylat.dbf"),
+      userHome.resolve(".boat/vaylat/vaylat-utf8.dbf"))
+  }
 
-    val out = FileChannel.open(outFile, StandardOpenOption.WRITE)
-    //    val out = new FileInputStream(outFile.toFile).getChannel
-    val writer = new DbaseFileWriter(reader.getHeader, out, StandardCharsets.UTF_8)
+  ignore("convert limit file") {
+    changeEncoding(
+      userHome.resolve(".boat/dbfs/rajoitusalue_a.dbf"),
+      userHome.resolve(".boat/dbfs/rajoitusalue_a-utf8.dbf"))
+  }
+
+  /** Fixes scandics in Finnish shapefiles.
+    *
+    * Converts dbf files from ISO-8859-1 to UTF-8.
+    *
+    * @param in in file
+    * @param out out file
+    * @param from in encoding
+    * @param to out encoding
+    */
+  def changeEncoding(in: Path, out: Path, from: Charset = StandardCharsets.ISO_8859_1, to: Charset = StandardCharsets.UTF_8) = {
+    Files.createFile(out)
+    val inChannel = new FileInputStream(in.toFile).getChannel
+    val reader = new DbaseFileReader(inChannel, true, from)
+
+    val outChannel = FileChannel.open(out, StandardOpenOption.WRITE)
+    val writer = new DbaseFileWriter(reader.getHeader, outChannel, to)
 
     while (reader.hasNext) {
       val entry = reader.readEntry()

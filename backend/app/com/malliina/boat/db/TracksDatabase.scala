@@ -206,8 +206,8 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext)
   // Returns the coordinates last first
   def historyRows(user: MinimalUserInfo, limits: BoatQuery) = {
     val keys = (limits.tracks.map(_.name) ++ limits.canonicals.map(_.name)).mkString(", ")
-    val describe = if (keys.isEmpty) "" else s"for tracks $keys"
-    action(s"Track history $describe by user ${user.username}") {
+    val describe = if (keys.isEmpty) "" else s"for tracks $keys "
+    action(s"Track history ${describe}by user ${user.username}") {
       // Intentionally, you can view any track if you know its key.
       // Alternatively, we could filter tracks by user and make that optional.
       val eligibleTracks =

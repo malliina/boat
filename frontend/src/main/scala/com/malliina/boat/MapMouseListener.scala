@@ -14,8 +14,11 @@ case class MinimalClick(symbol: MinimalMarineSymbol, target: LngLatLike) extends
 case class FairwayClick(area: FairwayArea, target: LngLatLike) extends ClickType
 case class FairwayInfoClick(info: FairwayInfo, target: LngLatLike) extends ClickType
 case class DepthClick(area: DepthArea, target: LngLatLike) extends ClickType
+case class LimitClick(limit: LimitArea, target: LngLatLike) extends ClickType
 
 object MapMouseListener {
+  val LimitLayerId = "rajoitusalue"
+
   def apply(map: MapboxMap, pathFinder: PathFinder, ais: AISRenderer, html: Popups) =
     new MapMouseListener(map, pathFinder, ais, html)
 }
@@ -53,6 +56,7 @@ class MapMouseListener(map: MapboxMap,
     }.orElse {
       markPopup.remove()
       if (!isTrackHover) {
+        val limitInfo = features.flatMap(_.props.asOpt[LimitArea]).headOption.map(LimitClick(_, e.lngLat))
         val fairwayInfo =
           features.flatMap(_.props.asOpt[FairwayInfo]).headOption.map(FairwayInfoClick(_, e.lngLat))
         val fairway = features
@@ -61,7 +65,7 @@ class MapMouseListener(map: MapboxMap,
           .map(FairwayClick(_, e.lngLat))
         val depth =
           features.flatMap(f => f.props.asOpt[DepthArea]).headOption.map(DepthClick(_, e.lngLat))
-        fairwayInfo.orElse(fairway.orElse(depth)).map(Right.apply)
+        limitInfo.orElse(fairwayInfo.orElse(fairway.orElse(depth))).map(Right.apply)
       } else {
         None
       }
@@ -96,6 +100,8 @@ class MapMouseListener(map: MapboxMap,
                 markPopup.show(html.depthArea(area), target, map)
               case FairwayInfoClick(info, target) =>
                 markPopup.show(html.fairwayInfo(info), target, map)
+              case LimitClick(limit, target) =>
+                markPopup.show(html.limitArea(limit), target, map)
             }.recover { err =>
               log.info(err.describe)
             }

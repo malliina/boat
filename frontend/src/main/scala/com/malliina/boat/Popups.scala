@@ -14,6 +14,7 @@ class Popups(lang: Lang) extends BoatModels {
   val fairwayLang = lang.fairway
   val aisLang = lang.ais
   val specialWords = lang.specialWords
+  val limitsLang = lang.limits
 
   def track(c: TimedCoord, from: TrackRef) =
     titledTable(from.boatName.name)(
@@ -88,11 +89,21 @@ class Popups(lang: Lang) extends BoatModels {
       row(fairwayLang.maxDepth, asMeters(depthArea.maxDepth))
     )
 
+  def limitArea(limit: LimitArea) = popupTable(
+    limit.responsible.fold(empty)(r => titleRow(r)(r)),
+    row(limitsLang.limit, limit.describe(limitsLang.types)),
+    limit.limit.fold(empty)(speed => row(limitsLang.magnitude, s"${speed.toKmh.toInt} km/h")),
+    limit.location.fold(empty)(l => row(limitsLang.location, l)),
+    row(limitsLang.fairwayName, limit.fairwayName),
+  )
+
   private def titledTable(title: Modifier)(content: Modifier*) =
     popupTable(
-      tr(td(colspan := 2, `class` := "popup-title")(title)),
+      titleRow(title),
       content
     )
+
+  private def titleRow(title: Modifier) = tr(td(colspan := 2, `class` := "popup-title")(title))
 
   private def popupTable(content: Modifier*) =
     table(`class` := "boat-popup")(

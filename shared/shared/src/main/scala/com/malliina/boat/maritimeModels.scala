@@ -172,13 +172,13 @@ object FairwayInfo {
 }
 
 object MaritimeJson {
-  def nonEmptyOpt(lookup: JsLookupResult) = lookup match {
-    case JsDefined(json) => nonEmpty.reads(json)
-    case _               => JsSuccess(None)
-  }
-
   val nonEmpty = Reads[Option[String]] { json =>
     json.validate[String].map(_.trim).map(s => if (s.nonEmpty) Option(s) else None)
+  }
+
+  def nonEmptyOpt(lookup: JsLookupResult): JsResult[Option[String]] = lookup match {
+    case JsDefined(json) => nonEmpty.reads(json)
+    case _               => JsSuccess(None)
   }
 
   def doubleReader[T](onError: JsValue => String)(pf: PartialFunction[Int, T]): Reads[T] =
@@ -187,7 +187,13 @@ object MaritimeJson {
     }
 
   def intReader[T](onError: JsValue => String)(pf: PartialFunction[Int, T]): Reads[T] =
-    Reads[T] { json =>
-      json.validate[Int].collect(JsonValidationError(onError(json)))(pf)
+    partialReader[Int, T](onError)(pf)
+
+  def stringReader[T](onError: JsValue => String)(pf: PartialFunction[String, T]): Reads[T] =
+    partialReader[String, T](onError)(pf)
+
+  def partialReader[In: Reads, Out](onError: JsValue => String)(pf: PartialFunction[In, Out]): Reads[Out] =
+    Reads[Out] { json =>
+      json.validate[In].collect(JsonValidationError(onError(json)))(pf)
     }
 }
