@@ -1,0 +1,18 @@
+{
+  "webcredentials": {
+    "apps": [
+      "D2T2QC36Z9.com.malliina.BoatTracker"
+    ]
+  },
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appID": "D2T2QC36Z9.com.malliina.BoatTracker",
+        "paths": [
+          "*"
+        ]
+      }
+    ]
+  }
+}

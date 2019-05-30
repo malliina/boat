@@ -138,10 +138,11 @@ class BoatHtml(jsFiles: ScriptAssets) extends Tags(scalatags.Text) {
         aria.hidden := "true",
         more)
 
-  def page(content: PageConf) = TagPage(
+  def page(pageConf: PageConf) = TagPage(
     html(
       head(
         meta(charset := "utf-8"),
+        meta(name := "description", content := "Free nautical charts for Finland with live AIS tracking."),
         titleTag("Boat Tracker"),
         deviceWidthViewport,
         link(rel := "icon", `type` := "image/png", href := "/assets/img/favicon.png"),
@@ -149,8 +150,8 @@ class BoatHtml(jsFiles: ScriptAssets) extends Tags(scalatags.Text) {
           cssLink(versioned(file))
         }
       ),
-      body(`class` := content.bodyClasses.mkString(" "))(
-        content.content,
+      body(`class` := pageConf.bodyClasses.mkString(" "))(
+        pageConf.content,
         Seq(jsFiles.library, jsFiles.loader, jsFiles.app).map { jsFile =>
           script(`type` := MimeTypes.JAVASCRIPT, src := versioned(jsFile))
         }

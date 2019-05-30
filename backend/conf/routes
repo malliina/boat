@@ -25,6 +25,7 @@ GET          /legal/privacy                                   controllers.DocsCo
 
 GET          /files                                           controllers.FileController.list
 GET          /files/*file                                     controllers.FileController.download(file)
+GET          /.well-known/apple-app-site-association          controllers.AppController.appleAppSiteAssociation
 GET          /assets/static/*file                             controllers.AppController.static(file: String)
 GET          /assets/*file                                    controllers.AppController.versioned(path = "/public", file: Asset)
 GET          /*title                                          controllers.BoatController.canonical(title: com.malliina.boat.TrackCanonical)

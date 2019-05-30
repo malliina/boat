@@ -11,7 +11,7 @@ import com.malliina.boat._
 import com.malliina.boat.auth.EmailAuth
 import com.malliina.boat.db._
 import com.malliina.boat.html.BoatHtml
-import com.malliina.boat.http.{BoatEmailRequest, BoatQuery, BoatRequest, TrackQuery}
+import com.malliina.boat.http.{BoatEmailRequest, BoatQuery, BoatRequest, ContentVersions, TrackQuery}
 import com.malliina.boat.parsing.BoatService
 import com.malliina.boat.push.BoatState
 import com.malliina.values.{Email, Username}

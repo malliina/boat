@@ -35,4 +35,6 @@ class AppController(googleAuth: EmailAuth,
 
   def versioned(path: String, file: Asset): Action[AnyContent] =
     assets.versioned(path, file)
+
+  def appleAppSiteAssociation = assets.at("/public", "apple-app-site-association.json")
 }

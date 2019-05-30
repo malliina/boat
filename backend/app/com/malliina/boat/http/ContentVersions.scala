@@ -1,4 +1,4 @@
-package controllers
+package com.malliina.boat.http
 
 object ContentVersions extends ContentVersions
 
