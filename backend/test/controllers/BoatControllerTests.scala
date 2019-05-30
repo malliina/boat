@@ -3,6 +3,7 @@ package controllers
 import java.time.{LocalDate, LocalTime}
 
 import com.malliina.boat.db.NewUser
+import com.malliina.boat.http.ContentVersions
 import com.malliina.boat.parsing.FullCoord
 import com.malliina.boat.{BoatNames, BoatUser, Coord, TrackNames, TrackSummaries, Tracks, UserToken}
 import com.malliina.measure.{DistanceIntM, SpeedIntM, TemperatureInt}
