@@ -500,7 +500,6 @@ object AttributionInfo {
           Seq(TextLink("CC 4.0", FullUrl.https("creativecommons.org", "/licenses/by/4.0/")))
         ),
         Attribution.url("Font Awesome", FullUrl.https("fontawesome.com", "/license")),
-        Attribution.url("Open Iconic", FullUrl.https("github.com", "/iconic/open-iconic")),
         Attribution.url("Inspiration", FullUrl.https("github.com", "/iaue/poiju.io"))
       )
     )
