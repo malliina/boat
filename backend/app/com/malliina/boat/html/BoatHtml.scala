@@ -6,7 +6,7 @@ import java.nio.charset.StandardCharsets
 import com.malliina.boat.FrontKeys._
 import com.malliina.boat.html.BoatHtml.{ScriptAssets, callAttr}
 import com.malliina.boat.http.Limits
-import com.malliina.boat.{AppMeta, FullTrack, TrackRef, UserBoats, Usernames}
+import com.malliina.boat.{AppConf, FullTrack, TrackRef, UserBoats, Usernames}
 import com.malliina.html.Tags
 import com.malliina.measure.Distance
 import com.malliina.play.tags.TagPage
@@ -142,9 +142,13 @@ class BoatHtml(jsFiles: ScriptAssets) extends Tags(scalatags.Text) {
     html(
       head(
         meta(charset := "utf-8"),
-        meta(name := "description", content := "Free nautical charts for Finland with live AIS tracking."),
-        titleTag("Boat Tracker"),
+        meta(name := "description",
+             content := "Free nautical charts for Finland with live AIS tracking."),
+        meta(name := "keywords", content := "charts, nautical, boat, tracking, ais, live, vessels, marine"),
+        titleTag(s"${AppConf.Name} - Free nautical charts for Finland"),
         deviceWidthViewport,
+        StructuredData.appStructuredData,
+        StructuredData.appLinkMetadata,
         link(rel := "icon", `type` := "image/png", href := "/assets/img/favicon.png"),
         Seq("vendors.css", "fonts.css", "styles.css").map { file =>
           cssLink(versioned(file))

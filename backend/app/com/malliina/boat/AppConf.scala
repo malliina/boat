@@ -11,6 +11,8 @@ case class AppConf(iosClientId: String,
 }
 
 object AppConf {
+  val Name = "Boat-Tracker"
+
   def apply(conf: Configuration): AppConf = AppConf(
     conf.get[String]("boat.google.ios.id"),
     conf.get[String]("boat.google.web.id"),
