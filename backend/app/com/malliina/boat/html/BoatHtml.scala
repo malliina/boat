@@ -15,14 +15,14 @@ import controllers.routes
 import play.api.Mode
 import play.api.http.MimeTypes
 import play.api.mvc.Call
-import scalatags.Text.GenericAttr
 import scalatags.Text.all._
 import scalatags.text.Builder
+import scalatags.Text.GenericAttr
 
 import scala.language.implicitConversions
 
 object BoatHtml {
-  implicit val callAttr = new GenericAttr[Call]
+  implicit val callAttr: GenericAttr[Call] = new GenericAttr[Call]
 
   def apply(mode: Mode): BoatHtml = apply(mode == Mode.Prod)
 
@@ -41,9 +41,10 @@ class BoatHtml(jsFiles: ScriptAssets) extends Tags(scalatags.Text) {
 //  val mapboxVersion = AppMeta.default.mapboxVersion
 
   implicit def wrapFrag[T <: Wrapped](w: T): StringFrag = stringFrag(w.value)
+  implicit def wrapAttr[T <: Wrapped]: AttrValue[T] = boatStringAttr(_.value)
 
-  implicit def wrapAttr[T <: Wrapped]: AttrValue[T] = { (t: Builder, a: Attr, v: T) =>
-    t.setAttr(a.name, Builder.GenericAttrValueSource(v.value))
+  def boatStringAttr[T](stringify: T => String): AttrValue[T] = { (t: Builder, a: Attr, v: T) =>
+    t.setAttr(a.name, Builder.GenericAttrValueSource(stringify(v)))
   }
 
   def list(track: FullTrack, current: Limits) =
@@ -144,7 +145,8 @@ class BoatHtml(jsFiles: ScriptAssets) extends Tags(scalatags.Text) {
         meta(charset := "utf-8"),
         meta(name := "description",
              content := "Free nautical charts for Finland with live AIS tracking."),
-        meta(name := "keywords", content := "charts, nautical, boat, tracking, ais, live, vessels, marine"),
+        meta(name := "keywords",
+             content := "charts, nautical, boat, tracking, ais, live, vessels, marine"),
         titleTag(s"${AppConf.Name} - Free nautical charts for Finland"),
         deviceWidthViewport,
         StructuredData.appStructuredData,

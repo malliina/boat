@@ -158,31 +158,18 @@ object QueryOptions {
 @JSImport("mapbox-gl", "Map")
 class MapboxMap(options: MapOptions) extends js.Object {
   def addControl(control: MapboxGeocoder): MapboxMap = js.native
-
   def removeControl(control: MapboxGeocoder): MapboxMap = js.native
-
   def flyTo(options: FlyOptions): Unit = js.native
-
   def easeTo(options: EaseOptions): Unit = js.native
-
   def fitBounds(bounds: LngLatBounds, options: SimplePaddingOptions): Unit = js.native
-
   def loadImage(url: String, callback: js.Function2[js.Any, js.Any, Unit]): Unit = js.native
-
   def addImage(id: String, image: js.Any): Unit = js.native
-
   def getSource(id: String): js.UndefOr[GeoJsonSource] = js.native
-
   def addLayer(layer: js.Any): Unit = js.native
-
   def removeLayer(id: String): Unit = js.native
-
   def removeSource(id: String): Unit = js.native
-
   def setLayoutProperty(layer: String, prop: String, value: js.Any): Unit = js.native
-
   def queryRenderedFeatures(point: PixelCoord, options: QueryOptions): js.Any = js.native
-
   def getCanvas(): HTMLCanvasElement = js.native
 
   /** The bearing is the compass direction that is "up".
@@ -196,13 +183,9 @@ class MapboxMap(options: MapOptions) extends js.Object {
     * @see https://docs.mapbox.com/mapbox-gl-js/api/#map#getbearing
     */
   def getBearing(): Double = js.native
-
   def on(name: String, func: js.Function1[MapMouseEvent, Unit]): Unit = js.native
-
   def on(name: String, func: js.Function0[Unit]): Unit = js.native
-
   def on(name: String, layer: String, func: js.Function1[MapMouseEvent, Unit]): Unit = js.native
-
   def on(name: String, layer: String, func: js.Function0[Unit]): Unit = js.native
 }
 

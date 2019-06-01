@@ -2,27 +2,31 @@ package com.malliina.measure
 
 import com.malliina.boat.{Latitude, Longitude, SingleError}
 import com.malliina.measure.Inputs._
+import HemisphereDirection.readString
 
 sealed trait HemisphereDirection
 
 object HemisphereDirection {
-  def parse(in: String): Either[SingleError, HemisphereDirection] = in match {
-    case "N" => Right(North)
-    case "S" => Right(South)
-    case "E" => Right(East)
-    case "W" => Right(West)
-    case _   => Left(SingleError.input(s"Invalid direction: '$in'."))
-  }
+  def parse(in: String): Either[SingleError, HemisphereDirection] =
+    readString(in, s"Invalid direction: '$in'.") {
+      case "N" => North
+      case "S" => South
+      case "E" => East
+      case "W" => West
+    }
+
+  def readString[T](in: String, onFail: => String)(pf: PartialFunction[String, T]) =
+    pf.lift(in).map(Right.apply).getOrElse(Left(SingleError.input(onFail)))
 }
 
 sealed trait NorthOrSouth extends HemisphereDirection
 
 object NorthOrSouth {
-  def apply(in: String): Either[SingleError, NorthOrSouth] = in match {
-    case "N" => Right(North)
-    case "S" => Right(South)
-    case _   => Left(SingleError.input(s"Invalid direction, must be 'N' or 'S': '$in'."))
-  }
+  def apply(in: String): Either[SingleError, NorthOrSouth] =
+    readString(in, s"Invalid direction, must be 'N' or 'S': '$in'.") {
+      case "N" => North
+      case "S" => South
+    }
 }
 
 case object North extends NorthOrSouth
@@ -31,11 +35,11 @@ case object South extends NorthOrSouth
 sealed trait EastOrWest extends HemisphereDirection
 
 object EastOrWest {
-  def apply(in: String): Either[SingleError, EastOrWest] = in match {
-    case "E" => Right(East)
-    case "W" => Right(West)
-    case _   => Left(SingleError.input(s"Invalid direction, must be 'W' or 'E': '$in'."))
-  }
+  def apply(in: String): Either[SingleError, EastOrWest] =
+    readString(in, s"Invalid direction, must be 'W' or 'E': '$in'.") {
+      case "E" => East
+      case "W" => West
+    }
 }
 
 case object East extends EastOrWest
@@ -76,7 +80,7 @@ case class LongitudeDM(degrees: Int, minutes: Double, direction: EastOrWest) {
 object LongitudeDM {
   val longitude = """(\d{5}\.\d+),([WE])""".r
 
-  def parse(in: String) = in match {
+  def parse(in: String): Either[SingleError, LongitudeDM] = in match {
     case longitude(ddStr, ewStr) =>
       for {
         dd <- DegreesMinutes.parse(ddStr)

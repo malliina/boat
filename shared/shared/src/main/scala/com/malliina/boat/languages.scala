@@ -409,7 +409,8 @@ object AisLang {
   implicit val json = Json.format[AisLang]
 }
 
-case class TrackLang(boats: String,
+case class TrackLang(track: String,
+                     boats: String,
                      tracks: String,
                      speed: String,
                      water: String,
@@ -738,6 +739,7 @@ object Lang {
       )
     ),
     track = TrackLang(
+      "Trail",
       "Boats",
       tracks = "Trails",
       speed = "Speed",
@@ -858,6 +860,7 @@ object Lang {
       )
     ),
     track = TrackLang(
+      "Ura",
       "Veneet",
       tracks = "Urat",
       speed = "Nopeus",
@@ -981,6 +984,7 @@ object Lang {
       )
     ),
     track = TrackLang(
+      "Spår",
       "Båtar",
       tracks = "Spår",
       speed = "Hastighet",
