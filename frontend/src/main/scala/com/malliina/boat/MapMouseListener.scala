@@ -17,8 +17,6 @@ case class DepthClick(area: DepthArea, target: LngLatLike) extends ClickType
 case class LimitClick(limit: LimitArea, target: LngLatLike) extends ClickType
 
 object MapMouseListener {
-  val LimitLayerId = "rajoitusalue"
-
   def apply(map: MapboxMap, pathFinder: PathFinder, ais: AISRenderer, html: Popups) =
     new MapMouseListener(map, pathFinder, ais, html)
 }

@@ -1,6 +1,8 @@
 package com.malliina.boat
 
 object MapboxStyles {
+  val LimitLayerId = "rajoitusalue"
+
   val AisTrailLayer = "ais-vessels-trails"
   val AisVesselLayer = "ais-vessels"
   val AisVesselIcon = "boat-resized-opt-30"
