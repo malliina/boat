@@ -25,7 +25,11 @@ object AisConf {
   implicit val json = Json.format[AisConf]
 }
 
-case class Layers(marks: Seq[String], fairways: Seq[String], limits: Seq[String], ais: AisConf)
+case class Layers(marks: Seq[String],
+                  fairways: Seq[String],
+                  fairwayAreas: Seq[String],
+                  limits: Seq[String],
+                  ais: AisConf)
 
 object Layers {
   implicit val json = Json.format[Layers]
@@ -33,7 +37,8 @@ object Layers {
 
   val default = Layers(marksLayers,
                        fairwayLayers,
-                       Seq(MapboxStyles.LimitLayerId),
+                       Seq(FairwayAreaId),
+                       Seq(LimitLayerId),
                        AisConf(AisVesselLayer, AisTrailLayer, AisVesselIcon))
 }
 
