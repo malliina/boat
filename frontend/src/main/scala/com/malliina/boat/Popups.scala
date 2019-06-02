@@ -67,13 +67,14 @@ class Popups(lang: Lang) extends BoatModels {
       row(markLang.owner, symbol.ownerName(specialWords))
     )
 
-  def fairway(fairway: FairwayArea) =
+  def fairway(fairway: FairwayArea, more: Modifier*) =
     titledTable(fairway.ownerName(specialWords))(
       row(fairwayLang.fairwayType, fairway.fairwayType.translate(fairwayLang.types)),
       row(fairwayLang.fairwayDepth, asMeters(fairway.fairwayDepth)),
       row(fairwayLang.harrowDepth, asMeters(fairway.harrowDepth)),
       fairway.markType.fold(empty)(markType =>
-        row(markLang.markType, markType.translate(markLang.types)))
+        row(markLang.markType, markType.translate(markLang.types))),
+      more
     )
 
   def fairwayInfo(info: FairwayInfo) =
@@ -91,11 +92,21 @@ class Popups(lang: Lang) extends BoatModels {
 
   def limitArea(limit: LimitArea) = popupTable(
     limit.responsible.fold(empty)(r => titleRow(r)(r)),
+    limitContent(limit)
+  )
+
+  private def limitContent(limit: LimitArea) = modifier(
     row(limitsLang.limit, limit.describe(limitsLang.types)),
     limit.limit.fold(empty)(speed => row(limitsLang.magnitude, s"${speed.toKmh.toInt} km/h")),
     limit.location.fold(empty)(l => row(limitsLang.location, l)),
-    row(limitsLang.fairwayName, limit.fairwayName),
+    row(limitsLang.fairwayName, limit.fairwayName)
   )
+
+  def limitedFairway(limit: LimitArea, area: FairwayArea) =
+    fairway(
+      area,
+      limitContent(limit)
+    )
 
   private def titledTable(title: Modifier)(content: Modifier*) =
     popupTable(

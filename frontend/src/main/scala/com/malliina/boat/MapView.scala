@@ -43,12 +43,14 @@ class MapView(accessToken: AccessToken,
   val map = new MapboxMap(mapOptions)
   val geocoder = MapboxGeocoder.finland(accessToken)
   val pathFinder = PathFinder(map)
+  val SearchKey = "s"
+  val DirectionsKey = "d"
   private var isGeocoderVisible = false
 
   elemAs[HTMLDivElement](MapId).right.get.onkeypress = (e: KeyboardEvent) => {
     if (!document.activeElement.isInstanceOf[HTMLInputElement]) {
       e.key match {
-        case "s" =>
+        case SearchKey =>
           if (isGeocoderVisible) {
             map.removeControl(geocoder)
           } else {
@@ -57,7 +59,7 @@ class MapView(accessToken: AccessToken,
             focusSearch("mapboxgl-ctrl-geocoder", e)
           }
           isGeocoderVisible = !isGeocoderVisible
-        case "d" =>
+        case DirectionsKey =>
           pathFinder.toggleState()
         case _ =>
           ()
