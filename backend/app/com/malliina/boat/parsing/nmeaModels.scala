@@ -38,8 +38,8 @@ case class ZDAMessage(talker: String,
     extends TalkedSentence {
   val date = LocalDate.of(year, month, day)
   val dateTimeUtc = OffsetDateTime.of(date, timeUtc, ZoneOffset.UTC)
-  def time = timeUtc
-  def isSuspect =
+  def time: LocalTime = timeUtc
+  def isSuspect: Boolean =
     time.getHour == 0 && time.getMinute == 0 && (time.getSecond >= 0 && time.getSecond <= 15)
   // It seems like the time zone sign is reported incorrectly in my plotter
   // (actual +03 reported -03), so we read all times as UTC
@@ -78,50 +78,62 @@ object TalkedSentence extends NMEA0183Parser {
   val gga =
     """\$(\w{2})GGA,([\d-]+),([\d\.]+,[NS]),([\d\.]+,[EW]),(\d+),(\d+),([\d\.]+),([\d-\.]+),M,([\d\.]*),M,([\d\.]*),.*""".r
 
-  def parse(raw: RawSentence): Either[InvalidSentence, TalkedSentence] = {
-    def asInt(s: String) = recover(toInt(s))
-    def asDouble(s: String) = recover(toDouble(s))
-    def recover[T](e: Either[SingleError, T]) = e.left.map(err => InvalidSentence(raw, err.message))
+  def parse(raw: RawSentence): Either[SentenceError, TalkedSentence] = {
+    def asInt(s: String) = toInt(s)
+    def asDouble(s: String) = toDouble(s)
+    def mapFailures[T](e: Either[SingleError, T]) =
+      e.left.map(err => InvalidSentence(raw, err.message))
+
     raw.sentence match {
       case dpt(talker, depth, offset) =>
-        for {
-          d <- asDouble(depth)
-          o <- asDouble(offset)
-        } yield DPTMessage(talker, d.meters, o.meters)
+        mapFailures {
+          for {
+            d <- asDouble(depth)
+            o <- asDouble(offset)
+          } yield DPTMessage(talker, d.meters, o.meters)
+        }
       case vtg(talker, courseTrue, courseMagnetic, speedKnots, speedKmh) =>
-        for {
-          trueCourse <- asDouble(courseTrue)
-          magneticCourse <- asDouble(courseMagnetic)
-          knots <- asDouble(speedKnots)
-          kmh <- asDouble(speedKmh)
-        } yield VTGMessage(talker, trueCourse, magneticCourse, knots.knots, kmh.kmh)
+        mapFailures {
+          for {
+            trueCourse <- asDouble(courseTrue)
+            magneticCourse <- asDouble(courseMagnetic)
+            knots <- asDouble(speedKnots)
+            kmh <- asDouble(speedKmh)
+          } yield VTGMessage(talker, trueCourse, magneticCourse, knots.knots, kmh.kmh)
+        }
       case mtw(talker, temp) =>
-        asDouble(temp).map { t =>
-          MTWMessage(talker, t.celsius)
+        mapFailures {
+          asDouble(temp).map { t =>
+            MTWMessage(talker, t.celsius)
+          }
         }
       case zda(talker, utc, day, month, year, offsetHours, offsetMinutes) =>
-        for {
-          time <- recover(ZDAMessage.parseTimeUtc(utc))
-          d <- asInt(day)
-          m <- asInt(month)
-          y <- asInt(year)
-          offHours <- asInt(offsetHours)
-          offMinutes <- asInt(offsetMinutes)
-        } yield ZDAMessage(talker, time, d, m, y, offHours, offMinutes)
+        mapFailures {
+          for {
+            time <- ZDAMessage.parseTimeUtc(utc)
+            d <- asInt(day)
+            m <- asInt(month)
+            y <- asInt(year)
+            offHours <- asInt(offsetHours)
+            offMinutes <- asInt(offsetMinutes)
+          } yield ZDAMessage(talker, time, d, m, y, offHours, offMinutes)
+        }
       case gga(talker, utc, latDM, lngDM, quality, svCount, hdopStr, height, geoid, diff) =>
-        for {
-          time <- recover(ZDAMessage.parseTimeUtc(utc))
-          lat <- recover(LatitudeDM.parse(latDM))
-          lng <- recover(LongitudeDM.parse(lngDM))
-          q <- asInt(quality)
-          svs <- asInt(svCount)
-          hdop <- asDouble(hdopStr)
-          h <- asDouble(height).map(_.meters)
-          geo <- if (geoid.isEmpty) Right(None) else asDouble(geoid).map(Option.apply)
-          d <- if (diff.isEmpty) Right(None) else asDouble(diff).map(Option.apply)
-        } yield GGAMessage(talker, time, lat, lng, q, svs, hdop, h, geo, d)
+        mapFailures {
+          for {
+            time <- ZDAMessage.parseTimeUtc(utc)
+            lat <- LatitudeDM.parse(latDM)
+            lng <- LongitudeDM.parse(lngDM)
+            q <- asInt(quality)
+            svs <- asInt(svCount)
+            hdop <- asDouble(hdopStr)
+            h <- asDouble(height).map(_.meters)
+            geo <- if (geoid.isEmpty) Right(None) else asDouble(geoid).map(Option.apply)
+            d <- if (diff.isEmpty) Right(None) else asDouble(diff).map(Option.apply)
+          } yield GGAMessage(talker, time, lat, lng, q, svs, hdop, h, geo, d)
+        }
       case _ =>
-        Left(InvalidSentence(raw, s"Unknown sentence: '$raw'."))
+        Left(UnknownSentence(raw, s"Unknown sentence: '$raw'."))
     }
   }
 
