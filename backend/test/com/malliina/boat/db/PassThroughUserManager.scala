@@ -19,7 +19,7 @@ object PassThroughUserManager extends UserManager {
   val god = UserInfo(
     UserId(1L),
     Username("test"),
-    None,
+    Email("a@b.com"),
     Language.default,
     Nil,
     enabled = true,
