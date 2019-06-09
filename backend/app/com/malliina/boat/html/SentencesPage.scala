@@ -12,16 +12,17 @@ import scalatags.Text.all._
 
 import scala.language.implicitConversions
 
-object SentencesPage {
+trait BoatImplicits {
   implicit val callAttr = genericAttr[Call]
 
   implicit def speedHtml(s: SpeedM): StringFrag = stringFrag(formatSpeed(s))
-
   implicit def distanceHtml(d: DistanceM): StringFrag = stringFrag(formatDistance(d))
-
   implicit def tempHtml(t: Temperature): StringFrag = stringFrag(formatTemp(t))
-
   implicit def wrappedHtml[T <: Wrapped](w: Wrapped): StringFrag = stringFrag(w.value)
+}
+
+object SentencesPage extends BoatImplicits {
+  val reverse = routes.BoatController
 
   def apply(track: FullTrack, current: Limits): Modifier = {
     div(`class` := "container")(
@@ -56,7 +57,7 @@ object SentencesPage {
       form(`class` := Hidden,
            id := EditTitleFormId,
            method := "PUT",
-           action := routes.BoatController.modifyTitle(track.trackName))(
+           action := reverse.modifyTitle(track.trackName))(
         div(`class` := "form-group row form-title")(
           label(`for` := "title", `class` := "col-sm-2 col-form-label col-form-label-sm")(
             "Edit title"),
@@ -130,7 +131,7 @@ object SentencesPage {
                        text: String,
                        isActive: Boolean = false,
                        isDisabled: Boolean = false) = {
-    val base = routes.BoatController.full(track)
+    val base = reverse.full(track)
     val call =
       base.copy(url = s"${base.url}?${Limits.Limit}=${to.limit}&${Limits.Offset}=${to.offset}")
     val liClass = if (isDisabled) "disabled" else ""

@@ -4,17 +4,35 @@ import java.time.Instant
 import java.time.format.DateTimeParseException
 import java.time.temporal.ChronoUnit
 
-import com.malliina.boat.{Constants, Coord, Latitude, Longitude, RouteRequest, SingleError, TrackCanonical, TrackName}
+import com.malliina.boat.{
+  Constants,
+  Coord,
+  Latitude,
+  Longitude,
+  RouteRequest,
+  SingleError,
+  TrackCanonical,
+  TrackName
+}
 import com.malliina.values.{Email, ErrorMessage}
 import play.api.mvc.{QueryStringBindable, Request, RequestHeader}
 
 import scala.concurrent.duration.DurationInt
 
-case class BoatEmailRequest[T](query: T, email: Email, rh: RequestHeader)
+case class BoatEmailRequest[T](user: Email, query: T, rh: RequestHeader)
+  extends BoatRequest[T, Email]
 
-case class BoatRequest[U, B](user: U, req: Request[B]) {
+case class AnyBoatRequest[T, U](user: U, query: T, rh: RequestHeader)
+  extends BoatRequest[T, U]
+
+trait BoatRequest[T, U] {
+  def user: U
+  def query: T
+  def rh: RequestHeader
+}
+
+case class UserRequest[U, B](user: U, req: Request[B]) {
   def body: B = req.body
-
   def headers = req.headers
 }
 
@@ -23,12 +41,13 @@ sealed abstract class TrackSort(val name: String) extends Named
 object TrackSort extends EnumLike[TrackSort] {
   val key = "sort"
   val default = Recent
-  val all: Seq[TrackSort] = Seq(Recent, Points)
+  val all: Seq[TrackSort] = Seq(Recent, Points, TopSpeed, Length, Name)
 
   case object Recent extends TrackSort("recent")
-
   case object Points extends TrackSort("points")
-
+  case object TopSpeed extends TrackSort("topSpeed")
+  case object Length extends TrackSort("length")
+  case object Name extends TrackSort("name")
 }
 
 sealed abstract class SortOrder(val name: String) extends Named
@@ -39,9 +58,7 @@ object SortOrder extends EnumLike[SortOrder] {
   val all: Seq[SortOrder] = Seq(Asc, Desc)
 
   case object Asc extends SortOrder("asc")
-
   case object Desc extends SortOrder("desc")
-
 }
 
 case class TrackQuery(sort: TrackSort, order: SortOrder, limits: Limits)
@@ -60,8 +77,7 @@ object TrackQuery {
 
 trait Named {
   def name: String
-
-  override def toString = name
+  override def toString: String = name
 }
 
 abstract class EnumLike[T <: Named] {
@@ -96,11 +112,8 @@ case class BoatQuery(limits: Limits,
                      sample: Option[Int],
                      newest: Boolean) {
   def limit = limits.limit
-
   def offset = limits.offset
-
   def from = timeRange.from
-
   def to = timeRange.to
 }
 

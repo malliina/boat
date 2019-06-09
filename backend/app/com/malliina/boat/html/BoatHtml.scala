@@ -5,8 +5,8 @@ import java.nio.charset.StandardCharsets
 
 import com.malliina.boat.FrontKeys._
 import com.malliina.boat.html.BoatHtml.{ScriptAssets, callAttr}
-import com.malliina.boat.http.Limits
-import com.malliina.boat.{AppConf, FullTrack, TrackRef, UserBoats, Usernames}
+import com.malliina.boat.http.{Limits, TrackQuery}
+import com.malliina.boat.{AppConf, FullTrack, Lang, TrackRef, UserBoats, Usernames}
 import com.malliina.html.Tags
 import com.malliina.measure.Distance
 import com.malliina.play.tags.TagPage
@@ -46,6 +46,9 @@ class BoatHtml(jsFiles: ScriptAssets) extends Tags(scalatags.Text) {
   def boatStringAttr[T](stringify: T => String): AttrValue[T] = { (t: Builder, a: Attr, v: T) =>
     t.setAttr(a.name, Builder.GenericAttrValueSource(stringify(v)))
   }
+
+  def tracks(ts: Seq[TrackRef], query: TrackQuery, lang: Lang) =
+    page(PageConf(TracksPage(ts, query, lang), bodyClasses = Nil))
 
   def list(track: FullTrack, current: Limits) =
     page(PageConf(SentencesPage(track, current), bodyClasses = Seq(ListClass)))

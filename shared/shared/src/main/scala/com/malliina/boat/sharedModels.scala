@@ -318,7 +318,7 @@ case class SimpleUserInfo(username: Username, language: Language) extends Minima
 
 case class UserInfo(id: UserId,
                     username: Username,
-                    email: Option[Email],
+                    email: Email,
                     language: Language,
                     boats: Seq[Boat],
                     enabled: Boolean,

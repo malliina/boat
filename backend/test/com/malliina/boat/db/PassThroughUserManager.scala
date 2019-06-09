@@ -2,17 +2,31 @@ package com.malliina.boat.db
 
 import java.time.Instant
 
-import com.malliina.boat.{BoatInfo, BoatToken, JoinedBoat, Language, UserBoats, UserInfo}
+import com.malliina.boat.{BoatToken, JoinedBoat, Language, UserBoats, UserInfo, UserToken}
 import com.malliina.values.{Email, UserId, Username}
 
 import scala.concurrent.Future
 
 object PassThroughUserManager extends UserManager {
-  //  val god = DataUser(UserId(1L), Username("test"), None, "", UserToken.random(), enabled = true, added = Instant.now())
+
+  val godUser = DataUser(UserId(1L),
+                         Username("test"),
+                         None,
+                         UserToken.random(),
+                         Language.english,
+                         enabled = true,
+                         added = Instant.now())
   val god = UserInfo(
-    UserId(1L), Username("test"), None, Language.default, Nil,
-    enabled = true, addedMillis = Instant.now().toEpochMilli
+    UserId(1L),
+    Username("test"),
+    None,
+    Language.default,
+    Nil,
+    enabled = true,
+    addedMillis = Instant.now().toEpochMilli
   )
+
+  def userMeta(email: Email): Future[DataUser] = fut(godUser)
 
   def userInfo(email: Email): Future[UserInfo] = fut(god)
 

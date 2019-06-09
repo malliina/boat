@@ -10,8 +10,8 @@ import com.malliina.boat.Constants._
 import com.malliina.boat._
 import com.malliina.boat.auth.EmailAuth
 import com.malliina.boat.db._
-import com.malliina.boat.html.BoatHtml
-import com.malliina.boat.http.{BoatEmailRequest, BoatQuery, BoatRequest, ContentVersions, TrackQuery}
+import com.malliina.boat.html.{BoatHtml, BoatLang}
+import com.malliina.boat.http.{AnyBoatRequest, BoatEmailRequest, BoatQuery, BoatRequest, ContentVersions, Limits, TrackQuery, UserRequest}
 import com.malliina.boat.parsing.BoatService
 import com.malliina.boat.push.BoatState
 import com.malliina.values.{Email, Username}
@@ -65,16 +65,19 @@ class BoatController(mapboxToken: AccessToken,
     fut(result)
   }
 
-  def tracks = secureAction(TrackQuery.apply) { req =>
-    db.tracksFor(req.email, req.query).map { tracks =>
+  def tracks = userAction(profile, TrackQuery.apply) { req =>
+    db.tracksFor(req.user.email, req.query).map { ts =>
       // Made a mistake in an early API and it's used in early iOS versions.
       // First checks the latest version, then browsers always get the latest since they accept */*.
-      val json =
-        if (req.rh.accepts(Version2)) Json.toJson(tracks)
+      def json =
+        if (req.rh.accepts(Version2)) Json.toJson(ts)
         else if (req.rh.accepts(Version1))
-          Json.toJson(TrackSummaries(tracks.tracks.map(t => TrackSummary(t))))
-        else Json.toJson(tracks)
-      Ok(json)
+          Json.toJson(TrackSummaries(ts.tracks.map(t => TrackSummary(t))))
+        else Json.toJson(ts)
+      respond(req.rh)(
+        html = Ok(html.tracks(ts.tracks, req.query, BoatLang(req.user.language).lang)),
+        json = Ok(json)
+      )
     }
   }
 
@@ -95,11 +98,11 @@ class BoatController(mapboxToken: AccessToken,
   }
 
   def fetchTrack[W: Writes](load: Email => Future[W]) = secureJson(TrackQuery.apply) { req =>
-    load(req.email)
+    load(req.user)
   }
 
   def full(track: TrackName) = secureTrack { req =>
-    db.full(track, req.email, req.query).map { track =>
+    db.full(track, req.user, req.query).map { track =>
       respond(req.rh)(
         html = Ok(html.list(track, req.query.limits)),
         json = Ok(track)
@@ -108,13 +111,12 @@ class BoatController(mapboxToken: AccessToken,
   }
 
   def chart(track: TrackName) = secureTrack { req =>
-    db.ref(track, req.email).map { ref =>
+    db.ref(track, req.user).map { ref =>
       Ok(html.chart(ref))
     }
   }
 
   def modifyTitle(track: TrackName) = trackTitleAction { req =>
-    log.info(s"Modifying title of '$track' to '${req.body}'...")
     db.modifyTitle(track, req.body, req.user.id)
   }
 
@@ -186,7 +188,7 @@ class BoatController(mapboxToken: AccessToken,
   }
 
   private def boatAction(
-      code: BoatRequest[UserInfo, BoatName] => Future[BoatRow]): Action[BoatName] =
+      code: UserRequest[UserInfo, BoatName] => Future[BoatRow]): Action[BoatName] =
     formAction(boatNameForm) { req =>
       code(req).map { b =>
         BoatResponse(b.toBoat)
@@ -194,7 +196,7 @@ class BoatController(mapboxToken: AccessToken,
     }
 
   private def trackTitleAction(
-      code: BoatRequest[UserInfo, TrackTitle] => Future[JoinedTrack]): Action[TrackTitle] =
+      code: UserRequest[UserInfo, TrackTitle] => Future[JoinedTrack]): Action[TrackTitle] =
     formAction(trackTitleForm) { req =>
       val formatter = TimeFormatter(req.user.language)
       code(req).map { t =>
@@ -203,7 +205,7 @@ class BoatController(mapboxToken: AccessToken,
     }
 
   private def formAction[T, W: Writeable](form: Form[T])(
-      code: BoatRequest[UserInfo, T] => Future[W]): Action[T] =
+      code: UserRequest[UserInfo, T] => Future[W]): Action[T] =
     parsedAuth(parse.form(form, onErrors = (err: Form[T]) => formError(err)))(profile) { req =>
       code(req).map { w =>
         Ok(w)
@@ -215,22 +217,27 @@ class BoatController(mapboxToken: AccessToken,
       message: Try[Done] => String): Flow[In, Out, Future[Done]] =
     terminationWatched(flow)(t => fut(log.info(message(t))))
 
-  private def secureTrack(run: BoatEmailRequest[TrackQuery] => Future[Result]) =
+  private def secureTrack(run: BoatRequest[TrackQuery, Email] => Future[Result]) =
     secureAction(rh => TrackQuery.withDefault(rh, defaultLimit = 100))(run)
 
   private def secureJson[T, W: Writes](parse: RequestHeader => Either[SingleError, T])(
-      run: BoatEmailRequest[T] => Future[W]) =
+      run: BoatRequest[T, Email] => Future[W]) =
     secureAction(parse)(req =>
       run(req).map { w =>
         Ok(Json.toJson(w))
     })
 
   private def secureAction[T](parse: RequestHeader => Either[SingleError, T])(
-      run: BoatEmailRequest[T] => Future[Result]) =
-    authAction(authAppOrWeb) { req =>
+      run: BoatRequest[T, Email] => Future[Result]) =
+    userAction(authAppOrWeb, parse)(run)
+
+  private def userAction[T, U](authUser: RequestHeader => Future[U],
+                               parse: RequestHeader => Either[SingleError, T])(
+    run: BoatRequest[T, U] => Future[Result]) =
+    authAction(authUser) { req =>
       parse(req.req).fold(
-        err => fut(BadRequest(Errors(err))),
-        t => run(BoatEmailRequest(t, req.user, req.req)).recover {
+        err => fut(badRequest(err)),
+        t => run(AnyBoatRequest(req.user, t, req.req)).recover {
           case nfe: NotFoundException =>
             log.error(nfe.message)
             NotFound(Errors(nfe.message))

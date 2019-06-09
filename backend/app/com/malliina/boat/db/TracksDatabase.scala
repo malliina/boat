@@ -105,14 +105,29 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext)
   private def trackList(trackQuery: Query[LiftedJoinedTrack, JoinedTrack, Seq],
                         email: Email,
                         filter: TrackQuery): Future[Tracks] = action {
-    val sortedTracksAction = trackQuery.sortBy { ljt =>
-      (filter.sort, filter.order) match {
-        case (TrackSort.Recent, SortOrder.Desc) => ljt.end.desc.nullsLast
-        case (TrackSort.Recent, SortOrder.Asc)  => ljt.end.asc.nullsLast
-        case (TrackSort.Points, SortOrder.Desc) => ljt.points.desc.nullsLast
-        case _                                  => ljt.points.asc.nullsLast
+    val sortedTracksAction =
+      if (filter.sort == TrackSort.Name) {
+        trackQuery.sortBy { ljt =>
+          filter.order match {
+            case SortOrder.Desc => (ljt.trackTitle.desc.nullsLast, ljt.trackName.desc.nullsLast, ljt.track)
+            case SortOrder.Asc  => (ljt.trackTitle.asc.nullsLast, ljt.trackName.asc.nullsLast, ljt.track)
+          }
+        }
+      } else {
+        trackQuery.sortBy { ljt =>
+          (filter.sort, filter.order) match {
+            case (TrackSort.Recent, SortOrder.Desc)   => (ljt.end.desc.nullsLast, ljt.track)
+            case (TrackSort.Recent, SortOrder.Asc)    => (ljt.end.asc.nullsLast, ljt.track)
+            case (TrackSort.Points, SortOrder.Desc)   => (ljt.points.desc.nullsLast, ljt.track)
+            case (TrackSort.Points, SortOrder.Asc)    => (ljt.points.asc.nullsLast, ljt.track)
+            case (TrackSort.TopSpeed, SortOrder.Desc) => (ljt.topSpeed.desc.nullsLast, ljt.track)
+            case (TrackSort.TopSpeed, SortOrder.Asc)  => (ljt.topSpeed.asc.nullsLast, ljt.track)
+            case (TrackSort.Length, SortOrder.Desc)   => (ljt.length.desc.nullsLast, ljt.track)
+            case (TrackSort.Length, SortOrder.Asc)    => (ljt.length.asc.nullsLast, ljt.track)
+            case _                                    => (ljt.end.desc.nullsLast, ljt.track)
+          }
+        }
       }
-    }
     for {
       user <- userFor(email)
       rows <- sortedTracksAction.result
@@ -265,6 +280,7 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext)
   }
 
   def modifyTitle(track: TrackName, title: TrackTitle, user: UserId): Future[JoinedTrack] = {
+    log.info(s"Modifying title of '$track' to '$title'...")
     val action = for {
       id <- first(
         tracksViewNonEmpty.filter(t => t.trackName === track && t.user === user).map(_.track),

@@ -3,7 +3,22 @@ package com.malliina.boat.db
 import java.sql.SQLException
 
 import com.malliina.boat.db.DatabaseUserManager.log
-import com.malliina.boat.{Boat, BoatInfo, BoatInput, BoatNames, BoatRow, BoatToken, BoatTokens, JoinedBoat, JoinedTrack, Language, TimeFormatter, UserBoats, UserInfo, UserToken}
+import com.malliina.boat.{
+  Boat,
+  BoatInfo,
+  BoatInput,
+  BoatNames,
+  BoatRow,
+  BoatToken,
+  BoatTokens,
+  JoinedBoat,
+  JoinedTrack,
+  Language,
+  TimeFormatter,
+  UserBoats,
+  UserInfo,
+  UserToken
+}
 import com.malliina.values.{Email, UserId, Username}
 import play.api.Logger
 
@@ -16,8 +31,7 @@ object DatabaseUserManager {
     new DatabaseUserManager(db)(ec)
 }
 
-class DatabaseUserManager(val db: BoatSchema)(implicit ec: ExecutionContext)
-  extends UserManager {
+class DatabaseUserManager(val db: BoatSchema)(implicit ec: ExecutionContext) extends UserManager {
 
   import db._
   import db.api._
@@ -34,13 +48,21 @@ class DatabaseUserManager(val db: BoatSchema)(implicit ec: ExecutionContext)
     }
   }
 
+  def userMeta(email: Email): Future[DataUser] = action {
+    first(usersTable.filter(u => u.email.isDefined && u.email === email),
+          s"User not found: '$email'.")
+  }
+
   private def getOrCreate(email: Email): DBIOAction[UserId, NoStream, Effect.All] =
     usersTable.filter(u => u.email.isDefined && u.email === email).result.flatMap { rows =>
       rows.headOption.map { user =>
         DBIO.successful(user.id)
       }.getOrElse {
         for {
-          userId <- userInserts += NewUser(Username(email.email), Option(email), UserToken.random(), enabled = true)
+          userId <- userInserts += NewUser(Username(email.email),
+                                           Option(email),
+                                           UserToken.random(),
+                                           enabled = true)
           _ <- boatInserts += BoatInput(BoatNames.random(), BoatTokens.random(), userId)
         } yield userId
       }
@@ -66,15 +88,24 @@ class DatabaseUserManager(val db: BoatSchema)(implicit ec: ExecutionContext)
     }
 
   private def collectUsers(rows: Seq[(DataUser, Option[BoatRow])]): Vector[UserInfo] =
-    rows.foldLeft(Vector.empty[UserInfo]) { case (acc, (user, boat)) =>
-      val idx = acc.indexWhere(_.id == user.id)
-      val newBoats = boat.toSeq.map(b => Boat(b.id, b.name, b.token, b.added.toEpochMilli))
-      if (idx >= 0) {
-        val old = acc(idx)
-        acc.updated(idx, old.copy(boats = old.boats ++ newBoats))
-      } else {
-        acc :+ UserInfo(user.id, user.username, user.email, user.language, newBoats, user.enabled, user.added.toEpochMilli)
-      }
+    rows.foldLeft(Vector.empty[UserInfo]) {
+      case (acc, (user, boat)) =>
+        val idx = acc.indexWhere(_.id == user.id)
+        val newBoats = boat.toSeq.map(b => Boat(b.id, b.name, b.token, b.added.toEpochMilli))
+        if (idx >= 0) {
+          val old = acc(idx)
+          acc.updated(idx, old.copy(boats = old.boats ++ newBoats))
+        } else {
+          user.email.fold(acc) { email =>
+            acc :+ UserInfo(user.id,
+              user.username,
+              email,
+              user.language,
+              newBoats,
+              user.enabled,
+              user.added.toEpochMilli)
+          }
+        }
     }
 
   override def authBoat(token: BoatToken): Future[JoinedBoat] = action {
@@ -87,7 +118,8 @@ class DatabaseUserManager(val db: BoatSchema)(implicit ec: ExecutionContext)
     for {
       id <- getOrCreate(email)
       user <- first(usersTable.filter(_.id === id), s"Not found or not enabled: '$email'.")
-      bs <- loadBoats(tracksViewNonEmpty.filter(r => r.user === id && r.points > 100), TimeFormatter(user.language))
+      bs <- loadBoats(tracksViewNonEmpty.filter(r => r.user === id && r.points > 100),
+                      TimeFormatter(user.language))
     } yield UserBoats(user.username, user.language, bs)
   }
 

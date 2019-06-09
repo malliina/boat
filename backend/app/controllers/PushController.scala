@@ -2,7 +2,7 @@ package controllers
 
 import com.malliina.boat.auth.EmailAuth
 import com.malliina.boat.db.{PushDatabase, PushInput, UserManager}
-import com.malliina.boat.http.BoatRequest
+import com.malliina.boat.http.UserRequest
 import com.malliina.boat.{ChangeLanguage, PushPayload, SimpleMessage, SingleToken, UserInfo}
 import play.api.libs.json.Reads
 import play.api.mvc.{ControllerComponents, Result}
@@ -37,7 +37,7 @@ class PushController(push: PushDatabase,
     }
   }
 
-  def jsonAuth[R: Reads](code: BoatRequest[UserInfo, R] => Future[Result]) =
+  def jsonAuth[R: Reads](code: UserRequest[UserInfo, R] => Future[Result]) =
     parsedAuth(parse.json[R])(profile) { req =>
       code(req)
     }

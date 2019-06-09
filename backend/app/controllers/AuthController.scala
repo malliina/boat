@@ -2,7 +2,7 @@ package controllers
 
 import com.malliina.boat.auth.EmailAuth
 import com.malliina.boat.db._
-import com.malliina.boat.http.BoatRequest
+import com.malliina.boat.http.UserRequest
 import com.malliina.boat.{Errors, SingleError, UserInfo}
 import com.malliina.values.Email
 import controllers.AuthController.log
@@ -27,14 +27,14 @@ abstract class AuthController(googleAuth: EmailAuth,
   implicit def writeable[T: Writes] = Writeable.writeableOf_JsValue.map[T](t => Json.toJson(t))
 
   protected def authAction[U](authenticate: RequestHeader => Future[U])(
-      code: BoatRequest[U, AnyContent] => Future[Result]) =
+      code: UserRequest[U, AnyContent] => Future[Result]) =
     parsedAuth(parse.default)(authenticate)(code)
 
   protected def parsedAuth[U, B](p: BodyParser[B])(authenticate: RequestHeader => Future[U])(
-      code: BoatRequest[U, B] => Future[Result]) =
+      code: UserRequest[U, B] => Future[Result]) =
     Action(p).async { req =>
       recovered(authenticate(req), req).flatMap { e =>
-        e.fold(fut, t => code(BoatRequest(t, req)))
+        e.fold(fut, t => code(UserRequest(t, req)))
       }
     }
 
