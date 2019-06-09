@@ -29,6 +29,7 @@ trait FrontKeys extends BodyClasses with ListKeys with NavKeys with AboutKeys {
   val Close = "close"
   val Enabled = "enabled"
   val FullLinkId = "full-list-link"
+  val HistoryLinkId = "history-link"
   val GraphLinkId = "graph-link"
   val Hidden = "hidden"
   val MapId = "map"

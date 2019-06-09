@@ -68,7 +68,10 @@ class BoatHtml(jsFiles: ScriptAssets) extends Tags(scalatags.Text) {
             modifier(
               div(id := "navbar", `class` := "navbar navbar-boat py-1")(
                 span(`class` := "nav-text")(b.boat),
-                div(`class` := "dropdown nav-text", id := DropdownLinkId)(
+                a(href := reverse.tracks(),
+                  `class` := "icon-link history",
+                  title := lang.lang.track.tracks),
+                div(`class` := "dropdown nav-text tracks", id := DropdownLinkId)(
                   span(`class` := "dropdown-button", lang.lang.track.tracks),
                   div(`class` := "dropdown-content", id := DropdownContentId)(
                     b.tracks.map { t =>
@@ -85,9 +88,9 @@ class BoatHtml(jsFiles: ScriptAssets) extends Tags(scalatags.Text) {
                 span(id := DurationId, `class` := "nav-text duration")(""),
                 span(id := TopSpeedId, `class` := "nav-text top-speed")(""),
                 span(id := WaterTempId, `class` := "nav-text water-temp")(""),
-                fontAwesomeLink(a, FullLinkId, "list", s"icon-link $Hidden", "List"),
-                fontAwesomeLink(a, GraphLinkId, "chart-area", s"icon-link $Hidden", "Graph"),
-                standaloneQuestion("question-nav nav-icon")
+                fontAwesomeLink(a, FullLinkId, "list", Hidden, "List"),
+                fontAwesomeLink(a, GraphLinkId, "chart-area", Hidden, "Graph"),
+                standaloneQuestion("question-nav")
               ),
               routeContainer
             )
@@ -137,7 +140,7 @@ class BoatHtml(jsFiles: ScriptAssets) extends Tags(scalatags.Text) {
                       titleValue: String,
                       more: AttrPair*) =
     tag(id := idValue,
-        `class` := s"fas fa-$faIcon $classes",
+        `class` := s"icon-link $faIcon $classes",
         title := titleValue,
         aria.hidden := "true",
         more)

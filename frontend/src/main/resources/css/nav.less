@@ -15,7 +15,31 @@
 
 .icon-link {
   color: @default-color;
-  padding: 0 16px;
+  margin: 0 16px;
+  width: 16px;
+  height: 16px;
+  background-repeat: no-repeat;
+  background-position: center center;
+
+  &.history {
+    background-image: url("../img/history.svg");
+  }
+
+  &.list {
+    background-image: url("../img/list.svg");
+  }
+
+  &.chart-area {
+    background-image: url("../img/chart-area.svg");
+  }
+
+  &.question {
+    background-image: url("../img/question.svg");
+  }
+
+  &.user {
+    background-image: url("../img/user.svg");
+  }
 
   &:hover {
     text-decoration: none;
@@ -31,7 +55,8 @@
   display: block;
   text-decoration: none;
   font-size: 18px;
-  padding: @navbar-padding 16px;
+  padding: @navbar-padding 0;
+  margin: 0 16px;
   line-height: 1;
 
   &.distance {
@@ -64,10 +89,6 @@
       max-width: 300px;
     }
   }
-}
-
-.nav-icon {
-  padding: 0 16px;
 }
 
 .question-nav {
