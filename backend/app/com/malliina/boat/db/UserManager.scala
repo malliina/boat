@@ -27,7 +27,7 @@ trait UserManager {
 
   def boats(user: Email): Future[UserBoats]
 
-  def addUser(user: NewUser): Future[Either[AlreadyExists, UserId]]
+  def addUser(user: NewUser): Future[Either[AlreadyExists, DataUser]]
 
   def deleteUser(user: Username): Future[Either[UserDoesNotExist, Unit]]
 
@@ -42,19 +42,12 @@ trait UserManager {
 sealed trait IdentityError
 
 case class AlreadyExists(user: Username) extends IdentityError
-
 case class InvalidCredentials(user: Option[Username] = None) extends IdentityError
-
 case class InvalidToken(token: BoatToken) extends IdentityError
-
 case class UserDisabled(user: Username) extends IdentityError
-
 case class UserDoesNotExist(user: Username) extends IdentityError
-
 case class MissingToken(rh: RequestHeader) extends IdentityError
-
 case class MissingCredentials(rh: RequestHeader) extends IdentityError
-
 case class JWTError(rh: RequestHeader, error: AuthError) extends IdentityError
 
 class MissingCredentialsException(error: MissingCredentials) extends IdentityException(error) {

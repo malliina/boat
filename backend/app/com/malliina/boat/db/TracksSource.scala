@@ -10,6 +10,8 @@ import scala.concurrent.Future
 trait TracksSource {
   def modifyTitle(track: TrackName, title: TrackTitle, user: UserId): Future[JoinedTrack]
 
+  def updateComments(track: TrackId, comments: String, user: UserId): Future[JoinedTrack]
+
   def addBoat(boat: BoatName, user: UserId): Future[BoatRow]
 
   def renameBoat(boat: BoatId, newName: BoatName, user: UserId): Future[BoatRow]

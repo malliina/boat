@@ -65,24 +65,24 @@ class TracksDatabaseTests extends TracksTester {
     (t, (end - start).millis)
   }
 
+  def fakeCoord(c: Coord, speed: SpeedM, track: TrackId, boat: BoatId, user: UserId) = {
+    FullCoord(
+      c,
+      LocalTime.now(),
+      LocalDate.now(),
+      speed,
+      Temperature.zeroCelsius,
+      1.meters,
+      0.meters,
+      TrackMetaShort(track, TrackNames.random(), boat, BoatNames.random(), Username("whatever"))
+    )
+  }
+
   test("inserts update track aggregates") {
     val db = BoatSchema(conf)
     db.initBoat()
     val tdb = TracksDatabase(db, mat.executionContext)
     val user = NewUser(Username("test-agg-user"), None, UserToken.random(), enabled = true)
-
-    def coord(c: Coord, speed: SpeedM, track: TrackId, boat: BoatId, user: UserId) = {
-      FullCoord(
-        c,
-        LocalTime.now(),
-        LocalDate.now(),
-        speed,
-        Temperature.zeroCelsius,
-        1.meters,
-        0.meters,
-        TrackMetaShort(track, TrackNames.random(), boat, BoatNames.random(), Username("whatever"))
-      )
-    }
 
     import db._
     import db.api._
@@ -91,14 +91,33 @@ class TracksDatabaseTests extends TracksTester {
       boat = BoatInput(BoatNames.random(), BoatTokens.random(), uid)
       bid <- boatInserts += boat
       tid: TrackId <- trackInserts += TrackInput.empty(TrackNames.random(), bid)
-      _ <- tdb.saveCoordAction(coord(london, 10.kmh, tid, bid, uid))
-      _ <- tdb.saveCoordAction(coord(sanfran, 20.kmh, tid, bid, uid))
+      _ <- tdb.saveCoordAction(fakeCoord(london, 10.kmh, tid, bid, uid))
+      _ <- tdb.saveCoordAction(fakeCoord(sanfran, 20.kmh, tid, bid, uid))
       track: TrackRow <- first(tracksTable.filter(_.id === tid.bind), s"Track not found: '$tid'.")
       _ <- usersTable.filter(_.id === uid).delete
     } yield track
     val t = runAndAwait(action)
     assert(t.avgSpeed.exists(s => s > 14.kmh && s < 16.kmh))
     assert(t.points === 2)
+  }
+
+  test("add comments to track") {
+    val db = BoatSchema(conf)
+    db.initBoat()
+    val tdb = TracksDatabase(db, mat.executionContext)
+    val udb = DatabaseUserManager(db, mat.executionContext)
+    val testComment = "test"
+    val userInput = NewUser(Username("test-comments-user"), None, UserToken.random(), enabled = true)
+    val trackName = TrackNames.random()
+    val task = for {
+      u <- udb.addUser(userInput)
+      uid = u.right.get.id
+      t <- tdb.join(BoatUser(trackName, BoatNames.random(), u.right.get.username))
+      _ <- tdb.saveCoords(fakeCoord(london, 10.kmh, t.track, t.boat, uid))
+      t <- tdb.updateComments(t.track, testComment, uid)
+    } yield t.comments
+    val dbComment = await(task)
+    assert(dbComment.contains(testComment))
   }
 
   ignore("init tokens") {

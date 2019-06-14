@@ -279,9 +279,9 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext)
     result
   }
 
-  def modifyTitle(track: TrackName, title: TrackTitle, user: UserId): Future[JoinedTrack] = {
+  def modifyTitle(track: TrackName, title: TrackTitle, user: UserId): Future[JoinedTrack] = transaction {
     log.info(s"Modifying title of '$track' to '$title'...")
-    val action = for {
+    for {
       id <- first(
         tracksViewNonEmpty.filter(t => t.trackName === track && t.user === user).map(_.track),
         s"Track not found: '$track'.")
@@ -294,11 +294,27 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext)
       log.info(s"Modified title of track '$id' to '$title' normalized to '${updated.canonical}'.")
       updated
     }
-    db.run(action.transactionally)
   }
 
-  override def renameBoat(boat: BoatId, newName: BoatName, user: UserId): Future[BoatRow] = {
-    val action = for {
+  def updateComments(track: TrackId, comments: String, user: UserId): Future[JoinedTrack] = transaction {
+    log.info(s"Updating comments of '$track' to '$comments'...")
+    for {
+      id <- first(
+        tracksViewNonEmpty.filter(t => t.track === track && t.user === user).map(_.track),
+        s"Track not found: '$track'.")
+      _ <- tracksTable
+        .filter(_.id === id)
+        .map(t => t.comments)
+        .update(Option(comments))
+      updated <- first(tracksViewNonEmpty.filter(_.track === id), s"Track ID not found: '$id'.")
+    } yield {
+      log.info(s"Modified comments of track '$id' to '$comments'.")
+      updated
+    }
+  }
+
+  override def renameBoat(boat: BoatId, newName: BoatName, user: UserId): Future[BoatRow] = transaction {
+    for {
       id <- db.first(boatsView.filter(b => b.user === user && b.boat === boat).map(_.boat),
                      s"Boat not found: '$boat'.")
       _ <- boatsTable.filter(_.id === id).map(_.name).update(newName)
@@ -307,7 +323,6 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext)
       log.info(s"Renamed boat '$id' to '$newName'.")
       updated
     }
-    db.run(action.transactionally)
   }
 
   private def rangedCoords(limits: TimeRange) =

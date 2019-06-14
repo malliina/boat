@@ -144,8 +144,12 @@ class DatabaseUserManager(val db: BoatSchema)(implicit ec: ExecutionContext) ext
       }
     }
 
-  override def addUser(user: NewUser): Future[Either[AlreadyExists, UserId]] = {
-    db.run(userInserts += user).map(id => Right(id)).recover {
+  override def addUser(user: NewUser): Future[Either[AlreadyExists, DataUser]] = {
+    val action = for {
+      uid <- userInserts += user
+      u <- first(usersTable.filter(_.id === uid), s"User not found: '$uid'.")
+    } yield u
+    db.run(action).map(Right.apply).recover {
       case sqle: SQLException if sqle.getMessage contains "primary key violation" =>
         Left(AlreadyExists(user.username))
     }

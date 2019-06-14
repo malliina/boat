@@ -11,13 +11,13 @@ import com.malliina.boat._
 import com.malliina.boat.auth.EmailAuth
 import com.malliina.boat.db._
 import com.malliina.boat.html.{BoatHtml, BoatLang}
-import com.malliina.boat.http.{AnyBoatRequest, BoatEmailRequest, BoatQuery, BoatRequest, ContentVersions, Limits, TrackQuery, UserRequest}
+import com.malliina.boat.http._
 import com.malliina.boat.parsing.BoatService
 import com.malliina.boat.push.BoatState
 import com.malliina.values.{Email, Username}
 import controllers.BoatController.log
 import play.api.Logger
-import play.api.data.Form
+import play.api.data.{Form, Forms}
 import play.api.http.{MimeTypes, Writeable}
 import play.api.libs.json.{JsValue, Json, Writes}
 import play.api.mvc.WebSocket.MessageFlowTransformer.jsonMessageFlowTransformer
@@ -45,6 +45,7 @@ class BoatController(mapboxToken: AccessToken,
 
   val boatNameForm = Form[BoatName](BoatNames.Key -> BoatNames.mapping)
   val trackTitleForm = Form[TrackTitle](TrackTitle.Key -> TrackTitles.mapping)
+  val trackCommentsForm = Form[String](TrackComments.Key -> Forms.nonEmptyText)
 
   val LanguageSessionKey = "boatLanguage"
   val UserSessionKey = "boatUser"
@@ -116,8 +117,12 @@ class BoatController(mapboxToken: AccessToken,
     }
   }
 
-  def modifyTitle(track: TrackName) = trackTitleAction { req =>
+  def modifyTitle(track: TrackName) = trackAction(trackTitleForm) { req =>
     db.modifyTitle(track, req.body, req.user.id)
+  }
+
+  def updateComments(track: TrackId) = trackAction(trackCommentsForm) { req =>
+    db.updateComments(track, req.body, req.user.id)
   }
 
   def createBoat = boatAction { req =>
@@ -195,9 +200,9 @@ class BoatController(mapboxToken: AccessToken,
       }
     }
 
-  private def trackTitleAction(
-      code: UserRequest[UserInfo, TrackTitle] => Future[JoinedTrack]): Action[TrackTitle] =
-    formAction(trackTitleForm) { req =>
+  private def trackAction[F](form: Form[F])(
+      code: UserRequest[UserInfo, F] => Future[JoinedTrack]): Action[F] =
+    formAction(form) { req =>
       val formatter = TimeFormatter(req.user.language)
       code(req).map { t =>
         TrackResponse(t.strip(formatter))
@@ -231,16 +236,17 @@ class BoatController(mapboxToken: AccessToken,
       run: BoatRequest[T, Email] => Future[Result]) =
     userAction(authAppOrWeb, parse)(run)
 
-  private def userAction[T, U](authUser: RequestHeader => Future[U],
-                               parse: RequestHeader => Either[SingleError, T])(
-    run: BoatRequest[T, U] => Future[Result]) =
+  private def userAction[T, U](
+      authUser: RequestHeader => Future[U],
+      parse: RequestHeader => Either[SingleError, T])(run: BoatRequest[T, U] => Future[Result]) =
     authAction(authUser) { req =>
       parse(req.req).fold(
         err => fut(badRequest(err)),
-        t => run(AnyBoatRequest(req.user, t, req.req)).recover {
-          case nfe: NotFoundException =>
-            log.error(nfe.message)
-            NotFound(Errors(nfe.message))
+        t =>
+          run(AnyBoatRequest(req.user, t, req.req)).recover {
+            case nfe: NotFoundException =>
+              log.error(nfe.message)
+              NotFound(Errors(nfe.message))
         }
       )
     }

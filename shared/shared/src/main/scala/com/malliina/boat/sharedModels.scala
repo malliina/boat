@@ -9,7 +9,7 @@ import scalatags.generic.Bundle
 
 import scala.concurrent.duration.Duration
 
-case class Bearing(bearing: Int)
+case class Bearing(bearing: Int) extends AnyVal
 
 object Bearing {
   val north = apply(0)
@@ -189,6 +189,10 @@ object TrackTitle extends StringCompanion[TrackTitle] {
   val MaxLength = 191
 }
 
+object TrackComments {
+  val Key = "comments"
+}
+
 case class TrackCanonical(name: String) extends Wrapped(name)
 
 object TrackCanonical extends StringCompanion[TrackCanonical] {
@@ -362,6 +366,7 @@ case class TrackRef(track: TrackId,
                     trackName: TrackName,
                     trackTitle: Option[TrackTitle],
                     canonical: TrackCanonical,
+                    comments: Option[String],
                     boat: BoatId,
                     boatName: BoatName,
                     username: Username,

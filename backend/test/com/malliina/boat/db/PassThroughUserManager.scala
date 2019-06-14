@@ -35,7 +35,7 @@ object PassThroughUserManager extends UserManager {
 
   def boats(user: Email): Future[UserBoats] = fut(UserBoats.anon)
 
-  def addUser(user: NewUser): Future[Either[AlreadyExists, UserId]] =
+  def addUser(user: NewUser): Future[Either[AlreadyExists, DataUser]] =
     fut(Left(AlreadyExists(user.username)))
 
   def deleteUser(user: Username): Future[Either[UserDoesNotExist, Unit]] =
