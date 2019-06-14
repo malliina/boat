@@ -120,7 +120,7 @@ class BoatController(mapboxToken: AccessToken,
   }
 
   def modifyTitle(track: TrackName) = trackAction(trackTitleForm) { req =>
-    db.modifyTitle(track, req.body, req.user.id)
+    db.updateTitle(track, req.body, req.user.id)
   }
 
   def updateComments(track: TrackId) = trackAction(trackCommentsForm) { req =>

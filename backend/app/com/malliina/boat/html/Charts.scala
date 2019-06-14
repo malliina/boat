@@ -1,6 +1,6 @@
 package com.malliina.boat.html
 
-import com.malliina.boat.FrontKeys.{ChartsClass, ChartsId}
+import com.malliina.boat.FrontKeys.{ChartsClass, ChartsId, FormsClass}
 import com.malliina.boat.TrackRef
 import com.malliina.html.Tags
 import scalatags.Text.all._
@@ -18,6 +18,6 @@ object Charts extends Tags(scalatags.Text) {
 
   private def page(content: Modifier*) = PageConf(
     content,
-    bodyClasses = Seq(ChartsClass)
+    bodyClasses = Seq(ChartsClass, FormsClass)
   )
 }

@@ -272,8 +272,8 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext)
     result
   }
 
-  def modifyTitle(track: TrackName, title: TrackTitle, user: UserId): Future[JoinedTrack] = transaction {
-    log.info(s"Modifying title of '$track' to '$title'...")
+  def updateTitle(track: TrackName, title: TrackTitle, user: UserId): Future[JoinedTrack] = transaction {
+    log.info(s"Updating title of '$track' to '$title'...")
     for {
       id <- first(
         tracksViewNonEmpty.filter(t => t.trackName === track && t.user === user).map(_.track),
@@ -284,7 +284,7 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext)
         .update((TrackCanonical(Utils.normalize(title.title)), Option(title)))
       updated <- first(tracksViewNonEmpty.filter(_.track === id), s"Track ID not found: '$id'.")
     } yield {
-      log.info(s"Modified title of track '$id' to '$title' normalized to '${updated.canonical}'.")
+      log.info(s"Updated title of '$id' to '$title' normalized to '${updated.canonical}'.")
       updated
     }
   }
@@ -301,7 +301,7 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext)
         .update(Option(comments))
       updated <- first(tracksViewNonEmpty.filter(_.track === id), s"Track ID not found: '$id'.")
     } yield {
-      log.info(s"Modified comments of '$id' to '$comments'.")
+      log.info(s"Updated comments of '$id' to '$comments'.")
       updated
     }
   }
