@@ -99,11 +99,11 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext)
     action.transactionally
   }
 
-  override def tracksFor(email: Email, filter: TrackQuery): Future[Tracks] =
-    trackList(tracksViewNonEmpty.filter(t => t.email.isDefined && t.email === email), email, filter)
+  override def tracksFor(user: MinimalUserInfo, filter: TrackQuery): Future[Tracks] =
+    trackList(tracksViewNonEmpty.filter(t => t.username === user.username), user.language, filter)
 
   private def trackList(trackQuery: Query[LiftedJoinedTrack, JoinedTrack, Seq],
-                        email: Email,
+                        language: Language,
                         filter: TrackQuery): Future[Tracks] = action {
     val sortedTracksAction =
       if (filter.sort == TrackSort.Name) {
@@ -129,12 +129,11 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext)
         }
       }
     for {
-      user <- userFor(email)
       rows <- sortedTracksAction.result
-    } yield Tracks(rows.map(_.strip(TimeFormatter(user.language))))
+    } yield Tracks(rows.map(_.strip(TimeFormatter(language))))
   }
 
-  override def track(track: TrackName, email: Email, query: TrackQuery): Future[TrackInfo] =
+  override def track(track: TrackName, user: Username, query: TrackQuery): Future[TrackInfo] =
     action {
       // intentionally does not filter on email for now
       val points = pointsTable
@@ -148,7 +147,7 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext)
       } yield TrackInfo(coords, top)
     }
 
-  override def full(track: TrackName, email: Email, query: TrackQuery): Future[FullTrack] = action {
+  override def full(track: TrackName, language: Language, query: TrackQuery): Future[FullTrack] = action {
     val limitedPoints = pointsTable
       .map(_.combined)
       .join(tracksTable.filter(t => t.name === track))
@@ -166,32 +165,26 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext)
       .sortBy { case (s, p) => (p.boatTime.asc, p.id.asc, s.added.asc) }
       .result
     for {
-      user <- userFor(email)
       trackStats <- namedTrack(track)
       coords <- coordsAction
     } yield {
-      val formatter = TimeFormatter(user.language)
+      val formatter = TimeFormatter(language)
       FullTrack(trackStats.strip(formatter), collect(coords, formatter))
     }
   }
 
-  override def ref(track: TrackName, email: Email): Future[TrackRef] = action {
+  override def ref(track: TrackName, language: Language): Future[TrackRef] = action {
     for {
-      user <- userFor(email)
       joined <- namedTrack(track)
-    } yield joined.strip(TimeFormatter(user.language))
+    } yield joined.strip(TimeFormatter(language))
   }
 
-  override def canonical(track: TrackCanonical, email: Email): Future[TrackRef] = action {
+  override def canonical(track: TrackCanonical, language: Language): Future[TrackRef] = action {
     for {
-      user <- userFor(email)
       joined <- first(tracksViewNonEmpty.filter(t => t.canonical === track),
                       s"Track not found: '$track'.")
-    } yield joined.strip(TimeFormatter(user.language))
+    } yield joined.strip(TimeFormatter(language))
   }
-
-  private def userFor(email: Email) =
-    first(usersTable.filter(_.email === email), s"Email not found: '$email'.")
 
   private def namedTrack(track: TrackName) =
     first(tracksViewNonEmpty.filter(_.trackName === track), s"Track not found: '$track'.")
@@ -308,7 +301,7 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext)
         .update(Option(comments))
       updated <- first(tracksViewNonEmpty.filter(_.track === id), s"Track ID not found: '$id'.")
     } yield {
-      log.info(s"Modified comments of track '$id' to '$comments'.")
+      log.info(s"Modified comments of '$id' to '$comments'.")
       updated
     }
   }

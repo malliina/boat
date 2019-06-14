@@ -3,7 +3,7 @@ package com.malliina.boat.html
 import com.malliina.boat.BoatFormats._
 import com.malliina.boat.FrontKeys._
 import com.malliina.boat.http.Limits
-import com.malliina.boat.{BoatFormats, FullTrack, TrackName, TrackRef, TrackTitle}
+import com.malliina.boat.{BoatFormats, FullTrack, TrackComments, TrackName, TrackRef, TrackTitle}
 import com.malliina.measure.{DistanceM, SpeedM, Temperature}
 import com.malliina.values.Wrapped
 import controllers.routes
@@ -24,12 +24,13 @@ trait BoatImplicits {
 object SentencesPage extends BoatImplicits {
   val reverse = routes.BoatController
 
-  def apply(track: FullTrack, current: Limits): Modifier = {
+  def apply(track: FullTrack, current: Limits, lang: BoatLang): Modifier = {
+    val trackLang = lang.lang.track
     div(`class` := "container")(
-      namedInfoBox(track.track),
+      namedInfoBox(track.track, lang),
       pagination(track.track, current),
       table(`class` := "table table-hover")(
-        thead(tr(th("Coordinate"), th("Speed"), th("Time"))),
+        thead(tr(th(trackLang.coordinate), th(trackLang.speed), th(lang.lang.time))),
         tbody(
           track.coords.map { c =>
             modifier(
@@ -46,8 +47,11 @@ object SentencesPage extends BoatImplicits {
     )
   }
 
-  def namedInfoBox(track: TrackRef): Modifier = {
+  def namedInfoBox(track: TrackRef, lang: BoatLang): Modifier = {
+    val trackLang = lang.lang.track
+    val webLang = lang.web
     val topSpeed = track.topSpeed.getOrElse(SpeedM.zero)
+    val commentValue = track.comments.getOrElse("")
     modifier(
       div(`class` := "row")(
         div(`class` := "col-md-12")(
@@ -59,8 +63,8 @@ object SentencesPage extends BoatImplicits {
            method := "PUT",
            action := reverse.modifyTitle(track.trackName))(
         div(`class` := "form-group row form-title")(
-          label(`for` := "title", `class` := "col-sm-2 col-form-label col-form-label-sm")(
-            "Edit title"),
+          label(`for` := TitleInputId, `class` := "col-sm-2 col-form-label col-form-label-sm")(
+            webLang.editTitle),
           div(`class` := "col-sm-7 pr-2")(
             input(
               `type` := "text",
@@ -68,31 +72,62 @@ object SentencesPage extends BoatImplicits {
               name := TrackTitle.Key,
               `class` := "form-control form-control-sm input-title",
               track.trackTitle.map(t => value := t.title).getOrElse(modifier()),
-              placeholder := "Evening trip"
+              placeholder := webLang.titlePlaceholder
             )
           ),
           div(`class` := "col-3 pl-0")(
-            button(`type` := "submit", `class` := "btn btn-sm btn-primary")("Save"),
+            button(`type` := "submit", `class` := "btn btn-sm btn-primary")(webLang.save),
             button(`type` := "button",
                    id := CancelEditTrackId,
-                   `class` := "btn btn-sm btn-secondary ml-1")("Cancel")
+                   `class` := "btn btn-sm btn-secondary ml-1")(webLang.cancel)
+          )
+        )
+      ),
+      form(`class` := Hidden,
+           id := EditCommentsFormId,
+           method := "PATCH",
+           action := reverse.updateComments(track.track))(
+        div(`class` := "form-group row form-title")(
+          label(`for` := CommentsInputId, `class` := "col-sm-2 col-form-label col-form-label-sm")(
+            webLang.editComments),
+          div(`class` := "col-sm-7 pr-2")(
+            input(
+              `type` := "text",
+              id := CommentsInputId,
+              name := TrackComments.Key,
+              `class` := "form-control form-control-sm input-title",
+              track.comments.map(c => value := c).getOrElse(modifier()),
+              placeholder := webLang.commentsPlaceholder
+            )
+          ),
+          div(`class` := "col-3 pl-0")(
+            button(`type` := "submit", `class` := "btn btn-sm btn-primary")(webLang.save),
+            button(`type` := "button",
+                   id := CancelEditCommentsId,
+                   `class` := "btn btn-sm btn-secondary ml-1")(webLang.cancel)
           )
         )
       ),
       dl(`class` := "row")(
-        dt(`class` := s"col-sm-2 $TrackRow")("Track"),
-        dd(`class` := s"col-sm-10 $TrackRow")(span(id := TrackTitleId)(track.describe), editIcon),
-        description("Time", track.times.range),
-        description("Duration", BoatFormats.formatDuration(track.duration)),
-        description("Top speed", topSpeed),
+        dt(`class` := s"col-sm-2 $TrackRow")(trackLang.track),
+        dd(`class` := s"col-sm-10 $TrackRow")(
+          span(`class` := "text-editable", id := TrackTitleId)(track.describe),
+          editIcon(EditTitleId, webLang.editTitle)),
+        description(lang.lang.time, track.times.range),
+        description(trackLang.duration, BoatFormats.formatDuration(track.duration)),
+        description(trackLang.topSpeed, topSpeed),
+        dt(`class` := s"col-sm-2 $CommentsRow")(trackLang.comments),
+        dd(`class` := s"col-sm-10 $CommentsRow")(
+          span(`class` := classes("text-editable", track.comments.fold(Hidden)(_ => "")), id := CommentsTitleId)(commentValue),
+          editIcon(EditCommentsId, webLang.editComments))
       )
     )
   }
 
-  def editIcon =
-    span(id := EditTitleId,
-         `class` := s"fas fa-edit icon-link",
-         title := "Edit track title",
+  def editIcon(editId: String, titleText: String) =
+    span(id := editId,
+         `class` := s"fas fa-edit icon-link edit-icon tight",
+         title := titleText,
          aria.hidden := "true")
 
   private def description(labelText: String, value: Modifier) = modifier(

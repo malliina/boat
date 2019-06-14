@@ -310,7 +310,6 @@ object Boat {
 
 trait MinimalUserInfo {
   def username: Username
-
   def language: Language
 }
 
@@ -320,6 +319,12 @@ object MinimalUserInfo {
 
 case class SimpleUserInfo(username: Username, language: Language) extends MinimalUserInfo
 
+trait EmailUser extends MinimalUserInfo {
+  def email: Email
+}
+
+case class SimpleEmailUser(username: Username, email: Email, language: Language) extends EmailUser
+
 case class UserInfo(id: UserId,
                     username: Username,
                     email: Email,
@@ -327,7 +332,7 @@ case class UserInfo(id: UserId,
                     boats: Seq[Boat],
                     enabled: Boolean,
                     addedMillis: Long)
-    extends MinimalUserInfo
+    extends EmailUser
 
 object UserInfo {
   implicit val json = Json.format[UserInfo]

@@ -12,7 +12,10 @@ object Frontend extends BodyClasses {
 
     if (contains(MapClass)) MapView()
     if (contains(ChartsClass)) ChartsView()
-    if (contains(ListClass)) ListView()
+    if (contains(ListClass)) {
+      FormHandlers.titles()
+      FormHandlers.comments()
+    }
     if (contains(AboutClass)) AboutPage()
   }
 }

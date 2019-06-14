@@ -50,10 +50,10 @@ class BoatHtml(jsFiles: ScriptAssets) extends Tags(scalatags.Text) {
   def tracks(ts: Seq[TrackRef], query: TrackQuery, lang: Lang) =
     page(PageConf(TracksPage(ts, query, lang), bodyClasses = Nil))
 
-  def list(track: FullTrack, current: Limits) =
-    page(PageConf(SentencesPage(track, current), bodyClasses = Seq(ListClass)))
+  def list(track: FullTrack, current: Limits, lang: BoatLang) =
+    page(PageConf(SentencesPage(track, current, lang), bodyClasses = Seq(ListClass)))
 
-  def chart(track: TrackRef) = page(Charts.chart(track))
+  def chart(track: TrackRef, lang: BoatLang) = page(Charts.chart(track, lang))
 
   def map(ub: UserBoats) = {
     val lang = BoatLang(ub.language)

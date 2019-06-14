@@ -3,7 +3,7 @@ package com.malliina.boat.db
 import com.malliina.boat._
 import com.malliina.boat.http.{BoatQuery, TrackQuery}
 import com.malliina.boat.parsing.FullCoord
-import com.malliina.values.{Email, UserId, Username}
+import com.malliina.values.{UserId, Username}
 
 import scala.concurrent.Future
 
@@ -33,15 +33,15 @@ trait TracksSource {
 
   def saveCoords(coords: FullCoord): Future[InsertedPoint]
 
-  def tracksFor(email: Email, filter: TrackQuery): Future[Tracks]
+  def tracksFor(user: MinimalUserInfo, filter: TrackQuery): Future[Tracks]
 
-  def ref(track: TrackName, email: Email): Future[TrackRef]
+  def ref(track: TrackName, language: Language): Future[TrackRef]
 
-  def canonical(track: TrackCanonical, email: Email): Future[TrackRef]
+  def canonical(track: TrackCanonical, language: Language): Future[TrackRef]
 
-  def track(track: TrackName, user: Email, query: TrackQuery): Future[TrackInfo]
+  def track(track: TrackName, user: Username, query: TrackQuery): Future[TrackInfo]
 
-  def full(track: TrackName, user: Email, query: TrackQuery): Future[FullTrack]
+  def full(track: TrackName, language: Language, query: TrackQuery): Future[FullTrack]
 
   def history(user: MinimalUserInfo, limits: BoatQuery): Future[Seq[CoordsEvent]]
 }

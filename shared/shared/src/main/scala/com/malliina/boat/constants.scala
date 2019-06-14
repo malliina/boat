@@ -67,6 +67,13 @@ trait NavKeys {
 }
 
 trait ListKeys {
+  val CancelEditCommentsId = "comments-cancel"
+  val EditCommentsFormId = "comments-form"
+  val EditCommentsId = "comments-edit"
+  val CommentsInputId = "comments-value"
+  val CommentsTitleId = "comments-title"
+  val CommentsRow = "comments-row"
+
   val CancelEditTrackId = "track-cancel"
   val EditTitleFormId = "form-edit-title"
   val EditTitleId = "edit-title"

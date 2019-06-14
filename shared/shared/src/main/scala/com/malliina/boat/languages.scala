@@ -424,7 +424,8 @@ case class TrackLang(track: String,
                      date: String,
                      trackHistory: String,
                      graph: String,
-                     coordinate: String)
+                     coordinate: String,
+                     comments: String)
 
 object TrackLang {
   implicit val json = Json.format[TrackLang]
@@ -754,7 +755,8 @@ object Lang {
       "Date",
       "Track History",
       "Graph",
-      "Coordinates"
+      "Coordinates",
+      "Comments"
     ),
     mark = MarkLang(
       markType = "Mark",
@@ -876,7 +878,8 @@ object Lang {
       "Päivämäärä",
       "Edelliset",
       "Käyrät",
-      "Koordinaatit"
+      "Koordinaatit",
+      "Kommentit"
     ),
     mark = MarkLang(
       markType = "Merkin laji",
@@ -1001,7 +1004,8 @@ object Lang {
       "Datum",
       "Tidigare",
       "Visualisering",
-      "Koordinater"
+      "Koordinater",
+      "Kommentarer"
     ),
     mark = MarkLang(
       markType = "Märke",

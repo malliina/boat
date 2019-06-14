@@ -2,6 +2,7 @@ package com.malliina.http
 
 import com.malliina.boat.http.CSRFConf
 import org.scalajs.dom.ext.Ajax
+import org.scalajs.dom.ext.Ajax.InputData
 import org.scalajs.dom.raw.XMLHttpRequest
 import play.api.libs.json.{JsError, Json, Reads, Writes}
 
@@ -16,12 +17,18 @@ class HttpClient extends CSRFConf {
       validate[R](uri, xhr)
     }
 
-  def put[W: Writes, R: Reads](uri: String, data: W): Future[R] = {
+  def patch[W: Writes, R: Reads](uri: String, data: W): Future[R] =
+    makeAjax("PATCH", uri, data)
+
+  def put[W: Writes, R: Reads](uri: String, data: W): Future[R] =
+    makeAjax("PUT", uri, data)
+
+  private def makeAjax[W: Writes, R: Reads](method: String, uri: String, data: W): Future[R] = {
     val headers = Map(
       "Content-Type" -> "application/json",
       CsrfHeaderName -> CsrfTokenNoCheck
     )
-    Ajax.put(uri, Json.stringify(Json.toJson(data)), headers = headers).flatMap { xhr =>
+    ajax(method, uri, Json.stringify(Json.toJson(data)), headers = headers).flatMap { xhr =>
       validate[R](uri, xhr)
     }
   }
@@ -37,6 +44,17 @@ class HttpClient extends CSRFConf {
     } else {
       Future.failed(new StatusException(uri, xhr))
     }
+  }
+
+  // Modified from Extensions.scala
+  def ajax(method: String,
+           url: String,
+           data: InputData = null,
+           timeout: Int = 0,
+           headers: Map[String, String] = Map.empty,
+           withCredentials: Boolean = false,
+           responseType: String = "") = {
+    Ajax("PATCH", url, data, timeout, headers, withCredentials, responseType)
   }
 }
 

@@ -14,7 +14,7 @@ import com.malliina.boat.html.{BoatHtml, BoatLang}
 import com.malliina.boat.http._
 import com.malliina.boat.parsing.BoatService
 import com.malliina.boat.push.BoatState
-import com.malliina.values.{Email, Username}
+import com.malliina.values.Username
 import controllers.BoatController.log
 import play.api.Logger
 import play.api.data.{Form, Forms}
@@ -67,7 +67,7 @@ class BoatController(mapboxToken: AccessToken,
   }
 
   def tracks = userAction(profile, TrackQuery.apply) { req =>
-    db.tracksFor(req.user.email, req.query).map { ts =>
+    db.tracksFor(req.user, req.query).map { ts =>
       // Made a mistake in an early API and it's used in early iOS versions.
       // First checks the latest version, then browsers always get the latest since they accept */*.
       def json =
@@ -85,7 +85,7 @@ class BoatController(mapboxToken: AccessToken,
   def track(track: TrackName) = EssentialAction { rh =>
     val action = respond(rh)(
       html = index,
-      json = fetchTrack(email => db.ref(track, email))
+      json = fetchTrack(user => db.ref(track, user.language))
     )
     action(rh)
   }
@@ -93,27 +93,29 @@ class BoatController(mapboxToken: AccessToken,
   def canonical(track: TrackCanonical) = EssentialAction { rh =>
     val action = respond(rh)(
       html = index,
-      json = fetchTrack(email => db.canonical(track, email).map(TrackResponse.apply))
+      json = fetchTrack(user => db.canonical(track, user.language).map(TrackResponse.apply))
     )
     action(rh)
   }
 
-  def fetchTrack[W: Writes](load: Email => Future[W]) = secureJson(TrackQuery.apply) { req =>
+  def fetchTrack[W: Writes](load: MinimalUserInfo => Future[W]) = secureJson(TrackQuery.apply) { req =>
     load(req.user)
   }
 
   def full(track: TrackName) = secureTrack { req =>
-    db.full(track, req.user, req.query).map { track =>
+    val lang = req.user.language
+    db.full(track, lang, req.query).map { track =>
       respond(req.rh)(
-        html = Ok(html.list(track, req.query.limits)),
+        html = Ok(html.list(track, req.query.limits, BoatLang(lang))),
         json = Ok(track)
       )
     }
   }
 
   def chart(track: TrackName) = secureTrack { req =>
-    db.ref(track, req.user).map { ref =>
-      Ok(html.chart(ref))
+    val lang = req.user.language
+    db.ref(track, lang).map { ref =>
+      Ok(html.chart(ref, BoatLang(lang)))
     }
   }
 
@@ -222,19 +224,20 @@ class BoatController(mapboxToken: AccessToken,
       message: Try[Done] => String): Flow[In, Out, Future[Done]] =
     terminationWatched(flow)(t => fut(log.info(message(t))))
 
-  private def secureTrack(run: BoatRequest[TrackQuery, Email] => Future[Result]) =
-    secureAction(rh => TrackQuery.withDefault(rh, defaultLimit = 100))(run)
+  private def secureTrack(run: BoatRequest[TrackQuery, MinimalUserInfo] => Future[Result]) =
+    userAction(authTypical, rh => TrackQuery.withDefault(rh, defaultLimit = 100))(run)
 
   private def secureJson[T, W: Writes](parse: RequestHeader => Either[SingleError, T])(
-      run: BoatRequest[T, Email] => Future[W]) =
-    secureAction(parse)(req =>
+      run: BoatRequest[T, MinimalUserInfo] => Future[W]) =
+    secureAction(parse) { req =>
       run(req).map { w =>
         Ok(Json.toJson(w))
-    })
+      }
+    }
 
   private def secureAction[T](parse: RequestHeader => Either[SingleError, T])(
-      run: BoatRequest[T, Email] => Future[Result]) =
-    userAction(authAppOrWeb, parse)(run)
+      run: BoatRequest[T, MinimalUserInfo] => Future[Result]) =
+    userAction(authTypical, parse)(run)
 
   private def userAction[T, U](
       authUser: RequestHeader => Future[U],
@@ -303,9 +306,17 @@ class BoatController(mapboxToken: AccessToken,
       }
 
   private def auth(rh: RequestHeader): Future[MinimalUserInfo] =
-    authApp(rh).recover {
-      case _: MissingCredentialsException =>
-        authSessionUser(rh).getOrElse(MinimalUserInfo.anon)
+    authMinimal(rh, _ => Future.successful(MinimalUserInfo.anon))
+
+  private def authTypical(rh: RequestHeader): Future[MinimalUserInfo] =
+    authMinimal(rh, mce => Future.failed(mce))
+
+  private def authMinimal(
+      rh: RequestHeader,
+      onFail: MissingCredentialsException => Future[MinimalUserInfo]): Future[MinimalUserInfo] =
+    authApp(rh).recoverWith {
+      case mce: MissingCredentialsException =>
+        authSessionUser(rh).map(Future.successful).getOrElse(onFail(mce))
     }
 
   private def authSessionUser(rh: RequestHeader): Option[MinimalUserInfo] =
@@ -316,7 +327,7 @@ class BoatController(mapboxToken: AccessToken,
       )
     }
 
-  private def authApp(rh: RequestHeader): Future[MinimalUserInfo] =
+  private def authApp(rh: RequestHeader): Future[UserInfo] =
     googleProfile(rh)
 
   /** Optional authentication for the web.

@@ -7,9 +7,9 @@ import scalatags.Text.all._
 
 object Charts extends Tags(scalatags.Text) {
   // https://cdnjs.com/libraries/Chart.js
-  def chart(track: TrackRef) = page(
+  def chart(track: TrackRef, lang: BoatLang) = page(
     div(`class` := "container")(
-      SentencesPage.namedInfoBox(track)
+      SentencesPage.namedInfoBox(track, lang)
     ),
     div(`class` := "container-fluid")(
       canvas(id := ChartsId, `class` := "charts-canvas", width := "400", height := "400")

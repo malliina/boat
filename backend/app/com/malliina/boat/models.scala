@@ -225,6 +225,9 @@ object Bindables {
 
   implicit val boatId: PathBindable[BoatId] =
     PathBindable.bindableLong.transform[BoatId](s => BoatId(s), id => id.id)
+
+  implicit val trackId: PathBindable[TrackId] =
+    PathBindable.bindableLong.transform[TrackId](TrackId.apply, _.id)
 }
 
 case class BoatInput(name: BoatName, token: BoatToken, owner: UserId)
