@@ -38,11 +38,6 @@ abstract class AuthController(googleAuth: EmailAuth,
       }
     }
 
-  protected def googleProfile(rh: RequestHeader): Future[UserInfo] =
-    googleAuth.authEmail(rh).flatMap { email =>
-      users.userInfo(email)
-    }
-
   /** Fails if unauthenticated.
     */
   protected def profile(rh: RequestHeader): Future[UserInfo] =
@@ -50,7 +45,7 @@ abstract class AuthController(googleAuth: EmailAuth,
       users.userInfo(email)
     }
 
-  protected def authEmailOnly(rh: RequestHeader): Future[Email] =
+  private def authEmailOnly(rh: RequestHeader): Future[Email] =
     googleAuth.authEmail(rh).recoverWith {
       case mce: MissingCredentialsException =>
         sessionEmail(rh).map(email => Future.successful(email)).getOrElse(Future.failed(mce))

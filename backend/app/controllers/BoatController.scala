@@ -159,7 +159,7 @@ class BoatController(mapboxToken: AccessToken,
   }
 
   def clientSocket = WebSocket.acceptOrResult[JsValue, FrontEvent] { rh =>
-    recovered(auth(rh), rh).map { outcome =>
+    recovered(authOrAnon(rh), rh).map { outcome =>
       outcome.flatMap { user =>
         BoatQuery(rh).map { limits =>
           val username = user.username
@@ -225,7 +225,7 @@ class BoatController(mapboxToken: AccessToken,
     terminationWatched(flow)(t => fut(log.info(message(t))))
 
   private def secureTrack(run: BoatRequest[TrackQuery, MinimalUserInfo] => Future[Result]) =
-    userAction(authTypical, rh => TrackQuery.withDefault(rh, defaultLimit = 100))(run)
+    secureAction(rh => TrackQuery.withDefault(rh, defaultLimit = 100))(run)
 
   private def secureJson[T, W: Writes](parse: RequestHeader => Either[SingleError, T])(
       run: BoatRequest[T, MinimalUserInfo] => Future[W]) =
@@ -305,7 +305,7 @@ class BoatController(mapboxToken: AccessToken,
         fut(BoatUser(trackOrRandom(rh), boatName, anonUser))
       }
 
-  private def auth(rh: RequestHeader): Future[MinimalUserInfo] =
+  private def authOrAnon(rh: RequestHeader): Future[MinimalUserInfo] =
     authMinimal(rh, _ => Future.successful(MinimalUserInfo.anon))
 
   private def authTypical(rh: RequestHeader): Future[MinimalUserInfo] =
@@ -314,7 +314,7 @@ class BoatController(mapboxToken: AccessToken,
   private def authMinimal(
       rh: RequestHeader,
       onFail: MissingCredentialsException => Future[MinimalUserInfo]): Future[MinimalUserInfo] =
-    authApp(rh).recoverWith {
+    profile(rh).recoverWith {
       case mce: MissingCredentialsException =>
         authSessionUser(rh).map(Future.successful).getOrElse(onFail(mce))
     }
@@ -326,9 +326,6 @@ class BoatController(mapboxToken: AccessToken,
         rh.session.get(LanguageSessionKey).map(Language.apply).getOrElse(Language.default)
       )
     }
-
-  private def authApp(rh: RequestHeader): Future[UserInfo] =
-    googleProfile(rh)
 
   /** Optional authentication for the web.
     *

@@ -17,7 +17,7 @@ class AppController(googleAuth: EmailAuth,
     Ok(Json.toJson(AppMeta.default))
   }
 
-  def pingAuth = authAction(googleProfile) { _ =>
+  def pingAuth = authAction(profile) { _ =>
     fut(Ok(Json.toJson(AppMeta.default)))
   }
 
