@@ -1036,7 +1036,7 @@ object Lang {
                 "Suomeksi",
                 "Svenska",
                 "English"),
-    MessagesLang("Ladataan...",
+    MessagesLang("Laddar...",
                  "Laddning av profildata misslyckades.",
                  "Inga sparade spår.",
                  "N/A"),
