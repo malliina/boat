@@ -100,8 +100,8 @@ class BoatHtml(jsFiles: ScriptAssets) extends Tags(scalatags.Text) {
               routeContainer,
               if (isAnon) {
                 modifier(
-                  standaloneQuestion("boat-icon question"),
-                  personIcon("boat-icon user")
+                  standaloneQuestion("boat-icon framed question"),
+                  personIcon("boat-icon framed user")
                 )
               } else {
                 standaloneQuestion("boat-icon question")
