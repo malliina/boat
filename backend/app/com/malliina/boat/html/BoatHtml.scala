@@ -104,7 +104,7 @@ class BoatHtml(jsFiles: ScriptAssets) extends Tags(scalatags.Text) {
                   personIcon("boat-icon framed user")
                 )
               } else {
-                standaloneQuestion("boat-icon question")
+                standaloneQuestion("boat-icon framed question")
               }
             )
           },
