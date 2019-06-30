@@ -2,7 +2,7 @@ package com.malliina.boat
 
 import com.malliina.boat.BoatJson.keyValued
 import com.malliina.json.PrimitiveFormats
-import com.malliina.measure.{Distance, DistanceM, SpeedM, Temperature}
+import com.malliina.measure.{DistanceM, SpeedM, Temperature}
 import com.malliina.values._
 import play.api.libs.json._
 import scalatags.generic.Bundle
@@ -154,16 +154,18 @@ case class TimedCoord(id: TrackPointId,
                       boatTimeOnly: FormattedTime,
                       speed: SpeedM,
                       waterTemp: Temperature,
-                      depth: Distance,
                       depthMeters: DistanceM,
                       time: Timing) {
   def lng = coord.lng
-
   def lat = coord.lat
 }
 
 object TimedCoord {
-  implicit val json = Json.format[TimedCoord]
+  val modern = Json.format[TimedCoord]
+  // For backwards compat
+  implicit val json = Format[TimedCoord](
+    modern,
+    Writes(tc => modern.writes(tc) ++ Json.obj("depth" -> tc.depthMeters.toMillis.toLong)))
 }
 
 case class AccessToken(token: String) extends Wrapped(token)
@@ -377,7 +379,6 @@ case class TrackRef(track: TrackId,
                     username: Username,
                     points: Int,
                     duration: Duration,
-                    distance: Distance,
                     distanceMeters: DistanceM,
                     topSpeed: Option[SpeedM],
                     avgSpeed: Option[SpeedM],
@@ -390,7 +391,11 @@ case class TrackRef(track: TrackId,
 
 object TrackRef {
   implicit val durationFormat = PrimitiveFormats.durationFormat
-  implicit val json = Json.format[TrackRef]
+  val modern = Json.format[TrackRef]
+  implicit val json = Format[TrackRef](
+    modern,
+    Writes(tr => modern.writes(tr) ++ Json.obj("distance" -> tr.distanceMeters.toMillis.toLong))
+  )
 }
 
 case class TrackResponse(track: TrackRef)

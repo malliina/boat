@@ -7,16 +7,16 @@ import scala.sys.process.Process
 import scala.util.Try
 
 val mapboxVersion = "1.0.0"
-val utilPlayVersion = "5.1.1"
-val scalaTestVersion = "3.0.7"
-val scalaTagsVersion = "0.6.8"
-val primitiveVersion = "1.9.0"
-val akkaVersion = "2.5.20"
-val akkaHttpVersion = "10.1.7"
+val utilPlayVersion = "5.2.3"
+val scalaTestVersion = "3.0.8"
+val scalaTagsVersion = "0.7.0"
+val primitiveVersion = "1.11.0"
+val akkaVersion = "2.5.23"
+val akkaHttpVersion = "10.1.8"
 val utilPlayDep = "com.malliina" %% "util-play" % utilPlayVersion
 val utilPlayTestDep = utilPlayDep % Test classifier "tests"
 val scalaTestDep = "org.scalatest" %% "scalatest" % scalaTestVersion % Test
-val nvWebsocketDep = "com.neovisionaries" % "nv-websocket-client" % "2.8"
+val nvWebsocketDep = "com.neovisionaries" % "nv-websocket-client" % "2.9"
 val buildAndUpload = taskKey[FullUrl]("Uploads to S3")
 val upFiles = taskKey[Seq[String]]("lists")
 val bootClasspath = taskKey[String]("bootClasspath")
@@ -26,7 +26,7 @@ parallelExecution in ThisBuild := false
 
 val basicSettings = Seq(
   organization := "com.malliina",
-  scalaVersion := "2.12.8",
+  scalaVersion := "2.13.0",
   scalacOptions := Seq("-unchecked", "-deprecation")
 )
 
@@ -61,12 +61,12 @@ val frontend = project
   .settings(commonSettings)
   .settings(
     libraryDependencies ++= Seq(
-      "com.typesafe.play" %%% "play-json" % "2.7.1",
+      "com.typesafe.play" %%% "play-json" % "2.7.4",
       "org.scala-js" %%% "scalajs-dom" % "0.9.7",
       "org.scalatest" %%% "scalatest" % scalaTestVersion % Test
     ),
     npmDependencies in Compile ++= Seq(
-      "@fortawesome/fontawesome-free" -> "5.8.2",
+      "@fortawesome/fontawesome-free" -> "5.9.0",
       "@mapbox/mapbox-gl-geocoder" -> "4.3.0",
       "@turf/turf" -> "5.1.6",
       "bootstrap" -> "4.3.1",
@@ -76,21 +76,21 @@ val frontend = project
       "popper.js" -> "1.15.0"
     ),
     npmDevDependencies in Compile ++= Seq(
-      "autoprefixer" -> "9.5.1",
+      "autoprefixer" -> "9.6.0",
       "cssnano" -> "4.1.10",
-      "css-loader" -> "2.1.1",
-      "file-loader" -> "3.0.1",
+      "css-loader" -> "3.0.0",
+      "file-loader" -> "4.0.0",
       "less" -> "3.9.0",
       "less-loader" -> "5.0.0",
-      "mini-css-extract-plugin" -> "0.6.0",
+      "mini-css-extract-plugin" -> "0.7.0",
       "postcss-import" -> "12.0.1",
       "postcss-loader" -> "3.0.0",
       "postcss-preset-env" -> "6.6.0",
       "style-loader" -> "0.23.1",
-      "url-loader" -> "1.1.2",
+      "url-loader" -> "2.0.1",
       "webpack-merge" -> "4.2.1"
     ),
-    version in webpack := "4.32.2",
+    version in webpack := "4.35.0",
     emitSourceMaps := false,
     scalaJSUseMainModuleInitializer := true,
     webpackBundlingMode := BundlingMode.LibraryOnly(),
@@ -108,26 +108,26 @@ val backend = Project("boat", file("backend"))
     libraryDependencies ++= Seq(
       //    "net.sf.marineapi" % "marineapi" % "0.13.0-SNAPSHOT",
       "com.vividsolutions" % "jts" % "1.13",
-      "com.typesafe.slick" %% "slick" % "3.2.3",
+      "com.typesafe.slick" %% "slick" % "3.3.2",
       "com.h2database" % "h2" % "1.4.196",
       "org.orbisgis" % "h2gis" % "1.4.0",
       "mysql" % "mysql-connector-java" % "5.1.47",
       "com.zaxxer" % "HikariCP" % "3.3.1",
       "org.flywaydb" % "flyway-core" % "5.2.4",
       "org.apache.commons" % "commons-text" % "1.6",
-      "com.amazonaws" % "aws-java-sdk-s3" % "1.11.466",
-      "com.malliina" %% "logstreams-client" % "1.5.0",
+      "com.amazonaws" % "aws-java-sdk-s3" % "1.11.584",
+      "com.malliina" %% "logstreams-client" % "1.6.0",
       "com.malliina" %% "play-social" % utilPlayVersion,
-      "com.malliina" %% "mobile-push" % "1.18.3",
+      "com.malliina" %% "mobile-push" % "1.18.4",
       "com.typesafe.akka" %% "akka-slf4j" % akkaVersion,
       "com.typesafe.akka" %% "akka-stream" % akkaVersion,
       "com.typesafe.akka" %% "akka-http" % akkaHttpVersion,
       "com.typesafe.akka" %% "akka-http-spray-json" % akkaHttpVersion,
-      "org.eclipse.paho" % "org.eclipse.paho.client.mqttv3" % "1.2.0",
+      "org.eclipse.paho" % "org.eclipse.paho.client.mqttv3" % "1.2.1",
       utilPlayDep,
       utilPlayTestDep,
       scalaTestDep,
-      "org.scalatestplus.play" %% "scalatestplus-play" % "4.0.2" % Test
+      "org.scalatestplus.play" %% "scalatestplus-play" % "4.0.3" % Test
     ),
     routesImport ++= Seq(
       "com.malliina.boat.Bindables._",
@@ -198,9 +198,9 @@ val agent = project
     },
     libraryDependencies ++= Seq(
       "com.malliina" %% "primitives" % primitiveVersion,
-      "com.malliina" %% "logback-streams" % "1.5.0",
+      "com.malliina" %% "logback-streams" % "1.6.0",
       nvWebsocketDep,
-      "org.slf4j" % "slf4j-api" % "1.7.25",
+      "org.slf4j" % "slf4j-api" % "1.7.26",
       "com.typesafe.akka" %% "akka-stream" % akkaVersion,
       "com.typesafe.akka" %% "akka-http" % akkaHttpVersion,
       "com.typesafe.akka" %% "akka-http-spray-json" % akkaHttpVersion,

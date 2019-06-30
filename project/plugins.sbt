@@ -9,11 +9,11 @@ classpathTypes += "maven-plugin"
 
 scalacOptions ++= Seq("-unchecked", "-deprecation")
 
-libraryDependencies += "com.amazonaws" % "aws-java-sdk-s3" % "1.11.421"
+libraryDependencies += "com.amazonaws" % "aws-java-sdk-s3" % "1.11.584"
 
 Seq(
-  "com.typesafe.play" % "sbt-plugin" % "2.7.2",
-  "com.malliina" % "sbt-utils-maven" % "0.12.1",
+  "com.typesafe.play" % "sbt-plugin" % "2.7.3",
+  "com.malliina" % "sbt-utils-maven" % "0.13.0",
   "com.malliina" %% "sbt-packager" % "2.7.0",
   "com.malliina" % "sbt-filetree" % "0.3.0",
   "com.typesafe.sbt" % "sbt-gzip" % "1.0.2",
@@ -21,7 +21,7 @@ Seq(
   "com.typesafe.sbt" % "sbt-less" % "1.1.2",
   "ch.epfl.scala" % "sbt-web-scalajs-bundler" % "0.14.0",
   "org.portable-scala" % "sbt-scalajs-crossproject" % "0.6.0",
-  "org.scala-js" % "sbt-scalajs" % "0.6.27",
+  "org.scala-js" % "sbt-scalajs" % "0.6.28",
   "com.vmunier" % "sbt-web-scalajs" % "1.0.6",
   "com.typesafe.sbt" % "sbt-native-packager" % "1.3.7"
 ) map addSbtPlugin
