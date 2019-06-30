@@ -47,7 +47,7 @@ class MapView(accessToken: AccessToken,
   val DirectionsKey = "d"
   private var isGeocoderVisible = false
 
-  elemAs[HTMLDivElement](MapId).right.get.onkeypress = (e: KeyboardEvent) => {
+  elemAs[HTMLDivElement](MapId).toOption.get.onkeypress = (e: KeyboardEvent) => {
     if (!document.activeElement.isInstanceOf[HTMLInputElement]) {
       e.key match {
         case SearchKey =>

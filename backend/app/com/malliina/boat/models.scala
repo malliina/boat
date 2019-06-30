@@ -3,7 +3,7 @@ package com.malliina.boat
 import java.time.{Instant, LocalDate, LocalTime, ZoneOffset}
 
 import com.malliina.boat.parsing.FullCoord
-import com.malliina.measure.{Distance, DistanceM, SpeedM, Temperature}
+import com.malliina.measure.{DistanceM, SpeedM, Temperature}
 import com.malliina.play.auth.JWTError
 import com.malliina.values._
 import play.api.data.{Forms, Mapping}
@@ -49,7 +49,9 @@ object ClientConf {
   val default = ClientConf(Languages(Lang.fi, Lang.se, Lang.en), Layers.default)
 }
 
-case class UserToken(token: String) extends Wrapped(token)
+case class UserToken(token: String) extends WrappedString {
+  override def value = token
+}
 
 object UserToken extends StringCompanion[UserToken] {
   val minLength = 3
@@ -111,7 +113,6 @@ case class JoinedTrack(track: TrackId,
     username,
     points,
     duration,
-    Distance(distance.toMillis.toLong),
     distance,
     topSpeed,
     avgSpeed,
@@ -348,8 +349,6 @@ case class CombinedCoord(id: TrackPointId,
                          date: LocalDate,
                          track: TrackId,
                          added: Instant) {
-  def depthLegacy = Distance(depth.toMillis.toLong)
-  def offsetLegacy = Distance(depthOffset.toMillis.toLong)
 
   def toFull(sentences: Seq[SentenceRow], formatter: TimeFormatter): CombinedFullCoord =
     CombinedFullCoord(
@@ -359,9 +358,7 @@ case class CombinedCoord(id: TrackPointId,
       coord,
       boatSpeed,
       waterTemp,
-      depthLegacy,
       depth,
-      offsetLegacy,
       depthOffset,
       boatTime,
       date,
@@ -379,7 +376,6 @@ case class CombinedCoord(id: TrackPointId,
     formatter.formatTime(boatTime),
     boatSpeed,
     waterTemp,
-    depthLegacy,
     depth,
     formatter.timing(boatTime)
   )
@@ -393,9 +389,7 @@ case class CombinedFullCoord(id: TrackPointId,
                              coord: Coord,
                              boatSpeed: SpeedM,
                              waterTemp: Temperature,
-                             depth: Distance,
                              depthMeters: DistanceM,
-                             depthOffset: Distance,
                              depthOffsetMeters: DistanceM,
                              boatTime: Instant,
                              date: LocalDate,
@@ -405,7 +399,13 @@ case class CombinedFullCoord(id: TrackPointId,
                              time: Timing)
 
 object CombinedFullCoord {
-  implicit val json = Json.format[CombinedFullCoord]
+  val modern = Json.format[CombinedFullCoord]
+  implicit val json = Format[CombinedFullCoord](
+    modern,
+    Writes(c => modern.writes(c) ++ Json.obj(
+      "depth" -> c.depthMeters.toMillis.toLong,
+      "depthOffset" -> c.depthOffsetMeters.toMillis.toLong))
+  )
 }
 
 case class FullTrack(track: TrackRef, coords: Seq[CombinedFullCoord]) {
@@ -429,8 +429,6 @@ case class TrackPointRow(id: TrackPointId,
                          trackIndex: Int,
                          diff: DistanceM,
                          added: Instant) {
-  def depthLegacy = Distance(depth.toMillis.toLong)
-  def offsetLegacy = Distance(depthOffset.toMillis.toLong)
   def dateTimeUtc = boatTime.atOffset(ZoneOffset.UTC)
   def time = LocalTime.from(dateTimeUtc)
   def date = LocalDate.from(dateTimeUtc)

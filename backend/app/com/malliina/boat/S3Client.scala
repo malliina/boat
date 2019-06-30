@@ -8,7 +8,7 @@ import com.amazonaws.regions.Regions
 import com.amazonaws.services.s3.model._
 import com.amazonaws.services.s3.{AmazonS3, AmazonS3ClientBuilder}
 
-import scala.collection.JavaConverters.asScalaBufferConverter
+import scala.jdk.CollectionConverters.CollectionHasAsScala
 
 trait FileStore {
   def upload(file: Path): PutObjectResult
@@ -18,26 +18,25 @@ trait FileStore {
 
 object S3Client {
   def apply(): S3Client = {
-    val builder = AmazonS3ClientBuilder.standard().withCredentials(
-      new AWSCredentialsProviderChain(
-        new ProfileCredentialsProvider("pimp"),
-        DefaultAWSCredentialsProviderChain.getInstance()
+    val builder = AmazonS3ClientBuilder
+      .standard()
+      .withCredentials(
+        new AWSCredentialsProviderChain(
+          new ProfileCredentialsProvider("pimp"),
+          DefaultAWSCredentialsProviderChain.getInstance()
+        )
       )
-    )
     new S3Client(builder.withRegion(Regions.EU_WEST_1).build(), "agent.boat-tracker.com")
   }
 }
 
 class S3Client(aws: AmazonS3, bucketName: String) extends FileStore {
-  def download(key: String): S3Object = {
+  def download(key: String): S3Object =
     aws.getObject(new GetObjectRequest(bucketName, key))
-  }
 
-  def upload(file: Path): PutObjectResult = {
+  def upload(file: Path): PutObjectResult =
     aws.putObject(new PutObjectRequest(bucketName, file.getFileName.toString, file.toFile))
-  }
 
-  def files(): Seq[S3ObjectSummary] = {
+  def files(): Seq[S3ObjectSummary] =
     aws.listObjects(bucketName).getObjectSummaries.asScala.toList
-  }
 }

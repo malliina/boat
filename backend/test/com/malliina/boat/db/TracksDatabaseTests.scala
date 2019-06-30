@@ -20,8 +20,8 @@ import scala.concurrent.Future
 import scala.concurrent.duration.{Duration, DurationLong}
 
 object TestData {
-  val london = Coord.build(0.13, 51.5).right.get
-  val sanfran = Coord.build(-122.4, 37.8).right.get
+  val london = Coord.build(0.13, 51.5).toOption.get
+  val sanfran = Coord.build(-122.4, 37.8).toOption.get
 }
 
 class TracksDatabaseTests extends TracksTester {
@@ -111,8 +111,8 @@ class TracksDatabaseTests extends TracksTester {
     val trackName = TrackNames.random()
     val task = for {
       u <- udb.addUser(userInput)
-      uid = u.right.get.id
-      t <- tdb.join(BoatUser(trackName, BoatNames.random(), u.right.get.username))
+      uid = u.toOption.get.id
+      t <- tdb.join(BoatUser(trackName, BoatNames.random(), u.toOption.get.username))
       _ <- tdb.saveCoords(fakeCoord(london, 10.kmh, t.track, t.boat, uid))
       t <- tdb.updateComments(t.track, testComment, uid)
     } yield t.comments

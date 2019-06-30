@@ -18,15 +18,21 @@ object Bearing {
   val west = apply(270)
 }
 
-case class FormattedTime(time: String) extends Wrapped(time)
+case class FormattedTime(time: String) extends WrappedString {
+  override def value = time
+}
 
 object FormattedTime extends StringCompanion[FormattedTime]
 
-case class FormattedDate(date: String) extends Wrapped(date)
+case class FormattedDate(date: String) extends WrappedString {
+  override def value = date
+}
 
 object FormattedDate extends StringCompanion[FormattedDate]
 
-case class FormattedDateTime(dateTime: String) extends Wrapped(dateTime)
+case class FormattedDateTime(dateTime: String) extends WrappedString {
+  override def value = dateTime
+}
 
 object FormattedDateTime extends StringCompanion[FormattedDateTime]
 
@@ -168,23 +174,31 @@ object TimedCoord {
     Writes(tc => modern.writes(tc) ++ Json.obj("depth" -> tc.depthMeters.toMillis.toLong)))
 }
 
-case class AccessToken(token: String) extends Wrapped(token)
+case class AccessToken(token: String) extends WrappedString {
+  override def value = token
+}
 
 object AccessToken extends StringCompanion[AccessToken]
 
-case class BoatName(name: String) extends Wrapped(name)
+case class BoatName(name: String) extends WrappedString {
+  override def value = name
+}
 
 object BoatName extends StringCompanion[BoatName] {
   val Key = "boatName"
 }
 
-case class TrackName(name: String) extends Wrapped(name)
+case class TrackName(name: String) extends WrappedString {
+  override def value = name
+}
 
 object TrackName extends StringCompanion[TrackName] {
   val Key = "track"
 }
 
-case class TrackTitle(title: String) extends Wrapped(title)
+case class TrackTitle(title: String) extends WrappedString {
+  override def value = title
+}
 
 object TrackTitle extends StringCompanion[TrackTitle] {
   val Key = "title"
@@ -195,7 +209,9 @@ object TrackComments {
   val Key = "comments"
 }
 
-case class TrackCanonical(name: String) extends Wrapped(name)
+case class TrackCanonical(name: String) extends WrappedString {
+  override def value = name
+}
 
 object TrackCanonical extends StringCompanion[TrackCanonical] {
   val Key = "canonical"
@@ -203,7 +219,9 @@ object TrackCanonical extends StringCompanion[TrackCanonical] {
   def apply(name: TrackName): TrackCanonical = TrackCanonical(name.name)
 }
 
-case class BoatToken(token: String) extends Wrapped(token)
+case class BoatToken(token: String) extends WrappedString {
+  override def value = token
+}
 
 object BoatToken extends StringCompanion[BoatToken]
 
@@ -221,7 +239,9 @@ object BoatToken extends StringCompanion[BoatToken]
   * @param sentence sentence as a String
   * @see http://www.catb.org/gpsd/NMEA.html
   */
-case class RawSentence(sentence: String) extends Wrapped(sentence)
+case class RawSentence(sentence: String) extends WrappedString {
+  override def value = sentence
+}
 
 object RawSentence extends StringCompanion[RawSentence] {
   val MaxLength = 82
@@ -232,7 +252,9 @@ object Usernames {
   val anon = Username("anon")
 }
 
-case class Language(code: String) extends Wrapped(code)
+case class Language(code: String) extends WrappedString {
+  override def value = code
+}
 
 object Language extends StringCompanion[Language] {
   val english = Language("en-US")
@@ -275,7 +297,9 @@ case class PushId(id: Long) extends WrappedId
 
 object PushId extends IdCompanion[PushId]
 
-case class PushToken(token: String) extends Wrapped(token)
+case class PushToken(token: String) extends WrappedString {
+  override def value = token
+}
 
 object PushToken extends StringCompanion[PushToken]
 
@@ -585,6 +609,6 @@ class ModelHtml[Builder, Output <: FragT, FragT](val bundle: Bundle[Builder, Out
 
   import bundle.all._
 
-  implicit def wrappedFrag[T <: Wrapped](t: T): Frag = stringFrag(t.value)
+  implicit def wrappedFrag[T <: WrappedString](t: T): Frag = stringFrag(t.value)
 }
 

@@ -41,8 +41,8 @@ class GraphTests extends FunSuite {
     val route2 = Graph.fromNodes(json.as[List[ValueNode]]).shortest(from, to)
     assert(route.isRight)
     assert(route2.isRight)
-    val r1 = route.right.get
-    val r2 = route.right.get
+    val r1 = route.toOption.get
+    val r2 = route.toOption.get
     assert(r1.route.coords.size === r2.route.coords.size)
     assert(r1.route.cost - r2.route.cost < 0.1.meters)
   }
@@ -58,7 +58,7 @@ class GraphTests extends FunSuite {
   test("read geo file") {
     val route = findRoute(from = 24.8438 lngLat 60.1395, to = 25.2130 lngLat 60.1728)
     assert(route.isRight)
-    val r = route.right.get
+    val r = route.toOption.get
     val cost = r.route.cost
     assert(cost > 22.kilometers)
     assert(cost < 22.8.kilometers)
@@ -67,7 +67,7 @@ class GraphTests extends FunSuite {
   test("porkkala to helsinki") {
     val route = findRoute(from = 24.37521 lngLat 59.97423, to = 25.2130 lngLat 60.1728)
     assert(route.isRight)
-    val r = route.right.get
+    val r = route.toOption.get
     val cost = r.route.cost
     assert(cost > 55.6.kilometers)
     assert(cost < 55.7.kilometers)

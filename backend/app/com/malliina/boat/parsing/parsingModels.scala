@@ -13,7 +13,7 @@ import com.malliina.boat.{
   TrackMetaShort,
   TrackPointId
 }
-import com.malliina.measure.{Distance, DistanceM, SpeedM, Temperature}
+import com.malliina.measure.{DistanceM, SpeedM, Temperature}
 
 sealed trait ParsedSentence {
   def sentence: KeyedSentence
@@ -77,7 +77,6 @@ case class FullCoord(coord: Coord,
     formatter.formatTime(boatTime),
     boatSpeed,
     waterTemp,
-    Distance(depth.toMillis.toLong),
     depth,
     formatter.timing(boatTime)
   )

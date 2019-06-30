@@ -123,8 +123,8 @@ class AkkaStreams extends BaseSuite {
     val fromProducer: Source[String, NotUsed] = runnableGraph.run()
 
     // Print out messages from the producer in two independent consumers
-    fromProducer.runForeach(msg ⇒ println("consumer1: " + msg))
-    fromProducer.runForeach(msg ⇒ println("consumer2: " + msg))
+    fromProducer.runForeach(msg => println("consumer1: " + msg))
+    fromProducer.runForeach(msg => println("consumer2: " + msg))
     Thread.sleep(3000)
   }
 

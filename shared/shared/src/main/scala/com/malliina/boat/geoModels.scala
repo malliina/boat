@@ -339,7 +339,9 @@ object FeatureCollection {
   def apply(fs: Seq[Feature]): FeatureCollection = FeatureCollection(Key, fs)
 }
 
-case class StringLayerSource(source: String) extends Wrapped(source) with LayerSource
+case class StringLayerSource(source: String) extends WrappedString with LayerSource {
+  override def value = source
+}
 
 object StringLayerSource extends StringCompanion[StringLayerSource]
 

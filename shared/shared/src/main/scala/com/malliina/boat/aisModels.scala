@@ -3,7 +3,7 @@ package com.malliina.boat
 import com.malliina.boat.ShipType._
 import com.malliina.json.PrimitiveFormats
 import com.malliina.measure.{DistanceM, SpeedM}
-import com.malliina.values.{IdCompanion, StringCompanion, Wrapped, WrappedId}
+import com.malliina.values.{IdCompanion, StringCompanion, WrappedId, WrappedString}
 import play.api.libs.json._
 
 /**
@@ -211,7 +211,9 @@ object VesselLocation {
   }
 }
 
-case class VesselName(name: String) extends Wrapped(name)
+case class VesselName(name: String) extends WrappedString {
+  override def value = name
+}
 
 object VesselName extends StringCompanion[VesselName] {
   val Key = "name"

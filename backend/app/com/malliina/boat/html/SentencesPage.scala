@@ -5,7 +5,7 @@ import com.malliina.boat.FrontKeys._
 import com.malliina.boat.http.Limits
 import com.malliina.boat.{BoatFormats, FullTrack, TrackComments, TrackName, TrackRef, TrackTitle}
 import com.malliina.measure.{DistanceM, SpeedM, Temperature}
-import com.malliina.values.Wrapped
+import com.malliina.values.WrappedString
 import controllers.routes
 import play.api.mvc.Call
 import scalatags.Text.all._
@@ -18,7 +18,7 @@ trait BoatImplicits {
   implicit def speedHtml(s: SpeedM): StringFrag = stringFrag(formatSpeed(s))
   implicit def distanceHtml(d: DistanceM): StringFrag = stringFrag(formatDistance(d))
   implicit def tempHtml(t: Temperature): StringFrag = stringFrag(formatTemp(t))
-  implicit def wrappedHtml[T <: Wrapped](w: Wrapped): StringFrag = stringFrag(w.value)
+  implicit def wrappedHtml[T <: WrappedString](w: T): StringFrag = stringFrag(w.value)
 }
 
 object SentencesPage extends BoatImplicits {
@@ -118,8 +118,10 @@ object SentencesPage extends BoatImplicits {
         description(trackLang.topSpeed, topSpeed),
         dt(`class` := s"col-sm-2 $CommentsRow")(trackLang.comments),
         dd(`class` := s"col-sm-10 $CommentsRow")(
-          span(`class` := classes("text-editable", track.comments.fold(Hidden)(_ => "")), id := CommentsTitleId)(commentValue),
-          editIcon(EditCommentsId, webLang.editComments))
+          span(`class` := classes("text-editable", track.comments.fold(Hidden)(_ => "")),
+               id := CommentsTitleId)(commentValue),
+          editIcon(EditCommentsId, webLang.editComments)
+        )
       )
     )
   }

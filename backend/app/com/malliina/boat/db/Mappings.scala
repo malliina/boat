@@ -1,18 +1,12 @@
 package com.malliina.boat.db
 
 import java.sql.{PreparedStatement, ResultSet}
-import java.time.{Instant, LocalDate, LocalTime}
+import java.time.format.DateTimeFormatter
+import java.time.{Instant, LocalDate, LocalDateTime, LocalTime, ZoneId}
 
 import com.malliina.boat._
 import com.malliina.boat.db.SpatialUtils.{coordToBytes, fromBytes}
-import com.malliina.measure.{
-  DistanceDoubleM,
-  DistanceM,
-  SpeedDoubleM,
-  SpeedM,
-  Temperature,
-  TemperatureDouble
-}
+import com.malliina.measure.{DistanceDoubleM, DistanceM, SpeedDoubleM, SpeedM, Temperature, TemperatureDouble}
 import com.malliina.values._
 import com.vividsolutions.jts.geom.Point
 import slick.ast.{BaseTypedType, FieldSymbol}
@@ -20,10 +14,27 @@ import slick.jdbc.{JdbcProfile, JdbcType}
 
 import scala.reflect.ClassTag
 
+//case class DataInstant(s: String) {
+//  val localDateTime = LocalDateTime.parse(s, DataInstant.pattern)
+//
+//  def toInstant = localDateTime.atZone(ZoneId.systemDefault()).toInstant
+//}
+
+//object DataInstant {
+//  val pattern = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.S")
+//
+//  def apply(t: java.sql.Timestamp): DataInstant =
+//    DataInstant(pattern.format(t.toInstant.atZone(BoatSchema.helsinkiZone)))
+//
+//  def apply(i: Instant): DataInstant =
+//    DataInstant(pattern.format(i.atZone(BoatSchema.helsinkiZone)))
+//}
+
 class Mappings(val impl: JdbcProfile) {
 
   import impl.api._
 
+//  implicit val dataInstant = MappedColumnType.base[DataInstant, java.sql.Timestamp](di => java.sql.Timestamp.valueOf(di.localDateTime), t => DataInstant(t))
   implicit val password = stringMapping(Password.apply)
   implicit val sentenceIdMapping = longMapping(SentenceKey.apply)
   implicit val sentenceMapping = stringMapping(RawSentence.apply)
@@ -46,7 +57,13 @@ class Mappings(val impl: JdbcProfile) {
   implicit val temperatureMapping =
     MappedColumnType.base[Temperature, Double](_.toCelsius, _.celsius)
   implicit val instantMapping =
-    MappedColumnType.base[Instant, java.sql.Timestamp](java.sql.Timestamp.from, _.toInstant)
+    MappedColumnType.base[Instant, java.sql.Timestamp](i => {
+      println(s"TO $i")
+      java.sql.Timestamp.from(i)
+    }, t => {
+      println(s"FROM $t")
+      t.toInstant
+    })
   implicit val timeMapping =
     MappedColumnType.base[LocalTime, java.sql.Time](java.sql.Time.valueOf, _.toLocalTime)
   implicit val dateMapping =
@@ -99,7 +116,7 @@ class Mappings(val impl: JdbcProfile) {
 
   implicit val coordMapper = new CoordJdbcType
 
-  def stringMapping[T <: Wrapped: ClassTag](apply: String => T): JdbcType[T] with BaseTypedType[T] =
+  def stringMapping[T <: WrappedString: ClassTag](apply: String => T): JdbcType[T] with BaseTypedType[T] =
     MappedColumnType.base[T, String](_.value, apply)
 
   def longMapping[T <: WrappedId: ClassTag](apply: Long => T): JdbcType[T] with BaseTypedType[T] =

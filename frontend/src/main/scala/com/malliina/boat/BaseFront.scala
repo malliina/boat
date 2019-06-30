@@ -19,8 +19,9 @@ trait BaseFront extends FrontKeys {
     }
     .collect { case key :: value :: Nil => key -> value }
     .groupBy { case (key, _) => key }
-    .mapValues { vs =>
-      vs.map { case (_, v) => v }
+    .map {
+      case (k, v) =>
+        (k, v.map { case (_, vv) => vv })
     }
 
   def readTrack: PathState = href.getPath.split('/').toList match {
@@ -47,7 +48,7 @@ trait BaseFront extends FrontKeys {
 
   def anchor(id: String) = elemAs[HTMLAnchorElement](id)
 
-  def elemGet[T](id: String) = elemAs[T](id).right.get
+  def elemGet[T](id: String) = elemAs[T](id).toOption.get
 
   def elemAs[T](id: String) = elem(id).map(_.asInstanceOf[T])
 

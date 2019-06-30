@@ -1,6 +1,6 @@
 package com.malliina.boat.db
 
-import java.time.{Instant, LocalDate}
+import java.time.{Instant, LocalDate, ZoneId}
 
 import com.malliina.boat._
 import com.malliina.boat.db.BoatSchema.{CreatedTimestampType, GetDummy, NumThreads, log}
@@ -20,6 +20,8 @@ object BoatSchema {
   // Use this for all timestamps, otherwise MySQL applies an ON UPDATE CURRENT_TIMESTAMP clause by default
   val CreatedTimestampType = "TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP(3) NOT NULL"
   val NumThreads = 20
+
+  val helsinkiZone = ZoneId.of("Europe/Helsinki")
 
   def apply(ds: DataSource, profile: ProfileConf): BoatSchema =
     new BoatSchema(ds, profile)
@@ -46,7 +48,7 @@ object BoatSchema {
   )
 
   object GetDummy extends GetResult[Int] {
-    override def apply(v1: PositionedResult) = 0
+    override def apply(v1: PositionedResult): Int = 0
   }
 
 }
@@ -284,7 +286,7 @@ class BoatSchema(ds: DataSource, conf: ProfileConf)
     def id = column[SentenceKey]("id", O.AutoInc, O.PrimaryKey)
     def sentence = column[RawSentence]("sentence", O.Length(128))
     def track = column[TrackId]("track")
-    def added = column[Instant]("added", O.SqlType(CreatedTimestampType))
+    def added = column[Instant]("added", O.SqlType(CreatedTimestampType))(instantMapping)
 
     def userConstraint = foreignKey("sentences_track_fk", track, tracksTable)(
       _.id,
@@ -309,12 +311,12 @@ class BoatSchema(ds: DataSource, conf: ProfileConf)
     def depth = column[DistanceM]("depthm")
     def depthIdx = index("points_track_depth_idx", (track, depth))
     def depthOffset = column[DistanceM]("depth_offsetm")
-    def boatTime = column[Instant]("boat_time", O.SqlType(CreatedTimestampType))
+    def boatTime = column[Instant]("boat_time", O.SqlType(CreatedTimestampType))(instantMapping)
     def timeIdx = index("points_track_boat_time_idx", (track, boatTime))
     def track = column[TrackId]("track")
     def trackIndex = column[Int]("track_index", O.Default(0))
     def trackIndexIdx = index("points_track_index_idx", trackIndex, unique = false)
-    def added = column[Instant]("added", O.SqlType(CreatedTimestampType))
+    def added = column[Instant]("added", O.SqlType(CreatedTimestampType))(instantMapping)
     def diff = column[DistanceM]("diff", O.Default(DistanceM.zero))
 
     def trackConstraint = foreignKey("points2_track_fk", track, tracksTable)(
@@ -394,7 +396,7 @@ class BoatSchema(ds: DataSource, conf: ProfileConf)
     def title = column[Option[TrackTitle]]("title", O.Length(191), O.Unique)
     def canonical = column[TrackCanonical]("canonical", O.Length(191), O.Unique)
     def comments = column[Option[String]]("comments")
-    def added = column[Instant]("added", O.SqlType(CreatedTimestampType))
+    def added = column[Instant]("added", O.SqlType(CreatedTimestampType))(instantMapping)
 
     def boatConstraint = foreignKey("tracks_boat_fk", boat, boatsTable)(
       _.id,
@@ -423,7 +425,7 @@ class BoatSchema(ds: DataSource, conf: ProfileConf)
     def name = column[BoatName]("name", O.Unique, O.Length(128))
     def token = column[BoatToken]("token", O.Unique, O.Length(128))
     def owner = column[UserId]("owner")
-    def added = column[Instant]("added", O.SqlType(CreatedTimestampType))
+    def added = column[Instant]("added", O.SqlType(CreatedTimestampType))(instantMapping)
 
     def userConstraint = foreignKey("boats_owner_fk", owner, usersTable)(
       _.id,
@@ -444,7 +446,7 @@ class BoatSchema(ds: DataSource, conf: ProfileConf)
     def token = column[UserToken]("token", O.Length(128), O.Unique)
     def language = column[Language]("language", O.Length(64), O.Default(Language.default))
     def enabled = column[Boolean]("enabled")
-    def added = column[Instant]("added", O.SqlType(CreatedTimestampType))
+    def added = column[Instant]("added", O.SqlType(CreatedTimestampType))(instantMapping)
 
     def forInserts = (user, email, token, enabled) <> ((NewUser.apply _).tupled, NewUser.unapply)
 
@@ -457,7 +459,7 @@ class BoatSchema(ds: DataSource, conf: ProfileConf)
     def token = column[PushToken]("token", O.Unique, O.Length(1024))
     def device = column[MobileDevice]("device", O.Length(128))
     def user = column[UserId]("user", O.Length(128))
-    def added = column[Instant]("added", O.SqlType(CreatedTimestampType))
+    def added = column[Instant]("added", O.SqlType(CreatedTimestampType))(instantMapping)
 
     def forInserts = (token, device, user).mapTo[PushInput]
     def * = (id, token, device, user, added) <> ((PushDevice.apply _).tupled, PushDevice.unapply)

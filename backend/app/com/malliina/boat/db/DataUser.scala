@@ -13,7 +13,4 @@ case class DataUser(id: UserId,
                     enabled: Boolean,
                     added: Instant)
 
-case class NewUser(username: Username,
-                   email: Option[Email],
-                   token: UserToken,
-                   enabled: Boolean)
+case class NewUser(username: Username, email: Option[Email], token: UserToken, enabled: Boolean)

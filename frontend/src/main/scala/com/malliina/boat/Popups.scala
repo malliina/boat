@@ -20,7 +20,7 @@ class Popups(lang: Lang) extends BoatModels {
     titledTable(from.boatName.name)(
       row(trackLang.speed, formatSpeed(c.speed)),
       row(trackLang.water, c.waterTemp.formatCelsius),
-      row(trackLang.depth, c.depth.short),
+      row(trackLang.depth, c.depthMeters.short),
       tr(td(colspan := 2)(c.time.dateTime))
     )
 

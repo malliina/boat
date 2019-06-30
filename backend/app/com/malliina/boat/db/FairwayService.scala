@@ -31,7 +31,7 @@ class FairwayService(val db: BoatSchema) extends DatabaseOps(db) {
       .map { rows =>
         val map = rows.map { case (f, c) => CoordFairway(c.hash, f) }
           .groupBy(_.coord)
-          .mapValues(_.head.fairway)
+          .map { case (k, v) => k -> v.head.fairway}
         route.flatMap { coord =>
           map.get(coord).map { fairway =>
             CoordFairway(coord, fairway)

@@ -7,14 +7,23 @@ import akka.Done
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.{Flow, Sink, Source}
-import com.malliina.boat.{BoatId, BoatName, KeyedSentence, RawSentence, SentenceKey, TrackId, TrackMetaShort, TrackName}
+import com.malliina.boat.{
+  BoatId,
+  BoatName,
+  KeyedSentence,
+  RawSentence,
+  SentenceKey,
+  TrackId,
+  TrackMetaShort,
+  TrackName
+}
 import com.malliina.util.FileUtils
 import com.malliina.values.Username
 import tests.BaseSuite
 
-import scala.collection.JavaConverters.asScalaBufferConverter
 import scala.concurrent.Future
 import scala.concurrent.duration.DurationInt
+import scala.jdk.CollectionConverters.CollectionHasAsScala
 
 object MultiParsingTests {
   def testFrom = TrackMetaShort(
@@ -38,7 +47,7 @@ class MultiParsingTests extends BaseSuite {
   val from = MultiParsingTests.testFrom
 
   def sentences: Seq[RawSentence] =
-    Files.readAllLines(testFile, StandardCharsets.UTF_8).asScala.map(RawSentence.apply)
+    Files.readAllLines(testFile, StandardCharsets.UTF_8).asScala.toList.map(RawSentence.apply)
 
   ignore("parse dates and coords") {
     val flow = Flow[RawSentence].mapConcat(raw =>

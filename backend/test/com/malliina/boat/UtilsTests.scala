@@ -1,5 +1,9 @@
 package com.malliina.boat
 
+import java.time.format.DateTimeFormatter
+import java.time.{Instant, LocalDateTime}
+
+import com.malliina.boat.db.BoatSchema
 import org.scalatest.FunSuite
 
 class UtilsTests extends FunSuite {

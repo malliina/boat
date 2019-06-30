@@ -253,7 +253,6 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext)
           formatter.formatTime(point.boatTime),
           point.boatSpeed,
           point.waterTemp,
-          point.depthLegacy,
           point.depth,
           formatter.timing(point.boatTime)
         )
@@ -371,7 +370,6 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext)
         formatter.formatTime(point.boatTime),
         point.boatSpeed,
         point.waterTemp,
-        point.depthLegacy,
         point.depth,
         formatter.timing(point.boatTime)
       )

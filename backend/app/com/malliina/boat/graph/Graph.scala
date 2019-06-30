@@ -50,8 +50,8 @@ object Graph {
   }
 
   def fromList(es: List[ValueEdge]): Graph = {
-    apply(es.groupBy(_.from.hash).mapValues { ves =>
-      ValueNode(ves.head.from, ves.map(_.link))
+    apply(es.groupBy(_.from.hash).map { case (k, ves) =>
+      k -> ValueNode(ves.head.from, ves.map(_.link))
     })
   }
 

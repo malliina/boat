@@ -33,12 +33,12 @@ class ScalaParsingTests extends FunSuite {
   test("read and convert GGA coordinates from degrees minutes to decimal degrees") {
     val dmLatResult = LatitudeDM.parse("6009.1905,N")
     assert(dmLatResult.isRight)
-    val dmLat = dmLatResult.right.get
+    val dmLat = dmLatResult.toOption.get
     val dLat = dmLat.minutes / 60
     val actualLat = dmLat.degrees + dLat
     assert(actualLat.toString.take(9) === "60.153175")
 
-    val dmLng = LongitudeDM.parse("02453.4979,E").right.get
+    val dmLng = LongitudeDM.parse("02453.4979,E").toOption.get
     val dLng = dmLng.minutes / 60
     val actualLng = dmLng.degrees + dLng
     assert(actualLng.toString.take(9) === "24.891631")

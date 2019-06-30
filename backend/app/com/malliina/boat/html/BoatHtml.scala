@@ -1,16 +1,13 @@
 package com.malliina.boat.html
 
-import java.net.URLEncoder
-import java.nio.charset.StandardCharsets
-
 import com.malliina.boat.FrontKeys._
 import com.malliina.boat.html.BoatHtml.{ScriptAssets, callAttr}
 import com.malliina.boat.http.{Limits, TrackQuery}
 import com.malliina.boat.{AppConf, FullTrack, Lang, TrackRef, UserBoats, Usernames}
 import com.malliina.html.Tags
-import com.malliina.measure.Distance
+import com.malliina.measure.DistanceM
 import com.malliina.play.tags.TagPage
-import com.malliina.values.Wrapped
+import com.malliina.values.WrappedString
 import controllers.routes
 import play.api.Mode
 import play.api.http.MimeTypes
@@ -40,8 +37,8 @@ class BoatHtml(jsFiles: ScriptAssets) extends Tags(scalatags.Text) {
   val reverseApp = routes.AppController
 //  val mapboxVersion = AppMeta.default.mapboxVersion
 
-  implicit def wrapFrag[T <: Wrapped](w: T): StringFrag = stringFrag(w.value)
-  implicit def wrapAttr[T <: Wrapped]: AttrValue[T] = boatStringAttr(_.value)
+  implicit def wrapFrag[T <: WrappedString](w: T): StringFrag = stringFrag(w.value)
+  implicit def wrapAttr[T <: WrappedString]: AttrValue[T] = boatStringAttr(_.value)
 
   def boatStringAttr[T](stringify: T => String): AttrValue[T] = { (t: Builder, a: Attr, v: T) =>
     t.setAttr(a.name, Builder.GenericAttrValueSource(stringify(v)))
@@ -78,7 +75,7 @@ class BoatHtml(jsFiles: ScriptAssets) extends Tags(scalatags.Text) {
                     b.tracks.map { t =>
                       a(`class` := "track-link", href := reverse.canonical(t.canonical))(
                         span(t.describe),
-                        span(short(t.distance)),
+                        span(short(t.distanceMeters)),
                         span(t.times.range)
                       )
                     }
@@ -121,12 +118,10 @@ class BoatHtml(jsFiles: ScriptAssets) extends Tags(scalatags.Text) {
     span(id := RouteText, `class` := "nav-text route-text")("")
   )
 
-  def short(d: Distance) =
+  def short(d: DistanceM) =
     if (d.toKilometers >= 10) s"${d.toKilometers} km"
     else if (d.toMeters >= 10) s"${d.toMeters} m"
     else s"${d.toMillis} mm"
-
-  def urlEncode(w: Wrapped): String = URLEncoder.encode(w.value, StandardCharsets.UTF_8.name())
 
   def standaloneQuestion(cls: String) =
     fontAwesomeLink(span, Question, "question", cls, "About")
