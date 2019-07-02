@@ -5,7 +5,7 @@ import com.malliina.boat.db.BoatSchema.NumThreads
 import com.malliina.concurrent.Execution.cached
 import com.vividsolutions.jts.geom.Point
 import javax.sql.DataSource
-import slick.jdbc.{GetResult, H2Profile, PositionedResult}
+import slick.jdbc.{GetResult, PositionedResult}
 
 case class CoordRow(id: Int, coord: Coord)
 
@@ -25,7 +25,7 @@ class SpatialSchema(ds: DataSource, conf: ProfileConf)
 
   override def init(): Unit = {
     super.init()
-    if (conf.profile == H2Profile) {
+    if (conf.profile == InstantH2Profile) {
       val clazz = "org.h2gis.functions.factory.H2GISFunctions.load"
       val a = for {
         _ <- sqlu"""CREATE ALIAS IF NOT EXISTS H2GIS_SPATIAL FOR "#$clazz";"""
@@ -40,7 +40,7 @@ class SpatialSchema(ds: DataSource, conf: ProfileConf)
 
   val distanceSphere = SimpleFunction.binary[Point, Point, Double]("ST_Distance_Sphere")
   val distanceFunc = impl match {
-    case H2Profile => "ST_MaxDistance"
+    case InstantH2Profile => "ST_MaxDistance"
     case _ => "ST_Distance_Sphere"
   }
   val distanceCoords = SimpleFunction.binary[Coord, Coord, Double](distanceFunc)

@@ -9,7 +9,7 @@ import com.malliina.values.{Email, UserId, Username}
 import com.zaxxer.hikari.{HikariConfig, HikariDataSource}
 import javax.sql.DataSource
 import play.api.Logger
-import slick.jdbc.{GetResult, H2Profile, JdbcType, PositionedResult}
+import slick.jdbc.{GetResult, JdbcType, PositionedResult}
 import slick.util.AsyncExecutor
 
 import scala.concurrent.ExecutionContext
@@ -80,11 +80,11 @@ class BoatSchema(ds: DataSource, conf: ProfileConf)
 
   // The H2 function is wrong, but I just want something that compiles for H2
   val distanceFunc = impl match {
-    case H2Profile => "ST_MaxDistance"
+    case InstantH2Profile => "ST_MaxDistance"
     case _         => "ST_Distance_Sphere"
   }
   val dateFuncName = impl match {
-    case H2Profile => "truncate"
+    case InstantH2Profile => "truncate"
     case _         => "date"
   }
   val distanceCoords = SimpleFunction.binary[Coord, Coord, DistanceM](distanceFunc)
@@ -182,8 +182,8 @@ class BoatSchema(ds: DataSource, conf: ProfileConf)
     : Query[(Rep[TrackId], Rep[Option[N]]), (TrackId, Option[N]), Seq] =
     pointsTable.groupBy(_.track).map { case (t, q) => (t, agg(q)) }
 
-  def dateFunc: Rep[java.sql.Timestamp] => Rep[LocalDate] =
-    SimpleFunction.unary[java.sql.Timestamp, LocalDate](dateFuncName)
+  def dateFunc: Rep[Instant] => Rep[LocalDate] =
+    SimpleFunction.unary[Instant, LocalDate](dateFuncName)
 
   case class LiftedJoinedBoat(boat: Rep[BoatId],
                               boatName: Rep[BoatName],
@@ -223,7 +223,7 @@ class BoatSchema(ds: DataSource, conf: ProfileConf)
                          waterTemp: Rep[Temperature],
                          depth: Rep[DistanceM],
                          depthOffset: Rep[DistanceM],
-                         boatTime: Rep[java.sql.Timestamp],
+                         boatTime: Rep[Instant],
                          date: Rep[LocalDate],
                          track: Rep[TrackId],
                          added: Rep[Instant])
@@ -245,8 +245,8 @@ class BoatSchema(ds: DataSource, conf: ProfileConf)
                                email: Rep[Option[Email]],
                                language: Rep[Language],
                                points: Rep[Int],
-                               start: Rep[Option[java.sql.Timestamp]],
-                               end: Rep[Option[java.sql.Timestamp]],
+                               start: Rep[Option[Instant]],
+                               end: Rep[Option[Instant]],
                                topSpeed: Rep[Option[SpeedM]],
                                avgSpeed: Rep[Option[SpeedM]],
                                avgWaterTemp: Rep[Option[Temperature]],
@@ -265,7 +265,7 @@ class BoatSchema(ds: DataSource, conf: ProfileConf)
       extends CaseClassShape(LiftedTrackStats.tupled, (TrackNumbers.apply _).tupled)
 
   def initBoat()(implicit ec: ExecutionContext) = {
-    if (conf.profile == H2Profile) {
+    if (conf.profile == InstantH2Profile) {
       val clazz = "org.h2gis.functions.factory.H2GISFunctions.load"
       val a = for {
         _ <- sqlu"""CREATE ALIAS IF NOT EXISTS H2GIS_SPATIAL FOR "#$clazz";"""
@@ -286,7 +286,7 @@ class BoatSchema(ds: DataSource, conf: ProfileConf)
     def id = column[SentenceKey]("id", O.AutoInc, O.PrimaryKey)
     def sentence = column[RawSentence]("sentence", O.Length(128))
     def track = column[TrackId]("track")
-    def added = column[Instant]("added", O.SqlType(CreatedTimestampType))(instantMapping)
+    def added = column[Instant]("added", O.SqlType(CreatedTimestampType))
 
     def userConstraint = foreignKey("sentences_track_fk", track, tracksTable)(
       _.id,
@@ -311,13 +311,13 @@ class BoatSchema(ds: DataSource, conf: ProfileConf)
     def depth = column[DistanceM]("depthm")
     def depthIdx = index("points_track_depth_idx", (track, depth))
     def depthOffset = column[DistanceM]("depth_offsetm")
-//    def boatTime = column[Instant]("boat_time", O.SqlType(CreatedTimestampType))(instantMapping)
-    def boatTime = column[java.sql.Timestamp]("boat_time", O.SqlType(CreatedTimestampType))
+    def boatTime = column[Instant]("boat_time", O.SqlType(CreatedTimestampType))
+//    def boatTime = column[java.sql.Timestamp]("boat_time", O.SqlType(CreatedTimestampType))
     def timeIdx = index("points_track_boat_time_idx", (track, boatTime))
     def track = column[TrackId]("track")
     def trackIndex = column[Int]("track_index", O.Default(0))
     def trackIndexIdx = index("points_track_index_idx", trackIndex, unique = false)
-    def added = column[Instant]("added", O.SqlType(CreatedTimestampType))(instantMapping)
+    def added = column[Instant]("added", O.SqlType(CreatedTimestampType))
     def diff = column[DistanceM]("diff", O.Default(DistanceM.zero))
 
     def trackConstraint = foreignKey("points2_track_fk", track, tracksTable)(
@@ -397,7 +397,7 @@ class BoatSchema(ds: DataSource, conf: ProfileConf)
     def title = column[Option[TrackTitle]]("title", O.Length(191), O.Unique)
     def canonical = column[TrackCanonical]("canonical", O.Length(191), O.Unique)
     def comments = column[Option[String]]("comments")
-    def added = column[Instant]("added", O.SqlType(CreatedTimestampType))(instantMapping)
+    def added = column[Instant]("added", O.SqlType(CreatedTimestampType))
 
     def boatConstraint = foreignKey("tracks_boat_fk", boat, boatsTable)(
       _.id,
@@ -426,7 +426,7 @@ class BoatSchema(ds: DataSource, conf: ProfileConf)
     def name = column[BoatName]("name", O.Unique, O.Length(128))
     def token = column[BoatToken]("token", O.Unique, O.Length(128))
     def owner = column[UserId]("owner")
-    def added = column[Instant]("added", O.SqlType(CreatedTimestampType))(instantMapping)
+    def added = column[Instant]("added", O.SqlType(CreatedTimestampType))
 
     def userConstraint = foreignKey("boats_owner_fk", owner, usersTable)(
       _.id,
@@ -447,7 +447,7 @@ class BoatSchema(ds: DataSource, conf: ProfileConf)
     def token = column[UserToken]("token", O.Length(128), O.Unique)
     def language = column[Language]("language", O.Length(64), O.Default(Language.default))
     def enabled = column[Boolean]("enabled")
-    def added = column[Instant]("added", O.SqlType(CreatedTimestampType))(instantMapping)
+    def added = column[Instant]("added", O.SqlType(CreatedTimestampType))
 
     def forInserts = (user, email, token, enabled) <> ((NewUser.apply _).tupled, NewUser.unapply)
 
@@ -460,7 +460,7 @@ class BoatSchema(ds: DataSource, conf: ProfileConf)
     def token = column[PushToken]("token", O.Unique, O.Length(1024))
     def device = column[MobileDevice]("device", O.Length(128))
     def user = column[UserId]("user", O.Length(128))
-    def added = column[Instant]("added", O.SqlType(CreatedTimestampType))(instantMapping)
+    def added = column[Instant]("added", O.SqlType(CreatedTimestampType))
 
     def forInserts = (token, device, user).mapTo[PushInput]
     def * = (id, token, device, user, added) <> ((PushDevice.apply _).tupled, PushDevice.unapply)

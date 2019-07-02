@@ -119,9 +119,9 @@ class BoatHtml(jsFiles: ScriptAssets) extends Tags(scalatags.Text) {
   )
 
   def short(d: DistanceM) =
-    if (d.toKilometers >= 10) s"${d.toKilometers} km"
-    else if (d.toMeters >= 10) s"${d.toMeters} m"
-    else s"${d.toMillis} mm"
+    if (d.toKilometers >= 10) s"${d.toKilometers.toInt} km"
+    else if (d.toMeters >= 10) s"${d.toMeters.toInt} m"
+    else s"${d.toMillis.toInt} mm"
 
   def standaloneQuestion(cls: String) =
     fontAwesomeLink(span, Question, "question", cls, "About")
