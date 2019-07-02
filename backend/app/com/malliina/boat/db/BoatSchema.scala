@@ -182,8 +182,8 @@ class BoatSchema(ds: DataSource, conf: ProfileConf)
     : Query[(Rep[TrackId], Rep[Option[N]]), (TrackId, Option[N]), Seq] =
     pointsTable.groupBy(_.track).map { case (t, q) => (t, agg(q)) }
 
-  def dateFunc: Rep[Instant] => Rep[LocalDate] =
-    SimpleFunction.unary[Instant, LocalDate](dateFuncName)
+  def dateFunc: Rep[java.sql.Timestamp] => Rep[LocalDate] =
+    SimpleFunction.unary[java.sql.Timestamp, LocalDate](dateFuncName)
 
   case class LiftedJoinedBoat(boat: Rep[BoatId],
                               boatName: Rep[BoatName],
@@ -223,7 +223,7 @@ class BoatSchema(ds: DataSource, conf: ProfileConf)
                          waterTemp: Rep[Temperature],
                          depth: Rep[DistanceM],
                          depthOffset: Rep[DistanceM],
-                         boatTime: Rep[Instant],
+                         boatTime: Rep[java.sql.Timestamp],
                          date: Rep[LocalDate],
                          track: Rep[TrackId],
                          added: Rep[Instant])
@@ -245,8 +245,8 @@ class BoatSchema(ds: DataSource, conf: ProfileConf)
                                email: Rep[Option[Email]],
                                language: Rep[Language],
                                points: Rep[Int],
-                               start: Rep[Option[Instant]],
-                               end: Rep[Option[Instant]],
+                               start: Rep[Option[java.sql.Timestamp]],
+                               end: Rep[Option[java.sql.Timestamp]],
                                topSpeed: Rep[Option[SpeedM]],
                                avgSpeed: Rep[Option[SpeedM]],
                                avgWaterTemp: Rep[Option[Temperature]],
@@ -311,7 +311,8 @@ class BoatSchema(ds: DataSource, conf: ProfileConf)
     def depth = column[DistanceM]("depthm")
     def depthIdx = index("points_track_depth_idx", (track, depth))
     def depthOffset = column[DistanceM]("depth_offsetm")
-    def boatTime = column[Instant]("boat_time", O.SqlType(CreatedTimestampType))(instantMapping)
+//    def boatTime = column[Instant]("boat_time", O.SqlType(CreatedTimestampType))(instantMapping)
+    def boatTime = column[java.sql.Timestamp]("boat_time", O.SqlType(CreatedTimestampType))
     def timeIdx = index("points_track_boat_time_idx", (track, boatTime))
     def track = column[TrackId]("track")
     def trackIndex = column[Int]("track_index", O.Default(0))

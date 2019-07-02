@@ -87,16 +87,16 @@ case class JoinedTrack(track: TrackId,
                        email: Option[Email],
                        language: Language,
                        points: Int,
-                       start: Option[Instant],
-                       end: Option[Instant],
+                       start: Option[java.sql.Timestamp],
+                       end: Option[java.sql.Timestamp],
                        topSpeed: Option[SpeedM],
                        avgSpeed: Option[SpeedM],
                        avgWaterTemp: Option[Temperature],
                        distance: DistanceM,
                        topPoint: CombinedCoord)
     extends TrackLike {
-  val startOrNow = start.getOrElse(Instant.now())
-  val endOrNow = end.getOrElse(Instant.now())
+  val startOrNow = start.map(_.toInstant).getOrElse(Instant.now())
+  val endOrNow = end.map(_.toInstant).getOrElse(Instant.now())
   val duration = (endOrNow.toEpochMilli - startOrNow.toEpochMilli).millis
 
   /**
@@ -317,7 +317,7 @@ case class TrackPointInput(lon: Longitude,
                            waterTemp: Temperature,
                            depth: DistanceM,
                            depthOffset: DistanceM,
-                           boatTime: Instant,
+                           boatTime: java.sql.Timestamp,
                            track: TrackId,
                            trackIndex: Int,
                            diff: DistanceM)
@@ -331,7 +331,7 @@ object TrackPointInput {
                     c.waterTemp,
                     c.depth,
                     c.depthOffset,
-                    c.boatTime,
+                    java.sql.Timestamp.from(c.boatTime),
                     c.from.track,
                     trackIndex,
                     diff)
@@ -345,7 +345,7 @@ case class CombinedCoord(id: TrackPointId,
                          waterTemp: Temperature,
                          depth: DistanceM,
                          depthOffset: DistanceM,
-                         boatTime: Instant,
+                         boatTime: java.sql.Timestamp,
                          date: LocalDate,
                          track: TrackId,
                          added: Instant) {
@@ -360,25 +360,28 @@ case class CombinedCoord(id: TrackPointId,
       waterTemp,
       depth,
       depthOffset,
-      boatTime,
+      boatTime.toInstant,
       date,
       track,
       added,
       sentences.map(_.timed(formatter)),
-      formatter.timing(boatTime)
+      formatter.timing(boatTime.toInstant)
     )
 
-  def timed(formatter: TimeFormatter) = TimedCoord(
-    id,
-    coord,
-    formatter.formatDateTime(boatTime),
-    boatTime.toEpochMilli,
-    formatter.formatTime(boatTime),
-    boatSpeed,
-    waterTemp,
-    depth,
-    formatter.timing(boatTime)
-  )
+  def timed(formatter: TimeFormatter): TimedCoord = {
+    val instant = boatTime.toInstant
+    TimedCoord(
+      id,
+      coord,
+      formatter.formatDateTime(instant),
+      instant.toEpochMilli,
+      formatter.formatTime(instant),
+      boatSpeed,
+      waterTemp,
+      depth,
+      formatter.timing(instant)
+    )
+  }
 }
 
 case class TrackInfo(coords: Seq[CombinedCoord], topPoint: Option[CombinedCoord])
@@ -424,12 +427,12 @@ case class TrackPointRow(id: TrackPointId,
                          waterTemp: Temperature,
                          depth: DistanceM,
                          depthOffset: DistanceM,
-                         boatTime: Instant,
+                         boatTime: java.sql.Timestamp,
                          track: TrackId,
                          trackIndex: Int,
                          diff: DistanceM,
                          added: Instant) {
-  def dateTimeUtc = boatTime.atOffset(ZoneOffset.UTC)
+  def dateTimeUtc = boatTime.toInstant.atOffset(ZoneOffset.UTC)
   def time = LocalTime.from(dateTimeUtc)
   def date = LocalDate.from(dateTimeUtc)
 }

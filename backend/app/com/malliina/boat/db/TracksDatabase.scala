@@ -245,16 +245,17 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext)
     val result = rows.foldLeft(Vector.empty[CoordsEvent]) {
       case (acc, (from, point)) =>
         val idx = acc.indexWhere(_.from.track == from.track)
+        val instant = point.boatTime.toInstant
         val coord = TimedCoord(
           point.id,
           Coord(point.lon, point.lat),
-          formatter.formatDateTime(point.boatTime),
-          point.boatTime.toEpochMilli,
-          formatter.formatTime(point.boatTime),
+          formatter.formatDateTime(instant),
+          instant.toEpochMilli,
+          formatter.formatTime(instant),
           point.boatSpeed,
           point.waterTemp,
           point.depth,
-          formatter.timing(point.boatTime)
+          formatter.timing(instant)
         )
         if (idx >= 0) {
           val old = acc(idx)
@@ -362,16 +363,17 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext)
     }
     points.foldLeft(Vector.empty[CoordsEvent]) { (acc, point) =>
       val idx = acc.indexWhere(_.from.track == point.track)
+      val instant = point.boatTime.toInstant
       val coord = TimedCoord(
         point.id,
         Coord(point.lon, point.lat),
-        formatter.formatDateTime(point.boatTime),
-        point.boatTime.toEpochMilli,
-        formatter.formatTime(point.boatTime),
+        formatter.formatDateTime(instant),
+        instant.toEpochMilli,
+        formatter.formatTime(instant),
         point.boatSpeed,
         point.waterTemp,
         point.depth,
-        formatter.timing(point.boatTime)
+        formatter.timing(instant)
       )
       if (idx >= 0) {
         val old = acc(idx)
