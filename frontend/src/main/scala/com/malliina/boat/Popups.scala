@@ -16,12 +16,12 @@ class Popups(lang: Lang) extends BoatModels {
   val specialWords = lang.specialWords
   val limitsLang = lang.limits
 
-  def track(c: TimedCoord, from: TrackRef) =
-    titledTable(from.boatName.name)(
-      row(trackLang.speed, formatSpeed(c.speed)),
-      row(trackLang.water, c.waterTemp.formatCelsius),
-      row(trackLang.depth, c.depthMeters.short),
-      tr(td(colspan := 2)(c.time.dateTime))
+  def track(point: PointProps) =
+    titledTable(point.boatName.name)(
+      row(trackLang.speed, formatSpeed(point.speed)),
+      row(trackLang.water, point.waterTemp.formatCelsius),
+      row(trackLang.depth, point.depth.short),
+      tr(td(colspan := 2)(point.dateTime))
     )
 
   def ais(vessel: VesselInfo) = {
@@ -126,6 +126,6 @@ class Popups(lang: Lang) extends BoatModels {
   private def row(title: String, value: Modifier) =
     tr(td(`class` := "popup-label")(title), td(value))
 
-  def marker(speed: SpeedM) =
+  def trophyMarker(speed: SpeedM) =
     i(`class` := "fas fa-trophy marker-top-speed")
 }

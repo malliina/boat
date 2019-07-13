@@ -13,7 +13,7 @@ import com.malliina.boat.{
 }
 import org.scalajs.dom
 import org.scalajs.dom.html
-import org.scalajs.dom.raw.HTMLCanvasElement
+import org.scalajs.dom.raw.{Event, HTMLCanvasElement}
 import scalatags.JsDom.TypedTag
 
 import scala.concurrent.{Future, Promise}
@@ -38,8 +38,12 @@ trait GeocoderOptions extends js.Object {
 }
 
 object GeocoderOptions {
-  def apply(accessToken: String, countries: Seq[String], mapboxgl: Option[js.Object]): GeocoderOptions =
-    literal(accessToken = accessToken, countries = countries.mkString(","), mapboxgl = mapboxgl.orUndefined)
+  def apply(accessToken: String,
+            countries: Seq[String],
+            mapboxgl: Option[js.Object]): GeocoderOptions =
+    literal(accessToken = accessToken,
+            countries = countries.mkString(","),
+            mapboxgl = mapboxgl.orUndefined)
       .asInstanceOf[GeocoderOptions]
 }
 
@@ -60,8 +64,12 @@ trait MarkerOptions extends js.Object {
 }
 
 object MarkerOptions {
-  def apply[T <: dom.Element](html: TypedTag[T]): MarkerOptions =
-    literal(element = html.render).asInstanceOf[MarkerOptions]
+  def apply[T <: dom.Element, E <: Event](html: TypedTag[T]): MarkerOptions = {
+    apply(html.render)
+  }
+
+  def apply[T <: dom.Element](el: T): MarkerOptions =
+    literal(element = el).asInstanceOf[MarkerOptions]
 }
 
 @js.native
@@ -75,12 +83,12 @@ class MapboxMarker(options: MarkerOptions) extends js.Object {
 }
 
 object MapboxMarker {
-
   def apply[T <: dom.Element](html: TypedTag[T],
                               coord: Coord,
                               popup: MapboxPopup,
-                              on: MapboxMap): MapboxMarker =
+                              on: MapboxMap): MapboxMarker = {
     new MapboxMarker(MarkerOptions(html)).at(coord).setPopup(popup).addTo(on)
+  }
 
   def apply[T <: dom.Element](html: TypedTag[T], coord: Coord, on: MapboxMap): MapboxMarker =
     new MapboxMarker(MarkerOptions(html)).at(coord).addTo(on)

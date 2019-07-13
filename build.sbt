@@ -6,7 +6,7 @@ import sbtrelease.ReleaseStateTransformations._
 import scala.sys.process.Process
 import scala.util.Try
 
-val mapboxVersion = "1.0.0"
+val mapboxVersion = "1.1.0"
 val utilPlayVersion = "5.2.3"
 val scalaTestVersion = "3.0.8"
 val scalaTagsVersion = "0.7.0"

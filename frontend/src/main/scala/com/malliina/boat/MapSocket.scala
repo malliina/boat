@@ -31,12 +31,12 @@ class MapSocket(val map: MapboxMap,
   private var mapMode: MapMode = mode
   private var boats = Map.empty[String, FeatureCollection]
   private var trails = Map.empty[TrackId, Seq[TimedCoord]]
-  private var topSpeedMarkers = Map.empty[TrackId, ActiveMarker]
 
-  initImage()
+  initImage("boat-resized-opt-20.png", boatIconId)
+  initImage("trophy-color.png", trophyIconId)
 
-  def initImage(): Future[Unit] =
-    map.initImage("/assets/img/boat-resized-opt-20.png", boatIconId).recover {
+  def initImage(file: String, iconId: String): Future[Unit] =
+    map.initImage(s"/assets/img/$file", iconId).recover {
       case t => log.error("Unable to initialize image.", t)
     }
 
@@ -51,6 +51,7 @@ class MapSocket(val map: MapboxMap,
     val coords = coordsInfo.map(_.coord)
     val boat = from.boatName
     val track = trackName(boat)
+    val trophyLayerId = trophyName(from.trackName)
     val hoverableTrack = s"$track-thick"
     val point = pointName(boat)
     val oldTrack: FeatureCollection = boats.getOrElse(track, emptyTrack)
@@ -78,6 +79,17 @@ class MapSocket(val map: MapboxMap,
           }
         )
       }
+      // adds trophy icon
+      map.putLayer(trophySymbolLayer(trophyLayerId, from.topPoint.coord))
+      map.onHover(trophyLayerId)(
+        in => {
+          map.getCanvas().style.cursor = "pointer"
+        },
+        _ => {
+          map.getCanvas().style.cursor = ""
+        }
+      )
+
       map.onHover(hoverableTrack)(
         in => {
           val isOnBoatSymbol = map
@@ -90,7 +102,7 @@ class MapSocket(val map: MapboxMap,
               nearest(coord, trails.getOrElse(trackId, Nil))(_.coord).map { near =>
                 map.getCanvas().style.cursor = "pointer"
                 popups.isTrackHover = true
-                trackPopup.show(html.track(near, from), in.lngLat, map)
+                trackPopup.show(html.track(PointProps(near, from)), in.lngLat, map)
               }
             }
             op.fold(err => log.info(err.message), identity)
@@ -124,16 +136,10 @@ class MapSocket(val map: MapboxMap,
     map.findSource(hoverableTrack).foreach { geoJson =>
       geoJson.updateData(newTrack)
     }
+    // updates the trophy icon
     val topPoint = from.topPoint
-    val isSameTopSpeed = topSpeedMarkers.get(trackId).exists(m => m.at.id == from.topPoint.id)
-    if (!isSameTopSpeed) {
-      topSpeedMarkers.get(trackId).foreach(_.marker.remove())
-      // https://www.mapbox.com/mapbox-gl-js/example/set-popup/
-      val markerPopup = MapboxPopup(PopupOptions(offset = Option(6)))
-        .html(html.track(topPoint, from))
-      val marker = MapboxMarker(html.marker(topPoint.speed), topPoint.coord, markerPopup, map)
-      val newTopSpeed = ActiveMarker(marker, topPoint)
-      topSpeedMarkers = topSpeedMarkers.updated(trackId, newTopSpeed)
+    map.findSource(trophyLayerId).foreach { geoJson =>
+      geoJson.updateData(pointFor(topPoint.coord, Json.toJsObject(PointProps(topPoint, from)).value.toMap))
     }
     val trail: Seq[Coord] = newTrack.features.flatMap(_.geometry.coords)
     elem(TitleId).foreach { e =>
@@ -226,19 +232,22 @@ class MapSocket(val map: MapboxMap,
   }
 
   def toRad(deg: Double) = deg * Math.PI / 180
-
   def toDeg(rad: Double) = rad * 180 / Math.PI
 
   def trackName(boat: BoatName) = s"track-$boat"
-
   def pointName(boat: BoatName) = s"boat-$boat"
+  def trophyName(track: TrackName) = s"$TrophyPrefix-$track"
 
   def boatSymbolLayer(id: String, coord: Coord) =
     Layer.symbol(id, pointFor(coord), ImageLayout(boatIconId, `icon-size` = 1))
+
+  def trophySymbolLayer(id: String, coord: Coord) =
+    Layer.symbol(id, pointFor(coord), ImageLayout(trophyIconId, `icon-size` = 1))
 }
 
 trait GeoUtils {
   val boatIconId = "boat-icon"
+  val trophyIconId = "trophy-icon"
 
   def map: MapboxMap
 
@@ -264,7 +273,8 @@ trait GeoUtils {
 
   def lineFor(coords: Seq[Coord]) = collectionFor(LineGeometry(coords), Map.empty)
 
-  def pointFor(coord: Coord) = collectionFor(PointGeometry(coord), Map.empty)
+  def pointFor(coord: Coord, props: Map[String, JsValue] = Map.empty) =
+    collectionFor(PointGeometry(coord), props)
 
   def collectionFor(geo: Geometry, props: Map[String, JsValue]): FeatureCollection =
     FeatureCollection(Seq(Feature(geo, props)))
