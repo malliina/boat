@@ -95,10 +95,12 @@ class AppComponents(init: (Configuration, OkClient, ExecutionContext) => AppBuil
   val mode = environment.mode
   val html = BoatHtml(mode)
   val databaseConf = DatabaseConf(mode, configuration)
-  if (mode != Mode.Test)
+  if (mode != Mode.Test && mode != Mode.Dev)
     DBMigrations.run(databaseConf)
   val schema = BoatSchema(databaseConf)
-  schema.initBoat()(executionContext)
+  if (mode != Mode.Dev) {
+    schema.initApp()(executionContext)
+  }
 
   // Services
   val users: UserManager = DatabaseUserManager(schema, executionContext)

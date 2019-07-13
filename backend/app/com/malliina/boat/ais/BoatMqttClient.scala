@@ -36,12 +36,15 @@ object BoatMqttClient {
   val TestUrl = FullUrl.wss("meri-test.digitraffic.fi:61619", "/mqtt")
   val ProdUrl = FullUrl.wss("meri.digitraffic.fi:61619", "/mqtt")
 
-  def apply(mode: Mode): BoatMqttClient =
-    if (mode == Mode.Prod) prod() else test()
+  def apply(mode: Mode): AISSource = mode match {
+    case Mode.Prod => prod()
+    case Mode.Test => test()
+    case Mode.Dev  => SilentAISSource
+  }
 
-  def prod() = apply(ProdUrl, AllDataTopic)
+  def prod(): BoatMqttClient = apply(ProdUrl, AllDataTopic)
 
-  def test() = apply(TestUrl, AllDataTopic)
+  def test(): BoatMqttClient = apply(TestUrl, AllDataTopic)
 
   def apply(url: FullUrl, topic: String): BoatMqttClient = new BoatMqttClient(url, topic)
 
@@ -51,12 +54,21 @@ object BoatMqttClient {
   }
 }
 
+trait AISSource {
+  def slow: Source[Seq[AisPair], NotUsed]
+}
+
+object SilentAISSource extends AISSource {
+  override val slow: Source[Seq[AisPair], NotUsed] =
+    Source.maybe[Seq[AisPair]].mapMaterializedValue(_ => NotUsed)
+}
+
 /** Locally caches vessel metadata, then merges it with location data as it is received.
   *
   * @param url   WebSocket URL
   * @param topic MQTT topic
   */
-class BoatMqttClient(url: FullUrl, topic: String) {
+class BoatMqttClient(url: FullUrl, topic: String) extends AISSource {
   private val metadata = TrieMap.empty[Mmsi, VesselMetadata]
 
   private val maxBatchSize = 300
@@ -99,6 +111,8 @@ class BoatMqttClient(url: FullUrl, topic: String) {
     case JsError(_) => Source.empty
   }
 
+  /** A Source of AIS messages. The "public API" of AIS data.
+    */
   val slow: Source[Seq[AisPair], NotUsed] =
     vesselMessages.groupedWithin(maxBatchSize, sendTimeWindow)
 

@@ -35,7 +35,7 @@ class TracksDatabaseTests extends TracksTester {
 
   ignore("collect rows") {
     val db = BoatSchema(conf)
-    db.initBoat()
+    db.initApp()
     val tdb = TracksDatabase(db, mat.executionContext)
     val guettaName = TrackName("todo")
     def history =
@@ -50,7 +50,7 @@ class TracksDatabaseTests extends TracksTester {
 
   ignore("performance") {
     val db = BoatSchema(conf)
-    db.initBoat()
+    db.initApp()
     val tdb = TracksDatabase(db, mat.executionContext)
     val guettaName = TrackName("todo")
     def history = tdb.history(SimpleUserInfo(Username("malliina123@gmail.com"), Language.english),
@@ -80,7 +80,7 @@ class TracksDatabaseTests extends TracksTester {
 
   test("inserts update track aggregates") {
     val db = BoatSchema(conf)
-    db.initBoat()
+    db.initApp()
     val tdb = TracksDatabase(db, mat.executionContext)
     val user = NewUser(Username("test-agg-user"), None, UserToken.random(), enabled = true)
 
@@ -103,7 +103,7 @@ class TracksDatabaseTests extends TracksTester {
 
   test("add comments to track") {
     val db = BoatSchema(conf)
-    db.initBoat()
+    db.initApp()
     val tdb = TracksDatabase(db, mat.executionContext)
     val udb = DatabaseUserManager(db, mat.executionContext)
     val testComment = "test"

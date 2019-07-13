@@ -264,7 +264,7 @@ class BoatSchema(ds: DataSource, conf: ProfileConf)
   implicit object TrackStatsShape
       extends CaseClassShape(LiftedTrackStats.tupled, (TrackNumbers.apply _).tupled)
 
-  def initBoat()(implicit ec: ExecutionContext) = {
+  def initApp()(implicit ec: ExecutionContext) = {
     if (conf.profile == InstantH2Profile) {
       val clazz = "org.h2gis.functions.factory.H2GISFunctions.load"
       val a = for {

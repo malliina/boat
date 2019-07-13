@@ -4,7 +4,7 @@ import akka.Done
 import akka.actor.ActorSystem
 import akka.stream.Materializer
 import akka.stream.scaladsl.{BroadcastHub, Keep, MergeHub, Sink, Source}
-import com.malliina.boat.ais.BoatMqttClient
+import com.malliina.boat.ais.AISSource
 import com.malliina.boat.db.TracksSource
 import com.malliina.boat.parsing.BoatService.log
 import com.malliina.boat.{BoatEvent, BoatJsonError, CoordsEvent, InsertedPoint, SentencesMessage, Streams, TimeFormatter, VesselMessages}
@@ -15,15 +15,15 @@ import scala.concurrent.{ExecutionContext, Future}
 object BoatService {
   private val log = Logger(getClass)
 
-  def apply(aisClient: BoatMqttClient,
+  def apply(aisClient: AISSource,
             db: TracksSource,
             as: ActorSystem,
             mat: Materializer): BoatService =
     new BoatService(aisClient, db)(as, mat)
 }
 
-class BoatService(aisClient: BoatMqttClient, db: TracksSource)(implicit as: ActorSystem,
-                                                               mat: Materializer)
+class BoatService(aisClient: AISSource, db: TracksSource)(implicit as: ActorSystem,
+                                                          mat: Materializer)
     extends Streams {
   implicit val ec: ExecutionContext = mat.executionContext
   // Publish-Subscribe Akka Streams
@@ -57,13 +57,9 @@ class BoatService(aisClient: BoatMqttClient, db: TracksSource)(implicit as: Acto
     "saved coords")
   private val coordsDrainer = savedCoords.runWith(Sink.ignore)
   private val errors = lefts(sentencesSource)
-//  private val frontEvents: Source[CoordsEvent, Future[Done]] =
-//    savedCoords.mapConcat[CoordsEvent](identity)
   private val ais = monitored(onlyOnce(aisClient.slow), "AIS messages")
   ais.runWith(Sink.ignore)
   errors.runWith(Sink.foreach(err => log.error(s"JSON error for '${err.boat}': '${err.error}'.")))
-//  val allEvents: Source[FrontEvent, Future[Done]] = frontEvents.merge(ais)
-
 
   /** Location updates of boats (Boat-Tracker) and vessels (AIS).
     *
