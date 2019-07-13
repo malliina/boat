@@ -8,6 +8,7 @@ import play.api.libs.json._
 import scalatags.generic.Bundle
 
 import scala.concurrent.duration.Duration
+import scala.math.Ordering.Double.TotalOrdering
 
 case class Bearing(bearing: Int) extends AnyVal
 
@@ -61,7 +62,7 @@ case class Latitude(lat: Double) extends AnyVal {
   override def toString = s"$lat"
 }
 
-object Latitude extends ValidatingCompanion[Double, Latitude] {
+object Latitude extends ValidatedDouble[Latitude] {
   override def build(input: Double): Either[ErrorMessage, Latitude] =
     if (input >= -90 && input <= 90) Right(apply(input))
     else Left(ErrorMessage(s"Invalid latitude: '$input'. Must be between -90 and 90."))
@@ -77,7 +78,7 @@ case class Longitude(lng: Double) extends AnyVal {
   override def toString = s"$lng"
 }
 
-object Longitude extends ValidatingCompanion[Double, Longitude] {
+object Longitude extends ValidatedDouble[Longitude] {
   override def build(input: Double): Either[ErrorMessage, Longitude] =
     if (input >= -180 && input <= 180) Right(apply(input))
     else Left(ErrorMessage(s"Invalid longitude: '$input'. Must be between -180 and 180."))
@@ -605,10 +606,12 @@ abstract class Companion[Raw, T](implicit jsonFormat: Format[Raw], o: Ordering[R
   implicit val ordering: Ordering[T] = o.on(raw)
 }
 
+abstract class ValidatedDouble[T](implicit f: Format[Double])
+  extends ValidatingCompanion[Double, T]()(f, TotalOrdering)
+
 class ModelHtml[Builder, Output <: FragT, FragT](val bundle: Bundle[Builder, Output, FragT]) {
 
   import bundle.all._
 
   implicit def wrappedFrag[T <: WrappedString](t: T): Frag = stringFrag(t.value)
 }
-

@@ -97,7 +97,7 @@ class WebServer(host: String, port: Int, agentInstance: AgentInstance)(implicit 
           complete(asHtml(boatForm(readConf())))
         },
         post {
-          formFields('host, 'port.as[Int], 'token.as[BoatToken].?, 'enabled.as[Boolean] ? false) { (host, port, token, enabled) =>
+          formFields(Symbol("host"), Symbol("port").as[Int], Symbol("token").as[BoatToken].?, Symbol("enabled").as[Boolean] ? false) { (host, port, token, enabled) =>
             saveAndReload(BoatConf(host, port, token.filter(_.token.nonEmpty), enabled), agentInstance)
             redirect(Uri(settingsUri), StatusCodes.SeeOther)
           }

@@ -124,7 +124,7 @@ object LineLayout {
   def round = LineLayout("round", "round")
 }
 
-sealed abstract class IconRotationAlignment(value: String) extends Wrapped(value)
+sealed abstract class IconRotationAlignment(val value: String) extends WrappedString
 
 object IconRotationAlignment extends StringEnumCompanion[IconRotationAlignment] {
   val all = Seq(Map, Viewport, Auto)

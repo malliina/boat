@@ -7,8 +7,8 @@ import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import com.malliina.boat.BoatToken
 import com.malliina.boat.client.server.WebServer.{boatCharset, defaultHash, hash, log}
 import spray.json.{DefaultJsonProtocol, JsString, JsValue, JsonFormat}
-import scala.collection.JavaConverters.asScalaBufferConverter
 
+import scala.jdk.CollectionConverters.CollectionHasAsScala
 import scala.util.Try
 
 case class BoatConf(host: String, port: Int, token: Option[BoatToken], enabled: Boolean) {
@@ -41,19 +41,25 @@ object AgentSettings extends JsonSupport {
 
   def file(name: String) = confDir.resolve(name)
 
-  def confDir = sys.props.get("conf.dir").map(s => Paths.get(s)).getOrElse(Files.createTempDirectory("boat-"))
+  def confDir =
+    sys.props.get("conf.dir").map(s => Paths.get(s)).getOrElse(Files.createTempDirectory("boat-"))
 
   def readPass: String =
-    if (Files.exists(passFile)) Files.readAllLines(passFile).asScala.headOption.getOrElse(defaultHash)
-    else defaultHash
+    if (Files.exists(passFile))
+      Files.readAllLines(passFile).asScala.headOption.getOrElse(defaultHash)
+    else
+      defaultHash
 
   def savePass(pass: String): Unit = save(hash(pass), passFile)
 
   def readConf(): BoatConf =
-    if (Files.exists(confFile))
-      Try(new String(Files.readAllBytes(confFile), StandardCharsets.UTF_8).parseJson.convertTo[BoatConf]).getOrElse(BoatConf.empty)
-    else
+    if (Files.exists(confFile)) {
+      Try(
+        new String(Files.readAllBytes(confFile), StandardCharsets.UTF_8).parseJson
+          .convertTo[BoatConf]).getOrElse(BoatConf.empty)
+    } else {
       BoatConf.empty
+    }
 
   def saveConf(conf: BoatConf): Unit = save(confFormat.write(conf).prettyPrint, confFile)
 

@@ -565,7 +565,7 @@ object LimitType {
   }
 
   def fromString(s: String): JsResult[Seq[LimitType]] = {
-    val results = s.split(", ").map { limit =>
+    val results = s.split(", ").toList.map { limit =>
       LimitType.parse
         .lift(limit)
         .fold[JsResult[LimitType]](JsError(s"Unknown limit type: '$limit'."))(JsSuccess(_))

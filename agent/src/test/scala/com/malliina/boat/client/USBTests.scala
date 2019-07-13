@@ -3,7 +3,7 @@ package com.malliina.boat.client
 import gnu.io.CommPortIdentifier
 import org.scalatest.FunSuite
 
-import scala.collection.JavaConverters.enumerationAsScalaIteratorConverter
+import scala.jdk.CollectionConverters.EnumerationHasAsScala
 
 class USBTests extends FunSuite {
   ignore("usb") {

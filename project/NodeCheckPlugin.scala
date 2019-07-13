@@ -1,6 +1,6 @@
-import NodeCheckPlugin.autoImport.ncu
 import sbt.Keys._
 import sbt._
+import complete.DefaultParsers._
 import scalajsbundler.sbtplugin.ScalaJSBundlerPlugin.autoImport.npmUpdate
 
 import scala.sys.process.{Process, ProcessLogger}
@@ -11,8 +11,9 @@ object NodeCheckPlugin extends AutoPlugin {
     val failMode =
       settingKey[FailMode]("Whether to warn or fail hard when the node version is unsupported")
     val ncu = taskKey[Int]("Runs npm-check-updates")
+    val front = inputKey[Int]("Runs the input as a command in the frontend working directory")
   }
-  import autoImport.{checkNode, failMode}
+  import autoImport._
 
   override val globalSettings: Seq[Def.Setting[_]] = Seq(
     failMode := FailMode.Warn,
@@ -23,11 +24,17 @@ object NodeCheckPlugin extends AutoPlugin {
   )
 
   override val projectSettings = Seq(
-    ncu := {
+    ncu := front.toTask(" ncu").value,
+    front := {
       val log = streams.value.log
       val cwd = (crossTarget in (Compile, npmUpdate)).value
-      log.info(s"Running 'ncu' in $cwd...")
-      Process("ncu", cwd).run(log).exitValue()
+      val args: Seq[String] = spaceDelimited("<arg>").parsed
+      log.info(s"Running '${args.mkString(" ")}' in $cwd...")
+      val status = Process(args, cwd).run(log).exitValue()
+      if (status != 0) {
+        log.error(s"Exited with status $status.")
+      }
+      status
     }
   )
 
