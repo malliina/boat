@@ -33,7 +33,7 @@ class MapSocket(val map: MapboxMap,
   private var trails = Map.empty[TrackId, Seq[TimedCoord]]
 
   initImage("boat-resized-opt-20.png", boatIconId)
-  initImage("trophy-color.png", trophyIconId)
+  initImage("trophy-color-12.png", trophyIconId)
 
   def initImage(file: String, iconId: String): Future[Unit] =
     map.initImage(s"/assets/img/$file", iconId).recover {

@@ -58,69 +58,71 @@ object SentencesPage extends BoatImplicits {
           h1(track.boatName)
         )
       ),
-      form(`class` := Hidden,
-           id := EditTitleFormId,
-           method := "PUT",
-           action := reverse.modifyTitle(track.trackName))(
-        div(`class` := "form-group row form-title")(
-          label(`for` := TitleInputId, `class` := "col-sm-2 col-form-label col-form-label-sm")(
-            webLang.editTitle),
-          div(`class` := "col-sm-7 pr-2")(
-            input(
-              `type` := "text",
-              id := TitleInputId,
-              name := TrackTitle.Key,
-              `class` := "form-control form-control-sm input-title",
-              track.trackTitle.map(t => value := t.title).getOrElse(modifier()),
-              placeholder := webLang.titlePlaceholder
+      div(`class` := "mb-3")(
+        form(`class` := Hidden,
+             id := EditTitleFormId,
+             method := "PUT",
+             action := reverse.modifyTitle(track.trackName))(
+          div(`class` := "form-group row form-title")(
+            label(`for` := TitleInputId, `class` := "col-sm-2 col-form-label col-form-label-sm")(
+              webLang.editTitle),
+            div(`class` := "col-sm-7 pr-2")(
+              input(
+                `type` := "text",
+                id := TitleInputId,
+                name := TrackTitle.Key,
+                `class` := "form-control form-control-sm input-title",
+                track.trackTitle.map(t => value := t.title).getOrElse(modifier()),
+                placeholder := webLang.titlePlaceholder
+              )
+            ),
+            div(`class` := "col-3 pl-0")(
+              button(`type` := "submit", `class` := "btn btn-sm btn-primary")(webLang.save),
+              button(`type` := "button",
+                     id := CancelEditTrackId,
+                     `class` := "btn btn-sm btn-secondary ml-1")(webLang.cancel)
             )
-          ),
-          div(`class` := "col-3 pl-0")(
-            button(`type` := "submit", `class` := "btn btn-sm btn-primary")(webLang.save),
-            button(`type` := "button",
-                   id := CancelEditTrackId,
-                   `class` := "btn btn-sm btn-secondary ml-1")(webLang.cancel)
           )
-        )
-      ),
-      form(`class` := Hidden,
-           id := EditCommentsFormId,
-           method := "PATCH",
-           action := reverse.updateComments(track.track))(
-        div(`class` := "form-group row form-title")(
-          label(`for` := CommentsInputId, `class` := "col-sm-2 col-form-label col-form-label-sm")(
-            webLang.editComments),
-          div(`class` := "col-sm-7 pr-2")(
-            input(
-              `type` := "text",
-              id := CommentsInputId,
-              name := TrackComments.Key,
-              `class` := "form-control form-control-sm input-title",
-              track.comments.map(c => value := c).getOrElse(modifier()),
-              placeholder := webLang.commentsPlaceholder
+        ),
+        dl(`class` := "row mb-0")(
+          dt(`class` := s"col-sm-2 $TrackRow")(trackLang.track),
+          dd(`class` := s"col-sm-10 $TrackRow")(span(`class` := "text-editable",
+                                                     id := TrackTitleId)(track.describe),
+                                                editIcon(EditTitleId, webLang.editTitle)),
+          description(lang.lang.time, track.times.range),
+          description(trackLang.duration, BoatFormats.formatDuration(track.duration)),
+          description(trackLang.topSpeed, topSpeed),
+          dt(`class` := s"col-sm-2 $CommentsRow")(trackLang.comments),
+          dd(`class` := s"col-sm-10 $CommentsRow")(
+            span(`class` := classes("text-editable", track.comments.fold(Hidden)(_ => "")),
+                 id := CommentsTitleId)(commentValue),
+            editIcon(EditCommentsId, webLang.editComments)
+          )
+        ),
+        form(`class` := s"$Hidden mb-3",
+             id := EditCommentsFormId,
+             method := "PATCH",
+             action := reverse.updateComments(track.track))(
+          div(`class` := "form-group row form-title")(
+            label(`for` := CommentsInputId, `class` := "col-sm-2 col-form-label col-form-label-sm")(
+              webLang.editComments),
+            div(`class` := "col-sm-7 pr-2")(
+              input(
+                `type` := "text",
+                id := CommentsInputId,
+                name := TrackComments.Key,
+                `class` := "form-control form-control-sm input-title",
+                track.comments.map(c => value := c).getOrElse(modifier()),
+                placeholder := webLang.commentsPlaceholder
+              )
+            ),
+            div(`class` := "col-3 pl-0")(
+              button(`type` := "submit", `class` := "btn btn-sm btn-primary")(webLang.save),
+              button(`type` := "button",
+                     id := CancelEditCommentsId,
+                     `class` := "btn btn-sm btn-secondary ml-1")(webLang.cancel)
             )
-          ),
-          div(`class` := "col-3 pl-0")(
-            button(`type` := "submit", `class` := "btn btn-sm btn-primary")(webLang.save),
-            button(`type` := "button",
-                   id := CancelEditCommentsId,
-                   `class` := "btn btn-sm btn-secondary ml-1")(webLang.cancel)
           )
-        )
-      ),
-      dl(`class` := "row")(
-        dt(`class` := s"col-sm-2 $TrackRow")(trackLang.track),
-        dd(`class` := s"col-sm-10 $TrackRow")(
-          span(`class` := "text-editable", id := TrackTitleId)(track.describe),
-          editIcon(EditTitleId, webLang.editTitle)),
-        description(lang.lang.time, track.times.range),
-        description(trackLang.duration, BoatFormats.formatDuration(track.duration)),
-        description(trackLang.topSpeed, topSpeed),
-        dt(`class` := s"col-sm-2 $CommentsRow")(trackLang.comments),
-        dd(`class` := s"col-sm-10 $CommentsRow")(
-          span(`class` := classes("text-editable", track.comments.fold(Hidden)(_ => "")),
-               id := CommentsTitleId)(commentValue),
-          editIcon(EditCommentsId, webLang.editComments)
         )
       )
     )
