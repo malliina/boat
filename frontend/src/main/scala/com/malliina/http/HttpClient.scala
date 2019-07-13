@@ -33,7 +33,7 @@ class HttpClient extends CSRFConf {
     }
   }
 
-  private def validate[R: Reads](uri: String, xhr: XMLHttpRequest) = {
+  private def validate[R: Reads](uri: String, xhr: XMLHttpRequest): Future[R] = {
     val status = xhr.status
     val json = Json.parse(xhr.responseText)
     if (status >= 200 && status <= 300) {
@@ -54,7 +54,7 @@ class HttpClient extends CSRFConf {
            headers: Map[String, String] = Map.empty,
            withCredentials: Boolean = false,
            responseType: String = "") = {
-    Ajax("PATCH", url, data, timeout, headers, withCredentials, responseType)
+    Ajax(method, url, data, timeout, headers, withCredentials, responseType)
   }
 }
 
