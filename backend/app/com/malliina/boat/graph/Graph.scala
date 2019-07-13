@@ -190,7 +190,7 @@ class Graph(val nodes: Map[CoordHash, ValueNode]) {
         val hash = route.to.hash
         !shortestKnown.contains(hash) || shortestKnown.get(hash).exists(_.cost > route.cost)
       }
-      val novel = candidateLevel.groupBy(_.to.hash).mapValues(_.minBy(_.cost))
+      val novel = candidateLevel.groupBy(_.to.hash).view.mapValues(_.minBy(_.cost))
       val novelList = novel.values.toList
       val (hits, others) = novelList.partition(_.to.hash == to.hash)
       val newShortest = shortestKnown ++ novel

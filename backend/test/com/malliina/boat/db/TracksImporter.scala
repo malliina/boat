@@ -15,7 +15,7 @@ import com.malliina.util.FileUtils
 import com.malliina.values.Username
 import play.api.Mode
 
-import scala.collection.JavaConverters.asScalaBufferConverter
+import scala.jdk.CollectionConverters.CollectionHasAsScala
 import scala.concurrent.Future
 import scala.concurrent.duration.DurationLong
 
