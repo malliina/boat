@@ -103,7 +103,7 @@ val backend = Project("boat", file("backend"))
   .dependsOn(crossJvm)
   .settings(commonSettings)
   .settings(
-    version := "1.0.0",
+    version := "1.0.1",
     unmanagedResourceDirectories in Compile += baseDirectory.value / "docs",
     libraryDependencies ++= Seq(
       //    "net.sf.marineapi" % "marineapi" % "0.13.0-SNAPSHOT",
