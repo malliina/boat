@@ -1,10 +1,11 @@
 package com.malliina.boat.push
 
+import com.malliina.boat.push.FCMPush.log
 import com.malliina.boat.{BoatName, PushToken}
 import com.malliina.push.fcm.FCMLegacyClient
 import com.malliina.push.gcm.{GCMMessage, GCMToken}
 import play.api.{Configuration, Logger}
-import FCMPush.log
+
 import scala.concurrent.{ExecutionContext, Future}
 
 object FCMPush {
@@ -19,11 +20,12 @@ object FCMPush {
 
 class FCMPush(fcm: FCMLegacyClient)(implicit ec: ExecutionContext) extends PushClient[GCMToken] {
   override def push(notification: BoatNotification, to: GCMToken): Future[PushSummary] = {
-    val message = GCMMessage(Map(
-      BoatName.Key -> notification.boatName.name,
-      BoatState.Key -> notification.state.name,
-      "message" -> notification.message
-    ))
+    val message = GCMMessage(
+      Map(
+        BoatName.Key -> notification.boatName.name,
+        BoatState.Key -> notification.state.name,
+        BoatNotification.Message -> notification.message
+      ))
     fcm.push(to, message).map { r =>
       log.info(s"Push to '$to' complete. ${r.uninstalled.length}")
       PushSummary(

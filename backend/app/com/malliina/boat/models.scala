@@ -261,7 +261,7 @@ case class TrackInput(name: TrackName,
 
 object TrackInput {
   def empty(name: TrackName, boat: BoatId): TrackInput =
-    TrackInput(name, boat, None, None, 0, DistanceM.zero, TrackCanonical(name))
+    TrackInput(name, boat, None, None, 0, DistanceM.zero, TrackCanonical.fromName(name))
 }
 
 case class TrackRow(id: TrackId,

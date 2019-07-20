@@ -19,19 +19,19 @@ object Bearing {
   val west = apply(270)
 }
 
-case class FormattedTime(time: String) extends WrappedString {
+case class FormattedTime(time: String) extends AnyVal with WrappedString {
   override def value = time
 }
 
 object FormattedTime extends StringCompanion[FormattedTime]
 
-case class FormattedDate(date: String) extends WrappedString {
+case class FormattedDate(date: String) extends AnyVal with WrappedString {
   override def value = date
 }
 
 object FormattedDate extends StringCompanion[FormattedDate]
 
-case class FormattedDateTime(dateTime: String) extends WrappedString {
+case class FormattedDateTime(dateTime: String) extends AnyVal with WrappedString {
   override def value = dateTime
 }
 
@@ -175,13 +175,13 @@ object TimedCoord {
     Writes(tc => modern.writes(tc) ++ Json.obj("depth" -> tc.depthMeters.toMillis.toLong)))
 }
 
-case class AccessToken(token: String) extends WrappedString {
+case class AccessToken(token: String) extends AnyVal with WrappedString {
   override def value = token
 }
 
 object AccessToken extends StringCompanion[AccessToken]
 
-case class BoatName(name: String) extends WrappedString {
+case class BoatName(name: String) extends AnyVal with WrappedString {
   override def value = name
 }
 
@@ -189,7 +189,7 @@ object BoatName extends StringCompanion[BoatName] {
   val Key = "boatName"
 }
 
-case class TrackName(name: String) extends WrappedString {
+case class TrackName(name: String) extends AnyVal with WrappedString {
   override def value = name
 }
 
@@ -197,7 +197,7 @@ object TrackName extends StringCompanion[TrackName] {
   val Key = "track"
 }
 
-case class TrackTitle(title: String) extends WrappedString {
+case class TrackTitle(title: String) extends AnyVal with WrappedString {
   override def value = title
 }
 
@@ -210,17 +210,17 @@ object TrackComments {
   val Key = "comments"
 }
 
-case class TrackCanonical(name: String) extends WrappedString {
+case class TrackCanonical(name: String) extends AnyVal with WrappedString {
   override def value = name
 }
 
 object TrackCanonical extends StringCompanion[TrackCanonical] {
   val Key = "canonical"
 
-  def apply(name: TrackName): TrackCanonical = TrackCanonical(name.name)
+  def fromName(name: TrackName): TrackCanonical = TrackCanonical(name.name)
 }
 
-case class BoatToken(token: String) extends WrappedString {
+case class BoatToken(token: String) extends AnyVal with WrappedString {
   override def value = token
 }
 
@@ -240,7 +240,7 @@ object BoatToken extends StringCompanion[BoatToken]
   * @param sentence sentence as a String
   * @see http://www.catb.org/gpsd/NMEA.html
   */
-case class RawSentence(sentence: String) extends WrappedString {
+case class RawSentence(sentence: String) extends AnyVal with WrappedString {
   override def value = sentence
 }
 
@@ -253,7 +253,7 @@ object Usernames {
   val anon = Username("anon")
 }
 
-case class Language(code: String) extends WrappedString {
+case class Language(code: String) extends AnyVal with WrappedString {
   override def value = code
 }
 
@@ -270,7 +270,7 @@ object ChangeLanguage {
   implicit val json = Json.format[ChangeLanguage]
 }
 
-case class SimpleMessage(message: String)
+case class SimpleMessage(message: String) extends AnyVal
 
 object SimpleMessage {
   implicit val json = Json.format[SimpleMessage]
@@ -286,19 +286,19 @@ trait BoatMeta {
   def boat: BoatName
 }
 
-case class BoatId(id: Long) extends WrappedId
+case class BoatId(id: Long) extends AnyVal with WrappedId
 
 object BoatId extends IdCompanion[BoatId]
 
-case class TrackId(id: Long) extends WrappedId
+case class TrackId(id: Long) extends AnyVal with WrappedId
 
 object TrackId extends IdCompanion[TrackId]
 
-case class PushId(id: Long) extends WrappedId
+case class PushId(id: Long) extends AnyVal with WrappedId
 
 object PushId extends IdCompanion[PushId]
 
-case class PushToken(token: String) extends WrappedString {
+case class PushToken(token: String) extends AnyVal with WrappedString {
   override def value = token
 }
 
@@ -431,7 +431,7 @@ object TrackResponse {
 
 case class InsertedTrackPoint(point: TrackPointId, track: TrackRef)
 
-case class TrackPointId(id: Long) extends WrappedId
+case class TrackPointId(id: Long) extends AnyVal with WrappedId
 
 object TrackPointId extends IdCompanion[TrackPointId]
 

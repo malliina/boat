@@ -35,11 +35,13 @@ class APNSPush(sandbox: APNSTokenClient, prod: APNSTokenClient) extends PushClie
   val topic = APNSTopic("com.malliina.BoatTracker")
 
   def push(notification: BoatNotification, to: APNSToken): Future[PushSummary] = {
-    val message = APNSMessage.simple(notification.message)
+    val message = APNSMessage
+      .simple(notification.message)
       .copy(data = Map("meta" -> Json.toJson(notification)))
     val request = APNSRequest.withTopic(topic, message)
-    val pushSandbox = sandbox.push(to, request).map(fold(_, to, useLog = false)).map(_ => PushSummary.empty)
-    val pushProd = prod.push(to, request).map(fold(_, to, useLog = true)).map { result =>
+    val pushSandbox =
+      sandbox.push(to, request).map(loggedMap(_, to, useLog = false)).map(_ => PushSummary.empty)
+    val pushProd = prod.push(to, request).map(loggedMap(_, to, useLog = true)).map { result =>
       PushSummary(
         if (result.error.contains(BadDeviceToken)) Seq(PushToken(result.token.token)) else Nil,
         Nil
@@ -48,7 +50,9 @@ class APNSPush(sandbox: APNSTokenClient, prod: APNSTokenClient) extends PushClie
     Future.sequence(Seq(pushSandbox, pushProd)).map(_.fold(PushSummary.empty)(_ ++ _))
   }
 
-  private def fold(result: Either[APNSError, APNSIdentifier], token: APNSToken, useLog: Boolean): APNSHttpResult =
+  private def loggedMap(result: Either[APNSError, APNSIdentifier],
+                        token: APNSToken,
+                        useLog: Boolean): APNSHttpResult =
     result.fold(
       err => {
         if (useLog) {
@@ -58,7 +62,7 @@ class APNSPush(sandbox: APNSTokenClient, prod: APNSTokenClient) extends PushClie
       },
       id => {
         if (useLog) {
-          log.info(s"Pushed to '$token'.")
+          log.info(s"Successfully pushed to '$token'.")
         }
         APNSHttpResult(token, Option(id), None)
       }

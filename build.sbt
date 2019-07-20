@@ -16,7 +16,6 @@ val akkaHttpVersion = "10.1.8"
 val utilPlayDep = "com.malliina" %% "util-play" % utilPlayVersion
 val utilPlayTestDep = utilPlayDep % Test classifier "tests"
 val scalaTestDep = "org.scalatest" %% "scalatest" % scalaTestVersion % Test
-val nvWebsocketDep = "com.neovisionaries" % "nv-websocket-client" % "2.9"
 val buildAndUpload = taskKey[FullUrl]("Uploads to S3")
 val upFiles = taskKey[Seq[String]]("lists")
 val bootClasspath = taskKey[String]("bootClasspath")
@@ -199,7 +198,7 @@ val agent = project
     libraryDependencies ++= Seq(
       "com.malliina" %% "primitives" % primitiveVersion,
       "com.malliina" %% "logback-streams" % "1.6.0",
-      nvWebsocketDep,
+      "com.neovisionaries" % "nv-websocket-client" % "2.9",
       "org.slf4j" % "slf4j-api" % "1.7.26",
       "com.typesafe.akka" %% "akka-stream" % akkaVersion,
       "com.typesafe.akka" %% "akka-http" % akkaHttpVersion,

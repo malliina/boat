@@ -29,6 +29,7 @@ case class BoatNotification(boatName: BoatName, state: BoatState) {
 
 object BoatNotification {
   implicit val json = Json.format[BoatNotification]
+  val Message = "message"
 }
 
 case class APNSHttpResult(token: APNSToken, id: Option[APNSIdentifier], error: Option[APNSError])
