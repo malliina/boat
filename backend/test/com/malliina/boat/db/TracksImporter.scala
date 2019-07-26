@@ -9,7 +9,7 @@ import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.{Flow, Sink, Source}
 import com.malliina.boat.parsing.FullCoord
-import com.malliina.boat.{BoatId, BoatName, BoatUser, InsertedPoint, KeyedSentence, LocalConf, RawSentence, SentencesEvent, TrackId, TrackInput, TrackNames}
+import com.malliina.boat.{BoatId, BoatName, BoatUser, DateVal, InsertedPoint, KeyedSentence, LocalConf, RawSentence, SentencesEvent, TrackId, TrackInput, TrackNames}
 import com.malliina.concurrent.Execution.cached
 import com.malliina.util.FileUtils
 import com.malliina.values.Username
@@ -57,13 +57,13 @@ class TracksImporter extends TracksTester {
     import db._
     import db.api._
 
-    def createAndUpdateTrack(date: LocalDate) =
+    def createAndUpdateTrack(date: DateVal) =
       for {
         newTrack <- trackInserts += TrackInput.empty(TrackNames.random(), BoatId(14))
         updated <- updateTrack(oldTrack, date, newTrack)
       } yield updated
 
-    def updateTrack(track: TrackId, date: LocalDate, newTrack: TrackId) =
+    def updateTrack(track: TrackId, date: DateVal, newTrack: TrackId) =
       pointsTable
         .map(_.combined)
         .filter((t: LiftedCoord) => t.track === track && t.date === date)

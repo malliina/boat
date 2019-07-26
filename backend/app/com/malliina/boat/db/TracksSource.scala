@@ -8,6 +8,7 @@ import com.malliina.values.{UserId, Username}
 import scala.concurrent.Future
 
 trait TracksSource {
+  def stats(user: MinimalUserInfo, limits: TrackQuery): Future[StatsResponse]
   def updateTitle(track: TrackName, title: TrackTitle, user: UserId): Future[JoinedTrack]
 
   def updateComments(track: TrackId, comments: String, user: UserId): Future[JoinedTrack]

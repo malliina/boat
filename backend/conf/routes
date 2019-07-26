@@ -14,6 +14,7 @@ PUT          /tracks/:track                                   controllers.BoatCo
 PATCH        /tracks/:track                                   controllers.BoatController.updateComments(track: com.malliina.boat.TrackId)
 GET          /tracks/:track/full                              controllers.BoatController.full(track: com.malliina.boat.TrackName)
 GET          /tracks/:track/chart                             controllers.BoatController.chart(track: com.malliina.boat.TrackName)
+GET          /stats                                           controllers.BoatController.stats
 GET          /routes/:srclat/:srclng/:destlat/:destlng        controllers.GraphController.shortestRoute(srclat: Double, srclng: Double, destlat: Double, destlng: Double)
 GET          /ws/updates                                      controllers.BoatController.clientSocket
 GET          /ws/boats                                        controllers.BoatController.boatSocket

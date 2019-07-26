@@ -125,7 +125,7 @@ class DatabaseUserManager(val db: BoatSchema)(implicit ec: ExecutionContext) ext
 
   private def loadBoats(q: Query[LiftedJoinedTrack, JoinedTrack, Seq], formatter: TimeFormatter) = {
     val tracksAction = q
-      .sortBy(r => (r.user, r.boat, r.start.desc, r.trackAdded.desc, r.track.desc))
+      .sortBy(r => (r.user, r.boatId, r.start.desc, r.trackAdded.desc, r.track.desc))
       .result
     for {
       tracks <- tracksAction
@@ -134,13 +134,13 @@ class DatabaseUserManager(val db: BoatSchema)(implicit ec: ExecutionContext) ext
 
   private def collectBoats(rows: Seq[JoinedTrack], formatter: TimeFormatter): Seq[BoatInfo] =
     rows.foldLeft(Vector.empty[BoatInfo]) { (acc, row) =>
-      val boatIdx = acc.indexWhere(b => b.user == row.username && b.boatId == row.boat)
+      val boatIdx = acc.indexWhere(b => b.user == row.username && b.boatId == row.boatId)
       val newRow = row.strip(formatter)
       if (boatIdx >= 0) {
         val old = acc(boatIdx)
         acc.updated(boatIdx, old.copy(tracks = old.tracks :+ newRow))
       } else {
-        acc :+ BoatInfo(row.boat, row.boatName, row.username, row.language, Seq(newRow))
+        acc :+ BoatInfo(row.boatId, row.boatName, row.username, row.language, Seq(newRow))
       }
     }
 

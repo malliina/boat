@@ -1,6 +1,7 @@
 package com.malliina.boat
 
 import java.time.{Instant, LocalDate, LocalTime, ZoneOffset}
+import java.util.concurrent.TimeUnit
 
 import com.malliina.boat.parsing.FullCoord
 import com.malliina.measure.{DistanceM, SpeedM, Temperature}
@@ -8,10 +9,11 @@ import com.malliina.play.auth.JWTError
 import com.malliina.values._
 import play.api.data.{Forms, Mapping}
 import play.api.http.Writeable
+import play.api.libs.json.Json.toJson
 import play.api.libs.json._
 import play.api.mvc.PathBindable
 
-import scala.concurrent.duration.DurationLong
+import scala.concurrent.duration.{DurationDouble, FiniteDuration}
 
 case class Languages(finnish: Lang, swedish: Lang, english: Lang)
 
@@ -49,6 +51,39 @@ object ClientConf {
   val default = ClientConf(Languages(Lang.fi, Lang.se, Lang.en), Layers.default)
 }
 
+case class DayVal(day: Int) extends AnyVal
+
+object DayVal extends JsonCompanion[Int, DayVal] {
+  override def write(t: DayVal) = t.day
+}
+
+case class MonthVal(month: Int) extends AnyVal
+
+object MonthVal extends JsonCompanion[Int, MonthVal] {
+  override def write(t: MonthVal) = t.month
+}
+
+case class YearVal(year: Int) extends AnyVal
+
+object YearVal extends JsonCompanion[Int, YearVal] {
+  override def write(t: YearVal) = t.year
+}
+
+case class DateVal(year: YearVal, month: MonthVal, day: DayVal) {
+  def toLocalDate = LocalDate.of(year.year, month.month, day.day)
+  def plusDays(days: Int) = DateVal(toLocalDate.plusDays(1))
+  def plusMonths(months: Int) = DateVal(toLocalDate.plusMonths(1))
+}
+
+object DateVal {
+  implicit val json = Format[DateVal](
+    Reads(_.validate[LocalDate].map(d => DateVal(d))),
+    Writes(dv => Json.toJson(dv.toLocalDate))
+  )
+  def apply(date: LocalDate): DateVal =
+    DateVal(YearVal(date.getYear), MonthVal(date.getMonthValue), DayVal(date.getDayOfMonth))
+}
+
 case class UserToken(token: String) extends WrappedString {
   override def value = token
 }
@@ -79,25 +114,27 @@ case class JoinedTrack(track: TrackId,
                        canonical: TrackCanonical,
                        comments: Option[String],
                        trackAdded: Instant,
-                       boat: BoatId,
-                       boatName: BoatName,
-                       boatToken: BoatToken,
-                       user: UserId,
-                       username: Username,
-                       email: Option[Email],
-                       language: Language,
+                       boat: JoinedBoat,
                        points: Int,
                        start: Option[Instant],
+                       startDate: DateVal,
+                       startMonth: MonthVal,
+                       startYear: YearVal,
                        end: Option[Instant],
+                       duration: FiniteDuration,
                        topSpeed: Option[SpeedM],
                        avgSpeed: Option[SpeedM],
                        avgWaterTemp: Option[Temperature],
                        distance: DistanceM,
                        topPoint: CombinedCoord)
     extends TrackLike {
+  def boatId = boat.boat
+  def language = boat.language
+  override def boatName = boat.boatName
+  override def username = boat.username
+
   val startOrNow = start.getOrElse(Instant.now())
   val endOrNow = end.getOrElse(Instant.now())
-  val duration = (endOrNow.toEpochMilli - startOrNow.toEpochMilli).millis
 
   /**
     * @return a Scala.js -compatible representation of this track
@@ -108,7 +145,7 @@ case class JoinedTrack(track: TrackId,
     trackTitle,
     canonical,
     comments,
-    boat,
+    boat.boat,
     boatName,
     username,
     points,
@@ -120,6 +157,26 @@ case class JoinedTrack(track: TrackId,
     topPoint.timed(formatter),
     formatter.times(startOrNow, endOrNow)
   )
+}
+
+case class Stats(from: DateVal,
+                 to: DateVal,
+                 trackCount: Int,
+                 distance: DistanceM,
+                 duration: FiniteDuration)
+
+object Stats {
+  implicit val durationFormat: Format[FiniteDuration] = Format[FiniteDuration](
+    Reads(_.validate[Double].map(_.seconds)),
+    Writes(d => toJson(d.toUnit(TimeUnit.SECONDS)))
+  )
+  implicit val json = Json.format[Stats]
+}
+
+case class StatsResponse(stats: Seq[Stats])
+
+object StatsResponse {
+  implicit val json = Json.format[StatsResponse]
 }
 
 case class InsertedPoint(point: TrackPointId, track: JoinedTrack) {
@@ -346,7 +403,7 @@ case class CombinedCoord(id: TrackPointId,
                          depth: DistanceM,
                          depthOffset: DistanceM,
                          boatTime: Instant,
-                         date: LocalDate,
+                         date: DateVal,
                          track: TrackId,
                          added: Instant) {
 
@@ -395,7 +452,7 @@ case class CombinedFullCoord(id: TrackPointId,
                              depthMeters: DistanceM,
                              depthOffsetMeters: DistanceM,
                              boatTime: Instant,
-                             date: LocalDate,
+                             date: DateVal,
                              track: TrackId,
                              added: Instant,
                              sentences: Seq[TimedSentence],
@@ -405,9 +462,10 @@ object CombinedFullCoord {
   val modern = Json.format[CombinedFullCoord]
   implicit val json = Format[CombinedFullCoord](
     modern,
-    Writes(c => modern.writes(c) ++ Json.obj(
-      "depth" -> c.depthMeters.toMillis.toLong,
-      "depthOffset" -> c.depthOffsetMeters.toMillis.toLong))
+    Writes(
+      c =>
+        modern.writes(c) ++ Json.obj("depth" -> c.depthMeters.toMillis.toLong,
+                                     "depthOffset" -> c.depthOffsetMeters.toMillis.toLong))
   )
 }
 

@@ -30,7 +30,7 @@ class TracksDatabaseTests extends TracksTester {
 //  val conf = DatabaseConf("jdbc:mysql://localhost:3306/boat?useSSL=false",
 //                          "",
 //                          "",
-//                          DatabaseConf.MySQLDriver)
+//                          DatabaseConf.InstantMySQLDriver)
   val conf = DatabaseConf.inMemory
 
   ignore("collect rows") {

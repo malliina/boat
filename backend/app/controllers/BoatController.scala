@@ -135,6 +135,10 @@ class BoatController(mapboxToken: AccessToken,
     db.renameBoat(id, req.body, req.user.id)
   }
 
+  def stats = userAction(profile, TrackQuery.apply) { req =>
+    db.stats(req.user, req.query).map { sr => Ok(Json.toJson(sr)) }
+  }
+
   def boatSocket = WebSocket { rh =>
     authBoat(rh).flatMapR { meta =>
       push.push(meta, BoatState.Connected).map(_ => meta)

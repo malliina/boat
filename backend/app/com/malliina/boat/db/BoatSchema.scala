@@ -13,6 +13,7 @@ import slick.jdbc.{GetResult, JdbcType, PositionedResult}
 import slick.util.AsyncExecutor
 
 import scala.concurrent.ExecutionContext
+import scala.concurrent.duration.FiniteDuration
 
 object BoatSchema {
   private val log = Logger(getClass)
@@ -78,16 +79,25 @@ class BoatSchema(ds: DataSource, conf: ProfileConf)
   val trackInserts = tracksTable.map(_.forInserts).returning(tracksTable.map(_.id))
   val coordInserts = pointsTable.map(_.forInserts).returning(pointsTable.map(_.id))
 
+  // TODO move these utility functions to some DatabaseImpl -style module
+  val dateFuncName = impl match {
+    case InstantH2Profile => "truncate"
+    case _         => "date"
+  }
+  val dateOf: Rep[Instant] => Rep[DateVal] =
+    SimpleFunction.unary[Instant, DateVal](dateFuncName)
+  val SECOND = SimpleLiteral[String]("SECOND")
+  val timestampDiff = SimpleFunction.ternary[String, Instant, Instant, FiniteDuration]("TIMESTAMPDIFF")
+  def secondsDiff(from: Rep[Instant], to: Rep[Instant]) = timestampDiff(SECOND, from, to)
+  val monthOf = SimpleFunction.unary[Instant, MonthVal]("MONTH")
+  val yearOf = SimpleFunction.unary[Instant, YearVal]("YEAR")
   // The H2 function is wrong, but I just want something that compiles for H2
   val distanceFunc = impl match {
     case InstantH2Profile => "ST_MaxDistance"
     case _         => "ST_Distance_Sphere"
   }
-  val dateFuncName = impl match {
-    case InstantH2Profile => "truncate"
-    case _         => "date"
-  }
   val distanceCoords = SimpleFunction.binary[Coord, Coord, DistanceM](distanceFunc)
+
   val topSpeeds = trackAggregate(_.map(_.boatSpeed).max)
   val topPoints = pointsTable
     .join(
@@ -97,8 +107,10 @@ class BoatSchema(ds: DataSource, conf: ProfileConf)
         .groupBy(_._1.track)
         .map { case (t, q) => (t, q.map(_._1.id).min) })
     .on(_.id === _._2)
-  val minTimes = trackAggregate(_.map(_.boatTime).min)
-  val maxTimes = trackAggregate(_.map(_.boatTime).max)
+  val minTimes: Query[(Rep[TrackId], Rep[Option[Instant]]), (TrackId, Option[Instant]), Seq] =
+    trackAggregate(_.map(_.boatTime).min)
+  val maxTimes: Query[(Rep[TrackId], Rep[Option[Instant]]), (TrackId, Option[Instant]), Seq] =
+    trackAggregate(_.map(_.boatTime).max)
   val boatsView: Query[LiftedJoinedBoat, JoinedBoat, Seq] =
     boatsTable.join(usersTable).on(_.owner === _.id).map {
       case (b, u) => LiftedJoinedBoat(b.id, b.name, b.token, u.id, u.user, u.email, u.language)
@@ -116,7 +128,9 @@ class BoatSchema(ds: DataSource, conf: ProfileConf)
       .join(topPoints)
       .on(_._1._1._1._2.id === _._1.track)
       .map {
-        case (((((boat, track), (_, top)), (_, start)), (_, end)), (point, _)) =>
+        case (((((boat, track), (_, top)), (_, start: Rep[Option[Instant]])), (_, end)), (point, _)) =>
+          val startOrNow = start.getOrElse(Instant.now().bind)
+          val endOrNow = end.getOrElse(Instant.now().bind)
           LiftedJoinedTrack(
             track.id,
             track.name,
@@ -124,16 +138,22 @@ class BoatSchema(ds: DataSource, conf: ProfileConf)
             track.canonical,
             track.comments,
             track.added,
-            boat.boat,
-            boat.boatName,
-            boat.token,
-            boat.user,
-            boat.username,
-            boat.email,
-            boat.language,
+            LiftedJoinedBoat(
+              boat.boat,
+              boat.boatName,
+              boat.token,
+              boat.user,
+              boat.username,
+              boat.email,
+              boat.language
+            ),
             track.points,
             start,
+            dateOf(startOrNow),
+            monthOf(startOrNow),
+            yearOf(startOrNow),
             end,
+            secondsDiff(startOrNow, endOrNow),
             top,
             track.avgSpeed,
             track.avgWaterTemp,
@@ -182,9 +202,6 @@ class BoatSchema(ds: DataSource, conf: ProfileConf)
     : Query[(Rep[TrackId], Rep[Option[N]]), (TrackId, Option[N]), Seq] =
     pointsTable.groupBy(_.track).map { case (t, q) => (t, agg(q)) }
 
-  def dateFunc: Rep[Instant] => Rep[LocalDate] =
-    SimpleFunction.unary[Instant, LocalDate](dateFuncName)
-
   case class LiftedJoinedBoat(boat: Rep[BoatId],
                               boatName: Rep[BoatName],
                               token: Rep[BoatToken],
@@ -224,7 +241,7 @@ class BoatSchema(ds: DataSource, conf: ProfileConf)
                          depth: Rep[DistanceM],
                          depthOffset: Rep[DistanceM],
                          boatTime: Rep[Instant],
-                         date: Rep[LocalDate],
+                         date: Rep[DateVal],
                          track: Rep[TrackId],
                          added: Rep[Instant])
 
@@ -237,21 +254,24 @@ class BoatSchema(ds: DataSource, conf: ProfileConf)
                                canonical: Rep[TrackCanonical],
                                comments: Rep[Option[String]],
                                trackAdded: Rep[Instant],
-                               boat: Rep[BoatId],
-                               boatName: Rep[BoatName],
-                               boatToken: Rep[BoatToken],
-                               user: Rep[UserId],
-                               username: Rep[Username],
-                               email: Rep[Option[Email]],
-                               language: Rep[Language],
+                               boat: LiftedJoinedBoat,
                                points: Rep[Int],
                                start: Rep[Option[Instant]],
+                               startDate: Rep[DateVal],
+                               startMonth: Rep[MonthVal],
+                               startYear: Rep[YearVal],
                                end: Rep[Option[Instant]],
+                               duration: Rep[FiniteDuration],
                                topSpeed: Rep[Option[SpeedM]],
                                avgSpeed: Rep[Option[SpeedM]],
                                avgWaterTemp: Rep[Option[Temperature]],
                                length: Rep[DistanceM],
-                               topPoint: LiftedCoord)
+                               topPoint: LiftedCoord) {
+    def boatId = boat.boat
+    def username = boat.username
+    def user = boat.user
+    def language = boat.language
+  }
 
   implicit object TrackShape
       extends CaseClassShape(LiftedJoinedTrack.tupled, (JoinedTrack.apply _).tupled)
@@ -349,7 +369,7 @@ class BoatSchema(ds: DataSource, conf: ProfileConf)
                                depth,
                                depthOffset,
                                boatTime,
-                               dateFunc(boatTime),
+                               dateOf(boatTime),
                                track,
                                added)
     def * = (id,

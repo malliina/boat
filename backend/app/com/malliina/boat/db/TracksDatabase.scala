@@ -5,10 +5,10 @@ import com.malliina.boat.db.TracksDatabase.log
 import com.malliina.boat.http._
 import com.malliina.boat.parsing.FullCoord
 import com.malliina.measure.{DistanceM, SpeedIntM, SpeedM}
-import com.malliina.values.{Email, UserId, Username}
+import com.malliina.values.{UserId, Username}
 import play.api.Logger
 
-import scala.concurrent.duration.DurationLong
+import scala.concurrent.duration.{Duration, DurationLong}
 import scala.concurrent.{ExecutionContext, Future}
 
 object TracksDatabase {
@@ -133,14 +133,16 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext)
     } yield Tracks(rows.map(_.strip(TimeFormatter(language))))
   }
 
+  def pointsQuery(track: TrackName) = pointsTable
+    .map(_.combined)
+    .join(tracksTable.filter(t => t.name === track))
+    .on(_.track === _.id)
+    .map(_._1)
+
   override def track(track: TrackName, user: Username, query: TrackQuery): Future[TrackInfo] =
     action {
       // intentionally does not filter on email for now
-      val points = pointsTable
-        .map(_.combined)
-        .join(tracksTable.filter(t => t.name === track))
-        .on(_.track === _.id)
-        .map(_._1)
+      val points = pointsQuery(track)
       for {
         coords <- points.sortBy(p => p.boatTime.asc).result
         top <- points.sortBy(_.boatSpeed.desc).take(1).result.headOption
@@ -148,11 +150,7 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext)
     }
 
   override def full(track: TrackName, language: Language, query: TrackQuery): Future[FullTrack] = action {
-    val limitedPoints = pointsTable
-      .map(_.combined)
-      .join(tracksTable.filter(t => t.name === track))
-      .on(_.track === _.id)
-      .map(_._1)
+    val limitedPoints = pointsQuery(track)
       .sortBy(p => (p.boatTime.asc, p.id.asc, p.added.asc))
       .drop(query.limits.offset)
       .take(query.limits.limit)
@@ -211,6 +209,65 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext)
       collectPointsClassic(rows, user.language)
     }
 
+  override def stats(user: MinimalUserInfo, limits: TrackQuery): Future[StatsResponse] = {
+    // 1.bind is a hack because otherwise Slick generates invalid SQL for some reason:
+    // MySQLSyntaxErrorException: Unknown column 'x70.x71' in 'where clause'
+    val dailyDistances = tracksViewNonEmpty.filter(t => t.username === user.username).groupBy(t => (t.startDate, 1.bind)).map {
+      case ((date, _), ts) => (date, ts.map(_.length).sum.getOrElse(DistanceM.zero.bind))
+    }
+    val dailyDurations = tracksViewNonEmpty.filter(t => t.username === user.username).groupBy(t => (t.startDate, 1.bind)).map {
+      case ((date, _), ts) => (date, ts.map(_.duration).sum.getOrElse(Duration.Zero.bind))
+    }
+    val dailyTracks = tracksViewNonEmpty.filter(t => t.username === user.username).groupBy(t => (t.startDate, 1.bind)).map {
+      case ((date, _), ts) => (date, ts.map(_.track).length)
+    }
+    val dailyQuery = dailyDistances
+      .join(dailyDurations).on((di, du) => di._1 === du._1)
+      .join(dailyTracks).on((didu, mt) => didu._1._1 === mt._1)
+      .map { case (((d1, distance), (_, duration)), (td, ts)) =>
+      (d1, distance, duration, ts)
+    }
+    val monthlyDistances = tracksViewNonEmpty.filter(t => t.username === user.username).groupBy(t => (t.startYear, t.startMonth)).map {
+      case ((year, month), ts) => (year, month, ts.map(_.length).sum.getOrElse(DistanceM.zero.bind))
+    }
+    val monthlyDurations = tracksViewNonEmpty.filter(t => t.username === user.username).groupBy(t => (t.startYear, t.startMonth)).map {
+      case ((year, month), ts) => (year, month, ts.map(_.duration).sum.getOrElse(Duration.Zero.bind))
+    }
+    val monthlyTracks = tracksViewNonEmpty.filter(t => t.username === user.username).groupBy(t => (t.startYear, t.startMonth)).map {
+      case ((year, month), ts) => (year, month, ts.map(_.track).length)
+    }
+    val monthlyQuery = monthlyDistances
+      .join(monthlyDurations).on((di, du) => di._1 === du._1 && di._2 === du._2)
+      .join(monthlyTracks).on((didu, mt) => didu._1._1 === mt._1 && didu._1._2 === mt._2)
+      .map { case (((y, m, distance), (_, _, duration)), (_, _, ts)) =>
+      (y, m, distance, duration, ts)
+    }
+    action {
+      for {
+        dailyRows <- dailyQuery.result
+        monthlyRows <- monthlyQuery.result
+      } yield StatsResponse(
+        dailyRows.map { case (date, distance, duration, trackCount) =>
+          Stats(date, date.plusDays(1), trackCount, distance, duration)
+        } ++
+        monthlyRows.map { case (year: YearVal, month: MonthVal, distance, duration, trackCount) =>
+          val firstOfMonth = DateVal(year, month, DayVal(1))
+          Stats(firstOfMonth, firstOfMonth.plusMonths(1), trackCount, distance, duration)
+        }
+      )
+    }
+  }
+
+  private def eligibleTracksQuery(user: MinimalUserInfo, limits: BoatQuery) =
+    if (limits.tracks.nonEmpty)
+      tracksViewNonEmpty.filter(_.trackName.inSet(limits.tracks))
+    else if (limits.canonicals.nonEmpty)
+      tracksViewNonEmpty.filter(_.canonical.inSet(limits.canonicals))
+    else if (limits.newest)
+      tracksViewNonEmpty.filter(_.username === user.username).sortBy(_.trackAdded.desc).take(1)
+    else
+      tracksViewNonEmpty
+
   // Returns the coordinates last first
   def historyRows(user: MinimalUserInfo, limits: BoatQuery) = {
     val keys = (limits.tracks.map(_.name) ++ limits.canonicals.map(_.name)).mkString(", ")
@@ -218,16 +275,7 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext)
     action(s"Track history ${describe}by user ${user.username}") {
       // Intentionally, you can view any track if you know its key.
       // Alternatively, we could filter tracks by user and make that optional.
-      val eligibleTracks =
-        if (limits.tracks.nonEmpty)
-          tracksViewNonEmpty.filter(_.trackName.inSet(limits.tracks))
-        else if (limits.canonicals.nonEmpty)
-          tracksViewNonEmpty.filter(_.canonical.inSet(limits.canonicals))
-        else if (limits.newest)
-          tracksViewNonEmpty.filter(_.username === user.username).sortBy(_.trackAdded.desc).take(1)
-        else
-          tracksViewNonEmpty
-      //    eligibleTracks.result.statements.toList foreach println
+      val eligibleTracks = eligibleTracksQuery(user, limits)
       eligibleTracks
         .join(rangedCoords(limits.timeRange))
         .on(_.track === _.track)
@@ -328,15 +376,7 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext)
 
   def historyNextGen(user: MinimalUserInfo, limits: BoatQuery): Future[Seq[CoordsEvent]] =
     action(s"Fast track history for ${user.username}") {
-      val eligibleTracks =
-        if (limits.tracks.nonEmpty)
-          tracksViewNonEmpty.filter(_.trackName.inSet(limits.tracks))
-        else if (limits.canonicals.nonEmpty)
-          tracksViewNonEmpty.filter(_.canonical.inSet(limits.canonicals))
-        else if (limits.newest)
-          tracksViewNonEmpty.filter(_.username === user.username).sortBy(_.trackAdded.desc).take(1)
-        else
-          tracksViewNonEmpty
+      val eligibleTracks = eligibleTracksQuery(user, limits)
       def points(trackIds: Seq[TrackId]) = pointsTable.filter { point =>
         (if (trackIds.nonEmpty) point.track.inSet(trackIds) else trueColumn) &&
         limits.from.map(from => point.added >= from).getOrElse(trueColumn) &&

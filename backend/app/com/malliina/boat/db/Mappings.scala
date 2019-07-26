@@ -2,28 +2,28 @@ package com.malliina.boat.db
 
 import java.sql.{PreparedStatement, ResultSet, Timestamp}
 import java.time.{Instant, LocalDate, LocalTime}
+import java.util.concurrent.TimeUnit
 
 import com.malliina.boat._
 import com.malliina.boat.db.SpatialUtils.{coordToBytes, fromBytes}
-import com.malliina.measure.{
-  DistanceDoubleM,
-  DistanceM,
-  SpeedDoubleM,
-  SpeedM,
-  Temperature,
-  TemperatureDouble
-}
+import com.malliina.measure.{DistanceDoubleM, DistanceM, SpeedDoubleM, SpeedM, Temperature, TemperatureDouble}
 import com.malliina.values._
 import com.vividsolutions.jts.geom.Point
 import slick.ast.{BaseTypedType, FieldSymbol}
 import slick.jdbc.{JdbcProfile, JdbcType}
 
+import scala.concurrent.duration.{DurationDouble, FiniteDuration}
 import scala.reflect.ClassTag
 
 class Mappings(val impl: JdbcProfile) {
 
   import impl.api._
 
+  implicit val dayMapping = MappedColumnType.base[DayVal, Int](_.day, DayVal.apply)
+  implicit val monthMapping = MappedColumnType.base[MonthVal, Int](_.month, MonthVal.apply)
+  implicit val yearMapping = MappedColumnType.base[YearVal, Int](_.year, YearVal.apply)
+  implicit val durationMapping =
+    MappedColumnType.base[FiniteDuration, Double](_.toUnit(TimeUnit.SECONDS), _.seconds)
   implicit val password = stringMapping(Password.apply)
   implicit val sentenceIdMapping = longMapping(SentenceKey.apply)
   implicit val sentenceMapping = stringMapping(RawSentence.apply)
@@ -53,6 +53,8 @@ class Mappings(val impl: JdbcProfile) {
     MappedColumnType.base[LocalTime, java.sql.Time](java.sql.Time.valueOf, _.toLocalTime)
   implicit val dateMapping =
     MappedColumnType.base[LocalDate, java.sql.Date](java.sql.Date.valueOf, _.toLocalDate)
+  implicit val dateValMapping =
+    MappedColumnType.base[DateVal, java.sql.Date](dv => java.sql.Date.valueOf(dv.toLocalDate), d => DateVal(d.toLocalDate))
   implicit val deviceMapping =
     MappedColumnType.base[MobileDevice, String](_.name, MobileDevice.apply)
   implicit val pushMapping = stringMapping(PushToken.apply)
