@@ -73,6 +73,7 @@ case class DateVal(year: YearVal, month: MonthVal, day: DayVal) {
   def toLocalDate = LocalDate.of(year.year, month.month, day.day)
   def plusDays(days: Int) = DateVal(toLocalDate.plusDays(1))
   def plusMonths(months: Int) = DateVal(toLocalDate.plusMonths(1))
+  def plusYears(years: Int) = DateVal(toLocalDate.plusYears(1))
 }
 
 object DateVal {
@@ -173,7 +174,7 @@ object Stats {
   implicit val json = Json.format[Stats]
 }
 
-case class StatsResponse(stats: Seq[Stats])
+case class StatsResponse(daily: Seq[Stats], monthly: Seq[Stats], yearly: Seq[Stats])
 
 object StatsResponse {
   implicit val json = Json.format[StatsResponse]

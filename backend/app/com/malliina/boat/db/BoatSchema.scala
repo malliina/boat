@@ -1,6 +1,6 @@
 package com.malliina.boat.db
 
-import java.time.{Instant, LocalDate, ZoneId}
+import java.time.{Instant, ZoneId}
 
 import com.malliina.boat._
 import com.malliina.boat.db.BoatSchema.{CreatedTimestampType, GetDummy, NumThreads, log}

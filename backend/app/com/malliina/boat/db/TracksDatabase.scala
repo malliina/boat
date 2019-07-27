@@ -7,7 +7,7 @@ import com.malliina.boat.parsing.FullCoord
 import com.malliina.measure.{DistanceM, SpeedIntM, SpeedM}
 import com.malliina.values.{UserId, Username}
 import play.api.Logger
-
+import slick.jdbc.JdbcType
 import scala.concurrent.duration.{Duration, DurationLong}
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -25,26 +25,6 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext)
   import db.api._
 
   val minSpeed: SpeedM = 1.kmh
-
-  case class Joined(sid: SentenceKey,
-                    sentence: RawSentence,
-                    track: TrackId,
-                    trackName: TrackName,
-                    boat: BoatId,
-                    boatName: BoatName,
-                    user: UserId,
-                    username: Username)
-
-  case class LiftedJoined(sid: Rep[SentenceKey],
-                          sentence: Rep[RawSentence],
-                          track: Rep[TrackId],
-                          trackName: Rep[TrackName],
-                          boat: Rep[BoatId],
-                          boatName: Rep[BoatName],
-                          user: Rep[UserId],
-                          username: Rep[Username])
-
-  implicit object JoinedShape extends CaseClassShape(LiftedJoined.tupled, Joined.tupled)
 
   override def join(meta: BoatTrackMeta): Future[TrackMeta] =
     action(boatId(meta))
@@ -109,8 +89,10 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext)
       if (filter.sort == TrackSort.Name) {
         trackQuery.sortBy { ljt =>
           filter.order match {
-            case SortOrder.Desc => (ljt.trackTitle.desc.nullsLast, ljt.trackName.desc.nullsLast, ljt.track)
-            case SortOrder.Asc  => (ljt.trackTitle.asc.nullsLast, ljt.trackName.asc.nullsLast, ljt.track)
+            case SortOrder.Desc =>
+              (ljt.trackTitle.desc.nullsLast, ljt.trackName.desc.nullsLast, ljt.track)
+            case SortOrder.Asc =>
+              (ljt.trackTitle.asc.nullsLast, ljt.trackName.asc.nullsLast, ljt.track)
           }
         }
       } else {
@@ -149,27 +131,28 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext)
       } yield TrackInfo(coords, top)
     }
 
-  override def full(track: TrackName, language: Language, query: TrackQuery): Future[FullTrack] = action {
-    val limitedPoints = pointsQuery(track)
-      .sortBy(p => (p.boatTime.asc, p.id.asc, p.added.asc))
-      .drop(query.limits.offset)
-      .take(query.limits.limit)
-    val coordsAction = sentencesTable
-      .join(sentencePointsTable)
-      .on(_.id === _.sentence)
-      .join(limitedPoints)
-      .on(_._2.point === _.id)
-      .map { case ((s, _), p) => (s, p) }
-      .sortBy { case (s, p) => (p.boatTime.asc, p.id.asc, s.added.asc) }
-      .result
-    for {
-      trackStats <- namedTrack(track)
-      coords <- coordsAction
-    } yield {
-      val formatter = TimeFormatter(language)
-      FullTrack(trackStats.strip(formatter), collect(coords, formatter))
+  override def full(track: TrackName, language: Language, query: TrackQuery): Future[FullTrack] =
+    action {
+      val limitedPoints = pointsQuery(track)
+        .sortBy(p => (p.boatTime.asc, p.id.asc, p.added.asc))
+        .drop(query.limits.offset)
+        .take(query.limits.limit)
+      val coordsAction = sentencesTable
+        .join(sentencePointsTable)
+        .on(_.id === _.sentence)
+        .join(limitedPoints)
+        .on(_._2.point === _.id)
+        .map { case ((s, _), p) => (s, p) }
+        .sortBy { case (s, p) => (p.boatTime.asc, p.id.asc, s.added.asc) }
+        .result
+      for {
+        trackStats <- namedTrack(track)
+        coords <- coordsAction
+      } yield {
+        val formatter = TimeFormatter(language)
+        FullTrack(trackStats.strip(formatter), collect(coords, formatter))
+      }
     }
-  }
 
   override def ref(track: TrackName, language: Language): Future[TrackRef] = action {
     for {
@@ -212,51 +195,91 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext)
   override def stats(user: MinimalUserInfo, limits: TrackQuery): Future[StatsResponse] = {
     // 1.bind is a hack because otherwise Slick generates invalid SQL for some reason:
     // MySQLSyntaxErrorException: Unknown column 'x70.x71' in 'where clause'
-    val dailyDistances = tracksViewNonEmpty.filter(t => t.username === user.username).groupBy(t => (t.startDate, 1.bind)).map {
-      case ((date, _), ts) => (date, ts.map(_.length).sum.getOrElse(DistanceM.zero.bind))
+    val dailyDistances = statsQuery(user.username)(t => (t.startDate, 1.bind)) { ts =>
+      ts.map(_.length).sum.getOrElse(DistanceM.zero.bind)
     }
-    val dailyDurations = tracksViewNonEmpty.filter(t => t.username === user.username).groupBy(t => (t.startDate, 1.bind)).map {
-      case ((date, _), ts) => (date, ts.map(_.duration).sum.getOrElse(Duration.Zero.bind))
+    val dailyDurations = statsQuery(user.username)(t => (t.startDate, 1.bind)) { ts =>
+      ts.map(_.duration).sum.getOrElse(Duration.Zero.bind)
     }
-    val dailyTracks = tracksViewNonEmpty.filter(t => t.username === user.username).groupBy(t => (t.startDate, 1.bind)).map {
-      case ((date, _), ts) => (date, ts.map(_.track).length)
+    val dailyTracks = statsQuery(user.username)(t => (t.startDate, 1.bind)) { ts =>
+      ts.map(_.track).length
     }
     val dailyQuery = dailyDistances
-      .join(dailyDurations).on((di, du) => di._1 === du._1)
-      .join(dailyTracks).on((didu, mt) => didu._1._1 === mt._1)
-      .map { case (((d1, distance), (_, duration)), (td, ts)) =>
-      (d1, distance, duration, ts)
+      .join(dailyDurations)
+      .on((di, du) => di._1._1 === du._1._1)
+      .join(dailyTracks)
+      .on((didu, mt) => didu._1._1._1 === mt._1._1)
+      .map {
+        case (((d1, distance), (_, duration)), (_, ts)) =>
+          (d1._1, distance, duration, ts)
+      }
+    val monthlyDistances = statsQuery(user.username)(t => (t.startYear, t.startMonth)) { ts =>
+      ts.map(_.length).sum.getOrElse(DistanceM.zero.bind)
     }
-    val monthlyDistances = tracksViewNonEmpty.filter(t => t.username === user.username).groupBy(t => (t.startYear, t.startMonth)).map {
-      case ((year, month), ts) => (year, month, ts.map(_.length).sum.getOrElse(DistanceM.zero.bind))
+    val monthlyDurations = statsQuery(user.username)(t => (t.startYear, t.startMonth)) { ts =>
+      ts.map(_.duration).sum.getOrElse(Duration.Zero.bind)
     }
-    val monthlyDurations = tracksViewNonEmpty.filter(t => t.username === user.username).groupBy(t => (t.startYear, t.startMonth)).map {
-      case ((year, month), ts) => (year, month, ts.map(_.duration).sum.getOrElse(Duration.Zero.bind))
-    }
-    val monthlyTracks = tracksViewNonEmpty.filter(t => t.username === user.username).groupBy(t => (t.startYear, t.startMonth)).map {
-      case ((year, month), ts) => (year, month, ts.map(_.track).length)
+    val monthlyTracks = statsQuery(user.username)(t => (t.startYear, t.startMonth)) { ts =>
+      ts.map(_.track).length
     }
     val monthlyQuery = monthlyDistances
-      .join(monthlyDurations).on((di, du) => di._1 === du._1 && di._2 === du._2)
-      .join(monthlyTracks).on((didu, mt) => didu._1._1 === mt._1 && didu._1._2 === mt._2)
-      .map { case (((y, m, distance), (_, _, duration)), (_, _, ts)) =>
-      (y, m, distance, duration, ts)
+      .join(monthlyDurations)
+      .on((di, du) => di._1._1 === du._1._1 && di._1._2 === du._1._2)
+      .join(monthlyTracks)
+      .on((didu, mt) => didu._1._1._1 === mt._1._1 && didu._1._1._2 === mt._1._2)
+      .map {
+        case ((((y, m), distance), (_, duration)), (_, ts)) =>
+          (y, m, distance, duration, ts)
+      }
+    val yearlyDistances = statsQuery(user.username)(t => (t.startYear, 1.bind)) { ts =>
+      ts.map(_.length).sum.getOrElse(DistanceM.zero.bind)
     }
+    val yearlyDurations = statsQuery(user.username)(t => (t.startYear, 1.bind)) { ts =>
+      ts.map(_.duration).sum.getOrElse(Duration.Zero.bind)
+    }
+    val yearlyTracks = statsQuery(user.username)(t => (t.startYear, 1.bind)) { ts =>
+      ts.map(_.track).length
+    }
+    val yearlyQuery = yearlyDistances
+      .join(yearlyDurations)
+      .on((di, du) => di._1._1 === du._1._1)
+      .join(yearlyTracks)
+      .on((didu, mt) => didu._1._1._1 === mt._1._1)
+      .map {
+        case ((((year, _), distance), (_, duration)), (_, ts)) =>
+          (year, distance, duration, ts)
+      }
     action {
       for {
         dailyRows <- dailyQuery.result
         monthlyRows <- monthlyQuery.result
-      } yield StatsResponse(
-        dailyRows.map { case (date, distance, duration, trackCount) =>
-          Stats(date, date.plusDays(1), trackCount, distance, duration)
-        } ++
-        monthlyRows.map { case (year: YearVal, month: MonthVal, distance, duration, trackCount) =>
-          val firstOfMonth = DateVal(year, month, DayVal(1))
-          Stats(firstOfMonth, firstOfMonth.plusMonths(1), trackCount, distance, duration)
-        }
-      )
+        yearlyRows <- yearlyQuery.result
+      } yield
+        StatsResponse(
+          dailyRows.map {
+            case (date, distance, duration, trackCount) =>
+              Stats(date, date.plusDays(1), trackCount, distance, duration)
+          },
+          monthlyRows.map {
+            case (year: YearVal, month: MonthVal, distance, duration, trackCount) =>
+              val firstOfMonth = DateVal(year, month, DayVal(1))
+              Stats(firstOfMonth, firstOfMonth.plusMonths(1), trackCount, distance, duration)
+          },
+          yearlyRows.map {
+            case (year, distance, duration, trackCount) =>
+              val firstOfYear = DateVal(year, MonthVal(1), DayVal(1))
+              Stats(firstOfYear, firstOfYear.plusYears(1), trackCount, distance, duration)
+          }
+        )
     }
   }
+
+  private def statsQuery[A: JdbcType, B: JdbcType, N: JdbcType](username: Username)(
+      group: LiftedJoinedTrack => (Rep[A], Rep[B]))(
+      agg: Query[LiftedJoinedTrack, JoinedTrack, Seq] => Rep[N]) =
+    tracksViewNonEmpty.filter(t => t.username === username).groupBy(group).map {
+      case (g, ts) => (g, agg(ts))
+    }
 
   private def eligibleTracksQuery(user: MinimalUserInfo, limits: BoatQuery) =
     if (limits.tracks.nonEmpty)
@@ -320,51 +343,54 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext)
     result
   }
 
-  def updateTitle(track: TrackName, title: TrackTitle, user: UserId): Future[JoinedTrack] = transaction {
-    log.info(s"Updating title of '$track' to '$title'...")
-    for {
-      id <- first(
-        tracksViewNonEmpty.filter(t => t.trackName === track && t.user === user).map(_.track),
-        s"Track not found: '$track'.")
-      _ <- tracksTable
-        .filter(_.id === id)
-        .map(t => (t.canonical, t.title))
-        .update((TrackCanonical(Utils.normalize(title.title)), Option(title)))
-      updated <- first(tracksViewNonEmpty.filter(_.track === id), s"Track ID not found: '$id'.")
-    } yield {
-      log.info(s"Updated title of '$id' to '$title' normalized to '${updated.canonical}'.")
-      updated
+  def updateTitle(track: TrackName, title: TrackTitle, user: UserId): Future[JoinedTrack] =
+    transaction {
+      log.info(s"Updating title of '$track' to '$title'...")
+      for {
+        id <- first(
+          tracksViewNonEmpty.filter(t => t.trackName === track && t.user === user).map(_.track),
+          s"Track not found: '$track'.")
+        _ <- tracksTable
+          .filter(_.id === id)
+          .map(t => (t.canonical, t.title))
+          .update((TrackCanonical(Utils.normalize(title.title)), Option(title)))
+        updated <- first(tracksViewNonEmpty.filter(_.track === id), s"Track ID not found: '$id'.")
+      } yield {
+        log.info(s"Updated title of '$id' to '$title' normalized to '${updated.canonical}'.")
+        updated
+      }
     }
-  }
 
-  def updateComments(track: TrackId, comments: String, user: UserId): Future[JoinedTrack] = transaction {
-    log.info(s"Updating comments of '$track' to '$comments'...")
-    for {
-      id <- first(
-        tracksViewNonEmpty.filter(t => t.track === track && t.user === user).map(_.track),
-        s"Track not found: '$track'.")
-      _ <- tracksTable
-        .filter(_.id === id)
-        .map(t => t.comments)
-        .update(Option(comments))
-      updated <- first(tracksViewNonEmpty.filter(_.track === id), s"Track ID not found: '$id'.")
-    } yield {
-      log.info(s"Updated comments of '$id' to '$comments'.")
-      updated
+  def updateComments(track: TrackId, comments: String, user: UserId): Future[JoinedTrack] =
+    transaction {
+      log.info(s"Updating comments of '$track' to '$comments'...")
+      for {
+        id <- first(
+          tracksViewNonEmpty.filter(t => t.track === track && t.user === user).map(_.track),
+          s"Track not found: '$track'.")
+        _ <- tracksTable
+          .filter(_.id === id)
+          .map(t => t.comments)
+          .update(Option(comments))
+        updated <- first(tracksViewNonEmpty.filter(_.track === id), s"Track ID not found: '$id'.")
+      } yield {
+        log.info(s"Updated comments of '$id' to '$comments'.")
+        updated
+      }
     }
-  }
 
-  override def renameBoat(boat: BoatId, newName: BoatName, user: UserId): Future[BoatRow] = transaction {
-    for {
-      id <- db.first(boatsView.filter(b => b.user === user && b.boat === boat).map(_.boat),
-                     s"Boat not found: '$boat'.")
-      _ <- boatsTable.filter(_.id === id).map(_.name).update(newName)
-      updated <- first(boatsTable.filter(_.id === id), s"Boat not found: '$id'.")
-    } yield {
-      log.info(s"Renamed boat '$id' to '$newName'.")
-      updated
+  override def renameBoat(boat: BoatId, newName: BoatName, user: UserId): Future[BoatRow] =
+    transaction {
+      for {
+        id <- db.first(boatsView.filter(b => b.user === user && b.boat === boat).map(_.boat),
+                       s"Boat not found: '$boat'.")
+        _ <- boatsTable.filter(_.id === id).map(_.name).update(newName)
+        updated <- first(boatsTable.filter(_.id === id), s"Boat not found: '$id'.")
+      } yield {
+        log.info(s"Renamed boat '$id' to '$newName'.")
+        updated
+      }
     }
-  }
 
   private def rangedCoords(limits: TimeRange) =
     pointsTable.filter { c =>
@@ -513,3 +539,23 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext)
 
   private def fail(message: String) = DBIO.failed(new Exception(message))
 }
+
+//case class Joined(sid: SentenceKey,
+//                  sentence: RawSentence,
+//                  track: TrackId,
+//                  trackName: TrackName,
+//                  boat: BoatId,
+//                  boatName: BoatName,
+//                  user: UserId,
+//                  username: Username)
+//
+//case class LiftedJoined(sid: Rep[SentenceKey],
+//                        sentence: Rep[RawSentence],
+//                        track: Rep[TrackId],
+//                        trackName: Rep[TrackName],
+//                        boat: Rep[BoatId],
+//                        boatName: Rep[BoatName],
+//                        user: Rep[UserId],
+//                        username: Rep[Username])
+//
+//implicit object JoinedShape extends CaseClassShape(LiftedJoined.tupled, Joined.tupled)
