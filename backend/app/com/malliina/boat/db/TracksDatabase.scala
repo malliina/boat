@@ -23,6 +23,7 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext)
 
   import db._
   import db.api._
+  type TracksQuery = Query[LiftedJoinedTrack, JoinedTrack, Seq]
 
   val minSpeed: SpeedM = 1.kmh
 
@@ -82,7 +83,7 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext)
   override def tracksFor(user: MinimalUserInfo, filter: TrackQuery): Future[Tracks] =
     trackList(tracksViewNonEmpty.filter(t => t.username === user.username), user.language, filter)
 
-  private def trackList(trackQuery: Query[LiftedJoinedTrack, JoinedTrack, Seq],
+  private def trackList(trackQuery: TracksQuery,
                         language: Language,
                         filter: TrackQuery): Future[Tracks] = action {
     val sortedTracksAction =
@@ -193,67 +194,68 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext)
     }
 
   override def stats(user: MinimalUserInfo, limits: TrackQuery): Future[StatsResponse] = {
-    // 1.bind is a hack because otherwise Slick generates invalid SQL for some reason:
-    // MySQLSyntaxErrorException: Unknown column 'x70.x71' in 'where clause'
-    val dailyDistances = statsQuery(user.username)(t => (t.startDate, 1.bind)) { ts =>
+
+    /** For daily stats, groups by date. For monthly stats, groups by year and month. For yearly
+      * stats, groups by year alone.
+      *
+      * 1.bind is a hack because otherwise Slick generates invalid SQL for some reason:
+      * MySQLSyntaxErrorException: Unknown column 'x70.x71' in 'where clause'
+      */
+    def daily[N: JdbcType](f: TracksQuery => Rep[N]) =
+      statsQuery[DateVal, Int, N](user.username)(t => (t.startDate, 1.bind))(f)
+    def monthly[N: JdbcType](f: TracksQuery => Rep[N]) =
+      statsQuery[YearVal, MonthVal, N](user.username)(t => (t.startYear, t.startMonth))(f)
+    def yearly[N: JdbcType](f: TracksQuery => Rep[N]) =
+      statsQuery[YearVal, Int, N](user.username)(t => (t.startYear, 1.bind))(f)
+
+    def aggregateDistance(ts: TracksQuery) =
       ts.map(_.length).sum.getOrElse(DistanceM.zero.bind)
-    }
-    val dailyDurations = statsQuery(user.username)(t => (t.startDate, 1.bind)) { ts =>
+    def aggregateDuration(ts: TracksQuery) =
       ts.map(_.duration).sum.getOrElse(Duration.Zero.bind)
-    }
-    val dailyTracks = statsQuery(user.username)(t => (t.startDate, 1.bind)) { ts =>
+    def aggregateTrackCount(ts: TracksQuery) =
       ts.map(_.track).length
-    }
-    val dailyQuery = dailyDistances
-      .join(dailyDurations)
+
+    val dailyQuery = daily(aggregateDistance)
+      .join(daily(aggregateDuration))
       .on((di, du) => di._1._1 === du._1._1)
-      .join(dailyTracks)
+      .join(daily(aggregateTrackCount))
       .on((didu, mt) => didu._1._1._1 === mt._1._1)
       .map {
-        case (((d1, distance), (_, duration)), (_, ts)) =>
-          (d1._1, distance, duration, ts)
+        case ((((date, _), distance), (_, duration)), (_, ts)) =>
+          (date, distance, duration, ts)
       }
-    val monthlyDistances = statsQuery(user.username)(t => (t.startYear, t.startMonth)) { ts =>
-      ts.map(_.length).sum.getOrElse(DistanceM.zero.bind)
-    }
-    val monthlyDurations = statsQuery(user.username)(t => (t.startYear, t.startMonth)) { ts =>
-      ts.map(_.duration).sum.getOrElse(Duration.Zero.bind)
-    }
-    val monthlyTracks = statsQuery(user.username)(t => (t.startYear, t.startMonth)) { ts =>
-      ts.map(_.track).length
-    }
-    val monthlyQuery = monthlyDistances
-      .join(monthlyDurations)
+    val monthlyQuery = monthly(aggregateDistance)
+      .join(monthly(aggregateDuration))
       .on((di, du) => di._1._1 === du._1._1 && di._1._2 === du._1._2)
-      .join(monthlyTracks)
+      .join(monthly(aggregateTrackCount))
       .on((didu, mt) => didu._1._1._1 === mt._1._1 && didu._1._1._2 === mt._1._2)
       .map {
         case ((((y, m), distance), (_, duration)), (_, ts)) =>
           (y, m, distance, duration, ts)
       }
-    val yearlyDistances = statsQuery(user.username)(t => (t.startYear, 1.bind)) { ts =>
-      ts.map(_.length).sum.getOrElse(DistanceM.zero.bind)
-    }
-    val yearlyDurations = statsQuery(user.username)(t => (t.startYear, 1.bind)) { ts =>
-      ts.map(_.duration).sum.getOrElse(Duration.Zero.bind)
-    }
-    val yearlyTracks = statsQuery(user.username)(t => (t.startYear, 1.bind)) { ts =>
-      ts.map(_.track).length
-    }
-    val yearlyQuery = yearlyDistances
-      .join(yearlyDurations)
+    val yearlyQuery = yearly(aggregateDistance)
+      .join(yearly(aggregateDuration))
       .on((di, du) => di._1._1 === du._1._1)
-      .join(yearlyTracks)
+      .join(yearly(aggregateTrackCount))
       .on((didu, mt) => didu._1._1._1 === mt._1._1)
       .map {
         case ((((year, _), distance), (_, duration)), (_, ts)) =>
           (year, distance, duration, ts)
       }
+    val userTracks = tracksViewNonEmpty.filter(t => t.username === user.username)
+    val allTimeAction = for {
+      start <- userTracks.map(_.startDate).min.getOrElse(DateVal.now()).result
+      end <- userTracks.map(_.startDate).max.getOrElse(DateVal.now()).result
+      distance <- aggregateDistance(userTracks).result
+      duration <- aggregateDuration(userTracks).result
+      trackCount <- aggregateTrackCount(userTracks).result
+    } yield Stats(start, end, trackCount, distance, duration)
     action {
       for {
         dailyRows <- dailyQuery.result
         monthlyRows <- monthlyQuery.result
         yearlyRows <- yearlyQuery.result
+        allTime <- allTimeAction
       } yield
         StatsResponse(
           dailyRows.map {
@@ -261,7 +263,7 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext)
               Stats(date, date.plusDays(1), trackCount, distance, duration)
           },
           monthlyRows.map {
-            case (year: YearVal, month: MonthVal, distance, duration, trackCount) =>
+            case (year, month, distance, duration, trackCount) =>
               val firstOfMonth = DateVal(year, month, DayVal(1))
               Stats(firstOfMonth, firstOfMonth.plusMonths(1), trackCount, distance, duration)
           },
@@ -269,14 +271,14 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext)
             case (year, distance, duration, trackCount) =>
               val firstOfYear = DateVal(year, MonthVal(1), DayVal(1))
               Stats(firstOfYear, firstOfYear.plusYears(1), trackCount, distance, duration)
-          }
+          },
+          allTime
         )
     }
   }
 
   private def statsQuery[A: JdbcType, B: JdbcType, N: JdbcType](username: Username)(
-      group: LiftedJoinedTrack => (Rep[A], Rep[B]))(
-      agg: Query[LiftedJoinedTrack, JoinedTrack, Seq] => Rep[N]) =
+      group: LiftedJoinedTrack => (Rep[A], Rep[B]))(agg: TracksQuery => Rep[N]) =
     tracksViewNonEmpty.filter(t => t.username === username).groupBy(group).map {
       case (g, ts) => (g, agg(ts))
     }

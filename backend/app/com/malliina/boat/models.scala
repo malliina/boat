@@ -69,6 +69,10 @@ object YearVal extends JsonCompanion[Int, YearVal] {
   override def write(t: YearVal) = t.year
 }
 
+/** Alternative to LocalDate because according to its Javadoc reference equality and other
+  * operations may have unpredictable results whereas this class has predictable structural equality
+  * properties.
+  */
 case class DateVal(year: YearVal, month: MonthVal, day: DayVal) {
   def toLocalDate = LocalDate.of(year.year, month.month, day.day)
   def plusDays(days: Int) = DateVal(toLocalDate.plusDays(1))
@@ -81,6 +85,7 @@ object DateVal {
     Reads(_.validate[LocalDate].map(d => DateVal(d))),
     Writes(dv => Json.toJson(dv.toLocalDate))
   )
+  def now(): DateVal = apply(LocalDate.now())
   def apply(date: LocalDate): DateVal =
     DateVal(YearVal(date.getYear), MonthVal(date.getMonthValue), DayVal(date.getDayOfMonth))
 }
@@ -174,7 +179,7 @@ object Stats {
   implicit val json = Json.format[Stats]
 }
 
-case class StatsResponse(daily: Seq[Stats], monthly: Seq[Stats], yearly: Seq[Stats])
+case class StatsResponse(daily: Seq[Stats], monthly: Seq[Stats], yearly: Seq[Stats], allTime: Stats)
 
 object StatsResponse {
   implicit val json = Json.format[StatsResponse]
