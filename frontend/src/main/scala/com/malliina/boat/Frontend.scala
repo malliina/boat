@@ -17,5 +17,6 @@ object Frontend extends BodyClasses {
       FormHandlers.comments()
     }
     if (contains(AboutClass)) AboutPage()
+    if (contains(StatsClass)) StatsPage()
   }
 }

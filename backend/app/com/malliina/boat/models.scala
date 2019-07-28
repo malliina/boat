@@ -51,22 +51,32 @@ object ClientConf {
   val default = ClientConf(Languages(Lang.fi, Lang.se, Lang.en), Layers.default)
 }
 
-case class DayVal(day: Int) extends AnyVal
+case class DayVal(day: Int) extends AnyVal with WrappedInt {
+  override def value = day
+}
 
 object DayVal extends JsonCompanion[Int, DayVal] {
   override def write(t: DayVal) = t.day
 }
 
-case class MonthVal(month: Int) extends AnyVal
+case class MonthVal(month: Int) extends AnyVal with WrappedInt {
+  override def value = month
+}
 
 object MonthVal extends JsonCompanion[Int, MonthVal] {
   override def write(t: MonthVal) = t.month
 }
 
-case class YearVal(year: Int) extends AnyVal
+case class YearVal(year: Int) extends AnyVal with WrappedInt {
+  override def value = year
+}
 
 object YearVal extends JsonCompanion[Int, YearVal] {
   override def write(t: YearVal) = t.year
+}
+
+trait WrappedInt extends Any {
+  def value: Int
 }
 
 /** Alternative to LocalDate because according to its Javadoc reference equality and other
@@ -78,6 +88,8 @@ case class DateVal(year: YearVal, month: MonthVal, day: DayVal) {
   def plusDays(days: Int) = DateVal(toLocalDate.plusDays(1))
   def plusMonths(months: Int) = DateVal(toLocalDate.plusMonths(1))
   def plusYears(years: Int) = DateVal(toLocalDate.plusYears(1))
+  def iso8601 = toLocalDate.toString
+  override def toString = iso8601
 }
 
 object DateVal {
@@ -183,6 +195,12 @@ case class StatsResponse(daily: Seq[Stats], monthly: Seq[Stats], yearly: Seq[Sta
 
 object StatsResponse {
   implicit val json = Json.format[StatsResponse]
+}
+
+case class TracksBundle(tracks: Seq[TrackRef], stats: StatsResponse)
+
+object TracksBundle {
+  implicit val json = Json.format[TracksBundle]
 }
 
 case class InsertedPoint(point: TrackPointId, track: JoinedTrack) {

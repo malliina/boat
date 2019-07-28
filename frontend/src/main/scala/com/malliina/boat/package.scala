@@ -25,6 +25,12 @@ package object boat {
     }
 
     def show(): Unit = e.classList.remove(Hidden)
+
+    def toggle(cls: String = Hidden): Unit = {
+      val classes = e.classList
+      if (!classes.contains(cls)) classes.add(cls)
+      else classes.remove(cls)
+    }
   }
 
   implicit class EventTargetOps(val et: EventTarget) {

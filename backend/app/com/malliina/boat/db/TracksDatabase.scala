@@ -99,15 +99,15 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext)
       } else {
         trackQuery.sortBy { ljt =>
           (filter.sort, filter.order) match {
-            case (TrackSort.Recent, SortOrder.Desc)   => (ljt.end.desc.nullsLast, ljt.track)
-            case (TrackSort.Recent, SortOrder.Asc)    => (ljt.end.asc.nullsLast, ljt.track)
+            case (TrackSort.Recent, SortOrder.Desc)   => (ljt.start.desc.nullsLast, ljt.track)
+            case (TrackSort.Recent, SortOrder.Asc)    => (ljt.start.asc.nullsLast, ljt.track)
             case (TrackSort.Points, SortOrder.Desc)   => (ljt.points.desc.nullsLast, ljt.track)
             case (TrackSort.Points, SortOrder.Asc)    => (ljt.points.asc.nullsLast, ljt.track)
             case (TrackSort.TopSpeed, SortOrder.Desc) => (ljt.topSpeed.desc.nullsLast, ljt.track)
             case (TrackSort.TopSpeed, SortOrder.Asc)  => (ljt.topSpeed.asc.nullsLast, ljt.track)
             case (TrackSort.Length, SortOrder.Desc)   => (ljt.length.desc.nullsLast, ljt.track)
             case (TrackSort.Length, SortOrder.Asc)    => (ljt.length.asc.nullsLast, ljt.track)
-            case _                                    => (ljt.end.desc.nullsLast, ljt.track)
+            case _                                    => (ljt.start.desc.nullsLast, ljt.track)
           }
         }
       }
@@ -192,6 +192,15 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext)
     historyRows(user, limits).map { rows =>
       collectPointsClassic(rows, user.language)
     }
+
+  override def tracksBundle(user: MinimalUserInfo, filter: TrackQuery): Future[TracksBundle] = {
+    val statsFuture = stats(user, filter)
+    val tracksFuture = tracksFor(user, filter)
+    for {
+      ss <- statsFuture
+      ts <- tracksFuture
+    } yield TracksBundle(ts.tracks, ss)
+  }
 
   override def stats(user: MinimalUserInfo, limits: TrackQuery): Future[StatsResponse] = {
 

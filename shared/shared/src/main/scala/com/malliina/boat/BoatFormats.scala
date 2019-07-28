@@ -6,17 +6,32 @@ import scala.concurrent.duration.Duration
 
 object BoatFormats {
   def formatSpeed(s: SpeedM) = "%.3f".format(s.toKnots)
-
   def formatDistance(d: DistanceM) = "%.3f".format(d.toKilometers)
-
   def formatTemp(t: Temperature) = "%.1f".format(t.toCelsius)
 
   def formatDuration(d: Duration): String = {
+    val parts = split(d)
+    if (parts.days > 0) "%d:%d:%02d:%02d".format(parts.days, parts.hours, parts.minutes, parts.seconds)
+    else if (parts.hours > 0) "%d:%02d:%02d".format(parts.hours, parts.minutes, parts.seconds)
+    else "%02d:%02d".format(parts.minutes, parts.seconds)
+  }
+
+  def durationHuman(d: Duration): String = {
+    val parts = split(d)
+    val days = if (parts.days > 0) s"${parts.days} d " else ""
+    val hours = if (parts.hours > 0) s"${parts.hours} h " else ""
+    s"$days$hours${parts.minutes} m ${parts.seconds} s"
+  }
+
+  def split(d: Duration) = {
     val seconds = d.toSeconds
-    val s = seconds % 60
-    val m = (seconds / 60) % 60
-    val h = (seconds / (60 * 60)) % 24
-    if (h > 0) "%d:%02d:%02d".format(h, m, s)
-    else "%02d:%02d".format(m, s)
+    DurationParts(
+      seconds / (60 * 60 * 24),
+      (seconds / (60 * 60)) % 24,
+      (seconds / 60) % 60,
+      seconds % 60
+    )
   }
 }
+
+case class DurationParts(days: Long, hours: Long, minutes: Long, seconds: Long)

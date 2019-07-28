@@ -66,40 +66,47 @@ class BoatController(mapboxToken: AccessToken,
     fut(result)
   }
 
-  def tracks = userAction(profile, TrackQuery.apply) { req =>
+  def tracks = negotiated(tracksHtml, tracksJson)
+
+  private def tracksJson = userAction(profile, TrackQuery.apply) { req =>
     db.tracksFor(req.user, req.query).map { ts =>
       // Made a mistake in an early API and it's used in early iOS versions.
       // First checks the latest version, then browsers always get the latest since they accept */*.
       def json =
-        if (req.rh.accepts(Version2)) Json.toJson(ts)
+        if (req.rh.accepts(Version2))
+          Json.toJson(ts)
         else if (req.rh.accepts(Version1))
           Json.toJson(TrackSummaries(ts.tracks.map(t => TrackSummary(t))))
-        else Json.toJson(ts)
-      respond(req.rh)(
-        html = Ok(html.tracks(ts.tracks, req.query, BoatLang(req.user.language).lang)),
-        json = Ok(json)
-      )
+        else
+          Json.toJson(ts)
+      Ok(json)
     }
   }
 
-  def track(track: TrackName) = EssentialAction { rh =>
-    val action = respond(rh)(
-      html = index,
-      json = fetchTrack(user => db.ref(track, user.language))
-    )
-    action(rh)
+  private def tracksHtml = userAction(profile, TrackQuery.apply) { req =>
+    db.tracksBundle(req.user, req.query).map { ts =>
+      Ok(html.tracks(ts, req.query, BoatLang(req.user.language).lang))
+    }
   }
 
-  def canonical(track: TrackCanonical) = EssentialAction { rh =>
-    val action = respond(rh)(
-      html = index,
-      json = fetchTrack(user => db.canonical(track, user.language).map(TrackResponse.apply))
-    )
-    action(rh)
-  }
+  def track(track: TrackName) = negotiated(
+    html = index,
+    json = fetchTrack(user => db.ref(track, user.language))
+  )
 
-  def fetchTrack[W: Writes](load: MinimalUserInfo => Future[W]) = secureJson(TrackQuery.apply) { req =>
-    load(req.user)
+  def canonical(track: TrackCanonical) = negotiated(
+    html = index,
+    json = fetchTrack(user => db.canonical(track, user.language).map(TrackResponse.apply))
+  )
+
+  private def negotiated(html: Action[AnyContent], json: Action[AnyContent]) =
+    EssentialAction { rh =>
+      respond(rh)(html, json)(rh)
+    }
+
+  def fetchTrack[W: Writes](load: MinimalUserInfo => Future[W]) = secureJson(TrackQuery.apply) {
+    req =>
+      load(req.user)
   }
 
   def full(track: TrackName) = secureTrack { req =>
@@ -136,7 +143,9 @@ class BoatController(mapboxToken: AccessToken,
   }
 
   def stats = userAction(profile, TrackQuery.apply) { req =>
-    db.stats(req.user, req.query).map { sr => Ok(Json.toJson(sr)) }
+    db.stats(req.user, req.query).map { sr =>
+      Ok(Json.toJson(sr))
+    }
   }
 
   def boatSocket = WebSocket { rh =>

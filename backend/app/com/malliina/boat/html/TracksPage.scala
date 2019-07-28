@@ -1,24 +1,92 @@
 package com.malliina.boat.html
 
+import com.malliina.boat.BoatFormats.{durationHuman, formatDistance}
+import com.malliina.boat.FrontKeys.Hidden
 import com.malliina.boat.http.{SortOrder, TrackQuery, TrackSort}
-import com.malliina.boat.{BoatFormats, Lang, TrackRef}
+import com.malliina.boat.{BoatFormats, Lang, MonthVal, MonthsLang, TracksBundle}
+import com.malliina.measure.DistanceM
 import controllers.routes
 import play.api.mvc.Call
 import scalatags.Text
 import scalatags.Text.all._
 
+import scala.language.implicitConversions
+
 object TracksPage extends BoatImplicits {
   val reverse = routes.BoatController
+  val monthDataAttr = data("month")
+  val yearDataAttr = data("year")
 
-  def apply(tracks: Seq[TrackRef], query: TrackQuery, lang: Lang): Text.TypedTag[String] = {
+  implicit def distanceKmHtml(d: DistanceM): Frag = stringFrag(formatDistance(d) + " km")
+
+  def translate(month: MonthVal, lang: MonthsLang): String = {
+    month.month match {
+      case 1  => lang.jan
+      case 2  => lang.feb
+      case 3  => lang.mar
+      case 4  => lang.apr
+      case 5  => lang.may
+      case 6  => lang.jun
+      case 7  => lang.jul
+      case 8  => lang.aug
+      case 9  => lang.sep
+      case 10 => lang.oct
+      case 11 => lang.nov
+      case 12 => lang.dec
+      case _  => ""
+    }
+  }
+
+  def apply(tracks: TracksBundle, query: TrackQuery, lang: Lang): Text.TypedTag[String] = {
     val sort = query.sort
     val order = query.order
     val isAsc = order == SortOrder.Asc
     val trackLang = lang.track
+    val stats = tracks.stats
+    val allTime = stats.allTime
+
     div(`class` := "container")(
       div(`class` := "row")(
         div(`class` := "col-md-12")(
-          h1(lang.track.tracks)
+          h1(lang.track.trackHistory)
+        )
+      ),
+      div(`class` := "row")(
+        div(`class` := "col-md-12")(
+          h3(lang.labels.statistics)
+        )
+      ),
+      div(`class` := "row")(
+        div(`class` := "col-lg-6")(
+          table(`class` := "table table-hover")(
+            thead(
+              tr(th(lang.time), th(lang.track.distance), th(lang.track.duration))
+            ),
+            tbody(
+              stats.yearly.map { s =>
+                modifier(
+                  tr(`class` := "year-row", yearDataAttr := s.from.year)(
+                    td(s.from.year),
+                    td(s.distance),
+                    td(durationHuman(s.duration))),
+                  stats.monthly.filter(_.from.year == s.from.year).map { month =>
+                    tr(`class` := s"month-row $Hidden",
+                       yearDataAttr := s.from.year,
+                       monthDataAttr := month.from.month)(
+                      td(translate(month.from.month, lang.calendar.months)),
+                      td(month.distance),
+                      td(durationHuman(month.duration)))
+                  }
+                )
+              },
+              tr(td(lang.labels.allTime), td(allTime.distance), td(durationHuman(allTime.duration)))
+            )
+          )
+        )
+      ),
+      div(`class` := "row")(
+        div(`class` := "col-md-12")(
+          h3(lang.track.tracks)
         )
       ),
       table(`class` := "table table-hover")(
@@ -26,17 +94,19 @@ object TracksPage extends BoatImplicits {
           tr(
             column(lang.name, TrackSort.Name, isAsc),
             column(trackLang.date, TrackSort.Recent, isAsc),
+            column(trackLang.duration, TrackSort.Time, isAsc),
             column(trackLang.distance, TrackSort.Length, isAsc),
             column(trackLang.topSpeed, TrackSort.TopSpeed, isAsc)
           )
         ),
         tbody(
-          tracks.map { track =>
+          tracks.tracks.map { track =>
             val speed: String =
               track.topSpeed.map(BoatFormats.formatSpeed).getOrElse(lang.messages.notAvailable)
             tr(
               td(a(href := reverse.index().copy(url = track.canonical.name))(track.describe)),
               td(track.times.range),
+              td(BoatFormats.formatDuration(track.duration)),
               td(track.distanceMeters),
               td(speed)
             )

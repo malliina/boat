@@ -48,6 +48,7 @@ object TrackSort extends EnumLike[TrackSort] {
   case object TopSpeed extends TrackSort("topSpeed")
   case object Length extends TrackSort("length")
   case object Name extends TrackSort("name")
+  case object Time extends TrackSort("duration")
 }
 
 sealed abstract class SortOrder(val name: String) extends Named

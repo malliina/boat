@@ -90,4 +90,5 @@ trait BodyClasses {
   val ChartsClass = "charts"
   val FormsClass = "forms"
   val MapClass = "map"
+  val StatsClass = "stats"
 }

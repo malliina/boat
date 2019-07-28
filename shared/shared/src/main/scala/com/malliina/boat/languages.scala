@@ -1,5 +1,6 @@
 package com.malliina.boat
 
+import com.malliina.boat.Lang.appName
 import com.malliina.http.FullUrl
 import play.api.libs.json.Json
 
@@ -661,6 +662,28 @@ object LimitLang {
   )
 }
 
+case class LabelsLang(statistics: String, monthly: String, yearly: String, allTime: String)
+
+object LabelsLang {
+  implicit val json = Json.format[LabelsLang]
+}
+
+case class MonthsLang(jan: String, feb: String, mar: String, apr: String, may: String, jun: String, jul: String, aug: String, sep: String, oct: String, nov: String, dec: String)
+
+object MonthsLang {
+  implicit val json = Json.format[MonthsLang]
+
+  val se = apply("Januari", "Februari", "Mars", "April", "Maj", "Juni", "Juli", "Augusti", "September", "Oktober", "November", "December")
+  val fi = apply("Tammikuu", "Helmikuu", "Maaliskuu", "Huhtikuu", "Toukokuu", "Kesäkuu", "Heinäkuu", "Elokuu", "Syyskuu", "Lokakuu", "Marraskuu", "Joulukuu")
+  val en = apply("January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December")
+}
+
+case class CalendarLang(months: MonthsLang)
+
+object CalendarLang {
+  implicit val json = Json.format[CalendarLang]
+}
+
 case class Lang(
     appName: String,
     map: String,
@@ -679,11 +702,15 @@ case class Lang(
     profile: ProfileLang,
     messages: MessagesLang,
     settings: SettingsLang,
-    limits: LimitLang
+    limits: LimitLang,
+    labels: LabelsLang,
+    calendar: CalendarLang
 )
 
 object Lang {
   implicit val json = Json.format[Lang]
+
+  val appName = "Boat-Tracker"
 
   def apply(language: Language): Lang = language match {
     case Language.swedish => se
@@ -693,7 +720,7 @@ object Lang {
   }
 
   val en = Lang(
-    "BoatTracker",
+    "Boat-Tracker",
     "Map",
     language = Language.english,
     name = "Name",
@@ -793,14 +820,14 @@ object Lang {
       "Add this token to the Boat-Tracker agent software in your boat to save tracks to this app:",
       "You can later view this token in the Boats section of the app.",
       "Notifications",
-      "Turn on to receive notifications when your boat connects or disconnects from BoatTracker.",
+      s"Turn on to receive notifications when your boat connects or disconnects from $appName.",
       "How it works",
       "Sign In",
       "Sign in to view past tracks driven with your boat.",
       "Boat",
       "Token",
-      "Add the token to the BoatTracker agent software running in your boat. For more information, see https://www.boat-tracker.com/docs/agent.",
-      "Add the token provided after sign in to the Boat-Tracker agent software running in your boat. Subsequently, tracks driven with the boat are saved to your account and can be viewed in this app. For agent installation instructions, see https://www.boat-tracker.com/docs/agent.",
+      s"Add the token to the $appName agent software running in your boat. For more information, see https://www.boat-tracker.com/docs/agent.",
+      s"Add the token provided after sign in to the $appName agent software running in your boat. Subsequently, tracks driven with the boat are saved to your account and can be viewed in this app. For agent installation instructions, see https://www.boat-tracker.com/docs/agent.",
       "Rename",
       "Rename Boat",
       "Name the track",
@@ -809,14 +836,16 @@ object Lang {
       "Cancel",
       "Back",
       "Done",
-      "Hello! You have no saved tracks. To save tracks, you'll need to connect the BoatTracker agent software to the GPS chartplotter in your boat.",
+      s"Hello! You have no saved tracks. To save tracks, you'll need to connect the $appName agent software to the GPS chartplotter in your boat.",
       FormatsLang("dd MMM yyyy", "HH:mm:ss", "HH:mm", "dd MMM yyyy HH:mm:ss")
     ),
-    LimitLang.en
+    LimitLang.en,
+    LabelsLang("Statistics", "Monthly", "Yearly", "All time"),
+    CalendarLang(MonthsLang.en)
   )
 
   val fi = Lang(
-    "BoatTracker",
+    appName,
     "Kartta",
     language = Language.finnish,
     name = "Nimi",
@@ -916,16 +945,16 @@ object Lang {
                  "N/A"),
     SettingsLang(
       "Welcome",
-      "Lisää tämä avain veneeseen asennettuun BoatTracker -sovellukseen tallentaaksesi ajettuja reittejä:",
+      s"Lisää tämä avain veneeseen asennettuun $appName -sovellukseen tallentaaksesi ajettuja reittejä:",
       "Näet tämän avaimen myöhemmin myös sovelluksen Veneet -osiossa.",
       "Notifikaatio",
-      "Vastaanota notifikaatio kun veneesi yhdistää BoatTracker -sovellukseen.",
+      s"Vastaanota notifikaatio kun veneesi yhdistää $appName -sovellukseen.",
       "Kuinka tämä toimii",
       "Kirjaudu sisään",
       "Kirjaudu sisään ja tallenna ajetut matkat",
       "Vene",
       "Avain",
-      "Lisää avain veneeseen asennettuun BoatTracker -sovellukseen. Lisätietoja saat osoitteesta https://docs.boat-tracker.com/agent/.",
+      s"Lisää avain veneeseen asennettuun $appName -sovellukseen. Lisätietoja saat osoitteesta https://docs.boat-tracker.com/agent/.",
       "Kirjautumisen jälkeen saat avaimen, jolla tallennat ajetut matkat käyttäjätunnuksellesi. Lisätietoja saat osoitteesta https://docs.boat-tracker.com/agent/.",
       "Uusi nimi",
       "Nimeä vene",
@@ -935,14 +964,16 @@ object Lang {
       "Keskeytä",
       "Takaisin",
       "Valmis",
-      "Hei! Ei tallennettuja reittejä. Reittien tallennus vaatii BoatTracker -sovelluksen yhdistämisen veneesi karttaplotteriin.",
+      s"Hei! Ei tallennettuja reittejä. Reittien tallennus vaatii $appName -sovelluksen yhdistämisen veneesi karttaplotteriin.",
       FormatsLang("dd.MM.yyyy", "HH:mm:ss", "HH:mm", "dd.MM.yyyy HH:mm:ss")
     ),
-    LimitLang.fi
+    LimitLang.fi,
+    LabelsLang("Tilastot", "Kuukausittain", "Vuosittain", "Kaikki"),
+    CalendarLang(MonthsLang.fi)
   )
 
   val se = Lang(
-    "BoatTracker",
+    appName,
     "Karta",
     language = Language.swedish,
     name = "Namn",
@@ -1036,23 +1067,20 @@ object Lang {
                 "Suomeksi",
                 "Svenska",
                 "English"),
-    MessagesLang("Laddar...",
-                 "Laddning av profildata misslyckades.",
-                 "Inga sparade spår.",
-                 "N/A"),
+    MessagesLang("Laddar...", "Laddning av profildata misslyckades.", "Inga sparade spår.", "N/A"),
     SettingsLang(
       "Välkommen",
-      "Spara den här nyckeln i BoatTracker-appen installerad i din båt för att spara körda rutter:",
+      s"Spara den här nyckeln i $appName-appen installerad i din båt för att spara körda rutter:",
       "Du kan senare läsa nyckeln från sidan Båtar i den här appen.",
       "Notifikationer",
-      "Få notifikationer när din båt är uppkopplad till BoatTracker.",
+      s"Få notifikationer när din båt är uppkopplad till $appName.",
       "Hur det fungerar",
       "Logga in",
       "Logga in för att spara spår",
       "Båt",
       "Nyckel",
-      "Spara nyckeln i BoatTracker-appen installerad i din båt. För mera information, se https://docs.boat-tracker.com/agent/.",
-      "Inloggning skapar en nyckel du kan spara i BoatTracker-appen installerad i din båt. Med nyckeln sparas körda spår under ditt användarnamn. För mera information, se https://docs.boat-tracker.com/agent/.",
+      s"Spara nyckeln i $appName-appen installerad i din båt. För mera information, se https://docs.boat-tracker.com/agent/.",
+      s"Inloggning skapar en nyckel du kan spara i $appName-appen installerad i din båt. Med nyckeln sparas körda spår under ditt användarnamn. För mera information, se https://docs.boat-tracker.com/agent/.",
       "Ändra namn",
       "Namnge båt",
       "Namnge spår",
@@ -1061,10 +1089,12 @@ object Lang {
       "Avbryt",
       "Tillbaka",
       "Färdig",
-      "Inga sparade spår. För att spara spår, koppla BoatTracker-appen till båtens plotter.",
+      s"Inga sparade spår. För att spara spår, koppla $appName-appen till båtens plotter.",
       FormatsLang("dd.MM.yyyy", "HH:mm:ss", "HH:mm", "dd.MM.yyyy HH:mm:ss")
     ),
-    LimitLang.se
+    LimitLang.se,
+    LabelsLang("Statistik", "Per månad", "Per år", "Alla tider"),
+    CalendarLang(MonthsLang.se)
   )
   val default = fi
 }

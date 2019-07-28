@@ -3,7 +3,7 @@ package com.malliina.boat.html
 import com.malliina.boat.FrontKeys._
 import com.malliina.boat.html.BoatHtml.{ScriptAssets, callAttr}
 import com.malliina.boat.http.{Limits, TrackQuery}
-import com.malliina.boat.{AppConf, FullTrack, Lang, TrackRef, UserBoats, Usernames}
+import com.malliina.boat.{AppConf, FullTrack, Lang, TrackRef, TracksBundle, UserBoats, Usernames}
 import com.malliina.html.Tags
 import com.malliina.measure.DistanceM
 import com.malliina.play.tags.TagPage
@@ -38,14 +38,10 @@ class BoatHtml(jsFiles: ScriptAssets) extends Tags(scalatags.Text) {
 //  val mapboxVersion = AppMeta.default.mapboxVersion
 
   implicit def wrapFrag[T <: WrappedString](w: T): StringFrag = stringFrag(w.value)
-  implicit def wrapAttr[T <: WrappedString]: AttrValue[T] = boatStringAttr(_.value)
+  implicit def wrapAttr[T <: WrappedString]: AttrValue[T] = BoatImplicits.boatStringAttr(_.value)
 
-  def boatStringAttr[T](stringify: T => String): AttrValue[T] = { (t: Builder, a: Attr, v: T) =>
-    t.setAttr(a.name, Builder.GenericAttrValueSource(stringify(v)))
-  }
-
-  def tracks(ts: Seq[TrackRef], query: TrackQuery, lang: Lang) =
-    page(PageConf(TracksPage(ts, query, lang), bodyClasses = Nil))
+  def tracks(data: TracksBundle, query: TrackQuery, lang: Lang) =
+    page(PageConf(TracksPage(data, query, lang), bodyClasses = Seq(StatsClass)))
 
   def list(track: FullTrack, current: Limits, lang: BoatLang) =
     page(PageConf(SentencesPage(track, current, lang), bodyClasses = Seq(FormsClass)))
