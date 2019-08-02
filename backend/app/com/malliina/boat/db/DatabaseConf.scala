@@ -8,10 +8,26 @@ import play.api.{Configuration, Mode}
 import slick.ast.FieldSymbol
 import slick.jdbc.{H2Profile, JdbcProfile, MySQLProfile}
 
-object InstantMySQLProfile extends JdbcProfile with MySQLProfile {
-  override val columnTypes = new JdbcTypes
+trait BoatJdbcProfile extends JdbcProfile {
+  def lastId: String
+  def date: String
+  def distance: String
+}
 
-  class JdbcTypes extends super.JdbcTypes {
+object BoatJdbcProfile {
+  def apply(driverName: String): BoatJdbcProfile = driverName match {
+    case DatabaseConf.H2Driver => InstantH2Profile
+    case _                     => InstantMySQLProfile
+  }
+}
+
+object InstantMySQLProfile extends BoatJdbcProfile with MySQLProfile {
+  override val lastId = "last_insert_id"
+  override val date = "date"
+  override val distance = "ST_Distance_Sphere"
+  override val columnTypes = new ProperJdbcTypes
+
+  class ProperJdbcTypes extends super.JdbcTypes {
     override val instantType = new InstantJdbcType {
       override def sqlTypeName(sym: Option[FieldSymbol]) = "TIMESTAMP(3)"
       override def setValue(v: Instant, p: PreparedStatement, idx: Int): Unit =
@@ -25,10 +41,14 @@ object InstantMySQLProfile extends JdbcProfile with MySQLProfile {
   }
 }
 
-object InstantH2Profile extends JdbcProfile with H2Profile {
-  override val columnTypes = new JdbcTypes
+object InstantH2Profile extends BoatJdbcProfile with H2Profile {
+  override val lastId = "scope_identity"
+  override val date = "truncate"
+  // The H2 distance function is wrong, but I just want something that compiles for H2
+  override val distance = "ST_MaxDistance"
+  override val columnTypes = new ProperJdbcTypes
 
-  class JdbcTypes extends super.JdbcTypes {
+  class ProperJdbcTypes extends super.JdbcTypes {
     override val instantType = new InstantJdbcType {
       override def sqlTypeName(sym: Option[FieldSymbol]) = "TIMESTAMP(3)"
       override def setValue(v: Instant, p: PreparedStatement, idx: Int): Unit =
@@ -39,25 +59,11 @@ object InstantH2Profile extends JdbcProfile with H2Profile {
         r.updateTimestamp(idx, Timestamp.from(v))
       override def valueToSQLLiteral(value: Instant): String = s"'${Timestamp.from(value)}'"
     }
-  }
-}
-
-case class ProfileConf(profile: JdbcProfile, lastIdFunc: String)
-
-object ProfileConf {
-  val h2 = ProfileConf(InstantH2Profile, "scope_identity")
-  val mysql = ProfileConf(InstantMySQLProfile, "last_insert_id")
-
-  def apply(driverName: String): ProfileConf = driverName match {
-    case DatabaseConf.H2Driver => h2
-    case _                     => mysql
   }
 }
 
 case class DatabaseConf(url: String, user: String, pass: String, driverName: String) {
-  def profileConf = ProfileConf(driverName)
-
-  def lastIdFunc = profileConf.lastIdFunc
+  def profile = BoatJdbcProfile(driverName)
 }
 
 object DatabaseConf {
@@ -70,13 +76,15 @@ object DatabaseConf {
     else if (mode == Mode.Dev) fromConf(conf).getOrElse(inMemory)
     else fromConf(conf).recover(err => throw new Exception(err.message))
 
-  def inMemory =
-    DatabaseConf(s"jdbc:h2:mem:test;DB_CLOSE_DELAY=-1;DATABASE_TO_UPPER=false", "", "", H2Driver)
+  def inMemory = inMemoryNamed("test")
+
+  def inMemoryNamed(name: String) =
+    DatabaseConf(s"jdbc:h2:mem:$name;DB_CLOSE_DELAY=-1;DATABASE_TO_UPPER=false", "", "", H2Driver)
 
   def fromConf(conf: Configuration): Either[ErrorMessage, DatabaseConf] = {
+    //    conf.get[Configuration]("boat.db")
     def read(key: String) =
       conf.getOptional[String](key).toRight(ErrorMessage(s"Key not found: '$key'."))
-
     for {
       url <- read("boat.db.url")
       user <- read("boat.db.user")

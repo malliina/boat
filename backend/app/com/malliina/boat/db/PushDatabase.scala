@@ -11,24 +11,22 @@ import scala.concurrent.{ExecutionContext, Future}
 object PushDatabase {
   val log = Logger(getClass)
 
-  def apply(db: BoatSchema, push: PushEndpoint, ec: ExecutionContext): PushDatabase =
+  def apply(db: PushSchema, push: PushEndpoint, ec: ExecutionContext): PushDatabase =
     new PushDatabase(db, push)(ec)
 }
 
-class PushDatabase(val db: BoatSchema, val push: PushEndpoint)(implicit ec: ExecutionContext)
-  extends DatabaseOps(db) {
-
+class PushDatabase(db: PushSchema, val push: PushEndpoint)(implicit ec: ExecutionContext)  {
   import db._
   import db.api._
 
-  def enable(input: PushInput): Future[PushId] = action {
+  def enable(input: PushInput): Future[PushId] = db.action {
     (pushInserts += input).map { id =>
       log.info(s"Enabled notifications for ${input.device} token '${input.token}'.")
       id
     }
   }
 
-  def disable(token: PushToken, user: UserId): Future[Boolean] = action {
+  def disable(token: PushToken, user: UserId): Future[Boolean] = db.action {
     pushTable.filter(p => p.token === token && p.user === user).delete.map { rows =>
       if (rows > 0) {
         log.info(s"Disabled notifications for token '$token'.")

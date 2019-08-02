@@ -550,23 +550,3 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext)
 
   private def fail(message: String) = DBIO.failed(new Exception(message))
 }
-
-//case class Joined(sid: SentenceKey,
-//                  sentence: RawSentence,
-//                  track: TrackId,
-//                  trackName: TrackName,
-//                  boat: BoatId,
-//                  boatName: BoatName,
-//                  user: UserId,
-//                  username: Username)
-//
-//case class LiftedJoined(sid: Rep[SentenceKey],
-//                        sentence: Rep[RawSentence],
-//                        track: Rep[TrackId],
-//                        trackName: Rep[TrackName],
-//                        boat: Rep[BoatId],
-//                        boatName: Rep[BoatName],
-//                        user: Rep[UserId],
-//                        username: Rep[Username])
-//
-//implicit object JoinedShape extends CaseClassShape(LiftedJoined.tupled, Joined.tupled)

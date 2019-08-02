@@ -43,6 +43,11 @@ This will make a binary available at [www.boat-tracker.com/files](https://www.bo
 Creating the binary requires a Linux operating system with certain packages installed,
 therefore it is currently a separate step from the release process.
 
+## IntelliJ notes
+
+If using BSP, exclude folder [project/target/node-modules](project/target/node-modules) in the 
+project structure settings to reduce excessive indexing.
+
 ## License
 
 Licensed under the 3-Clause BSD License.

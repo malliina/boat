@@ -6,7 +6,7 @@ import sbtrelease.ReleaseStateTransformations._
 import scala.sys.process.Process
 import scala.util.Try
 
-val mapboxVersion = "1.1.0"
+val mapboxVersion = "1.2.0"
 val utilPlayVersion = "5.2.3"
 val scalaTestVersion = "3.0.8"
 val scalaTagsVersion = "0.7.0"
@@ -65,8 +65,8 @@ val frontend = project
       "org.scalatest" %%% "scalatest" % scalaTestVersion % Test
     ),
     npmDependencies in Compile ++= Seq(
-      "@fortawesome/fontawesome-free" -> "5.9.0",
-      "@mapbox/mapbox-gl-geocoder" -> "4.3.0",
+      "@fortawesome/fontawesome-free" -> "5.10.0",
+      "@mapbox/mapbox-gl-geocoder" -> "4.4.1",
       "@turf/turf" -> "5.1.6",
       "bootstrap" -> "4.3.1",
       "chart.js" -> "2.8.0",
@@ -75,21 +75,21 @@ val frontend = project
       "popper.js" -> "1.15.0"
     ),
     npmDevDependencies in Compile ++= Seq(
-      "autoprefixer" -> "9.6.0",
+      "autoprefixer" -> "9.6.1",
       "cssnano" -> "4.1.10",
-      "css-loader" -> "3.0.0",
-      "file-loader" -> "4.0.0",
+      "css-loader" -> "3.1.0",
+      "file-loader" -> "4.1.0",
       "less" -> "3.9.0",
       "less-loader" -> "5.0.0",
-      "mini-css-extract-plugin" -> "0.7.0",
+      "mini-css-extract-plugin" -> "0.8.0",
       "postcss-import" -> "12.0.1",
       "postcss-loader" -> "3.0.0",
-      "postcss-preset-env" -> "6.6.0",
+      "postcss-preset-env" -> "6.7.0",
       "style-loader" -> "0.23.1",
-      "url-loader" -> "2.0.1",
+      "url-loader" -> "2.1.0",
       "webpack-merge" -> "4.2.1"
     ),
-    version in webpack := "4.35.0",
+    version in webpack := "4.38.0",
     emitSourceMaps := false,
     scalaJSUseMainModuleInitializer := true,
     webpackBundlingMode := BundlingMode.LibraryOnly(),
@@ -117,7 +117,7 @@ val backend = Project("boat", file("backend"))
       "com.amazonaws" % "aws-java-sdk-s3" % "1.11.584",
       "com.malliina" %% "logstreams-client" % "1.6.0",
       "com.malliina" %% "play-social" % utilPlayVersion,
-      "com.malliina" %% "mobile-push" % "1.18.4",
+      "com.malliina" %% "mobile-push" % "1.18.8",
       "com.typesafe.akka" %% "akka-slf4j" % akkaVersion,
       "com.typesafe.akka" %% "akka-stream" % akkaVersion,
       "com.typesafe.akka" %% "akka-http" % akkaHttpVersion,

@@ -6,12 +6,12 @@ import com.malliina.concurrent.Execution.cached
 import scala.concurrent.Future
 
 object FairwayService {
-  def apply(db: BoatSchema) = new FairwayService(db)
+  def apply(db: FairwaySchema): FairwayService = new FairwayService(db)
 }
 
-class FairwayService(val db: BoatSchema) extends DatabaseOps(db) {
+class FairwayService(val db: FairwaySchema) {
+  import db._
   import db.api._
-  import db.{fairwayCoordsTable, fairwaysTable}
 
   def fairwaysAt(at: Coord) = fairways(at.hash)
 
@@ -29,9 +29,9 @@ class FairwayService(val db: BoatSchema) extends DatabaseOps(db) {
       .on(_.id === _.fairway)
       .result
       .map { rows =>
-        val map = rows.map { case (f, c) => CoordFairway(c.hash, f) }
+        val map: Map[CoordHash, FairwayRow] = rows.map { case (f, c) => CoordFairway(c.hash, f) }
           .groupBy(_.coord)
-          .map { case (k, v) => k -> v.head.fairway}
+          .map { case (k, v) => k -> v.head.fairway }
         route.flatMap { coord =>
           map.get(coord).map { fairway =>
             CoordFairway(coord, fairway)

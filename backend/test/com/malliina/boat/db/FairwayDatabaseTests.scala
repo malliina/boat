@@ -9,11 +9,11 @@ import play.api.libs.json.Json
 import concurrent.duration.DurationInt
 
 class FairwayDatabaseTests extends DatabaseSuite {
-  ignore("describe route") {
-    val service = FairwayService(initDb())
-    val fs = await(service.fairways(CoordHash("19.62690,60.37960")))
-    assert(fs.exists(_.id === FairwayId(701)))
-  }
+//  ignore("describe route") {
+//    val service = FairwayService(initDb())
+//    val fs = await(service.fairways(CoordHash("19.62690,60.37960")))
+//    assert(fs.exists(_.id === FairwayId(701)))
+//  }
 
   ignore("import fairways to database") {
     val db = initDb()
@@ -22,6 +22,7 @@ class FairwayDatabaseTests extends DatabaseSuite {
     val coll = Json.parse(strIn).as[FeatureCollection]
     val fs = coll.features
     import db.api._
+    import db._
     await(db.run(db.fairwaysTable.delete))
     val inserts = DBIO
       .sequence(

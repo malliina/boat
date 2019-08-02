@@ -119,7 +119,7 @@ class SpatialSlickTests extends BaseSuite {
   }
 
   def craftDb() = {
-    val db = new SpatialSchema(BoatSchema.dataSource(conf), conf.profileConf)
+    val db = new SpatialSchema(BoatSchema.dataSource(conf), conf.profile)
     db.init()
     db
   }

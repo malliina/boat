@@ -12,9 +12,8 @@ import controllers.routes
 import play.api.Mode
 import play.api.http.MimeTypes
 import play.api.mvc.Call
-import scalatags.Text.all._
-import scalatags.text.Builder
 import scalatags.Text.GenericAttr
+import scalatags.Text.all._
 
 import scala.language.implicitConversions
 
@@ -102,7 +101,7 @@ class BoatHtml(jsFiles: ScriptAssets) extends Tags(scalatags.Text) {
             )
           },
           div(id := MapId, `class` := s"mapbox-map $mapClass"),
-          about.about(user, ub.language),
+          about.about(user, ub.language)
         ),
         bodyClasses = Seq(s"$MapClass $AboutClass")
       )

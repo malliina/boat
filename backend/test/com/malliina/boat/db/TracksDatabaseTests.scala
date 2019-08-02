@@ -123,7 +123,7 @@ class TracksDatabaseTests extends TracksTester {
   ignore("init tokens") {
     val (db, _) = initDbAndTracks()
     import db.api._
-    import db.usersTable
+    import db._
 
     val action = for {
       users <- usersTable.result
