@@ -1,9 +1,12 @@
 package controllers
 
 import com.malliina.http.OkClient
-import com.malliina.play.auth.{AuthConf, BasicAuthHandler, GoogleCodeValidator, OAuthConf}
+import com.malliina.play.auth.{AuthConf, AuthError, AuthHandler, BasicAuthHandler, GoogleCodeValidator, OAuthConf}
+import com.malliina.play.http.HttpConstants
+import com.malliina.values.Email
 import controllers.Social.{EmailKey, GoogleCookie, ProviderCookieName}
-import play.api.mvc.{AbstractController, ControllerComponents, Cookie, DiscardingCookie}
+import play.api.Logger
+import play.api.mvc.{AbstractController, ControllerComponents, Cookie, DiscardingCookie, RequestHeader, Result}
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.{Duration, DurationInt}
@@ -12,6 +15,7 @@ object Social {
   val EmailKey = "boatEmail"
   val GoogleCookie = "google"
   val ProviderCookieName = "boatProvider"
+  val returnUriKey = "returnUri"
 
   def apply(authConf: AuthConf, http: OkClient, comps: ControllerComponents, ec: ExecutionContext) =
     new Social(authConf, comps, http)(ec)
@@ -19,9 +23,25 @@ object Social {
 
 class Social(googleConf: AuthConf, comps: ControllerComponents, http: OkClient)(implicit ec: ExecutionContext)
   extends AbstractController(comps) {
-
+  val log = Logger(getClass)
   val providerCookieDuration: Duration = 3650.days
-  val handler = BasicAuthHandler(routes.BoatController.index(), sessionKey = EmailKey, lastIdKey = "boatLastId")
+
+  object handler extends AuthHandler {
+    val lastIdKey = "boatLastId"
+
+    override def onAuthenticated(user: Email, req: RequestHeader): Result = {
+      val returnUri = req.cookies.get(Social.returnUriKey).map(_.value).getOrElse(routes.BoatController.index().path())
+      log.info(s"Logging in '$user' through OAuth code flow, returning to '$returnUri'...")
+      Redirect(returnUri)
+        .withSession(EmailKey -> user.email)
+        .discardingCookies(DiscardingCookie(Social.returnUriKey))
+        .withCookies(Cookie(lastIdKey, user.email, Option(3650.days).map(_.toSeconds.toInt)))
+        .withHeaders(CACHE_CONTROL -> HttpConstants.NoCacheRevalidate)
+    }
+
+    override def onUnauthorized(error: AuthError, req: RequestHeader): Result = Unauthorized
+  }
+  val handler2 = BasicAuthHandler(routes.BoatController.index(), sessionKey = EmailKey, lastIdKey = "boatLastId")
   val oauthConf = OAuthConf(routes.Social.googleCallback(), handler, googleConf, http)
   val googleValidator = GoogleCodeValidator(oauthConf)
 

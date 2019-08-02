@@ -58,7 +58,7 @@ abstract class AuthController(googleAuth: EmailAuth,
     f.map[Either[Result, T]](t => Right(t)).recover {
       case mce: MissingCredentialsException =>
         log.info(s"Missing credentials in '$rh'.")
-        Left(checkLoginCookie(mce.rh).getOrElse(unauth))
+        Left(redirectToLoginIfGoogle(mce.rh).getOrElse(unauth))
       case ie: IdentityException =>
         log.warn(s"Authentication failed from '$rh': '${ie.error}'.")
         val error: SingleError = ie.error match {
@@ -68,10 +68,10 @@ abstract class AuthController(googleAuth: EmailAuth,
         Left(Unauthorized(Errors(error)))
     }
 
-  private def checkLoginCookie(rh: RequestHeader): Option[Result] =
+  private def redirectToLoginIfGoogle(rh: RequestHeader): Option[Result] =
     googleCookie(rh).map { _ =>
-      log.info(s"Redir to login")
-      Redirect(routes.Social.google())
+      log.info(s"Redirecting to Google login from '${rh.uri}'...")
+      Redirect(routes.Social.google()).withCookies(Cookie(Social.returnUriKey, rh.uri))
     }
 
   protected def googleCookie(rh: RequestHeader): Option[Cookie] =
