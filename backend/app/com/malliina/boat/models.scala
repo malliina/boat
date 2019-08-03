@@ -12,7 +12,7 @@ import play.api.http.Writeable
 import play.api.libs.json.Json.toJson
 import play.api.libs.json._
 import play.api.mvc.PathBindable
-
+import BoatJson.durationFormat
 import scala.concurrent.duration.{DurationDouble, FiniteDuration}
 
 case class Languages(finnish: Lang, swedish: Lang, english: Lang)
@@ -49,34 +49,6 @@ case class ClientConf(languages: Languages, layers: Layers)
 object ClientConf {
   implicit val json = Json.format[ClientConf]
   val default = ClientConf(Languages(Lang.fi, Lang.se, Lang.en), Layers.default)
-}
-
-case class DayVal(day: Int) extends AnyVal with WrappedInt {
-  override def value = day
-}
-
-object DayVal extends JsonCompanion[Int, DayVal] {
-  override def write(t: DayVal) = t.day
-}
-
-case class MonthVal(month: Int) extends AnyVal with WrappedInt {
-  override def value = month
-}
-
-object MonthVal extends JsonCompanion[Int, MonthVal] {
-  override def write(t: MonthVal) = t.month
-}
-
-case class YearVal(year: Int) extends AnyVal with WrappedInt {
-  override def value = year
-}
-
-object YearVal extends JsonCompanion[Int, YearVal] {
-  override def write(t: YearVal) = t.year
-}
-
-trait WrappedInt extends Any {
-  def value: Int
 }
 
 /** Alternative to LocalDate because according to its Javadoc reference equality and other
@@ -177,7 +149,8 @@ case class JoinedTrack(track: TrackId,
   )
 }
 
-case class Stats(from: DateVal,
+case class Stats(label: String,
+                 from: DateVal,
                  to: DateVal,
                  trackCount: Int,
                  distance: DistanceM,
@@ -185,14 +158,36 @@ case class Stats(from: DateVal,
                  days: Int)
 
 object Stats {
-  implicit val durationFormat: Format[FiniteDuration] = Format[FiniteDuration](
-    Reads(_.validate[Double].map(_.seconds)),
-    Writes(d => toJson(d.toUnit(TimeUnit.SECONDS)))
-  )
   implicit val json = Json.format[Stats]
 }
 
-case class StatsResponse(daily: Seq[Stats], monthly: Seq[Stats], yearly: Seq[Stats], allTime: Stats)
+case class MonthlyStats(label: String,
+                        year: YearVal,
+                        month: MonthVal,
+                        trackCount: Int,
+                        distance: DistanceM,
+                        duration: FiniteDuration,
+                        days: Int)
+
+object MonthlyStats {
+  implicit val json = Json.format[MonthlyStats]
+}
+
+case class YearlyStats(label: String,
+                       year: YearVal,
+                       trackCount: Int,
+                       distance: DistanceM,
+                       duration: FiniteDuration,
+                       days: Int,
+                       monthly: Seq[MonthlyStats])
+
+object YearlyStats {
+  implicit val json = Json.format[YearlyStats]
+}
+
+case class StatsResponse(daily: Seq[Stats],
+                         yearly: Seq[YearlyStats],
+                         allTime: Stats)
 
 object StatsResponse {
   implicit val json = Json.format[StatsResponse]

@@ -671,14 +671,74 @@ object LabelsLang {
   implicit val json = Json.format[LabelsLang]
 }
 
-case class MonthsLang(jan: String, feb: String, mar: String, apr: String, may: String, jun: String, jul: String, aug: String, sep: String, oct: String, nov: String, dec: String)
+case class MonthsLang(jan: String,
+                      feb: String,
+                      mar: String,
+                      apr: String,
+                      may: String,
+                      jun: String,
+                      jul: String,
+                      aug: String,
+                      sep: String,
+                      oct: String,
+                      nov: String,
+                      dec: String) {
+  def apply(month: MonthVal) = month.value match {
+    case 1  => jan
+    case 2  => feb
+    case 3  => mar
+    case 4  => apr
+    case 5  => may
+    case 6  => jun
+    case 7  => jul
+    case 8  => aug
+    case 9  => sep
+    case 10 => oct
+    case 11 => nov
+    case 12 => dec
+    case _ => ""
+  }
+}
 
 object MonthsLang {
   implicit val json = Json.format[MonthsLang]
 
-  val se = apply("Januari", "Februari", "Mars", "April", "Maj", "Juni", "Juli", "Augusti", "September", "Oktober", "November", "December")
-  val fi = apply("Tammikuu", "Helmikuu", "Maaliskuu", "Huhtikuu", "Toukokuu", "Kesäkuu", "Heinäkuu", "Elokuu", "Syyskuu", "Lokakuu", "Marraskuu", "Joulukuu")
-  val en = apply("January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December")
+  val se = apply("Januari",
+                 "Februari",
+                 "Mars",
+                 "April",
+                 "Maj",
+                 "Juni",
+                 "Juli",
+                 "Augusti",
+                 "September",
+                 "Oktober",
+                 "November",
+                 "December")
+  val fi = apply("Tammikuu",
+                 "Helmikuu",
+                 "Maaliskuu",
+                 "Huhtikuu",
+                 "Toukokuu",
+                 "Kesäkuu",
+                 "Heinäkuu",
+                 "Elokuu",
+                 "Syyskuu",
+                 "Lokakuu",
+                 "Marraskuu",
+                 "Joulukuu")
+  val en = apply("January",
+                 "February",
+                 "March",
+                 "April",
+                 "May",
+                 "June",
+                 "July",
+                 "August",
+                 "September",
+                 "October",
+                 "November",
+                 "December")
 }
 
 case class CalendarLang(months: MonthsLang)

@@ -84,8 +84,9 @@ class BoatController(mapboxToken: AccessToken,
   }
 
   private def tracksHtml = userAction(profile, TrackQuery.apply) { req =>
-    db.tracksBundle(req.user, req.query).map { ts =>
-      Ok(html.tracks(ts, req.query, BoatLang(req.user.language).lang))
+  val lang = BoatLang(req.user.language).lang
+    db.tracksBundle(req.user, req.query, lang).map { ts =>
+      Ok(html.tracks(ts, req.query, lang))
     }
   }
 
@@ -143,7 +144,7 @@ class BoatController(mapboxToken: AccessToken,
   }
 
   def stats = userAction(profile, TrackQuery.apply) { req =>
-    db.stats(req.user, req.query).map { sr =>
+    db.stats(req.user, req.query, BoatLang(req.user.language).lang).map { sr =>
       Ok(Json.toJson(sr))
     }
   }

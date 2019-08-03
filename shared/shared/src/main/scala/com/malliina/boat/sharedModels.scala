@@ -10,6 +10,34 @@ import scalatags.generic.Bundle
 import scala.concurrent.duration.Duration
 import scala.math.Ordering.Double.TotalOrdering
 
+case class DayVal(day: Int) extends AnyVal with WrappedInt {
+  override def value = day
+}
+
+object DayVal extends JsonCompanion[Int, DayVal] {
+  override def write(t: DayVal) = t.day
+}
+
+case class MonthVal(month: Int) extends AnyVal with WrappedInt {
+  override def value = month
+}
+
+object MonthVal extends JsonCompanion[Int, MonthVal] {
+  override def write(t: MonthVal) = t.month
+}
+
+case class YearVal(year: Int) extends AnyVal with WrappedInt {
+  override def value = year
+}
+
+object YearVal extends JsonCompanion[Int, YearVal] {
+  override def write(t: YearVal) = t.year
+}
+
+trait WrappedInt extends Any {
+  def value: Int
+}
+
 case class Bearing(bearing: Int) extends AnyVal
 
 object Bearing {

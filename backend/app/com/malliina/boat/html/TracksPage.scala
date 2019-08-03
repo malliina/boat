@@ -70,21 +70,21 @@ object TracksPage extends BoatImplicits {
               )
             ),
             tbody(
-              stats.yearly.map { s =>
+              stats.yearly.map { year =>
                 modifier(
-                  tr(`class` := "year-row", yearDataAttr := s.from.year)(
-                    td(s.from.year),
-                    td(s.distance),
-                    td(durationHuman(s.duration)),
-                    td(inHours(s.duration)),
-                    td(s.trackCount),
-                    td(s.days)
+                  tr(`class` := "year-row", yearDataAttr := year.year)(
+                    td(year.year),
+                    td(year.distance),
+                    td(durationHuman(year.duration)),
+                    td(inHours(year.duration)),
+                    td(year.trackCount),
+                    td(year.days)
                   ),
-                  stats.monthly.filter(_.from.year == s.from.year).map { month =>
+                  year.monthly.map { month =>
                     tr(`class` := s"month-row $Hidden",
-                       yearDataAttr := s.from.year,
-                       monthDataAttr := month.from.month)(
-                      td(translate(month.from.month, lang.calendar.months)),
+                       yearDataAttr := year.year,
+                       monthDataAttr := month.month)(
+                      td(translate(month.month, lang.calendar.months)),
                       td(month.distance),
                       td(durationHuman(month.duration)),
                       td(inHours(month.duration)),

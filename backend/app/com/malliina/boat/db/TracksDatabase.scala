@@ -193,8 +193,8 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext)
       collectPointsClassic(rows, user.language)
     }
 
-  override def tracksBundle(user: MinimalUserInfo, filter: TrackQuery): Future[TracksBundle] = {
-    val statsFuture = stats(user, filter)
+  override def tracksBundle(user: MinimalUserInfo, filter: TrackQuery, lang: Lang): Future[TracksBundle] = {
+    val statsFuture = stats(user, filter, lang)
     val tracksFuture = tracksFor(user, filter)
     for {
       ss <- statsFuture
@@ -202,7 +202,7 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext)
     } yield TracksBundle(ts.tracks, ss)
   }
 
-  override def stats(user: MinimalUserInfo, limits: TrackQuery): Future[StatsResponse] = {
+  override def stats(user: MinimalUserInfo, limits: TrackQuery, lang: Lang): Future[StatsResponse] = {
 
     /** For daily stats, groups by date. For monthly stats, groups by year and month. For yearly
       * stats, groups by year alone.
@@ -267,31 +267,31 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext)
       duration <- aggregateDuration(userTracks).result
       trackCount <- aggregateTrackCount(userTracks).result
       days <- aggregateDays(userTracks).result
-    } yield Stats(start, end, trackCount, distance, duration, days)
+    } yield Stats(lang.labels.allTime, start, end, trackCount, distance, duration, days)
     action {
       for {
         dailyRows <- dailyQuery.result
         monthlyRows <- monthlyQuery.result
         yearlyRows <- yearlyQuery.result
         allTime <- allTimeAction
-      } yield
-        StatsResponse(
-          dailyRows.map {
-            case (date, distance, duration, trackCount, days) =>
-              Stats(date, date.plusDays(1), trackCount, distance, duration, days)
-          },
-          monthlyRows.map {
-            case (year, month, distance, duration, trackCount, days) =>
-              val firstOfMonth = DateVal(year, month, DayVal(1))
-              Stats(firstOfMonth, firstOfMonth.plusMonths(1), trackCount, distance, duration, days)
-          },
-          yearlyRows.map {
-            case (year, distance, duration, trackCount, days) =>
-              val firstOfYear = DateVal(year, MonthVal(1), DayVal(1))
-              Stats(firstOfYear, firstOfYear.plusYears(1), trackCount, distance, duration, days)
-          },
-          allTime
-        )
+      } yield {
+        val daily = dailyRows.map {
+          case (date, distance, duration, trackCount, days) =>
+            Stats(date.iso8601, date, date.plusDays(1), trackCount, distance, duration, days)
+        }
+        val months = monthlyRows.map {
+          case (year, month, distance, duration, trackCount, days) =>
+            val firstOfMonth = DateVal(year, month, DayVal(1))
+            MonthlyStats(lang.calendar.months(month), year, month, trackCount, distance, duration, days)
+        }
+
+        val years = yearlyRows.map {
+          case (year, distance, duration, trackCount, days) =>
+            val firstOfYear = DateVal(year, MonthVal(1), DayVal(1))
+            YearlyStats(year.year.toString, year, trackCount, distance, duration, days, months.filter(_.year == year))
+        }
+        StatsResponse(daily, years, allTime)
+      }
     }
   }
 
