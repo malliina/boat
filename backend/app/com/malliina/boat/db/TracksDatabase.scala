@@ -223,33 +223,41 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext)
       ts.map(_.duration).sum.getOrElse(Duration.Zero.bind)
     def aggregateTrackCount(ts: TracksQuery) =
       ts.map(_.track).length
+    def aggregateDays(ts: TracksQuery) =
+      ts.map(_.startDate).countDistinct
 
     val dailyQuery = daily(aggregateDistance)
       .join(daily(aggregateDuration))
       .on((di, du) => di._1._1 === du._1._1)
       .join(daily(aggregateTrackCount))
       .on((didu, mt) => didu._1._1._1 === mt._1._1)
+      .join(daily(aggregateDays))
+      .on((didumt, da) => didumt._1._1._1._1 === da._1._1)
       .map {
-        case ((((date, _), distance), (_, duration)), (_, ts)) =>
-          (date, distance, duration, ts)
+        case (((((date, _), distance), (_, duration)), (_, ts)), (_, days)) =>
+          (date, distance, duration, ts, days)
       }
     val monthlyQuery = monthly(aggregateDistance)
       .join(monthly(aggregateDuration))
       .on((di, du) => di._1._1 === du._1._1 && di._1._2 === du._1._2)
       .join(monthly(aggregateTrackCount))
       .on((didu, mt) => didu._1._1._1 === mt._1._1 && didu._1._1._2 === mt._1._2)
+      .join(monthly(aggregateDays))
+      .on((didumt, da) => didumt._1._1._1._1 === da._1._1 && didumt._1._1._1._2 === da._1._2)
       .map {
-        case ((((y, m), distance), (_, duration)), (_, ts)) =>
-          (y, m, distance, duration, ts)
+        case (((((y, m), distance), (_, duration)), (_, ts)), (_, days)) =>
+          (y, m, distance, duration, ts, days)
       }
     val yearlyQuery = yearly(aggregateDistance)
       .join(yearly(aggregateDuration))
       .on((di, du) => di._1._1 === du._1._1)
       .join(yearly(aggregateTrackCount))
       .on((didu, mt) => didu._1._1._1 === mt._1._1)
+      .join(yearly(aggregateDays))
+      .on((didumt, da) => didumt._1._1._1._1 === da._1._1)
       .map {
-        case ((((year, _), distance), (_, duration)), (_, ts)) =>
-          (year, distance, duration, ts)
+        case (((((year, _), distance), (_, duration)), (_, ts)), (_, days)) =>
+          (year, distance, duration, ts, days)
       }
     val userTracks = tracksViewNonEmpty.filter(t => t.username === user.username)
     val allTimeAction = for {
@@ -258,7 +266,8 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext)
       distance <- aggregateDistance(userTracks).result
       duration <- aggregateDuration(userTracks).result
       trackCount <- aggregateTrackCount(userTracks).result
-    } yield Stats(start, end, trackCount, distance, duration)
+      days <- aggregateDays(userTracks).result
+    } yield Stats(start, end, trackCount, distance, duration, days)
     action {
       for {
         dailyRows <- dailyQuery.result
@@ -268,18 +277,18 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext)
       } yield
         StatsResponse(
           dailyRows.map {
-            case (date, distance, duration, trackCount) =>
-              Stats(date, date.plusDays(1), trackCount, distance, duration)
+            case (date, distance, duration, trackCount, days) =>
+              Stats(date, date.plusDays(1), trackCount, distance, duration, days)
           },
           monthlyRows.map {
-            case (year, month, distance, duration, trackCount) =>
+            case (year, month, distance, duration, trackCount, days) =>
               val firstOfMonth = DateVal(year, month, DayVal(1))
-              Stats(firstOfMonth, firstOfMonth.plusMonths(1), trackCount, distance, duration)
+              Stats(firstOfMonth, firstOfMonth.plusMonths(1), trackCount, distance, duration, days)
           },
           yearlyRows.map {
-            case (year, distance, duration, trackCount) =>
+            case (year, distance, duration, trackCount, days) =>
               val firstOfYear = DateVal(year, MonthVal(1), DayVal(1))
-              Stats(firstOfYear, firstOfYear.plusYears(1), trackCount, distance, duration)
+              Stats(firstOfYear, firstOfYear.plusYears(1), trackCount, distance, duration, days)
           },
           allTime
         )

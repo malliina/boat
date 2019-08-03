@@ -57,13 +57,17 @@ object TracksPage extends BoatImplicits {
         )
       ),
       div(`class` := "row")(
-        div(`class` := "col-lg-6")(
+        div(`class` := "col-xl-8")(
           table(`class` := "table table-hover")(
             thead(
-              tr(th(lang.time),
-                 th(lang.track.distance),
-                 th(lang.track.duration),
-                 th(lang.track.hours))
+              tr(
+                th(lang.time),
+                th(trackLang.distance),
+                th(trackLang.duration),
+                th(trackLang.hours),
+                th(trackLang.routes),
+                th(trackLang.days)
+              )
             ),
             tbody(
               stats.yearly.map { s =>
@@ -72,7 +76,9 @@ object TracksPage extends BoatImplicits {
                     td(s.from.year),
                     td(s.distance),
                     td(durationHuman(s.duration)),
-                    td(inHours(s.duration))
+                    td(inHours(s.duration)),
+                    td(s.trackCount),
+                    td(s.days)
                   ),
                   stats.monthly.filter(_.from.year == s.from.year).map { month =>
                     tr(`class` := s"month-row $Hidden",
@@ -81,7 +87,9 @@ object TracksPage extends BoatImplicits {
                       td(translate(month.from.month, lang.calendar.months)),
                       td(month.distance),
                       td(durationHuman(month.duration)),
-                      td(inHours(month.duration))
+                      td(inHours(month.duration)),
+                      td(month.trackCount),
+                      td(month.days)
                     )
                   }
                 )
@@ -90,7 +98,9 @@ object TracksPage extends BoatImplicits {
                 td(lang.labels.allTime),
                 td(allTime.distance),
                 td(durationHuman(allTime.duration)),
-                td(inHours(allTime.duration))
+                td(inHours(allTime.duration)),
+                td(allTime.trackCount),
+                td(allTime.days)
               )
             )
           )

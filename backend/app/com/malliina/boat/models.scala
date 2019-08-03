@@ -181,7 +181,8 @@ case class Stats(from: DateVal,
                  to: DateVal,
                  trackCount: Int,
                  distance: DistanceM,
-                 duration: FiniteDuration)
+                 duration: FiniteDuration,
+                 days: Int)
 
 object Stats {
   implicit val durationFormat: Format[FiniteDuration] = Format[FiniteDuration](
