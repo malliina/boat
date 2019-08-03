@@ -203,6 +203,7 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext)
   }
 
   override def stats(user: MinimalUserInfo, limits: TrackQuery, lang: Lang): Future[StatsResponse] = {
+    val order = limits.order
 
     /** For daily stats, groups by date. For monthly stats, groups by year and month. For yearly
       * stats, groups by year alone.
@@ -237,6 +238,10 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext)
         case (((((date, _), distance), (_, duration)), (_, ts)), (_, days)) =>
           (date, distance, duration, ts, days)
       }
+      .sortBy { case (date: Rep[DateVal], _, _, _, _) =>
+        if (order == SortOrder.Asc) date.asc
+        else date.desc
+      }
     val monthlyQuery = monthly(aggregateDistance)
       .join(monthly(aggregateDuration))
       .on((di, du) => di._1._1 === du._1._1 && di._1._2 === du._1._2)
@@ -248,6 +253,10 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext)
         case (((((y, m), distance), (_, duration)), (_, ts)), (_, days)) =>
           (y, m, distance, duration, ts, days)
       }
+      .sortBy { case (year: Rep[YearVal], month: Rep[MonthVal], _, _, _, _) =>
+        if (order == SortOrder.Asc) (year.asc, month.asc)
+        else (year.desc, month.desc)
+      }
     val yearlyQuery = yearly(aggregateDistance)
       .join(yearly(aggregateDuration))
       .on((di, du) => di._1._1 === du._1._1)
@@ -258,6 +267,10 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext)
       .map {
         case (((((year, _), distance), (_, duration)), (_, ts)), (_, days)) =>
           (year, distance, duration, ts, days)
+      }
+      .sortBy { case (year: Rep[YearVal], _, _, _, _) =>
+        if (order == SortOrder.Asc) year.asc
+        else year.desc
       }
     val userTracks = tracksViewNonEmpty.filter(t => t.username === user.username)
     val allTimeAction = for {
@@ -281,13 +294,11 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext)
         }
         val months = monthlyRows.map {
           case (year, month, distance, duration, trackCount, days) =>
-            val firstOfMonth = DateVal(year, month, DayVal(1))
             MonthlyStats(lang.calendar.months(month), year, month, trackCount, distance, duration, days)
         }
 
         val years = yearlyRows.map {
           case (year, distance, duration, trackCount, days) =>
-            val firstOfYear = DateVal(year, MonthVal(1), DayVal(1))
             YearlyStats(year.year.toString, year, trackCount, distance, duration, days, months.filter(_.year == year))
         }
         StatsResponse(daily, years, allTime)
