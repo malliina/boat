@@ -3,7 +3,7 @@ package com.malliina.boat.db
 import com.malliina.boat.{Coord, CoordHash, FairwayInfo, FairwayLighting, Latitude, Longitude, SeaArea}
 import com.malliina.measure.DistanceM
 
-trait FairwaySchema extends MappingsT with DatabaseClient { self: JdbcComponent =>
+trait FairwaySchema extends Mappings with DatabaseClient { self: JdbcComponent =>
   import api._
   val fairwaysTable = TableQuery[FairwaysTable]
   val fairwayCoordsTable = TableQuery[FairwayCoordsTable]

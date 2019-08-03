@@ -7,7 +7,7 @@ import com.malliina.boat.db.BoatSchema.CreatedTimestampType
 import com.malliina.measure.{DistanceM, SpeedM, Temperature}
 import com.malliina.values.{Email, UserId, Username}
 
-trait TracksSchema extends MappingsT with DatabaseClient { self: JdbcComponent with QueryModels =>
+trait TracksSchema extends Mappings with DatabaseClient { self: JdbcComponent with QueryModels =>
   import api._
 
   val usersTable = TableQuery[UsersTable]

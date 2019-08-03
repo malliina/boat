@@ -177,10 +177,10 @@ class BoatController(mapboxToken: AccessToken,
         BoatQuery(rh).map { limits =>
           val username = user.username
           log.info(s"Viewer '$username' joined.")
-          // Show only recent tracks for anon users
           val historicalLimits: BoatQuery =
             if (limits.tracks.nonEmpty && username == anonUser) BoatQuery.tracks(limits.tracks)
-            else if (user.username == anonUser) BoatQuery.recent(Instant.now())
+//            else if (user.username == anonUser) BoatQuery.recent(Instant.now())
+            else if (user.username == anonUser) BoatQuery.empty
             else limits
           val history: Source[CoordsEvent, NotUsed] =
             Source.fromFuture(db.history(user, historicalLimits)).flatMapConcat { es =>

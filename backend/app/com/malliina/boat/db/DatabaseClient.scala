@@ -62,7 +62,7 @@ trait DatabaseClient extends JdbcComponent {
     log info s"Created table '$name'."
   }
 
-  def createIfNotExists[T <: jdbc.Table[_]](tables: TableQuery[T]*): Unit =
+  def createIfNotExists[T <: Table[_]](tables: TableQuery[T]*): Unit =
     tables.reverse.filter(t => !exists(t)).foreach(t => initTable(t))
 
   def exists[T <: AbstractTable[_]](table: TableQuery[T]): Boolean = {

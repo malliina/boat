@@ -23,6 +23,8 @@ object BoatFormats {
     s"$days$hours${parts.minutes} m ${parts.seconds} s"
   }
 
+  def inHours(d: Duration): String = s"${d.toHours} h"
+
   def split(d: Duration) = {
     val seconds = d.toSeconds
     DurationParts(

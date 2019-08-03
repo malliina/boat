@@ -6,7 +6,7 @@ import com.malliina.boat.{MobileDevice, PushId, PushToken}
 import com.malliina.boat.db.BoatSchema.CreatedTimestampType
 import com.malliina.values.UserId
 
-trait PushSchema extends MappingsT with DatabaseClient { self: JdbcComponent =>
+trait PushSchema extends Mappings with DatabaseClient { self: JdbcComponent =>
   import api._
 
   val pushTable = TableQuery[PushClientsTable]

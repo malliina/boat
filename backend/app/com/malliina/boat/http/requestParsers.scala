@@ -128,6 +128,7 @@ object BoatQuery {
   val bindCanonical =
     QueryStringBindable.bindableString.transform[TrackCanonical](TrackCanonical.apply, _.name)
   val canonicalsBindable = QueryStringBindable.bindableSeq[TrackCanonical](bindCanonical)
+  val empty = BoatQuery(Limits(0, 0), TimeRange(None, None), Nil, Nil, None, None, newest = true)
 
   def tracks(tracks: Seq[TrackName]): BoatQuery =
     BoatQuery(Limits.default,

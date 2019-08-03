@@ -1,6 +1,6 @@
 package com.malliina.boat.html
 
-import com.malliina.boat.BoatFormats.{durationHuman, formatDistance}
+import com.malliina.boat.BoatFormats.{durationHuman, formatDistance, inHours}
 import com.malliina.boat.FrontKeys.Hidden
 import com.malliina.boat.http.{SortOrder, TrackQuery, TrackSort}
 import com.malliina.boat.{BoatFormats, Lang, MonthVal, MonthsLang, TracksBundle}
@@ -60,7 +60,10 @@ object TracksPage extends BoatImplicits {
         div(`class` := "col-lg-6")(
           table(`class` := "table table-hover")(
             thead(
-              tr(th(lang.time), th(lang.track.distance), th(lang.track.duration))
+              tr(th(lang.time),
+                 th(lang.track.distance),
+                 th(lang.track.duration),
+                 th(lang.track.hours))
             ),
             tbody(
               stats.yearly.map { s =>
@@ -68,18 +71,27 @@ object TracksPage extends BoatImplicits {
                   tr(`class` := "year-row", yearDataAttr := s.from.year)(
                     td(s.from.year),
                     td(s.distance),
-                    td(durationHuman(s.duration))),
+                    td(durationHuman(s.duration)),
+                    td(inHours(s.duration))
+                  ),
                   stats.monthly.filter(_.from.year == s.from.year).map { month =>
                     tr(`class` := s"month-row $Hidden",
                        yearDataAttr := s.from.year,
                        monthDataAttr := month.from.month)(
                       td(translate(month.from.month, lang.calendar.months)),
                       td(month.distance),
-                      td(durationHuman(month.duration)))
+                      td(durationHuman(month.duration)),
+                      td(inHours(month.duration))
+                    )
                   }
                 )
               },
-              tr(td(lang.labels.allTime), td(allTime.distance), td(durationHuman(allTime.duration)))
+              tr(
+                td(lang.labels.allTime),
+                td(allTime.distance),
+                td(durationHuman(allTime.duration)),
+                td(inHours(allTime.duration))
+              )
             )
           )
         )
@@ -92,11 +104,11 @@ object TracksPage extends BoatImplicits {
       table(`class` := "table table-hover")(
         thead(
           tr(
-            column(lang.name, TrackSort.Name, isAsc),
-            column(trackLang.date, TrackSort.Recent, isAsc),
-            column(trackLang.duration, TrackSort.Time, isAsc),
-            column(trackLang.distance, TrackSort.Length, isAsc),
-            column(trackLang.topSpeed, TrackSort.TopSpeed, isAsc)
+            column(lang.name, TrackSort.Name, sort, isAsc),
+            column(trackLang.date, TrackSort.Recent, sort, isAsc),
+            column(trackLang.duration, TrackSort.Time, sort, isAsc),
+            column(trackLang.distance, TrackSort.Length, sort, isAsc),
+            column(trackLang.topSpeed, TrackSort.TopSpeed, sort, isAsc)
           )
         ),
         tbody(
@@ -116,15 +128,20 @@ object TracksPage extends BoatImplicits {
     )
   }
 
-  def column(name: Modifier, sort: TrackSort, isAsc: Boolean) = {
-    val upOrDown = if (isAsc) "up" else "down"
+  def column(name: Modifier, sort: TrackSort, activeSort: TrackSort, isAsc: Boolean) = {
+    val isActive = sort == activeSort
+    val mod =
+      if (isActive)
+        if (isAsc) "chevron-up" else "chevron-down"
+      else
+        "sort"
     val inverseOrder = if (isAsc) SortOrder.Desc.name else SortOrder.Asc.name
     th(
       a(href := withQuery(reverse.tracks(),
                           Map(TrackSort.key -> sort.name, SortOrder.key -> inverseOrder)))(
         name,
         " ",
-        i(`class` := s"fas fa-chevron-$upOrDown")))
+        i(`class` := s"fas fa-$mod")))
   }
 
   def withQuery(call: Call, params: Map[String, String]) = {

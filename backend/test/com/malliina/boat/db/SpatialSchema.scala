@@ -9,7 +9,7 @@ import slick.jdbc.{GetResult, PositionedResult}
 
 case class CoordRow(id: Int, coord: Coord)
 
-class SpatialSchema(ds: DataSource, val jdbc: BoatJdbcProfile) extends DatabaseClient with MappingsT {
+class SpatialSchema(ds: DataSource, val jdbc: BoatJdbcProfile) extends DatabaseClient with Mappings {
   import jdbc.api._
   val database: jdbc.backend.DatabaseDef =
     jdbc.api.Database.forDataSource(ds, Option(NumThreads), BoatSchema.executor(NumThreads))

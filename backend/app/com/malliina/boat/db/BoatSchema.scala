@@ -56,7 +56,7 @@ object BoatSchema {
 class BoatSchema(ds: DataSource, val jdbc: BoatJdbcProfile)
     extends DatabaseClient
     with JdbcComponent
-    with MappingsT
+    with Mappings
     with TracksSchema
     with FairwaySchema
     with PushSchema
@@ -108,6 +108,7 @@ class BoatSchema(ds: DataSource, val jdbc: BoatJdbcProfile)
               (point, _)) =>
           val startOrNow = start.getOrElse(Instant.now().bind)
           val endOrNow = end.getOrElse(Instant.now().bind)
+
           LiftedJoinedTrack(
             track.id,
             track.name,

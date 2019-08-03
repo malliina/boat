@@ -8,7 +8,7 @@ import com.malliina.values.{Email, UserId, Username}
 
 import scala.concurrent.duration.FiniteDuration
 
-trait QueryModels { self: MappingsT with JdbcComponent =>
+trait QueryModels { self: Mappings with JdbcComponent =>
   import self.api._
 
   case class LiftedCoord(id: Rep[TrackPointId],
