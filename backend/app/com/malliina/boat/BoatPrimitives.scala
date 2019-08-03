@@ -7,7 +7,7 @@ import play.api.libs.json.{Format, Reads, Writes}
 
 import scala.concurrent.duration.{DurationDouble, FiniteDuration}
 
-object BoatJson {
+object BoatPrimitives {
   implicit val durationFormat: Format[FiniteDuration] = Format[FiniteDuration](
     Reads(_.validate[Double].map(_.seconds)),
     Writes(d => toJson(d.toUnit(TimeUnit.SECONDS)))

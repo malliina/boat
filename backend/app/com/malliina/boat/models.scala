@@ -1,19 +1,18 @@
 package com.malliina.boat
 
 import java.time.{Instant, LocalDate, LocalTime, ZoneOffset}
-import java.util.concurrent.TimeUnit
 
 import com.malliina.boat.parsing.FullCoord
 import com.malliina.measure.{DistanceM, SpeedM, Temperature}
 import com.malliina.play.auth.JWTError
 import com.malliina.values._
+import com.malliina.boat.BoatPrimitives.durationFormat
 import play.api.data.{Forms, Mapping}
 import play.api.http.Writeable
-import play.api.libs.json.Json.toJson
 import play.api.libs.json._
 import play.api.mvc.PathBindable
-import BoatJson.durationFormat
-import scala.concurrent.duration.{DurationDouble, FiniteDuration}
+
+import scala.concurrent.duration.FiniteDuration
 
 case class Languages(finnish: Lang, swedish: Lang, english: Lang)
 
@@ -185,9 +184,7 @@ object YearlyStats {
   implicit val json = Json.format[YearlyStats]
 }
 
-case class StatsResponse(daily: Seq[Stats],
-                         yearly: Seq[YearlyStats],
-                         allTime: Stats)
+case class StatsResponse(daily: Seq[Stats], yearly: Seq[YearlyStats], allTime: Stats)
 
 object StatsResponse {
   implicit val json = Json.format[StatsResponse]
