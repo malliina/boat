@@ -565,9 +565,8 @@ sealed trait FrontEvent {
 sealed trait BoatFrontEvent extends FrontEvent {
   def from: TrackMetaLike
 
-  // Anonymous users receive all live boat updates by design
   override def isIntendedFor(user: Username): Boolean =
-    from.username == user || user == Usernames.anon
+    from.username == user
 }
 
 object FrontEvent {
