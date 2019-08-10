@@ -25,6 +25,8 @@ trait Mappings { self: JdbcComponent =>
     MappedColumnType.base[FiniteDuration, Double](_.toUnit(TimeUnit.SECONDS), _.seconds)
   implicit val password = stringMapping(Password.apply)
   implicit val sentenceIdMapping = longMapping(SentenceKey.apply)
+  implicit val gpsSentenceIdMapping = longMapping(GPSSentenceKey.apply)
+  implicit val gpsPointIdMapping = longMapping(GPSPointId.apply)
   implicit val sentenceMapping = stringMapping(RawSentence.apply)
   implicit val userIdMapping = longMapping(UserId.apply)
   implicit val trackIdMapping = longMapping(TrackId.apply)

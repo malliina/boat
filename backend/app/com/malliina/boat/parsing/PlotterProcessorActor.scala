@@ -3,18 +3,18 @@ package com.malliina.boat.parsing
 import akka.actor.Status.{Failure, Success}
 import akka.actor.{Actor, ActorRef, Props}
 import com.malliina.boat.TrackId
-import com.malliina.boat.parsing.ProcessorActor.log
+import com.malliina.boat.parsing.PlotterProcessorActor.log
 import play.api.Logger
 
-object ProcessorActor {
+object PlotterProcessorActor {
   private val log = Logger(getClass)
 
-  def props(processed: ActorRef) = Props(new ProcessorActor(processed))
+  def props(processed: ActorRef) = Props(new PlotterProcessorActor(processed))
 }
 
 /** Combines various NMEA0183 events, emits complete events of type `FullCoord` to `processed`.
   */
-class ProcessorActor(processed: ActorRef) extends Actor {
+class PlotterProcessorActor(processed: ActorRef) extends Actor {
   var latestDepth: Map[TrackId, WaterDepth] = Map.empty
   var latestWaterTemp: Map[TrackId, WaterTemperature] = Map.empty
   var latestWaterSpeed: Map[TrackId, ParsedWaterSpeed] = Map.empty

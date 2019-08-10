@@ -25,8 +25,8 @@ class WebServerTests extends FunSuite {
     val server = WebServer("127.0.0.1", 0, AgentInstance(BoatConf.empty))
     val testServer = Http().bindAndHandle(server.routes, "127.0.0.1", 0)
     val binding = await(testServer)
-
-    def urlTo(path: String) = s"http://${binding.localAddress.getHostString}:${binding.localAddress.getPort}$path"
+    val addr = binding.localAddress
+    def urlTo(path: String) = s"http://${addr.getHostString}:${addr.getPort}$path"
 
     val res = await(Http().singleRequest(HttpRequest(method = HttpMethods.GET, uri = urlTo(WebServer.settingsUri))))
     assert(res.status === StatusCodes.OK)

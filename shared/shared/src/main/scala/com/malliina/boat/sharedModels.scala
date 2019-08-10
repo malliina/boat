@@ -463,6 +463,10 @@ case class TrackPointId(id: Long) extends AnyVal with WrappedId
 
 object TrackPointId extends IdCompanion[TrackPointId]
 
+case class GPSPointId(id: Long) extends AnyVal with WrappedId
+
+object GPSPointId extends IdCompanion[GPSPointId]
+
 case class BoatUser(track: TrackName, boat: BoatName, user: Username) extends BoatTrackMeta
 
 case class BoatInfo(boatId: BoatId,

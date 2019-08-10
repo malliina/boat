@@ -18,7 +18,7 @@ class PushController(push: PushDatabase,
   def enableNotifications = jsonAuth[PushPayload] { req =>
     val payload = req.body
     push.enable(PushInput(payload.token, payload.device, req.user.id)).map { _ =>
-      Ok(SimpleMessage("enabled"))
+      Ok(SimpleMessage("Enabled."))
     }
   }
 

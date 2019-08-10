@@ -16,7 +16,11 @@ object BoatParser {
 
   def multiFlow()(implicit as: ActorSystem,
                   mat: Materializer): Flow[ParsedSentence, FullCoord, NotUsed] =
-    Streams.connected[ParsedSentence, FullCoord](dest => ProcessorActor.props(dest), as)
+    Streams.connected[ParsedSentence, FullCoord](dest => PlotterProcessorActor.props(dest), as)
+
+  def gpsFlow()(implicit as: ActorSystem,
+                mat: Materializer): Flow[ParsedGPSSentence, GPSCoord, NotUsed] =
+    Streams.connected[ParsedGPSSentence, GPSCoord](dest => GPSProcessorActor.props(dest), as)
 
   def read[T: Reads](json: JsValue): Either[JsError, T] =
     json.validate[T].asEither.left.map(JsError.apply)

@@ -350,9 +350,17 @@ case class TrackRow(id: TrackId,
                     comments: Option[String],
                     added: Instant)
 
-case class SentenceKey(id: Long) extends WrappedId
+case class SentenceKey(id: Long) extends AnyVal with WrappedId
 
 object SentenceKey extends IdCompanion[SentenceKey]
+
+case class GPSSentenceKey(id: Long) extends AnyVal with WrappedId
+
+object GPSSentenceKey extends IdCompanion[GPSSentenceKey]
+
+case class GPSKeyedSentence(key: GPSSentenceKey, sentence: RawSentence, from: BoatId)
+
+case class GPSSentenceInput(sentence: RawSentence, boat: BoatId)
 
 case class SentenceInput(sentence: RawSentence, track: TrackId)
 
@@ -366,6 +374,29 @@ case class SentenceRow(id: SentenceKey, sentence: RawSentence, track: TrackId, a
 object SentenceRow {
   implicit val json = Json.format[SentenceRow]
 }
+
+case class GPSSentenceRow(id: GPSSentenceKey,
+                          sentence: RawSentence,
+                          boat: BoatId,
+                          added: Instant)
+
+object GPSSentenceRow {
+  implicit val json = Json.format[GPSSentenceRow]
+}
+
+case class GPSPointInput(lon: Longitude,
+                         lat: Latitude,
+                         coord: Coord,
+                         gpsTime: Instant,
+                         diff: DistanceM)
+
+case class GPSPointRow(id: GPSPointId,
+                       lon: Longitude,
+                       lat: Latitude,
+                       coord: Coord,
+                       gpsTime: Instant,
+                       diff: DistanceM,
+                       added: Instant)
 
 case class TimedSentence(id: SentenceKey,
                          sentence: RawSentence,
@@ -513,6 +544,8 @@ case class TrackPointRow(id: TrackPointId,
 }
 
 case class SentencePointLink(sentence: SentenceKey, point: TrackPointId)
+
+case class GPSSentencePointLink(sentence: GPSSentenceKey, point: GPSPointId)
 
 case class TrackPoint(coord: Coord, time: Instant, waterTemp: Temperature, wind: Double)
 

@@ -84,7 +84,7 @@ class BoatController(mapboxToken: AccessToken,
   }
 
   private def tracksHtml = userAction(profile, TrackQuery.apply) { req =>
-  val lang = BoatLang(req.user.language).lang
+    val lang = BoatLang(req.user.language).lang
     db.tracksBundle(req.user, req.query, lang).map { ts =>
       Ok(html.tracks(ts, req.query, lang))
     }
@@ -181,7 +181,7 @@ class BoatController(mapboxToken: AccessToken,
           val historicalLimits: BoatQuery =
             if (limits.tracks.nonEmpty && username == anonUser) BoatQuery.tracks(limits.tracks)
 //            else if (user.username == anonUser) BoatQuery.recent(Instant.now())
-            else if (user.username == anonUser) BoatQuery.empty
+            else if (username == anonUser) BoatQuery.empty
             else limits
           val history: Source[CoordsEvent, NotUsed] =
             Source.fromFuture(db.history(user, historicalLimits)).flatMapConcat { es =>

@@ -17,6 +17,9 @@ trait TracksSchema extends Mappings with DatabaseClient { self: JdbcComponent wi
   val pointsTable = TableQuery[TrackPointsTable]
   val sentencePointsTable = TableQuery[SentencesPointsLink]
 
+  val gpsSentencesTable = TableQuery[GPSSentencesTable]
+  val gpsPointsTable = TableQuery[GPSTable]
+
   val sentenceInserts = sentencesTable.map(_.forInserts).returning(sentencesTable.map(_.id))
   val boatInserts = boatsTable.map(_.forInserts).returning(boatsTable.map(_.id))
   val userInserts = usersTable.map(_.forInserts).returning(usersTable.map(_.id))
@@ -39,8 +42,47 @@ trait TracksSchema extends Mappings with DatabaseClient { self: JdbcComponent wi
     )
 
     def forInserts = (sentence, track) <> ((SentenceInput.apply _).tupled, SentenceInput.unapply)
-
     def * = (id, sentence, track, added) <> ((SentenceRow.apply _).tupled, SentenceRow.unapply)
+  }
+
+  class GPSSentencesTable(tag: Tag) extends Table[GPSSentenceRow](tag, "gps_sentences") {
+    def id = column[GPSSentenceKey]("id", O.AutoInc, O.PrimaryKey)
+    def sentence = column[RawSentence]("sentence", O.Length(128))
+    def boat = column[BoatId]("boat")
+    def added = column[Instant]("added", O.SqlType(CreatedTimestampType))
+
+    def pointConstraint = foreignKey("gps_sentences_boat_fk", boat, boatsTable)(
+      _.id,
+      onUpdate = ForeignKeyAction.Cascade,
+      onDelete = ForeignKeyAction.Cascade
+    )
+
+    def forInserts = (sentence, boat) <> ((GPSSentenceInput.apply _).tupled, GPSSentenceInput.unapply)
+    def * = (id, sentence, boat, added) <> ((GPSSentenceRow.apply _).tupled, GPSSentenceRow.unapply)
+  }
+
+  class GPSTable(tag: Tag) extends Table[GPSPointRow](tag, "gps_points") {
+    def id = column[GPSPointId]("id", O.PrimaryKey, O.AutoInc)
+    def lon = column[Longitude]("longitude")
+    def lat = column[Latitude]("latitude")
+    def coord = column[Coord]("coord")
+    def gpsTime = column[Instant]("gps_time", O.SqlType(CreatedTimestampType))
+    def diff = column[DistanceM]("diff", O.Default(DistanceM.zero))
+    def added = column[Instant]("added", O.SqlType(CreatedTimestampType))
+
+    def forInserts = (lon,
+      lat,
+      coord,
+      gpsTime,
+      diff) <> ((GPSPointInput.apply _).tupled, GPSPointInput.unapply)
+
+    def * = (id,
+      lon,
+      lat,
+      coord,
+      gpsTime,
+      diff,
+      added) <> ((GPSPointRow.apply _).tupled, GPSPointRow.unapply)
   }
 
   class TrackPointsTable(tag: Tag) extends Table[TrackPointRow](tag, "points") {
@@ -108,6 +150,25 @@ trait TracksSchema extends Mappings with DatabaseClient { self: JdbcComponent wi
              trackIndex,
              diff,
              added) <> ((TrackPointRow.apply _).tupled, TrackPointRow.unapply)
+  }
+
+  class GPSSentencesPointsLink(tag: Tag) extends Table[GPSSentencePointLink](tag, "gps_sentence_points") {
+    def sentence = column[GPSSentenceKey]("sentence")
+    def point = column[GPSPointId]("point")
+
+    def pKey = primaryKey("sentence_points_pk", (sentence, point))
+
+    def sentenceConstraint = foreignKey("gps_sentence_points_sentence_fk", sentence, gpsSentencesTable)(
+      _.id,
+      onUpdate = ForeignKeyAction.Cascade,
+      onDelete = ForeignKeyAction.Cascade)
+
+    def pointConstraint = foreignKey("gps_sentence_points_point_fk", point, gpsPointsTable)(
+      _.id,
+      onUpdate = ForeignKeyAction.Cascade,
+      onDelete = ForeignKeyAction.Cascade)
+
+    def * = (sentence, point) <> ((GPSSentencePointLink.apply _).tupled, GPSSentencePointLink.unapply)
   }
 
   class SentencesPointsLink(tag: Tag) extends Table[SentencePointLink](tag, "sentence_points") {
