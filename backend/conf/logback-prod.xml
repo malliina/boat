@@ -12,11 +12,18 @@
         <password>changeme</password>
         <enabled>true</enabled>
     </appender>
+    <appender name="FILE" class="ch.qos.logback.core.FileAppender">
+        <file>/var/log/boat/boat.log</file>
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
     <logger name="play" level="INFO"/>
     <logger name="application" level="INFO"/>
     <logger name="com" level="INFO"/>
     <root level="INFO">
         <appender-ref ref="STDOUT"/>
         <appender-ref ref="LOGSTREAMS"/>
+        <appender-ref ref="FILE"/>
     </root>
 </configuration>
