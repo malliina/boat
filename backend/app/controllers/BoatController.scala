@@ -25,7 +25,7 @@ import play.api.mvc._
 
 import scala.concurrent.Future
 import scala.concurrent.duration.DurationInt
-import scala.util.Try
+import scala.util.{Failure, Success, Try}
 
 object BoatController {
   private val log = Logger(getClass)
@@ -151,7 +151,11 @@ class BoatController(mapboxToken: AccessToken,
 
   def boatSocket = WebSocket { rh =>
     authBoat(rh).flatMapR { meta =>
-      push.push(meta, BoatState.Connected).map(_ => meta)
+      push.push(meta, BoatState.Connected).map(_ => meta).recover {
+        case e =>
+          log.error("Failed to push all notifications.", e)
+          meta
+      }
     }.map { e =>
       e.map { boat =>
         // adds metadata to messages from boats
@@ -159,16 +163,24 @@ class BoatController(mapboxToken: AccessToken,
           in => BoatEvent(in, boat),
           out => Json.toJson(out)
         )
-
         val flow: Flow[BoatEvent, PingEvent, NotUsed] = Flow
           .fromSinkAndSource(boats.boatSink, Source.maybe[PingEvent])
           .keepAlive(10.seconds, () => PingEvent(Instant.now.toEpochMilli))
           .backpressureTimeout(3.seconds)
-        terminationWatched(transformer.transform(flow)) { _ =>
-          log.info(s"Boat '${boat.boatName}' left.")
+        terminationWatched(transformer.transform(flow)) { tryDone =>
+          tryDone match {
+            case Success(_) =>
+              log.info(s"Boat '${boat.boatName}' left.")
+            case Failure(f) =>
+              log.error(s"Boat '${boat.boatName}' left.", f)
+          }
           push.push(boat, BoatState.Disconnected)
         }
       }
+    }.recoverWith {
+      case t =>
+        log.error("Failed to authenticate boat.", t)
+        Future.failed(t)
     }
   }
 

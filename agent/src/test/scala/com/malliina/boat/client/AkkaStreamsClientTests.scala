@@ -62,24 +62,31 @@ class AkkaStreamsClientTests extends FunSuite {
     val tcpHost = "127.0.0.1"
     val tcpPort = 10110
     val client = TcpSource(tcpHost, tcpPort)
-    await(client.connect(), 30.seconds)
+    try {
+      await(client.connect(), 30.seconds)
+      client.sentencesHub.runForeach(println)
+    } finally client.close()
+
   }
 
   ignore("receives sentences") {
     val jsons = mutable.Buffer[SentencesMessage]()
     val out = Sink.foreach[SentencesMessage](msg => jsons.append(msg))
     val client = TcpSource("192.168.0.11", 10110)
-    val _ = client.sentencesSource.runWith(out)
-    Thread.sleep(50000)
-    Files.write(Paths.get("demo2.json"), Json.toBytes(Json.toJson(jsons)))
-    //client.close()
+    try {
+      val _ = client.sentencesSource.runWith(out)
+      Thread.sleep(20000)
+      Files.write(Paths.get("demouiva.json"), Json.toBytes(Json.toJson(jsons)))
+    } finally client.close()
   }
 
-  ignore("receive-send locally") {
+  ignore("receive-send to dot com") {
     val url = FullUrl.ws("localhost:9000", "/ws/boats")
     val agent = BoatAgent(BoatConf.anon("192.168.0.11", 10110), url)
-    agent.connect()
-    Thread.sleep(300000)
+    try {
+      agent.connect()
+      Thread.sleep(30000)
+    } finally agent.close()
   }
 
   ignore("count") {
