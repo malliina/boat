@@ -107,7 +107,8 @@ class TracksDatabaseTests extends TracksTester {
     val tdb = TracksDatabase(db, mat.executionContext)
     val udb = DatabaseUserManager(db, mat.executionContext)
     val testComment = "test"
-    val userInput = NewUser(Username("test-comments-user"), None, UserToken.random(), enabled = true)
+    val userInput =
+      NewUser(Username("test-comments-user"), None, UserToken.random(), enabled = true)
     val trackName = TrackNames.random()
     val task = for {
       u <- udb.addUser(userInput)
@@ -161,8 +162,9 @@ abstract class TracksTester extends DatabaseSuite {
     (db, tdb)
   }
 
-  def insertPointsFlow(
-                        save: FullCoord => Future[InsertedPoint])(implicit as: ActorSystem, mat: Materializer): Flow[KeyedSentence, InsertedPoint, NotUsed] = {
+  def insertPointsFlow(save: FullCoord => Future[InsertedPoint])(
+      implicit as: ActorSystem,
+      mat: Materializer): Flow[KeyedSentence, InsertedPoint, NotUsed] = {
     Flow[KeyedSentence]
       .mapConcat(raw => BoatParser.parse(raw).toOption.toList)
       .via(BoatParser.multiFlow())

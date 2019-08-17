@@ -28,13 +28,13 @@ class TracksImporter extends TracksTester {
     val trackName = TrackNames.random()
     val track = await(tdb.join(BoatUser(trackName, BoatName("Amina"), Username("mle"))), 10.seconds)
     println(s"Using $track")
-    val s: Source[RawSentence, NotUsed] = fromFile(FileUtils.userHome.resolve(".boat/Log2019START.txt"))
-      .drop(1332126)
+    val s: Source[RawSentence, NotUsed] = fromFile(FileUtils.userHome.resolve("yas-hunt.txt"))
+      .drop(0)
       .filter(_ != RawSentence.initialZda)
     val events = s.map(s => SentencesEvent(Seq(s), track.short))
     val task = events.via(processSentences(tdb.saveSentences, tdb.saveCoords)).runWith(Sink.ignore)
     await(task, 300000.seconds)
-    splitTracksByDate(track.track, db)
+//    splitTracksByDate(track.track, db)
   }
 
   ignore("modify tracks") {

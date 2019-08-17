@@ -3,18 +3,8 @@ package com.malliina.boat.parsing
 import java.time.format.{DateTimeFormatter, DateTimeParseException}
 import java.time.{LocalDate, LocalTime, OffsetDateTime, ZoneOffset}
 
-import com.malliina.boat.{RawSentence, SingleError}
-import com.malliina.measure.Inputs.{toDouble, toInt}
-import com.malliina.measure.{
-  DistanceDoubleM,
-  DistanceM,
-  LatitudeDM,
-  LongitudeDM,
-  SpeedDoubleM,
-  SpeedM,
-  Temperature,
-  TemperatureDouble
-}
+import com.malliina.boat.SingleError
+import com.malliina.measure.{DistanceM, Inputs, LatitudeDM, LongitudeDM, SpeedM, Temperature}
 
 sealed trait TalkedSentence {
   def talker: String
@@ -33,8 +23,8 @@ case class ZDAMessage(talker: String,
                       day: Int,
                       month: Int,
                       year: Int,
-                      timeZoneOffsetHours: Int,
-                      timeZoneOffsetMinutes: Int)
+                      timeZoneOffsetHours: Option[Int],
+                      timeZoneOffsetMinutes: Option[Int])
     extends TalkedSentence {
   val date = LocalDate.of(year, month, day)
   val dateTimeUtc = OffsetDateTime.of(date, timeUtc, ZoneOffset.UTC)
@@ -48,12 +38,17 @@ case class ZDAMessage(talker: String,
 }
 
 object ZDAMessage {
-  val timeFormatter = DateTimeFormatter.ofPattern("HHmmss")
+  val timeFormatterSimrad = DateTimeFormatter.ofPattern("HHmmss")
+  val timeFormatterGps = DateTimeFormatter.ofPattern("HHmmss.SSS")
 
   def parseTimeUtc(s: String): Either[SingleError, LocalTime] =
-    try { Right(LocalTime.parse(s, timeFormatter)) } catch {
+    parseFormattedTime(s, timeFormatterSimrad)
+      .orElse(parseFormattedTime(s, timeFormatterGps))
+
+  def parseFormattedTime(s: String, formatter: DateTimeFormatter): Either[SingleError, LocalTime] =
+    try { Right(LocalTime.parse(s, formatter)) } catch {
       case _: DateTimeParseException =>
-        Left(SingleError.input(s"Invalid time: '$s'."))
+        Left(SingleError.input(s"Invalid time: '$s', expected format '$formatter'."))
     }
 }
 
@@ -69,72 +64,78 @@ case class GGAMessage(talker: String,
                       diffAge: Option[Double])
     extends TalkedSentence
 
-object TalkedSentence extends NMEA0183Parser {
-  val dpt = """\$(\w{2})DPT,([\d\.]+),([\d\.]+),.*""".r
-  val vtg =
-    """\$(\w{2})VTG,([\d\.]+),T,([\d\.]+),M,([\d\.]+),N,([\d\.]+),K.*""".r
-  val mtw = """\$(\w{2})MTW,([\d\.]+),C\*.*""".r
-  val zda = """\$(\w{2})ZDA,([\d-]+),([\d-]+),(\d+),(\d+),([\d-]+),(\d+)\*.*""".r
-  val gga =
-    """\$(\w{2})GGA,([\d-]+),([\d\.]+,[NS]),([\d\.]+,[EW]),(\d+),(\d+),([\d\.]+),([\d-\.]+),M,([\d\.]*),M,([\d\.]*),.*""".r
+trait PrimitiveParsing {
+  def attempt[In, Out](in: In, onFail: In => String)(pf: PartialFunction[In, Out]) =
+    pf.lift(in).toRight(SingleError.input(s"Invalid input: '$in'."))
 
-  def parse(raw: RawSentence): Either[SentenceError, TalkedSentence] = {
-    def asInt(s: String) = toInt(s)
-    def asDouble(s: String) = toDouble(s)
-    def mapFailures[T](e: Either[SingleError, T]) =
-      e.left.map(err => InvalidSentence(raw, err.message))
-
-    raw.sentence match {
-      case dpt(talker, depth, offset) =>
-        mapFailures {
-          for {
-            d <- asDouble(depth)
-            o <- asDouble(offset)
-          } yield DPTMessage(talker, d.meters, o.meters)
-        }
-      case vtg(talker, courseTrue, courseMagnetic, speedKnots, speedKmh) =>
-        mapFailures {
-          for {
-            trueCourse <- asDouble(courseTrue)
-            magneticCourse <- asDouble(courseMagnetic)
-            knots <- asDouble(speedKnots)
-            kmh <- asDouble(speedKmh)
-          } yield VTGMessage(talker, trueCourse, magneticCourse, knots.knots, kmh.kmh)
-        }
-      case mtw(talker, temp) =>
-        mapFailures {
-          asDouble(temp).map { t =>
-            MTWMessage(talker, t.celsius)
-          }
-        }
-      case zda(talker, utc, day, month, year, offsetHours, offsetMinutes) =>
-        mapFailures {
-          for {
-            time <- ZDAMessage.parseTimeUtc(utc)
-            d <- asInt(day)
-            m <- asInt(month)
-            y <- asInt(year)
-            offHours <- asInt(offsetHours)
-            offMinutes <- asInt(offsetMinutes)
-          } yield ZDAMessage(talker, time, d, m, y, offHours, offMinutes)
-        }
-      case gga(talker, utc, latDM, lngDM, quality, svCount, hdopStr, height, geoid, diff) =>
-        mapFailures {
-          for {
-            time <- ZDAMessage.parseTimeUtc(utc)
-            lat <- LatitudeDM.parse(latDM)
-            lng <- LongitudeDM.parse(lngDM)
-            q <- asInt(quality)
-            svs <- asInt(svCount)
-            hdop <- asDouble(hdopStr)
-            h <- asDouble(height).map(_.meters)
-            geo <- if (geoid.isEmpty) Right(None) else asDouble(geoid).map(Option.apply)
-            d <- if (diff.isEmpty) Right(None) else asDouble(diff).map(Option.apply)
-          } yield GGAMessage(talker, time, lat, lng, q, svs, hdop, h, geo, d)
-        }
-      case _ =>
-        Left(UnknownSentence(raw, s"Unknown sentence: '$raw'."))
+  def limitedInt[T](s: String, p: Int => Boolean, build: Int => T): Either[SingleError, T] =
+    Inputs.toInt(s).flatMap { i =>
+      if (p(i)) Right(build(i))
+      else Left(SingleError.input(s"Invalid input: '$s'."))
     }
-  }
-
 }
+
+sealed trait GPSMode
+object GPSMode extends PrimitiveParsing {
+  case object Automatic extends GPSMode
+  case object Manual extends GPSMode
+
+  def apply(s: String): Either[SingleError, GPSMode] =
+    attempt[String, GPSMode](s, in => s"Invalid GPS mode: '$in'.") {
+      case "A" => Automatic
+      case "M" => Manual
+    }
+}
+
+sealed trait GPSFix
+object GPSFix extends PrimitiveParsing {
+  case object Fix2D extends GPSFix
+  case object Fix3D extends GPSFix
+  case object NoFix extends GPSFix
+
+  def apply(s: String): Either[SingleError, GPSFix] =
+    attempt[String, GPSFix](s, in => s"Invalid GPS fix: '$in'.") {
+      case "1" => NoFix
+      case "2" => Fix2D
+      case "3" => Fix3D
+    }
+}
+case class GSAMessage(talker: String, mode: GPSMode, gps: GPSFix) extends TalkedSentence
+
+case class RMCMessage(talker: String,
+                      timeUtc: LocalTime,
+                      date: LocalDate,
+                      speed: SpeedM,
+                      course: Double)
+    extends TalkedSentence
+
+object RMCMessage {
+  val dateFormatter = DateTimeFormatter.ofPattern("ddMMyy")
+
+  def parseDate(s: String) =
+    try { Right(LocalDate.parse(s, dateFormatter)) } catch {
+      case _: DateTimeParseException =>
+        Left(SingleError.input(s"Invalid date: '$s', expected format '$dateFormatter'."))
+    }
+}
+
+case class Elevation(degrees: Int) extends AnyVal {
+  override def toString = s"$degrees"
+}
+
+object Elevation extends PrimitiveParsing {
+  def apply(s: String): Either[SingleError, Elevation] =
+    limitedInt(s, i => i >= 0 && i <= 90, apply)
+}
+
+case class Azimuth(degrees: Int) extends AnyVal {
+  override def toString = s"$degrees"
+}
+
+object Azimuth extends PrimitiveParsing {
+  def apply(s: String): Either[SingleError, Azimuth] =
+    limitedInt(s, i => i >= 0 && i <= 359, apply)
+}
+
+case class GSVMessage(talker: String, satellites: Int, elevation: Elevation, azimuth: Azimuth)
+    extends TalkedSentence

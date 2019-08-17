@@ -2,22 +2,16 @@ package com.malliina.boat.client
 
 import java.nio.charset.StandardCharsets
 
-import akka.actor.ActorSystem
 import akka.stream.scaladsl.Tcp.IncomingConnection
 import akka.stream.scaladsl.{Keep, Sink, Source, Tcp}
-import akka.stream.{ActorMaterializer, KillSwitches, StreamTcpException}
+import akka.stream.{KillSwitches, StreamTcpException}
 import akka.util.ByteString
 import com.malliina.boat.{RawSentence, SentencesMessage}
-import org.scalatest.FunSuite
 
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, Future, Promise}
 
-class TcpSourceTests extends FunSuite {
-  implicit val as = ActorSystem()
-  implicit val mat = ActorMaterializer()
-  implicit val ec = mat.executionContext
-
+class TcpSourceTests extends BasicSuite {
   test("client receives sentences over TCP socket") {
     val sentences = Seq(
       "$GPGGA,162112,6009.0969,N,02453.4521,E,1,12,0.70,6,M,19.5,M,,*6F",
@@ -42,9 +36,9 @@ class TcpSourceTests extends FunSuite {
       p.trySuccess(msg)
     }
     val client = TcpSource(tcpHost, tcpPort)
-    client.connect()
-    client.sentencesHub.runWith(clientSink)
     try {
+      client.connect()
+      client.sentencesHub.runWith(clientSink)
       val received = await(p.future)
       assert(received.sentences === sentences.map(RawSentence.apply))
     } finally {

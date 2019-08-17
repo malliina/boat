@@ -50,7 +50,7 @@ object BoatParser {
     */
   def parse(sentence: KeyedSentence): Either[SentenceError, ParsedSentence] = {
     val raw = sentence.sentence
-    TalkedSentence.parse(raw).flatMap {
+    SentenceParser.parse(raw).flatMap {
       case zda @ ZDAMessage(_, _, _, _, _, _, _) =>
         if (zda.isSuspect) Left(SuspectTime(raw))
         else Right(ParsedDateTime(zda.date, zda.timeUtc, sentence))
@@ -62,11 +62,15 @@ object BoatParser {
         Right(WaterTemperature(temperature, sentence))
       case DPTMessage(_, depth, offset) =>
         Right(WaterDepth(depth, offset, sentence))
+      case _ =>
+        Left(IgnoredSentence(raw))
     }
   }
 
   def handleError(err: SentenceError): Unit =
     err match {
+      case is @ IgnoredSentence(_) =>
+        log.debug(is.message)
       case UnknownSentence(_, message) =>
         log.debug(message)
       case st @ SuspectTime(_) =>

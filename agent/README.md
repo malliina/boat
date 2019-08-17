@@ -46,3 +46,26 @@ The JSON messages must be of the following format:
         "$GPZDA,141735,04,05,2018,-03,00*69"
       ]
     }
+
+## GPS modules
+
+To set up a [GPS module](https://www.aliexpress.com/item/32913026283.html) on a Raspberry Pi:
+
+1. Connect the GPS module to your Raspberry Pi over USB.
+
+1. Install gpsd:
+
+        sudo apt-get install gpsd gpsd-clients python-gps
+
+1. Create file `/etc/systemd/system/gpsd.socket.d/socket.conf` with the following contents:
+
+        [Socket]
+        ListenStream=
+        ListenStream=/var/run/gpsd.sock
+        ListenStream=2947
+
+1. Open a TCP connection to port 2947 and send the following message:
+
+        ?WATCH={"enable":true,"json":false,"nmea":true,"raw":0,"scaled":false,"timing":false,"split24":false,"pps":false}
+
+1. Your client should now receive NMEA0183 sentences over the TCP socket.

@@ -31,40 +31,50 @@ class TcpSource(host: String, port: Int)(implicit as: ActorSystem, mat: Material
   val maxBatchSize = 100
   val sendTimeWindow = 500.millis
   val reconnectInterval = 2.second
+  val maxLength = RawSentence.MaxLength + 10
 
   val (sink, sentencesHub) =
-    MergeHub.source[SentencesMessage](perProducerBufferSize = 16384)
+    MergeHub
+      .source[SentencesMessage](perProducerBufferSize = 16384)
       .toMat(BroadcastHub.sink(bufferSize = 2048))(Keep.both)
       .run()
   sentencesHub.runWith(Sink.ignore)
 
   def flow: Flow[ByteString, SentencesMessage, NotUsed] = Flow[ByteString]
-    .via(Framing.delimiter(ByteString(sentenceDelimiter), maximumFrameLength = RawSentence.MaxLength + 10))
+    .filter(_.length < maxLength)
+    .via(Framing.delimiter(ByteString(sentenceDelimiter),
+                           maximumFrameLength = maxLength))
     .map(bs => RawSentence(bs.decodeString(StandardCharsets.US_ASCII)))
     .groupedWithin(maxBatchSize, sendTimeWindow)
     .map(SentencesMessage.apply)
 
   def sentencesSource: Source[SentencesMessage, (Future[Tcp.OutgoingConnection], Future[Done])] = {
+    // Sends nothing to the GPS source, only listens
+    setupTcp(Source.maybe[ByteString])
+  }
+
+  def setupTcp(toSource: Source[ByteString, _])
+    : Source[SentencesMessage, (Future[Tcp.OutgoingConnection], Future[Done])] = {
     val conn = Tcp().outgoingConnection(host, port).via(flow).idleTimeout(20.seconds)
-    val toPlotter = Source.maybe[ByteString]
-    toPlotter.viaMat(conn)(Keep.right).watchTermination()(Keep.both)
+    toSource.viaMat(conn)(Keep.right).watchTermination()(Keep.both)
   }
 
   /** Makes received sentences available in `sentencesHub`
     *
     * @return a Future that completes when the client is disabled and the remaining connection completes
     */
-  def connect(): Future[Done] = {
-    val (connected, disconnected) = sentencesSource.to(sink).run()
+  def connect(toSource: Source[ByteString, _] = Source.maybe[ByteString]): Future[Done] = {
+    val (connected, disconnected) = setupTcp(toSource).to(sink).run()
     connected.foreach { conn =>
       log.info(s"Connected to ${toHostPort(conn.remoteAddress)}.")
     }
     disconnected.map { d =>
       log.info(s"Disconnected from $host:$port.")
       d
-    }.recover { case t =>
-      log.warn("TCP connection failed.", t)
-      Done
+    }.recover {
+      case t =>
+        log.warn("TCP connection failed.", t)
+        Done
     }.flatMap { done =>
       if (enabled.get()) {
         log.info(s"Reconnecting in $reconnectInterval...")

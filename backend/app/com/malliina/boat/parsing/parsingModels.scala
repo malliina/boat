@@ -128,3 +128,7 @@ case class SuspectTime(sentence: RawSentence) extends SentenceError {
 case class SentenceFailure(sentence: RawSentence, e: Exception) extends SentenceError {
   override def message: String = s"Error for sentence: '$sentence'. ${e.getMessage}"
 }
+
+case class IgnoredSentence(sentence: RawSentence) extends SentenceError {
+  override def message = s"Ignoring sentence '$sentence'."
+}

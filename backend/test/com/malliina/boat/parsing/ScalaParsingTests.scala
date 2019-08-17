@@ -15,7 +15,7 @@ class ScalaParsingTests extends FunSuite {
   ).map(RawSentence.apply)
 
   test("parse sentences") {
-    val ok = track.map(TalkedSentence.parse).collect {
+    val ok = track.map(SentenceParser.parse).collect {
       case Right(sentence) => sentence
     }
 
@@ -26,6 +26,7 @@ class ScalaParsingTests extends FunSuite {
       case zda @ ZDAMessage(_, _, _, _, _, _, _) => s"ZDA ${zda.dateTimeUtc}"
       case GGAMessage(_, _, lat, lng, _, _, _, _, _, _) =>
         s"GGA ${lat.toDecimalDegrees} ${lng.toDecimalDegrees}"
+      case _ => ""
     }
     assert(strs.length === track.length)
   }
