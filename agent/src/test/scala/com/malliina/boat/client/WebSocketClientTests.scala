@@ -11,18 +11,14 @@ import play.api.libs.json.{JsValue, Json}
 
 import scala.concurrent.Await
 
-class WebSocketClientTests extends FunSuite {
+class WebSocketClientTests extends BasicSuite {
   ignore("connect boat to boat-tracker.com") {
-//    val url = FullUrl.ws("localhost:9000", "/ws/boats")
-    val url = FullUrl.wss("www.boat-tracker.com", "/ws/boats")
-
-    implicit val as = ActorSystem()
-    implicit val mat = ActorMaterializer()
+    val url = FullUrl.ws("localhost:9000", "/ws/devices")
+//    val url = FullUrl.wss("www.boat-tracker.com", "/ws/devices")
     val msg = Json.toJson(SentencesMessage(Nil))
     val src = Source(List(msg, msg, msg, msg, msg)).concat(Source.maybe[JsValue])
     val token = "todo"
-    //    val client = WebSocketClient(url, Nil, as, mat)
-    val client = WebSocketClient(List(KeyValue(Constants.BoatTokenHeader, token)), as, mat)
+    val client = WebSocketClient(url, List(KeyValue(Constants.BoatTokenHeader, token)), as, mat)
     try {
       val conn = client.connectJson(Sink.foreach[JsValue](println),
         src.mapMaterializedValue(_ => NotUsed))

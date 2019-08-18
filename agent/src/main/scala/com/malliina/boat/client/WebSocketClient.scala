@@ -26,8 +26,11 @@ object WebSocketClient {
   def apply(url: FullUrl, headers: List[KeyValue], as: ActorSystem, mat: Materializer): WebSocketClient =
     new WebSocketClient(url, headers)(as, mat)
 
-  def apply(headers: List[KeyValue], as: ActorSystem, mat: Materializer): WebSocketClient =
+  def boat(headers: List[KeyValue], as: ActorSystem, mat: Materializer): WebSocketClient =
     apply(ProdBoatUrl, headers, as, mat)
+
+  def device(headers: List[KeyValue], as: ActorSystem, mat: Materializer): WebSocketClient =
+    apply(ProdDeviceUrl, headers, as, mat)
 }
 
 class WebSocketClient(url: FullUrl, headers: List[KeyValue])(implicit as: ActorSystem, mat: Materializer) {

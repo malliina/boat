@@ -38,7 +38,7 @@ object BoatMqttClient {
 
   def apply(mode: Mode): AISSource = mode match {
     case Mode.Prod => prod()
-    case Mode.Test => test()
+    case Mode.Test => SilentAISSource
     case Mode.Dev  => SilentAISSource
   }
 

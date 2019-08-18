@@ -41,9 +41,8 @@ class TcpSource(host: String, port: Int)(implicit as: ActorSystem, mat: Material
   sentencesHub.runWith(Sink.ignore)
 
   def flow: Flow[ByteString, SentencesMessage, NotUsed] = Flow[ByteString]
-    .filter(_.length < maxLength)
     .via(Framing.delimiter(ByteString(sentenceDelimiter),
-                           maximumFrameLength = maxLength))
+                           maximumFrameLength = 1000))
     .map(bs => RawSentence(bs.decodeString(StandardCharsets.US_ASCII)))
     .groupedWithin(maxBatchSize, sendTimeWindow)
     .map(SentencesMessage.apply)
