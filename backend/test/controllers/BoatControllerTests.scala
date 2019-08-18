@@ -20,7 +20,7 @@ class BoatControllerTests extends TestAppSuite {
     val init = for {
       _ <- components.users.addUser(
         NewUser(user, Option(TestEmailAuth.testEmail), UserToken.random(), enabled = true))
-      track <- service.join(BoatUser(TrackNames.random(), BoatNames.random(), user))
+      track <- service.joinAsBoat(BoatUser(TrackNames.random(), BoatNames.random(), user))
       coord = FullCoord(Coord.buildOrFail(60, 24),
                         LocalTime.now(),
                         LocalDate.now(),

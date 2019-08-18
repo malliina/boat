@@ -72,7 +72,6 @@ class BoatSchema(ds: DataSource, val jdbc: BoatJdbcProfile)
   def secondsDiff(from: Rep[Instant], to: Rep[Instant]) = timestampDiff(SECOND, from, to)
   val monthOf = SimpleFunction.unary[Instant, MonthVal]("MONTH")
   val yearOf = SimpleFunction.unary[Instant, YearVal]("YEAR")
-  val distanceCoords = SimpleFunction.binary[Coord, Coord, DistanceM](jdbc.distance)
 
   val topSpeeds = trackAggregate(_.map(_.boatSpeed).max)
   val topPoints = pointsTable
@@ -162,15 +161,20 @@ class BoatSchema(ds: DataSource, val jdbc: BoatJdbcProfile)
         )
     }
 
-  val tableQueries = Seq(pushTable,
-                         sentencePointsTable,
-                         pointsTable,
-                         sentencesTable,
-                         tracksTable,
-                         boatsTable,
-                         usersTable,
-                         fairwayCoordsTable,
-                         fairwaysTable)
+  val tableQueries = Seq(
+    gpsSentencePointsTable,
+    gpsPointsTable,
+    gpsSentencesTable,
+    pushTable,
+    sentencePointsTable,
+    pointsTable,
+    sentencesTable,
+    tracksTable,
+    boatsTable,
+    usersTable,
+    fairwayCoordsTable,
+    fairwaysTable
+  )
 
   def trackAggregate[N: JdbcType](
       agg: Query[TrackPointsTable, TrackPointRow, Seq] => Rep[Option[N]])
@@ -199,12 +203,4 @@ class BoatSchema(ds: DataSource, val jdbc: BoatJdbcProfile)
     log info s"Ensuring all tables exist..."
     createIfNotExists(tableQueries: _*)
   }
-
-  def first[T, R](q: Query[T, R, Seq], onNotFound: => String)(implicit ec: ExecutionContext) =
-    q.result.headOption.flatMap { maybeRow =>
-      maybeRow.map(DBIO.successful).getOrElse {
-        log.warn(onNotFound)
-        DBIO.failed(new NotFoundException(onNotFound))
-      }
-    }
 }

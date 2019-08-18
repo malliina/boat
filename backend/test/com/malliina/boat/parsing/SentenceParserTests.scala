@@ -4,7 +4,7 @@ import com.malliina.boat.RawSentence
 import com.malliina.measure.{LatitudeDM, LongitudeDM}
 import org.scalatest.FunSuite
 
-class ScalaParsingTests extends FunSuite {
+class SentenceParserTests extends FunSuite {
   val track = Seq(
     "$SDDPT,23.9,0.0,*43",
     "$GPVTG,51.0,T,42.2,M,2.4,N,4.4,K,A*25",

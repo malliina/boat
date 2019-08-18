@@ -22,17 +22,11 @@ trait UserManager {
     * @return user info for `email`
     */
   def userInfo(email: Email): Future[UserInfo]
-
   def authBoat(token: BoatToken): Future[JoinedBoat]
-
   def boats(user: Email): Future[UserBoats]
-
   def addUser(user: NewUser): Future[Either[AlreadyExists, DataUser]]
-
   def deleteUser(user: Username): Future[Either[UserDoesNotExist, Unit]]
-
   def users: Future[Seq[UserInfo]]
-
   def changeLanguage(user: UserId, to: Language): Future[Boolean]
 
   protected def hash(user: Username, pass: Password): String =

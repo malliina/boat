@@ -304,19 +304,33 @@ object SimpleMessage {
   implicit val json = Json.format[SimpleMessage]
 }
 
-trait BoatTrackMeta extends BoatMeta {
+trait BoatTrackMeta extends DeviceMeta {
   def track: TrackName
 }
 
-trait BoatMeta {
-  def user: Username
-
-  def boat: BoatName
+trait UserDevice {
+  def userId: UserId
+  def deviceName: BoatName
 }
 
-case class BoatId(id: Long) extends AnyVal with WrappedId
+trait DeviceMeta {
+  def user: Username
+  def boat: BoatName
+  def withTrack(track: TrackName) = BoatUser(track, boat, user)
+  def withDevice(id: DeviceId) = IdentifiedDevice(user, boat, id)
+}
 
-object BoatId extends IdCompanion[BoatId]
+trait IdentifiedDeviceMeta extends DeviceMeta {
+  def device: DeviceId
+}
+
+case class SimpleBoatMeta(user: Username, boat: BoatName) extends DeviceMeta
+
+case class IdentifiedDevice(user: Username, boat: BoatName, device: DeviceId) extends IdentifiedDeviceMeta
+
+case class DeviceId(id: Long) extends AnyVal with WrappedId
+
+object DeviceId extends IdCompanion[DeviceId]
 
 case class TrackId(id: Long) extends AnyVal with WrappedId
 
@@ -357,7 +371,7 @@ object MobileDevice extends ValidatingCompanion[String, MobileDevice] {
 
 }
 
-case class Boat(id: BoatId, name: BoatName, token: BoatToken, addedMillis: Long)
+case class Boat(id: DeviceId, name: BoatName, token: BoatToken, addedMillis: Long)
 
 object Boat {
   implicit val json = Json.format[Boat]
@@ -401,9 +415,7 @@ object UserContainer {
 
 trait TrackMetaLike {
   def boatName: BoatName
-
   def trackName: TrackName
-
   def username: Username
 }
 
@@ -413,7 +425,7 @@ trait TrackLike extends TrackMetaLike {
 
 case class TrackMetaShort(track: TrackId,
                           trackName: TrackName,
-                          boat: BoatId,
+                          boat: DeviceId,
                           boatName: BoatName,
                           username: Username)
     extends TrackMetaLike
@@ -427,7 +439,7 @@ case class TrackRef(track: TrackId,
                     trackTitle: Option[TrackTitle],
                     canonical: TrackCanonical,
                     comments: Option[String],
-                    boat: BoatId,
+                    boat: DeviceId,
                     boatName: BoatName,
                     username: Username,
                     points: Int,
@@ -469,7 +481,7 @@ object GPSPointId extends IdCompanion[GPSPointId]
 
 case class BoatUser(track: TrackName, boat: BoatName, user: Username) extends BoatTrackMeta
 
-case class BoatInfo(boatId: BoatId,
+case class BoatInfo(boatId: DeviceId,
                     boat: BoatName,
                     user: Username,
                     language: Language,
@@ -536,6 +548,8 @@ object CoordsBatch {
   implicit val json = Json.format[CoordsBatch]
 }
 
+case class GPSSentencesEvent(sentences: Seq[RawSentence], from: IdentifiedDeviceMeta)
+
 case class SentencesEvent(sentences: Seq[RawSentence], from: TrackMetaShort) extends BoatFrontEvent
 
 object SentencesEvent {
@@ -566,6 +580,8 @@ sealed trait FrontEvent {
   def isIntendedFor(user: Username): Boolean
 }
 
+sealed trait DeviceFrontEvent
+
 sealed trait BoatFrontEvent extends FrontEvent {
   def from: TrackMetaLike
 
@@ -592,7 +608,8 @@ object FrontEvent {
 }
 
 case class SentencesMessage(sentences: Seq[RawSentence]) {
-  def toEvent(from: TrackMetaShort) = SentencesEvent(sentences, from)
+  def toTrackEvent(from: TrackMetaShort) = SentencesEvent(sentences, from)
+  def toGpsEvent(from: IdentifiedDeviceMeta) = GPSSentencesEvent(sentences, from)
 }
 
 object SentencesMessage {

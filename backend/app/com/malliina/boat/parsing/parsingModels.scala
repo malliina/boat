@@ -3,7 +3,7 @@ package com.malliina.boat.parsing
 import java.time.{LocalDate, LocalTime, ZoneOffset}
 
 import com.malliina.boat.{
-  BoatId,
+  DeviceId,
   Coord,
   GPSKeyedSentence,
   GPSSentenceKey,
@@ -26,12 +26,16 @@ trait ParsedGPSSentence {
 
 case class ParsedGPSCoord(coord: Coord, ggaTime: LocalTime, sentence: GPSKeyedSentence)
     extends ParsedGPSSentence {
-  def complete(date: LocalDate, time: LocalTime, parts: Seq[GPSSentenceKey]) =
-    GPSCoord(coord, time, date, boat, parts)
+  def complete(date: LocalDate, time: LocalTime, satellites: Int, fix: GPSFix, parts: Seq[GPSSentenceKey]) =
+    GPSCoord(coord, date, time, satellites, fix, boat, parts)
 }
 
 case class ParsedGPSDateTime(date: LocalDate, time: LocalTime, sentence: GPSKeyedSentence)
     extends ParsedGPSSentence
+
+case class SatellitesInView(satellites: Int, sentence: GPSKeyedSentence) extends ParsedGPSSentence
+
+case class GPSInfo(mode: GPSMode, fix: GPSFix, sentence: GPSKeyedSentence) extends ParsedGPSSentence
 
 sealed trait ParsedSentence {
   def sentence: KeyedSentence
@@ -68,9 +72,11 @@ case class WaterDepth(depth: DistanceM, offset: DistanceM, sentence: KeyedSenten
     extends ParsedSentence
 
 case class GPSCoord(coord: Coord,
-                    time: LocalTime,
                     date: LocalDate,
-                    boat: BoatId,
+                    time: LocalTime,
+                    satellites: Int,
+                    fix: GPSFix,
+                    device: DeviceId,
                     parts: Seq[GPSSentenceKey] = Nil) {
   val dateTime = date.atTime(time)
   val gpsTime = dateTime.toInstant(ZoneOffset.UTC)

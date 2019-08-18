@@ -65,7 +65,7 @@ class TracksDatabaseTests extends TracksTester {
     (t, (end - start).millis)
   }
 
-  def fakeCoord(c: Coord, speed: SpeedM, track: TrackId, boat: BoatId, user: UserId) = {
+  def fakeCoord(c: Coord, speed: SpeedM, track: TrackId, boat: DeviceId, user: UserId) = {
     FullCoord(
       c,
       LocalTime.now(),
@@ -113,7 +113,7 @@ class TracksDatabaseTests extends TracksTester {
     val task = for {
       u <- udb.addUser(userInput)
       uid = u.toOption.get.id
-      t <- tdb.join(BoatUser(trackName, BoatNames.random(), u.toOption.get.username))
+      t <- tdb.joinAsBoat(BoatUser(trackName, BoatNames.random(), u.toOption.get.username))
       _ <- tdb.saveCoords(fakeCoord(london, 10.kmh, t.track, t.boat, uid))
       t <- tdb.updateComments(t.track, testComment, uid)
     } yield t.comments

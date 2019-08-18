@@ -9,7 +9,7 @@ import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.{Flow, Sink, Source}
 import com.malliina.boat.parsing.FullCoord
-import com.malliina.boat.{BoatId, BoatName, BoatUser, DateVal, InsertedPoint, KeyedSentence, LocalConf, RawSentence, SentencesEvent, TrackId, TrackInput, TrackNames}
+import com.malliina.boat.{DeviceId, BoatName, BoatUser, DateVal, InsertedPoint, KeyedSentence, LocalConf, RawSentence, SentencesEvent, TrackId, TrackInput, TrackNames}
 import com.malliina.concurrent.Execution.cached
 import com.malliina.util.FileUtils
 import com.malliina.values.Username
@@ -26,7 +26,7 @@ class TracksImporter extends TracksTester {
   ignore("import tracks from plotter log file") {
     val (db, tdb) = initDbAndTracks()
     val trackName = TrackNames.random()
-    val track = await(tdb.join(BoatUser(trackName, BoatName("Amina"), Username("mle"))), 10.seconds)
+    val track = await(tdb.joinAsBoat(BoatUser(trackName, BoatName("Amina"), Username("mle"))), 10.seconds)
     println(s"Using $track")
     val s: Source[RawSentence, NotUsed] = fromFile(FileUtils.userHome.resolve("yas-hunt.txt"))
       .drop(0)
@@ -59,7 +59,7 @@ class TracksImporter extends TracksTester {
 
     def createAndUpdateTrack(date: DateVal) =
       for {
-        newTrack <- trackInserts += TrackInput.empty(TrackNames.random(), BoatId(14))
+        newTrack <- trackInserts += TrackInput.empty(TrackNames.random(), DeviceId(14))
         updated <- updateTrack(oldTrack, date, newTrack)
       } yield updated
 

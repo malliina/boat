@@ -2,7 +2,7 @@ package com.malliina.boat.db
 
 import com.malliina.boat.db.PushDatabase.log
 import com.malliina.boat.push._
-import com.malliina.boat.{PushId, PushToken, TrackMeta}
+import com.malliina.boat.{PushId, PushToken, TrackMeta, UserDevice}
 import com.malliina.values.UserId
 import play.api.Logger
 
@@ -38,10 +38,10 @@ class PushDatabase(db: PushSchema, val push: PushEndpoint)(implicit ec: Executio
     }
   }
 
-  def push(boat: TrackMeta, state: BoatState): Future[Unit] = {
-    val notification = BoatNotification(boat.boatName, state)
+  def push(device: UserDevice, state: BoatState): Future[Unit] = {
+    val notification = BoatNotification(device.deviceName, state)
     val eligibleTokens = action {
-      pushTable.filter(t => t.user === boat.user).result
+      pushTable.filter(t => t.user === device.userId).result
     }
     for {
       tokens <- eligibleTokens

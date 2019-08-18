@@ -87,20 +87,22 @@ object GPSMode extends PrimitiveParsing {
     }
 }
 
-sealed trait GPSFix
+sealed abstract class GPSFix(val value: String)
 object GPSFix extends PrimitiveParsing {
-  case object Fix2D extends GPSFix
-  case object Fix3D extends GPSFix
-  case object NoFix extends GPSFix
+  case object NoFix extends GPSFix("1")
+  case object Fix2D extends GPSFix("2")
+  case object Fix3D extends GPSFix("3")
+  case class OtherFix(s: String) extends GPSFix(s)
+
+  val all = Seq(Fix2D, Fix3D, NoFix)
+
+  def orOther(s: String) = apply(s).getOrElse(OtherFix(s))
 
   def apply(s: String): Either[SingleError, GPSFix] =
-    attempt[String, GPSFix](s, in => s"Invalid GPS fix: '$in'.") {
-      case "1" => NoFix
-      case "2" => Fix2D
-      case "3" => Fix3D
-    }
+    all.find(_.value == s).toRight(SingleError.input(s"Invalid GPS fix: '$s'."))
 }
-case class GSAMessage(talker: String, mode: GPSMode, gps: GPSFix) extends TalkedSentence
+
+case class GSAMessage(talker: String, mode: GPSMode, fix: GPSFix) extends TalkedSentence
 
 case class RMCMessage(talker: String,
                       timeUtc: LocalTime,

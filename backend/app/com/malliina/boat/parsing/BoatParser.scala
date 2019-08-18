@@ -28,6 +28,9 @@ object BoatParser {
   def parseMulti(sentences: Seq[KeyedSentence]): Seq[ParsedSentence] =
     sentences.map(parse).flatMap(e => e.asOption(handleError))
 
+  def parseMultiGps(sentences: Seq[GPSKeyedSentence]): Seq[ParsedGPSSentence] =
+    sentences.map(parseGps).flatMap(e => e.asOption(handleError))
+
   def readSentences(event: BoatEvent): Either[JsError, SentencesEvent] =
     read[SentencesEvent](event.message)
 
@@ -62,6 +65,22 @@ object BoatParser {
         Right(WaterTemperature(temperature, sentence))
       case DPTMessage(_, depth, offset) =>
         Right(WaterDepth(depth, offset, sentence))
+      case _ =>
+        Left(IgnoredSentence(raw))
+    }
+  }
+
+  def parseGps(sentence: GPSKeyedSentence): Either[SentenceError, ParsedGPSSentence] = {
+    val raw = sentence.sentence
+    SentenceParser.parse(raw).flatMap {
+      case GGAMessage(_, time, lat, lng, _, _, _, _, _, _) =>
+        Right(ParsedGPSCoord(Coord(lng.toDecimalDegrees, lat.toDecimalDegrees), time, sentence))
+      case zda @ ZDAMessage(_, _, _, _, _, _, _) =>
+        Right(ParsedGPSDateTime(zda.date, zda.timeUtc, sentence))
+      case GSVMessage(_, satellites, _, _) =>
+        Right(SatellitesInView(satellites, sentence))
+      case GSAMessage(_, mode, fix) =>
+        Right(GPSInfo(mode, fix, sentence))
       case _ =>
         Left(IgnoredSentence(raw))
     }

@@ -7,7 +7,7 @@ import com.malliina.boat.auth.{EmailAuth, GoogleTokenAuth}
 import com.malliina.boat.db._
 import com.malliina.boat.html.BoatHtml
 import com.malliina.boat.http.CSRFConf._
-import com.malliina.boat.parsing.BoatService
+import com.malliina.boat.parsing.{BoatService, DeviceService}
 import com.malliina.boat.push._
 import com.malliina.http.OkClient
 import com.malliina.play.app.DefaultApp
@@ -105,10 +105,12 @@ class AppComponents(init: (Configuration, OkClient, ExecutionContext) => AppBuil
   // Services
   val users: UserManager = DatabaseUserManager(schema, executionContext)
   val tracks: TracksSource = TracksDatabase(schema, executionContext)
+  val gps = GPSDatabase(schema, executionContext)
   lazy val pushService: PushEndpoint = builder.pushService
   lazy val push = PushDatabase(schema, pushService, executionContext)
   val googleAuth: EmailAuth = builder.emailAuth
   val boatService = BoatService(BoatMqttClient(mode), tracks, actorSystem, materializer)
+  val deviceService = DeviceService(gps, actorSystem, materializer)
 
   // Controllers
   val signIn = Social(appConf.web, http, controllerComponents, executionContext)
@@ -120,7 +122,7 @@ class AppComponents(init: (Configuration, OkClient, ExecutionContext) => AppBuil
   lazy val pushCtrl = new PushController(push, googleAuth, users, controllerComponents)
   lazy val appCtrl = new AppController(googleAuth, users, assets, controllerComponents)
   lazy val boatCtrl = new BoatController(
-    appConf.mapboxToken, html, users, googleAuth, boatService, tracks, push,
+    appConf.mapboxToken, html, users, googleAuth, boatService, deviceService, tracks, push,
     controllerComponents)(actorSystem, materializer)
   val docs = new DocsController(controllerComponents)
   val graphs = new GraphController(controllerComponents)

@@ -12,7 +12,7 @@ trait TracksSource {
   def updateTitle(track: TrackName, title: TrackTitle, user: UserId): Future[JoinedTrack]
   def updateComments(track: TrackId, comments: String, user: UserId): Future[JoinedTrack]
   def addBoat(boat: BoatName, user: UserId): Future[BoatRow]
-  def renameBoat(boat: BoatId, newName: BoatName, user: UserId): Future[BoatRow]
+  def renameBoat(boat: DeviceId, newName: BoatName, user: UserId): Future[BoatRow]
 
   /** If the given track and boat exist and are owned by the user, returns the track info.
     *
@@ -25,7 +25,8 @@ trait TracksSource {
     * @param meta track, boat and user info
     * @return track specs, or failure if there is a naming clash
     */
-  def join(meta: BoatTrackMeta): Future[TrackMeta]
+  def joinAsBoat(meta: BoatTrackMeta): Future[TrackMeta]
+  def joinAsDevice(meta: DeviceMeta): Future[JoinedBoat]
   def saveSentences(sentences: SentencesEvent): Future[Seq[KeyedSentence]]
   def saveCoords(coords: FullCoord): Future[InsertedPoint]
   def tracksFor(user: MinimalUserInfo, filter: TrackQuery): Future[Tracks]

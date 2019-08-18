@@ -5,13 +5,13 @@ import java.nio.file.{Files, Paths}
 
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
-import akka.stream.scaladsl.{Flow, Source}
-import com.malliina.boat.RawSentence
+import akka.stream.scaladsl.{Flow, Sink, Source}
+import com.malliina.boat.{DeviceId, GPSKeyedSentence, GPSSentenceKey, RawSentence}
 import tests.BaseSuite
 
 import scala.jdk.CollectionConverters.CollectionHasAsScala
 
-class GPSTests extends BaseSuite {
+class GPSProcessorTests extends BaseSuite {
   implicit val as = ActorSystem()
   implicit val mat = ActorMaterializer()
 
@@ -31,22 +31,20 @@ class GPSTests extends BaseSuite {
     "$GPGSV,4,1,13,22,78,221,14,01,64,183,22,03,58,257,34,14,51,074,35*71"
   ).map(RawSentence.apply)
 
-  test("read") {
+  test("parse samples") {
+    val flow = Flow[RawSentence].mapConcat { raw =>
+      BoatParser.parseGps(GPSKeyedSentence(GPSSentenceKey(1), raw, DeviceId(0))).toOption.toList
+    }
+    val task = Source(samples.toList).via(flow).via(BoatParser.gpsFlow()).runWith(Sink.seq)
+    val seq: Seq[GPSCoord] = await(task)
+    assert(seq.exists(_.time.getHour === 15))
+    assert(seq.exists(_.date.getDayOfMonth === 17))
+  }
+
+  ignore("read") {
     samples.foreach { s =>
       val res = SentenceParser.parse(s)
       println(res)
-    }
-  }
-
-  ignore("parse gps") {
-    Source(sentences.toList)
-    Flow[RawSentence]
-  }
-
-  ignore("parse file") {
-    sentences.foreach { raw =>
-      val result = SentenceParser.parse(raw)
-      println(result)
     }
   }
 }

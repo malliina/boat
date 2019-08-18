@@ -12,7 +12,7 @@ import com.malliina.boat.auth.EmailAuth
 import com.malliina.boat.db._
 import com.malliina.boat.html.{BoatHtml, BoatLang}
 import com.malliina.boat.http._
-import com.malliina.boat.parsing.BoatService
+import com.malliina.boat.parsing.{BoatService, DeviceService}
 import com.malliina.boat.push.BoatState
 import com.malliina.values.Username
 import controllers.BoatController.log
@@ -36,6 +36,7 @@ class BoatController(mapboxToken: AccessToken,
                      auther: UserManager,
                      googleAuth: EmailAuth,
                      boats: BoatService,
+                     devices: DeviceService,
                      db: TracksSource,
                      push: PushDatabase,
                      comps: ControllerComponents)(implicit as: ActorSystem, mat: Materializer)
@@ -139,7 +140,7 @@ class BoatController(mapboxToken: AccessToken,
     db.addBoat(req.body, req.user.id)
   }
 
-  def renameBoat(id: BoatId) = boatAction { req =>
+  def renameBoat(id: DeviceId) = boatAction { req =>
     db.renameBoat(id, req.body, req.user.id)
   }
 
@@ -149,11 +150,46 @@ class BoatController(mapboxToken: AccessToken,
     }
   }
 
+  def deviceSocket = WebSocket { rh =>
+    authDevice(rh).flatMapR { meta =>
+      push.push(meta, BoatState.Connected).map(_ => meta).recover {
+        case e =>
+          log.error("Failed to push all device notifications.", e)
+          meta
+      }
+    }.map { e =>
+      e.map { meta =>
+        val transformer = jsonMessageFlowTransformer.map[DeviceEvent, FrontEvent](
+          in => DeviceEvent(in, meta),
+          out => Json.toJson(out)
+        )
+        val flow: Flow[DeviceEvent, PingEvent, NotUsed] =
+          Flow
+            .fromSinkAndSource(devices.deviceSink, Source.maybe[PingEvent])
+            .keepAlive(10.seconds, () => PingEvent(Instant.now.toEpochMilli))
+            .backpressureTimeout(3.seconds)
+        terminationWatched(transformer.transform(flow)) { tryDone =>
+          tryDone match {
+            case Success(_) =>
+              log.info(s"Device '${meta.boatName}' left.")
+            case Failure(f) =>
+              log.error(s"Device '${meta.boatName}' left.", f)
+          }
+          Future.successful(())
+        }
+      }
+    }.recoverWith {
+      case t =>
+        log.error("Failed to authenticate device.", t)
+        Future.failed(t)
+    }
+  }
+
   def boatSocket = WebSocket { rh =>
     authBoat(rh).flatMapR { meta =>
       push.push(meta, BoatState.Connected).map(_ => meta).recover {
         case e =>
-          log.error("Failed to push all notifications.", e)
+          log.error("Failed to push all boat notifications.", e)
           meta
       }
     }.map { e =>
@@ -314,21 +350,26 @@ class BoatController(mapboxToken: AccessToken,
     * @return
     */
   private def authBoat(rh: RequestHeader): Future[Either[Result, TrackMeta]] =
-    recovered(boatAuth(rh).flatMap(meta => db.join(meta)), rh)
+    recovered(boatAuth(rh).flatMap(meta => db.joinAsBoat(meta)), rh)
+
+  private def authDevice(rh: RequestHeader): Future[Either[Result, JoinedBoat]] =
+    recovered(boatAuthNoTrack(rh).flatMap(meta => db.joinAsDevice(meta)), rh)
 
   private def boatAuth(rh: RequestHeader): Future[BoatTrackMeta] =
+    boatAuthNoTrack(rh).map { b =>
+      b.withTrack(trackOrRandom(rh))
+    }
+
+  private def boatAuthNoTrack(rh: RequestHeader): Future[DeviceMeta] =
     rh.headers
       .get(BoatTokenHeader)
-      .map(BoatToken.apply)
       .map { token =>
-        auther.authBoat(token).map { info =>
-          BoatUser(trackOrRandom(rh), info.boatName, info.username)
-        }
+        auther.authBoat(BoatToken(token))
       }
       .getOrElse {
         val boatName =
           rh.headers.get(BoatNameHeader).map(BoatName.apply).getOrElse(BoatNames.random())
-        fut(BoatUser(trackOrRandom(rh), boatName, anonUser))
+        fut(SimpleBoatMeta(anonUser, boatName))
       }
 
   private def authOrAnon(rh: RequestHeader): Future[MinimalUserInfo] =

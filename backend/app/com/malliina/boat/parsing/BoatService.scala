@@ -36,7 +36,7 @@ class BoatService(aisClient: AISSource, db: TracksSource)(implicit as: ActorSyst
   private val sentencesSource = viewerSource.map { boatEvent =>
     BoatParser
       .read[SentencesMessage](boatEvent.message)
-      .map(_.toEvent(boatEvent.from.short))
+      .map(_.toTrackEvent(boatEvent.from.short))
       .left
       .map(err => BoatJsonError(err, boatEvent))
   }
@@ -73,17 +73,6 @@ class BoatService(aisClient: AISSource, db: TracksSource)(implicit as: ActorSyst
           CoordsEvent(List(ip.coord.timed(ip.inserted.point, formatter)),
                       ip.inserted.track.strip(formatter))))
       .merge(ais.map(pairs => VesselMessages(pairs.map(_.toInfo(formatter)))))
-
-  private def monitored[In, Mat](src: Source[In, Mat], label: String): Source[In, Future[Done]] =
-    src.watchTermination()(Keep.right).mapMaterializedValue { done =>
-      done.transform { tryDone =>
-        tryDone.fold(
-          t => log.error(s"Error in flow '$label'.", t),
-          _ => log.warn(s"Flow '$label' completed.")
-        )
-        tryDone
-      }
-    }
 
   private def saveRecovered(coord: FullCoord): Future[List[Inserted]] =
     db.saveCoords(coord)

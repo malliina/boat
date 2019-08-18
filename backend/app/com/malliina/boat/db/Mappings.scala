@@ -6,6 +6,7 @@ import java.util.concurrent.TimeUnit
 
 import com.malliina.boat._
 import com.malliina.boat.db.SpatialUtils.{coordToBytes, fromBytes}
+import com.malliina.boat.parsing.GPSFix
 import com.malliina.measure.{DistanceDoubleM, DistanceM, SpeedDoubleM, SpeedM, Temperature, TemperatureDouble}
 import com.malliina.values._
 import com.vividsolutions.jts.geom.Point
@@ -18,6 +19,7 @@ import scala.reflect.ClassTag
 trait Mappings { self: JdbcComponent =>
   import api._
 
+  implicit val fixMapping = MappedColumnType.base[GPSFix, String](_.value, GPSFix.orOther)
   implicit val dayMapping = MappedColumnType.base[DayVal, Int](_.day, DayVal.apply)
   implicit val monthMapping = MappedColumnType.base[MonthVal, Int](_.month, MonthVal.apply)
   implicit val yearMapping = MappedColumnType.base[YearVal, Int](_.year, YearVal.apply)
@@ -31,7 +33,7 @@ trait Mappings { self: JdbcComponent =>
   implicit val userIdMapping = longMapping(UserId.apply)
   implicit val trackIdMapping = longMapping(TrackId.apply)
   implicit val pointIdMapping = longMapping(TrackPointId.apply)
-  implicit val boatIdMapping = longMapping(BoatId.apply)
+  implicit val boatIdMapping = longMapping(DeviceId.apply)
   implicit val fairwayIdMapping = longMapping(FairwayId.apply)
   implicit val fairwayCoordIdMapping = longMapping(FairwayCoordId.apply)
   implicit val boatNameMapping = stringMapping(BoatName.apply)

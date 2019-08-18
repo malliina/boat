@@ -8,7 +8,7 @@ import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.{Flow, Sink, Source}
 import com.malliina.boat.{
-  BoatId,
+  DeviceId,
   BoatName,
   KeyedSentence,
   RawSentence,
@@ -29,7 +29,7 @@ object MultiParsingTests {
   def testFrom = TrackMetaShort(
     TrackId(1),
     TrackName("test"),
-    BoatId(1),
+    DeviceId(1),
     BoatName("boat"),
     Username("u")
   )

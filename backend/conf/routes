@@ -7,7 +7,7 @@ PUT          /users/me                                        controllers.PushCo
 POST         /users/notifications                             controllers.PushController.enableNotifications
 POST         /users/notifications/disable                     controllers.PushController.disableNotifications
 POST         /boats                                           controllers.BoatController.createBoat
-PATCH        /boats/:boat                                     controllers.BoatController.renameBoat(boat: com.malliina.boat.BoatId)
+PATCH        /boats/:boat                                     controllers.BoatController.renameBoat(boat: com.malliina.boat.DeviceId)
 GET          /tracks                                          controllers.BoatController.tracks
 GET          /tracks/:track                                   controllers.BoatController.track(track: com.malliina.boat.TrackName)
 PUT          /tracks/:track                                   controllers.BoatController.modifyTitle(track: com.malliina.boat.TrackName)
@@ -18,6 +18,7 @@ GET          /stats                                           controllers.BoatCo
 GET          /routes/:srclat/:srclng/:destlat/:destlng        controllers.GraphController.shortestRoute(srclat: Double, srclng: Double, destlat: Double, destlng: Double)
 GET          /ws/updates                                      controllers.BoatController.clientSocket
 GET          /ws/boats                                        controllers.BoatController.boatSocket
+GET          /ws/devices                                      controllers.BoatController.deviceSocket
 GET          /sign-in/google                                  controllers.Social.google
 GET          /sign-in/callbacks/google                        controllers.Social.googleCallback
 GET          /sign-out                                        controllers.Social.logout

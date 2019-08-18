@@ -27,8 +27,11 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext)
 
   val minSpeed: SpeedM = 1.kmh
 
-  override def join(meta: BoatTrackMeta): Future[TrackMeta] =
+  override def joinAsBoat(meta: BoatTrackMeta): Future[TrackMeta] =
     action(boatId(meta))
+
+  override def joinAsDevice(meta: DeviceMeta): Future[JoinedBoat] =
+    action(deviceId(meta))
 
   def addBoat(boat: BoatName, user: UserId): Future[BoatRow] =
     action(saveBoat(boat, user))
@@ -193,7 +196,9 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext)
       collectPointsClassic(rows, user.language)
     }
 
-  override def tracksBundle(user: MinimalUserInfo, filter: TrackQuery, lang: Lang): Future[TracksBundle] = {
+  override def tracksBundle(user: MinimalUserInfo,
+                            filter: TrackQuery,
+                            lang: Lang): Future[TracksBundle] = {
     val statsFuture = stats(user, filter, lang)
     val tracksFuture = tracksFor(user, filter)
     for {
@@ -202,7 +207,9 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext)
     } yield TracksBundle(ts.tracks, ss)
   }
 
-  override def stats(user: MinimalUserInfo, limits: TrackQuery, lang: Lang): Future[StatsResponse] = {
+  override def stats(user: MinimalUserInfo,
+                     limits: TrackQuery,
+                     lang: Lang): Future[StatsResponse] = {
     val order = limits.order
 
     /** For daily stats, groups by date. For monthly stats, groups by year and month. For yearly
@@ -238,9 +245,10 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext)
         case (((((date, _), distance), (_, duration)), (_, ts)), (_, days)) =>
           (date, distance, duration, ts, days)
       }
-      .sortBy { case (date: Rep[DateVal], _, _, _, _) =>
-        if (order == SortOrder.Asc) date.asc
-        else date.desc
+      .sortBy {
+        case (date: Rep[DateVal], _, _, _, _) =>
+          if (order == SortOrder.Asc) date.asc
+          else date.desc
       }
     val monthlyQuery = monthly(aggregateDistance)
       .join(monthly(aggregateDuration))
@@ -253,9 +261,10 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext)
         case (((((y, m), distance), (_, duration)), (_, ts)), (_, days)) =>
           (y, m, distance, duration, ts, days)
       }
-      .sortBy { case (year: Rep[YearVal], month: Rep[MonthVal], _, _, _, _) =>
-        if (order == SortOrder.Asc) (year.asc, month.asc)
-        else (year.desc, month.desc)
+      .sortBy {
+        case (year: Rep[YearVal], month: Rep[MonthVal], _, _, _, _) =>
+          if (order == SortOrder.Asc) (year.asc, month.asc)
+          else (year.desc, month.desc)
       }
     val yearlyQuery = yearly(aggregateDistance)
       .join(yearly(aggregateDuration))
@@ -268,9 +277,10 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext)
         case (((((year, _), distance), (_, duration)), (_, ts)), (_, days)) =>
           (year, distance, duration, ts, days)
       }
-      .sortBy { case (year: Rep[YearVal], _, _, _, _) =>
-        if (order == SortOrder.Asc) year.asc
-        else year.desc
+      .sortBy {
+        case (year: Rep[YearVal], _, _, _, _) =>
+          if (order == SortOrder.Asc) year.asc
+          else year.desc
       }
     val userTracks = tracksViewNonEmpty.filter(t => t.username === user.username)
     val allTimeAction = for {
@@ -294,12 +304,24 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext)
         }
         val months = monthlyRows.map {
           case (year, month, distance, duration, trackCount, days) =>
-            MonthlyStats(lang.calendar.months(month), year, month, trackCount, distance, duration, days)
+            MonthlyStats(lang.calendar.months(month),
+                         year,
+                         month,
+                         trackCount,
+                         distance,
+                         duration,
+                         days)
         }
 
         val years = yearlyRows.map {
           case (year, distance, duration, trackCount, days) =>
-            YearlyStats(year.year.toString, year, trackCount, distance, duration, days, months.filter(_.year == year))
+            YearlyStats(year.year.toString,
+                        year,
+                        trackCount,
+                        distance,
+                        duration,
+                        days,
+                        months.filter(_.year == year))
         }
         StatsResponse(daily, years, allTime)
       }
@@ -410,7 +432,7 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext)
       }
     }
 
-  override def renameBoat(boat: BoatId, newName: BoatName, user: UserId): Future[BoatRow] =
+  override def renameBoat(boat: DeviceId, newName: BoatName, user: UserId): Future[BoatRow] =
     transaction {
       for {
         id <- db.first(boatsView.filter(b => b.user === user && b.boat === boat).map(_.boat),
@@ -497,6 +519,18 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext)
       }
   }
 
+  private def deviceId(from: DeviceMeta) = boatsView
+    .filter(b => b.username === from.user && b.boatName === from.boat)
+    .result
+    .headOption
+    .flatMap { maybeBoat =>
+      maybeBoat.map { boat =>
+        DBIO.successful(boat)
+      }.getOrElse {
+        prepareDevice(from)
+      }
+    }
+
   private def boatId(from: BoatTrackMeta) =
     trackMetas
       .filter(t =>
@@ -512,6 +546,22 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext)
       }
       .transactionally
 
+  private def prepareDevice(from: DeviceMeta) =
+    for {
+      userRow <- db.first(usersTable.filter(_.user === from.user),
+        s"User not found: '${from.user}'.")
+      user = userRow.id
+      maybeBoat <- boatsTable
+        .filter(b => b.name === from.boat && b.owner === user)
+        .result
+        .headOption
+      boatRow <- maybeBoat.map(b => DBIO.successful(b)).getOrElse(registerBoat(from, user))
+      boatId = boatRow.id
+      b <- first(boatsView.filter(_.boat === boatId), s"Boat not found: '$boatId'.")
+    } yield {
+      log.info(s"Prepared device '${b.boatName}' with ID '$boatId' for owner '${from.user}'.")
+      b
+    }
   private def prepareBoat(from: BoatTrackMeta) =
     for {
       userRow <- db.first(usersTable.filter(_.user === from.user),
@@ -530,7 +580,7 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext)
       joined
     }
 
-  private def prepareTrack(trackName: TrackName, boat: BoatId) =
+  private def prepareTrack(trackName: TrackName, boat: DeviceId) =
     for {
       maybeTrack <- tracksTable
         .filter(t => t.name === trackName && t.boat === boat)
@@ -539,7 +589,7 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext)
       track <- maybeTrack.map(t => DBIO.successful(t)).getOrElse(saveTrack(trackName, boat))
     } yield track
 
-  private def saveTrack(trackName: TrackName, boat: BoatId) =
+  private def saveTrack(trackName: TrackName, boat: DeviceId) =
     for {
       trackId <- trackInserts += TrackInput.empty(trackName, boat)
       track <- db.first(tracksTable.filter(_.id === trackId), s"Track not found: '$trackId'.")
@@ -548,7 +598,7 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext)
       track
     }
 
-  private def registerBoat(from: BoatTrackMeta, user: UserId) =
+  private def registerBoat(from: DeviceMeta, user: UserId) =
     boatsTable.filter(b => b.name === from.boat).exists.result.flatMap { exists =>
       if (exists)
         fail(
@@ -556,7 +606,7 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext)
       else saveBoat(from, user)
     }
 
-  private def saveBoat(from: BoatMeta, user: UserId): DBIOAction[BoatRow, NoStream, Effect.All] =
+  private def saveBoat(from: DeviceMeta, user: UserId): DBIOAction[BoatRow, NoStream, Effect.All] =
     saveBoat(from.boat, user)
 
   private def saveBoat(name: BoatName, user: UserId): DBIOAction[BoatRow, NoStream, Effect.All] =

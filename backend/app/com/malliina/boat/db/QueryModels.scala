@@ -2,7 +2,7 @@ package com.malliina.boat.db
 
 import java.time.Instant
 
-import com.malliina.boat.{BoatId, BoatName, BoatToken, CombinedCoord, Coord, DateVal, JoinedBoat, JoinedTrack, Language, Latitude, Longitude, MonthVal, TrackCanonical, TrackId, TrackMeta, TrackName, TrackNumbers, TrackPointId, TrackTitle, YearVal}
+import com.malliina.boat.{DeviceId, BoatName, BoatToken, CombinedCoord, Coord, DateVal, JoinedBoat, JoinedTrack, Language, Latitude, Longitude, MonthVal, TrackCanonical, TrackId, TrackMeta, TrackName, TrackNumbers, TrackPointId, TrackTitle, YearVal}
 import com.malliina.measure.{DistanceM, SpeedM, Temperature}
 import com.malliina.values.{Email, UserId, Username}
 
@@ -27,7 +27,7 @@ trait QueryModels { self: Mappings with JdbcComponent =>
   implicit object Coordshape
     extends CaseClassShape(LiftedCoord.tupled, (CombinedCoord.apply _).tupled)
 
-  case class LiftedJoinedBoat(boat: Rep[BoatId],
+  case class LiftedJoinedBoat(boat: Rep[DeviceId],
                               boatName: Rep[BoatName],
                               token: Rep[BoatToken],
                               user: Rep[UserId],
@@ -47,7 +47,7 @@ trait QueryModels { self: Mappings with JdbcComponent =>
                              avgWaterTemp: Rep[Option[Temperature]],
                              points: Rep[Int],
                              distance: Rep[DistanceM],
-                             boat: Rep[BoatId],
+                             boat: Rep[DeviceId],
                              boatName: Rep[BoatName],
                              token: Rep[BoatToken],
                              user: Rep[UserId],

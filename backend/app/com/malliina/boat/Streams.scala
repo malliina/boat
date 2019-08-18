@@ -1,14 +1,19 @@
 package com.malliina.boat
 
-import akka.NotUsed
+import akka.{Done, NotUsed}
 import akka.actor.{ActorRef, ActorSystem, Props, Status}
 import akka.stream.scaladsl.{Flow, Keep, Sink, Source}
 import akka.stream.{Materializer, OverflowStrategy}
+import com.malliina.boat.Streams.log
+import play.api.Logger
 
-object Streams extends Streams
+import scala.concurrent.{ExecutionContext, Future}
+
+object Streams extends Streams {
+  private val log = Logger(getClass)
+}
 
 trait Streams {
-
   /** The publisher-dance makes it so that even with multiple subscribers, `once` only runs once.
     * Without this wrapping, `once` executes independently for each subscriber, which is undesired
     * if `once` involves a side-effect (e.g. a database insert operation).
@@ -51,4 +56,15 @@ trait Streams {
     val processorSink = Sink.actorRef[T](processor, Status.Success("Done."))
     Flow.fromSinkAndSource(processorSink, processed)
   }
+
+  def monitored[In, Mat](src: Source[In, Mat], label: String)(implicit ec: ExecutionContext): Source[In, Future[Done]] =
+    src.watchTermination()(Keep.right).mapMaterializedValue { done =>
+      done.transform { tryDone =>
+        tryDone.fold(
+          t => log.error(s"Error in flow '$label'.", t),
+          _ => log.warn(s"Flow '$label' completed.")
+        )
+        tryDone
+      }
+    }
 }
