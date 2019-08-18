@@ -9,19 +9,22 @@ import com.malliina.http.FullUrl
 
 import scala.concurrent.Future
 
-object BoatAgent {
-  def prod(conf: BoatConf)(implicit as: ActorSystem, mat: Materializer): BoatAgent =
-    apply(conf, WebSocketClient.ProdUrl)
+object DeviceAgent {
+  def boats(conf: BoatConf)(implicit as: ActorSystem, mat: Materializer): DeviceAgent =
+    apply(conf, WebSocketClient.ProdBoatUrl)
 
-  def apply(conf: BoatConf, url: FullUrl)(implicit as: ActorSystem, mat: Materializer): BoatAgent =
-    new BoatAgent(conf, url)
+  def devices(conf: BoatConf)(implicit as: ActorSystem, mat: Materializer): DeviceAgent =
+    apply(conf, WebSocketClient.ProdDeviceUrl)
+
+  def apply(conf: BoatConf, url: FullUrl)(implicit as: ActorSystem, mat: Materializer): DeviceAgent =
+    new DeviceAgent(conf, url)
 }
 
 /** Connects a TCP source to a WebSocket.
   *
   * @param conf agent conf
   */
-class BoatAgent(conf: BoatConf, serverUrl: FullUrl)(implicit as: ActorSystem, mat: Materializer) {
+class DeviceAgent(conf: BoatConf, serverUrl: FullUrl)(implicit as: ActorSystem, mat: Materializer) {
   val tcp = TcpSource(conf.host, conf.port)
   val ws = WebSocketClient(serverUrl, conf.token.map { t => KeyValue(BoatTokenHeader, t.token) }.toList, as, mat)
 

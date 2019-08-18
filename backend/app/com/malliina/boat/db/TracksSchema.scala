@@ -124,7 +124,7 @@ trait TracksSchema extends Mappings with DatabaseClient { self: JdbcComponent wi
     def sentence = column[GPSSentenceKey]("sentence")
     def point = column[GPSPointId]("point")
 
-    def pKey = primaryKey("sentence_points_pk", (sentence, point))
+    def pKey = primaryKey("gps_sentence_points_pk", (sentence, point))
 
     def sentenceConstraint = foreignKey("gps_sentence_points_sentence_fk", sentence, gpsSentencesTable)(
       _.id,

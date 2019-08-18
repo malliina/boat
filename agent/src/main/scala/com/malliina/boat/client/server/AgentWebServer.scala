@@ -10,7 +10,7 @@ import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.unmarshalling.Unmarshaller
 import akka.stream.{ActorMaterializer, Materializer}
 import com.malliina.boat.BoatToken
-import com.malliina.boat.client.{BoatAgent, Logging}
+import com.malliina.boat.client.{DeviceAgent, Logging}
 import org.apache.commons.codec.digest.DigestUtils
 
 import scala.concurrent.Await
@@ -23,7 +23,7 @@ object AgentInstance {
 
 class AgentInstance(initialConf: BoatConf)(implicit as: ActorSystem, mat: Materializer) {
   private var conf = initialConf
-  private var agent = BoatAgent.prod(conf)
+  private var agent = DeviceAgent.boats(conf)
   if (initialConf.enabled) {
     agent.connect()
   }
@@ -33,7 +33,7 @@ class AgentInstance(initialConf: BoatConf)(implicit as: ActorSystem, mat: Materi
       conf = newConf
       val oldAgent = agent
       oldAgent.close()
-      val newAgent = BoatAgent.prod(newConf)
+      val newAgent = DeviceAgent.boats(newConf)
       agent = newAgent
       if (newConf.enabled) {
         newAgent.connect()

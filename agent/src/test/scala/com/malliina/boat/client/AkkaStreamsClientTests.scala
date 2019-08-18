@@ -82,7 +82,7 @@ class AkkaStreamsClientTests extends FunSuite {
 
   ignore("receive-send to dot com") {
     val url = FullUrl.ws("localhost:9000", "/ws/boats")
-    val agent = BoatAgent(BoatConf.anon("192.168.0.11", 10110), url)
+    val agent = DeviceAgent(BoatConf.anon("192.168.0.11", 10110), url)
     try {
       agent.connect()
       Thread.sleep(30000)
