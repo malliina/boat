@@ -1,22 +1,24 @@
 package com.malliina.boat.client
 
+import akka.Done
 import akka.actor.ActorSystem
 import akka.stream.Materializer
-import akka.{Done, NotUsed}
+import akka.stream.scaladsl.Source
+import akka.util.ByteString
 import com.malliina.boat.Constants.BoatTokenHeader
 import com.malliina.boat.client.server.BoatConf
+import com.malliina.boat.client.server.Device.GpsDevice
 import com.malliina.http.FullUrl
 
 import scala.concurrent.Future
 
 object DeviceAgent {
-  def boats(conf: BoatConf)(implicit as: ActorSystem, mat: Materializer): DeviceAgent =
-    apply(conf, WebSocketClient.ProdBoatUrl)
+  val ProdHost = FullUrl("wss", "api.boat-tracker.com", "")
+  val ProdBoatUrl = ProdHost / "/ws/boats"
+  val ProdDeviceUrl = ProdHost / "/ws/devices"
 
-  def devices(conf: BoatConf)(implicit as: ActorSystem, mat: Materializer): DeviceAgent =
-    apply(conf, WebSocketClient.ProdDeviceUrl)
-
-  def apply(conf: BoatConf, url: FullUrl)(implicit as: ActorSystem, mat: Materializer): DeviceAgent =
+  def apply(conf: BoatConf, url: FullUrl)(implicit as: ActorSystem,
+                                          mat: Materializer): DeviceAgent =
     new DeviceAgent(conf, url)
 }
 
@@ -24,21 +26,26 @@ object DeviceAgent {
   *
   * @param conf agent conf
   */
-class DeviceAgent(conf: BoatConf, serverUrl: FullUrl)(implicit as: ActorSystem, mat: Materializer) {
-  val tcp = TcpSource(conf.host, conf.port)
-  val ws = WebSocketClient(serverUrl, conf.token.map { t => KeyValue(BoatTokenHeader, t.token) }.toList, as, mat)
+class DeviceAgent(conf: BoatConf, url: FullUrl)(implicit as: ActorSystem, mat: Materializer) {
+  val isGps = conf.device == GpsDevice
+  val delimiter = if (isGps) TcpSource.lf else TcpSource.crlf
+  val tcp = TcpSource(conf.host, conf.port, delimiter)
+  val ws = WebSocketClient(url, conf.token.map { t =>
+    KeyValue(BoatTokenHeader, t.token)
+  }.toList, as, mat)
+  val toTcp =
+    if (isGps)
+      Source.single(TcpSource.watchMessage).concat(Source.maybe[ByteString])
+    else
+      Source.maybe[ByteString]
 
   /** Opens a TCP connection to the plotter and a WebSocket to the server. Reconnects on failures.
     *
     * @return a Future that completes when the connection has closed and no more reconnects are attempted
     */
   def connect(): Future[Done] = {
-    tcp.connect()
+    tcp.connect(toTcp)
     ws.connect(tcp.sentencesHub)
-  }
-
-  def connectDirect(): Future[Done] = {
-    ws.connect(tcp.sentencesSource.mapMaterializedValue(_ => NotUsed))
   }
 
   def close(): Unit = {

@@ -28,14 +28,19 @@ class EndToEndTests extends BoatTests {
 
   test("plotter to frontend") {
     // the client validates maximum frame length, so we must not concatenate multiple sentences
-    val plotterOutput = Source(sentences.map(s => ByteString(s"$s${TcpSource.sentenceDelimiter}", StandardCharsets.US_ASCII)).toList)
+    val plotterOutput = Source(
+      sentences.map(s => ByteString(s"$s${TcpSource.crlf}", StandardCharsets.US_ASCII)).toList)
 
     val tcpHost = "127.0.0.1"
     val tcpPort = 10104
     val incomingSink = Sink.foreach[IncomingConnection] { conn =>
       conn.flow.runWith(plotterOutput.concat(Source.maybe), Sink.foreach(msg => println(msg)))
     }
-    val (server, plotter) = Tcp().bind(tcpHost, tcpPort).viaMat(KillSwitches.single)(Keep.both).toMat(incomingSink)(Keep.left).run()
+    val (server, plotter) = Tcp()
+      .bind(tcpHost, tcpPort)
+      .viaMat(KillSwitches.single)(Keep.both)
+      .toMat(incomingSink)(Keep.left)
+      .run()
     await(server)
     val serverUrl = FullUrl.ws(s"localhost:$port", reverse.boatSocket().toString)
     val agent = DeviceAgent(BoatConf.anon(tcpHost, tcpPort), serverUrl)
@@ -45,7 +50,9 @@ class EndToEndTests extends BoatTests {
 
       val sink = Sink.foreach[JsValue] { json =>
         p.trySuccess(json)
-        json.asOpt[CoordsEvent].foreach { ce => p3.trySuccess(ce) }
+        json.asOpt[CoordsEvent].foreach { ce =>
+          p3.trySuccess(ce)
+        }
       }
       openViewerSocket(sink, None) { _ =>
         agent.connect()
@@ -74,7 +81,8 @@ class EndToEndTests extends BoatTests {
     // this test does not work due to nonexistent termination signals of the TCP server
 
     // the client validates maximum frame length, so we must not concatenate multiple sentences
-    val plotterOutput = Source(sentences.map(s => ByteString(s"$s${TcpSource.sentenceDelimiter}", StandardCharsets.US_ASCII)).toList)
+    val plotterOutput = Source(
+      sentences.map(s => ByteString(s"$s${TcpSource.crlf}", StandardCharsets.US_ASCII)).toList)
 
     val tcpHost = "127.0.0.1"
     val tcpPort = 10104
@@ -91,7 +99,9 @@ class EndToEndTests extends BoatTests {
     val p3 = Promise[SentencesMessage]()
     val sink = Sink.foreach[JsValue] { json =>
       p.trySuccess(json)
-      json.asOpt[SentencesMessage].foreach { sm => if (!p2.trySuccess(sm)) p3.trySuccess(sm) }
+      json.asOpt[SentencesMessage].foreach { sm =>
+        if (!p2.trySuccess(sm)) p3.trySuccess(sm)
+      }
     }
     openViewerSocket(sink, None) { _ =>
       agent.connect()
@@ -117,6 +127,5 @@ class EndToEndTests extends BoatTests {
         agent.close()
       }
     }
-
   }
 }

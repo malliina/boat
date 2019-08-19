@@ -11,14 +11,38 @@ import spray.json.{DefaultJsonProtocol, JsString, JsValue, JsonFormat}
 import scala.jdk.CollectionConverters.CollectionHasAsScala
 import scala.util.Try
 
-case class BoatConf(host: String, port: Int, token: Option[BoatToken], enabled: Boolean) {
+sealed abstract class Device(val name: String)
+
+object Device extends DefaultJsonProtocol {
+  val all = Seq(BoatDevice, GpsDevice)
+  val default = BoatDevice
+
+  case object GpsDevice extends Device("gps") {
+    val watchCommand =
+      """?WATCH={"enable":true,"json":false,"nmea":true,"raw":0,"scaled":false,"timing":false,"split24":false,"pps":false}"""
+  }
+  case object BoatDevice extends Device("boat")
+
+  def apply(s: String): Device = all.find(_.name == s.toLowerCase).getOrElse(default)
+
+  implicit object json extends JsonFormat[Device] {
+    override def read(json: JsValue) = apply(json.convertTo[String])
+    override def write(obj: Device) = JsString(obj.name)
+  }
+}
+
+case class BoatConf(host: String,
+                    port: Int,
+                    device: Device,
+                    token: Option[BoatToken],
+                    enabled: Boolean) {
   def describe = s"$host:$port-$enabled"
 }
 
 object BoatConf {
-  val empty = BoatConf("", 0, None, enabled = false)
+  val empty = BoatConf("", 0, Device.default, None, enabled = false)
 
-  def anon(host: String, port: Int) = BoatConf(host, port, None, enabled = true)
+  def anon(host: String, port: Int) = BoatConf(host, port, Device.default, None, enabled = true)
 }
 
 trait JsonSupport extends SprayJsonSupport with DefaultJsonProtocol {
@@ -29,7 +53,7 @@ trait JsonSupport extends SprayJsonSupport with DefaultJsonProtocol {
     override def read(json: JsValue): BoatToken = BoatToken(StringJsonFormat.read(json))
   }
 
-  implicit val confFormat = jsonFormat4(BoatConf.apply)
+  implicit val confFormat = jsonFormat5(BoatConf.apply)
 }
 
 object AgentSettings extends JsonSupport {

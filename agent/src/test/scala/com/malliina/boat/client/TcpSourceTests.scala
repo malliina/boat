@@ -20,7 +20,7 @@ class TcpSourceTests extends BasicSuite {
       "$GPGGA,125642,6009.2559,N,02447.5942,E,1,12,0.60,1,M,19.5,M,,*68"
     )
     // the client validates maximum frame length, so we must not concatenate multiple sentences
-    val plotterOutput = Source(sentences.map(s => ByteString(s"$s${TcpSource.sentenceDelimiter}", StandardCharsets.US_ASCII)).toList)
+    val plotterOutput = Source(sentences.map(s => ByteString(s"$s${TcpSource.crlf}", StandardCharsets.US_ASCII)).toList)
 
     // pretend-plotter
     val tcpHost = "127.0.0.1"

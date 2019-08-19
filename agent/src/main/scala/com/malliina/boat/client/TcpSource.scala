@@ -10,7 +10,8 @@ import akka.stream.Materializer
 import akka.stream.scaladsl.{BroadcastHub, Flow, Framing, Keep, MergeHub, Sink, Source, Tcp}
 import akka.util.ByteString
 import akka.{Done, NotUsed}
-import com.malliina.boat.client.TcpSource.{log, sentenceDelimiter}
+import com.malliina.boat.client.TcpSource.log
+import com.malliina.boat.client.server.Device.GpsDevice
 import com.malliina.boat.{RawSentence, SentencesMessage}
 
 import scala.concurrent.Future
@@ -18,13 +19,19 @@ import scala.concurrent.Future
 object TcpSource {
   private val log = Logging(getClass)
 
-  val sentenceDelimiter = "\r\n"
+  val crlf = "\r\n"
+  val lf = "\n"
 
-  def apply(host: String, port: Int)(implicit as: ActorSystem, mat: Materializer): TcpSource =
-    new TcpSource(host, port)
+  // Subscribes to NMEA messages. Depending on device, by default, nothing happens.
+  val watchMessage = ByteString(GpsDevice.watchCommand + TcpSource.crlf, StandardCharsets.US_ASCII)
+
+  def apply(host: String, port: Int, delimiter: String = crlf)(implicit as: ActorSystem,
+                                                               mat: Materializer): TcpSource =
+    new TcpSource(host, port, delimiter)
 }
 
-class TcpSource(host: String, port: Int)(implicit as: ActorSystem, mat: Materializer) {
+class TcpSource(host: String, port: Int, delimiter: String)(implicit as: ActorSystem,
+                                                            mat: Materializer) {
   implicit val ec = mat.executionContext
   private val enabled = new AtomicBoolean(true)
   // Sends after maxBatchSize sentences have been collected or every sendTimeWindow, whichever comes first
@@ -41,8 +48,7 @@ class TcpSource(host: String, port: Int)(implicit as: ActorSystem, mat: Material
   sentencesHub.runWith(Sink.ignore)
 
   def flow: Flow[ByteString, SentencesMessage, NotUsed] = Flow[ByteString]
-    .via(Framing.delimiter(ByteString(sentenceDelimiter),
-                           maximumFrameLength = 1000))
+    .via(Framing.delimiter(ByteString(delimiter), maximumFrameLength = 1000))
     .map(bs => RawSentence(bs.decodeString(StandardCharsets.US_ASCII)))
     .groupedWithin(maxBatchSize, sendTimeWindow)
     .map(SentencesMessage.apply)
@@ -77,7 +83,7 @@ class TcpSource(host: String, port: Int)(implicit as: ActorSystem, mat: Material
     }.flatMap { done =>
       if (enabled.get()) {
         log.info(s"Reconnecting in $reconnectInterval...")
-        after(reconnectInterval, as.scheduler)(connect())
+        after(reconnectInterval, as.scheduler)(connect(toSource))
       } else {
         Future.successful(done)
       }

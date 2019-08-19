@@ -1,9 +1,8 @@
 package com.malliina.boat.client
 
-import java.nio.charset.StandardCharsets
 import java.nio.file.Paths
 
-import akka.stream.scaladsl.{FileIO, Sink, Source, Tcp}
+import akka.stream.scaladsl.{FileIO, Source, Tcp}
 import akka.util.ByteString
 
 import scala.concurrent.duration.Duration
@@ -18,16 +17,10 @@ import scala.concurrent.{Await, Future}
   *</ol>
   */
 class GPSTests extends BasicSuite {
-  // Subscribes to NMEA messages. By default, nothing happens.
-  val watchCommand =
-    """?WATCH={"enable":true,"json":false,"nmea":true,"raw":0,"scaled":false,"timing":false,"split24":false,"pps":false}"""
-  val watchMessage =
-    ByteString(watchCommand + TcpSource.sentenceDelimiter, StandardCharsets.US_ASCII)
-
   ignore("receive sentences from GPS source") {
     val client = TcpSource("10.0.0.4", 2947)
     try {
-      client.connect(Source.single(watchMessage).concat(Source.maybe[ByteString]))
+      client.connect(Source.single(TcpSource.watchMessage).concat(Source.maybe[ByteString]))
       val task = client.sentencesHub.take(100).runForeach { msg =>
         msg.sentences.foreach(println)
       }
@@ -38,8 +31,8 @@ class GPSTests extends BasicSuite {
   }
 
   ignore("write to file") {
-    val sampleSink = FileIO.toPath(Paths.get("gps.txt"))
-    val init = Source.single(watchMessage).concat(Source.maybe[ByteString])
+    val sampleSink = FileIO.toPath(Paths.get("gps2.txt"))
+    val init = Source.single(TcpSource.watchMessage).concat(Source.maybe[ByteString])
     val io = init.via(Tcp().outgoingConnection("10.0.0.4", 2947).take(200)).runWith(sampleSink)
     await(io)
   }

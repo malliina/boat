@@ -5,9 +5,9 @@ import java.nio.charset.StandardCharsets
 import java.nio.file.{Files, Paths}
 
 import akka.actor.ActorSystem
+import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.Tcp.IncomingConnection
 import akka.stream.scaladsl.{Flow, Keep, Sink, Source, Tcp}
-import akka.stream.{ActorMaterializer, KillSwitches, StreamTcpException}
 import akka.util.ByteString
 import com.malliina.boat.client.server.BoatConf
 import com.malliina.boat.{RawSentence, SentencesMessage}
@@ -30,14 +30,15 @@ class AkkaStreamsClientTests extends FunSuite {
     // TODO devise a fix
     val tcpHost = "127.0.0.1"
     val tcpPort = 10108
-    val client = TcpSource(tcpHost, tcpPort)
+    val client = TcpSource(tcpHost, tcpPort, TcpSource.crlf)
 
     val tcpOut = Source.maybe[ByteString]
     val established = Promise[IncomingConnection]()
     val established2 = Promise[IncomingConnection]()
     val incomingSink = Sink.foreach[IncomingConnection] { conn =>
       if (!established.trySuccess(conn)) established2.trySuccess(conn)
-      val handler = Flow.fromSinkAndSourceCoupled(Sink.foreach[ByteString](msg => println(msg)), tcpOut)
+      val handler =
+        Flow.fromSinkAndSourceCoupled(Sink.foreach[ByteString](msg => println(msg)), tcpOut)
       //      conn.flow.joinMat(handler)(Keep.right).run()
       conn.handleWith(handler)
     }
@@ -61,7 +62,7 @@ class AkkaStreamsClientTests extends FunSuite {
   ignore("TCP client") {
     val tcpHost = "127.0.0.1"
     val tcpPort = 10110
-    val client = TcpSource(tcpHost, tcpPort)
+    val client = TcpSource(tcpHost, tcpPort, TcpSource.crlf)
     try {
       await(client.connect(), 30.seconds)
       client.sentencesHub.runForeach(println)
@@ -90,7 +91,8 @@ class AkkaStreamsClientTests extends FunSuite {
   }
 
   ignore("count") {
-    val msgs = Json.parse(new FileInputStream(Paths.get("demo2.json").toFile)).as[Seq[SentencesMessage]]
+    val msgs =
+      Json.parse(new FileInputStream(Paths.get("demo2.json").toFile)).as[Seq[SentencesMessage]]
     println(msgs.flatMap(_.sentences).length)
   }
 

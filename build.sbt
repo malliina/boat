@@ -41,6 +41,7 @@ val commonSettings = basicSettings ++ Seq(
 val cross = portableProject(JSPlatform, JVMPlatform)
   .crossType(PortableType.Full)
   .in(file("shared"))
+  .disablePlugins(RevolverPlugin)
   .settings(commonSettings)
   .settings(
     libraryDependencies ++= Seq(
@@ -56,6 +57,7 @@ val crossJs = cross.js
 val frontend = project
   .in(file("frontend"))
   .enablePlugins(ScalaJSBundlerPlugin, ScalaJSWeb, NodeCheckPlugin)
+  .disablePlugins(RevolverPlugin)
   .dependsOn(crossJs)
   .settings(commonSettings)
   .settings(
@@ -99,6 +101,7 @@ val frontend = project
 
 val backend = Project("boat", file("backend"))
   .enablePlugins(FileTreePlugin, WebScalaJSBundlerPlugin, PlayLinuxPlugin)
+  .disablePlugins(RevolverPlugin)
   .dependsOn(crossJvm)
   .settings(commonSettings)
   .settings(
@@ -233,6 +236,7 @@ val agent = project
 
 val it = Project("integration-tests", file("boat-test"))
   .dependsOn(backend, backend % "test->test", agent)
+  .disablePlugins(RevolverPlugin)
   .settings(commonSettings)
   .settings(
     libraryDependencies ++= Seq(
@@ -243,6 +247,7 @@ val it = Project("integration-tests", file("boat-test"))
 val utils = project
   .in(file("utils"))
   .dependsOn(crossJvm)
+  .disablePlugins(RevolverPlugin)
   .settings(basicSettings)
   .settings(
     resolvers += "GeoTools" at "https://download.osgeo.org/webdav/geotools/",

@@ -1,6 +1,7 @@
 package com.malliina.boat.client.server
 
 import akka.http.scaladsl.model.{ContentTypes, HttpEntity}
+import com.malliina.boat.client.server.Device.{BoatDevice, GpsDevice}
 import scalatags.Text
 import scalatags.Text.all._
 
@@ -18,16 +19,40 @@ object AgentHtml {
       input(`type` := "number", name := "port", id := "port", value := conf.port)
     ),
     div(`class` := "form-field")(
+      label(`for` := "device")("Device"),
+      radioButton("Boat", "device-boat", "device", BoatDevice.name, conf.device == BoatDevice),
+      radioButton("GPS", "device-gps", "device", GpsDevice.name, conf.device == GpsDevice)
+    ),
+    div(`class` := "form-field")(
       label(`for` := "token")("Token"),
-      input(`type` := "text", name := "token", id := "token", conf.token.map(v => value := v.token).getOrElse(empty))
+      input(`type` := "text",
+            name := "token",
+            id := "token",
+            conf.token.map(v => value := v.token).getOrElse(empty))
     ),
     div(`class` := "form-field")(
       label(`for` := "enabled")("Enabled"),
-      input(`type` := "checkbox", name := "enabled", id := "enabled", if (conf.enabled) checked else empty)
+      input(`type` := "checkbox",
+            name := "enabled",
+            id := "enabled",
+            if (conf.enabled) checked else empty)
     ),
     div(`class` := "form-field")(
       button(`type` := "submit")("Save")
     )
+  )
+
+  def radioButton(text: String,
+                  radioId: String,
+                  group: String,
+                  radioValue: String,
+                  isChecked: Boolean) = div(
+    input(`type` := "radio",
+          name := group,
+          id := radioId,
+          value := radioValue,
+          if (isChecked) checked else empty),
+    label(`for` := radioId)(text)
   )
 
   def changePassForm = form(action := WebServer.changePassUri, method := "post")(

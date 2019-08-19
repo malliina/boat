@@ -5,6 +5,7 @@ import akka.http.scaladsl.Http
 import akka.http.scaladsl.model._
 import akka.stream.ActorMaterializer
 import com.malliina.boat.BoatToken
+import com.malliina.boat.client.DeviceAgent
 import org.scalatest.FunSuite
 
 import scala.concurrent.duration.{Duration, DurationInt}
@@ -22,13 +23,18 @@ class WebServerTests extends FunSuite {
   }
 
   test("get") {
-    val server = WebServer("127.0.0.1", 0, AgentInstance(BoatConf.empty))
+    val server =
+      WebServer("127.0.0.1",
+                0,
+                AgentInstance(BoatConf.empty, DeviceAgent.ProdBoatUrl, system, materializer))
     val testServer = Http().bindAndHandle(server.routes, "127.0.0.1", 0)
     val binding = await(testServer)
     val addr = binding.localAddress
     def urlTo(path: String) = s"http://${addr.getHostString}:${addr.getPort}$path"
 
-    val res = await(Http().singleRequest(HttpRequest(method = HttpMethods.GET, uri = urlTo(WebServer.settingsUri))))
+    val res = await(
+      Http().singleRequest(
+        HttpRequest(method = HttpMethods.GET, uri = urlTo(WebServer.settingsUri))))
     assert(res.status === StatusCodes.OK)
   }
 
