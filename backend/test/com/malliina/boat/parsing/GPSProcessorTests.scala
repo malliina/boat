@@ -47,4 +47,10 @@ class GPSProcessorTests extends BaseSuite {
       println(res)
     }
   }
+
+  test("parse ZDA") {
+    val in = RawSentence("$GPZDA,213918.000,19,08,2019,,*5C")
+    val result = SentenceParser.parse(in)
+    assert(result.isRight)
+  }
 }

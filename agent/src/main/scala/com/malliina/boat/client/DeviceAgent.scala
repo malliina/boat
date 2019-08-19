@@ -13,9 +13,10 @@ import com.malliina.http.FullUrl
 import scala.concurrent.Future
 
 object DeviceAgent {
-  val ProdHost = FullUrl("wss", "api.boat-tracker.com", "")
-  val ProdBoatUrl = ProdHost / "/ws/boats"
-  val ProdDeviceUrl = ProdHost / "/ws/devices"
+  val Host = FullUrl("wss", "api.boat-tracker.com", "")
+//  val Host = FullUrl("ws", "localhost:9000", "")
+  val BoatUrl = Host / "/ws/boats"
+  val DeviceUrl = Host / "/ws/devices"
 
   def apply(conf: BoatConf, url: FullUrl)(implicit as: ActorSystem,
                                           mat: Materializer): DeviceAgent =
@@ -28,7 +29,7 @@ object DeviceAgent {
   */
 class DeviceAgent(conf: BoatConf, url: FullUrl)(implicit as: ActorSystem, mat: Materializer) {
   val isGps = conf.device == GpsDevice
-  val delimiter = if (isGps) TcpSource.lf else TcpSource.crlf
+  val delimiter = TcpSource.crlf
   val tcp = TcpSource(conf.host, conf.port, delimiter)
   val ws = WebSocketClient(url, conf.token.map { t =>
     KeyValue(BoatTokenHeader, t.token)

@@ -49,7 +49,8 @@ class TcpSource(host: String, port: Int, delimiter: String)(implicit as: ActorSy
 
   def flow: Flow[ByteString, SentencesMessage, NotUsed] = Flow[ByteString]
     .via(Framing.delimiter(ByteString(delimiter), maximumFrameLength = 1000))
-    .map(bs => RawSentence(bs.decodeString(StandardCharsets.US_ASCII)))
+    .map(bs => RawSentence(bs.decodeString(StandardCharsets.US_ASCII).trim))
+    .filter(_.sentence.startsWith("$"))
     .groupedWithin(maxBatchSize, sendTimeWindow)
     .map(SentencesMessage.apply)
 

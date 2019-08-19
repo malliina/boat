@@ -26,7 +26,7 @@ class WebServerTests extends FunSuite {
     val server =
       WebServer("127.0.0.1",
                 0,
-                AgentInstance(BoatConf.empty, DeviceAgent.ProdBoatUrl, system, materializer))
+                AgentInstance(BoatConf.empty, DeviceAgent.BoatUrl, system, materializer))
     val testServer = Http().bindAndHandle(server.routes, "127.0.0.1", 0)
     val binding = await(testServer)
     val addr = binding.localAddress

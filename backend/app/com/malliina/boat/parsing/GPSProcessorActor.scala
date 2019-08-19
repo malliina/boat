@@ -22,7 +22,7 @@ class GPSProcessorActor(processed: ActorRef) extends Actor {
     case dateTime @ ParsedGPSDateTime(_, _, _) =>
       val boat = dateTime.boat
       latestDateTime = latestDateTime.updated(boat, dateTime)
-      emitIfComplete(boat)
+      tryEmit(boat)
     case coord @ ParsedGPSCoord(_, _, _) =>
       val boat = coord.boat
       val emitted = emitIfComplete(boat, Seq(coord))
@@ -32,11 +32,11 @@ class GPSProcessorActor(processed: ActorRef) extends Actor {
     case siv @ SatellitesInView(_, sentence) =>
       val boat = sentence.from
       latestSatellites = latestSatellites.updated(boat, siv)
-      emitIfComplete(boat)
+      tryEmit(boat)
     case gps @ GPSInfo(_, _, sentence) =>
       val boat = sentence.from
       latestFix = latestFix.updated(boat, gps)
-      emitIfComplete(boat)
+      tryEmit(boat)
     case success @ Success(s) =>
       log.warn(s"Stream completed with message '$s'.")
       processed ! success
@@ -45,7 +45,7 @@ class GPSProcessorActor(processed: ActorRef) extends Actor {
       processed ! failure
   }
 
-  def emitIfComplete(boat: DeviceId): Unit = {
+  def tryEmit(boat: DeviceId): Unit = {
     val emitted = emitIfComplete(boat, coords.getOrElse(boat, Nil))
     if (emitted.nonEmpty) {
       coords = coords.updated(boat, Nil)

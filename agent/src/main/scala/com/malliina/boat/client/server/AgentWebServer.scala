@@ -11,7 +11,7 @@ object AgentWebServer {
     implicit val materializer = ActorMaterializer()
 
     val conf = AgentSettings.readConf()
-    val url = if (conf.device == GpsDevice) DeviceAgent.ProdDeviceUrl else DeviceAgent.ProdBoatUrl
+    val url = if (conf.device == GpsDevice) DeviceAgent.DeviceUrl else DeviceAgent.BoatUrl
     val agentManager = AgentInstance(conf, url, system, materializer)
     WebServer("0.0.0.0", 8080, agentManager)
   }

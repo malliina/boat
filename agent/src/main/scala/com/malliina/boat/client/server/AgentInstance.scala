@@ -22,7 +22,7 @@ class AgentInstance(initialConf: BoatConf, url: FullUrl)(implicit as: ActorSyste
   def updateIfNecessary(newConf: BoatConf): Boolean = synchronized {
     if (newConf != conf) {
       val newUrl =
-        if (newConf.device == GpsDevice) DeviceAgent.ProdDeviceUrl else DeviceAgent.ProdBoatUrl
+        if (newConf.device == GpsDevice) DeviceAgent.DeviceUrl else DeviceAgent.BoatUrl
       conf = newConf
       val oldAgent = agent
       oldAgent.close()
