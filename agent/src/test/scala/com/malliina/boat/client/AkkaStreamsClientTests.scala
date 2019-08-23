@@ -4,15 +4,10 @@ import java.io.FileInputStream
 import java.nio.charset.StandardCharsets
 import java.nio.file.{Files, Paths}
 
-import akka.actor.ActorSystem
-import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.Tcp.IncomingConnection
 import akka.stream.scaladsl.{Flow, Keep, Sink, Source, Tcp}
 import akka.util.ByteString
-import com.malliina.boat.client.server.BoatConf
 import com.malliina.boat.{RawSentence, SentencesMessage}
-import com.malliina.http.FullUrl
-import org.scalatest.FunSuite
 import play.api.libs.json.Json
 
 import scala.collection.immutable.Iterable
@@ -20,11 +15,7 @@ import scala.collection.mutable
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, Future, Promise}
 
-class AkkaStreamsClientTests extends FunSuite {
-  implicit val as = ActorSystem()
-  implicit val mat = ActorMaterializer()
-  implicit val ec = mat.executionContext
-
+class AkkaStreamsClientTests extends BasicSuite {
   ignore("kill TCP server") {
     // this test does not work because the client never gets a termination signal even when the TCP server is shut down
     // TODO devise a fix
@@ -79,15 +70,6 @@ class AkkaStreamsClientTests extends FunSuite {
       Thread.sleep(20000)
       Files.write(Paths.get("demouiva.json"), Json.toBytes(Json.toJson(jsons)))
     } finally client.close()
-  }
-
-  ignore("receive-send to dot com") {
-    val url = FullUrl.ws("localhost:9000", "/ws/boats")
-    val agent = DeviceAgent(BoatConf.anon("192.168.0.11", 10110), url)
-    try {
-      agent.connect()
-      Thread.sleep(30000)
-    } finally agent.close()
   }
 
   ignore("count") {
