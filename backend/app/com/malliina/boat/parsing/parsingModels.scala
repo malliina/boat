@@ -3,10 +3,12 @@ package com.malliina.boat.parsing
 import java.time.{LocalDate, LocalTime, ZoneOffset}
 
 import com.malliina.boat.{
-  DeviceId,
   Coord,
+  DeviceId,
   GPSKeyedSentence,
+  GPSPointId,
   GPSSentenceKey,
+  GPSTimedCoord,
   KeyedSentence,
   RawSentence,
   SentenceKey,
@@ -26,7 +28,11 @@ trait ParsedGPSSentence {
 
 case class ParsedGPSCoord(coord: Coord, ggaTime: LocalTime, sentence: GPSKeyedSentence)
     extends ParsedGPSSentence {
-  def complete(date: LocalDate, time: LocalTime, satellites: Int, fix: GPSFix, parts: Seq[GPSSentenceKey]) =
+  def complete(date: LocalDate,
+               time: LocalTime,
+               satellites: Int,
+               fix: GPSFix,
+               parts: Seq[GPSSentenceKey]) =
     GPSCoord(coord, date, time, satellites, fix, boat, parts)
 }
 
@@ -83,6 +89,12 @@ case class GPSCoord(coord: Coord,
 
   def lng = coord.lng
   def lat = coord.lat
+
+  def timed(id: GPSPointId, formatter: TimeFormatter) = GPSTimedCoord(
+    id,
+    coord,
+    formatter.timing(gpsTime)
+  )
 }
 
 case class FullCoord(coord: Coord,

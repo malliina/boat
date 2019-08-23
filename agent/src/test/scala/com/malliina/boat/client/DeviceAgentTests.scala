@@ -16,7 +16,8 @@ class DeviceAgentTests extends BasicSuite {
   }
 
   ignore("listen to GPS device") {
-    val url = FullUrl.wss("api.boat-tracker.com", "/ws/devices")
+//    val url = FullUrl.wss("api.boat-tracker.com", "/ws/devices")
+    val url = FullUrl.ws("localhost:9000", "/ws/devices")
     val conf = BoatConf("10.0.0.4", 2947, GpsDevice, Option(BoatToken("changeme")), enabled = true)
     val agent = DeviceAgent(conf, url)
     try {

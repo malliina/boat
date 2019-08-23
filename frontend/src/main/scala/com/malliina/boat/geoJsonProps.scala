@@ -26,3 +26,12 @@ object PointProps {
   def apply(c: TimedCoord, ref: TrackRef): PointProps =
     PointProps(ref.boatName, ref.trackName, c.speed, c.waterTemp, c.depthMeters, c.time.dateTime)
 }
+
+case class DeviceProps(deviceName: BoatName, dateTime: FormattedDateTime)
+
+object DeviceProps {
+  implicit val json = Json.format[DeviceProps]
+
+  def apply(c: GPSTimedCoord, ref: DeviceRef): DeviceProps =
+    DeviceProps(ref.deviceName, c.time.dateTime)
+}

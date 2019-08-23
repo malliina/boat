@@ -240,12 +240,16 @@ class BoatController(mapboxToken: AccessToken,
                 s"Points ${es.map(_.coords.length).sum} intelligent $intelligentSample actual $actualSample")
               Source(es.toList.map(_.sample(actualSample)))
             }
+          val gpsHistory = Source.fromFuture(devices.db.history(user)).flatMapConcat { es =>
+            Source(es.toList)
+          }
           val formatter = TimeFormatter(user.language)
           // disconnects viewers that lag more than 3s
+          val eventSource = history.merge(gpsHistory)
+            .concat(boats.clientEvents(formatter).merge(devices.clientEvents(formatter)))
+            .filter(_.isIntendedFor(username))
           val flow = Flow
-            .fromSinkAndSource(
-              Sink.ignore,
-              history.concat(boats.clientEvents(formatter)).filter(_.isIntendedFor(username)))
+            .fromSinkAndSource(Sink.ignore, eventSource)
             .keepAlive(10.seconds, () => PingEvent(Instant.now.toEpochMilli))
             .backpressureTimeout(3.seconds)
           logTermination(flow, _ => s"Viewer '$username' left.")

@@ -203,6 +203,12 @@ object TimedCoord {
     Writes(tc => modern.writes(tc) ++ Json.obj("depth" -> tc.depthMeters.toMillis.toLong)))
 }
 
+case class GPSTimedCoord(id: GPSPointId, coord: Coord, time: Timing)
+
+object GPSTimedCoord {
+  implicit val json = Json.format[GPSTimedCoord]
+}
+
 case class AccessToken(token: String) extends AnyVal with WrappedString {
   override def value = token
 }
@@ -326,7 +332,8 @@ trait IdentifiedDeviceMeta extends DeviceMeta {
 
 case class SimpleBoatMeta(user: Username, boat: BoatName) extends DeviceMeta
 
-case class IdentifiedDevice(user: Username, boat: BoatName, device: DeviceId) extends IdentifiedDeviceMeta
+case class IdentifiedDevice(user: Username, boat: BoatName, device: DeviceId)
+    extends IdentifiedDeviceMeta
 
 case class DeviceId(id: Long) extends AnyVal with WrappedId
 
@@ -434,6 +441,12 @@ object TrackMetaShort {
   implicit val json = Json.format[TrackMetaShort]
 }
 
+case class DeviceRef(device: DeviceId, deviceName: BoatName, username: Username)
+
+object DeviceRef {
+  implicit val json = Json.format[DeviceRef]
+}
+
 case class TrackRef(track: TrackId,
                     trackName: TrackName,
                     trackTitle: Option[TrackTitle],
@@ -521,6 +534,13 @@ object Tracks {
   implicit val json = Json.format[Tracks]
 }
 
+case class GPSCoordsEvent(coords: List[GPSTimedCoord], from: DeviceRef) extends DeviceFrontEvent
+
+object GPSCoordsEvent {
+  val Key = "gps-coords"
+  implicit val json = keyValued(Key, Json.format[GPSCoordsEvent])
+}
+
 case class CoordsEvent(coords: List[TimedCoord], from: TrackRef) extends BoatFrontEvent {
   def isEmpty = coords.isEmpty
 
@@ -580,7 +600,12 @@ sealed trait FrontEvent {
   def isIntendedFor(user: Username): Boolean
 }
 
-sealed trait DeviceFrontEvent
+sealed trait DeviceFrontEvent extends FrontEvent {
+  def from: DeviceRef
+
+  override def isIntendedFor(user: Username): Boolean =
+    from.username == user
+}
 
 sealed trait BoatFrontEvent extends FrontEvent {
   def from: TrackMetaLike
@@ -597,6 +622,7 @@ object FrontEvent {
       .orElse(CoordsBatch.json.reads(json))
       .orElse(SentencesEvent.json.reads(json))
       .orElse(PingEvent.json.reads(json))
+      .orElse(GPSCoordsEvent.json.reads(json))
   }
   implicit val writer = Writes[FrontEvent] {
     case se @ SentencesEvent(_, _) => SentencesEvent.json.writes(se)
@@ -604,6 +630,7 @@ object FrontEvent {
     case cb @ CoordsBatch(_)       => CoordsBatch.json.writes(cb)
     case pe @ PingEvent(_)         => PingEvent.json.writes(pe)
     case vs @ VesselMessages(_)    => VesselMessages.json.writes(vs)
+    case gce @ GPSCoordsEvent(_, _) => GPSCoordsEvent.json.writes(gce)
   }
 }
 
@@ -655,7 +682,7 @@ abstract class Companion[Raw, T](implicit jsonFormat: Format[Raw], o: Ordering[R
 }
 
 abstract class ValidatedDouble[T](implicit f: Format[Double])
-  extends ValidatingCompanion[Double, T]()(f, TotalOrdering)
+    extends ValidatingCompanion[Double, T]()(f, TotalOrdering)
 
 class ModelHtml[Builder, Output <: FragT, FragT](val bundle: Bundle[Builder, Output, FragT]) {
 

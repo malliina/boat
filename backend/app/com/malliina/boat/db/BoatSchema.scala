@@ -86,10 +86,6 @@ class BoatSchema(ds: DataSource, val jdbc: BoatJdbcProfile)
     trackAggregate(_.map(_.boatTime).min)
   val maxTimes: Query[(Rep[TrackId], Rep[Option[Instant]]), (TrackId, Option[Instant]), Seq] =
     trackAggregate(_.map(_.boatTime).max)
-  val boatsView: Query[LiftedJoinedBoat, JoinedBoat, Seq] =
-    boatsTable.join(usersTable).on(_.owner === _.id).map {
-      case (b, u) => LiftedJoinedBoat(b.id, b.name, b.token, u.id, u.user, u.email, u.language)
-    }
   val tracksViewNonEmpty: Query[LiftedJoinedTrack, JoinedTrack, Seq] =
     boatsView
       .join(tracksTable)

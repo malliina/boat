@@ -7,16 +7,7 @@ import akka.stream.scaladsl.{BroadcastHub, Keep, MergeHub, Sink, Source}
 import com.malliina.boat.ais.AISSource
 import com.malliina.boat.db.TracksSource
 import com.malliina.boat.parsing.BoatService.log
-import com.malliina.boat.{
-  BoatEvent,
-  BoatJsonError,
-  CoordsEvent,
-  InsertedPoint,
-  SentencesMessage,
-  Streams,
-  TimeFormatter,
-  VesselMessages
-}
+import com.malliina.boat.{BoatEvent, BoatJsonError, CoordsEvent, FrontEvent, InsertedPoint, SentencesMessage, Streams, TimeFormatter, VesselMessages}
 import play.api.Logger
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -86,10 +77,9 @@ class BoatService(aisClient: AISSource, db: TracksSource)(
     * @param formatter time formatter
     * @return location updates of boats (Boat-Tracker) and vessels (AIS).
     */
-  def clientEvents(formatter: TimeFormatter) =
+  def clientEvents(formatter: TimeFormatter): Source[FrontEvent, Future[Done]] =
     savedCoords
       .mapConcat[CoordsEvent](_.map { ip =>
-        println(ip)
         CoordsEvent(
           List(ip.coord.timed(ip.inserted.point, formatter)),
           ip.inserted.track.strip(formatter)

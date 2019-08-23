@@ -24,6 +24,11 @@ class Popups(lang: Lang) extends BoatModels {
       tr(td(colspan := 2)(point.dateTime))
     )
 
+  def device(point: DeviceProps) =
+    titledTable(point.deviceName.name)(
+      tr(td(colspan := 2)(point.dateTime))
+    )
+
   def ais(vessel: VesselInfo) = {
     val unknownShip = vessel.shipType.isInstanceOf[ShipType.Unknown]
     titledTable(vessel.name)(

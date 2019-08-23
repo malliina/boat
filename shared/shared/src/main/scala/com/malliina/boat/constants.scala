@@ -41,6 +41,7 @@ trait FrontKeys extends BodyClasses with ListKeys with NavKeys with AboutKeys {
 
   val SampleKey = "sample"
 
+  val DevicePrefix = "device"
   val TrophyPrefix = "trophy"
 
   val Invisible = "invisible"

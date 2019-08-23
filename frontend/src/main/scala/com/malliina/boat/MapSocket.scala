@@ -32,8 +32,13 @@ class MapSocket(val map: MapboxMap,
   private var boats = Map.empty[String, FeatureCollection]
   private var trails = Map.empty[TrackId, Seq[TimedCoord]]
 
-  initImage("boat-resized-opt-20.png", boatIconId)
-  initImage("trophy-color-12.png", trophyIconId)
+  val imageInits = Future.sequence(
+    Seq(
+      initImage("boat-resized-opt-20.png", boatIconId),
+      initImage("trophy-color-12.png", trophyIconId),
+      initImage("satellite-dish-20.png", deviceIconId)
+    )
+  )
 
   def initImage(file: String, iconId: String): Future[Unit] =
     map.initImage(s"/assets/img/$file", iconId).recover {
@@ -64,7 +69,7 @@ class MapSocket(val map: MapboxMap,
       map.putLayer(lineLayer(track))
       // adds a thicker, transparent trail on top of the visible one, which represents the mouse-hoverable area
       map.putLayer(trackLineLayer(hoverableTrack, LinePaint(LinePaint.blackColor, 5, 0)))
-      coords.lastOption.map { coord =>
+      coords.lastOption.foreach { coord =>
         // adds boat icon
         map.putLayer(boatSymbolLayer(point, coord))
         map.onHover(point)(
@@ -139,7 +144,7 @@ class MapSocket(val map: MapboxMap,
     // updates the trophy icon
     val topPoint = from.topPoint
     map.findSource(trophyLayerId).foreach { geoJson =>
-      geoJson.updateData(pointFor(topPoint.coord, Json.toJsObject(PointProps(topPoint, from)).value.toMap))
+      geoJson.updateData(pointForProps(topPoint.coord, PointProps(topPoint, from)))
     }
     val trail: Seq[Coord] = newTrack.features.flatMap(_.geometry.coords)
     elem(TitleId).foreach { e =>
@@ -208,6 +213,37 @@ class MapSocket(val map: MapboxMap,
     }
   }
 
+  val devicePopup = MapboxPopup(PopupOptions(className = Option("popup-device")))
+
+  override def onGps(event: GPSCoordsEvent): Unit = {
+    val name = deviceName(event.from.deviceName)
+    event.coords.lastOption.foreach { coord =>
+      val props = DeviceProps(coord, event.from)
+      map
+        .findSource(name)
+        .map { geoJson =>
+          geoJson.updateData(pointForProps(coord.coord, props))
+        }
+        .getOrElse {
+          map.putLayer(deviceSymbolLayer(name, coord.coord, props))
+          map.onHover(name)(
+            in =>
+              map.queryRendered(in.point, QueryOptions.layer(name)).map { fs =>
+                fs.flatMap(_.props.asOpt[DeviceProps]).headOption.foreach { device =>
+                  map.getCanvas().style.cursor = "pointer"
+                  if (!popups.markPopup.isOpen())
+                    devicePopup.showText(device.deviceName.name, in.lngLat, map)
+                }
+            },
+            _ => {
+              map.getCanvas().style.cursor = ""
+              devicePopup.remove()
+            }
+          )
+        }
+    }
+  }
+
   override def onAIS(messages: Seq[VesselInfo]): Unit = {
     ais.onAIS(messages)
   }
@@ -236,10 +272,14 @@ class MapSocket(val map: MapboxMap,
 
   def trackName(boat: BoatName) = s"track-$boat"
   def pointName(boat: BoatName) = s"boat-$boat"
+  def deviceName(device: BoatName) = s"$DevicePrefix-$device"
   def trophyName(track: TrackName) = s"$TrophyPrefix-$track"
 
   def boatSymbolLayer(id: String, coord: Coord) =
     Layer.symbol(id, pointFor(coord), ImageLayout(boatIconId, `icon-size` = 1))
+
+  def deviceSymbolLayer(id: String, coord: Coord, props: DeviceProps) =
+    Layer.symbol(id, pointForProps(coord, props), ImageLayout(deviceIconId, `icon-size` = 1))
 
   def trophySymbolLayer(id: String, coord: Coord) =
     Layer.symbol(id, pointFor(coord), ImageLayout(trophyIconId, `icon-size` = 1))
@@ -248,6 +288,7 @@ class MapSocket(val map: MapboxMap,
 trait GeoUtils {
   val boatIconId = "boat-icon"
   val trophyIconId = "trophy-icon"
+  val deviceIconId = "device-icon"
 
   def map: MapboxMap
 
@@ -275,6 +316,9 @@ trait GeoUtils {
 
   def pointFor(coord: Coord, props: Map[String, JsValue] = Map.empty) =
     collectionFor(PointGeometry(coord), props)
+
+  def pointForProps[T: OWrites](coord: Coord, props: T) =
+    pointFor(coord, Json.toJsObject(props).value.toMap)
 
   def collectionFor(geo: Geometry, props: Map[String, JsValue]): FeatureCollection =
     FeatureCollection(Seq(Feature(geo, props)))

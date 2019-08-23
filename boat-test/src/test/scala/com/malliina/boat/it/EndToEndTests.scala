@@ -110,16 +110,13 @@ class EndToEndTests extends BoatTests {
       assert(msg.sentences.map(_.sentence) === sentences)
       // Simulates loss of plotter connectivity
       await(binding.unbind())
-      println("Plotter disconnected.")
       val rePromise = Promise[Int]()
       val incomingSinkAgain = Sink.foreach[IncomingConnection] { conn =>
-        println("TCP connection again.")
         rePromise.trySuccess(1)
         conn.flow.runWith(plotterOutput.concat(Source.maybe), Sink.foreach(msg => println(msg)))
       }
       val (serverAgain, _) = Tcp().bind(tcpHost, tcpPort).toMat(incomingSinkAgain)(Keep.both).run()
       val bindingAgain = await(serverAgain)
-      println("Online again.")
       try {
         await(rePromise.future)
       } finally {

@@ -10,6 +10,7 @@ sealed trait ClickType {
 
 case class VesselClick(props: VesselProps, target: LngLatLike) extends ClickType
 case class TrophyClick(trophy: PointProps, target: LngLatLike) extends ClickType
+case class DeviceClick(device: DeviceProps, target: LngLatLike) extends ClickType
 case class SymbolClick(symbol: MarineSymbol, target: LngLatLike) extends ClickType
 case class MinimalClick(symbol: MinimalMarineSymbol, target: LngLatLike) extends ClickType
 case class FairwayClick(area: FairwayArea, target: LngLatLike) extends ClickType
@@ -28,7 +29,7 @@ class MapMouseListener(map: MapboxMap,
                        pathFinder: PathFinder,
                        ais: AISRenderer,
                        html: Popups,
-                       val log: BaseLogger = BaseLogger.console) {
+                       val log: BaseLogger = BaseLogger.console) extends FrontKeys {
   val markPopup = MapboxPopup(PopupOptions())
   var isTrackHover: Boolean = false
 
@@ -48,9 +49,13 @@ class MapMouseListener(map: MapboxMap,
       if (symbolFeature.layer.exists(_.id == AISRenderer.AisVesselLayer)) {
         // AIS
         validate[VesselProps](props).map(vp => VesselClick(vp, target))
-      } else if (symbolFeature.layer.exists(_.id.startsWith(FrontKeys.TrophyPrefix))) {
+      } else if (symbolFeature.layer.exists(_.id.startsWith(TrophyPrefix))) {
         validate[PointProps](props).map { tp =>
           TrophyClick(tp, target)
+        }
+      } else if (symbolFeature.layer.exists(_.id.startsWith(DevicePrefix))) {
+        validate[DeviceProps](props).map { tp =>
+          DeviceClick(tp, target)
         }
       } else {
         // Markers
@@ -88,6 +93,8 @@ class MapMouseListener(map: MapboxMap,
         parseClick(e).map {
           result =>
             result.map {
+              case DeviceClick(props, target) =>
+                markPopup.show(html.device(props), target, map)
               case TrophyClick(props, target) =>
                 markPopup.show(html.track(props), target, map)
               case VesselClick(boat, target) =>

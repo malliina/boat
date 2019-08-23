@@ -130,6 +130,7 @@ class MapboxPopup(options: PopupOptions) extends js.Object {
   def setText(text: String): MapboxPopup = js.native
   def addTo(map: MapboxMap): MapboxPopup = js.native
   def remove(): Unit = js.native
+  def isOpen(): Boolean = js.native
 }
 
 object MapboxPopup {
@@ -222,6 +223,11 @@ object MapboxMap {
       self.on("mousemove", layerId, e => in(e))
       self.on("mouseleave", layerId, e => out(e))
     }
+
+    def onHoverCursorPointer(layerId: String) = onHover(layerId)(
+      in => self.getCanvas().style.cursor = "pointer",
+      out => self.getCanvas().style.cursor = ""
+    )
 
     def initImage(uri: String, iconId: String): Future[Unit] =
       fetchImage(uri).map { image =>

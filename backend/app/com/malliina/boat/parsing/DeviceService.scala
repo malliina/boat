@@ -6,7 +6,16 @@ import akka.stream.Materializer
 import akka.stream.scaladsl.{BroadcastHub, Keep, MergeHub, Sink, Source}
 import com.malliina.boat.db.GPSDatabase
 import com.malliina.boat.parsing.DeviceService.log
-import com.malliina.boat.{DeviceEvent, DeviceJsonError, GPSPointRow, SentencesMessage, Streams}
+import com.malliina.boat.{
+  DeviceEvent,
+  DeviceJsonError,
+  FrontEvent,
+  GPSCoordsEvent,
+  GPSInsertedPoint,
+  SentencesMessage,
+  Streams,
+  TimeFormatter
+}
 import play.api.Logger
 
 import scala.concurrent.Future
@@ -18,7 +27,8 @@ object DeviceService {
     new DeviceService(db)(as, mat)
 }
 
-class DeviceService(db: GPSDatabase)(implicit as: ActorSystem, mat: Materializer) extends Streams {
+class DeviceService(val db: GPSDatabase)(implicit as: ActorSystem, mat: Materializer)
+    extends Streams {
   implicit val ec = mat.executionContext
 
   val (deviceSink, viewerSource) = MergeHub
@@ -46,12 +56,22 @@ class DeviceService(db: GPSDatabase)(implicit as: ActorSystem, mat: Materializer
   parsedSentences.runWith(Sink.ignore)
   private val parsedEvents: Source[GPSCoord, Future[Done]] =
     parsedSentences.via(BoatParser.gpsFlow())
-  private val savedCoords = monitored(
-    onlyOnce(parsedEvents.mapAsync(parallelism = 1)(ce => saveRecovered(ce))),
-    "saved GPS coords")
+  private val savedCoords: Source[List[GPSInserted], Future[Done]] =
+    monitored(onlyOnce(parsedEvents.mapAsync(parallelism = 1)(ce => {
+      log.info(s"ce $ce")
+      saveRecovered(ce)
+    })), "saved GPS coords")
   private val coordsDrainer = savedCoords.runWith(Sink.ignore)
   private val errors = lefts(sentencesSource)
   errors.runWith(Sink.foreach(err => log.error(s"JSON error for '${err.boat}': '${err.error}'.")))
+
+  def clientEvents(formatter: TimeFormatter): Source[FrontEvent, Future[Done]] =
+    savedCoords.mapConcat { ps =>
+      ps.map { point =>
+        GPSCoordsEvent(List(point.coord.timed(point.inserted.point, formatter)),
+                       point.inserted.from.strip)
+      }
+    }
 
   private def saveRecovered(coord: GPSCoord): Future[List[GPSInserted]] =
     db.saveCoords(coord)
@@ -65,4 +85,4 @@ class DeviceService(db: GPSDatabase)(implicit as: ActorSystem, mat: Materializer
       }
 }
 
-case class GPSInserted(coord: GPSCoord, inserted: GPSPointRow)
+case class GPSInserted(coord: GPSCoord, inserted: GPSInsertedPoint)

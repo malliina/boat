@@ -200,6 +200,10 @@ case class InsertedPoint(point: TrackPointId, track: JoinedTrack) {
   def strip(formatter: TimeFormatter) = InsertedTrackPoint(point, track.strip(formatter))
 }
 
+case class JoinedDevice(id: DeviceId, username: Username)
+
+case class GPSInsertedPoint(point: GPSPointId, from: JoinedBoat)
+
 case class TrackNumbers(track: TrackId,
                         start: Option[Instant],
                         end: Option[Instant],
@@ -331,6 +335,7 @@ case class JoinedBoat(device: DeviceId,
   override def user = username
   override def boat = boatName
   override def deviceName = boatName
+  def strip = DeviceRef(device, boatName, username)
 }
 
 case class TrackInput(name: TrackName,

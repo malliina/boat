@@ -42,6 +42,11 @@ trait TracksSchema extends Mappings with DatabaseClient { self: JdbcComponent wi
     SimpleFunction.unary[Instant, DateVal](jdbc.date)
   val distanceCoords = SimpleFunction.binary[Coord, Coord, DistanceM](jdbc.distance)
 
+  val boatsView: Query[LiftedJoinedBoat, JoinedBoat, Seq] =
+    boatsTable.join(usersTable).on(_.owner === _.id).map {
+      case (b, u) => LiftedJoinedBoat(b.id, b.name, b.token, u.id, u.user, u.email, u.language)
+    }
+
   class SentencesTable(tag: Tag) extends Table[SentenceRow](tag, "sentences") {
     def id = column[SentenceKey]("id", O.AutoInc, O.PrimaryKey)
     def sentence = column[RawSentence]("sentence", O.Length(128))
