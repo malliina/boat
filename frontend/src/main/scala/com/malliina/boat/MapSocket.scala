@@ -31,6 +31,7 @@ class MapSocket(val map: MapboxMap,
   private var mapMode: MapMode = mode
   private var boats = Map.empty[String, FeatureCollection]
   private var trails = Map.empty[TrackId, Seq[TimedCoord]]
+  private var devices = Map.empty[BoatName, DeviceProps]
 
   val imageInits = Future.sequence(
     Seq(
@@ -216,9 +217,11 @@ class MapSocket(val map: MapboxMap,
   val devicePopup = MapboxPopup(PopupOptions(className = Option("popup-device")))
 
   override def onGps(event: GPSCoordsEvent): Unit = {
-    val name = deviceName(event.from.deviceName)
+    val from = event.from
+    val name = deviceName(from.deviceName)
     event.coords.lastOption.foreach { coord =>
-      val props = DeviceProps(coord, event.from)
+      val props = DeviceProps(coord, from)
+      devices = devices.updated(from.deviceName, props)
       map
         .findSource(name)
         .map { geoJson =>
@@ -243,6 +246,13 @@ class MapSocket(val map: MapboxMap,
         }
     }
   }
+
+  def fly(to: BoatName): Unit =
+    devices.get(to).map { device =>
+      map.flyTo(FlyOptions(device.coord, 0.8))
+    }.getOrElse {
+      log.info(s"Device not found on map: '$to'.")
+    }
 
   override def onAIS(messages: Seq[VesselInfo]): Unit = {
     ais.onAIS(messages)

@@ -55,6 +55,10 @@ trait AboutKeys {
 trait NavKeys {
   val DropdownContentId = "dropdown-content"
   val DropdownLinkId = "dropdown-link"
+  val BoatDropdownId = "dropdown-link-boat"
+  val BoatDropdownContentId = "dropdown-link-boat-content"
+
+  val DeviceLinkClass = "device-link"
 
   val DistanceId = "distance"
   val DurationId = "duration"

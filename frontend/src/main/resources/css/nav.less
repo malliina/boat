@@ -87,11 +87,19 @@
     overflow: hidden;
   }
 
+  &.tight {
+    margin: 0;
+  }
+
   &.show {
     @media @desktops {
       display: block;
       max-width: 300px;
     }
+  }
+
+  &:hover {
+    text-decoration: none;
   }
 }
 

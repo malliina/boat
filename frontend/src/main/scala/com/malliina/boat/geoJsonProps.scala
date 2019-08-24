@@ -27,11 +27,16 @@ object PointProps {
     PointProps(ref.boatName, ref.trackName, c.speed, c.waterTemp, c.depthMeters, c.time.dateTime)
 }
 
-case class DeviceProps(deviceName: BoatName, dateTime: FormattedDateTime)
+case class DeviceProps(deviceName: BoatName,
+                       lng: Longitude,
+                       lat: Latitude,
+                       dateTime: FormattedDateTime) {
+  def coord = Coord(lng, lat)
+}
 
 object DeviceProps {
   implicit val json = Json.format[DeviceProps]
 
   def apply(c: GPSTimedCoord, ref: DeviceRef): DeviceProps =
-    DeviceProps(ref.deviceName, c.time.dateTime)
+    DeviceProps(ref.deviceName, c.coord.lng, c.coord.lat, c.time.dateTime)
 }

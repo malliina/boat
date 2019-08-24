@@ -64,7 +64,15 @@ class BoatHtml(jsFiles: ScriptAssets) extends Tags(scalatags.Text) {
           ub.boats.headOption.map { b =>
             modifier(
               div(id := "navbar", `class` := "navbar navbar-boat py-1")(
-                span(`class` := "nav-text")(b.boat),
+                a(`class` := "nav-text tight boats-link", href := reverse.devices())(b.boat),
+                div(`class` := "dropdown nav-text tight tracks", id := BoatDropdownId)(
+                  span(`class` := "dropdown-button", ""),
+                  div(`class` := "dropdown-content", id := BoatDropdownContentId)(
+                    ub.boats.map { boat =>
+                      a(`class` := s"track-link $DeviceLinkClass", href := "#", data("name") := s"${boat.boat}")(boat.boat)
+                    }
+                  )
+                ),
                 a(href := reverse.tracks(),
                   `class` := "icon-link history",
                   title := lang.lang.track.tracks),

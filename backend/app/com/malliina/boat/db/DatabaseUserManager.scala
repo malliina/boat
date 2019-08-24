@@ -98,12 +98,12 @@ class DatabaseUserManager(val db: BoatSchema)(implicit ec: ExecutionContext) ext
         } else {
           user.email.fold(acc) { email =>
             acc :+ UserInfo(user.id,
-              user.username,
-              email,
-              user.language,
-              newBoats,
-              user.enabled,
-              user.added.toEpochMilli)
+                            user.username,
+                            email,
+                            user.language,
+                            newBoats,
+                            user.enabled,
+                            user.added.toEpochMilli)
           }
         }
     }
@@ -120,7 +120,16 @@ class DatabaseUserManager(val db: BoatSchema)(implicit ec: ExecutionContext) ext
       user <- first(usersTable.filter(_.id === id), s"Not found or not enabled: '$email'.")
       bs <- loadBoats(tracksViewNonEmpty.filter(r => r.user === id && r.points > 100),
                       TimeFormatter(user.language))
-    } yield UserBoats(user.username, user.language, bs)
+      gpss <- boatsView
+        .filter(bv =>
+          bv.email.isDefined && bv.email === email && !bv.boat.in(tracksTable.map(_.boat)))
+        .result
+        .map { jbs =>
+          jbs.map { jb =>
+            BoatInfo(jb.device, jb.boatName, jb.username, jb.language, Nil)
+          }
+        }
+    } yield UserBoats(user.username, user.language, bs ++ gpss)
   }
 
   private def loadBoats(q: Query[LiftedJoinedTrack, JoinedTrack, Seq], formatter: TimeFormatter) = {

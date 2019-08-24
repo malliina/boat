@@ -112,13 +112,25 @@ class MapView(accessToken: AccessToken,
   }
 
   def initNavDropdown(): Unit = {
-    htmlElem(DropdownLinkId).foreach { e =>
-      htmlElem(DropdownContentId).foreach { content =>
+    initDropdown(DropdownLinkId, DropdownContentId)
+    initDropdown(BoatDropdownId, BoatDropdownContentId)
+    initDeviceDropdown()
+  }
+
+  private def initDropdown(linkId: String, contentId: String): Unit =
+    htmlElem(linkId).foreach { e =>
+      htmlElem(contentId).foreach { content =>
         e.addOnClick(_ => toggleClass(content, Visible))
         window.addOnClick { e =>
-          if (e.target == content) htmlElem(DropdownContentId).foreach(_.classList.remove(Visible))
+          if (e.target == content) htmlElem(contentId).foreach(_.classList.remove(Visible))
         }
       }
+    }
+
+  private def initDeviceDropdown() = document.getElementsByClassName(DeviceLinkClass).map { boat =>
+    boat.addOnClick { e =>
+      val boatName = BoatName(e.target.asInstanceOf[HTMLElement].getAttribute("data-name"))
+      socket.foreach { s => s.fly(boatName) }
     }
   }
 
