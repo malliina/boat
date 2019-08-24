@@ -88,6 +88,7 @@ trait ListKeys {
 
 trait BodyClasses {
   val AboutClass = "about"
+  val BoatsClass = "boats"
   val ChartsClass = "charts"
   val FormsClass = "forms"
   val MapClass = "map"

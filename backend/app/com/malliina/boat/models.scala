@@ -14,6 +14,8 @@ import play.api.mvc.PathBindable
 
 import scala.concurrent.duration.FiniteDuration
 
+case class CSRFToken(token: String) extends AnyVal
+
 case class Languages(finnish: Lang, swedish: Lang, english: Lang)
 
 object Languages {

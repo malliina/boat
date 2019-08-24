@@ -6,6 +6,7 @@ GET          /users/me                                        controllers.AppCon
 PUT          /users/me                                        controllers.PushController.changeLanguage
 POST         /users/notifications                             controllers.PushController.enableNotifications
 POST         /users/notifications/disable                     controllers.PushController.disableNotifications
+GET          /boats                                           controllers.BoatController.devices
 POST         /boats                                           controllers.BoatController.createBoat
 PATCH        /boats/:boat                                     controllers.BoatController.renameBoat(boat: com.malliina.boat.DeviceId)
 GET          /tracks                                          controllers.BoatController.tracks

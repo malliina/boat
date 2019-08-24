@@ -3,7 +3,7 @@ package com.malliina.boat.html
 import com.malliina.boat.FrontKeys._
 import com.malliina.boat.html.BoatHtml.{ScriptAssets, callAttr}
 import com.malliina.boat.http.{Limits, TrackQuery}
-import com.malliina.boat.{AppConf, FullTrack, Lang, TrackRef, TracksBundle, UserBoats, Usernames}
+import com.malliina.boat.{AppConf, FullTrack, Lang, TrackRef, TracksBundle, UserBoats, UserInfo, Usernames}
 import com.malliina.html.Tags
 import com.malliina.measure.DistanceM
 import com.malliina.play.tags.TagPage
@@ -12,6 +12,7 @@ import controllers.routes
 import play.api.Mode
 import play.api.http.MimeTypes
 import play.api.mvc.Call
+import play.filters.csrf.CSRF
 import scalatags.Text.GenericAttr
 import scalatags.Text.all._
 
@@ -38,6 +39,9 @@ class BoatHtml(jsFiles: ScriptAssets) extends Tags(scalatags.Text) {
 
   implicit def wrapFrag[T <: WrappedString](w: T): StringFrag = stringFrag(w.value)
   implicit def wrapAttr[T <: WrappedString]: AttrValue[T] = BoatImplicits.boatStringAttr(_.value)
+
+  def devices(user: UserInfo, token: CSRF.Token) =
+    page(PageConf(DevicesPage(user, token), bodyClasses = Seq(BoatsClass)))
 
   def tracks(data: TracksBundle, query: TrackQuery, lang: Lang) =
     page(PageConf(TracksPage(data, query, lang), bodyClasses = Seq(StatsClass)))

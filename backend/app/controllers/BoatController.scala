@@ -22,6 +22,7 @@ import play.api.http.{MimeTypes, Writeable}
 import play.api.libs.json.{JsValue, Json, Writes}
 import play.api.mvc.WebSocket.MessageFlowTransformer.jsonMessageFlowTransformer
 import play.api.mvc._
+import play.filters.csrf.CSRF
 
 import scala.concurrent.Future
 import scala.concurrent.duration.DurationInt
@@ -35,14 +36,15 @@ class BoatController(mapboxToken: AccessToken,
                      html: BoatHtml,
                      auther: UserManager,
                      googleAuth: EmailAuth,
-                     boats: BoatService,
-                     devices: DeviceService,
+                     boatService: BoatService,
+                     deviceService: DeviceService,
                      db: TracksSource,
                      push: PushDatabase,
                      comps: ControllerComponents)(implicit as: ActorSystem, mat: Materializer)
     extends AuthController(googleAuth, auther, comps)
     with Streams
     with ContentVersions {
+  val reverse = routes.BoatController
 
   val boatNameForm = Form[BoatName](BoatNames.Key -> BoatNames.mapping)
   val trackTitleForm = Form[TrackTitle](TrackTitle.Key -> TrackTitles.mapping)
@@ -65,6 +67,19 @@ class BoatController(mapboxToken: AccessToken,
       .withCookies(tokenCookie, languageCookie)
       .addingToSession(UserSessionKey -> u.name, LanguageSessionKey -> lang.code)(req.req)
     fut(result)
+  }
+
+  def devices = userAction(profile, _ => Right(())) { req =>
+    Future.successful {
+      CSRF
+        .getToken(req.rh)
+        .map { token =>
+          Ok(html.devices(req.user, token))
+        }
+        .getOrElse {
+          InternalServerError
+        }
+    }
   }
 
   def tracks = negotiated(tracksHtml, tracksJson)
@@ -136,8 +151,13 @@ class BoatController(mapboxToken: AccessToken,
     db.updateComments(track, req.body, req.user.id)
   }
 
-  def createBoat = boatAction { req =>
-    db.addBoat(req.body, req.user.id)
+  def createBoat = formActionResult(boatNameForm) { req =>
+    db.addBoat(req.body, req.user.id).map { boat =>
+      respond(req.req)(
+        Redirect(reverse.devices()),
+        Ok(BoatResponse(boat.toBoat))
+      )
+    }
   }
 
   def renameBoat(id: DeviceId) = boatAction { req =>
@@ -165,7 +185,7 @@ class BoatController(mapboxToken: AccessToken,
         )
         val flow: Flow[DeviceEvent, PingEvent, NotUsed] =
           Flow
-            .fromSinkAndSource(devices.deviceSink, Source.maybe[PingEvent])
+            .fromSinkAndSource(deviceService.deviceSink, Source.maybe[PingEvent])
             .keepAlive(10.seconds, () => PingEvent(Instant.now.toEpochMilli))
             .backpressureTimeout(3.seconds)
         terminationWatched(transformer.transform(flow)) { tryDone =>
@@ -200,7 +220,7 @@ class BoatController(mapboxToken: AccessToken,
           out => Json.toJson(out)
         )
         val flow: Flow[BoatEvent, PingEvent, NotUsed] = Flow
-          .fromSinkAndSource(boats.boatSink, Source.maybe[PingEvent])
+          .fromSinkAndSource(boatService.boatSink, Source.maybe[PingEvent])
           .keepAlive(10.seconds, () => PingEvent(Instant.now.toEpochMilli))
           .backpressureTimeout(3.seconds)
         terminationWatched(transformer.transform(flow)) { tryDone =>
@@ -240,13 +260,15 @@ class BoatController(mapboxToken: AccessToken,
                 s"Points ${es.map(_.coords.length).sum} intelligent $intelligentSample actual $actualSample")
               Source(es.toList.map(_.sample(actualSample)))
             }
-          val gpsHistory = Source.fromFuture(devices.db.history(user)).flatMapConcat { es =>
+          val gpsHistory = Source.fromFuture(deviceService.db.history(user)).flatMapConcat { es =>
             Source(es.toList)
           }
           val formatter = TimeFormatter(user.language)
           // disconnects viewers that lag more than 3s
-          val eventSource = history.merge(gpsHistory)
-            .concat(boats.clientEvents(formatter).merge(devices.clientEvents(formatter)))
+          val eventSource = history
+            .merge(gpsHistory)
+            .concat(
+              boatService.clientEvents(formatter).merge(deviceService.clientEvents(formatter)))
             .filter(_.isIntendedFor(username))
           val flow = Flow
             .fromSinkAndSource(Sink.ignore, eventSource)
@@ -279,10 +301,12 @@ class BoatController(mapboxToken: AccessToken,
 
   private def formAction[T, W: Writeable](form: Form[T])(
       code: UserRequest[UserInfo, T] => Future[W]): Action[T] =
+    formActionResult(form) { r => code(r).map { w => Ok(w) } }
+
+  private def formActionResult[T](form: Form[T])(
+    code: UserRequest[UserInfo, T] => Future[Result]): Action[T] =
     parsedAuth(parse.form(form, onErrors = (err: Form[T]) => formError(err)))(profile) { req =>
-      code(req).map { w =>
-        Ok(w)
-      }
+      code(req)
     }
 
   private def logTermination[In, Out, Mat](
