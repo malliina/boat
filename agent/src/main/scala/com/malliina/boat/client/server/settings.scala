@@ -5,6 +5,7 @@ import java.nio.file.{Files, Path, Paths}
 
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import com.malliina.boat.BoatToken
+import com.malliina.boat.client.server.Device.BoatDevice
 import com.malliina.boat.client.server.WebServer.{boatCharset, defaultHash, hash, log}
 import spray.json.{DefaultJsonProtocol, JsString, JsValue, JsonFormat}
 
@@ -31,6 +32,10 @@ object Device extends DefaultJsonProtocol {
   }
 }
 
+case class BoatConfOld(host: String, port: Int, token: Option[BoatToken], enabled: Boolean) {
+  def toConf = BoatConf(host, port, BoatDevice, token, enabled)
+}
+
 case class BoatConf(host: String,
                     port: Int,
                     device: Device,
@@ -53,6 +58,7 @@ trait JsonSupport extends SprayJsonSupport with DefaultJsonProtocol {
     override def read(json: JsValue): BoatToken = BoatToken(StringJsonFormat.read(json))
   }
 
+  implicit val oldConfFormat = jsonFormat4(BoatConfOld.apply)
   implicit val confFormat = jsonFormat5(BoatConf.apply)
 }
 
@@ -78,9 +84,17 @@ object AgentSettings extends JsonSupport {
 
   def readConf(): BoatConf =
     if (Files.exists(confFile)) {
-      Try(
-        new String(Files.readAllBytes(confFile), StandardCharsets.UTF_8).parseJson
-          .convertTo[BoatConf]).getOrElse(BoatConf.empty)
+      // If reading the conf fails, attempts to read the old format and then save it as new
+      Try(new String(Files.readAllBytes(confFile), StandardCharsets.UTF_8).parseJson).flatMap {
+        json =>
+          Try(json.convertTo[BoatConf]).orElse {
+            Try {
+              val converted = json.convertTo[BoatConfOld].toConf
+              saveConf(converted)
+              converted
+            }
+          }
+      }.getOrElse(BoatConf.empty)
     } else {
       BoatConf.empty
     }

@@ -1,8 +1,7 @@
 package com.malliina.boat
 
-import com.malliina.boat.Lang.appName
 import com.malliina.http.FullUrl
-import play.api.libs.json.Json
+import play.api.libs.json.{Format, Json, Writes}
 
 case class FairwayStateLang(
     confirmed: String,
@@ -540,6 +539,19 @@ object FormatsLang {
   implicit val json = Json.format[FormatsLang]
 }
 
+case class BoatLang(boat: String,
+                    rename: String,
+                    renameBoat: String,
+                    addBoat: String,
+                    newName: String,
+                    token: String,
+                    tokenText: String,
+                    tokenTextLong: String)
+
+object BoatLang {
+  implicit val json = Json.format[BoatLang]
+}
+
 case class SettingsLang(welcome: String,
                         welcomeText: String,
                         laterText: String,
@@ -548,23 +560,24 @@ case class SettingsLang(welcome: String,
                         howItWorks: String,
                         signIn: String,
                         signInText: String,
-                        boat: String,
-                        token: String,
-                        tokenText: String,
-                        tokenTextLong: String,
-                        rename: String,
-                        renameBoat: String,
                         giveTrackTitle: String,
-                        newName: String,
                         edit: String,
                         cancel: String,
                         back: String,
                         done: String,
                         noTracksHelp: String,
-                        formats: FormatsLang)
+                        formats: FormatsLang,
+                        boatLang: BoatLang)
 
 object SettingsLang {
-  implicit val json = Json.format[SettingsLang]
+  val jsonFormat = Json.format[SettingsLang]
+  implicit val json = Format[SettingsLang](
+    jsonFormat,
+    Writes { sl =>
+      // For backwards compat
+      jsonFormat.writes(sl) ++ BoatLang.json.writes(sl.boatLang)
+    }
+  )
 }
 
 case class LanguageInfo(name: String, code: String)
@@ -696,7 +709,7 @@ case class MonthsLang(jan: String,
     case 10 => oct
     case 11 => nov
     case 12 => dec
-    case _ => ""
+    case _  => ""
   }
 }
 
@@ -890,20 +903,23 @@ object Lang {
       "How it works",
       "Sign In",
       "Sign in to view past tracks driven with your boat.",
-      "Boat",
-      "Token",
-      s"Add the token to the $appName agent software running in your boat. For more information, see https://www.boat-tracker.com/docs/agent.",
-      s"Add the token provided after sign in to the $appName agent software running in your boat. Subsequently, tracks driven with the boat are saved to your account and can be viewed in this app. For agent installation instructions, see https://www.boat-tracker.com/docs/agent.",
-      "Rename",
-      "Rename Boat",
       "Name the track",
-      "Provide a new name",
       "Edit",
       "Cancel",
       "Back",
       "Done",
       s"Hello! You have no saved tracks. To save tracks, you'll need to connect the $appName agent software to the GPS chartplotter in your boat.",
-      FormatsLang("dd MMM yyyy", "HH:mm:ss", "HH:mm", "dd MMM yyyy HH:mm:ss")
+      FormatsLang("dd MMM yyyy", "HH:mm:ss", "HH:mm", "dd MMM yyyy HH:mm:ss"),
+      BoatLang(
+        "Boat",
+        "Rename",
+        "Rename Boat",
+        "Add boat",
+        "Provide a new name",
+        "Token",
+        s"Add the token to the $appName agent software running in your boat. For more information, see https://www.boat-tracker.com/docs/agent.",
+        s"Add the token provided after sign in to the $appName agent software running in your boat. Subsequently, tracks driven with the boat are saved to your account and can be viewed in this app. For agent installation instructions, see https://www.boat-tracker.com/docs/agent.",
+      )
     ),
     LimitLang.en,
     LabelsLang("Statistics", "Monthly", "Yearly", "All time"),
@@ -1021,20 +1037,23 @@ object Lang {
       "Kuinka tämä toimii",
       "Kirjaudu sisään",
       "Kirjaudu sisään ja tallenna ajetut matkat",
-      "Vene",
-      "Avain",
-      s"Lisää avain veneeseen asennettuun $appName -sovellukseen. Lisätietoja saat osoitteesta https://docs.boat-tracker.com/agent/.",
-      "Kirjautumisen jälkeen saat avaimen, jolla tallennat ajetut matkat käyttäjätunnuksellesi. Lisätietoja saat osoitteesta https://docs.boat-tracker.com/agent/.",
-      "Uusi nimi",
-      "Nimeä vene",
       "Nimeä",
-      "Uusi nimi",
       "Muokkaa",
       "Keskeytä",
       "Takaisin",
       "Valmis",
       s"Hei! Ei tallennettuja reittejä. Reittien tallennus vaatii $appName -sovelluksen yhdistämisen veneesi karttaplotteriin.",
-      FormatsLang("dd.MM.yyyy", "HH:mm:ss", "HH:mm", "dd.MM.yyyy HH:mm:ss")
+      FormatsLang("dd.MM.yyyy", "HH:mm:ss", "HH:mm", "dd.MM.yyyy HH:mm:ss"),
+      BoatLang(
+        "Vene",
+        "Uusi nimi",
+        "Nimeä vene",
+        "Lisää vene",
+        "Uusi nimi",
+        "Avain",
+        s"Lisää avain veneeseen asennettuun $appName -sovellukseen. Lisätietoja saat osoitteesta https://docs.boat-tracker.com/agent/.",
+        "Kirjautumisen jälkeen saat avaimen, jolla tallennat ajetut matkat käyttäjätunnuksellesi. Lisätietoja saat osoitteesta https://docs.boat-tracker.com/agent/.",
+      )
     ),
     LimitLang.fi,
     LabelsLang("Tilastot", "Kuukausittain", "Vuosittain", "Kaikki"),
@@ -1149,20 +1168,23 @@ object Lang {
       "Hur det fungerar",
       "Logga in",
       "Logga in för att spara spår",
-      "Båt",
-      "Nyckel",
-      s"Spara nyckeln i $appName-appen installerad i din båt. För mera information, se https://docs.boat-tracker.com/agent/.",
-      s"Inloggning skapar en nyckel du kan spara i $appName-appen installerad i din båt. Med nyckeln sparas körda spår under ditt användarnamn. För mera information, se https://docs.boat-tracker.com/agent/.",
-      "Ändra namn",
-      "Namnge båt",
       "Namnge spår",
-      "Ange ett nytt namn",
       "Redigera",
       "Avbryt",
       "Tillbaka",
       "Färdig",
       s"Inga sparade spår. För att spara spår, koppla $appName-appen till båtens plotter.",
-      FormatsLang("dd.MM.yyyy", "HH:mm:ss", "HH:mm", "dd.MM.yyyy HH:mm:ss")
+      FormatsLang("dd.MM.yyyy", "HH:mm:ss", "HH:mm", "dd.MM.yyyy HH:mm:ss"),
+      BoatLang(
+        "Båt",
+        "Ändra namn",
+        "Namnge båt",
+        "Lägg till båt",
+        "Ange ett nytt namn",
+        "Nyckel",
+        s"Spara nyckeln i $appName-appen installerad i din båt. För mera information, se https://docs.boat-tracker.com/agent/.",
+        s"Inloggning skapar en nyckel du kan spara i $appName-appen installerad i din båt. Med nyckeln sparas körda spår under ditt användarnamn. För mera information, se https://docs.boat-tracker.com/agent/.",
+      )
     ),
     LimitLang.se,
     LabelsLang("Statistik", "Per månad", "Per år", "Alla tider"),
