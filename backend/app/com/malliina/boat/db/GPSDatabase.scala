@@ -85,7 +85,7 @@ class GPSDatabase(val db: TracksSchema)(implicit ec: ExecutionContext) {
       describe: R => String): Future[R] = {
     db.run(action)
       .map { keys =>
-        log.info(s"Inserted ${describe(keys)} from '$from'.")
+        log.debug(s"Inserted ${describe(keys)} from '$from'.")
         keys
       }
       .recoverWith {

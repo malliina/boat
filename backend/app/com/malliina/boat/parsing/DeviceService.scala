@@ -50,10 +50,7 @@ class DeviceService(val db: GPSDatabase)(implicit as: ActorSystem, mat: Material
   private val parsedEvents: Source[GPSCoord, Future[Done]] =
     parsedSentences.via(BoatParser.gpsFlow())
   private val savedCoords: Source[List[GPSInserted], Future[Done]] =
-    monitored(onlyOnce(parsedEvents.mapAsync(parallelism = 1)(ce => {
-      log.info(s"ce $ce")
-      saveRecovered(ce)
-    })), "saved GPS coords")
+    monitored(onlyOnce(parsedEvents.mapAsync(parallelism = 1)(ce => saveRecovered(ce))), "saved GPS coords")
   private val coordsDrainer = savedCoords.runWith(Sink.ignore)
   private val errors = lefts(sentencesSource)
   errors.runWith(Sink.foreach(err => log.error(s"JSON error for '${err.boat}': '${err.error}'.")))
