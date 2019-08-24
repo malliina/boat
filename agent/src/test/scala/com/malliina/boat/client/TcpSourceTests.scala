@@ -20,7 +20,8 @@ class TcpSourceTests extends BasicSuite {
       "$GPGGA,125642,6009.2559,N,02447.5942,E,1,12,0.60,1,M,19.5,M,,*68"
     )
     // the client validates maximum frame length, so we must not concatenate multiple sentences
-    val plotterOutput = Source(sentences.map(s => ByteString(s"$s${TcpSource.crlf}", StandardCharsets.US_ASCII)).toList)
+    val plotterOutput = Source(
+      sentences.map(s => ByteString(s"$s${TcpSource.crlf}", StandardCharsets.US_ASCII)).toList)
 
     // pretend-plotter
     val tcpHost = "127.0.0.1"
@@ -28,22 +29,28 @@ class TcpSourceTests extends BasicSuite {
     val incomingSink = Sink.foreach[IncomingConnection] { conn =>
       conn.flow.runWith(plotterOutput, Sink.foreach(msg => println(msg)))
     }
-    val plotter = Tcp().bind(tcpHost, tcpPort).viaMat(KillSwitches.single)(Keep.right).toMat(incomingSink)(Keep.left).run()
+    val plotter = Tcp()
+      .bind(tcpHost, tcpPort)
+      .viaMat(KillSwitches.single)(Keep.right)
+      .toMat(incomingSink)(Keep.left)
+      .run()
 
     // client connects to plotter
-    val p = Promise[SentencesMessage]()
+    val p = Promise[RawSentence]()
     val clientSink = Sink.foreach[SentencesMessage] { msg =>
-      p.trySuccess(msg)
+      msg.sentences.headOption.foreach { msg =>
+        p.trySuccess(msg)
+      }
     }
     val client = TcpSource(tcpHost, tcpPort)
     try {
       client.connect()
       client.sentencesHub.runWith(clientSink)
       val received = await(p.future)
-      assert(received.sentences === sentences.map(RawSentence.apply))
+      assert(received === sentences.map(RawSentence.apply).head)
     } finally {
-      plotter.shutdown()
       client.close()
+      plotter.shutdown()
     }
   }
 

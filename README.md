@@ -32,11 +32,11 @@ The documentation site is hosted on GitHub Pages. To deploy:
 
 To release a new version of the agent, run
 
-    sbt release
+    sbt "project agent" release
     
 To upload a new downloadable `.deb` binary to S3, run
 
-    sbt buildAndUpload
+    sbt "project agent" buildAndUpload
     
 This will make a binary available at [www.boat-tracker.com/files](https://www.boat-tracker.com/files).
 
