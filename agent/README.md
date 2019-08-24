@@ -21,9 +21,15 @@ property containing the following format:
     {
       "host": "10.0.0.1",
       "port": 10033,
+      "device": "boat",
       "token": "abcd1234",
       "enabled": true
     }
+
+Key *device* is one of:
+
+- boat
+- gps
 
 Optionally, sign in to the iOS app to obtain a boat token. A token assigns any NMEA 0183 messages to the user with
 the given token, and subsequently the user can view any tracks recorded with the given token from the iOS app or web
