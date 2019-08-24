@@ -2,20 +2,11 @@ package com.malliina.boat.parsing
 
 import akka.Done
 import akka.actor.ActorSystem
-import akka.stream.Materializer
+import akka.stream.{KillSwitches, Materializer}
 import akka.stream.scaladsl.{BroadcastHub, Keep, MergeHub, Sink, Source}
 import com.malliina.boat.db.GPSDatabase
 import com.malliina.boat.parsing.DeviceService.log
-import com.malliina.boat.{
-  DeviceEvent,
-  DeviceJsonError,
-  FrontEvent,
-  GPSCoordsEvent,
-  GPSInsertedPoint,
-  SentencesMessage,
-  Streams,
-  TimeFormatter
-}
+import com.malliina.boat.{DeviceEvent, DeviceJsonError, FrontEvent, GPSCoordsEvent, GPSInsertedPoint, GPSKeyedSentence, SentencesMessage, Streams, TimeFormatter}
 import play.api.Logger
 
 import scala.concurrent.Future
@@ -31,10 +22,12 @@ class DeviceService(val db: GPSDatabase)(implicit as: ActorSystem, mat: Material
     extends Streams {
   implicit val ec = mat.executionContext
 
-  val (deviceSink, viewerSource) = MergeHub
+  val killSwitch = KillSwitches.shared("devices-switch")
+  val (deviceSink, viewerSrc) = MergeHub
     .source[DeviceEvent](perProducerBufferSize = 16)
     .toMat(BroadcastHub.sink(bufferSize = 256))(Keep.both)
     .run()
+  val viewerSource = viewerSrc.via(killSwitch.flow)
   private val _ = viewerSource.runWith(Sink.ignore)
 
   private val sentencesSource = viewerSource.map { boatEvent =>
@@ -83,6 +76,8 @@ class DeviceService(val db: GPSDatabase)(implicit as: ActorSystem, mat: Material
           log.error(s"Unable to save coords.", t)
           Nil
       }
+
+  def close(): Unit = killSwitch.shutdown()
 }
 
 case class GPSInserted(coord: GPSCoord, inserted: GPSInsertedPoint)

@@ -2,7 +2,7 @@ package com.malliina.boat.parsing
 
 import akka.Done
 import akka.actor.ActorSystem
-import akka.stream.Materializer
+import akka.stream.{KillSwitches, Materializer}
 import akka.stream.scaladsl.{BroadcastHub, Keep, MergeHub, Sink, Source}
 import com.malliina.boat.ais.AISSource
 import com.malliina.boat.db.TracksSource
@@ -27,12 +27,14 @@ class BoatService(aisClient: AISSource, db: TracksSource)(
     mat: Materializer
 ) extends Streams {
   implicit val ec: ExecutionContext = mat.executionContext
+  val killSwitch = KillSwitches.shared("boats-switch")
   // Publish-Subscribe Akka Streams
   // https://doc.akka.io/docs/akka/2.5/stream/stream-dynamic.html
-  val (boatSink, viewerSource) = MergeHub
+  val (boatSink, viewerSrc) = MergeHub
     .source[BoatEvent](perProducerBufferSize = 16)
     .toMat(BroadcastHub.sink(bufferSize = 256))(Keep.both)
     .run()
+  val viewerSource = viewerSrc.via(killSwitch.flow)
   private val _ = viewerSource.runWith(Sink.ignore)
   private val sentencesSource = viewerSource.map { boatEvent =>
     BoatParser
@@ -97,6 +99,8 @@ class BoatService(aisClient: AISSource, db: TracksSource)(
           log.error(s"Unable to save coords.", t)
           Nil
       }
+
+  def close(): Unit = killSwitch.shutdown()
 }
 
 case class Inserted(coord: FullCoord, inserted: InsertedPoint)

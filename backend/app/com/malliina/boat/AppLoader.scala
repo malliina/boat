@@ -109,7 +109,8 @@ class AppComponents(init: (Configuration, OkClient, ExecutionContext) => AppBuil
   lazy val pushService: PushEndpoint = builder.pushService
   lazy val push = PushDatabase(schema, pushService, executionContext)
   val googleAuth: EmailAuth = builder.emailAuth
-  val boatService = BoatService(BoatMqttClient(mode), tracks, actorSystem, materializer)
+  val ais = BoatMqttClient(mode)
+  val boatService = BoatService(ais, tracks, actorSystem, materializer)
   val deviceService = DeviceService(gps, actorSystem, materializer)
 
   // Controllers
@@ -128,7 +129,11 @@ class AppComponents(init: (Configuration, OkClient, ExecutionContext) => AppBuil
   val graphs = new GraphController(controllerComponents)
   override lazy val router: Router = new Routes(httpErrorHandler, boatCtrl, appCtrl, pushCtrl, graphs, signIn, docs, files)
 
+
   applicationLifecycle.addStopHook(() => Future.successful {
+    ais.close()
+    deviceService.close()
+    boatService.close()
     schema.close()
     http.close()
   })
