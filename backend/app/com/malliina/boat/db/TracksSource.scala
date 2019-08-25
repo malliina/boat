@@ -12,6 +12,7 @@ trait TracksSource {
   def updateTitle(track: TrackName, title: TrackTitle, user: UserId): Future[JoinedTrack]
   def updateComments(track: TrackId, comments: String, user: UserId): Future[JoinedTrack]
   def addBoat(boat: BoatName, user: UserId): Future[BoatRow]
+  def removeDevice(device: DeviceId, user: UserId): Future[Int]
   def renameBoat(boat: DeviceId, newName: BoatName, user: UserId): Future[BoatRow]
 
   /** If the given track and boat exist and are owned by the user, returns the track info.

@@ -160,6 +160,15 @@ class BoatController(mapboxToken: AccessToken,
     }
   }
 
+  def deleteBoat(id: DeviceId) = authAction(profile) { req =>
+    db.removeDevice(id, req.user.id).map { rows =>
+      respond(req.req)(
+        Redirect(reverse.devices()),
+        Ok(SimpleMessage("Done."))
+      )
+    }
+  }
+
   def renameBoat(id: DeviceId) = boatAction { req =>
     db.renameBoat(id, req.body, req.user.id)
   }

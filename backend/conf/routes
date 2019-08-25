@@ -9,6 +9,7 @@ POST         /users/notifications/disable                     controllers.PushCo
 GET          /boats                                           controllers.BoatController.devices
 POST         /boats                                           controllers.BoatController.createBoat
 PATCH        /boats/:boat                                     controllers.BoatController.renameBoat(boat: com.malliina.boat.DeviceId)
+POST         /boats/:boat/delete                              controllers.BoatController.deleteBoat(boat: com.malliina.boat.DeviceId)
 GET          /tracks                                          controllers.BoatController.tracks
 GET          /tracks/:track                                   controllers.BoatController.track(track: com.malliina.boat.TrackName)
 PUT          /tracks/:track                                   controllers.BoatController.modifyTitle(track: com.malliina.boat.TrackName)

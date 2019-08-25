@@ -36,6 +36,17 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext)
   def addBoat(boat: BoatName, user: UserId): Future[BoatRow] =
     action(saveBoat(boat, user))
 
+  def removeDevice(device: DeviceId, user: UserId): Future[Int] = action {
+    boatsTable.filter(b => b.owner === user && b.id === device).delete.map { rows =>
+      if (rows == 1) {
+        log.info(s"Deleted boat '$device' owned by '$user'.")
+      } else {
+        log.info(s"Boat '$device' owned by '$user' not found.")
+      }
+      rows
+    }
+  }
+
   override def saveSentences(sentences: SentencesEvent): Future[Seq[KeyedSentence]] = {
     val from = sentences.from
     val action = DBIO.sequence {
@@ -549,7 +560,7 @@ class TracksDatabase(val db: BoatSchema)(implicit ec: ExecutionContext)
   private def prepareDevice(from: DeviceMeta) =
     for {
       userRow <- db.first(usersTable.filter(_.user === from.user),
-        s"User not found: '${from.user}'.")
+                          s"User not found: '${from.user}'.")
       user = userRow.id
       maybeBoat <- boatsTable
         .filter(b => b.name === from.boat && b.owner === user)

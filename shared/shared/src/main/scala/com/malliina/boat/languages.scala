@@ -567,7 +567,9 @@ case class SettingsLang(welcome: String,
                         done: String,
                         noTracksHelp: String,
                         formats: FormatsLang,
-                        boatLang: BoatLang)
+                        boatLang: BoatLang,
+                        actions: String,
+                        delete: String)
 
 object SettingsLang {
   val jsonFormat = Json.format[SettingsLang]
@@ -919,7 +921,9 @@ object Lang {
         "Token",
         s"Add the token to the $appName agent software running in your boat. For more information, see https://www.boat-tracker.com/docs/agent.",
         s"Add the token provided after sign in to the $appName agent software running in your boat. Subsequently, tracks driven with the boat are saved to your account and can be viewed in this app. For agent installation instructions, see https://www.boat-tracker.com/docs/agent.",
-      )
+      ),
+      "Actions",
+      "Delete"
     ),
     LimitLang.en,
     LabelsLang("Statistics", "Monthly", "Yearly", "All time"),
@@ -1053,7 +1057,9 @@ object Lang {
         "Avain",
         s"Lisää avain veneeseen asennettuun $appName -sovellukseen. Lisätietoja saat osoitteesta https://docs.boat-tracker.com/agent/.",
         "Kirjautumisen jälkeen saat avaimen, jolla tallennat ajetut matkat käyttäjätunnuksellesi. Lisätietoja saat osoitteesta https://docs.boat-tracker.com/agent/.",
-      )
+      ),
+      "Toimenpiteet",
+      "Poista"
     ),
     LimitLang.fi,
     LabelsLang("Tilastot", "Kuukausittain", "Vuosittain", "Kaikki"),
@@ -1184,7 +1190,9 @@ object Lang {
         "Nyckel",
         s"Spara nyckeln i $appName-appen installerad i din båt. För mera information, se https://docs.boat-tracker.com/agent/.",
         s"Inloggning skapar en nyckel du kan spara i $appName-appen installerad i din båt. Med nyckeln sparas körda spår under ditt användarnamn. För mera information, se https://docs.boat-tracker.com/agent/.",
-      )
+      ),
+      "Ändringar",
+      "Radera"
     ),
     LimitLang.se,
     LabelsLang("Statistik", "Per månad", "Per år", "Alla tider"),

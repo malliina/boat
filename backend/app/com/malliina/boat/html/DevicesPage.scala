@@ -25,14 +25,21 @@ object DevicesPage extends BoatImplicits with CSRFConf {
         thead(
           tr(
             th(boatLang.boat),
-            th(boatLang.token)
+            th(boatLang.token),
+            th(lang.settings.actions)
           )
         ),
         tbody(
           user.boats.map { boat =>
             tr(
               td(boat.name),
-              td(boat.token)
+              td(boat.token),
+              td(`class` := "table-button")(
+                form(method := "POST", action := reverse.deleteBoat(boat.id))(
+                  button(`type` := "submit", `class` := "btn btn-sm btn-danger")(lang.settings.delete),
+                  csrfInput(token.name, token.value)
+                )
+              )
             )
           }
         )
