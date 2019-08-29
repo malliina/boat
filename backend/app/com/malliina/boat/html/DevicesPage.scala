@@ -36,7 +36,8 @@ object DevicesPage extends BoatImplicits with CSRFConf {
               td(boat.token),
               td(`class` := "table-button")(
                 form(method := "POST", action := reverse.deleteBoat(boat.id))(
-                  button(`type` := "submit", `class` := "btn btn-sm btn-danger")(lang.settings.delete),
+                  button(`type` := "submit", `class` := "btn btn-sm btn-danger")(
+                    lang.settings.delete),
                   csrfInput(token.name, token.value)
                 )
               )
@@ -46,22 +47,36 @@ object DevicesPage extends BoatImplicits with CSRFConf {
       ),
       form(method := "POST", action := reverse.createBoat())(
         div(`class` := "form-group row")(
-          label(`class` := "col-sm-2", `for` := "boat-name-label")(boatLang.addBoat),
-          div(`class` := "col-sm-7")(
-            input(`type` := "text",
-                  id := "boat-name-label",
-                  `class` := "form-control form-control-sm",
-                  placeholder := "Titanic",
-                  name := BoatNames.Key),
-            csrfInput(token.name, token.value)
-          ),
+          labeledInput(boatLang.addBoat,
+                       "boat-name-label",
+                       BoatNames.Key,
+                       "col-form-label col-form-label-sm col-sm-2",
+                       "form-control form-control-sm",
+                       "Titanic"),
           div(`class` := "col-sm-3 pl-sm-0 pt-2 pt-sm-0")(
             button(`type` := "submit", `class` := "btn btn-sm btn-primary")(webLang.save)
-          )
+          ),
+          csrfInput(token.name, token.value)
         )
       )
     )
   }
+
+  def labeledInput(labelText: String,
+                   inputId: String,
+                   inputName: String,
+                   labelClass: String,
+                   inputClass: String,
+                   placeholderValue: String) = modifier(
+    label(`class` := labelClass, `for` := inputId)(labelText),
+    div(`class` := "col-sm-7")(
+      input(`type` := "text",
+            id := inputId,
+            `class` := inputClass,
+            placeholder := placeholderValue,
+            name := BoatNames.Key)
+    )
+  )
 
   def csrfInput(inputName: String, inputValue: String) =
     input(`type` := "hidden", name := inputName, value := inputValue)
