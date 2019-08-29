@@ -38,7 +38,7 @@ object DevicesPage extends BoatImplicits with CSRFConf {
                 form(method := "POST", action := reverse.deleteBoat(boat.id))(
                   button(`type` := "submit", `class` := "btn btn-sm btn-danger")(
                     lang.settings.delete),
-                  csrfInput(token.name, token.value)
+                  csrfInput(token)
                 )
               )
             )
@@ -56,7 +56,7 @@ object DevicesPage extends BoatImplicits with CSRFConf {
           div(`class` := "col-sm-3 pl-sm-0 pt-2 pt-sm-0")(
             button(`type` := "submit", `class` := "btn btn-sm btn-primary")(webLang.save)
           ),
-          csrfInput(token.name, token.value)
+          csrfInput(token)
         )
       )
     )
@@ -78,6 +78,6 @@ object DevicesPage extends BoatImplicits with CSRFConf {
     )
   )
 
-  def csrfInput(inputName: String, inputValue: String) =
-    input(`type` := "hidden", name := inputName, value := inputValue)
+  def csrfInput(token: CSRF.Token) =
+    input(`type` := "hidden", name := token.name, value := token.value)
 }
