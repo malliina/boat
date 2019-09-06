@@ -11,14 +11,13 @@ val utilPlayVersion = "5.2.3"
 val scalaTestVersion = "3.0.8"
 val scalaTagsVersion = "0.7.0"
 val primitiveVersion = "1.11.0"
-val akkaVersion = "2.5.23"
-val akkaHttpVersion = "10.1.8"
+val akkaVersion = "2.5.25"
+val akkaHttpVersion = "10.1.9"
 val utilPlayDep = "com.malliina" %% "util-play" % utilPlayVersion
 val utilPlayTestDep = utilPlayDep % Test classifier "tests"
 val scalaTestDep = "org.scalatest" %% "scalatest" % scalaTestVersion % Test
 val buildAndUpload = taskKey[FullUrl]("Uploads to S3")
 val upFiles = taskKey[Seq[String]]("lists")
-val bootClasspath = taskKey[String]("bootClasspath")
 val deployDocs = taskKey[Unit]("Deploys documentation")
 
 parallelExecution in ThisBuild := false
@@ -126,6 +125,8 @@ val backend = Project("boat", file("backend"))
       "com.typesafe.akka" %% "akka-http" % akkaHttpVersion,
       "com.typesafe.akka" %% "akka-http-spray-json" % akkaHttpVersion,
       "org.eclipse.paho" % "org.eclipse.paho.client.mqttv3" % "1.2.1",
+      "org.eclipse.jetty" % "jetty-alpn-java-server" % "9.4.20.v20190813",
+      "org.eclipse.jetty" % "jetty-alpn-java-client" % "9.4.20.v20190813",
       utilPlayDep,
       utilPlayTestDep,
       scalaTestDep,
@@ -152,28 +153,8 @@ val backend = Project("boat", file("backend"))
       val linuxName = (name in Linux).value
       Seq(
         s"-Dconfig.file=/etc/$linuxName/production.conf",
-        s"-Dlogger.file=/etc/$linuxName/logback-prod.xml",
-        s"-J-Xbootclasspath/p:${bootClasspath.value}"
+        s"-Dlogger.file=/etc/$linuxName/logback-prod.xml"
       )
-    },
-    bootClasspath := {
-      val alpnFile = scriptClasspathOrdering.value
-        .map { case (_, dest) => dest }
-        .find(_.contains("alpn-boot"))
-        .getOrElse(sys.error("Unable to find alpn-boot"))
-      val name = (packageName in Debian).value
-      val installLocation = defaultLinuxInstallLocation.value
-      s"$installLocation/$name/$alpnFile"
-    },
-    javaOptions in Test ++= {
-      val attList = (managedClasspath in Runtime).value
-      for {
-        file <- attList.map(_.data)
-        path = file.getAbsolutePath
-        if path.contains("alpn-boot")
-      } yield {
-        s"-Xbootclasspath/p:$path"
-      }
     }
   )
 

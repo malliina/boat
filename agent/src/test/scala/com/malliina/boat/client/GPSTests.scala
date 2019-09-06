@@ -23,7 +23,7 @@ class GPSTests extends BasicSuite {
       client.connect(Source.single(TcpSource.watchMessage).concat(Source.maybe[ByteString]))
       val task = client.sentencesHub.take(100).runForeach { msg =>
         msg.sentences.foreach { s =>
-          println(s.value.length + " " + s)
+          println(s"${s.value.length} $s")
         }
       }
       await(task)

@@ -13,8 +13,8 @@ libraryDependencies += "com.amazonaws" % "aws-java-sdk-s3" % "1.11.584"
 
 Seq(
   "com.typesafe.play" % "sbt-plugin" % "2.7.3",
-  "com.malliina" % "sbt-utils-maven" % "0.14.0",
-  "com.malliina" %% "sbt-nodejs" % "0.14.0",
+  "com.malliina" % "sbt-utils-maven" % "0.14.2",
+  "com.malliina" %% "sbt-nodejs" % "0.14.2",
   "com.malliina" %% "sbt-packager" % "2.7.0",
   "com.malliina" % "sbt-filetree" % "0.3.0",
   "com.typesafe.sbt" % "sbt-gzip" % "1.0.2",
