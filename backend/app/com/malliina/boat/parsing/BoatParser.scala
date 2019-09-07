@@ -81,6 +81,8 @@ object BoatParser {
         Right(SatellitesInView(satellites, sentence))
       case GSAMessage(_, mode, fix) =>
         Right(GPSInfo(mode, fix, sentence))
+      case RMCMessage(_, timeUtc, date, _, _) =>
+        Right(ParsedGPSDateTime(date, timeUtc, sentence))
       case _ =>
         Left(IgnoredSentence(raw))
     }

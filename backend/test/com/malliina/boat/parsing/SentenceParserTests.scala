@@ -44,4 +44,17 @@ class SentenceParserTests extends FunSuite {
     val actualLng = dmLng.degrees + dLng
     assert(actualLng.toString.take(9) === "24.891631")
   }
+
+  test("parse RMC") {
+    val in = RawSentence("$GPRMC,205152.000,A,6009.1925,N,02453.2406,E,0.00,353.55,070919,,,D*69")
+    val rmc = SentenceParser
+      .parse(in)
+      .toSeq
+      .collectFirst {
+        case msg @ RMCMessage(_, _, _, _, _) =>
+          msg.dateTimeUtc
+      }
+      .get
+    assert(rmc.getHour === 20)
+  }
 }

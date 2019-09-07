@@ -109,7 +109,9 @@ case class RMCMessage(talker: String,
                       date: LocalDate,
                       speed: SpeedM,
                       course: Double)
-    extends TalkedSentence
+    extends TalkedSentence {
+  val dateTimeUtc = OffsetDateTime.of(date, timeUtc, ZoneOffset.UTC)
+}
 
 object RMCMessage {
   val dateFormatter = DateTimeFormatter.ofPattern("ddMMyy")

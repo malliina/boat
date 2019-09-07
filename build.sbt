@@ -55,7 +55,7 @@ val crossJs = cross.js
 
 val frontend = project
   .in(file("frontend"))
-  .enablePlugins(ScalaJSBundlerPlugin, ScalaJSWeb, NodeCheckPlugin)
+  .enablePlugins(ScalaJSBundlerPlugin, ScalaJSWeb, NodeJsPlugin)
   .disablePlugins(RevolverPlugin)
   .dependsOn(crossJs)
   .settings(commonSettings)

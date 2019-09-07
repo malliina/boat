@@ -181,6 +181,7 @@ class BoatController(mapboxToken: AccessToken,
 
   def deviceSocket = WebSocket { rh =>
     authDevice(rh).flatMapR { meta =>
+      log.info(s"Device '${meta.boatName}' joined.")
       push.push(meta, BoatState.Connected).map(_ => meta).recover {
         case e =>
           log.error("Failed to push all device notifications.", e)
@@ -216,6 +217,7 @@ class BoatController(mapboxToken: AccessToken,
 
   def boatSocket = WebSocket { rh =>
     authBoat(rh).flatMapR { meta =>
+      log.info(s"Boat '${meta.boatName}' joined.")
       push.push(meta, BoatState.Connected).map(_ => meta).recover {
         case e =>
           log.error("Failed to push all boat notifications.", e)
@@ -257,7 +259,6 @@ class BoatController(mapboxToken: AccessToken,
           log.info(s"Viewer '$username' joined.")
           val historicalLimits: BoatQuery =
             if (limits.tracks.nonEmpty && username == anonUser) BoatQuery.tracks(limits.tracks)
-//            else if (user.username == anonUser) BoatQuery.recent(Instant.now())
             else if (username == anonUser) BoatQuery.empty
             else limits
           val history: Source[CoordsEvent, NotUsed] =
@@ -273,12 +274,12 @@ class BoatController(mapboxToken: AccessToken,
             Source(es.toList)
           }
           val formatter = TimeFormatter(user.language)
-          // disconnects viewers that lag more than 3s
           val eventSource = history
             .merge(gpsHistory)
             .concat(
               boatService.clientEvents(formatter).merge(deviceService.clientEvents(formatter)))
             .filter(_.isIntendedFor(username))
+          // disconnects viewers that lag more than 3s
           val flow = Flow
             .fromSinkAndSource(Sink.ignore, eventSource)
             .keepAlive(10.seconds, () => PingEvent(Instant.now.toEpochMilli))
