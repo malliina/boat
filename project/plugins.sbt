@@ -25,7 +25,8 @@ Seq(
   "org.scala-js" % "sbt-scalajs" % "0.6.28",
   "com.vmunier" % "sbt-web-scalajs" % "1.0.6",
   "com.typesafe.sbt" % "sbt-native-packager" % "1.3.7",
-  "io.spray" % "sbt-revolver" % "0.9.1"
+  "io.spray" % "sbt-revolver" % "0.9.1",
+  "io.get-coursier" % "sbt-coursier" % "2.0.0-RC3-3"
 ) map addSbtPlugin
 
 def ivyRepo(name: String, urlString: String) =
