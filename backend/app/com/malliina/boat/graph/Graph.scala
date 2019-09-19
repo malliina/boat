@@ -18,8 +18,12 @@ object Graph {
     Reads[Graph](json => json.validate[List[ValueNode]].map(fromNodes)),
     Writes[Graph](g => Json.toJson(g.toList))
   )
-  val graphFile = Paths.get(
-    getClass.getClassLoader.getResource("com/malliina/boat/graph/vaylat-all.json").getFile)
+  val resource = getClass.getClassLoader.getResource(
+    "com/malliina/boat/graph/vaylat-all.json"
+  ).getFile
+  // Windows prepends "/", which Paths.get does not accept
+  val path = if (resource.startsWith("/")) resource.tail else resource
+  val graphFile = Paths.get(path)
   lazy val all = Json.parse(Files.readAllBytes(graphFile)).as[Graph]
 
   def apply(edges: List[Edge]): Graph = {
@@ -50,8 +54,9 @@ object Graph {
   }
 
   def fromList(es: List[ValueEdge]): Graph = {
-    apply(es.groupBy(_.from.hash).map { case (k, ves) =>
-      k -> ValueNode(ves.head.from, ves.map(_.link))
+    apply(es.groupBy(_.from.hash).map {
+      case (k, ves) =>
+        k -> ValueNode(ves.head.from, ves.map(_.link))
     })
   }
 
@@ -75,7 +80,8 @@ class Graph(val nodes: Map[CoordHash, ValueNode]) {
     acc.edge(e)
   }
 
-  def contains(edge: Edge): Boolean = contains(edge.from, edge.to) || contains(edge.to, edge.from)
+  def contains(edge: Edge): Boolean =
+    contains(edge.from, edge.to) || contains(edge.to, edge.from)
 
   private def contains(from: Coord, to: Coord): Boolean =
     nodes.get(from.hash).exists(_.links.exists(_.to.hash == to.hash))
@@ -92,15 +98,16 @@ class Graph(val nodes: Map[CoordHash, ValueNode]) {
       this
     } else {
       val crossingEdges =
-        nodes.values.flatMap(_.edges).toList.filter(e => !e.isConnected(edge)).flatMap {
-          existingEdge =>
+        nodes.values
+          .flatMap(_.edges)
+          .toList
+          .filter(e => !e.isConnected(edge))
+          .flatMap { existingEdge =>
             intersection(edge.line, existingEdge.line).toList
               .filter(c => !edge.contains(c))
               .flatMap { crossing =>
-                val withCrossing = List(
-                  Edge(edge.from, crossing),
-                  Edge(edge.to, crossing)
-                )
+                val withCrossing =
+                  List(Edge(edge.from, crossing), Edge(edge.to, crossing))
                 val withExisting =
                   if (!existingEdge.contains(crossing)) {
                     List(
@@ -112,21 +119,28 @@ class Graph(val nodes: Map[CoordHash, ValueNode]) {
                   }
                 withCrossing ++ withExisting
               }
-        }
+          }
       if (crossingEdges.isEmpty) {
         val valuedLink = Link(edge.to, cost(edge.from, edge.to))
         val valued = ValueEdge(edge.from, valuedLink.to, valuedLink.cost)
         val existing = nodes.get(edge.from.hash)
-        val isNewEdge = !existing.map(_.edges).exists(_.exists(_.isSimilar(valued)))
+        val isNewEdge =
+          !existing.map(_.edges).exists(_.exists(_.isSimilar(valued)))
         val toHash = edge.to.hash
         val withTo = nodes.updated(
           toHash,
-          nodes.getOrElse(toHash, ValueNode(edge.to, Nil)).link(Link(edge.from, valuedLink.cost)))
+          nodes
+            .getOrElse(toHash, ValueNode(edge.to, Nil))
+            .link(Link(edge.from, valuedLink.cost))
+        )
         val withToAndFrom =
           if (existing.isEmpty || isNewEdge) {
             val ret = withTo.updated(
               edge.from.hash,
-              existing.map(_.link(valuedLink)).getOrElse(ValueNode(edge.from, List(valuedLink))))
+              existing
+                .map(_.link(valuedLink))
+                .getOrElse(ValueNode(edge.from, List(valuedLink)))
+            )
             ret
           } else {
             withTo
@@ -142,24 +156,32 @@ class Graph(val nodes: Map[CoordHash, ValueNode]) {
     val startMillis = System.currentTimeMillis()
     log.info(s"Finding shortest route from $from to $to...")
     val start =
-      nodes.get(from.hash).orElse(nodes.get(nearest(from).hash)).toRight(UnresolvedFrom(from))
+      nodes
+        .get(from.hash)
+        .orElse(nodes.get(nearest(from).hash))
+        .toRight(UnresolvedFrom(from))
     val end = nodes.get(to.hash).map(_.from).getOrElse(nearest(to))
     for {
       startNode <- start
       _ = log.info(s"Starting from ${startNode.from} and ending at $end...")
-      initialPaths = startNode.links.map(link =>
-        ValueRoute(link, Link(startNode.from, DistanceM.zero) :: Nil))
-      result <- search(startNode.from, end, initialPaths, Map.empty).map(_.reverse)
+      initialPaths = startNode.links.map(
+        link => ValueRoute(link, Link(startNode.from, DistanceM.zero) :: Nil)
+      )
+      result <- search(startNode.from, end, initialPaths, Map.empty)
+        .map(_.reverse)
     } yield {
       val duration = (System.currentTimeMillis() - startMillis).millis
       val totalCost =
-        result.links.headOption.fold(DistanceM.zero)(head => cost(from, head.to)) +
+        result.links.headOption
+          .fold(DistanceM.zero)(head => cost(from, head.to)) +
           result.cost +
-          result.links.lastOption.fold(DistanceM.zero)(last => cost(last.to, to))
+          result.links.lastOption
+            .fold(DistanceM.zero)(last => cost(last.to, to))
       val totalFormatted = formatDistance(totalCost)
       val routeFormatted = formatDistance(result.cost)
       log.info(
-        s"Found shortest route from $from to $to with route length $routeFormatted and total length $totalFormatted in $duration.")
+        s"Found shortest route from $from to $to with route length $routeFormatted and total length $totalFormatted in $duration."
+      )
       result.finish(from, to, totalCost, duration)
     }
   }
@@ -167,10 +189,12 @@ class Graph(val nodes: Map[CoordHash, ValueNode]) {
   def formatDistance(d: DistanceM) = "%.3f km".format(d.toKilometers)
 
   @tailrec
-  private def search(from: Coord,
-                     to: Coord,
-                     currentPaths: List[ValueRoute],
-                     shortestKnown: Map[CoordHash, ValueRoute]): Either[GraphError, ValueRoute] = {
+  private def search(
+    from: Coord,
+    to: Coord,
+    currentPaths: List[ValueRoute],
+    shortestKnown: Map[CoordHash, ValueRoute]
+  ): Either[GraphError, ValueRoute] = {
     val candidates = shortestKnown
       .get(to.hash)
       .map(hit => currentPaths.filter(_.cost < hit.cost))
@@ -188,9 +212,12 @@ class Graph(val nodes: Map[CoordHash, ValueNode]) {
     } else {
       val candidateLevel = nextLevel.filter { route =>
         val hash = route.to.hash
-        !shortestKnown.contains(hash) || shortestKnown.get(hash).exists(_.cost > route.cost)
+        !shortestKnown.contains(hash) || shortestKnown
+          .get(hash)
+          .exists(_.cost > route.cost)
       }
-      val novel = candidateLevel.groupBy(_.to.hash).view.mapValues(_.minBy(_.cost))
+      val novel =
+        candidateLevel.groupBy(_.to.hash).view.mapValues(_.minBy(_.cost))
       val novelList = novel.values.toList
       val (hits, others) = novelList.partition(_.to.hash == to.hash)
       val newShortest = shortestKnown ++ novel
@@ -204,7 +231,8 @@ class Graph(val nodes: Map[CoordHash, ValueNode]) {
           val hitCost = hits.minBy(_.cost).cost
           val otherCost = others.minBy(_.cost).cost
           log.debug(
-            s"Found path from $from to $to with cost $hitCost. Another path exists with cost $otherCost, therefore continuing search...")
+            s"Found path from $from to $to with cost $hitCost. Another path exists with cost $otherCost, therefore continuing search..."
+          )
         }
         search(from, to, novelList, newShortest)
       }
