@@ -112,11 +112,8 @@ class GraphTests extends FunSuite {
     List(Feature.line(r.route.coords), Feature.point(r.from), Feature.point(r.to)))
 
   def fromResource(filename: String) = {
-    val resource = getClass.getClassLoader.getResource(s"com/malliina/boat/graph/$filename").getFile
-    val isNix = sys.props.get("os.name").exists(_.toLowerCase.contains("nix"))
-    val path = if (resource.startsWith("/") && !isNix) resource.tail else resource
-    val file = Paths.get(path)
-//    val file = Graph.file(filename)
+    val filePath = s"com/malliina/boat/graph/$filename"
+    val file = Paths.get(getClass.getClassLoader.getResource(filePath).getFile)
     val json = Json.parse(new FileInputStream(file.toFile))
     val es = json.as[FeatureCollection].features.flatMap { f =>
       f.geometry match {
