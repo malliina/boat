@@ -25,8 +25,8 @@ object Graph {
   def file(name: String) = {
     val resource = getClass.getClassLoader.getResource(s"com/malliina/boat/graph/$name").getFile
     // Windows prepends "/", which Paths.get does not accept
-    val isNix = sys.props.get("os.name").exists(_.toLowerCase.contains("nix"))
-    val path = if (resource.startsWith("/") && !isNix) resource.tail else resource
+    val isWindows = sys.props.get("os.name").exists(_.toLowerCase.contains("windows"))
+    val path = if (resource.startsWith("/") && isWindows) resource.tail else resource
     Paths.get(path)
   }
 
