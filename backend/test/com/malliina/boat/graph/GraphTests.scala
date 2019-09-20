@@ -115,8 +115,7 @@ class GraphTests extends FunSuite {
     List(Feature.line(r.route.coords), Feature.point(r.from), Feature.point(r.to)))
 
   def fromResource(filename: String) = {
-    val filePath = s"com/malliina/boat/graph/$filename"
-    val file = Paths.get(getClass.getClassLoader.getResource(filePath).getFile)
+    val file = Graph.file(filename)
     val json = Json.parse(new FileInputStream(file.toFile))
     val es = json.as[FeatureCollection].features.flatMap { f =>
       f.geometry match {

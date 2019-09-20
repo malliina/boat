@@ -18,13 +18,15 @@ object Graph {
     Reads[Graph](json => json.validate[List[ValueNode]].map(fromNodes)),
     Writes[Graph](g => Json.toJson(g.toList))
   )
-  val resource = getClass.getClassLoader.getResource(
-    "com/malliina/boat/graph/vaylat-all.json"
-  ).getFile
-  // Windows prepends "/", which Paths.get does not accept
-  val path = if (resource.startsWith("/")) resource.tail else resource
-  val graphFile = Paths.get(path)
+  val graphFile = file("vaylat-all.json")
   lazy val all = Json.parse(Files.readAllBytes(graphFile)).as[Graph]
+
+  def file(name: String) = {
+    val resource = getClass.getClassLoader.getResource(s"com/malliina/boat/graph/$name").getFile
+    // Windows prepends "/", which Paths.get does not accept
+    val path = if (resource.startsWith("/")) resource.tail else resource
+    Paths.get(path)
+  }
 
   def apply(edges: List[Edge]): Graph = {
     val g = Graph()
@@ -87,12 +89,12 @@ class Graph(val nodes: Map[CoordHash, ValueNode]) {
     nodes.get(from.hash).exists(_.links.exists(_.to.hash == to.hash))
 
   /** Adds `edge` to the graph. If `edge` intersects another edge, a node is added at the crossing
-    * along with four edges: to/from the endpoints of `edge` and to/from the endpoints of the
-    * intersected edge.
-    *
-    * @param edge edge to add
-    * @return a new graph with the edge added
-    */
+   * along with four edges: to/from the endpoints of `edge` and to/from the endpoints of the
+   * intersected edge.
+   *
+   * @param edge edge to add
+   * @return a new graph with the edge added
+   */
   def edge(edge: Edge): Graph = {
     if (contains(edge)) {
       this
@@ -190,11 +192,11 @@ class Graph(val nodes: Map[CoordHash, ValueNode]) {
 
   @tailrec
   private def search(
-    from: Coord,
-    to: Coord,
-    currentPaths: List[ValueRoute],
-    shortestKnown: Map[CoordHash, ValueRoute]
-  ): Either[GraphError, ValueRoute] = {
+                      from: Coord,
+                      to: Coord,
+                      currentPaths: List[ValueRoute],
+                      shortestKnown: Map[CoordHash, ValueRoute]
+                    ): Either[GraphError, ValueRoute] = {
     val candidates = shortestKnown
       .get(to.hash)
       .map(hit => currentPaths.filter(_.cost < hit.cost))
