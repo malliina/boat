@@ -2,6 +2,7 @@ package com.malliina.boat.graph
 
 import java.nio.file.{Files, Paths}
 
+import ch.qos.logback.core.util.SystemInfo
 import com.malliina.boat._
 import com.malliina.boat.graph.Graph.{intersection, log}
 import com.malliina.measure.DistanceM
@@ -24,7 +25,8 @@ object Graph {
   def file(name: String) = {
     val resource = getClass.getClassLoader.getResource(s"com/malliina/boat/graph/$name").getFile
     // Windows prepends "/", which Paths.get does not accept
-    val path = if (resource.startsWith("/")) resource.tail else resource
+    val isNix = sys.props.get("os.name").exists(_.toLowerCase.contains("nix"))
+    val path = if (resource.startsWith("/") && !isNix) resource.tail else resource
     Paths.get(path)
   }
 
