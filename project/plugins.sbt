@@ -22,7 +22,7 @@ Seq(
   "com.typesafe.sbt" % "sbt-less" % "1.1.2",
   "ch.epfl.scala" % "sbt-web-scalajs-bundler" % "0.14.0",
   "org.portable-scala" % "sbt-scalajs-crossproject" % "0.6.0",
-  "org.scala-js" % "sbt-scalajs" % "0.6.28",
+  "org.scala-js" % "sbt-scalajs" % "0.6.29",
   "com.vmunier" % "sbt-web-scalajs" % "1.0.6",
   "com.typesafe.sbt" % "sbt-native-packager" % "1.3.7",
   "io.spray" % "sbt-revolver" % "0.9.1",

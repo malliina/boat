@@ -13,3 +13,4 @@ dist
 .hydra
 site
 .bloop
+hydra.sbt

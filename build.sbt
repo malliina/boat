@@ -7,12 +7,12 @@ import scala.sys.process.Process
 import scala.util.Try
 
 val mapboxVersion = "1.2.0"
-val utilPlayVersion = "5.2.3"
+val utilPlayVersion = "5.2.4"
 val scalaTestVersion = "3.0.8"
 val scalaTagsVersion = "0.7.0"
 val primitiveVersion = "1.11.0"
 val akkaVersion = "2.5.25"
-val akkaHttpVersion = "10.1.9"
+val akkaHttpVersion = "10.1.10"
 val utilPlayDep = "com.malliina" %% "util-play" % utilPlayVersion
 val utilPlayTestDep = utilPlayDep % Test classifier "tests"
 val scalaTestDep = "org.scalatest" %% "scalatest" % scalaTestVersion % Test
@@ -24,7 +24,7 @@ parallelExecution in ThisBuild := false
 
 val basicSettings = Seq(
   organization := "com.malliina",
-  scalaVersion := "2.13.0",
+  scalaVersion := "2.13.1",
   scalacOptions := Seq("-unchecked", "-deprecation")
 )
 
@@ -113,13 +113,13 @@ val backend = Project("boat", file("backend"))
       "com.h2database" % "h2" % "1.4.196",
       "org.orbisgis" % "h2gis" % "1.4.0",
       "mysql" % "mysql-connector-java" % "5.1.47",
-      "com.zaxxer" % "HikariCP" % "3.3.1",
-      "org.flywaydb" % "flyway-core" % "5.2.4",
-      "org.apache.commons" % "commons-text" % "1.6",
+      "com.zaxxer" % "HikariCP" % "3.4.1",
+      "org.flywaydb" % "flyway-core" % "6.0.3",
+      "org.apache.commons" % "commons-text" % "1.8",
       "com.amazonaws" % "aws-java-sdk-s3" % "1.11.584",
       "com.malliina" %% "logstreams-client" % "1.6.0",
       "com.malliina" %% "play-social" % utilPlayVersion,
-      "com.malliina" %% "mobile-push" % "1.18.8",
+      "com.malliina" %% "mobile-push" % "1.19.0",
       "com.typesafe.akka" %% "akka-slf4j" % akkaVersion,
       "com.typesafe.akka" %% "akka-stream" % akkaVersion,
       "com.typesafe.akka" %% "akka-http" % akkaHttpVersion,
@@ -183,12 +183,12 @@ val agent = project
       "com.malliina" %% "primitives" % primitiveVersion,
       "com.malliina" %% "logback-streams" % "1.6.0",
       "com.neovisionaries" % "nv-websocket-client" % "2.9",
-      "org.slf4j" % "slf4j-api" % "1.7.26",
+      "org.slf4j" % "slf4j-api" % "1.7.28",
       "com.typesafe.akka" %% "akka-stream" % akkaVersion,
       "com.typesafe.akka" %% "akka-http" % akkaHttpVersion,
       "com.typesafe.akka" %% "akka-http-spray-json" % akkaHttpVersion,
       "com.lihaoyi" %% "scalatags" % scalaTagsVersion,
-      "commons-codec" % "commons-codec" % "1.12",
+      "commons-codec" % "commons-codec" % "1.13",
       "com.neuronrobotics" % "nrjavaserial" % "3.14.0",
       scalaTestDep
     ),
@@ -234,7 +234,7 @@ val utils = project
     resolvers += "GeoTools" at "https://download.osgeo.org/webdav/geotools/",
     libraryDependencies ++= Seq(
       "ch.qos.logback" % "logback-classic" % "1.2.3",
-      "org.slf4j" % "slf4j-api" % "1.7.26",
+      "org.slf4j" % "slf4j-api" % "1.7.28",
       "javax.media" % "jai_core" % "1.1.3" from "https://download.osgeo.org/webdav/geotools/javax/media/jai_core/1.1.3/jai_core-1.1.3.jar",
       "org.geotools" % "gt-shapefile" % "20.0" exclude ("javax.media", "jai_core"),
       "org.geotools" % "gt-geojson" % "20.0" exclude ("javax.media", "jai_core"),
