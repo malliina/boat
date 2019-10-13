@@ -38,11 +38,13 @@ object Layers {
   implicit val json = Json.format[Layers]
   import MapboxStyles._
 
-  val default = Layers(marksLayers,
-                       fairwayLayers,
-                       Seq(FairwayAreaId),
-                       Seq(LimitLayerId),
-                       AisConf(AisVesselLayer, AisTrailLayer, AisVesselIcon))
+  val default = Layers(
+    marksLayers,
+    fairwayLayers,
+    Seq(FairwayAreaId),
+    Seq(LimitLayerId),
+    AisConf(AisVesselLayer, AisTrailLayer, AisVesselIcon)
+  )
 }
 
 case class ClientConf(languages: Languages, layers: Layers)
@@ -72,7 +74,11 @@ object DateVal {
   )
   def now(): DateVal = apply(LocalDate.now())
   def apply(date: LocalDate): DateVal =
-    DateVal(YearVal(date.getYear), MonthVal(date.getMonthValue), DayVal(date.getDayOfMonth))
+    DateVal(
+      YearVal(date.getYear),
+      MonthVal(date.getMonthValue),
+      DayVal(date.getDayOfMonth)
+    )
 }
 
 case class UserToken(token: String) extends WrappedString {
@@ -84,12 +90,20 @@ object UserToken extends StringCompanion[UserToken] {
 
   override def build(in: String): Either[ErrorMessage, UserToken] =
     if (in.length >= minLength) Right(UserToken(in))
-    else Left(ErrorMessage(s"Too short token. Minimum length: $minLength, was: ${in.length}."))
+    else
+      Left(
+        ErrorMessage(
+          s"Too short token. Minimum length: $minLength, was: ${in.length}."
+        )
+      )
 
   def random(): UserToken = UserToken(Utils.randomString(length = 8))
 }
 
-case class AppMeta(name: String, version: String, gitHash: String, mapboxVersion: String)
+case class AppMeta(name: String,
+                   version: String,
+                   gitHash: String,
+                   mapboxVersion: String)
 
 object AppMeta {
   implicit val json = Json.format[AppMeta]
@@ -186,7 +200,9 @@ object YearlyStats {
   implicit val json = Json.format[YearlyStats]
 }
 
-case class StatsResponse(daily: Seq[Stats], yearly: Seq[YearlyStats], allTime: Stats)
+case class StatsResponse(daily: Seq[Stats],
+                         yearly: Seq[YearlyStats],
+                         allTime: Stats)
 
 object StatsResponse {
   implicit val json = Json.format[StatsResponse]
@@ -199,7 +215,8 @@ object TracksBundle {
 }
 
 case class InsertedPoint(point: TrackPointId, track: JoinedTrack) {
-  def strip(formatter: TimeFormatter) = InsertedTrackPoint(point, track.strip(formatter))
+  def strip(formatter: TimeFormatter) =
+    InsertedTrackPoint(point, track.strip(formatter))
 }
 
 case class JoinedDevice(id: DeviceId, username: Username)
@@ -226,7 +243,8 @@ case class TrackMeta(track: TrackId,
                      boatToken: BoatToken,
                      userId: UserId,
                      username: Username,
-                     email: Option[Email]) extends UserDevice {
+                     email: Option[Email])
+    extends UserDevice {
   override def deviceName = boatName
 
   def short = TrackMetaShort(track, trackName, boat, boatName, username)
@@ -263,7 +281,8 @@ object Errors {
 
 object BoatNames {
   val Key = "boatName"
-  val mapping: Mapping[BoatName] = Forms.nonEmptyText.transform(s => BoatName(s), b => b.name)
+  val mapping: Mapping[BoatName] =
+    Forms.nonEmptyText.transform(s => BoatName(s), b => b.name)
 
   def random() = BoatName(Utils.randomString(6))
 }
@@ -283,7 +302,8 @@ object PushPayload {
 object TrackNames {
   def random() = TrackName(Utils.randomString(6))
 
-  def apply(title: TrackTitle): TrackName = TrackName(Utils.normalize(title.title).take(50))
+  def apply(title: TrackTitle): TrackName =
+    TrackName(Utils.normalize(title.title).take(50))
 }
 
 object TrackTitles {
@@ -300,13 +320,16 @@ object BoatTokens {
 // Bindables._ is imported to the routes file, see build.sbt
 object Bindables {
   implicit val trackName: PathBindable[TrackName] =
-    PathBindable.bindableString.transform[TrackName](s => TrackName(s), t => t.name)
+    PathBindable.bindableString
+      .transform[TrackName](s => TrackName(s), t => t.name)
 
   implicit val trackCanonical: PathBindable[TrackCanonical] =
-    PathBindable.bindableString.transform[TrackCanonical](s => TrackCanonical(s), t => t.name)
+    PathBindable.bindableString
+      .transform[TrackCanonical](s => TrackCanonical(s), t => t.name)
 
   implicit val boatName: PathBindable[BoatName] =
-    PathBindable.bindableString.transform[BoatName](s => BoatName(s), t => t.name)
+    PathBindable.bindableString
+      .transform[BoatName](s => BoatName(s), t => t.name)
 
   implicit val boatId: PathBindable[DeviceId] =
     PathBindable.bindableLong.transform[DeviceId](s => DeviceId(s), id => id.id)
@@ -316,10 +339,6 @@ object Bindables {
 }
 
 case class BoatInput(name: BoatName, token: BoatToken, owner: UserId)
-
-case class BoatRow(id: DeviceId, name: BoatName, token: BoatToken, owner: UserId, added: Instant) {
-  def toBoat = Boat(id, name, token, added.toEpochMilli)
-}
 
 case class BoatResponse(boat: Boat)
 
@@ -333,7 +352,9 @@ case class JoinedBoat(device: DeviceId,
                       userId: UserId,
                       username: Username,
                       email: Option[Email],
-                      language: Language) extends IdentifiedDeviceMeta with UserDevice {
+                      language: Language)
+    extends IdentifiedDeviceMeta
+    with UserDevice {
   override def user = username
   override def boat = boatName
   override def deviceName = boatName
@@ -350,20 +371,16 @@ case class TrackInput(name: TrackName,
 
 object TrackInput {
   def empty(name: TrackName, boat: DeviceId): TrackInput =
-    TrackInput(name, boat, None, None, 0, DistanceM.zero, TrackCanonical.fromName(name))
+    TrackInput(
+      name,
+      boat,
+      None,
+      None,
+      0,
+      DistanceM.zero,
+      TrackCanonical.fromName(name)
+    )
 }
-
-case class TrackRow(id: TrackId,
-                    name: TrackName,
-                    boat: DeviceId,
-                    avgSpeed: Option[SpeedM],
-                    avgWaterTemp: Option[Temperature],
-                    points: Int,
-                    distance: DistanceM,
-                    title: Option[TrackTitle],
-                    canonical: TrackCanonical,
-                    comments: Option[String],
-                    added: Instant)
 
 case class SentenceKey(id: Long) extends AnyVal with WrappedId
 
@@ -373,15 +390,22 @@ case class GPSSentenceKey(id: Long) extends AnyVal with WrappedId
 
 object GPSSentenceKey extends IdCompanion[GPSSentenceKey]
 
-case class GPSKeyedSentence(key: GPSSentenceKey, sentence: RawSentence, from: DeviceId)
+case class GPSKeyedSentence(key: GPSSentenceKey,
+                            sentence: RawSentence,
+                            from: DeviceId)
 
 case class GPSSentenceInput(sentence: RawSentence, boat: DeviceId)
 
 case class SentenceInput(sentence: RawSentence, track: TrackId)
 
-case class KeyedSentence(key: SentenceKey, sentence: RawSentence, from: TrackMetaShort)
+case class KeyedSentence(key: SentenceKey,
+                         sentence: RawSentence,
+                         from: TrackMetaShort)
 
-case class SentenceRow(id: SentenceKey, sentence: RawSentence, track: TrackId, added: Instant) {
+case class SentenceRow(id: SentenceKey,
+                       sentence: RawSentence,
+                       track: TrackId,
+                       added: Instant) {
   def timed(formatter: TimeFormatter) =
     TimedSentence(id, sentence, track, added, formatter.timing(added))
 }
@@ -390,7 +414,10 @@ object SentenceRow {
   implicit val json = Json.format[SentenceRow]
 }
 
-case class GPSSentenceRow(id: GPSSentenceKey, sentence: RawSentence, boat: DeviceId, added: Instant)
+case class GPSSentenceRow(id: GPSSentenceKey,
+                          sentence: RawSentence,
+                          boat: DeviceId,
+                          added: Instant)
 
 object GPSSentenceRow {
   implicit val json = Json.format[GPSSentenceRow]
@@ -408,7 +435,17 @@ case class GPSPointInput(lon: Longitude,
 
 object GPSPointInput {
   def forCoord(c: GPSCoord, idx: Int, diff: DistanceM) =
-    GPSPointInput(c.lng, c.lat, c.coord, c.satellites, c.fix, c.gpsTime, diff, c.device, idx)
+    GPSPointInput(
+      c.lng,
+      c.lat,
+      c.coord,
+      c.satellites,
+      c.fix,
+      c.gpsTime,
+      diff,
+      c.device,
+      idx
+    )
 }
 
 case class GPSPointRow(id: GPSPointId,
@@ -453,18 +490,22 @@ case class TrackPointInput(lon: Longitude,
                            diff: DistanceM)
 
 object TrackPointInput {
-  def forCoord(c: FullCoord, trackIndex: Int, diff: DistanceM): TrackPointInput =
-    TrackPointInput(c.lng,
-                    c.lat,
-                    c.coord,
-                    c.boatSpeed,
-                    c.waterTemp,
-                    c.depth,
-                    c.depthOffset,
-                    c.boatTime,
-                    c.from.track,
-                    trackIndex,
-                    diff)
+  def forCoord(c: FullCoord,
+               trackIndex: Int,
+               diff: DistanceM): TrackPointInput =
+    TrackPointInput(
+      c.lng,
+      c.lat,
+      c.coord,
+      c.boatSpeed,
+      c.waterTemp,
+      c.depth,
+      c.depthOffset,
+      c.boatTime,
+      c.from.track,
+      trackIndex,
+      diff
+    )
 }
 
 case class CombinedCoord(id: TrackPointId,
@@ -480,7 +521,8 @@ case class CombinedCoord(id: TrackPointId,
                          track: TrackId,
                          added: Instant) {
 
-  def toFull(sentences: Seq[SentenceRow], formatter: TimeFormatter): CombinedFullCoord =
+  def toFull(sentences: Seq[SentenceRow],
+             formatter: TimeFormatter): CombinedFullCoord =
     CombinedFullCoord(
       id,
       lon,
@@ -514,7 +556,8 @@ case class CombinedCoord(id: TrackPointId,
   }
 }
 
-case class TrackInfo(coords: Seq[CombinedCoord], topPoint: Option[CombinedCoord])
+case class TrackInfo(coords: Seq[CombinedCoord],
+                     topPoint: Option[CombinedCoord])
 
 case class CombinedFullCoord(id: TrackPointId,
                              lon: Longitude,
@@ -537,8 +580,11 @@ object CombinedFullCoord {
     modern,
     Writes(
       c =>
-        modern.writes(c) ++ Json.obj("depth" -> c.depthMeters.toMillis.toLong,
-                                     "depthOffset" -> c.depthOffsetMeters.toMillis.toLong))
+        modern.writes(c) ++ Json.obj(
+          "depth" -> c.depthMeters.toMillis.toLong,
+          "depthOffset" -> c.depthOffsetMeters.toMillis.toLong
+      )
+    )
   )
 }
 
@@ -572,7 +618,10 @@ case class SentencePointLink(sentence: SentenceKey, point: TrackPointId)
 
 case class GPSSentencePointLink(sentence: GPSSentenceKey, point: GPSPointId)
 
-case class TrackPoint(coord: Coord, time: Instant, waterTemp: Temperature, wind: Double)
+case class TrackPoint(coord: Coord,
+                      time: Instant,
+                      waterTemp: Temperature,
+                      wind: Double)
 
 object TrackPoint {
   implicit val json = Json.format[TrackPoint]

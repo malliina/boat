@@ -39,8 +39,10 @@ class TracksDatabaseTests extends TracksTester {
     val tdb = TracksDatabase(db, mat.executionContext)
     val guettaName = TrackName("todo")
     def history =
-      tdb.historyRows(SimpleUserInfo(Username("malliina123@gmail.com"), Language.english),
-                      BoatQuery.tracks(Seq(guettaName)))
+      tdb.historyRows(
+        SimpleUserInfo(Username("malliina123@gmail.com"), Language.english),
+        BoatQuery.tracks(Seq(guettaName))
+      )
     val result = await(history)
     val start = System.currentTimeMillis()
     tdb.collectPointsClassic(result, Language.english)
@@ -53,8 +55,11 @@ class TracksDatabaseTests extends TracksTester {
     db.initApp()
     val tdb = TracksDatabase(db, mat.executionContext)
     val guettaName = TrackName("todo")
-    def history = tdb.history(SimpleUserInfo(Username("malliina123@gmail.com"), Language.english),
-                              BoatQuery.tracks(Seq(guettaName)))
+    def history =
+      tdb.history(
+        SimpleUserInfo(Username("malliina123@gmail.com"), Language.english),
+        BoatQuery.tracks(Seq(guettaName))
+      )
     val result = await(history)
   }
 
@@ -65,7 +70,11 @@ class TracksDatabaseTests extends TracksTester {
     (t, (end - start).millis)
   }
 
-  def fakeCoord(c: Coord, speed: SpeedM, track: TrackId, boat: DeviceId, user: UserId) = {
+  def fakeCoord(c: Coord,
+                speed: SpeedM,
+                track: TrackId,
+                boat: DeviceId,
+                user: UserId) = {
     FullCoord(
       c,
       LocalTime.now(),
@@ -74,7 +83,13 @@ class TracksDatabaseTests extends TracksTester {
       Temperature.zeroCelsius,
       1.meters,
       0.meters,
-      TrackMetaShort(track, TrackNames.random(), boat, BoatNames.random(), Username("whatever"))
+      TrackMetaShort(
+        track,
+        TrackNames.random(),
+        boat,
+        BoatNames.random(),
+        Username("whatever")
+      )
     )
   }
 
@@ -82,7 +97,12 @@ class TracksDatabaseTests extends TracksTester {
     val db = BoatSchema(conf)
     db.initApp()
     val tdb = TracksDatabase(db, mat.executionContext)
-    val user = NewUser(Username("test-agg-user"), None, UserToken.random(), enabled = true)
+    val user = NewUser(
+      Username("test-agg-user"),
+      None,
+      UserToken.random(),
+      enabled = true
+    )
 
     import db._
     import db.api._
@@ -93,7 +113,10 @@ class TracksDatabaseTests extends TracksTester {
       tid: TrackId <- trackInserts += TrackInput.empty(TrackNames.random(), bid)
       _ <- tdb.saveCoordAction(fakeCoord(london, 10.kmh, tid, bid, uid))
       _ <- tdb.saveCoordAction(fakeCoord(sanfran, 20.kmh, tid, bid, uid))
-      track: TrackRow <- first(tracksTable.filter(_.id === tid.bind), s"Track not found: '$tid'.")
+      track: TrackRow <- first(
+        tracksTable.filter(_.id === tid.bind),
+        s"Track not found: '$tid'."
+      )
       _ <- usersTable.filter(_.id === uid).delete
     } yield track
     val t = runAndAwait(action)
@@ -108,12 +131,19 @@ class TracksDatabaseTests extends TracksTester {
     val udb = DatabaseUserManager(db, mat.executionContext)
     val testComment = "test"
     val userInput =
-      NewUser(Username("test-comments-user"), None, UserToken.random(), enabled = true)
+      NewUser(
+        Username("test-comments-user"),
+        None,
+        UserToken.random(),
+        enabled = true
+      )
     val trackName = TrackNames.random()
     val task = for {
       u <- udb.addUser(userInput)
       uid = u.toOption.get.id
-      t <- tdb.joinAsBoat(BoatUser(trackName, BoatNames.random(), u.toOption.get.username))
+      t <- tdb.joinAsBoat(
+        BoatUser(trackName, BoatNames.random(), u.toOption.get.user)
+      )
       _ <- tdb.saveCoords(fakeCoord(london, 10.kmh, t.track, t.boat, uid))
       t <- tdb.updateComments(t.track, testComment, uid)
     } yield t.comments
@@ -129,7 +159,14 @@ class TracksDatabaseTests extends TracksTester {
     val action = for {
       users <- usersTable.result
       ts <- DBIO.sequence(
-        users.map(u => usersTable.filter(_.id === u.id).map(_.token).update(UserToken.random())))
+        users.map(
+          u =>
+            usersTable
+              .filter(_.id === u.id)
+              .map(_.token)
+              .update(UserToken.random())
+        )
+      )
     } yield ts
     await(db.run(action))
   }
@@ -144,12 +181,16 @@ class TracksDatabaseTests extends TracksTester {
     def parseAndInsert(track: TrackId) = {
       val sentences = db.run {
         for {
-          from <- db.first(trackMetas.filter(_.track === track), s"Track not found: '$track'.")
+          from <- db.first(
+            trackMetas.filter(_.track === track),
+            s"Track not found: '$track'."
+          )
           ss <- sentencesTable.filter(_.track === track).result
           keyed = ss.map(s => KeyedSentence(s.id, s.sentence, from.short))
         } yield keyed
       }
-      val src = Source.fromFuture(sentences).flatMapConcat(ss => Source(ss.toList))
+      val src =
+        Source.fromFuture(sentences).flatMapConcat(ss => Source(ss.toList))
       src.via(insertPointsFlow(tdb.saveCoords)).runWith(Sink.ignore)
     }
   }
@@ -163,8 +204,9 @@ abstract class TracksTester extends DatabaseSuite {
   }
 
   def insertPointsFlow(save: FullCoord => Future[InsertedPoint])(
-      implicit as: ActorSystem,
-      mat: Materializer): Flow[KeyedSentence, InsertedPoint, NotUsed] = {
+    implicit as: ActorSystem,
+    mat: Materializer
+  ): Flow[KeyedSentence, InsertedPoint, NotUsed] = {
     Flow[KeyedSentence]
       .mapConcat(raw => BoatParser.parse(raw).toOption.toList)
       .via(BoatParser.multiFlow())

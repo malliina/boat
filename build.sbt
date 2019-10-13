@@ -1,5 +1,8 @@
 import com.malliina.http.FullUrl
-import sbtcrossproject.CrossPlugin.autoImport.{CrossType => PortableType, crossProject => portableProject}
+import sbtcrossproject.CrossPlugin.autoImport.{
+  CrossType => PortableType,
+  crossProject => portableProject
+}
 import sbtrelease.ReleasePlugin.autoImport.{ReleaseStep, releaseProcess}
 import sbtrelease.ReleaseStateTransformations._
 
@@ -94,8 +97,12 @@ val frontend = project
     emitSourceMaps := false,
     scalaJSUseMainModuleInitializer := true,
     webpackBundlingMode := BundlingMode.LibraryOnly(),
-    webpackConfigFile in fastOptJS := Some(baseDirectory.value / "webpack.dev.config.js"),
-    webpackConfigFile in fullOptJS := Some(baseDirectory.value / "webpack.prod.config.js")
+    webpackConfigFile in fastOptJS := Some(
+      baseDirectory.value / "webpack.dev.config.js"
+    ),
+    webpackConfigFile in fullOptJS := Some(
+      baseDirectory.value / "webpack.prod.config.js"
+    )
   )
 
 val backend = Project("boat", file("backend"))
@@ -112,6 +119,7 @@ val backend = Project("boat", file("backend"))
       "com.typesafe.slick" %% "slick" % "3.3.2",
       "com.h2database" % "h2" % "1.4.196",
       "org.orbisgis" % "h2gis" % "1.4.0",
+      "io.getquill" %% "quill-jdbc" % "3.4.10",
       "mysql" % "mysql-connector-java" % "5.1.47",
       "com.zaxxer" % "HikariCP" % "3.4.1",
       "org.flywaydb" % "flyway-core" % "6.0.3",
@@ -148,7 +156,8 @@ val backend = Project("boat", file("backend"))
     httpsPort in Linux := Option("disabled"),
     maintainer := "Michael Skogberg <malliina123@gmail.com>",
     // WTF?
-    linuxPackageSymlinks := linuxPackageSymlinks.value.filterNot(_.link == "/usr/bin/starter"),
+    linuxPackageSymlinks := linuxPackageSymlinks.value
+      .filterNot(_.link == "/usr/bin/starter"),
     javaOptions in Universal ++= {
       val linuxName = (name in Linux).value
       Seq(
@@ -177,7 +186,9 @@ val agent = project
     },
     linuxPackageMappings += {
       val linuxName = (normalizedName in Debian).value
-      packageTemplateMapping(s"/usr/share/$linuxName/conf")().withUser(daemonUser.value).withGroup(daemonUser.value)
+      packageTemplateMapping(s"/usr/share/$linuxName/conf")()
+        .withUser(daemonUser.value)
+        .withGroup(daemonUser.value)
     },
     libraryDependencies ++= Seq(
       "com.malliina" %% "primitives" % primitiveVersion,
@@ -219,11 +230,7 @@ val it = Project("integration-tests", file("boat-test"))
   .dependsOn(backend, backend % "test->test", agent)
   .disablePlugins(RevolverPlugin)
   .settings(commonSettings)
-  .settings(
-    libraryDependencies ++= Seq(
-      utilPlayTestDep
-    )
-  )
+  .settings(libraryDependencies ++= Seq(utilPlayTestDep))
 
 val utils = project
   .in(file("utils"))
@@ -248,4 +255,5 @@ val boatRoot = project
   .settings(commonSettings)
 
 def gitHash: String =
-  Try(Process("git rev-parse --short HEAD").lineStream.head).toOption.getOrElse("unknown")
+  Try(Process("git rev-parse --short HEAD").lineStream.head).toOption
+    .getOrElse("unknown")
