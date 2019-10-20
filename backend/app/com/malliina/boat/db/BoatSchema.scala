@@ -18,26 +18,17 @@ object BoatSchema {
   private val log = Logger(getClass)
 
   // Use this for all timestamps, otherwise MySQL applies an ON UPDATE CURRENT_TIMESTAMP clause by default
-  val CreatedTimestampType = "TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP(3) NOT NULL"
+  val CreatedTimestampType =
+    "TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP(3) NOT NULL"
   val NumThreads = 20
 
   val helsinkiZone = ZoneId.of("Europe/Helsinki")
 
-  def apply(ds: DataSource, profile: BoatJdbcProfile): BoatSchema =
+  def apply(ds: HikariDataSource, profile: BoatJdbcProfile): BoatSchema =
     new BoatSchema(ds, profile)
 
-  def apply(conf: DatabaseConf): BoatSchema =
-    apply(dataSource(conf), conf.profile)
-
-  def dataSource(conf: DatabaseConf): HikariDataSource = {
-    val hikariConfig = new HikariConfig()
-    hikariConfig.setJdbcUrl(conf.url)
-    hikariConfig.setUsername(conf.user)
-    hikariConfig.setPassword(conf.pass)
-    hikariConfig.setDriverClassName(conf.driverName)
-    log.info(s"Connecting to '${conf.url}'...")
-    new HikariDataSource(hikariConfig)
-  }
+  def apply(ds: HikariDataSource, driverName: String): BoatSchema =
+    apply(ds, BoatJdbcProfile(driverName))
 
   def executor(threads: Int = NumThreads) = AsyncExecutor(
     name = "AsyncExecutor.boat",
@@ -53,7 +44,7 @@ object BoatSchema {
 
 }
 
-class BoatSchema(ds: DataSource, val jdbc: BoatJdbcProfile)
+class BoatSchema(ds: HikariDataSource, val jdbc: BoatJdbcProfile)
     extends DatabaseClient
     with JdbcComponent
     with Mappings
@@ -64,12 +55,16 @@ class BoatSchema(ds: DataSource, val jdbc: BoatJdbcProfile)
   import jdbc.api._
 
   val database: jdbc.backend.DatabaseDef =
-    jdbc.api.Database.forDataSource(ds, Option(NumThreads), BoatSchema.executor(NumThreads))
+    jdbc.api.Database
+      .forDataSource(ds, Option(NumThreads), BoatSchema.executor(NumThreads))
 
   val SECOND = SimpleLiteral[String]("SECOND")
   val timestampDiff =
-    SimpleFunction.ternary[String, Instant, Instant, FiniteDuration]("TIMESTAMPDIFF")
-  def secondsDiff(from: Rep[Instant], to: Rep[Instant]) = timestampDiff(SECOND, from, to)
+    SimpleFunction.ternary[String, Instant, Instant, FiniteDuration](
+      "TIMESTAMPDIFF"
+    )
+  def secondsDiff(from: Rep[Instant], to: Rep[Instant]) =
+    timestampDiff(SECOND, from, to)
   val monthOf = SimpleFunction.unary[Instant, MonthVal]("MONTH")
   val yearOf = SimpleFunction.unary[Instant, YearVal]("YEAR")
 
@@ -80,7 +75,8 @@ class BoatSchema(ds: DataSource, val jdbc: BoatJdbcProfile)
         .join(topSpeeds)
         .on((p, t) => p.track === t._1 && p.boatSpeed === t._2)
         .groupBy(_._1.track)
-        .map { case (t, q) => (t, q.map(_._1.id).min) })
+        .map { case (t, q) => (t, q.map(_._1.id).min) }
+    )
     .on(_.id === _._2)
   val minTimes: Query[(Rep[TrackId], Rep[Option[Instant]]), (TrackId, Option[Instant]), Seq] =
     trackAggregate(_.map(_.boatTime).min)
@@ -99,8 +95,13 @@ class BoatSchema(ds: DataSource, val jdbc: BoatJdbcProfile)
       .join(topPoints)
       .on(_._1._1._1._2.id === _._1.track)
       .map {
-        case (((((boat, track), (_, top)), (_, start: Rep[Option[Instant]])), (_, end)),
-              (point, _)) =>
+        case (
+            (
+              (((boat, track), (_, top)), (_, start: Rep[Option[Instant]])),
+              (_, end)
+            ),
+            (point, _)
+            ) =>
           val startOrNow = start.getOrElse(Instant.now().bind)
           val endOrNow = end.getOrElse(Instant.now().bind)
 
@@ -173,8 +174,8 @@ class BoatSchema(ds: DataSource, val jdbc: BoatJdbcProfile)
   )
 
   def trackAggregate[N: JdbcType](
-      agg: Query[TrackPointsTable, TrackPointRow, Seq] => Rep[Option[N]])
-    : Query[(Rep[TrackId], Rep[Option[N]]), (TrackId, Option[N]), Seq] =
+      agg: Query[TrackPointsTable, TrackPointRow, Seq] => Rep[Option[N]]
+  ): Query[(Rep[TrackId], Rep[Option[N]]), (TrackId, Option[N]), Seq] =
     pointsTable.groupBy(_.track).map { case (t, q) => (t, agg(q)) }
 
   def initApp()(implicit ec: ExecutionContext) = {
@@ -188,10 +189,17 @@ class BoatSchema(ds: DataSource, val jdbc: BoatJdbcProfile)
       log.info("Initialized H2GIS spatial extensions.")
     }
     init()
-    val addAnon = usersTable.filter(_.user === Usernames.anon).exists.result.flatMap { exists =>
-      if (exists) DBIO.successful(())
-      else userInserts += NewUser(Usernames.anon, None, UserToken.random(), enabled = true)
-    }
+    val addAnon =
+      usersTable.filter(_.user === Usernames.anon).exists.result.flatMap { exists =>
+        if (exists) DBIO.successful(())
+        else
+          userInserts += NewUser(
+            Usernames.anon,
+            None,
+            UserToken.random(),
+            enabled = true
+          )
+      }
     await(run(addAnon))
   }
 

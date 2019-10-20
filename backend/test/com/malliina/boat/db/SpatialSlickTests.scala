@@ -3,27 +3,41 @@ package com.malliina.boat.db
 import com.malliina.boat.db.TestData._
 import com.malliina.boat.{Coord, TrackId}
 import com.malliina.concurrent.Execution.cached
-import com.malliina.measure.{SpeedM, SpeedIntM}
+import com.malliina.measure.{SpeedIntM, SpeedM}
+import org.scalatest.BeforeAndAfterAll
 import tests.BaseSuite
 
 import scala.concurrent.Future
 import scala.concurrent.duration.DurationInt
 
-class SpatialSlickTests extends BaseSuite {
-  val conf =
-    DatabaseConf("jdbc:mysql://localhost:3306/boat?useSSL=false", "", "", DatabaseConf.MySQLDriver)
-  val conf2 =
-    DatabaseConf("jdbc:mysql://localhost:3306/gis?useSSL=false", "", "", DatabaseConf.MySQLDriver)
+class SpatialSlickTests extends BaseSuite with BeforeAndAfterAll {
+  val conf = Conf(
+    "jdbc:mysql://localhost:3306/boat?useSSL=false",
+    "",
+    "",
+    Conf.MySQLDriver
+  )
+  lazy val ds = Conf.dataSource(conf)
+  val conf2 = Conf(
+    "jdbc:mysql://localhost:3306/gis?useSSL=false",
+    "",
+    "",
+    Conf.MySQLDriver
+  )
   //        val conf = DatabaseConf.inMemory
 
   ignore("insert coords directly") {
-    val db = craftDb()
+    val db: SpatialSchema = craftDb()
     import db._
     import db.api._
 
     runAndAwait(coordsTable.delete)
     val ids = runAndAwait(
-      coordsTable.map(_.coord).returning(coordsTable.map(_.id)) ++= Seq(london, sanfran))
+      coordsTable.map(_.coord).returning(coordsTable.map(_.id)) ++= Seq(
+        london,
+        sanfran
+      )
+    )
     val d = coordsTable
       .filter(_.id === ids.head)
       .map(_.coord)
@@ -35,19 +49,26 @@ class SpatialSlickTests extends BaseSuite {
   }
 
   ignore("migrate coords") {
-    val db = BoatSchema(conf)
+    val db = schema
     import db._
     import db.api._
     val rowsChanged = for {
       rows <- pointsTable.result
       changed <- DBIO.sequence(
-        rows.map(p => pointsTable.filter(_.id === p.id).map(_.coord).update(Coord(p.lon, p.lat))))
+        rows.map(
+          p =>
+            pointsTable
+              .filter(_.id === p.id)
+              .map(_.coord)
+              .update(Coord(p.longitude, p.latitude))
+        )
+      )
     } yield changed.sum
     await(db.run(rowsChanged), 600.seconds)
   }
 
   ignore("migrate track indices") {
-    val db = BoatSchema(conf)
+    val db: BoatSchema = schema
     import db._
     import db.api._
 
@@ -58,12 +79,10 @@ class SpatialSlickTests extends BaseSuite {
         .map(_.id)
         .result
         .flatMap { ts =>
-          DBIO.sequence(
-            ts.zipWithIndex.map {
-              case (id, idx) =>
-                pointsTable.filter(_.id === id).map(_.trackIndex).update(idx + 1)
-            }
-          )
+          DBIO.sequence(ts.zipWithIndex.map {
+            case (id, idx) =>
+              pointsTable.filter(_.id === id).map(_.trackIndex).update(idx + 1)
+          })
         }
     }
 
@@ -75,7 +94,7 @@ class SpatialSlickTests extends BaseSuite {
   }
 
   ignore("filter grouping") {
-    val db = BoatSchema(conf)
+    val db: BoatSchema = schema
     import db._
     import db.api._
     val minSpeed: SpeedM = 1.kmh
@@ -89,7 +108,7 @@ class SpatialSlickTests extends BaseSuite {
   }
 
   ignore("benchmark") {
-    val db = BoatSchema(conf)
+    val db: BoatSchema = schema
     import db._
     import db.api._
     tracksViewNonEmpty.result.statements.toList foreach println
@@ -97,6 +116,8 @@ class SpatialSlickTests extends BaseSuite {
       await(timed(db.run(tracksViewNonEmpty.result)))
     }
   }
+
+  def schema: BoatSchema = BoatSchema(ds, conf.driver)
 
   def sequentially[T, R](ts: List[T])(code: T => Future[R]): Future[List[R]] =
     ts match {
@@ -118,8 +139,8 @@ class SpatialSlickTests extends BaseSuite {
     }
   }
 
-  def craftDb() = {
-    val db = new SpatialSchema(BoatSchema.dataSource(conf), conf.profile)
+  def craftDb(): SpatialSchema = {
+    val db = new SpatialSchema(ds, BoatJdbcProfile(conf.driver))
     db.init()
     db
   }

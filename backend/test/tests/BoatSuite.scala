@@ -1,7 +1,8 @@
 package tests
 
+import ch.vorburger.mariadb4j.{DB, DBConfigurationBuilder}
 import com.malliina.boat.auth.EmailAuth
-import com.malliina.boat.db.{IdentityException, MissingCredentials, PushDevice}
+import com.malliina.boat.db.{Conf, IdentityException, MissingCredentials, PushDevice}
 import com.malliina.boat.push._
 import com.malliina.boat.{AccessToken, AppBuilder, AppComponents, AppConf}
 import com.malliina.play.auth.Auth
@@ -20,12 +21,21 @@ abstract class TestAppSuite extends AppSuite(TestComponents.apply) {
 
 object TestComponents {
   def apply(ctx: Context) = new AppComponents((_, _, _) => TestAppBuilder, ctx)
+
+  def startTestDatabase(): Conf = {
+    val dbConfig = DBConfigurationBuilder.newBuilder()
+    val db = DB.newEmbeddedDB(dbConfig.build())
+    db.start()
+    Conf(dbConfig.getURL("test"), "root", "", Conf.MySQLDriver)
+  }
 }
 
 object TestAppBuilder extends AppBuilder {
   override val appConf = AppConf("", "", "", AccessToken(""))
   override val pushService: PushEndpoint = NoopPushSystem
   override val emailAuth = TestEmailAuth
+  override val databaseConf: Conf = TestComponents.startTestDatabase()
+  override val isMariaDb: Boolean = true
 }
 
 object NoopPushSystem extends PushEndpoint {

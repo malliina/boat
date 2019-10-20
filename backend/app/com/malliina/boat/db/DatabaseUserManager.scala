@@ -3,21 +3,7 @@ package com.malliina.boat.db
 import java.sql.SQLException
 
 import com.malliina.boat.db.DatabaseUserManager.log
-import com.malliina.boat.{
-  Boat,
-  BoatInfo,
-  BoatInput,
-  BoatNames,
-  BoatToken,
-  BoatTokens,
-  JoinedBoat,
-  JoinedTrack,
-  Language,
-  TimeFormatter,
-  UserBoats,
-  UserInfo,
-  UserToken
-}
+import com.malliina.boat.{Boat, BoatInfo, BoatInput, BoatNames, BoatToken, BoatTokens, JoinedBoat, JoinedTrack, Language, TimeFormatter, UserBoats, UserInfo, UserToken}
 import com.malliina.values.{Email, UserId, Username}
 import play.api.Logger
 
@@ -28,10 +14,54 @@ object DatabaseUserManager {
 
   def apply(db: BoatSchema, ec: ExecutionContext): DatabaseUserManager =
     new DatabaseUserManager(db)(ec)
+
+  def collect(rows: Seq[JoinedUser]) = collectUsers(rows.map(r => (r.user, r.boat)))
+
+  def collectUsers(rows: Seq[(UserRow, Option[BoatRow])]): Vector[UserInfo] =
+    rows.foldLeft(Vector.empty[UserInfo]) {
+      case (acc, (user, boat)) =>
+        val idx = acc.indexWhere(_.id == user.id)
+        val newBoats =
+          boat.toSeq.map(b => Boat(b.id, b.name, b.token, b.added.toEpochMilli))
+        if (idx >= 0) {
+          val old = acc(idx)
+          acc.updated(idx, old.copy(boats = old.boats ++ newBoats))
+        } else {
+          user.email.fold(acc) { email =>
+            acc :+ UserInfo(
+              user.id,
+              user.user,
+              email,
+              user.language,
+              newBoats,
+              user.enabled,
+              user.added.toEpochMilli
+            )
+          }
+        }
+    }
+
+  def collectBoats(rows: Seq[JoinedTrack], formatter: TimeFormatter): Seq[BoatInfo] =
+    rows.foldLeft(Vector.empty[BoatInfo]) { (acc, row) =>
+      val boatIdx =
+        acc.indexWhere(b => b.user == row.username && b.boatId == row.boatId)
+      val newRow = row.strip(formatter)
+      if (boatIdx >= 0) {
+        val old = acc(boatIdx)
+        acc.updated(boatIdx, old.copy(tracks = old.tracks :+ newRow))
+      } else {
+        acc :+ BoatInfo(
+          row.boatId,
+          row.boatName,
+          row.username,
+          row.language,
+          Seq(newRow)
+        )
+      }
+    }
 }
 
-class DatabaseUserManager(val db: BoatSchema)(implicit ec: ExecutionContext)
-    extends UserManager {
+class DatabaseUserManager(val db: BoatSchema)(implicit ec: ExecutionContext) extends UserManager {
 
   import db._
   import db.api._
@@ -58,32 +88,28 @@ class DatabaseUserManager(val db: BoatSchema)(implicit ec: ExecutionContext)
     )
   }
 
-  private def getOrCreate(
-    email: Email
-  ): DBIOAction[UserId, NoStream, Effect.All] =
+  private def getOrCreate(email: Email): DBIOAction[UserId, NoStream, Effect.All] =
     usersTable
       .filter(u => u.email.isDefined && u.email === email)
       .result
       .flatMap { rows =>
-        rows.headOption
-          .map { user =>
-            DBIO.successful(user.id)
-          }
-          .getOrElse {
-            for {
-              userId <- userInserts += NewUser(
-                Username(email.email),
-                Option(email),
-                UserToken.random(),
-                enabled = true
-              )
-              _ <- boatInserts += BoatInput(
-                BoatNames.random(),
-                BoatTokens.random(),
-                userId
-              )
-            } yield userId
-          }
+        rows.headOption.map { user =>
+          DBIO.successful(user.id)
+        }.getOrElse {
+          for {
+            userId <- userInserts += NewUser(
+              Username(email.email),
+              Option(email),
+              UserToken.random(),
+              enabled = true
+            )
+            _ <- boatInserts += BoatInput(
+              BoatNames.random(),
+              BoatTokens.random(),
+              userId
+            )
+          } yield userId
+        }
       }
 
   override def users: Future[Seq[UserInfo]] = action {
@@ -92,45 +118,17 @@ class DatabaseUserManager(val db: BoatSchema)(implicit ec: ExecutionContext)
 
   private def userAuthAction(filteredUsers: Query[UsersTable, UserRow, Seq]) =
     userInfos(filteredUsers).map { users =>
-      users.headOption
-        .map { profile =>
-          if (profile.enabled) Right(profile)
-          else Left(UserDisabled(profile.username))
-        }
-        .getOrElse {
-          Left(InvalidCredentials(None))
-        }
+      users.headOption.map { profile =>
+        if (profile.enabled) Right(profile)
+        else Left(UserDisabled(profile.username))
+      }.getOrElse {
+        Left(InvalidCredentials(None))
+      }
     }
 
   private def userInfos(filteredUsers: Query[UsersTable, UserRow, Seq]) =
     filteredUsers.joinLeft(boatsTable).on(_.id === _.owner).result.map { rows =>
-      collectUsers(rows)
-    }
-
-  private def collectUsers(
-    rows: Seq[(UserRow, Option[BoatRow])]
-  ): Vector[UserInfo] =
-    rows.foldLeft(Vector.empty[UserInfo]) {
-      case (acc, (user, boat)) =>
-        val idx = acc.indexWhere(_.id == user.id)
-        val newBoats =
-          boat.toSeq.map(b => Boat(b.id, b.name, b.token, b.added.toEpochMilli))
-        if (idx >= 0) {
-          val old = acc(idx)
-          acc.updated(idx, old.copy(boats = old.boats ++ newBoats))
-        } else {
-          user.email.fold(acc) { email =>
-            acc :+ UserInfo(
-              user.id,
-              user.user,
-              email,
-              user.language,
-              newBoats,
-              user.enabled,
-              user.added.toEpochMilli
-            )
-          }
-        }
+      DatabaseUserManager.collectUsers(rows)
     }
 
   override def authBoat(token: BoatToken): Future[JoinedBoat] = action {
@@ -167,8 +165,7 @@ class DatabaseUserManager(val db: BoatSchema)(implicit ec: ExecutionContext)
     } yield UserBoats(user.user, user.language, bs ++ gpss)
   }
 
-  private def loadBoats(q: Query[LiftedJoinedTrack, JoinedTrack, Seq],
-                        formatter: TimeFormatter) = {
+  private def loadBoats(q: Query[LiftedJoinedTrack, JoinedTrack, Seq], formatter: TimeFormatter) = {
     val tracksAction = q
       .sortBy(
         r => (r.user, r.boatId, r.start.desc, r.trackAdded.desc, r.track.desc)
@@ -176,46 +173,21 @@ class DatabaseUserManager(val db: BoatSchema)(implicit ec: ExecutionContext)
       .result
     for {
       tracks <- tracksAction
-    } yield collectBoats(tracks, formatter)
+    } yield DatabaseUserManager.collectBoats(tracks, formatter)
   }
 
-  private def collectBoats(rows: Seq[JoinedTrack],
-                           formatter: TimeFormatter): Seq[BoatInfo] =
-    rows.foldLeft(Vector.empty[BoatInfo]) { (acc, row) =>
-      val boatIdx =
-        acc.indexWhere(b => b.user == row.username && b.boatId == row.boatId)
-      val newRow = row.strip(formatter)
-      if (boatIdx >= 0) {
-        val old = acc(boatIdx)
-        acc.updated(boatIdx, old.copy(tracks = old.tracks :+ newRow))
-      } else {
-        acc :+ BoatInfo(
-          row.boatId,
-          row.boatName,
-          row.username,
-          row.language,
-          Seq(newRow)
-        )
-      }
-    }
-
-  override def addUser(
-    user: NewUser
-  ): Future[Either[AlreadyExists, UserRow]] = {
+  override def addUser(user: NewUser): Future[Either[AlreadyExists, UserRow]] = {
     val action = for {
       uid <- userInserts += user
       u <- first(usersTable.filter(_.id === uid), s"User not found: '$uid'.")
     } yield u
     db.run(action).map(Right.apply).recover {
-      case sqle: SQLException
-          if sqle.getMessage contains "primary key violation" =>
+      case sqle: SQLException if sqle.getMessage contains "primary key violation" =>
         Left(AlreadyExists(user.username))
     }
   }
 
-  override def deleteUser(
-    user: Username
-  ): Future[Either[UserDoesNotExist, Unit]] =
+  override def deleteUser(user: Username): Future[Either[UserDoesNotExist, Unit]] =
     db.run(usersTable.filter(_.user === user).delete).map { changed =>
       if (changed > 0) {
         log.info(s"Deleted user '$user'.")

@@ -1,8 +1,5 @@
 import com.malliina.http.FullUrl
-import sbtcrossproject.CrossPlugin.autoImport.{
-  CrossType => PortableType,
-  crossProject => portableProject
-}
+import sbtcrossproject.CrossPlugin.autoImport.{CrossType => PortableType, crossProject => portableProject}
 import sbtrelease.ReleasePlugin.autoImport.{ReleaseStep, releaseProcess}
 import sbtrelease.ReleaseStateTransformations._
 
@@ -138,7 +135,8 @@ val backend = Project("boat", file("backend"))
       utilPlayDep,
       utilPlayTestDep,
       scalaTestDep,
-      "org.scalatestplus.play" %% "scalatestplus-play" % "4.0.3" % Test
+      "org.scalatestplus.play" %% "scalatestplus-play" % "4.0.3" % Test,
+      "ch.vorburger.mariaDB4j" % "mariaDB4j" % "2.4.0" % Test
     ),
     routesImport ++= Seq(
       "com.malliina.boat.Bindables._",

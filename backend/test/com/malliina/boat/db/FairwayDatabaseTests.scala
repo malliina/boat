@@ -16,7 +16,7 @@ class FairwayDatabaseTests extends DatabaseSuite {
 //  }
 
   ignore("import fairways to database") {
-    val db = initDb()
+    val db: BoatSchema = initDb()
     val fileIn = userHome.resolve(".boat/vaylat/vaylat-geo.json")
     val strIn = Files.readAllBytes(fileIn)
     val coll = Json.parse(strIn).as[FeatureCollection]

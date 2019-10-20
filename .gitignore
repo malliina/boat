@@ -11,6 +11,7 @@ credentials.txt
 logs
 dist
 .hydra
+hydra.sbt
 site
 .bloop
-hydra.sbt
+.metals

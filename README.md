@@ -44,10 +44,16 @@ This will make a binary available at [www.boat-tracker.com/files](https://www.bo
 Creating the binary requires a Linux operating system with certain packages installed,
 therefore it is currently a separate step from the release process.
 
-## IntelliJ notes
+## Notes
+
+### IntelliJ
 
 If using BSP, exclude folder [project/target/node-modules](project/target/node-modules) in the 
 project structure settings to reduce excessive indexing.
+
+### Quill
+
+Due to an apparent bug, don't use camelCase member names for Embedded case classes. Wrong column aliases are generated.
 
 ## License
 

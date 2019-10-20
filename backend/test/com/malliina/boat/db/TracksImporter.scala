@@ -2,52 +2,66 @@ package com.malliina.boat.db
 
 import java.nio.charset.StandardCharsets
 import java.nio.file.{Files, Path}
-import java.time.LocalDate
 
 import akka.NotUsed
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.{Flow, Sink, Source}
 import com.malliina.boat.parsing.FullCoord
-import com.malliina.boat.{DeviceId, BoatName, BoatUser, DateVal, InsertedPoint, KeyedSentence, LocalConf, RawSentence, SentencesEvent, TrackId, TrackInput, TrackNames}
+import com.malliina.boat.{BoatName, BoatUser, DateVal, DeviceId, InsertedPoint, KeyedSentence, LocalConf, RawSentence, SentencesEvent, TrackId, TrackInput, TrackNames}
 import com.malliina.concurrent.Execution.cached
 import com.malliina.util.FileUtils
 import com.malliina.values.Username
-import play.api.Mode
 
-import scala.jdk.CollectionConverters.CollectionHasAsScala
 import scala.concurrent.Future
 import scala.concurrent.duration.DurationLong
+import scala.jdk.CollectionConverters.CollectionHasAsScala
 
 class TracksImporter extends TracksTester {
   implicit val as = ActorSystem()
   implicit val mat = ActorMaterializer()
 
+  lazy val c = Conf.fromConf(LocalConf.localConf).toOption.get
+
   ignore("import tracks from plotter log file") {
     val (db, tdb) = initDbAndTracks()
     val trackName = TrackNames.random()
-    val track = await(tdb.joinAsBoat(BoatUser(trackName, BoatName("Amina"), Username("mle"))), 10.seconds)
+    val track = await(
+      tdb.joinAsBoat(BoatUser(trackName, BoatName("Amina"), Username("mle"))),
+      10.seconds
+    )
     println(s"Using $track")
-    val s: Source[RawSentence, NotUsed] = fromFile(FileUtils.userHome.resolve("yas-hunt.txt"))
-      .drop(0)
-      .filter(_ != RawSentence.initialZda)
+    val s: Source[RawSentence, NotUsed] =
+      fromFile(FileUtils.userHome.resolve("boat/logs/Log201910.txt"))
+        .drop(1236503)
+        .filter(_ != RawSentence.initialZda)
     val events = s.map(s => SentencesEvent(Seq(s), track.short))
-    val task = events.via(processSentences(tdb.saveSentences, tdb.saveCoords)).runWith(Sink.ignore)
+    val task = events
+      .via(processSentences(tdb.saveSentences, tdb.saveCoords))
+      .runWith(Sink.ignore)
     await(task, 300000.seconds)
 //    splitTracksByDate(track.track, db)
   }
 
   ignore("modify tracks") {
-    val db = BoatSchema(DatabaseConf(Mode.Prod, LocalConf.localConf))
+    val db = BoatSchema(Conf.dataSource(c), c.driver)
     val oldTrack = TrackId(175)
     splitTracksByDate(oldTrack, db)
   }
 
   def fromFile(file: Path): Source[RawSentence, NotUsed] =
-    Source(Files.readAllLines(file, StandardCharsets.UTF_8).asScala.map(RawSentence.apply).toList)
+    Source(
+      Files
+        .readAllLines(file, StandardCharsets.UTF_8)
+        .asScala
+        .map(RawSentence.apply)
+        .toList
+    )
 
-  def processSentences(saveSentences: SentencesEvent => Future[Seq[KeyedSentence]],
-                       saveCoord: FullCoord => Future[InsertedPoint]) =
+  def processSentences(
+      saveSentences: SentencesEvent => Future[Seq[KeyedSentence]],
+      saveCoord: FullCoord => Future[InsertedPoint]
+  ) =
     Flow[SentencesEvent]
       .via(Flow[SentencesEvent].mapAsync(1)(saveSentences))
       .mapConcat(saved => saved.toList)
@@ -59,7 +73,10 @@ class TracksImporter extends TracksTester {
 
     def createAndUpdateTrack(date: DateVal) =
       for {
-        newTrack <- trackInserts += TrackInput.empty(TrackNames.random(), DeviceId(14))
+        newTrack <- trackInserts += TrackInput.empty(
+          TrackNames.random(),
+          DeviceId(14)
+        )
         updated <- updateTrack(oldTrack, date, newTrack)
       } yield updated
 
@@ -71,7 +88,12 @@ class TracksImporter extends TracksTester {
         .update(newTrack)
 
     val action = for {
-      dates <- pointsTable.filter(_.track === oldTrack).map(_.combined.date).distinct.sorted.result
+      dates <- pointsTable
+        .filter(_.track === oldTrack)
+        .map(_.combined.date)
+        .distinct
+        .sorted
+        .result
       updates <- DBIO.sequence(dates.map(date => createAndUpdateTrack(date)))
     } yield updates
     await(db.run(action), 100.seconds)
