@@ -13,7 +13,6 @@ import com.malliina.boat.parsing.{BoatParser, FullCoord}
 import com.malliina.concurrent.Execution.cached
 import com.malliina.measure.{DistanceIntM, SpeedIntM, SpeedM, Temperature}
 import com.malliina.values.{Email, UserId, Username}
-import org.scalatest.BeforeAndAfterAll
 import tests.LegacyDatabase
 
 import scala.concurrent.Future
@@ -24,7 +23,7 @@ object TestData {
   val sanfran = Coord.build(-122.4, 37.8).toOption.get
 }
 
-class TracksDatabaseTests extends TracksTester with BeforeAndAfterAll with LegacyDatabase {
+class TracksDatabaseTests extends TracksTester with LegacyDatabase {
   ignore("collect rows") {
     val db = boatSchema
     db.initApp()
