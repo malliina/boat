@@ -2,7 +2,6 @@ package com.malliina.boat.db
 
 import java.sql.SQLException
 
-import com.malliina.boat.db.BoatDatabase.fail
 import com.malliina.boat.db.NewUserManager.log
 import com.malliina.boat.{BoatInfo, BoatNames, BoatToken, BoatTokens, JoinedBoat, JoinedTrack, Language, TimeFormatter, UserBoats, UserInfo, UserToken}
 import com.malliina.values.{Email, UserId, Username}
@@ -14,14 +13,12 @@ import scala.concurrent.{ExecutionContext, Future}
 object NewUserManager {
   private val log = Logger(getClass)
 
-  def apply(db: BoatDatabase[SnakeCase]): NewUserManager =
-    new NewUserManager(db)(db.ec)
+  def apply(db: BoatDatabase[SnakeCase]): NewUserManager = new NewUserManager(db)
 }
 
-class NewUserManager(val db: BoatDatabase[SnakeCase])(implicit ec: ExecutionContext)
-    extends UserManager {
+class NewUserManager(val db: BoatDatabase[SnakeCase]) extends UserManager {
   import db._
-
+  implicit val exec: ExecutionContext = db.ec
   val userByEmail = quote { email: Email =>
     usersTable.filter(u => u.email.contains(email))
   }
@@ -45,11 +42,10 @@ class NewUserManager(val db: BoatDatabase[SnakeCase])(implicit ec: ExecutionCont
     boatsView.filter(bv => bv.email.contains(email) && !tracksTable.map(_.boat).contains(bv.device))
   }
 
-  def users: Future[Seq[UserInfo]] = Future {
-    perform("All users", runIO(allUsers).map(DatabaseUserManager.collect))
-  }
+  def users: Future[Seq[UserInfo]] =
+    performAsync("All users") { runIO(allUsers).map(DatabaseUserManager.collect) }
 
-  override def userInfo(email: Email): Future[UserInfo] = execute {
+  override def userInfo(email: Email): Future[UserInfo] = transactionally("Load user info") {
     val task = for {
       userId <- getOrCreate(email)
       info <- runIO(usersWithBoats(userById(lift(userId))))
@@ -60,79 +56,79 @@ class NewUserManager(val db: BoatDatabase[SnakeCase])(implicit ec: ExecutionCont
     }.getOrElse {
       Left(InvalidCredentials(None))
     }
-    perform("Obtain user info", task)
+    fold(task)
   }
 
-  def userMeta(email: Email): Future[UserRow] = Future {
-    run(userByEmail(lift(email))).headOption.getOrElse(fail(s"User not found: '$email'."))
+  def userMeta(email: Email): Future[UserRow] = performAsync("Load user by email") {
+    first(runIO(userByEmail(lift(email))), s"User not found: '$email'.")
   }
 
-  override def authBoat(token: BoatToken): Future[JoinedBoat] = execute {
-    run(boatsView.filter(_.boatToken == lift(token))).headOption
-      .map(Right.apply)
-      .getOrElse(Left(InvalidToken(token)))
+  override def authBoat(token: BoatToken): Future[JoinedBoat] = performAsync("Authenticate boat") {
+    fold(
+      runIO(boatsView.filter(_.boatToken == lift(token)))
+        .map(_.headOption.map(b => Right(b)).getOrElse(Left(InvalidToken(token))))
+    )
   }
 
-  override def boats(email: Email): Future[UserBoats] = Future {
-    val task = for {
+  override def boats(email: Email): Future[UserBoats] = transactionally("Load boats") {
+    for {
       id <- getOrCreate(email)
-      byId <- runIO(userById(lift(id))).map(_.headOption)
-      user <- byId.map(IO.successful).getOrElse(IO.failed(fail(s"User not found: '$id'.")))
+      user <- first(runIO(userById(lift(id))), s"User not found: '$id'.")
       boatRows <- runIO(
         loadBoats(nonEmptyTracks.filter(t => t.boat.userId == lift(id) && t.points > 100))
       )
-      bs = DatabaseUserManager.collectBoats(boatRows, TimeFormatter(user.language))
       devices <- runIO(loadDevices(lift(email)))
     } yield {
+      val bs = DatabaseUserManager.collectBoats(boatRows, TimeFormatter(user.language))
       val gpsDevices = devices.map(d => BoatInfo(d.device, d.boatName, d.username, d.language, Nil))
       UserBoats(user.user, user.language, bs ++ gpsDevices)
     }
-    perform("Load boats", task)
   }
 
-  override def addUser(user: NewUser): Future[Either[AlreadyExists, UserRow]] = Future {
-    val task = for {
-      id <- runIO(
-        usersTable
-          .insert(
-            _.user -> lift(user.username),
-            _.email -> lift(user.email),
-            _.token -> lift(user.token),
-            _.enabled -> lift(user.enabled)
-          )
-          .returningGenerated(_.id)
-      )
-      rows <- runIO(userById(lift(id)))
-      user <- rows.headOption
-        .map(IO.successful)
-        .getOrElse(IO.failed(fail(s"User not found: '$id'.")))
-    } yield user
-    try {
-      Right(perform("Add user", task))
-    } catch {
+  override def addUser(user: NewUser): Future[Either[AlreadyExists, UserRow]] =
+    transactionally("Add user") {
+      for {
+        id <- runIO(
+          usersTable
+            .insert(
+              _.user -> lift(user.username),
+              _.email -> lift(user.email),
+              _.token -> lift(user.token),
+              _.enabled -> lift(user.enabled)
+            )
+            .returningGenerated(_.id)
+        )
+        user <- first(runIO(userById(lift(id))), s"User not found: '$id'.")
+      } yield user
+    }.map {
+      Right.apply
+    }.recover {
       case e: SQLException if e.getMessage contains "primary key violation" =>
         Left(AlreadyExists(user.username))
     }
-  }
 
-  override def deleteUser(user: Username): Future[Either[UserDoesNotExist, Unit]] = Future {
-    val changed = run(usersTable.filter(_.user == lift(user)).delete)
-    if (changed > 0) {
-      log.info(s"Deleted user '$user'.")
-      Right(())
-    } else {
-      Left(UserDoesNotExist(user))
+  override def deleteUser(user: Username): Future[Either[UserDoesNotExist, Unit]] =
+    performAsync("Delete user") {
+      runIO(usersTable.filter(_.user == lift(user)).delete).map { changed =>
+        if (changed > 0) {
+          log.info(s"Deleted user '$user'.")
+          Right(())
+        } else {
+          Left(UserDoesNotExist(user))
+        }
+      }
     }
-  }
 
-  override def changeLanguage(user: UserId, to: Language): Future[Boolean] = Future {
-    val changed = run(userById(lift(user)).update(_.language -> lift(to)))
-    val wasChanged = changed > 0
-    if (wasChanged) {
-      log.info(s"Changed language of user ID '$user' to '$to'.")
+  override def changeLanguage(user: UserId, to: Language): Future[Boolean] =
+    performAsync("Change language") {
+      runIO(userById(lift(user)).update(_.language -> lift(to))).map { changed =>
+        val wasChanged = changed > 0
+        if (wasChanged) {
+          log.info(s"Changed language of user ID '$user' to '$to'.")
+        }
+        wasChanged
+      }
     }
-    wasChanged
-  }
 
   private def getOrCreate(email: Email) = for {
     existing <- runIO(userByEmail(lift(email)))
@@ -159,11 +155,10 @@ class NewUserManager(val db: BoatDatabase[SnakeCase])(implicit ec: ExecutionCont
     )
   } yield userId
 
-  private def execute[T](code: => Either[IdentityError, T]): Future[T] =
-    Future(code).flatMap(
-      _.fold(
-        err => Future.failed(IdentityException(err)),
-        user => Future.successful(user)
-      )
+  private def fold[T, E <: Effect](io: IO[Either[IdentityError, T], E]): IO[T, E] = io.flatMap(
+    _.fold(
+      err => IO.failed(IdentityException(err)),
+      user => IO.successful(user)
     )
+  )
 }

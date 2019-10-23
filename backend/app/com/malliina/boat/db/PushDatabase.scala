@@ -2,7 +2,7 @@ package com.malliina.boat.db
 
 import com.malliina.boat.db.PushDatabase.log
 import com.malliina.boat.push._
-import com.malliina.boat.{PushId, PushToken, TrackMeta, UserDevice}
+import com.malliina.boat.{PushId, PushToken, UserDevice}
 import com.malliina.values.UserId
 import play.api.Logger
 
@@ -15,7 +15,8 @@ object PushDatabase {
     new PushDatabase(db, push)(ec)
 }
 
-class PushDatabase(db: PushSchema, val push: PushEndpoint)(implicit ec: ExecutionContext)  {
+class PushDatabase(db: PushSchema, val push: PushEndpoint)(implicit ec: ExecutionContext)
+    extends PushService {
   import db._
   import db.api._
 
@@ -67,17 +68,20 @@ class PushDatabase(db: PushSchema, val push: PushEndpoint)(implicit ec: Executio
           }
           deleted
         }
-      val updateAction = DBIO.sequence(summary.replacements.map { repl =>
-        pushTable
-          .filter(d => d.token === repl.oldToken && d.device === repl.device)
-          .map(_.token)
-          .update(repl.newToken).map { updated =>
-          if (updated > 0) {
-            log.info(s"Updated token to '${repl.newToken}' from '${repl.oldToken}'.")
-          }
-          updated
-        }
-      }).map(_.sum)
+      val updateAction = DBIO
+        .sequence(summary.replacements.map { repl =>
+          pushTable
+            .filter(d => d.token === repl.oldToken && d.device === repl.device)
+            .map(_.token)
+            .update(repl.newToken)
+            .map { updated =>
+              if (updated > 0) {
+                log.info(s"Updated token to '${repl.newToken}' from '${repl.oldToken}'.")
+              }
+              updated
+            }
+        })
+        .map(_.sum)
       action {
         DBIO.sequence(Seq(deleteAction, updateAction)).map(_.sum)
       }

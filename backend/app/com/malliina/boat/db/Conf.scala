@@ -3,7 +3,7 @@ package com.malliina.boat.db
 import com.zaxxer.hikari.{HikariConfig, HikariDataSource}
 import play.api.{Configuration, Logger}
 
-case class Conf(url: String, user: String, pass: String, driver: String)
+case class Conf(url: String, user: String, pass: String, driver: String, isMariaDb: Boolean = false)
 
 object Conf {
   private val log = Logger(getClass)
@@ -29,7 +29,7 @@ object Conf {
       url <- read(UrlKey)
       user <- read(UserKey)
       pass <- read(PassKey)
-    } yield Conf(url, user, pass, read(DriverKey).getOrElse(DefaultDriver))
+    } yield Conf(url, user, pass, read(DriverKey).getOrElse(DefaultDriver), isMariaDb = false)
   }
 
   def dataSource(conf: Conf): HikariDataSource = {

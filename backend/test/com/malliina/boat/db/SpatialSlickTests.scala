@@ -15,14 +15,16 @@ class SpatialSlickTests extends BaseSuite with BeforeAndAfterAll {
     "jdbc:mysql://localhost:3306/boat?useSSL=false",
     "",
     "",
-    Conf.MySQLDriver
+    Conf.MySQLDriver,
+    isMariaDb = false
   )
   lazy val ds = Conf.dataSource(conf)
   val conf2 = Conf(
     "jdbc:mysql://localhost:3306/gis?useSSL=false",
     "",
     "",
-    Conf.MySQLDriver
+    Conf.MySQLDriver,
+    isMariaDb = false
   )
   //        val conf = DatabaseConf.inMemory
 

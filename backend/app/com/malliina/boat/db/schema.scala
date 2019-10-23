@@ -2,7 +2,7 @@ package com.malliina.boat.db
 
 import java.time.Instant
 
-import com.malliina.boat.{Boat, BoatName, BoatPrimitives, BoatToken, CombinedCoord, DateVal, DeviceId, FormattedDateTime, JoinedTrack, Language, MonthVal, TimeFormatter, TimedCoord, TrackCanonical, TrackId, TrackName, TrackPointId, TrackPointRow, TrackTitle, UserToken, YearVal}
+import com.malliina.boat.{Boat, BoatName, BoatPrimitives, BoatToken, CombinedCoord, DateVal, DeviceId, FormattedDateTime, GPSPointRow, JoinedBoat, JoinedTrack, Language, MonthVal, TimeFormatter, TimedCoord, TrackCanonical, TrackId, TrackName, TrackPointId, TrackPointRow, TrackTitle, UserToken, YearVal}
 import com.malliina.measure.{DistanceM, SpeedM, Temperature}
 import com.malliina.values.{Email, UserId, Username}
 import io.getquill.Embedded
@@ -144,3 +144,5 @@ case class TrackTime(track: TrackRow, times: TrackTimes)
 case class TrackTop(track: TrackId, top: Option[TrackPointId])
 
 case class JoinedUser(user: UserRow, boat: Option[BoatRow])
+
+case class JoinedGPS(point: GPSPointRow, device: JoinedBoat) extends Embedded

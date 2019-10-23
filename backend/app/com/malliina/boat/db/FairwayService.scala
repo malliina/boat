@@ -13,7 +13,7 @@ class FairwayService(val db: FairwaySchema) {
   import db._
   import db.api._
 
-  def fairwaysAt(at: Coord) = fairways(at.hash)
+  def fairwaysAt(at: Coord): Future[Seq[FairwayRow]] = fairways(at.hash)
 
   def fairways(at: CoordHash): Future[Seq[FairwayRow]] = action {
     fairwaysTable
@@ -23,7 +23,7 @@ class FairwayService(val db: FairwaySchema) {
       .result
   }
 
-  def fairwaysAt(route: Seq[CoordHash]): Future[Seq[CoordFairway]] = action {
+  def fairwaysAt(route: Seq[CoordHash]): Future[Seq[CoordFairways]] = action {
     fairwaysTable
       .join(fairwayCoordsTable.filter(c => c.hash.inSet(route)))
       .on(_.id === _.fairway)
@@ -34,7 +34,7 @@ class FairwayService(val db: FairwaySchema) {
           .map { case (k, v) => k -> v.head.fairway }
         route.flatMap { coord =>
           map.get(coord).map { fairway =>
-            CoordFairway(coord, fairway)
+            CoordFairways(coord, Seq(fairway))
           }
         }
       }
@@ -42,3 +42,4 @@ class FairwayService(val db: FairwaySchema) {
 }
 
 case class CoordFairway(coord: CoordHash, fairway: FairwayRow)
+case class CoordFairways(coord: CoordHash, fairways: Seq[FairwayRow])

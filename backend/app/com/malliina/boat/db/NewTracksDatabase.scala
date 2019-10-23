@@ -1,13 +1,11 @@
 package com.malliina.boat.db
 
-import java.sql.{Timestamp, Types}
 import java.time.Instant
 
-import com.malliina.boat.db.BoatDatabase.fail
 import com.malliina.boat.db.NewTracksDatabase.log
 import com.malliina.boat.http.{BoatQuery, SortOrder, TrackQuery, TrackSort}
 import com.malliina.boat.parsing.FullCoord
-import com.malliina.boat.{BoatName, BoatTokens, BoatTrackMeta, Coord, CoordsEvent, DeviceId, DeviceMeta, FullTrack, InsertedPoint, JoinedBoat, JoinedTrack, KeyedSentence, Lang, Language, MinimalUserInfo, SentenceCoord2, SentencesEvent, StatsResponse, TimeFormatter, TrackCanonical, TrackId, TrackInfo, TrackInput, TrackMeta, TrackName, TrackRef, TrackTitle, Tracks, TracksBundle, Utils}
+import com.malliina.boat.{BoatName, BoatTokens, BoatTrackMeta, CoordsEvent, DeviceId, DeviceMeta, FullTrack, InsertedPoint, JoinedBoat, JoinedTrack, KeyedSentence, Lang, Language, MinimalUserInfo, SentenceCoord2, SentencesEvent, StatsResponse, TimeFormatter, TrackCanonical, TrackId, TrackInfo, TrackInput, TrackMeta, TrackName, TrackRef, TrackTitle, Tracks, TracksBundle, Utils}
 import com.malliina.measure.{DistanceM, SpeedDoubleM, SpeedIntM, SpeedM, Temperature}
 import com.malliina.values.{UserId, Username}
 import io.getquill._
@@ -18,24 +16,26 @@ import scala.concurrent.{ExecutionContext, Future}
 object NewTracksDatabase {
   private val log = Logger(getClass)
 
-  def apply(db: BoatDatabase[SnakeCase], isMariaDb: Boolean = false): NewTracksDatabase =
-    new NewTracksDatabase(db, isMariaDb)(db.ec)
+  def apply(db: BoatDatabase[SnakeCase]): NewTracksDatabase =
+    new NewTracksDatabase(db)(db.ec)
 }
 
-class NewTracksDatabase(val db: BoatDatabase[SnakeCase], isMariaDb: Boolean)(
+class NewTracksDatabase(val db: BoatDatabase[SnakeCase])(
     implicit val ec: ExecutionContext
 ) extends TracksSource {
   import db._
 
-  val distanceFunctionName = if (isMariaDb) "ST_Distance" else "ST_Distance_Sphere"
-  val selectDistance = quote { (from: Coord, to: Coord) =>
-    infix"SELECT #$distanceFunctionName($from,$to)".as[Query[DistanceM]]
+  implicit class InstantQuotes(left: Instant) {
+    def >=(right: Instant) = quote(infix"$left >= $right".as[Boolean])
+    def <=(right: Instant) = quote(infix"$left <= $right".as[Boolean])
   }
 
-  implicit val ie: Encoder[Instant] = encoder(
-    Types.TIMESTAMP,
-    (idx, value, row) => row.setTimestamp(idx, new Timestamp(value.toEpochMilli))
-  )
+  val rangedCoords = quote { (from: Option[Instant], to: Option[Instant]) =>
+    rawPointsTable.filter { p =>
+      from.forall(f => p.added >= f) && to.forall(t => p.added <= t)
+    }
+  }
+
   val minSpeed: SpeedM = 1.kmh
 
   // Distributed to another module to reduce compilation times
@@ -221,17 +221,17 @@ class NewTracksDatabase(val db: BoatDatabase[SnakeCase], isMariaDb: Boolean)(
     }
   }
 
-  def saveSentences(sentences: SentencesEvent): Future[Seq[KeyedSentence]] = Future {
-    val from = sentences.from
-    transaction {
-      sentences.sentences.map { s =>
-        val id = run(insertSentence(lift(s), lift(from.track)))
-        KeyedSentence(id, s, from)
+  def saveSentences(sentences: SentencesEvent): Future[Seq[KeyedSentence]] =
+    transactionally("Save sentences") {
+      val from = sentences.from
+      IO.traverse(sentences.sentences) { s =>
+        runIO(insertSentence(lift(s), lift(from.track))).map { id =>
+          KeyedSentence(id, s, from)
+        }
       }
     }
-  }
 
-  def saveCoords(coord: FullCoord): Future[InsertedPoint] = Future {
+  def saveCoords(coord: FullCoord): Future[InsertedPoint] = transactionally("Insert coordinate") {
     val track = coord.from.track
     val previous = quote {
       rawPointsTable
@@ -240,9 +240,8 @@ class NewTracksDatabase(val db: BoatDatabase[SnakeCase], isMariaDb: Boolean)(
         .take(1)
     }
     val pointsQuery = quote(rawPointsTable.filter(_.track == lift(track)))
-    val task = for {
+    for {
       prev <- runIO(previous).map(_.headOption)
-      trackIdx = prev.map(_.trackIndex).getOrElse(0) + 1
       diff <- prev.map { p =>
         runIO(selectDistance(lift(p.coord), lift(coord.coord)))
           .map(_.headOption.getOrElse(DistanceM.zero))
@@ -259,7 +258,7 @@ class NewTracksDatabase(val db: BoatDatabase[SnakeCase], isMariaDb: Boolean)(
             _.depthOffsetm -> lift(coord.depthOffset),
             _.boatTime -> lift(coord.boatTime),
             _.track -> lift(coord.from.track),
-            _.trackIndex -> lift(trackIdx),
+            _.trackIndex -> lift(prev.map(_.trackIndex).getOrElse(0) + 1),
             _.diff -> lift(diff)
           )
           .returningGenerated(_.id)
@@ -271,7 +270,7 @@ class NewTracksDatabase(val db: BoatDatabase[SnakeCase], isMariaDb: Boolean)(
         .map(decimal => decimal.map(d => Temperature(d.toDouble)))
       points <- runIO(pointsQuery.size)
       distance <- runIO(pointsQuery.map(_.diff).sum).map(_.getOrElse(DistanceM.zero))
-      _ <- runIO(
+      ids <- runIO(
         rawTrackById(lift(track)).update(
           _.avgWaterTemp -> lift(avgWaterTemp),
           _.avgSpeed -> lift(avgSpeed),
@@ -281,45 +280,45 @@ class NewTracksDatabase(val db: BoatDatabase[SnakeCase], isMariaDb: Boolean)(
       )
       ref <- runIO(trackById(lift(track)))
     } yield InsertedPoint(point, ref.headOption.getOrElse(fail(s"Track not found: '$track'.")))
-    perform("Insert coordinate", task.transactional)
   }
 
-  def tracksFor(user: MinimalUserInfo, filter: TrackQuery): Future[Tracks] = Future {
-    val unsorted = quote(tracksBy(lift(user.username)))
-    val nameDesc =
-      runIO(unsorted.sortBy(t => (t.trackTitle, t.trackName, t.track))(Ord.descNullsLast))
-    val nameAsc =
-      runIO(unsorted.sortBy(t => (t.trackTitle, t.trackName, t.track))(Ord.ascNullsLast))
-    val recentDesc = runIO(unsorted.sortBy(t => (t.start, t.track))(Ord.descNullsLast))
-    val recentAsc = runIO(unsorted.sortBy(t => (t.start, t.track))(Ord.ascNullsLast))
-    val pointsDesc = runIO(unsorted.sortBy(t => (t.points, t.track))(Ord.descNullsLast))
-    val pointsAsc = runIO(unsorted.sortBy(t => (t.points, t.track))(Ord.ascNullsLast))
-    val topSpeedDesc = runIO(unsorted.sortBy(t => (t.topSpeed, t.track))(Ord.descNullsLast))
-    val topSpeedAsc = runIO(unsorted.sortBy(t => (t.topSpeed, t.track))(Ord.ascNullsLast))
-    val lengthDesc = runIO(unsorted.sortBy(t => (t.distance, t.track))(Ord.descNullsLast))
-    val lengthAsc = runIO(unsorted.sortBy(t => (t.distance, t.track))(Ord.ascNullsLast))
-    val rows =
-      if (filter.sort == TrackSort.Name) {
-        filter.order match {
-          case SortOrder.Desc => nameDesc
-          case SortOrder.Asc  => nameAsc
+  def tracksFor(user: MinimalUserInfo, filter: TrackQuery): Future[Tracks] =
+    performAsync(s"Load tracks for ${user.username}") {
+      val unsorted = quote(tracksBy(lift(user.username)))
+      val nameDesc =
+        runIO(unsorted.sortBy(t => (t.trackTitle, t.trackName, t.track))(Ord.descNullsLast))
+      val nameAsc =
+        runIO(unsorted.sortBy(t => (t.trackTitle, t.trackName, t.track))(Ord.ascNullsLast))
+      val recentDesc = runIO(unsorted.sortBy(t => (t.start, t.track))(Ord.descNullsLast))
+      val recentAsc = runIO(unsorted.sortBy(t => (t.start, t.track))(Ord.ascNullsLast))
+      val pointsDesc = runIO(unsorted.sortBy(t => (t.points, t.track))(Ord.descNullsLast))
+      val pointsAsc = runIO(unsorted.sortBy(t => (t.points, t.track))(Ord.ascNullsLast))
+      val topSpeedDesc = runIO(unsorted.sortBy(t => (t.topSpeed, t.track))(Ord.descNullsLast))
+      val topSpeedAsc = runIO(unsorted.sortBy(t => (t.topSpeed, t.track))(Ord.ascNullsLast))
+      val lengthDesc = runIO(unsorted.sortBy(t => (t.distance, t.track))(Ord.descNullsLast))
+      val lengthAsc = runIO(unsorted.sortBy(t => (t.distance, t.track))(Ord.ascNullsLast))
+      val rows =
+        if (filter.sort == TrackSort.Name) {
+          filter.order match {
+            case SortOrder.Desc => nameDesc
+            case SortOrder.Asc  => nameAsc
+          }
+        } else {
+          (filter.sort, filter.order) match {
+            case (TrackSort.Recent, SortOrder.Desc)   => recentDesc
+            case (TrackSort.Recent, SortOrder.Asc)    => recentAsc
+            case (TrackSort.Points, SortOrder.Desc)   => pointsDesc
+            case (TrackSort.Points, SortOrder.Asc)    => pointsAsc
+            case (TrackSort.TopSpeed, SortOrder.Desc) => topSpeedDesc
+            case (TrackSort.TopSpeed, SortOrder.Asc)  => topSpeedAsc
+            case (TrackSort.Length, SortOrder.Desc)   => lengthDesc
+            case (TrackSort.Length, SortOrder.Asc)    => lengthAsc
+            case _                                    => recentDesc
+          }
         }
-      } else {
-        (filter.sort, filter.order) match {
-          case (TrackSort.Recent, SortOrder.Desc)   => recentDesc
-          case (TrackSort.Recent, SortOrder.Asc)    => recentAsc
-          case (TrackSort.Points, SortOrder.Desc)   => pointsDesc
-          case (TrackSort.Points, SortOrder.Asc)    => pointsAsc
-          case (TrackSort.TopSpeed, SortOrder.Desc) => topSpeedDesc
-          case (TrackSort.TopSpeed, SortOrder.Asc)  => topSpeedAsc
-          case (TrackSort.Length, SortOrder.Desc)   => lengthDesc
-          case (TrackSort.Length, SortOrder.Asc)    => lengthAsc
-          case _                                    => recentDesc
-        }
-      }
-    val formatter = TimeFormatter(user.language)
-    Tracks(performIO(rows).map(_.strip(formatter)))
-  }
+      val formatter = TimeFormatter(user.language)
+      rows.map(rs => Tracks(rs.map(_.strip(formatter))))
+    }
 
   def tracksBundle(user: MinimalUserInfo, filter: TrackQuery, lang: Lang): Future[TracksBundle] = {
     val statsFuture = stats(user, filter, lang)
@@ -330,25 +329,28 @@ class NewTracksDatabase(val db: BoatDatabase[SnakeCase], isMariaDb: Boolean)(
     } yield TracksBundle(ts.tracks, ss)
   }
 
-  def ref(track: TrackName, language: Language): Future[TrackRef] = Future {
-    run(namedTrack(lift(track))).headOption
-      .getOrElse(fail(s"Track not found: '$track'."))
-      .strip(TimeFormatter(language))
-  }
-  def canonical(track: TrackCanonical, language: Language): Future[TrackRef] = Future {
-    run(nonEmptyTracks.filter(_.canonical == lift(track))).headOption
-      .getOrElse(fail(s"Track not found: '$track'."))
-      .strip(TimeFormatter(language))
-  }
-
-  def track(track: TrackName, user: Username, query: TrackQuery): Future[TrackInfo] = Future {
-    transaction {
-      val points = quote { pointsQuery(lift(track)) }
-      val coords = run(points.sortBy(_.boatTime)(Ord.asc))
-      val top = run(points.sortBy(_.boatSpeed)(Ord.desc).take(1)).headOption
-      TrackInfo(coords, top)
+  def ref(track: TrackName, language: Language): Future[TrackRef] =
+    performAsync(s"Load track $track") {
+      first(runIO(namedTrack(lift(track))), s"Track not found: '$track'.")
+        .map(_.strip(TimeFormatter(language)))
     }
-  }
+
+  def canonical(trackCanonical: TrackCanonical, language: Language): Future[TrackRef] =
+    performAsync("Canonical track") {
+      val task = runIO(nonEmptyTracks.filter(_.canonical == lift(trackCanonical)))
+      first(task, s"Track not found: '$trackCanonical'.").map { t =>
+        t.strip(TimeFormatter(language))
+      }
+    }
+
+  def track(track: TrackName, user: Username, query: TrackQuery): Future[TrackInfo] =
+    performAsync(s"Load track ${track}") {
+      val points = quote(pointsQuery(lift(track)))
+      for {
+        coords <- runIO(points.sortBy(_.boatTime)(Ord.asc))
+        top <- runIO(points.sortBy(_.boatSpeed)(Ord.desc).take(1)).map(_.headOption)
+      } yield TrackInfo(coords, top)
+    }
 
   def full(track: TrackName, language: Language, query: TrackQuery): Future[FullTrack] = Future {
     val limitedPoints = quote {
@@ -391,17 +393,6 @@ class NewTracksDatabase(val db: BoatDatabase[SnakeCase], isMariaDb: Boolean)(
     )
     val formatter = TimeFormatter(language)
     FullTrack(trackStats.strip(formatter), TracksDatabase.collectRows(coords, formatter))
-  }
-
-  implicit class InstantQuotes(left: Instant) {
-    def >=(right: Instant) = quote(infix"$left >= $right".as[Boolean])
-    def <=(right: Instant) = quote(infix"$left <= $right".as[Boolean])
-  }
-
-  val rangedCoords = quote { (from: Option[Instant], to: Option[Instant]) =>
-    rawPointsTable.filter { p =>
-      from.forall(f => p.added >= f) && to.forall(t => p.added <= t)
-    }
   }
 
   def history(user: MinimalUserInfo, limits: BoatQuery): Future[Seq[CoordsEvent]] = Future {

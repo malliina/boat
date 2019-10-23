@@ -228,7 +228,7 @@ case class InsertedPoint(point: TrackPointId, track: JoinedTrack) {
 
 case class JoinedDevice(id: DeviceId, username: Username)
 
-case class GPSInsertedPoint(point: GPSPointId, from: JoinedBoat)
+case class GPSInsertedPoint(point: GPSPointId, from: JoinedBoat) extends Embedded
 
 case class TrackNumbers(
     track: TrackId,
@@ -422,7 +422,12 @@ object SentenceRow {
   implicit val json = Json.format[SentenceRow]
 }
 
-case class GPSSentenceRow(id: GPSSentenceKey, sentence: RawSentence, boat: DeviceId, added: Instant)
+case class GPSSentenceRow(
+    id: GPSSentenceKey,
+    sentence: RawSentence,
+    device: DeviceId,
+    added: Instant
+)
 
 object GPSSentenceRow {
   implicit val json = Json.format[GPSSentenceRow]
@@ -457,8 +462,8 @@ object GPSPointInput {
 
 case class GPSPointRow(
     id: GPSPointId,
-    lon: Longitude,
-    lat: Latitude,
+    longitude: Longitude,
+    latitude: Latitude,
     coord: Coord,
     satellites: Int,
     fix: GPSFix,
@@ -467,7 +472,7 @@ case class GPSPointRow(
     diff: DistanceM,
     device: DeviceId,
     added: Instant
-)
+) extends Embedded
 
 case class TimedSentence(
     id: SentenceKey,

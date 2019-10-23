@@ -65,10 +65,12 @@ case class FormattedDateTime(dateTime: String) extends AnyVal with WrappedString
 
 object FormattedDateTime extends StringCompanion[FormattedDateTime]
 
-case class Timing(date: FormattedDate,
-                  time: FormattedTime,
-                  dateTime: FormattedDateTime,
-                  millis: Long)
+case class Timing(
+    date: FormattedDate,
+    time: FormattedTime,
+    dateTime: FormattedDateTime,
+    millis: Long
+)
 
 object Timing {
   implicit val json = Json.format[Timing]
@@ -144,7 +146,8 @@ object Coord {
           build(lng, lat).fold(err => JsError(err.message), c => JsSuccess(c))
         case _ =>
           JsError(
-            s"Expected a JSON array of at least two numbers for coordinates [lng, lat]. Got: '$json'.")
+            s"Expected a JSON array of at least two numbers for coordinates [lng, lat]. Got: '$json'."
+          )
       }
     },
     Writes[Coord] { c =>
@@ -172,25 +175,29 @@ case class RouteRequest(from: Coord, to: Coord)
 object RouteRequest {
   implicit val json = Json.format[RouteRequest]
 
-  def apply(srcLat: Double,
-            srcLng: Double,
-            destLat: Double,
-            destLng: Double): Either[ErrorMessage, RouteRequest] =
+  def apply(
+      srcLat: Double,
+      srcLng: Double,
+      destLat: Double,
+      destLng: Double
+  ): Either[ErrorMessage, RouteRequest] =
     for {
       from <- Coord.build(srcLng, srcLat)
       to <- Coord.build(destLng, destLat)
     } yield RouteRequest(from, to)
 }
 
-case class TimedCoord(id: TrackPointId,
-                      coord: Coord,
-                      boatTime: FormattedDateTime,
-                      boatTimeMillis: Long,
-                      boatTimeOnly: FormattedTime,
-                      speed: SpeedM,
-                      waterTemp: Temperature,
-                      depthMeters: DistanceM,
-                      time: Timing) {
+case class TimedCoord(
+    id: TrackPointId,
+    coord: Coord,
+    boatTime: FormattedDateTime,
+    boatTimeMillis: Long,
+    boatTimeOnly: FormattedTime,
+    speed: SpeedM,
+    waterTemp: Temperature,
+    depthMeters: DistanceM,
+    time: Timing
+) {
   def lng = coord.lng
   def lat = coord.lat
 }
@@ -200,7 +207,8 @@ object TimedCoord {
   // For backwards compat
   implicit val json = Format[TimedCoord](
     modern,
-    Writes(tc => modern.writes(tc) ++ Json.obj("depth" -> tc.depthMeters.toMillis.toLong)))
+    Writes(tc => modern.writes(tc) ++ Json.obj("depth" -> tc.depthMeters.toMillis.toLong))
+  )
 }
 
 case class GPSTimedCoord(id: GPSPointId, coord: Coord, time: Timing)
@@ -336,15 +344,12 @@ case class IdentifiedDevice(user: Username, boat: BoatName, device: DeviceId)
     extends IdentifiedDeviceMeta
 
 case class DeviceId(id: Long) extends AnyVal with WrappedId
-
 object DeviceId extends IdCompanion[DeviceId]
 
 case class TrackId(id: Long) extends AnyVal with WrappedId
-
 object TrackId extends IdCompanion[TrackId]
 
 case class PushId(id: Long) extends AnyVal with WrappedId
-
 object PushId extends IdCompanion[PushId]
 
 case class PushToken(token: String) extends AnyVal with WrappedString {
@@ -371,11 +376,8 @@ object MobileDevice extends ValidatingCompanion[String, MobileDevice] {
   override def write(t: MobileDevice): String = t.name
 
   case object IOS extends MobileDevice("ios")
-
   case object Android extends MobileDevice("android")
-
   case class Unknown(s: String) extends MobileDevice(s)
-
 }
 
 case class Boat(id: DeviceId, name: BoatName, token: BoatToken, addedMillis: Long)
@@ -401,14 +403,15 @@ trait EmailUser extends MinimalUserInfo {
 
 case class SimpleEmailUser(username: Username, email: Email, language: Language) extends EmailUser
 
-case class UserInfo(id: UserId,
-                    username: Username,
-                    email: Email,
-                    language: Language,
-                    boats: Seq[Boat],
-                    enabled: Boolean,
-                    addedMillis: Long)
-    extends EmailUser
+case class UserInfo(
+    id: UserId,
+    username: Username,
+    email: Email,
+    language: Language,
+    boats: Seq[Boat],
+    enabled: Boolean,
+    addedMillis: Long
+) extends EmailUser
 
 object UserInfo {
   implicit val json = Json.format[UserInfo]
@@ -430,12 +433,13 @@ trait TrackLike extends TrackMetaLike {
   def duration: Duration
 }
 
-case class TrackMetaShort(track: TrackId,
-                          trackName: TrackName,
-                          boat: DeviceId,
-                          boatName: BoatName,
-                          username: Username)
-    extends TrackMetaLike
+case class TrackMetaShort(
+    track: TrackId,
+    trackName: TrackName,
+    boat: DeviceId,
+    boatName: BoatName,
+    username: Username
+) extends TrackMetaLike
 
 object TrackMetaShort {
   implicit val json = Json.format[TrackMetaShort]
@@ -447,23 +451,24 @@ object DeviceRef {
   implicit val json = Json.format[DeviceRef]
 }
 
-case class TrackRef(track: TrackId,
-                    trackName: TrackName,
-                    trackTitle: Option[TrackTitle],
-                    canonical: TrackCanonical,
-                    comments: Option[String],
-                    boat: DeviceId,
-                    boatName: BoatName,
-                    username: Username,
-                    points: Int,
-                    duration: Duration,
-                    distanceMeters: DistanceM,
-                    topSpeed: Option[SpeedM],
-                    avgSpeed: Option[SpeedM],
-                    avgWaterTemp: Option[Temperature],
-                    topPoint: TimedCoord,
-                    times: Times)
-    extends TrackLike {
+case class TrackRef(
+    track: TrackId,
+    trackName: TrackName,
+    trackTitle: Option[TrackTitle],
+    canonical: TrackCanonical,
+    comments: Option[String],
+    boat: DeviceId,
+    boatName: BoatName,
+    username: Username,
+    points: Int,
+    duration: Duration,
+    distanceMeters: DistanceM,
+    topSpeed: Option[SpeedM],
+    avgSpeed: Option[SpeedM],
+    avgWaterTemp: Option[Temperature],
+    topPoint: TimedCoord,
+    times: Times
+) extends TrackLike {
   def describe = trackTitle.map(_.title).getOrElse(trackName.name)
 }
 
@@ -494,11 +499,13 @@ object GPSPointId extends IdCompanion[GPSPointId]
 
 case class BoatUser(track: TrackName, boat: BoatName, user: Username) extends BoatTrackMeta
 
-case class BoatInfo(boatId: DeviceId,
-                    boat: BoatName,
-                    user: Username,
-                    language: Language,
-                    tracks: Seq[TrackRef])
+case class BoatInfo(
+    boatId: DeviceId,
+    boat: BoatName,
+    user: Username,
+    language: Language,
+    tracks: Seq[TrackRef]
+)
 
 object BoatInfo {
   implicit val json = Json.format[BoatInfo]
@@ -625,11 +632,11 @@ object FrontEvent {
       .orElse(GPSCoordsEvent.json.reads(json))
   }
   implicit val writer = Writes[FrontEvent] {
-    case se @ SentencesEvent(_, _) => SentencesEvent.json.writes(se)
-    case ce @ CoordsEvent(_, _)    => CoordsEvent.json.writes(ce)
-    case cb @ CoordsBatch(_)       => CoordsBatch.json.writes(cb)
-    case pe @ PingEvent(_)         => PingEvent.json.writes(pe)
-    case vs @ VesselMessages(_)    => VesselMessages.json.writes(vs)
+    case se @ SentencesEvent(_, _)  => SentencesEvent.json.writes(se)
+    case ce @ CoordsEvent(_, _)     => CoordsEvent.json.writes(ce)
+    case cb @ CoordsBatch(_)        => CoordsBatch.json.writes(cb)
+    case pe @ PingEvent(_)          => PingEvent.json.writes(pe)
+    case vs @ VesselMessages(_)     => VesselMessages.json.writes(vs)
     case gce @ GPSCoordsEvent(_, _) => GPSCoordsEvent.json.writes(gce)
   }
 }

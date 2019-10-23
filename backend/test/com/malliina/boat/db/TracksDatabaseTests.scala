@@ -47,8 +47,8 @@ class TracksDatabaseTests extends TracksTester with LegacyDatabase {
   test("inserts update track aggregates") {
     val db = boatSchema
     db.initApp()
-    val newDb = BoatDatabase(ds, mat.executionContext)
-    val tdb = NewTracksDatabase(newDb, isMariaDb = true)
+    val newDb = BoatDatabase(ds, mat.executionContext, isMariaDb = true)
+    val tdb = NewTracksDatabase(newDb)
     val users = NewUserManager(newDb)
     val user = await(users.userInfo(Email("aggregate@example.com")))
     val uid = user.id

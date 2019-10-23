@@ -125,10 +125,10 @@ class AppComponents(
 
   // Services
   val users: UserManager = NewUserManager(db)
-  val tracks: TracksSource = NewTracksDatabase(db, builder.isMariaDb)
-  val gps = GPSDatabase(schema, executionContext)
+  val tracks: TracksSource = NewTracksDatabase(db)
+  val gps: GPSSource = NewGPSDatabase(db)
   lazy val pushService: PushEndpoint = builder.pushService
-  lazy val push = PushDatabase(schema, pushService, executionContext)
+  lazy val push: PushService = NewPushDatabase(db, pushService)
   val googleAuth: EmailAuth = builder.emailAuth
   val ais = BoatMqttClient(mode)
   val boatService = BoatService(ais, tracks, actorSystem, materializer)

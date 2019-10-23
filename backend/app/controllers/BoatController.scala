@@ -13,7 +13,7 @@ import com.malliina.boat.db._
 import com.malliina.boat.html.{BoatHtml, BoatLang}
 import com.malliina.boat.http._
 import com.malliina.boat.parsing.{BoatService, DeviceService}
-import com.malliina.boat.push.BoatState
+import com.malliina.boat.push.{BoatState, PushService}
 import com.malliina.values.Username
 import controllers.BoatController.log
 import play.api.Logger
@@ -40,7 +40,7 @@ class BoatController(
     boatService: BoatService,
     deviceService: DeviceService,
     db: TracksSource,
-    push: PushDatabase,
+    push: PushService,
     comps: ControllerComponents
 )(implicit as: ActorSystem, mat: Materializer)
     extends AuthController(googleAuth, auther, comps)

@@ -3,7 +3,8 @@ package com.malliina.boat.db
 import java.time.{Instant, ZoneOffset}
 import java.util.Date
 
-import com.malliina.boat.{Coord, DateVal, Latitude, Longitude}
+import com.malliina.boat.parsing.GPSFix
+import com.malliina.boat.{Coord, DateVal, FairwayLighting, Latitude, Longitude, MobileDevice, SeaArea}
 import com.malliina.measure.{SpeedDoubleM, SpeedM}
 import com.malliina.values.UserId
 import com.vividsolutions.jts.geom.Point
@@ -20,6 +21,9 @@ trait NewMappings {
   implicit val speedDecoder = MappedEncoding[Double, SpeedM](_.kmh)
   implicit val speedEncoder = MappedEncoding[SpeedM, Double](_.toKmh)
 
+  implicit val mobileDeviceDecoder = MappedEncoding[String, MobileDevice](MobileDevice.apply)
+  implicit val mobileDeviceEncoder = MappedEncoding[MobileDevice, String](_.name)
+
   implicit val dateValDecoder =
     MappedEncoding[Instant, DateVal](
       d => DateVal(d.atOffset(ZoneOffset.UTC).toLocalDate)
@@ -35,6 +39,12 @@ trait NewMappings {
   }
   implicit val durationDecoder =
     MappedEncoding[Double, FiniteDuration](_.seconds)
+
+  implicit val lightingDecoder = MappedEncoding[Int, FairwayLighting](FairwayLighting.fromInt)
+  implicit val seaAreaDecoder = MappedEncoding[Int, SeaArea](SeaArea.fromIntOrOther)
+
+  implicit val gpsFixDecoder = MappedEncoding[String, GPSFix](GPSFix.orOther)
+  implicit val gpsFixEncoder = MappedEncoding[GPSFix, String](_.value)
 
   private def toCoord(point: Point): Coord = {
     val c = point.getCoordinate

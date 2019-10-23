@@ -17,13 +17,15 @@ class PerformanceTests extends BaseSuite with BeforeAndAfterAll {
     "jdbc:mysql://localhost:3306/boat?useSSL=false",
     "",
     "",
-    Conf.MySQLDriver
+    Conf.MySQLDriver,
+    isMariaDb = false
   )
   val newConf = Conf(
     "jdbc:mysql://localhost:3306/boat?useSSL=false",
     "",
     "",
-    Conf.MySQLDriver
+    Conf.MySQLDriver,
+    isMariaDb = false
   )
 
   ignore("performance") {

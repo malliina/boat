@@ -1,6 +1,5 @@
 package com.malliina.boat.db
 
-import com.malliina.boat.db.BoatDatabase.fail
 import com.malliina.boat.http.{SortOrder, TrackQuery}
 import com.malliina.boat.{DateVal, Lang, MinimalUserInfo, MonthlyStats, Stats, StatsResponse, YearlyStats}
 import com.malliina.measure.DistanceM

@@ -12,7 +12,7 @@ trait EmbeddedMySQL extends BeforeAndAfterAll { self: FunSuite =>
   lazy val db = DB.newEmbeddedDB(dbConfig.build())
   lazy val conf = {
     db.start()
-    Conf(dbConfig.getURL("test"), "root", "", Conf.MySQLDriver)
+    Conf(dbConfig.getURL("test"), "root", "", Conf.MySQLDriver, isMariaDb = true)
   }
 
   // This hack ensures that beforeAll and afterAll is run even when all tests are ignored,
