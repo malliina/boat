@@ -5,26 +5,25 @@ import java.nio.file.{Files, Path}
 
 import akka.NotUsed
 import akka.actor.ActorSystem
-import akka.stream.ActorMaterializer
+import akka.stream.Materializer
 import akka.stream.scaladsl.{Flow, Sink, Source}
-import com.malliina.boat.parsing.FullCoord
+import com.malliina.boat.parsing.{BoatParser, FullCoord}
 import com.malliina.boat.{BoatName, BoatUser, DateVal, DeviceId, InsertedPoint, KeyedSentence, LocalConf, RawSentence, SentencesEvent, TrackId, TrackInput, TrackNames}
-import com.malliina.concurrent.Execution.cached
 import com.malliina.util.FileUtils
 import com.malliina.values.Username
+import tests.{AsyncSuite, LegacyDatabase}
 
 import scala.concurrent.Future
 import scala.concurrent.duration.DurationLong
 import scala.jdk.CollectionConverters.CollectionHasAsScala
 
-class TracksImporter extends TracksTester {
-  implicit val as = ActorSystem()
-  implicit val mat = ActorMaterializer()
-
+class TracksImporter extends DatabaseSuite with LegacyDatabase with AsyncSuite {
   lazy val c = Conf.fromConf(LocalConf.localConf).toOption.get
 
   ignore("import tracks from plotter log file") {
-    val (db, tdb) = initDbAndTracks()
+    boatSchema.init()
+    val db = testDatabase(ec)
+    val tdb = NewTracksDatabase(db)
     val trackName = TrackNames.random()
     val track = await(
       tdb.joinAsBoat(BoatUser(trackName, BoatName("Amina"), Username("mle"))),
@@ -40,7 +39,6 @@ class TracksImporter extends TracksTester {
       .via(processSentences(tdb.saveSentences, tdb.saveCoords))
       .runWith(Sink.ignore)
     await(task, 300000.seconds)
-//    splitTracksByDate(track.track, db)
   }
 
   ignore("modify tracks") {
@@ -97,5 +95,15 @@ class TracksImporter extends TracksTester {
       updates <- DBIO.sequence(dates.map(date => createAndUpdateTrack(date)))
     } yield updates
     await(db.run(action), 100.seconds)
+  }
+
+  def insertPointsFlow(save: FullCoord => Future[InsertedPoint])(
+      implicit as: ActorSystem,
+      mat: Materializer
+  ): Flow[KeyedSentence, InsertedPoint, NotUsed] = {
+    Flow[KeyedSentence]
+      .mapConcat(raw => BoatParser.parse(raw).toOption.toList)
+      .via(BoatParser.multiFlow())
+      .via(Flow[FullCoord].mapAsync(1)(save))
   }
 }

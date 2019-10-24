@@ -57,8 +57,8 @@ class Popups(lang: Lang) extends BoatModels {
   def mark(symbol: MarineSymbol) =
     titledTable(symbol.name(lang).fold("")(identity))(
       row(markLang.aidType, symbol.aidType.translate(markLang.aidTypes)),
-      symbol.construction.fold(empty)(c =>
-        row(markLang.construction, c.translate(markLang.structures))),
+      symbol.construction
+        .fold(empty)(c => row(markLang.construction, c.translate(markLang.structures))),
       if (symbol.navMark == NavMark.NotApplicable) empty
       else row(markLang.navigation, symbol.navMark.translate(markLang.navTypes)),
       symbol.location(lang).fold(empty)(l => row(markLang.location, l)),
@@ -77,14 +77,14 @@ class Popups(lang: Lang) extends BoatModels {
       row(fairwayLang.fairwayType, fairway.fairwayType.translate(fairwayLang.types)),
       row(fairwayLang.fairwayDepth, asMeters(fairway.fairwayDepth)),
       row(fairwayLang.harrowDepth, asMeters(fairway.harrowDepth)),
-      fairway.markType.fold(empty)(markType =>
-        row(markLang.markType, markType.translate(markLang.types))),
+      fairway.markType
+        .fold(empty)(markType => row(markLang.markType, markType.translate(markLang.types))),
       more
     )
 
   def fairwayInfo(info: FairwayInfo) =
     titledTable(info.name(lang).fold("")(identity))(
-      info.depth.fold(empty) { depth =>
+      info.bestDepth.fold(empty) { depth =>
         row(fairwayLang.fairwayDepth, formatDistance(depth))
       }
     )

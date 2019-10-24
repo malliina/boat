@@ -11,6 +11,10 @@ trait FairwaySource {
   def fairwaysAt(route: Seq[CoordHash]): Future[Seq[CoordFairways]]
 }
 
+object NewFairwayService {
+  def apply(db: BoatDatabase[SnakeCase]): NewFairwayService = new NewFairwayService(db)
+}
+
 class NewFairwayService(val db: BoatDatabase[SnakeCase]) {
   import db._
 
@@ -20,9 +24,9 @@ class NewFairwayService(val db: BoatDatabase[SnakeCase]) {
   val fairwaysByCoords = quote { cs: Query[CoordHash] =>
     for {
       f <- fairwaysTable
-      c <- fairwaysCoordsTable.filter(c => cs.contains(c.hash))
+      c <- fairwaysCoordsTable.filter(c => cs.contains(c.coordHash))
       if f.id == c.fairway
-    } yield CoordFairway(c.hash, f)
+    } yield CoordFairway(c.coordHash, f)
   }
 
   def fairways(at: CoordHash): Future[Seq[FairwayRow]] = performAsync("Load fairways") {

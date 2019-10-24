@@ -41,7 +41,9 @@ trait NewMappings {
     MappedEncoding[Double, FiniteDuration](_.seconds)
 
   implicit val lightingDecoder = MappedEncoding[Int, FairwayLighting](FairwayLighting.fromInt)
+  implicit val lightingEncoder = MappedEncoding[FairwayLighting, Int](FairwayLighting.toInt)
   implicit val seaAreaDecoder = MappedEncoding[Int, SeaArea](SeaArea.fromIntOrOther)
+  implicit val seaAreaEncoder = MappedEncoding[SeaArea, Int](_.value)
 
   implicit val gpsFixDecoder = MappedEncoding[String, GPSFix](GPSFix.orOther)
   implicit val gpsFixEncoder = MappedEncoding[GPSFix, String](_.value)

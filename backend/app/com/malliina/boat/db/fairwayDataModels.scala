@@ -29,16 +29,16 @@ case class FairwayRow(
 case class FairwayCoord(
     id: FairwayCoordId,
     coord: Coord,
-    lat: Latitude,
-    lng: Longitude,
-    hash: CoordHash,
+    latitude: Latitude,
+    longitude: Longitude,
+    coordHash: CoordHash,
     fairway: FairwayId
 )
 
 case class FairwayCoordInput(
     coord: Coord,
-    lat: Latitude,
-    lng: Longitude,
-    hash: CoordHash,
+    latitude: Latitude,
+    longitude: Longitude,
+    coordHash: CoordHash,
     fairway: FairwayId
 )

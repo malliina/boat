@@ -29,8 +29,9 @@ class FairwayService(val db: FairwaySchema) {
       .on(_.id === _.fairway)
       .result
       .map { rows =>
-        val map: Map[CoordHash, FairwayRow] = rows.map { case (f, c) => CoordFairway(c.hash, f) }
-          .groupBy(_.coord)
+        val map: Map[CoordHash, FairwayRow] = rows.map {
+          case (f, c) => CoordFairway(c.coordHash, f)
+        }.groupBy(_.coord)
           .map { case (k, v) => k -> v.head.fairway }
         route.flatMap { coord =>
           map.get(coord).map { fairway =>

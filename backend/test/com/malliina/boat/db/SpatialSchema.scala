@@ -9,7 +9,9 @@ import slick.jdbc.{GetResult, PositionedResult}
 
 case class CoordRow(id: Int, coord: Coord)
 
-class SpatialSchema(ds: DataSource, val jdbc: BoatJdbcProfile) extends DatabaseClient with Mappings {
+class SpatialSchema(ds: DataSource, val jdbc: BoatJdbcProfile)
+    extends DatabaseClient
+    with Mappings {
   import jdbc.api._
   val database: jdbc.backend.DatabaseDef =
     jdbc.api.Database.forDataSource(ds, Option(NumThreads), BoatSchema.executor(NumThreads))
@@ -23,15 +25,6 @@ class SpatialSchema(ds: DataSource, val jdbc: BoatJdbcProfile) extends DatabaseC
 
   def init(): Unit = {
     initTablesIfRequired()
-    if (jdbc == InstantH2Profile) {
-      val clazz = "org.h2gis.functions.factory.H2GISFunctions.load"
-      val a = for {
-        _ <- sqlu"""CREATE ALIAS IF NOT EXISTS H2GIS_SPATIAL FOR "#$clazz";"""
-        _ <- sql"CALL H2GIS_SPATIAL();".as[Int](GetDummy)
-      } yield 42
-      runAndAwait(a)
-      println("Initialized h2gis")
-    }
   }
 
   def initTablesIfRequired(): Unit = {

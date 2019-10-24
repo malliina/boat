@@ -10,8 +10,7 @@ import org.scalatest.FunSuite
 import play.api.ApplicationLoader.Context
 import play.api.mvc.RequestHeader
 
-import scala.concurrent.duration.Duration
-import scala.concurrent.{Await, ExecutionContext, Future}
+import scala.concurrent.Future
 
 abstract class TestAppSuite
     extends FunSuite
@@ -20,10 +19,6 @@ abstract class TestAppSuite
   override def createComponents(context: Context): AppComponents = {
     TestComponents(context, conf)
   }
-
-  implicit val ec: ExecutionContext = components.executionContext
-
-  def await[T](f: Future[T], duration: Duration = 10.seconds): T = Await.result(f, duration)
 }
 
 object TestComponents {

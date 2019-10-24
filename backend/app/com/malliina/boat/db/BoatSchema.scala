@@ -179,15 +179,6 @@ class BoatSchema(ds: HikariDataSource, val jdbc: BoatJdbcProfile)
     pointsTable.groupBy(_.track).map { case (t, q) => (t, agg(q)) }
 
   def initApp()(implicit ec: ExecutionContext) = {
-    if (jdbc == InstantH2Profile) {
-      val clazz = "org.h2gis.functions.factory.H2GISFunctions.load"
-      val a = for {
-        _ <- sqlu"""CREATE ALIAS IF NOT EXISTS H2GIS_SPATIAL FOR "#$clazz";"""
-        _ <- sql"CALL H2GIS_SPATIAL();".as[Int](GetDummy)
-      } yield ()
-      runAndAwait(a)
-      log.info("Initialized H2GIS spatial extensions.")
-    }
     init()
     val addAnon =
       usersTable.filter(_.user === Usernames.anon).exists.result.flatMap { exists =>
