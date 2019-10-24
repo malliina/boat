@@ -21,6 +21,7 @@ val upFiles = taskKey[Seq[String]]("lists")
 val deployDocs = taskKey[Unit]("Deploys documentation")
 
 parallelExecution in ThisBuild := false
+concurrentRestrictions in Global += Tags.limit(Tags.Test, 1)
 
 val basicSettings = Seq(
   organization := "com.malliina",
