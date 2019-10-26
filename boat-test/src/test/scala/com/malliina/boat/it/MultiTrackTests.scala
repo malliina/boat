@@ -1,10 +1,10 @@
 package com.malliina.boat.it
 
-import com.malliina.boat.{BoatNames, RawSentence, SentencesMessage}
+import com.malliina.boat.{RawSentence, SentencesMessage}
 import com.malliina.http.FullUrl
-import tests.BaseSuite
+import tests.AsyncSuite
 
-class MultiTrackTests extends BaseSuite with BoatSockets {
+class MultiTrackTests extends AsyncSuite with BoatSockets {
   //  def url = FullUrl.ws("localhost:9000", reverse.boats().toString)
   def url = FullUrl.wss("www.boat-tracker.com", reverse.boatSocket().toString)
 

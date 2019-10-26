@@ -28,29 +28,37 @@ import router.Routes
 import scala.concurrent.{ExecutionContext, Future}
 
 object LocalConf {
-  val localConfFile = Paths.get(sys.props("user.home")).resolve(".boat/boat.conf")
+  val localConfFile =
+    Paths.get(sys.props("user.home")).resolve(".boat/boat.conf")
   val localConf = Configuration(ConfigFactory.parseFile(localConfFile.toFile))
 }
 
-class AppLoader extends DefaultApp(new AppComponents((conf, http, ec) => new ProdAppBuilder(conf, http, ec), _))
+class AppLoader
+    extends DefaultApp(new AppComponents((conf, http, ec) => new ProdAppBuilder(conf, http, ec), _))
 
 // Put modules that have different implementations in dev, prod or tests here.
 trait AppBuilder {
   def appConf: AppConf
-
   def pushService: PushEndpoint
-
   def emailAuth: EmailAuth
+  def databaseConf: Conf
+  def isMariaDb: Boolean
 }
 
 class ProdAppBuilder(conf: Configuration, http: OkClient, ec: ExecutionContext) extends AppBuilder {
   override val appConf = AppConf(conf)
   override val pushService: PushEndpoint = BoatPushService(conf, ec)
-  override val emailAuth = GoogleTokenAuth(appConf.webClientId, appConf.iosClientId, http, ec)
+  override val emailAuth: EmailAuth =
+    GoogleTokenAuth(appConf.webClientId, appConf.iosClientId, http, ec)
+  override val databaseConf: Conf =
+    Conf.fromConf(conf).fold(msg => throw new Exception(msg), identity)
+  override val isMariaDb: Boolean = false
 }
 
-class AppComponents(init: (Configuration, OkClient, ExecutionContext) => AppBuilder, context: Context)
-  extends BuiltInComponentsFromContext(context)
+class AppComponents(
+    init: (Configuration, OkClient, ExecutionContext) => AppBuilder,
+    context: Context
+) extends BuiltInComponentsFromContext(context)
     with HttpFiltersComponents
     with AssetsComponents {
   override lazy val httpErrorHandler: HttpErrorHandler = BoatErrorHandler
@@ -74,7 +82,8 @@ class AppComponents(init: (Configuration, OkClient, ExecutionContext) => AppBuil
     shouldProtect = rh => !rh.headers.get(CsrfHeaderName).contains(CsrfTokenNoCheck)
   )
 
-  override def httpFilters: Seq[EssentialFilter] = Seq(new GzipFilter(), csrfFilter, securityHeadersFilter)
+  override def httpFilters: Seq[EssentialFilter] =
+    Seq(new GzipFilter(), csrfFilter, securityHeadersFilter)
 
   val csps = Seq(
     "default-src 'self' 'unsafe-inline' *.mapbox.com",
@@ -86,28 +95,30 @@ class AppComponents(init: (Configuration, OkClient, ExecutionContext) => AppBuil
     "script-src 'unsafe-eval' 'self' *.mapbox.com npmcdn.com https://cdnjs.cloudflare.com"
   )
   val csp = csps mkString "; "
-  override lazy val securityHeadersConfig = SecurityHeadersConfig(contentSecurityPolicy = Option(csp))
-  val defaultHttpConf = HttpConfiguration.fromConfiguration(configuration, environment)
+  override lazy val securityHeadersConfig = SecurityHeadersConfig(
+    contentSecurityPolicy = Option(csp)
+  )
+  val defaultHttpConf =
+    HttpConfiguration.fromConfiguration(configuration, environment)
   // Sets sameSite = None, otherwise the Google auth redirect will wipe out the session state
   override lazy val httpConfiguration =
-    defaultHttpConf.copy(session = defaultHttpConf.session.copy(cookieName = "boatSession", sameSite = None))
+    defaultHttpConf.copy(
+      session = defaultHttpConf.session
+        .copy(cookieName = "boatSession", sameSite = None)
+    )
 
   val mode = environment.mode
   val html = BoatHtml(mode)
-  val databaseConf = DatabaseConf(mode, configuration)
-  if (mode != Mode.Test && mode != Mode.Dev)
-    DBMigrations.run(databaseConf)
-  val schema = BoatSchema(databaseConf)
-  if (mode != Mode.Dev) {
-    schema.initApp()(executionContext)
-  }
+  val dbConf = builder.databaseConf
+  val db = BoatDatabase.withMigrations(actorSystem, dbConf)
 
   // Services
-  val users: UserManager = DatabaseUserManager(schema, executionContext)
-  val tracks: TracksSource = TracksDatabase(schema, executionContext)
-  val gps = GPSDatabase(schema, executionContext)
+  val users: NewUserManager = NewUserManager(db)
+  users.initUser()
+  val tracks: TracksSource = NewTracksDatabase(db)
+  val gps: GPSSource = NewGPSDatabase(db)
   lazy val pushService: PushEndpoint = builder.pushService
-  lazy val push = PushDatabase(schema, pushService, executionContext)
+  lazy val push: PushService = NewPushDatabase(db, pushService)
   val googleAuth: EmailAuth = builder.emailAuth
   val ais = BoatMqttClient(mode)
   val boatService = BoatService(ais, tracks, actorSystem, materializer)
@@ -117,24 +128,48 @@ class AppComponents(init: (Configuration, OkClient, ExecutionContext) => AppBuil
   val signIn = Social(appConf.web, http, controllerComponents, executionContext)
   val files = new FileController(
     S3Client(),
-    new FileController.BlockingActions(actorSystem, controllerComponents.parsers.default),
+    new FileController.BlockingActions(
+      actorSystem,
+      controllerComponents.parsers.default
+    ),
     controllerComponents
   )
-  lazy val pushCtrl = new PushController(push, googleAuth, users, controllerComponents)
-  lazy val appCtrl = new AppController(googleAuth, users, assets, controllerComponents)
+  lazy val pushCtrl =
+    new PushController(push, googleAuth, users, controllerComponents)
+  lazy val appCtrl =
+    new AppController(googleAuth, users, assets, controllerComponents)
   lazy val boatCtrl = new BoatController(
-    appConf.mapboxToken, html, users, googleAuth, boatService, deviceService, tracks, push,
-    controllerComponents)(actorSystem, materializer)
+    appConf.mapboxToken,
+    html,
+    users,
+    googleAuth,
+    boatService,
+    deviceService,
+    tracks,
+    push,
+    controllerComponents
+  )(actorSystem, materializer)
   val docs = new DocsController(controllerComponents)
   val graphs = new GraphController(controllerComponents)
-  override lazy val router: Router = new Routes(httpErrorHandler, boatCtrl, appCtrl, pushCtrl, graphs, signIn, docs, files)
+  override lazy val router: Router = new Routes(
+    httpErrorHandler,
+    boatCtrl,
+    appCtrl,
+    pushCtrl,
+    graphs,
+    signIn,
+    docs,
+    files
+  )
 
-
-  applicationLifecycle.addStopHook(() => Future.successful {
-    ais.close()
-    deviceService.close()
-    boatService.close()
-    schema.close()
-    http.close()
-  })
+  applicationLifecycle.addStopHook(
+    () =>
+      Future.successful {
+        ais.close()
+        deviceService.close()
+        boatService.close()
+        http.close()
+        db.close()
+      }
+  )
 }

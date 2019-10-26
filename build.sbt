@@ -21,6 +21,7 @@ val upFiles = taskKey[Seq[String]]("lists")
 val deployDocs = taskKey[Unit]("Deploys documentation")
 
 parallelExecution in ThisBuild := false
+concurrentRestrictions in Global += Tags.limit(Tags.Test, 1)
 
 val basicSettings = Seq(
   organization := "com.malliina",
@@ -94,8 +95,12 @@ val frontend = project
     emitSourceMaps := false,
     scalaJSUseMainModuleInitializer := true,
     webpackBundlingMode := BundlingMode.LibraryOnly(),
-    webpackConfigFile in fastOptJS := Some(baseDirectory.value / "webpack.dev.config.js"),
-    webpackConfigFile in fullOptJS := Some(baseDirectory.value / "webpack.prod.config.js")
+    webpackConfigFile in fastOptJS := Some(
+      baseDirectory.value / "webpack.dev.config.js"
+    ),
+    webpackConfigFile in fullOptJS := Some(
+      baseDirectory.value / "webpack.prod.config.js"
+    )
   )
 
 val backend = Project("boat", file("backend"))
@@ -109,11 +114,9 @@ val backend = Project("boat", file("backend"))
     libraryDependencies ++= Seq(
       //    "net.sf.marineapi" % "marineapi" % "0.13.0-SNAPSHOT",
       "com.vividsolutions" % "jts" % "1.13",
-      "com.typesafe.slick" %% "slick" % "3.3.2",
-      "com.h2database" % "h2" % "1.4.196",
       "org.orbisgis" % "h2gis" % "1.4.0",
+      "io.getquill" %% "quill-jdbc" % "3.4.10",
       "mysql" % "mysql-connector-java" % "5.1.47",
-      "com.zaxxer" % "HikariCP" % "3.4.1",
       "org.flywaydb" % "flyway-core" % "6.0.3",
       "org.apache.commons" % "commons-text" % "1.8",
       "com.amazonaws" % "aws-java-sdk-s3" % "1.11.584",
@@ -130,7 +133,8 @@ val backend = Project("boat", file("backend"))
       utilPlayDep,
       utilPlayTestDep,
       scalaTestDep,
-      "org.scalatestplus.play" %% "scalatestplus-play" % "4.0.3" % Test
+      "org.scalatestplus.play" %% "scalatestplus-play" % "4.0.3" % Test,
+      "ch.vorburger.mariaDB4j" % "mariaDB4j" % "2.4.0" % Test
     ),
     routesImport ++= Seq(
       "com.malliina.boat.Bindables._",
@@ -148,7 +152,8 @@ val backend = Project("boat", file("backend"))
     httpsPort in Linux := Option("disabled"),
     maintainer := "Michael Skogberg <malliina123@gmail.com>",
     // WTF?
-    linuxPackageSymlinks := linuxPackageSymlinks.value.filterNot(_.link == "/usr/bin/starter"),
+    linuxPackageSymlinks := linuxPackageSymlinks.value
+      .filterNot(_.link == "/usr/bin/starter"),
     javaOptions in Universal ++= {
       val linuxName = (name in Linux).value
       Seq(
@@ -177,7 +182,9 @@ val agent = project
     },
     linuxPackageMappings += {
       val linuxName = (normalizedName in Debian).value
-      packageTemplateMapping(s"/usr/share/$linuxName/conf")().withUser(daemonUser.value).withGroup(daemonUser.value)
+      packageTemplateMapping(s"/usr/share/$linuxName/conf")()
+        .withUser(daemonUser.value)
+        .withGroup(daemonUser.value)
     },
     libraryDependencies ++= Seq(
       "com.malliina" %% "primitives" % primitiveVersion,
@@ -219,11 +226,7 @@ val it = Project("integration-tests", file("boat-test"))
   .dependsOn(backend, backend % "test->test", agent)
   .disablePlugins(RevolverPlugin)
   .settings(commonSettings)
-  .settings(
-    libraryDependencies ++= Seq(
-      utilPlayTestDep
-    )
-  )
+  .settings(libraryDependencies ++= Seq(utilPlayTestDep))
 
 val utils = project
   .in(file("utils"))
@@ -248,4 +251,5 @@ val boatRoot = project
   .settings(commonSettings)
 
 def gitHash: String =
-  Try(Process("git rev-parse --short HEAD").lineStream.head).toOption.getOrElse("unknown")
+  Try(Process("git rev-parse --short HEAD").lineStream.head).toOption
+    .getOrElse("unknown")

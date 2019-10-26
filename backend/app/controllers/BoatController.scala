@@ -13,7 +13,7 @@ import com.malliina.boat.db._
 import com.malliina.boat.html.{BoatHtml, BoatLang}
 import com.malliina.boat.http._
 import com.malliina.boat.parsing.{BoatService, DeviceService}
-import com.malliina.boat.push.BoatState
+import com.malliina.boat.push.{BoatState, PushService}
 import com.malliina.values.Username
 import controllers.BoatController.log
 import play.api.Logger
@@ -32,15 +32,17 @@ object BoatController {
   private val log = Logger(getClass)
 }
 
-class BoatController(mapboxToken: AccessToken,
-                     html: BoatHtml,
-                     auther: UserManager,
-                     googleAuth: EmailAuth,
-                     boatService: BoatService,
-                     deviceService: DeviceService,
-                     db: TracksSource,
-                     push: PushDatabase,
-                     comps: ControllerComponents)(implicit as: ActorSystem, mat: Materializer)
+class BoatController(
+    mapboxToken: AccessToken,
+    html: BoatHtml,
+    auther: UserManager,
+    googleAuth: EmailAuth,
+    boatService: BoatService,
+    deviceService: DeviceService,
+    db: TracksSource,
+    push: PushService,
+    comps: ControllerComponents
+)(implicit as: ActorSystem, mat: Materializer)
     extends AuthController(googleAuth, auther, comps)
     with Streams
     with ContentVersions {
@@ -53,19 +55,26 @@ class BoatController(mapboxToken: AccessToken,
   val LanguageSessionKey = "boatLanguage"
   val UserSessionKey = "boatUser"
   val anonUser = Usernames.anon
-  implicit val updatesTransformer = jsonMessageFlowTransformer[JsValue, FrontEvent]
+  implicit val updatesTransformer =
+    jsonMessageFlowTransformer[JsValue, FrontEvent]
 
   def index = authAction(optionalWebAuth) { req =>
     val maybeBoat = req.user
     val u: Username = maybeBoat.map(_.user).getOrElse(anonUser)
     val lang = maybeBoat.map(_.language).getOrElse(Language.default)
-    val tokenCookie = Cookie(TokenCookieName, mapboxToken.token, httpOnly = false)
-    val languageCookie = Cookie(LanguageName,
-                                maybeBoat.map(_.language).getOrElse(Language.default).code,
-                                httpOnly = false)
+    val tokenCookie =
+      Cookie(TokenCookieName, mapboxToken.token, httpOnly = false)
+    val languageCookie = Cookie(
+      LanguageName,
+      maybeBoat.map(_.language).getOrElse(Language.default).code,
+      httpOnly = false
+    )
     val result = Ok(html.map(maybeBoat.getOrElse(UserBoats.anon)))
       .withCookies(tokenCookie, languageCookie)
-      .addingToSession(UserSessionKey -> u.name, LanguageSessionKey -> lang.code)(req.req)
+      .addingToSession(
+        UserSessionKey -> u.name,
+        LanguageSessionKey -> lang.code
+      )(req.req)
     fut(result)
   }
 
@@ -83,6 +92,12 @@ class BoatController(mapboxToken: AccessToken,
   }
 
   def tracks = negotiated(tracksHtml, tracksJson)
+
+  def history = userAction(profile, BoatQuery.apply) { req =>
+    db.history(req.user, req.query).map { e =>
+      Ok(Json.toJson(e))
+    }
+  }
 
   private def tracksJson = userAction(profile, TrackQuery.apply) { req =>
     db.tracksFor(req.user, req.query).map { ts =>
@@ -113,7 +128,9 @@ class BoatController(mapboxToken: AccessToken,
 
   def canonical(track: TrackCanonical) = negotiated(
     html = index,
-    json = fetchTrack(user => db.canonical(track, user.language).map(TrackResponse.apply))
+    json = fetchTrack(
+      user => db.canonical(track, user.language).map(TrackResponse.apply)
+    )
   )
 
   private def negotiated(html: Action[AnyContent], json: Action[AnyContent]) =
@@ -121,10 +138,10 @@ class BoatController(mapboxToken: AccessToken,
       respond(rh)(html, json)(rh)
     }
 
-  def fetchTrack[W: Writes](load: MinimalUserInfo => Future[W]) = secureJson(TrackQuery.apply) {
-    req =>
+  def fetchTrack[W: Writes](load: MinimalUserInfo => Future[W]) =
+    secureJson(TrackQuery.apply) { req =>
       load(req.user)
-  }
+    }
 
   def full(track: TrackName) = secureTrack { req =>
     val lang = req.user.language
@@ -162,10 +179,7 @@ class BoatController(mapboxToken: AccessToken,
 
   def deleteBoat(id: DeviceId) = authAction(profile) { req =>
     db.removeDevice(id, req.user.id).map { rows =>
-      respond(req.req)(
-        Redirect(reverse.devices()),
-        Ok(SimpleMessage("Done."))
-      )
+      respond(req.req)(Redirect(reverse.devices()), Ok(SimpleMessage("Done.")))
     }
   }
 
@@ -189,13 +203,17 @@ class BoatController(mapboxToken: AccessToken,
       }
     }.map { e =>
       e.map { meta =>
-        val transformer = jsonMessageFlowTransformer.map[DeviceEvent, FrontEvent](
-          in => DeviceEvent(in, meta),
-          out => Json.toJson(out)
-        )
+        val transformer =
+          jsonMessageFlowTransformer.map[DeviceEvent, FrontEvent](
+            in => DeviceEvent(in, meta),
+            out => Json.toJson(out)
+          )
         val flow: Flow[DeviceEvent, PingEvent, NotUsed] =
           Flow
-            .fromSinkAndSource(deviceService.deviceSink, Source.maybe[PingEvent])
+            .fromSinkAndSource(
+              deviceService.deviceSink,
+              Source.maybe[PingEvent]
+            )
             .keepAlive(10.seconds, () => PingEvent(Instant.now.toEpochMilli))
             .backpressureTimeout(3.seconds)
         terminationWatched(transformer.transform(flow)) { tryDone =>
@@ -226,10 +244,11 @@ class BoatController(mapboxToken: AccessToken,
     }.map { e =>
       e.map { boat =>
         // adds metadata to messages from boats
-        val transformer = jsonMessageFlowTransformer.map[BoatEvent, FrontEvent](
-          in => BoatEvent(in, boat),
-          out => Json.toJson(out)
-        )
+        val transformer =
+          jsonMessageFlowTransformer.map[BoatEvent, FrontEvent](
+            in => BoatEvent(in, boat),
+            out => Json.toJson(out)
+          )
         val flow: Flow[BoatEvent, PingEvent, NotUsed] = Flow
           .fromSinkAndSource(boatService.boatSink, Source.maybe[PingEvent])
           .keepAlive(10.seconds, () => PingEvent(Instant.now.toEpochMilli))
@@ -258,26 +277,35 @@ class BoatController(mapboxToken: AccessToken,
           val username = user.username
           log.info(s"Viewer '$username' joined.")
           val historicalLimits: BoatQuery =
-            if (limits.tracks.nonEmpty && username == anonUser) BoatQuery.tracks(limits.tracks)
+            if (limits.tracks.nonEmpty && username == anonUser)
+              BoatQuery.tracks(limits.tracks)
             else if (username == anonUser) BoatQuery.empty
             else limits
           val history: Source[CoordsEvent, NotUsed] =
-            Source.fromFuture(db.history(user, historicalLimits)).flatMapConcat { es =>
-              // unless a sample is specified, return about 300 historical points - this optimization is for charts
-              val intelligentSample = math.max(1, es.map(_.coords.length).sum / 300)
-              val actualSample = limits.sample.getOrElse(intelligentSample)
-              log.debug(
-                s"Points ${es.map(_.coords.length).sum} intelligent $intelligentSample actual $actualSample")
-              Source(es.toList.map(_.sample(actualSample)))
+            Source
+              .fromFuture(db.history(user, historicalLimits))
+              .flatMapConcat { es =>
+                // unless a sample is specified, return about 300 historical points - this optimization is for charts
+                val intelligentSample =
+                  math.max(1, es.map(_.coords.length).sum / 300)
+                val actualSample = limits.sample.getOrElse(intelligentSample)
+                log.debug(
+                  s"Points ${es.map(_.coords.length).sum} intelligent $intelligentSample actual $actualSample"
+                )
+                Source(es.toList.map(_.sample(actualSample)))
+              }
+          val gpsHistory =
+            Source.fromFuture(deviceService.db.history(user)).flatMapConcat { es =>
+              Source(es.toList)
             }
-          val gpsHistory = Source.fromFuture(deviceService.db.history(user)).flatMapConcat { es =>
-            Source(es.toList)
-          }
           val formatter = TimeFormatter(user.language)
           val eventSource = history
             .merge(gpsHistory)
             .concat(
-              boatService.clientEvents(formatter).merge(deviceService.clientEvents(formatter)))
+              boatService
+                .clientEvents(formatter)
+                .merge(deviceService.clientEvents(formatter))
+            )
             .filter(_.isIntendedFor(username))
           // disconnects viewers that lag more than 3s
           val flow = Flow
@@ -293,15 +321,17 @@ class BoatController(mapboxToken: AccessToken,
   }
 
   private def boatAction(
-      code: UserRequest[UserInfo, BoatName] => Future[BoatRow]): Action[BoatName] =
+      code: UserRequest[UserInfo, BoatName] => Future[BoatRow]
+  ): Action[BoatName] =
     formAction(boatNameForm) { req =>
       code(req).map { b =>
         BoatResponse(b.toBoat)
       }
     }
 
-  private def trackAction[F](form: Form[F])(
-      code: UserRequest[UserInfo, F] => Future[JoinedTrack]): Action[F] =
+  private def trackAction[F](
+      form: Form[F]
+  )(code: UserRequest[UserInfo, F] => Future[JoinedTrack]): Action[F] =
     formAction(form) { req =>
       val formatter = TimeFormatter(req.user.language)
       code(req).map { t =>
@@ -309,39 +339,53 @@ class BoatController(mapboxToken: AccessToken,
       }
     }
 
-  private def formAction[T, W: Writeable](form: Form[T])(
-      code: UserRequest[UserInfo, T] => Future[W]): Action[T] =
-    formActionResult(form) { r => code(r).map { w => Ok(w) } }
+  private def formAction[T, W: Writeable](
+      form: Form[T]
+  )(code: UserRequest[UserInfo, T] => Future[W]): Action[T] =
+    formActionResult(form) { r =>
+      code(r).map { w =>
+        Ok(w)
+      }
+    }
 
-  private def formActionResult[T](form: Form[T])(
-    code: UserRequest[UserInfo, T] => Future[Result]): Action[T] =
-    parsedAuth(parse.form(form, onErrors = (err: Form[T]) => formError(err)))(profile) { req =>
+  private def formActionResult[T](
+      form: Form[T]
+  )(code: UserRequest[UserInfo, T] => Future[Result]): Action[T] =
+    parsedAuth(parse.form(form, onErrors = (err: Form[T]) => formError(err)))(
+      profile
+    ) { req =>
       code(req)
     }
 
   private def logTermination[In, Out, Mat](
       flow: Flow[In, Out, Mat],
-      message: Try[Done] => String): Flow[In, Out, Future[Done]] =
+      message: Try[Done] => String
+  ): Flow[In, Out, Future[Done]] =
     terminationWatched(flow)(t => fut(log.info(message(t))))
 
-  private def secureTrack(run: BoatRequest[TrackQuery, MinimalUserInfo] => Future[Result]) =
+  private def secureTrack(
+      run: BoatRequest[TrackQuery, MinimalUserInfo] => Future[Result]
+  ) =
     secureAction(rh => TrackQuery.withDefault(rh, defaultLimit = 100))(run)
 
-  private def secureJson[T, W: Writes](parse: RequestHeader => Either[SingleError, T])(
-      run: BoatRequest[T, MinimalUserInfo] => Future[W]) =
+  private def secureJson[T, W: Writes](
+      parse: RequestHeader => Either[SingleError, T]
+  )(run: BoatRequest[T, MinimalUserInfo] => Future[W]) =
     secureAction(parse) { req =>
       run(req).map { w =>
         Ok(Json.toJson(w))
       }
     }
 
-  private def secureAction[T](parse: RequestHeader => Either[SingleError, T])(
-      run: BoatRequest[T, MinimalUserInfo] => Future[Result]) =
+  private def secureAction[T](
+      parse: RequestHeader => Either[SingleError, T]
+  )(run: BoatRequest[T, MinimalUserInfo] => Future[Result]) =
     userAction(authTypical, parse)(run)
 
   private def userAction[T, U](
       authUser: RequestHeader => Future[U],
-      parse: RequestHeader => Either[SingleError, T])(run: BoatRequest[T, U] => Future[Result]) =
+      parse: RequestHeader => Either[SingleError, T]
+  )(run: BoatRequest[T, U] => Future[Result]) =
     authAction(authUser) { req =>
       parse(req.req).fold(
         err => fut(badRequest(err)),
@@ -350,7 +394,7 @@ class BoatController(mapboxToken: AccessToken,
             case nfe: NotFoundException =>
               log.error(nfe.message)
               NotFound(Errors(nfe.message))
-        }
+          }
       )
     }
 
@@ -361,8 +405,9 @@ class BoatController(mapboxToken: AccessToken,
 
   private def badRequest(error: SingleError) = BadRequest(Errors(error))
 
-  private def terminationWatched[In, Out, Mat](flow: Flow[In, Out, Mat])(
-      onTermination: Try[Done] => Future[Unit]): Flow[In, Out, Future[Done]] =
+  private def terminationWatched[In, Out, Mat](
+      flow: Flow[In, Out, Mat]
+  )(onTermination: Try[Done] => Future[Unit]): Flow[In, Out, Future[Done]] =
     flow.watchTermination()(Keep.right).mapMaterializedValue { done =>
       done.transformWith { t =>
         onTermination(t).transform { _ =>
@@ -390,7 +435,9 @@ class BoatController(mapboxToken: AccessToken,
   private def authBoat(rh: RequestHeader): Future[Either[Result, TrackMeta]] =
     recovered(boatAuth(rh).flatMap(meta => db.joinAsBoat(meta)), rh)
 
-  private def authDevice(rh: RequestHeader): Future[Either[Result, JoinedBoat]] =
+  private def authDevice(
+      rh: RequestHeader
+  ): Future[Either[Result, JoinedBoat]] =
     recovered(boatAuthNoTrack(rh).flatMap(meta => db.joinAsDevice(meta)), rh)
 
   private def boatAuth(rh: RequestHeader): Future[BoatTrackMeta] =
@@ -406,7 +453,10 @@ class BoatController(mapboxToken: AccessToken,
       }
       .getOrElse {
         val boatName =
-          rh.headers.get(BoatNameHeader).map(BoatName.apply).getOrElse(BoatNames.random())
+          rh.headers
+            .get(BoatNameHeader)
+            .map(BoatName.apply)
+            .getOrElse(BoatNames.random())
         fut(SimpleBoatMeta(anonUser, boatName))
       }
 
@@ -418,7 +468,8 @@ class BoatController(mapboxToken: AccessToken,
 
   private def authMinimal(
       rh: RequestHeader,
-      onFail: MissingCredentialsException => Future[MinimalUserInfo]): Future[MinimalUserInfo] =
+      onFail: MissingCredentialsException => Future[MinimalUserInfo]
+  ): Future[MinimalUserInfo] =
     profile(rh).recoverWith {
       case mce: MissingCredentialsException =>
         authSessionUser(rh).map(Future.successful).getOrElse(onFail(mce))
@@ -428,7 +479,10 @@ class BoatController(mapboxToken: AccessToken,
     rh.session.get(UserSessionKey).filter(_ != Usernames.anon.name).map { user =>
       SimpleUserInfo(
         Username(user),
-        rh.session.get(LanguageSessionKey).map(Language.apply).getOrElse(Language.default)
+        rh.session
+          .get(LanguageSessionKey)
+          .map(Language.apply)
+          .getOrElse(Language.default)
       )
     }
 

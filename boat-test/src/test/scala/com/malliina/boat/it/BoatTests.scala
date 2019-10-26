@@ -6,22 +6,26 @@ import akka.stream.scaladsl.{Sink, Source, SourceQueue}
 import akka.{Done, NotUsed}
 import com.malliina.boat._
 import com.malliina.boat.client.{HttpUtil, KeyValue, WebSocketClient}
+import com.malliina.boat.db.Conf
 import com.malliina.http.FullUrl
 import com.malliina.values.{Password, Username}
 import play.api.ApplicationLoader.Context
 import play.api.BuiltInComponents
 import play.api.libs.json.{JsValue, Json, Writes}
 import play.api.mvc.Call
-import tests.{BaseSuite, OneServerPerSuite2, TestComponents}
+import tests.{AsyncSuite, BaseSuite, EmbeddedMySQL, OneServerPerSuite2, TestComponents}
 
 import scala.concurrent.Future
 
 abstract class TestAppSuite extends ServerSuite(TestComponents.apply)
 
-abstract class ServerSuite[T <: BuiltInComponents](build: Context => T)
-  extends BaseSuite
-    with OneServerPerSuite2[T] {
-  override def createComponents(context: Context) = build(context)
+abstract class ServerSuite[T <: BuiltInComponents](build: (Context, Conf) => T)
+    extends BaseSuite
+    with OneServerPerSuite2[T]
+    with EmbeddedMySQL {
+  override def createComponents(context: Context): T = {
+    build(context, conf)
+  }
 }
 
 abstract class BoatTests extends TestAppSuite with BoatSockets {
@@ -29,7 +33,9 @@ abstract class BoatTests extends TestAppSuite with BoatSockets {
     openBoat(urlFor(reverse.boatSocket()), Left(boat))(code)
   }
 
-  def openViewerSocket[T](in: Sink[JsValue, Future[Done]], creds: Option[Creds] = None)(code: WebSocketClient => T): T = {
+  def openViewerSocket[T](in: Sink[JsValue, Future[Done]], creds: Option[Creds] = None)(
+      code: WebSocketClient => T
+  ): T = {
     val out = Source.maybe[JsValue].mapMaterializedValue(_ => NotUsed)
     val headers = creds.map { c =>
       KeyValue(HttpUtil.Authorization, HttpUtil.authorizationValue(c.user, c.pass.pass))
@@ -37,11 +43,13 @@ abstract class BoatTests extends TestAppSuite with BoatSockets {
     openWebSocket(reverse.clientSocket(), creds, in, out, headers)(code)
   }
 
-  def openWebSocket[T](path: Call,
-                       creds: Option[Creds],
-                       in: Sink[JsValue, Future[Done]],
-                       out: Source[JsValue, NotUsed],
-                       headers: List[KeyValue])(code: WebSocketClient => T): T = {
+  def openWebSocket[T](
+      path: Call,
+      creds: Option[Creds],
+      in: Sink[JsValue, Future[Done]],
+      out: Source[JsValue, NotUsed],
+      headers: List[KeyValue]
+  )(code: WebSocketClient => T): T = {
     openSocket(urlFor(path), in, out, headers)(code)
   }
 
@@ -49,10 +57,7 @@ abstract class BoatTests extends TestAppSuite with BoatSockets {
 }
 
 trait BoatSockets {
-  this: BaseSuite =>
-
-  implicit val as = ActorSystem()
-  implicit val mat = ActorMaterializer()
+  this: AsyncSuite =>
 
   def openRandomBoat[T](url: FullUrl)(code: TestBoat => T): T =
     openBoat(url, Left(BoatNames.random()))(code)
@@ -68,7 +73,12 @@ trait BoatSockets {
     }
   }
 
-  def openSocket[T](url: FullUrl, in: Sink[JsValue, Future[Done]], out: Source[JsValue, NotUsed], headers: List[KeyValue])(code: WebSocketClient => T): T = {
+  def openSocket[T](
+      url: FullUrl,
+      in: Sink[JsValue, Future[Done]],
+      out: Source[JsValue, NotUsed],
+      headers: List[KeyValue]
+  )(code: WebSocketClient => T): T = {
     val client = WebSocketClient(url, headers, as, mat)
     try {
       client.connectJson(in, out)

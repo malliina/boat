@@ -9,13 +9,15 @@ import scala.concurrent.Future
 
 object PassThroughUserManager extends UserManager {
 
-  val godUser = DataUser(UserId(1L),
-                         Username("test"),
-                         None,
-                         UserToken.random(),
-                         Language.english,
-                         enabled = true,
-                         added = Instant.now())
+  val godUser = UserRow(
+    UserId(1L),
+    Username("test"),
+    None,
+    UserToken.random(),
+    Language.english,
+    enabled = true,
+    added = Instant.now()
+  )
   val god = UserInfo(
     UserId(1L),
     Username("test"),
@@ -26,7 +28,7 @@ object PassThroughUserManager extends UserManager {
     addedMillis = Instant.now().toEpochMilli
   )
 
-  def userMeta(email: Email): Future[DataUser] = fut(godUser)
+  def userMeta(email: Email): Future[UserRow] = fut(godUser)
 
   def userInfo(email: Email): Future[UserInfo] = fut(god)
 
@@ -35,8 +37,8 @@ object PassThroughUserManager extends UserManager {
 
   def boats(user: Email): Future[UserBoats] = fut(UserBoats.anon)
 
-  def addUser(user: NewUser): Future[Either[AlreadyExists, DataUser]] =
-    fut(Left(AlreadyExists(user.username)))
+  def addUser(user: NewUser): Future[Either[AlreadyExists, UserRow]] =
+    fut(Left(AlreadyExists(user.user)))
 
   def deleteUser(user: Username): Future[Either[UserDoesNotExist, Unit]] =
     fut(Left(UserDoesNotExist(user)))

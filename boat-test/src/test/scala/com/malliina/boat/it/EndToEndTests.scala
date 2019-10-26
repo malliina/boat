@@ -29,7 +29,8 @@ class EndToEndTests extends BoatTests {
   test("plotter to frontend") {
     // the client validates maximum frame length, so we must not concatenate multiple sentences
     val plotterOutput = Source(
-      sentences.map(s => ByteString(s"$s${TcpSource.crlf}", StandardCharsets.US_ASCII)).toList)
+      sentences.map(s => ByteString(s"$s${TcpSource.crlf}", StandardCharsets.US_ASCII)).toList
+    )
 
     val tcpHost = "127.0.0.1"
     val tcpPort = 10104
@@ -82,7 +83,8 @@ class EndToEndTests extends BoatTests {
 
     // the client validates maximum frame length, so we must not concatenate multiple sentences
     val plotterOutput = Source(
-      sentences.map(s => ByteString(s"$s${TcpSource.crlf}", StandardCharsets.US_ASCII)).toList)
+      sentences.map(s => ByteString(s"$s${TcpSource.crlf}", StandardCharsets.US_ASCII)).toList
+    )
 
     val tcpHost = "127.0.0.1"
     val tcpPort = 10104

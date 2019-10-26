@@ -14,21 +14,24 @@ import play.api.test.Helpers._
 import tests.{TestAppSuite, TestEmailAuth}
 
 class BoatControllerTests extends TestAppSuite {
-  test("tracks versioning") {
+  test("tracks endpoint supports versioning based on Accept header") {
     val user = Username("test")
     val service = components.tracks
     val init = for {
       _ <- components.users.addUser(
-        NewUser(user, Option(TestEmailAuth.testEmail), UserToken.random(), enabled = true))
+        NewUser(user, Option(TestEmailAuth.testEmail), UserToken.random(), enabled = true)
+      )
       track <- service.joinAsBoat(BoatUser(TrackNames.random(), BoatNames.random(), user))
-      coord = FullCoord(Coord.buildOrFail(60, 24),
-                        LocalTime.now(),
-                        LocalDate.now(),
-                        10.knots,
-                        10.celsius,
-                        10.meters,
-                        0.meters,
-                        track.short)
+      coord = FullCoord(
+        Coord.buildOrFail(60, 24),
+        LocalTime.now(),
+        LocalDate.now(),
+        10.knots,
+        10.celsius,
+        10.meters,
+        0.meters,
+        track.short
+      )
       p <- service.saveCoords(coord)
     } yield p
     await(init)

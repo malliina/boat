@@ -7,6 +7,7 @@ import com.malliina.measure.{DistanceM, SpeedM, Temperature}
 import com.malliina.play.auth.JWTError
 import com.malliina.values._
 import com.malliina.boat.BoatPrimitives.durationFormat
+import io.getquill.Embedded
 import play.api.data.{Forms, Mapping}
 import play.api.http.Writeable
 import play.api.libs.json._
@@ -28,21 +29,25 @@ object AisConf {
   implicit val json = Json.format[AisConf]
 }
 
-case class Layers(marks: Seq[String],
-                  fairways: Seq[String],
-                  fairwayAreas: Seq[String],
-                  limits: Seq[String],
-                  ais: AisConf)
+case class Layers(
+    marks: Seq[String],
+    fairways: Seq[String],
+    fairwayAreas: Seq[String],
+    limits: Seq[String],
+    ais: AisConf
+)
 
 object Layers {
   implicit val json = Json.format[Layers]
   import MapboxStyles._
 
-  val default = Layers(marksLayers,
-                       fairwayLayers,
-                       Seq(FairwayAreaId),
-                       Seq(LimitLayerId),
-                       AisConf(AisVesselLayer, AisTrailLayer, AisVesselIcon))
+  val default = Layers(
+    marksLayers,
+    fairwayLayers,
+    Seq(FairwayAreaId),
+    Seq(LimitLayerId),
+    AisConf(AisVesselLayer, AisTrailLayer, AisVesselIcon)
+  )
 }
 
 case class ClientConf(languages: Languages, layers: Layers)
@@ -72,10 +77,14 @@ object DateVal {
   )
   def now(): DateVal = apply(LocalDate.now())
   def apply(date: LocalDate): DateVal =
-    DateVal(YearVal(date.getYear), MonthVal(date.getMonthValue), DayVal(date.getDayOfMonth))
+    DateVal(
+      YearVal(date.getYear),
+      MonthVal(date.getMonthValue),
+      DayVal(date.getDayOfMonth)
+    )
 }
 
-case class UserToken(token: String) extends WrappedString {
+case class UserToken(token: String) extends AnyVal with WrappedString {
   override def value = token
 }
 
@@ -84,7 +93,12 @@ object UserToken extends StringCompanion[UserToken] {
 
   override def build(in: String): Either[ErrorMessage, UserToken] =
     if (in.length >= minLength) Right(UserToken(in))
-    else Left(ErrorMessage(s"Too short token. Minimum length: $minLength, was: ${in.length}."))
+    else
+      Left(
+        ErrorMessage(
+          s"Too short token. Minimum length: $minLength, was: ${in.length}."
+        )
+      )
 
   def random(): UserToken = UserToken(Utils.randomString(length = 8))
 }
@@ -99,28 +113,31 @@ object AppMeta {
     AppMeta("test", "0.0.1", "abcd123", "0.53.1")
 }
 
-case class JoinedTrack(track: TrackId,
-                       trackName: TrackName,
-                       trackTitle: Option[TrackTitle],
-                       canonical: TrackCanonical,
-                       comments: Option[String],
-                       trackAdded: Instant,
-                       boat: JoinedBoat,
-                       points: Int,
-                       start: Option[Instant],
-                       startDate: DateVal,
-                       startMonth: MonthVal,
-                       startYear: YearVal,
-                       end: Option[Instant],
-                       duration: FiniteDuration,
-                       topSpeed: Option[SpeedM],
-                       avgSpeed: Option[SpeedM],
-                       avgWaterTemp: Option[Temperature],
-                       distance: DistanceM,
-                       topPoint: CombinedCoord)
-    extends TrackLike {
+case class JoinedTrack(
+    track: TrackId,
+    trackName: TrackName,
+    trackTitle: Option[TrackTitle],
+    canonical: TrackCanonical,
+    comments: Option[String],
+    trackAdded: Instant,
+    boat: JoinedBoat,
+    points: Int,
+    start: Option[Instant],
+    startDate: DateVal,
+    startMonth: MonthVal,
+    startYear: YearVal,
+    end: Option[Instant],
+    duration: FiniteDuration,
+    topSpeed: Option[SpeedM],
+    avgSpeed: Option[SpeedM],
+    avgWaterTemp: Option[Temperature],
+    distance: DistanceM,
+    tip: CombinedCoord
+) extends TrackLike
+    with Embedded {
   def boatId = boat.device
   def language = boat.language
+  def user = boat.user
   override def boatName = boat.boatName
   override def username = boat.username
 
@@ -139,48 +156,54 @@ case class JoinedTrack(track: TrackId,
     boat.device,
     boatName,
     username,
-    points,
+    points.toInt,
     duration,
     distance,
     topSpeed,
     avgSpeed,
     avgWaterTemp,
-    topPoint.timed(formatter),
+    tip.timed(formatter),
     formatter.times(startOrNow, endOrNow)
   )
 }
 
-case class Stats(label: String,
-                 from: DateVal,
-                 to: DateVal,
-                 trackCount: Int,
-                 distance: DistanceM,
-                 duration: FiniteDuration,
-                 days: Int)
+case class Stats(
+    label: String,
+    from: DateVal,
+    to: DateVal,
+    trackCount: Long,
+    distance: DistanceM,
+    duration: FiniteDuration,
+    days: Long
+)
 
 object Stats {
   implicit val json = Json.format[Stats]
 }
 
-case class MonthlyStats(label: String,
-                        year: YearVal,
-                        month: MonthVal,
-                        trackCount: Int,
-                        distance: DistanceM,
-                        duration: FiniteDuration,
-                        days: Int)
+case class MonthlyStats(
+    label: String,
+    year: YearVal,
+    month: MonthVal,
+    trackCount: Long,
+    distance: DistanceM,
+    duration: FiniteDuration,
+    days: Long
+)
 
 object MonthlyStats {
   implicit val json = Json.format[MonthlyStats]
 }
 
-case class YearlyStats(label: String,
-                       year: YearVal,
-                       trackCount: Int,
-                       distance: DistanceM,
-                       duration: FiniteDuration,
-                       days: Int,
-                       monthly: Seq[MonthlyStats])
+case class YearlyStats(
+    label: String,
+    year: YearVal,
+    trackCount: Long,
+    distance: DistanceM,
+    duration: FiniteDuration,
+    days: Long,
+    monthly: Seq[MonthlyStats]
+)
 
 object YearlyStats {
   implicit val json = Json.format[YearlyStats]
@@ -199,34 +222,39 @@ object TracksBundle {
 }
 
 case class InsertedPoint(point: TrackPointId, track: JoinedTrack) {
-  def strip(formatter: TimeFormatter) = InsertedTrackPoint(point, track.strip(formatter))
+  def strip(formatter: TimeFormatter) =
+    InsertedTrackPoint(point, track.strip(formatter))
 }
 
 case class JoinedDevice(id: DeviceId, username: Username)
 
-case class GPSInsertedPoint(point: GPSPointId, from: JoinedBoat)
+case class GPSInsertedPoint(point: GPSPointId, from: JoinedBoat) extends Embedded
 
-case class TrackNumbers(track: TrackId,
-                        start: Option[Instant],
-                        end: Option[Instant],
-                        topSpeed: Option[SpeedM])
+case class TrackNumbers(
+    track: TrackId,
+    start: Option[Instant],
+    end: Option[Instant],
+    topSpeed: Option[SpeedM]
+)
 
-case class TrackMeta(track: TrackId,
-                     trackName: TrackName,
-                     trackTitle: Option[TrackTitle],
-                     trackCanonical: TrackCanonical,
-                     comments: Option[String],
-                     trackAdded: Instant,
-                     avgSpeed: Option[SpeedM],
-                     avgWaterTemp: Option[Temperature],
-                     points: Int,
-                     distance: DistanceM,
-                     boat: DeviceId,
-                     boatName: BoatName,
-                     boatToken: BoatToken,
-                     userId: UserId,
-                     username: Username,
-                     email: Option[Email]) extends UserDevice {
+case class TrackMeta(
+    track: TrackId,
+    trackName: TrackName,
+    trackTitle: Option[TrackTitle],
+    trackCanonical: TrackCanonical,
+    comments: Option[String],
+    trackAdded: Instant,
+    avgSpeed: Option[SpeedM],
+    avgWaterTemp: Option[Temperature],
+    points: Int,
+    distance: DistanceM,
+    boat: DeviceId,
+    boatName: BoatName,
+    boatToken: BoatToken,
+    userId: UserId,
+    username: Username,
+    email: Option[Email]
+) extends UserDevice {
   override def deviceName = boatName
 
   def short = TrackMetaShort(track, trackName, boat, boatName, username)
@@ -263,7 +291,8 @@ object Errors {
 
 object BoatNames {
   val Key = "boatName"
-  val mapping: Mapping[BoatName] = Forms.nonEmptyText.transform(s => BoatName(s), b => b.name)
+  val mapping: Mapping[BoatName] =
+    Forms.nonEmptyText.transform(s => BoatName(s), b => b.name)
 
   def random() = BoatName(Utils.randomString(6))
 }
@@ -283,7 +312,8 @@ object PushPayload {
 object TrackNames {
   def random() = TrackName(Utils.randomString(6))
 
-  def apply(title: TrackTitle): TrackName = TrackName(Utils.normalize(title.title).take(50))
+  def apply(title: TrackTitle): TrackName =
+    TrackName(Utils.normalize(title.title).take(50))
 }
 
 object TrackTitles {
@@ -300,13 +330,16 @@ object BoatTokens {
 // Bindables._ is imported to the routes file, see build.sbt
 object Bindables {
   implicit val trackName: PathBindable[TrackName] =
-    PathBindable.bindableString.transform[TrackName](s => TrackName(s), t => t.name)
+    PathBindable.bindableString
+      .transform[TrackName](s => TrackName(s), t => t.name)
 
   implicit val trackCanonical: PathBindable[TrackCanonical] =
-    PathBindable.bindableString.transform[TrackCanonical](s => TrackCanonical(s), t => t.name)
+    PathBindable.bindableString
+      .transform[TrackCanonical](s => TrackCanonical(s), t => t.name)
 
   implicit val boatName: PathBindable[BoatName] =
-    PathBindable.bindableString.transform[BoatName](s => BoatName(s), t => t.name)
+    PathBindable.bindableString
+      .transform[BoatName](s => BoatName(s), t => t.name)
 
   implicit val boatId: PathBindable[DeviceId] =
     PathBindable.bindableLong.transform[DeviceId](s => DeviceId(s), id => id.id)
@@ -317,53 +350,51 @@ object Bindables {
 
 case class BoatInput(name: BoatName, token: BoatToken, owner: UserId)
 
-case class BoatRow(id: DeviceId, name: BoatName, token: BoatToken, owner: UserId, added: Instant) {
-  def toBoat = Boat(id, name, token, added.toEpochMilli)
-}
-
 case class BoatResponse(boat: Boat)
 
 object BoatResponse {
   implicit val json = Json.format[BoatResponse]
 }
 
-case class JoinedBoat(device: DeviceId,
-                      boatName: BoatName,
-                      boatToken: BoatToken,
-                      userId: UserId,
-                      username: Username,
-                      email: Option[Email],
-                      language: Language) extends IdentifiedDeviceMeta with UserDevice {
+case class JoinedBoat(
+    device: DeviceId,
+    boatName: BoatName,
+    boatToken: BoatToken,
+    userId: UserId,
+    username: Username,
+    email: Option[Email],
+    language: Language
+) extends IdentifiedDeviceMeta
+    with UserDevice
+    with Embedded {
   override def user = username
   override def boat = boatName
   override def deviceName = boatName
   def strip = DeviceRef(device, boatName, username)
 }
 
-case class TrackInput(name: TrackName,
-                      boat: DeviceId,
-                      avgSpeed: Option[SpeedM],
-                      avgWaterTemp: Option[Temperature],
-                      points: Int,
-                      distance: DistanceM,
-                      canonical: TrackCanonical)
+case class TrackInput(
+    name: TrackName,
+    boat: DeviceId,
+    avgSpeed: Option[SpeedM],
+    avgWaterTemp: Option[Temperature],
+    points: Int,
+    distance: DistanceM,
+    canonical: TrackCanonical
+) extends Embedded
 
 object TrackInput {
   def empty(name: TrackName, boat: DeviceId): TrackInput =
-    TrackInput(name, boat, None, None, 0, DistanceM.zero, TrackCanonical.fromName(name))
+    TrackInput(
+      name,
+      boat,
+      None,
+      None,
+      0,
+      DistanceM.zero,
+      TrackCanonical.fromName(name)
+    )
 }
-
-case class TrackRow(id: TrackId,
-                    name: TrackName,
-                    boat: DeviceId,
-                    avgSpeed: Option[SpeedM],
-                    avgWaterTemp: Option[Temperature],
-                    points: Int,
-                    distance: DistanceM,
-                    title: Option[TrackTitle],
-                    canonical: TrackCanonical,
-                    comments: Option[String],
-                    added: Instant)
 
 case class SentenceKey(id: Long) extends AnyVal with WrappedId
 
@@ -381,7 +412,8 @@ case class SentenceInput(sentence: RawSentence, track: TrackId)
 
 case class KeyedSentence(key: SentenceKey, sentence: RawSentence, from: TrackMetaShort)
 
-case class SentenceRow(id: SentenceKey, sentence: RawSentence, track: TrackId, added: Instant) {
+case class SentenceRow(id: SentenceKey, sentence: RawSentence, track: TrackId, added: Instant)
+    extends Embedded {
   def timed(formatter: TimeFormatter) =
     TimedSentence(id, sentence, track, added, formatter.timing(added))
 }
@@ -390,44 +422,65 @@ object SentenceRow {
   implicit val json = Json.format[SentenceRow]
 }
 
-case class GPSSentenceRow(id: GPSSentenceKey, sentence: RawSentence, boat: DeviceId, added: Instant)
+case class GPSSentenceRow(
+    id: GPSSentenceKey,
+    sentence: RawSentence,
+    device: DeviceId,
+    added: Instant
+)
 
 object GPSSentenceRow {
   implicit val json = Json.format[GPSSentenceRow]
 }
 
-case class GPSPointInput(lon: Longitude,
-                         lat: Latitude,
-                         coord: Coord,
-                         satellites: Int,
-                         fix: GPSFix,
-                         gpsTime: Instant,
-                         diff: DistanceM,
-                         device: DeviceId,
-                         pointIndex: Int)
+case class GPSPointInput(
+    lon: Longitude,
+    lat: Latitude,
+    coord: Coord,
+    satellites: Int,
+    fix: GPSFix,
+    gpsTime: Instant,
+    diff: DistanceM,
+    device: DeviceId,
+    pointIndex: Int
+)
 
 object GPSPointInput {
   def forCoord(c: GPSCoord, idx: Int, diff: DistanceM) =
-    GPSPointInput(c.lng, c.lat, c.coord, c.satellites, c.fix, c.gpsTime, diff, c.device, idx)
+    GPSPointInput(
+      c.lng,
+      c.lat,
+      c.coord,
+      c.satellites,
+      c.fix,
+      c.gpsTime,
+      diff,
+      c.device,
+      idx
+    )
 }
 
-case class GPSPointRow(id: GPSPointId,
-                       lon: Longitude,
-                       lat: Latitude,
-                       coord: Coord,
-                       satellites: Int,
-                       fix: GPSFix,
-                       pointIndex: Int,
-                       gpsTime: Instant,
-                       diff: DistanceM,
-                       device: DeviceId,
-                       added: Instant)
+case class GPSPointRow(
+    id: GPSPointId,
+    longitude: Longitude,
+    latitude: Latitude,
+    coord: Coord,
+    satellites: Int,
+    fix: GPSFix,
+    pointIndex: Int,
+    gpsTime: Instant,
+    diff: DistanceM,
+    device: DeviceId,
+    added: Instant
+) extends Embedded
 
-case class TimedSentence(id: SentenceKey,
-                         sentence: RawSentence,
-                         track: TrackId,
-                         added: Instant,
-                         time: Timing)
+case class TimedSentence(
+    id: SentenceKey,
+    sentence: RawSentence,
+    track: TrackId,
+    added: Instant,
+    time: Timing
+)
 
 object TimedSentence {
   implicit val json = Json.format[TimedSentence]
@@ -440,45 +493,85 @@ object Sentences {
   implicit val json = Json.format[Sentences]
 }
 
-case class TrackPointInput(lon: Longitude,
-                           lat: Latitude,
-                           coord: Coord,
-                           boatSpeed: SpeedM,
-                           waterTemp: Temperature,
-                           depth: DistanceM,
-                           depthOffset: DistanceM,
-                           boatTime: Instant,
-                           track: TrackId,
-                           trackIndex: Int,
-                           diff: DistanceM)
+case class TrackPointInput(
+    lon: Longitude,
+    lat: Latitude,
+    coord: Coord,
+    boatSpeed: SpeedM,
+    waterTemp: Temperature,
+    depth: DistanceM,
+    depthOffset: DistanceM,
+    boatTime: Instant,
+    track: TrackId,
+    trackIndex: Int,
+    diff: DistanceM
+)
 
 object TrackPointInput {
   def forCoord(c: FullCoord, trackIndex: Int, diff: DistanceM): TrackPointInput =
-    TrackPointInput(c.lng,
-                    c.lat,
-                    c.coord,
-                    c.boatSpeed,
-                    c.waterTemp,
-                    c.depth,
-                    c.depthOffset,
-                    c.boatTime,
-                    c.from.track,
-                    trackIndex,
-                    diff)
+    TrackPointInput(
+      c.lng,
+      c.lat,
+      c.coord,
+      c.boatSpeed,
+      c.waterTemp,
+      c.depth,
+      c.depthOffset,
+      c.boatTime,
+      c.from.track,
+      trackIndex,
+      diff
+    )
 }
 
-case class CombinedCoord(id: TrackPointId,
-                         lon: Longitude,
-                         lat: Latitude,
-                         coord: Coord,
-                         boatSpeed: SpeedM,
-                         waterTemp: Temperature,
-                         depth: DistanceM,
-                         depthOffset: DistanceM,
-                         boatTime: Instant,
-                         date: DateVal,
-                         track: TrackId,
-                         added: Instant) {
+case class SentenceCoord2(
+    id: TrackPointId,
+    lon: Longitude,
+    lat: Latitude,
+    coord: Coord,
+    boatSpeed: SpeedM,
+    waterTemp: Temperature,
+    depth: DistanceM,
+    depthOffset: DistanceM,
+    boatTime: Instant,
+    date: DateVal,
+    track: TrackId,
+    added: Instant,
+    sentenceId: SentenceKey,
+    sentenceRaw: RawSentence,
+    sentenceAdded: Instant
+) {
+  def c = CombinedCoord(
+    id,
+    lon,
+    lat,
+    coord,
+    boatSpeed,
+    waterTemp,
+    depth,
+    depthOffset,
+    boatTime,
+    date,
+    track,
+    added
+  )
+  def s = SentenceRow(sentenceId, sentenceRaw, track, sentenceAdded)
+}
+
+case class CombinedCoord(
+    id: TrackPointId,
+    lon: Longitude,
+    lat: Latitude,
+    coord: Coord,
+    boatSpeed: SpeedM,
+    waterTemp: Temperature,
+    depth: DistanceM,
+    depthOffset: DistanceM,
+    boatTime: Instant,
+    date: DateVal,
+    track: TrackId,
+    added: Instant
+) extends Embedded {
 
   def toFull(sentences: Seq[SentenceRow], formatter: TimeFormatter): CombinedFullCoord =
     CombinedFullCoord(
@@ -516,20 +609,22 @@ case class CombinedCoord(id: TrackPointId,
 
 case class TrackInfo(coords: Seq[CombinedCoord], topPoint: Option[CombinedCoord])
 
-case class CombinedFullCoord(id: TrackPointId,
-                             lon: Longitude,
-                             lat: Latitude,
-                             coord: Coord,
-                             boatSpeed: SpeedM,
-                             waterTemp: Temperature,
-                             depthMeters: DistanceM,
-                             depthOffsetMeters: DistanceM,
-                             boatTime: Instant,
-                             date: DateVal,
-                             track: TrackId,
-                             added: Instant,
-                             sentences: Seq[TimedSentence],
-                             time: Timing)
+case class CombinedFullCoord(
+    id: TrackPointId,
+    lon: Longitude,
+    lat: Latitude,
+    coord: Coord,
+    boatSpeed: SpeedM,
+    waterTemp: Temperature,
+    depthMeters: DistanceM,
+    depthOffsetMeters: DistanceM,
+    boatTime: Instant,
+    date: DateVal,
+    track: TrackId,
+    added: Instant,
+    sentences: Seq[TimedSentence],
+    time: Timing
+)
 
 object CombinedFullCoord {
   val modern = Json.format[CombinedFullCoord]
@@ -537,8 +632,11 @@ object CombinedFullCoord {
     modern,
     Writes(
       c =>
-        modern.writes(c) ++ Json.obj("depth" -> c.depthMeters.toMillis.toLong,
-                                     "depthOffset" -> c.depthOffsetMeters.toMillis.toLong))
+        modern.writes(c) ++ Json.obj(
+          "depth" -> c.depthMeters.toMillis.toLong,
+          "depthOffset" -> c.depthOffsetMeters.toMillis.toLong
+        )
+    )
   )
 }
 
@@ -550,22 +648,42 @@ object FullTrack {
   implicit val json = Json.format[FullTrack]
 }
 
-case class TrackPointRow(id: TrackPointId,
-                         lon: Longitude,
-                         lat: Latitude,
-                         coord: Coord,
-                         boatSpeed: SpeedM,
-                         waterTemp: Temperature,
-                         depth: DistanceM,
-                         depthOffset: DistanceM,
-                         boatTime: Instant,
-                         track: TrackId,
-                         trackIndex: Int,
-                         diff: DistanceM,
-                         added: Instant) {
+case class TrackPointRow(
+    id: TrackPointId,
+    longitude: Longitude,
+    latitude: Latitude,
+    coord: Coord,
+    boatSpeed: SpeedM,
+    waterTemp: Temperature,
+    depthm: DistanceM,
+    depthOffsetm: DistanceM,
+    boatTime: Instant,
+    track: TrackId,
+    trackIndex: Int,
+    diff: DistanceM,
+    added: Instant
+) extends Embedded {
+  def depth = depthm
+  def depthOffset = depthOffsetm
   def dateTimeUtc = boatTime.atOffset(ZoneOffset.UTC)
   def time = LocalTime.from(dateTimeUtc)
   def date = LocalDate.from(dateTimeUtc)
+
+  def combined(date: DateVal) =
+    CombinedCoord(
+      id,
+      longitude,
+      latitude,
+      coord,
+      boatSpeed,
+      waterTemp,
+      depth,
+      depthOffset,
+      boatTime,
+      date,
+      track,
+      added
+    )
 }
 
 case class SentencePointLink(sentence: SentenceKey, point: TrackPointId)

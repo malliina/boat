@@ -14,11 +14,17 @@ class SentenceTests extends BoatTests {
     openTestBoat(BoatNames.random()) { boat =>
       val sentencePromise = Promise[SentencesEvent]()
       val coordPromise = Promise[CoordsEvent]()
-      val testMessage = SentencesMessage(Seq(RawSentence("$GPGGA,154106,6008.0079,N,02452.0497,E,1,12,0.60,0,M,19.5,M,,*68")))
+      val testMessage = SentencesMessage(
+        Seq(RawSentence("$GPGGA,154106,6008.0079,N,02452.0497,E,1,12,0.60,0,M,19.5,M,,*68"))
+      )
 
       val in = Sink.foreach[JsValue] { json =>
-        json.validate[SentencesEvent].foreach { ss => sentencePromise.trySuccess(ss) }
-        json.validate[CoordsEvent].foreach { c => coordPromise.trySuccess(c) }
+        json.validate[SentencesEvent].foreach { ss =>
+          sentencePromise.trySuccess(ss)
+        }
+        json.validate[CoordsEvent].foreach { c =>
+          coordPromise.trySuccess(c)
+        }
       }
       openViewerSocket(in, None) { _ =>
         boat.send(testMessage)
@@ -40,12 +46,18 @@ class SentenceTests extends BoatTests {
     openTestBoat(BoatNames.random()) { boat =>
       val authPromise = Promise[CoordsEvent]()
       val anonPromise = Promise[CoordsEvent]()
-      val testMessage = SentencesMessage(Seq(RawSentence("$GPGGA,154106,6008.0079,N,02452.0497,E,1,12,0.60,0,M,19.5,M,,*68")))
+      val testMessage = SentencesMessage(
+        Seq(RawSentence("$GPGGA,154106,6008.0079,N,02452.0497,E,1,12,0.60,0,M,19.5,M,,*68"))
+      )
       val anonSink = Sink.foreach[JsValue] { json =>
-        json.validate[CoordsEvent].filter(_.from.username == testUser).foreach { c => anonPromise.trySuccess(c) }
+        json.validate[CoordsEvent].filter(_.from.username == testUser).foreach { c =>
+          anonPromise.trySuccess(c)
+        }
       }
       val authSink = Sink.foreach[JsValue] { json =>
-        json.validate[CoordsEvent].filter(_.from.username == testUser).foreach { se => authPromise.trySuccess(se) }
+        json.validate[CoordsEvent].filter(_.from.username == testUser).foreach { se =>
+          authPromise.trySuccess(se)
+        }
       }
       openViewerSocket(anonSink, None) { _ =>
         openViewerSocket(authSink, creds) { _ =>

@@ -11,6 +11,7 @@ POST         /boats                                           controllers.BoatCo
 PATCH        /boats/:boat                                     controllers.BoatController.renameBoat(boat: com.malliina.boat.DeviceId)
 POST         /boats/:boat/delete                              controllers.BoatController.deleteBoat(boat: com.malliina.boat.DeviceId)
 GET          /tracks                                          controllers.BoatController.tracks
+GET          /history                                         controllers.BoatController.history
 GET          /tracks/:track                                   controllers.BoatController.track(track: com.malliina.boat.TrackName)
 PUT          /tracks/:track                                   controllers.BoatController.modifyTitle(track: com.malliina.boat.TrackName)
 PATCH        /tracks/:track                                   controllers.BoatController.updateComments(track: com.malliina.boat.TrackId)

@@ -2,45 +2,64 @@ package com.malliina.boat.db
 
 import java.nio.file.Files
 
-import com.malliina.boat.{CoordHash, FairwayInfo, FeatureCollection}
-import com.malliina.concurrent.Execution.cached
+import com.malliina.boat.{FairwayInfo, FeatureCollection}
 import play.api.libs.json.Json
+import tests.EmbeddedMySQL
 
-import concurrent.duration.DurationInt
+import scala.concurrent.duration.DurationInt
 
-class FairwayDatabaseTests extends DatabaseSuite {
-//  ignore("describe route") {
-//    val service = FairwayService(initDb())
-//    val fs = await(service.fairways(CoordHash("19.62690,60.37960")))
-//    assert(fs.exists(_.id === FairwayId(701)))
-//  }
-
+class FairwayDatabaseTests extends EmbeddedMySQL {
   ignore("import fairways to database") {
-    val db = initDb()
+    val db = testDatabase(ec)
     val fileIn = userHome.resolve(".boat/vaylat/vaylat-geo.json")
     val strIn = Files.readAllBytes(fileIn)
     val coll = Json.parse(strIn).as[FeatureCollection]
     val fs = coll.features
-    import db.api._
-    import db._
-    await(db.run(db.fairwaysTable.delete))
-    val inserts = DBIO
-      .sequence(
-        fs.map { f =>
-          for {
-            id <- db.fairwaysTable
-              .map(_.forInserts)
-              .returning(db.fairwaysTable.map(_.id)) += f.props.as[FairwayInfo]
-            cs = f.geometry.coords.map { coord =>
-              FairwayCoordInput(coord, coord.lat, coord.lng, coord.hash, id)
-            }
-            cids <- db.fairwayCoordsTable
-              .map(_.forInserts)
-              .returning(db.fairwayCoordsTable.map(_.id)) ++= cs
-          } yield cids
-        }
-      )
-      .transactionally
-    await(db.run(inserts), 600.seconds)
+    val svc = NewFairwayService(db)
+    import svc._
+    import svc.db._
+    val insertTask = IO.traverse(fs) { f =>
+      def coords(id: FairwayId) = f.geometry.coords.map { coord =>
+        FairwayCoordInput(coord, coord.lat, coord.lng, coord.hash, id)
+      }
+      val in = f.props.as[FairwayInfo]
+      for {
+        id <- runIO(
+          fairwaysTable
+            .insert(
+              _.nameFi -> lift(in.nameFi),
+              _.nameSe -> lift(in.nameSe),
+              _.start -> lift(in.start),
+              _.end -> lift(in.end),
+              _.depth -> lift(in.depth),
+              _.depth2 -> lift(in.depth2),
+              _.depth3 -> lift(in.depth3),
+              _.lighting -> lift(in.lighting),
+              _.classText -> lift(in.classText),
+              _.seaArea -> lift(in.seaArea),
+              _.state -> lift(in.state)
+            )
+            .returningGenerated(_.id)
+        )
+        cids <- runIO(
+          liftQuery(coords(id)).foreach { c =>
+            fairwaysCoordsTable
+              .insert(
+                _.coord -> c.coord,
+                _.latitude -> c.latitude,
+                _.longitude -> c.longitude,
+                _.coordHash -> c.coordHash,
+                _.fairway -> c.fairway
+              )
+              .returningGenerated(_.id)
+          }
+        )
+      } yield cids
+    }
+    val inserts = for {
+      deletion <- runIO(fairwaysTable.delete)
+      insertion <- insertTask
+    } yield insertion
+    await(performAsync("Import fairways")(inserts), 600.seconds)
   }
 }

@@ -9,7 +9,7 @@ import play.api.mvc.RequestHeader
 import scala.concurrent.Future
 
 trait UserManager {
-  def userMeta(email: Email): Future[DataUser]
+  def userMeta(email: Email): Future[UserRow]
 
   /** Retrieves user information for the user with the given email address. If the user does not exist, one is created
     * with the email address as the username, and with a newly created randomly named boat. This enables user login
@@ -24,7 +24,7 @@ trait UserManager {
   def userInfo(email: Email): Future[UserInfo]
   def authBoat(token: BoatToken): Future[JoinedBoat]
   def boats(user: Email): Future[UserBoats]
-  def addUser(user: NewUser): Future[Either[AlreadyExists, DataUser]]
+  def addUser(user: NewUser): Future[Either[AlreadyExists, UserRow]]
   def deleteUser(user: Username): Future[Either[UserDoesNotExist, Unit]]
   def users: Future[Seq[UserInfo]]
   def changeLanguage(user: UserId, to: Language): Future[Boolean]
@@ -36,7 +36,8 @@ trait UserManager {
 sealed trait IdentityError
 
 case class AlreadyExists(user: Username) extends IdentityError
-case class InvalidCredentials(user: Option[Username] = None) extends IdentityError
+case class InvalidCredentials(user: Option[Username] = None)
+    extends IdentityError
 case class InvalidToken(token: BoatToken) extends IdentityError
 case class UserDisabled(user: Username) extends IdentityError
 case class UserDoesNotExist(user: Username) extends IdentityError
@@ -44,7 +45,8 @@ case class MissingToken(rh: RequestHeader) extends IdentityError
 case class MissingCredentials(rh: RequestHeader) extends IdentityError
 case class JWTError(rh: RequestHeader, error: AuthError) extends IdentityError
 
-class MissingCredentialsException(error: MissingCredentials) extends IdentityException(error) {
+class MissingCredentialsException(error: MissingCredentials)
+    extends IdentityException(error) {
   def rh = error.rh
 }
 
@@ -52,8 +54,8 @@ class IdentityException(val error: IdentityError) extends Exception
 
 object IdentityException {
   def apply(error: IdentityError): IdentityException = error match {
-    case mc@MissingCredentials(_) => new MissingCredentialsException(mc)
-    case other => new IdentityException(other)
+    case mc @ MissingCredentials(_) => new MissingCredentialsException(mc)
+    case other                      => new IdentityException(other)
   }
 
   def missingCredentials(rh: RequestHeader): MissingCredentialsException =

@@ -6,7 +6,6 @@ import play.api.libs.json._
 
 trait NameLike {
   def nameFi: Option[String]
-
   def nameSe: Option[String]
 
   def name(lang: Lang): Option[String] =
@@ -138,19 +137,20 @@ object SeaArea {
   case class Other(v: Int) extends SeaArea(v)
 }
 
-case class FairwayInfo(nameFi: Option[String],
-                       nameSe: Option[String],
-                       start: Option[String],
-                       end: Option[String],
-                       depth1: Option[DistanceM],
-                       depth2: Option[DistanceM],
-                       depth3: Option[DistanceM],
-                       lighting: FairwayLighting,
-                       classText: String,
-                       seaArea: SeaArea,
-                       state: Double)
-    extends NameLike {
-  def depth = depth1 orElse depth2 orElse depth3
+case class FairwayInfo(
+    nameFi: Option[String],
+    nameSe: Option[String],
+    start: Option[String],
+    end: Option[String],
+    depth: Option[DistanceM],
+    depth2: Option[DistanceM],
+    depth3: Option[DistanceM],
+    lighting: FairwayLighting,
+    classText: String,
+    seaArea: SeaArea,
+    state: Double
+) extends NameLike {
+  def bestDepth = depth orElse depth2 orElse depth3
 }
 
 object FairwayInfo {
@@ -192,7 +192,9 @@ object MaritimeJson {
   def stringReader[T](onError: JsValue => String)(pf: PartialFunction[String, T]): Reads[T] =
     partialReader[String, T](onError)(pf)
 
-  def partialReader[In: Reads, Out](onError: JsValue => String)(pf: PartialFunction[In, Out]): Reads[Out] =
+  def partialReader[In: Reads, Out](
+      onError: JsValue => String
+  )(pf: PartialFunction[In, Out]): Reads[Out] =
     Reads[Out] { json =>
       json.validate[In].collect(JsonValidationError(onError(json)))(pf)
     }
