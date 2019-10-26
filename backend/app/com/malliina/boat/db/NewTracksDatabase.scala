@@ -5,12 +5,13 @@ import java.time.Instant
 import com.malliina.boat.db.NewTracksDatabase.log
 import com.malliina.boat.http.{BoatQuery, SortOrder, TrackQuery, TrackSort}
 import com.malliina.boat.parsing.FullCoord
-import com.malliina.boat.{BoatName, BoatTokens, BoatTrackMeta, CoordsEvent, DateVal, DeviceId, DeviceMeta, FullTrack, InsertedPoint, JoinedBoat, JoinedTrack, KeyedSentence, Lang, Language, MinimalUserInfo, SentenceCoord2, SentencesEvent, StatsResponse, TimeFormatter, TrackCanonical, TrackId, TrackInfo, TrackInput, TrackMeta, TrackName, TrackRef, TrackTitle, Tracks, TracksBundle, Utils}
+import com.malliina.boat.{BoatName, BoatTokens, BoatTrackMeta, CombinedCoord, CombinedFullCoord, Coord, CoordsEvent, DateVal, DeviceId, DeviceMeta, FullTrack, InsertedPoint, JoinedBoat, JoinedTrack, KeyedSentence, Lang, Language, MinimalUserInfo, SentenceCoord2, SentenceRow, SentencesEvent, StatsResponse, TimeFormatter, TimedCoord, TrackCanonical, TrackId, TrackInfo, TrackInput, TrackMeta, TrackName, TrackPointRow, TrackRef, TrackTitle, Tracks, TracksBundle, Utils}
 import com.malliina.measure.{DistanceM, SpeedDoubleM, SpeedIntM, SpeedM, Temperature}
 import com.malliina.values.{UserId, Username}
 import io.getquill._
 import play.api.Logger
 
+import scala.concurrent.duration.DurationLong
 import scala.concurrent.{ExecutionContext, Future}
 
 object NewTracksDatabase {
@@ -18,6 +19,66 @@ object NewTracksDatabase {
 
   def apply(db: BoatDatabase[SnakeCase]): NewTracksDatabase =
     new NewTracksDatabase(db)(db.ec)
+
+  def collectRows(rows: Seq[SentenceCoord2], formatter: TimeFormatter): Seq[CombinedFullCoord] =
+    collect(rows.map(sc => (sc.s, sc.c)), formatter)
+
+  def collect(
+      rows: Seq[(SentenceRow, CombinedCoord)],
+      formatter: TimeFormatter
+  ): Seq[CombinedFullCoord] =
+    rows.foldLeft(Vector.empty[CombinedFullCoord]) {
+      case (acc, (s, c)) =>
+        val idx = acc.indexWhere(_.id == c.id)
+        if (idx >= 0) {
+          val old = acc(idx)
+          acc.updated(
+            idx,
+            old.copy(sentences = old.sentences :+ s.timed(formatter))
+          )
+        } else {
+          acc :+ c.toFull(Seq(s), formatter)
+        }
+    }
+
+  def collectTrackCoords(rows: Seq[TrackCoord], language: Language): Seq[CoordsEvent] =
+    collectPointsClassic(rows.map(r => (r.track, r.row)), language)
+
+  def collectPointsClassic(
+      rows: Seq[(JoinedTrack, TrackPointRow)],
+      language: Language
+  ): Seq[CoordsEvent] = {
+    val start = System.currentTimeMillis()
+    val formatter = TimeFormatter(language)
+    val result = rows.foldLeft(Vector.empty[CoordsEvent]) {
+      case (acc, (from, point)) =>
+        val idx = acc.indexWhere(_.from.track == from.track)
+        val instant = point.boatTime
+        val coord = TimedCoord(
+          point.id,
+          Coord(point.longitude, point.latitude),
+          formatter.formatDateTime(instant),
+          instant.toEpochMilli,
+          formatter.formatTime(instant),
+          point.boatSpeed,
+          point.waterTemp,
+          point.depth,
+          formatter.timing(instant)
+        )
+        if (idx >= 0) {
+          val old = acc(idx)
+          acc.updated(idx, old.copy(coords = coord :: old.coords))
+        } else {
+          acc :+ CoordsEvent(List(coord), from.strip(formatter))
+        }
+    }
+    val end = System.currentTimeMillis()
+    val duration = (end - start).millis
+    if (duration > 500.millis) {
+      log.warn(s"Collected ${rows.length} in ${duration.toMillis} ms")
+    }
+    result
+  }
 }
 
 class NewTracksDatabase(val db: BoatDatabase[SnakeCase])(
@@ -397,7 +458,7 @@ class NewTracksDatabase(val db: BoatDatabase[SnakeCase])(
       )
     )
     val formatter = TimeFormatter(language)
-    FullTrack(trackStats.strip(formatter), TracksDatabase.collectRows(coords, formatter))
+    FullTrack(trackStats.strip(formatter), NewTracksDatabase.collectRows(coords, formatter))
   }
 
   def history(user: MinimalUserInfo, limits: BoatQuery): Future[Seq[CoordsEvent]] = Future {
@@ -438,6 +499,6 @@ class NewTracksDatabase(val db: BoatDatabase[SnakeCase])(
     val keys = (limits.tracks.map(_.name) ++ limits.canonicals.map(_.name)).mkString(", ")
     val describe = if (keys.isEmpty) "" else s"for tracks $keys "
     val rows = perform(s"Track history ${describe}by user ${user.username}", eligibleTracks)
-    TracksDatabase.collectTrackCoords(rows, user.language)
+    NewTracksDatabase.collectTrackCoords(rows, user.language)
   }
 }

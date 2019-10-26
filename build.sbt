@@ -114,12 +114,9 @@ val backend = Project("boat", file("backend"))
     libraryDependencies ++= Seq(
       //    "net.sf.marineapi" % "marineapi" % "0.13.0-SNAPSHOT",
       "com.vividsolutions" % "jts" % "1.13",
-      "com.typesafe.slick" %% "slick" % "3.3.2",
-      "com.h2database" % "h2" % "1.4.196",
       "org.orbisgis" % "h2gis" % "1.4.0",
       "io.getquill" %% "quill-jdbc" % "3.4.10",
       "mysql" % "mysql-connector-java" % "5.1.47",
-      "com.zaxxer" % "HikariCP" % "3.4.1",
       "org.flywaydb" % "flyway-core" % "6.0.3",
       "org.apache.commons" % "commons-text" % "1.8",
       "com.amazonaws" % "aws-java-sdk-s3" % "1.11.584",

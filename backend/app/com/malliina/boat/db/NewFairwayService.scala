@@ -5,6 +5,9 @@ import io.getquill.SnakeCase
 
 import scala.concurrent.Future
 
+case class CoordFairway(coord: CoordHash, fairway: FairwayRow)
+case class CoordFairways(coord: CoordHash, fairways: Seq[FairwayRow])
+
 trait FairwaySource {
   def fairwaysAt(at: Coord): Future[Seq[FairwayRow]] = fairways(at.hash)
   def fairways(at: CoordHash): Future[Seq[FairwayRow]]

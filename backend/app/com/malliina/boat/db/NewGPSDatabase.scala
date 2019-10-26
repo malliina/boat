@@ -1,7 +1,7 @@
 package com.malliina.boat.db
 
 import com.malliina.boat.parsing.GPSCoord
-import com.malliina.boat.{GPSCoordsEvent, GPSInsertedPoint, GPSKeyedSentence, GPSPointId, GPSPointRow, GPSSentenceKey, GPSSentencePointLink, GPSSentenceRow, GPSSentencesEvent, MinimalUserInfo, TimeFormatter}
+import com.malliina.boat.{GPSCoordsEvent, GPSInsertedPoint, GPSKeyedSentence, GPSPointId, GPSPointRow, GPSSentencePointLink, GPSSentenceRow, GPSSentencesEvent, GPSTimedCoord, JoinedBoat, MinimalUserInfo, TimeFormatter}
 import com.malliina.measure.DistanceM
 import com.malliina.values.Username
 import io.getquill.SnakeCase
@@ -17,6 +17,22 @@ trait GPSSource {
 object NewGPSDatabase {
   def apply(db: BoatDatabase[SnakeCase]): NewGPSDatabase =
     new NewGPSDatabase(db)
+
+  def collect(cs: Seq[JoinedGPS], formatter: TimeFormatter): Seq[GPSCoordsEvent] =
+    collectCoords(cs.map(c => (c.point, c.device)), formatter)
+
+  def collectCoords(rows: Seq[(GPSPointRow, JoinedBoat)], formatter: TimeFormatter) =
+    rows.foldLeft(Vector.empty[GPSCoordsEvent]) {
+      case (acc, (point, device)) =>
+        val idx = acc.indexWhere(_.from.device == device.device)
+        val coord = GPSTimedCoord(point.id, point.coord, formatter.timing(point.gpsTime))
+        if (idx >= 0) {
+          val old = acc(idx)
+          acc.updated(idx, old.copy(coords = coord :: old.coords))
+        } else {
+          acc :+ GPSCoordsEvent(List(coord), device.strip)
+        }
+    }
 }
 
 class NewGPSDatabase(val db: BoatDatabase[SnakeCase]) extends GPSSource {
@@ -41,7 +57,7 @@ class NewGPSDatabase(val db: BoatDatabase[SnakeCase]) extends GPSSource {
 
   def history(user: MinimalUserInfo): Future[Seq[GPSCoordsEvent]] = performAsync("GPS history") {
     runIO(historyByUser(lift(user.username))).map { cs =>
-      GPSDatabase.collect(cs, TimeFormatter(user.language))
+      NewGPSDatabase.collect(cs, TimeFormatter(user.language))
     }
   }
 

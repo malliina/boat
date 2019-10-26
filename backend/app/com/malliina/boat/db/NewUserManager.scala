@@ -3,7 +3,7 @@ package com.malliina.boat.db
 import java.sql.SQLException
 
 import com.malliina.boat.db.NewUserManager.log
-import com.malliina.boat.{BoatInfo, BoatNames, BoatToken, BoatTokens, JoinedBoat, JoinedTrack, Language, TimeFormatter, UserBoats, UserInfo, UserToken, Usernames}
+import com.malliina.boat.{Boat, BoatInfo, BoatNames, BoatToken, BoatTokens, JoinedBoat, JoinedTrack, Language, TimeFormatter, UserBoats, UserInfo, UserToken, Usernames}
 import com.malliina.values.{Email, UserId, Username}
 import io.getquill.SnakeCase
 import play.api.Logger
@@ -14,6 +14,51 @@ object NewUserManager {
   private val log = Logger(getClass)
 
   def apply(db: BoatDatabase[SnakeCase]): NewUserManager = new NewUserManager(db)
+
+  def collect(rows: Seq[JoinedUser]) = collectUsers(rows.map(r => (r.user, r.boat)))
+
+  def collectUsers(rows: Seq[(UserRow, Option[BoatRow])]): Vector[UserInfo] =
+    rows.foldLeft(Vector.empty[UserInfo]) {
+      case (acc, (user, boat)) =>
+        val idx = acc.indexWhere(_.id == user.id)
+        val newBoats =
+          boat.toSeq.map(b => Boat(b.id, b.name, b.token, b.added.toEpochMilli))
+        if (idx >= 0) {
+          val old = acc(idx)
+          acc.updated(idx, old.copy(boats = old.boats ++ newBoats))
+        } else {
+          user.email.fold(acc) { email =>
+            acc :+ UserInfo(
+              user.id,
+              user.user,
+              email,
+              user.language,
+              newBoats,
+              user.enabled,
+              user.added.toEpochMilli
+            )
+          }
+        }
+    }
+
+  def collectBoats(rows: Seq[JoinedTrack], formatter: TimeFormatter): Seq[BoatInfo] =
+    rows.foldLeft(Vector.empty[BoatInfo]) { (acc, row) =>
+      val boatIdx =
+        acc.indexWhere(b => b.user == row.username && b.boatId == row.boatId)
+      val newRow = row.strip(formatter)
+      if (boatIdx >= 0) {
+        val old = acc(boatIdx)
+        acc.updated(boatIdx, old.copy(tracks = old.tracks :+ newRow))
+      } else {
+        acc :+ BoatInfo(
+          row.boatId,
+          row.boatName,
+          row.username,
+          row.language,
+          Seq(newRow)
+        )
+      }
+    }
 }
 
 class NewUserManager(val db: BoatDatabase[SnakeCase]) extends UserManager {
@@ -52,13 +97,13 @@ class NewUserManager(val db: BoatDatabase[SnakeCase]) extends UserManager {
   }
 
   def users: Future[Seq[UserInfo]] =
-    performAsync("All users") { runIO(allUsers).map(DatabaseUserManager.collect) }
+    performAsync("All users") { runIO(allUsers).map(NewUserManager.collect) }
 
   override def userInfo(email: Email): Future[UserInfo] = transactionally("Load user info") {
     val task = for {
       userId <- getOrCreate(email)
       info <- runIO(usersWithBoats(userById(lift(userId))))
-        .map(DatabaseUserManager.collect)
+        .map(NewUserManager.collect)
     } yield info.headOption.map { profile =>
       if (profile.enabled) Right(profile)
       else Left(UserDisabled(profile.username))
@@ -88,7 +133,7 @@ class NewUserManager(val db: BoatDatabase[SnakeCase]) extends UserManager {
       )
       devices <- runIO(loadDevices(lift(email)))
     } yield {
-      val bs = DatabaseUserManager.collectBoats(boatRows, TimeFormatter(user.language))
+      val bs = NewUserManager.collectBoats(boatRows, TimeFormatter(user.language))
       val gpsDevices = devices.map(d => BoatInfo(d.device, d.boatName, d.username, d.language, Nil))
       UserBoats(user.user, user.language, bs ++ gpsDevices)
     }

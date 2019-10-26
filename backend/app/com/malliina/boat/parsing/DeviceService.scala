@@ -2,11 +2,11 @@ package com.malliina.boat.parsing
 
 import akka.Done
 import akka.actor.ActorSystem
-import akka.stream.{KillSwitches, Materializer}
 import akka.stream.scaladsl.{BroadcastHub, Keep, MergeHub, Sink, Source}
-import com.malliina.boat.db.{GPSDatabase, GPSSource}
+import akka.stream.{KillSwitches, Materializer}
+import com.malliina.boat.db.GPSSource
 import com.malliina.boat.parsing.DeviceService.log
-import com.malliina.boat.{DeviceEvent, DeviceJsonError, FrontEvent, GPSCoordsEvent, GPSInsertedPoint, GPSKeyedSentence, SentencesMessage, Streams, TimeFormatter}
+import com.malliina.boat.{DeviceEvent, DeviceJsonError, FrontEvent, GPSCoordsEvent, GPSInsertedPoint, SentencesMessage, Streams, TimeFormatter}
 import play.api.Logger
 
 import scala.concurrent.Future
