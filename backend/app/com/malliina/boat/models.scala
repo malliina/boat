@@ -381,7 +381,7 @@ case class TrackInput(
     points: Int,
     distance: DistanceM,
     canonical: TrackCanonical
-)
+) extends Embedded
 
 object TrackInput {
   def empty(name: TrackName, boat: DeviceId): TrackInput =

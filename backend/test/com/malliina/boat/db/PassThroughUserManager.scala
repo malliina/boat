@@ -2,14 +2,7 @@ package com.malliina.boat.db
 
 import java.time.Instant
 
-import com.malliina.boat.{
-  BoatToken,
-  JoinedBoat,
-  Language,
-  UserBoats,
-  UserInfo,
-  UserToken
-}
+import com.malliina.boat.{BoatToken, JoinedBoat, Language, UserBoats, UserInfo, UserToken}
 import com.malliina.values.{Email, UserId, Username}
 
 import scala.concurrent.Future
@@ -45,7 +38,7 @@ object PassThroughUserManager extends UserManager {
   def boats(user: Email): Future[UserBoats] = fut(UserBoats.anon)
 
   def addUser(user: NewUser): Future[Either[AlreadyExists, UserRow]] =
-    fut(Left(AlreadyExists(user.username)))
+    fut(Left(AlreadyExists(user.user)))
 
   def deleteUser(user: Username): Future[Either[UserDoesNotExist, Unit]] =
     fut(Left(UserDoesNotExist(user)))

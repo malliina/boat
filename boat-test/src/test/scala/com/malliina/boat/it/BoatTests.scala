@@ -13,7 +13,7 @@ import play.api.ApplicationLoader.Context
 import play.api.BuiltInComponents
 import play.api.libs.json.{JsValue, Json, Writes}
 import play.api.mvc.Call
-import tests.{BaseSuite, EmbeddedMySQL, OneServerPerSuite2, TestComponents}
+import tests.{AsyncSuite, BaseSuite, EmbeddedMySQL, OneServerPerSuite2, TestComponents}
 
 import scala.concurrent.Future
 
@@ -57,10 +57,7 @@ abstract class BoatTests extends TestAppSuite with BoatSockets {
 }
 
 trait BoatSockets {
-  this: BaseSuite =>
-
-  implicit val as = ActorSystem()
-  implicit val mat = ActorMaterializer()
+  this: AsyncSuite =>
 
   def openRandomBoat[T](url: FullUrl)(code: TestBoat => T): T =
     openBoat(url, Left(BoatNames.random()))(code)

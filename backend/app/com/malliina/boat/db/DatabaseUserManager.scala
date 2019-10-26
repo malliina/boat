@@ -183,7 +183,7 @@ class DatabaseUserManager(val db: BoatSchema)(implicit ec: ExecutionContext) ext
     } yield u
     db.run(action).map(Right.apply).recover {
       case sqle: SQLException if sqle.getMessage contains "primary key violation" =>
-        Left(AlreadyExists(user.username))
+        Left(AlreadyExists(user.user))
     }
   }
 

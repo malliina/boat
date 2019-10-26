@@ -15,12 +15,7 @@ object Conf {
   val MySQLDriver = "com.mysql.jdbc.Driver"
   val DefaultDriver = MySQLDriver
 
-  def fromEnvOrFail(): Conf =
-    fromEnv().fold(err => throw new Exception(err), identity)
-
   def fromConf(conf: Configuration) = from(key => conf.getOptional[String](key))
-
-  def fromEnv() = from(key => sys.env.get(key).orElse(sys.props.get(key)))
 
   def from(readKey: String => Option[String]) = {
     def read(key: String) = readKey(key).toRight(s"Key missing: '$key'.")
@@ -34,7 +29,7 @@ object Conf {
 
   def dataSource(conf: Conf): HikariDataSource = {
     val hikari = new HikariConfig()
-    hikari.setDriverClassName(Conf.MySQLDriver)
+    hikari.setDriverClassName(conf.driver)
     hikari.setJdbcUrl(conf.url)
     hikari.setUsername(conf.user)
     hikari.setPassword(conf.pass)

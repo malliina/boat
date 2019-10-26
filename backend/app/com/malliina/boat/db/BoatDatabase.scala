@@ -4,7 +4,7 @@ import java.sql.{Timestamp, Types}
 import java.time.Instant
 
 import akka.actor.ActorSystem
-import com.malliina.boat.Coord
+import com.malliina.boat.{Coord, Usernames}
 import com.malliina.boat.db.BoatDatabase.log
 import com.malliina.measure.DistanceM
 import com.zaxxer.hikari.HikariDataSource
@@ -17,9 +17,6 @@ import scala.concurrent.{ExecutionContext, Future}
 object BoatDatabase {
   private val log = Logger(getClass)
 
-  def mysqlFromEnvOrFail(as: ActorSystem): BoatDatabase[SnakeCase] =
-    withMigrations(as, Conf.fromEnvOrFail())
-
   def withMigrations(as: ActorSystem, conf: Conf): BoatDatabase[SnakeCase] = {
     val flyway =
       Flyway.configure.dataSource(conf.url, conf.user, conf.pass).load()
@@ -27,12 +24,12 @@ object BoatDatabase {
     apply(as, conf)
   }
 
-  def apply(as: ActorSystem, dbConf: Conf): BoatDatabase[SnakeCase] = {
+  private def apply(as: ActorSystem, dbConf: Conf): BoatDatabase[SnakeCase] = {
     val pool = as.dispatchers.lookup("contexts.database")
     apply(Conf.dataSource(dbConf), pool, dbConf.isMariaDb)
   }
 
-  def apply(
+  private def apply(
       ds: HikariDataSource,
       ec: ExecutionContext,
       isMariaDb: Boolean
@@ -62,6 +59,7 @@ class BoatDatabase[N <: NamingStrategy](
   val selectDistance = quote { (from: Coord, to: Coord) =>
     infix"SELECT #$distanceFunctionName($from,$to)".as[Query[DistanceM]]
   }
+
   def transactionally[T](name: String)(io: IO[T, _]): Future[Result[T]] =
     performAsync(name)(io.transactional)
   def performAsync[T](name: String)(io: IO[T, _]): Future[Result[T]] = Future(perform(name, io))(ec)

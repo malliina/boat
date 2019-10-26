@@ -15,9 +15,8 @@ trait EmbeddedMySQL extends AsyncSuite {
     db.start()
     Conf(dbConfig.getURL("test"), "root", "", Conf.MySQLDriver, isMariaDb = true)
   }
-  lazy val ds = Conf.dataSource(conf)
 
-  def testDatabase(ec: ExecutionContext) = BoatDatabase(ds, ec, conf.isMariaDb)
+  def testDatabase(ec: ExecutionContext) = BoatDatabase.withMigrations(as, conf)
 
   // This hack ensures that beforeAll and afterAll is run even when all tests are ignored,
   // ensuring resources are cleaned up in all situations.
@@ -32,7 +31,6 @@ trait EmbeddedMySQL extends AsyncSuite {
 
   override protected def afterAll(): Unit = {
     super.afterAll()
-    ds.close()
     db.stop()
   }
 }

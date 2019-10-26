@@ -1,6 +1,6 @@
 package com.malliina.boat.db
 
-import java.time.{Instant, ZoneOffset}
+import java.time.{Instant, LocalDate}
 import java.util.Date
 
 import com.malliina.boat.parsing.GPSFix
@@ -24,10 +24,9 @@ trait NewMappings {
   implicit val mobileDeviceDecoder = MappedEncoding[String, MobileDevice](MobileDevice.apply)
   implicit val mobileDeviceEncoder = MappedEncoding[MobileDevice, String](_.name)
 
-  implicit val dateValDecoder =
-    MappedEncoding[Instant, DateVal](
-      d => DateVal(d.atOffset(ZoneOffset.UTC).toLocalDate)
-    )
+  implicit val dateValDecoder = MappedEncoding[LocalDate, DateVal](d => DateVal(d))
+  implicit val dateValEnc = MappedEncoding[DateVal, LocalDate](d => d.toLocalDate)
+
   implicit val userIdDecoder = MappedEncoding[Long, UserId](UserId.apply)
   implicit val userIdEncoder = MappedEncoding[UserId, Long](_.id)
 

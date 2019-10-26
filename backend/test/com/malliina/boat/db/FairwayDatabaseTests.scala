@@ -4,13 +4,12 @@ import java.nio.file.Files
 
 import com.malliina.boat.{FairwayInfo, FeatureCollection}
 import play.api.libs.json.Json
-import tests.LegacyDatabase
+import tests.EmbeddedMySQL
 
 import scala.concurrent.duration.DurationInt
 
-class FairwayDatabaseTests extends LegacyDatabase {
+class FairwayDatabaseTests extends EmbeddedMySQL {
   ignore("import fairways to database") {
-    boatSchema.init()
     val db = testDatabase(ec)
     val fileIn = userHome.resolve(".boat/vaylat/vaylat-geo.json")
     val strIn = Files.readAllBytes(fileIn)

@@ -3,7 +3,7 @@ package com.malliina.boat.db
 import java.sql.SQLException
 
 import com.malliina.boat.db.NewUserManager.log
-import com.malliina.boat.{BoatInfo, BoatNames, BoatToken, BoatTokens, JoinedBoat, JoinedTrack, Language, TimeFormatter, UserBoats, UserInfo, UserToken}
+import com.malliina.boat.{BoatInfo, BoatNames, BoatToken, BoatTokens, JoinedBoat, JoinedTrack, Language, TimeFormatter, UserBoats, UserInfo, UserToken, Usernames}
 import com.malliina.values.{Email, UserId, Username}
 import io.getquill.SnakeCase
 import play.api.Logger
@@ -25,7 +25,6 @@ class NewUserManager(val db: BoatDatabase[SnakeCase]) extends UserManager {
   val userById = quote { id: UserId =>
     usersTable.filter(u => u.id == id)
   }
-
   val usersWithBoats = quote { q: Query[UserRow] =>
     q.leftJoin(boatsTable).on(_.id == _.owner).map {
       case (user, boatOpt) =>
@@ -40,6 +39,16 @@ class NewUserManager(val db: BoatDatabase[SnakeCase]) extends UserManager {
   }
   val loadDevices = quote { email: Email =>
     boatsView.filter(bv => bv.email.contains(email) && !tracksTable.map(_.boat).contains(bv.device))
+  }
+  val userInsertion = quote { user: NewUser =>
+    usersTable
+      .insert(
+        _.user -> user.user,
+        _.email -> user.email,
+        _.token -> user.token,
+        _.enabled -> user.enabled
+      )
+      .returningGenerated(_.id)
   }
 
   def users: Future[Seq[UserInfo]] =
@@ -85,26 +94,26 @@ class NewUserManager(val db: BoatDatabase[SnakeCase]) extends UserManager {
     }
   }
 
+  def initUser(user: Username = Usernames.anon): Future[NewUser] =
+    transactionally(s"Insert user $user") {
+      val anon = NewUser(user, None, UserToken.random(), enabled = true)
+      for {
+        exists <- runIO(usersTable.filter(_.user == lift(user)).nonEmpty)
+        ok <- if (exists) IO.successful(user) else runIO(userInsertion(lift(anon)))
+      } yield anon
+    }
+
   override def addUser(user: NewUser): Future[Either[AlreadyExists, UserRow]] =
     transactionally("Add user") {
       for {
-        id <- runIO(
-          usersTable
-            .insert(
-              _.user -> lift(user.username),
-              _.email -> lift(user.email),
-              _.token -> lift(user.token),
-              _.enabled -> lift(user.enabled)
-            )
-            .returningGenerated(_.id)
-        )
+        id <- runIO(userInsertion(lift(user)))
         user <- first(runIO(userById(lift(id))), s"User not found: '$id'.")
       } yield user
     }.map {
       Right.apply
     }.recover {
       case e: SQLException if e.getMessage contains "primary key violation" =>
-        Left(AlreadyExists(user.username))
+        Left(AlreadyExists(user.user))
     }
 
   override def deleteUser(user: Username): Future[Either[UserDoesNotExist, Unit]] =
@@ -136,16 +145,7 @@ class NewUserManager(val db: BoatDatabase[SnakeCase]) extends UserManager {
   } yield userId
 
   private def addUserWithBoat(email: Email) = for {
-    userId <- runIO(
-      usersTable
-        .insert(
-          _.user -> lift(Username(email.email)),
-          _.email -> lift(Option(email)),
-          _.token -> lift(UserToken.random()),
-          _.enabled -> lift(true)
-        )
-        .returningGenerated(_.id)
-    )
+    userId <- runIO(userInsertion(lift(NewUser.email(email))))
     _ <- runIO(
       boatsTable.insert(
         _.name -> lift(BoatNames.random()),

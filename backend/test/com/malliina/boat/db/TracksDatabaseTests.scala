@@ -2,18 +2,14 @@ package com.malliina.boat.db
 
 import java.time.{LocalDate, LocalTime}
 
-import akka.NotUsed
-import akka.actor.ActorSystem
-import akka.stream.Materializer
-import akka.stream.scaladsl.Flow
 import com.malliina.boat._
 import com.malliina.boat.db.TestData._
-import com.malliina.boat.parsing.{BoatParser, FullCoord}
+import com.malliina.boat.parsing.FullCoord
 import com.malliina.measure.{DistanceIntM, SpeedIntM, SpeedM, Temperature}
 import com.malliina.values.{Email, UserId, Username}
-import tests.LegacyDatabase
+import tests.EmbeddedMySQL
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.Future
 import scala.concurrent.duration.{Duration, DurationLong}
 
 object TestData {
@@ -21,11 +17,9 @@ object TestData {
   val sanfran = Coord.build(-122.4, 37.8).toOption.get
 }
 
-class TracksDatabaseTests extends DatabaseSuite with LegacyDatabase {
+class TracksDatabaseTests extends EmbeddedMySQL {
   test("inserts update track aggregates") {
-    val db = boatSchema
-    db.initApp()
-    val newDb = BoatDatabase(ds, ec, isMariaDb = true)
+    val newDb = BoatDatabase.withMigrations(as, conf)
     val tdb = NewTracksDatabase(newDb)
     val users = NewUserManager(newDb)
     val user = await(users.userInfo(Email("aggregate@example.com")))
@@ -46,9 +40,7 @@ class TracksDatabaseTests extends DatabaseSuite with LegacyDatabase {
   }
 
   test("add comments to track") {
-    val db = boatSchema
-    db.initApp()
-    val newDb = BoatDatabase(ds, ec, isMariaDb = true)
+    val newDb = BoatDatabase.withMigrations(as, conf)
     val tdb = NewTracksDatabase(newDb)
     val udb = NewUserManager(newDb)
     val testComment = "test"

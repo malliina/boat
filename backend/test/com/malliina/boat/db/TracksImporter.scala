@@ -2,6 +2,7 @@ package com.malliina.boat.db
 
 import java.nio.charset.StandardCharsets
 import java.nio.file.{Files, Path}
+import java.time.LocalDate
 
 import akka.NotUsed
 import akka.actor.ActorSystem
@@ -11,17 +12,17 @@ import com.malliina.boat.parsing.{BoatParser, FullCoord}
 import com.malliina.boat.{BoatName, BoatUser, DateVal, DeviceId, InsertedPoint, KeyedSentence, LocalConf, RawSentence, SentencesEvent, TrackId, TrackInput, TrackNames}
 import com.malliina.util.FileUtils
 import com.malliina.values.Username
-import tests.{AsyncSuite, LegacyDatabase}
+import io.getquill.MappedEncoding
+import tests.EmbeddedMySQL
 
 import scala.concurrent.Future
 import scala.concurrent.duration.DurationLong
 import scala.jdk.CollectionConverters.CollectionHasAsScala
 
-class TracksImporter extends DatabaseSuite with LegacyDatabase with AsyncSuite {
+class TracksImporter extends EmbeddedMySQL {
   lazy val c = Conf.fromConf(LocalConf.localConf).toOption.get
 
   ignore("import tracks from plotter log file") {
-    boatSchema.init()
     val db = testDatabase(ec)
     val tdb = NewTracksDatabase(db)
     val trackName = TrackNames.random()
@@ -42,9 +43,8 @@ class TracksImporter extends DatabaseSuite with LegacyDatabase with AsyncSuite {
   }
 
   ignore("modify tracks") {
-    val db = BoatSchema(Conf.dataSource(c), c.driver)
     val oldTrack = TrackId(175)
-    splitTracksByDate(oldTrack, db)
+    splitTracksByDate(oldTrack, NewTracksDatabase(BoatDatabase.withMigrations(as, conf)))
   }
 
   def fromFile(file: Path): Source[RawSentence, NotUsed] =
@@ -65,36 +65,34 @@ class TracksImporter extends DatabaseSuite with LegacyDatabase with AsyncSuite {
       .mapConcat(saved => saved.toList)
       .via(insertPointsFlow(saveCoord))
 
-  def splitTracksByDate(oldTrack: TrackId, db: BoatSchema) = {
+  def splitTracksByDate(oldTrack: TrackId, db: NewTracksDatabase) = {
+    import db.db._
     import db._
-    import db.api._
 
-    def createAndUpdateTrack(date: DateVal) =
+    def createAndUpdateTrack(date: DateVal): IO[RunActionResult, Effect.Write] = {
+      val in = TrackInput.empty(TrackNames.random(), DeviceId(14))
       for {
-        newTrack <- trackInserts += TrackInput.empty(
-          TrackNames.random(),
-          DeviceId(14)
+        newTrack <- runIO(tracksInsert(lift(in)))
+        updated <- runIO(
+          quote {
+            rawPointsTable
+              .filter(p => p.track == lift(oldTrack) && (dateOf(p.boatTime) == lift(date)))
+              .update(_.track -> lift(newTrack))
+          }
         )
-        updated <- updateTrack(oldTrack, date, newTrack)
       } yield updated
-
-    def updateTrack(track: TrackId, date: DateVal, newTrack: TrackId) =
-      pointsTable
-        .map(_.combined)
-        .filter((t: LiftedCoord) => t.track === track && t.date === date)
-        .map(_.track)
-        .update(newTrack)
+    }
 
     val action = for {
-      dates <- pointsTable
-        .filter(_.track === oldTrack)
-        .map(_.combined.date)
-        .distinct
-        .sorted
-        .result
-      updates <- DBIO.sequence(dates.map(date => createAndUpdateTrack(date)))
+      dates <- runIO(
+        pointsTable
+          .filter(_.track == lift(oldTrack))
+          .map(_.date)
+          .distinct
+      )
+      updates <- IO.traverse(dates)(date => createAndUpdateTrack(date))
     } yield updates
-    await(db.run(action), 100.seconds)
+    performIO(action)
   }
 
   def insertPointsFlow(save: FullCoord => Future[InsertedPoint])(

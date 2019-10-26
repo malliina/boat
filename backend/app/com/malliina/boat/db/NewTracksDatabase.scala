@@ -5,7 +5,7 @@ import java.time.Instant
 import com.malliina.boat.db.NewTracksDatabase.log
 import com.malliina.boat.http.{BoatQuery, SortOrder, TrackQuery, TrackSort}
 import com.malliina.boat.parsing.FullCoord
-import com.malliina.boat.{BoatName, BoatTokens, BoatTrackMeta, CoordsEvent, DeviceId, DeviceMeta, FullTrack, InsertedPoint, JoinedBoat, JoinedTrack, KeyedSentence, Lang, Language, MinimalUserInfo, SentenceCoord2, SentencesEvent, StatsResponse, TimeFormatter, TrackCanonical, TrackId, TrackInfo, TrackInput, TrackMeta, TrackName, TrackRef, TrackTitle, Tracks, TracksBundle, Utils}
+import com.malliina.boat.{BoatName, BoatTokens, BoatTrackMeta, CoordsEvent, DateVal, DeviceId, DeviceMeta, FullTrack, InsertedPoint, JoinedBoat, JoinedTrack, KeyedSentence, Lang, Language, MinimalUserInfo, SentenceCoord2, SentencesEvent, StatsResponse, TimeFormatter, TrackCanonical, TrackId, TrackInfo, TrackInput, TrackMeta, TrackName, TrackRef, TrackTitle, Tracks, TracksBundle, Utils}
 import com.malliina.measure.{DistanceM, SpeedDoubleM, SpeedIntM, SpeedM, Temperature}
 import com.malliina.values.{UserId, Username}
 import io.getquill._
@@ -30,6 +30,23 @@ class NewTracksDatabase(val db: BoatDatabase[SnakeCase])(
     def <=(right: Instant) = quote(infix"$left <= $right".as[Boolean])
   }
 
+  implicit class DateValQuotes(left: DateVal) {
+    def is(right: DateVal) = quote(infix"$left == $right".as[Boolean])
+  }
+
+  val tracksInsert = quote { in: TrackInput =>
+    tracksTable
+      .insert(
+        _.name -> in.name,
+        _.boat -> in.boat,
+        _.avgSpeed -> in.avgSpeed,
+        _.avgWaterTemp -> in.avgWaterTemp,
+        _.points -> in.points,
+        _.distance -> in.distance,
+        _.canonical -> in.canonical
+      )
+      .returningGenerated(_.id)
+  }
   val rangedCoords = quote { (from: Option[Instant], to: Option[Instant]) =>
     rawPointsTable.filter { p =>
       from.forall(f => p.added >= f) && to.forall(t => p.added <= t)
@@ -61,7 +78,7 @@ class NewTracksDatabase(val db: BoatDatabase[SnakeCase])(
             _.title -> lift(Option(title))
           )
       )
-      val updated = run(nonEmptyTracks.filter(t => t.track == lift(id))).headOption
+      val updated = run(trackById(lift(id))).headOption
         .getOrElse(fail(s"Track ID not found: '$id'."))
       log.info(s"Updated title of '$id' to '$title' normalized to '${updated.canonical}'.")
       updated
@@ -164,19 +181,7 @@ class NewTracksDatabase(val db: BoatDatabase[SnakeCase])(
           run(trackMetas.filter(t => t.trackName == lift(meta.track) && t.boat == lift(boat.id))).headOption
         maybeTrack.getOrElse {
           val in = TrackInput.empty(meta.track, boat.id)
-          val inserted = run(
-            tracksTable
-              .insert(
-                _.name -> lift(in.name),
-                _.boat -> lift(in.boat),
-                _.avgSpeed -> lift(in.avgSpeed),
-                _.avgWaterTemp -> lift(in.avgWaterTemp),
-                _.points -> lift(in.points),
-                _.distance -> lift(in.distance),
-                _.canonical -> lift(in.canonical)
-              )
-              .returningGenerated(_.id)
-          )
+          val inserted = run(tracksInsert(lift(in)))
           val track = run(trackMetas.filter(_.track == lift(inserted))).headOption
             .getOrElse(fail(s"Track not found: '$inserted'."))
           log.info(s"Registered track with ID '$inserted' for boat '${boat.id}'.")

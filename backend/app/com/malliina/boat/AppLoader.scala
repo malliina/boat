@@ -34,12 +34,7 @@ object LocalConf {
 }
 
 class AppLoader
-    extends DefaultApp(
-      new AppComponents(
-        (conf, http, ec) => new ProdAppBuilder(conf, http, ec),
-        _
-      )
-    )
+    extends DefaultApp(new AppComponents((conf, http, ec) => new ProdAppBuilder(conf, http, ec), _))
 
 // Put modules that have different implementations in dev, prod or tests here.
 trait AppBuilder {
@@ -53,7 +48,7 @@ trait AppBuilder {
 class ProdAppBuilder(conf: Configuration, http: OkClient, ec: ExecutionContext) extends AppBuilder {
   override val appConf = AppConf(conf)
   override val pushService: PushEndpoint = BoatPushService(conf, ec)
-  override val emailAuth =
+  override val emailAuth: EmailAuth =
     GoogleTokenAuth(appConf.webClientId, appConf.iosClientId, http, ec)
   override val databaseConf: Conf =
     Conf.fromConf(conf).fold(msg => throw new Exception(msg), identity)
@@ -115,16 +110,11 @@ class AppComponents(
   val mode = environment.mode
   val html = BoatHtml(mode)
   val dbConf = builder.databaseConf
-  val db = BoatDatabase(actorSystem, dbConf)
-  if (mode != Mode.Test && mode != Mode.Dev)
-    DBMigrations.run(dbConf)
-  val schema = BoatSchema(db.ds, dbConf.driver)
-  if (mode != Mode.Dev) {
-    schema.initApp()(executionContext)
-  }
+  val db = BoatDatabase.withMigrations(actorSystem, dbConf)
 
   // Services
-  val users: UserManager = NewUserManager(db)
+  val users: NewUserManager = NewUserManager(db)
+  users.initUser()
   val tracks: TracksSource = NewTracksDatabase(db)
   val gps: GPSSource = NewGPSDatabase(db)
   lazy val pushService: PushEndpoint = builder.pushService
