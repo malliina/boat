@@ -81,10 +81,10 @@ trait StatsQuotes[I <: Idiom, N <: NamingStrategy] { this: Context[I, N] with Qu
     }
   }
   val monthlyQueryAsc = quote { user: Username =>
-    monthlyQuery(user).sortBy(_.year)(Ord.asc)
+    monthlyQuery(user).sortBy(m => (m.year, m.month))(Ord.asc)
   }
   val monthlyQueryDesc = quote { user: Username =>
-    monthlyQuery(user).sortBy(_.year)(Ord.desc)
+    monthlyQuery(user).sortBy(m => (m.year, m.month))(Ord.desc)
   }
   val yearlyQuery = quote { user: Username =>
     tracksBy(user).groupBy(t => t.startYear).map {

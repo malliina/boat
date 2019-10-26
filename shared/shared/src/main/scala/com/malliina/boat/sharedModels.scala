@@ -36,6 +36,7 @@ object YearVal extends JsonCompanion[Int, YearVal] {
 
 trait WrappedInt extends Any {
   def value: Int
+  override def toString = s"$value"
 }
 
 case class Bearing(bearing: Int) extends AnyVal
