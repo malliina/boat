@@ -71,12 +71,13 @@ class BoatDatabase[N <: NamingStrategy](
 
   def perform[T](name: String, io: IO[T, _]): Result[T] = {
     val start = System.currentTimeMillis()
-    log.info(s"Loading $name...")
     val result = performIO(io)
     val end = System.currentTimeMillis()
     val duration = (end - start).millis
     val message = s"$name completed in $duration."
-    if (duration > 500.millis) log.warn(message) else log.info(message)
+    if (duration > 500.millis) log.warn(message)
+    else if (duration > 200.millis) log.info(message)
+    else log.debug(message)
     result
   }
 

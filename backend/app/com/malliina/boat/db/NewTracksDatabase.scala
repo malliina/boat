@@ -41,22 +41,18 @@ object NewTracksDatabase {
         }
     }
 
-  def collectTrackCoords(rows: Seq[TrackCoord], language: Language): Seq[CoordsEvent] =
-    collectPointsClassic(rows.map(r => (r.track, r.row)), language)
-
-  def collectPointsClassic(
-      rows: Seq[(JoinedTrack, TrackPointRow)],
-      language: Language
-  ): Seq[CoordsEvent] = {
+  def collectTrackCoords(rows: Seq[TrackCoord], language: Language): Seq[CoordsEvent] = {
     val start = System.currentTimeMillis()
     val formatter = TimeFormatter(language)
     val result = rows.foldLeft(Vector.empty[CoordsEvent]) {
-      case (acc, (from, point)) =>
+      case (acc, tc) =>
+        val from = tc.track
+        val point = tc.row
         val idx = acc.indexWhere(_.from.track == from.track)
         val instant = point.boatTime
         val coord = TimedCoord(
           point.id,
-          Coord(point.longitude, point.latitude),
+          point.coord,
           formatter.formatDateTime(instant),
           instant.toEpochMilli,
           formatter.formatTime(instant),
@@ -464,36 +460,46 @@ class NewTracksDatabase(val db: BoatDatabase[SnakeCase])(
   def history(user: MinimalUserInfo, limits: BoatQuery): Future[Seq[CoordsEvent]] = {
     val keys = (limits.tracks.map(_.name) ++ limits.canonicals.map(_.name)).mkString(", ")
     val describe = if (keys.isEmpty) "" else s"for tracks $keys "
-    performAsync(s"Track history ${describe}by user ${user.username}") {
-      def trackSql = quote { ts: Query[JoinedTrack] =>
-        val q = for {
-          t <- ts
-          c <- rangedCoords(lift(limits.from), lift(limits.to))
-          if t.track == c.track
-        } yield TrackCoord(t, c)
-        q.sortBy(_.row.trackIndex)(Ord.desc)
+    performAsync(s"Track history renewed ${describe}by user ${user.username}") {
+      def pointsSql = quote { ids: Query[TrackId] =>
+        rangedCoords(lift(limits.from), lift(limits.to))
+          .filter(p => ids.contains(p.track))
+          .sortBy(_.trackIndex)(Ord.desc)
           .drop(lift(limits.offset))
           .take(lift(limits.limit))
       }
-      val defaultEligible = runIO {
-        trackSql(
+      def trackSql(ts: IO[List[JoinedTrack], Effect.Read]) =
+        for {
+          t <- ts
+          c <- runIO(quote(pointsSql(liftQuery(t.map(_.track)))))
+        } yield {
+          val map = t.groupBy(_.track)
+          c.flatMap { row =>
+            map.get(row.track).map { jts =>
+              TrackCoord(jts.head, row)
+            }
+          }
+        }
+
+      val defaultEligible = trackSql {
+        runIO(
           nonEmptyTracks
             .filter(_.boat.username == lift(user.username))
             .sortBy(_.trackAdded)(Ord.desc)
             .take(1)
         )
       }
-      val trackLimited = runIO {
-        trackSql(
+      val trackLimited = trackSql {
+        runIO(
           nonEmptyTracks.filter(t => liftQuery(limits.tracks).contains(t.trackName))
         )
       }
-      val canonicalLimited = runIO {
-        trackSql(
+      val canonicalLimited = trackSql {
+        runIO(
           nonEmptyTracks.filter(t => liftQuery(limits.canonicals).contains(t.canonical))
         )
       }
-      val fallback = runIO { trackSql(nonEmptyTracks) }
+      val fallback = trackSql { runIO(nonEmptyTracks) }
       val eligibleTracks =
         if (limits.tracks.nonEmpty) trackLimited
         else if (limits.canonicals.nonEmpty) canonicalLimited
