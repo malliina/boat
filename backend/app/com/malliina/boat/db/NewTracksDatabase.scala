@@ -24,8 +24,8 @@ object NewTracksDatabase {
     collect(rows.map(sc => (sc.s, sc.c)), formatter)
 
   def collect(
-      rows: Seq[(SentenceRow, CombinedCoord)],
-      formatter: TimeFormatter
+    rows: Seq[(SentenceRow, CombinedCoord)],
+    formatter: TimeFormatter
   ): Seq[CombinedFullCoord] =
     rows.foldLeft(Vector.empty[CombinedFullCoord]) {
       case (acc, (s, c)) =>
@@ -78,7 +78,7 @@ object NewTracksDatabase {
 }
 
 class NewTracksDatabase(val db: BoatDatabase[SnakeCase])(
-    implicit val ec: ExecutionContext
+  implicit val ec: ExecutionContext
 ) extends TracksSource {
   import db._
 
@@ -460,7 +460,7 @@ class NewTracksDatabase(val db: BoatDatabase[SnakeCase])(
   def history(user: MinimalUserInfo, limits: BoatQuery): Future[Seq[CoordsEvent]] = {
     val keys = (limits.tracks.map(_.name) ++ limits.canonicals.map(_.name)).mkString(", ")
     val describe = if (keys.isEmpty) "" else s"for tracks $keys "
-    performAsync(s"Track history renewed ${describe}by user ${user.username}") {
+    performAsync(s"Track history ${describe}by user ${user.username}") {
       def pointsSql = quote { ids: Query[TrackId] =>
         rangedCoords(lift(limits.from), lift(limits.to))
           .filter(p => ids.contains(p.track))
