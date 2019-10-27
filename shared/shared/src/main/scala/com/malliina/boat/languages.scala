@@ -3,13 +3,116 @@ package com.malliina.boat
 import com.malliina.http.FullUrl
 import play.api.libs.json.{Format, Json, Writes}
 
+case class TrafficSignTypeLang(
+  unknown: String,
+  forbidden: String,
+  limit: String,
+  info: String,
+  cableOrWire: String,
+  direction: String,
+  lightInfo: String
+)
+
+object TrafficSignTypeLang {
+  implicit val json = Json.format[TrafficSignTypeLang]
+}
+case class TrafficSignLimitsLang(
+  unknown: String,
+  noAnchoring: String,
+  noParking: String,
+  noAttachment: String,
+  noOvertaking: String,
+  noRendezVous: String,
+  noWaves: String,
+  noWaterSkiing: String,
+  noWindSurfing: String,
+  noMotorPower: String,
+  noJetSkiing: String,
+  speedLimit: String,
+  stopSign: String,
+  generalWarning: String,
+  signalMandatory: String,
+  heightLimit: String,
+  depthLimit: String,
+  widthLimit: String
+)
+
+object TrafficSignLimitsLang {
+  implicit val json = Json.format[TrafficSignLimitsLang]
+
+  def apply(
+    unknown: String,
+    noWaterSkiing: String,
+    stopSign: String,
+    generalWarning: String,
+    signalMandatory: String,
+    heightLimit: String,
+    depthLimit: String,
+    widthLimit: String,
+    limits: LimitTypes
+  ): TrafficSignLimitsLang = TrafficSignLimitsLang(
+    unknown,
+    limits.noAnchoring,
+    limits.noStopping,
+    limits.noAttachment,
+    limits.noOvertaking,
+    limits.noRendezVous,
+    limits.noWaves,
+    noWaterSkiing,
+    limits.noWindSurfing,
+    limits.noMotorPower,
+    limits.noJetSkiing,
+    limits.speedLimit,
+    stopSign,
+    generalWarning,
+    signalMandatory,
+    heightLimit,
+    depthLimit,
+    widthLimit
+  )
+}
+
+case class TrafficSignInfoLang(
+  strongCurrent: String,
+  fairwaySide: String,
+  swimmingWarning: String,
+  useRadio: String,
+  parkingAllowed: String,
+  attachmentAllowed: String,
+  airCable: String,
+  phone: String,
+  cableFerryCrossing: String,
+  ferryCrossing: String,
+  radioPossibility: String,
+  drinkingPoint: String,
+  limitEnds: String,
+  cableSign: String,
+  wireSign: String,
+  directionUpper: String,
+  directionLower: String
+)
+
+object TrafficSignInfoLang {
+  implicit val json = Json.format[TrafficSignInfoLang]
+}
+
+case class TrafficSignLang(
+  limits: TrafficSignLimitsLang,
+  infos: TrafficSignInfoLang,
+  types: TrafficSignTypeLang
+)
+
+object TrafficSignLang {
+  implicit val json = Json.format[TrafficSignLang]
+}
+
 case class FairwayStateLang(
-    confirmed: String,
-    aihio: String,
-    mayChange: String,
-    changeAihio: String,
-    mayBeRemoved: String,
-    removed: String
+  confirmed: String,
+  aihio: String,
+  mayChange: String,
+  changeAihio: String,
+  mayBeRemoved: String,
+  removed: String
 )
 
 object FairwayStateLang {
@@ -39,19 +142,19 @@ object FloationLang {
 }
 
 case class AidTypeLang(
-    unknown: String,
-    lighthouse: String,
-    sectorLight: String,
-    leadingMark: String,
-    directionalLight: String,
-    minorLight: String,
-    otherMark: String,
-    edgeMark: String,
-    radarTarget: String,
-    buoy: String,
-    beacon: String,
-    signatureLighthouse: String,
-    cairn: String
+  unknown: String,
+  lighthouse: String,
+  sectorLight: String,
+  leadingMark: String,
+  directionalLight: String,
+  minorLight: String,
+  otherMark: String,
+  edgeMark: String,
+  radarTarget: String,
+  buoy: String,
+  beacon: String,
+  signatureLighthouse: String,
+  cairn: String
 )
 
 object AidTypeLang {
@@ -104,17 +207,17 @@ object AidTypeLang {
 }
 
 case class NavMarkLang(
-    unknown: String,
-    left: String,
-    right: String,
-    north: String,
-    south: String,
-    west: String,
-    east: String,
-    rock: String,
-    safeWaters: String,
-    special: String,
-    notApplicable: String
+  unknown: String,
+  left: String,
+  right: String,
+  north: String,
+  south: String,
+  west: String,
+  east: String,
+  rock: String,
+  safeWaters: String,
+  special: String,
+  notApplicable: String
 )
 
 object NavMarkLang {
@@ -161,25 +264,25 @@ object NavMarkLang {
 }
 
 case class ConstructionLang(
-    buoyBeacon: String,
-    iceBuoy: String,
-    beaconBuoy: String,
-    superBeacon: String,
-    exteriorLight: String,
-    dayBoard: String,
-    helicopterPlatform: String,
-    radioMast: String,
-    waterTower: String,
-    smokePipe: String,
-    radarTower: String,
-    churchTower: String,
-    superBuoy: String,
-    edgeCairn: String,
-    compassCheck: String,
-    borderMark: String,
-    borderLineMark: String,
-    channelEdgeLight: String,
-    tower: String
+  buoyBeacon: String,
+  iceBuoy: String,
+  beaconBuoy: String,
+  superBeacon: String,
+  exteriorLight: String,
+  dayBoard: String,
+  helicopterPlatform: String,
+  radioMast: String,
+  waterTower: String,
+  smokePipe: String,
+  radarTower: String,
+  churchTower: String,
+  superBuoy: String,
+  edgeCairn: String,
+  compassCheck: String,
+  borderMark: String,
+  borderLineMark: String,
+  channelEdgeLight: String,
+  tower: String
 )
 
 object ConstructionLang {
@@ -249,36 +352,38 @@ object ConstructionLang {
   )
 }
 
-case class SpecialCategory(fishing: String,
-                           tug: String,
-                           dredger: String,
-                           diveVessel: String,
-                           militaryOps: String,
-                           sailing: String,
-                           pleasureCraft: String)
+case class SpecialCategory(
+  fishing: String,
+  tug: String,
+  dredger: String,
+  diveVessel: String,
+  militaryOps: String,
+  sailing: String,
+  pleasureCraft: String
+)
 
 object SpecialCategory {
   implicit val json = Json.format[SpecialCategory]
 }
 
 case class ShipTypesLang(
-    wingInGround: String,
-    special: SpecialCategory,
-    highSpeedCraft: String,
-    pilotVessel: String,
-    searchAndRescue: String,
-    searchAndRescueAircraft: String,
-    portTender: String,
-    antiPollution: String,
-    lawEnforce: String,
-    localVessel: String,
-    medicalTransport: String,
-    specialCraft: String,
-    passenger: String,
-    cargo: String,
-    tanker: String,
-    other: String,
-    unknown: String
+  wingInGround: String,
+  special: SpecialCategory,
+  highSpeedCraft: String,
+  pilotVessel: String,
+  searchAndRescue: String,
+  searchAndRescueAircraft: String,
+  portTender: String,
+  antiPollution: String,
+  lawEnforce: String,
+  localVessel: String,
+  medicalTransport: String,
+  specialCraft: String,
+  passenger: String,
+  cargo: String,
+  tanker: String,
+  other: String,
+  unknown: String
 )
 
 object ShipTypesLang {
@@ -370,34 +475,36 @@ object ShipTypesLang {
 }
 
 case class FairwayTypeLang(
-    navigation: String,
-    anchoring: String,
-    meetup: String,
-    harborPool: String,
-    turn: String,
-    channel: String,
-    coastTraffic: String,
-    core: String,
-    special: String,
-    lock: String,
-    confirmedExtra: String,
-    helcom: String,
-    pilot: String
+  navigation: String,
+  anchoring: String,
+  meetup: String,
+  harborPool: String,
+  turn: String,
+  channel: String,
+  coastTraffic: String,
+  core: String,
+  special: String,
+  lock: String,
+  confirmedExtra: String,
+  helcom: String,
+  pilot: String
 )
 
 object FairwayTypeLang {
   implicit val json = Json.format[FairwayTypeLang]
 }
 
-case class FairwayLang(fairwayType: String,
-                       fairwayDepth: String,
-                       harrowDepth: String,
-                       minDepth: String,
-                       maxDepth: String,
-                       state: String,
-                       states: FairwayStateLang,
-                       zones: ZonesLang,
-                       types: FairwayTypeLang)
+case class FairwayLang(
+  fairwayType: String,
+  fairwayDepth: String,
+  harrowDepth: String,
+  minDepth: String,
+  maxDepth: String,
+  state: String,
+  states: FairwayStateLang,
+  zones: ZonesLang,
+  types: FairwayTypeLang
+)
 
 object FairwayLang {
   implicit val json = Json.format[FairwayLang]
@@ -409,52 +516,58 @@ object AisLang {
   implicit val json = Json.format[AisLang]
 }
 
-case class TrackLang(track: String,
-                     boats: String,
-                     tracks: String,
-                     days: String,
-                     routes: String,
-                     speed: String,
-                     water: String,
-                     depth: String,
-                     top: String,
-                     duration: String,
-                     hours: String,
-                     distance: String,
-                     topSpeed: String,
-                     avgSpeed: String,
-                     waterTemp: String,
-                     date: String,
-                     trackHistory: String,
-                     graph: String,
-                     coordinate: String,
-                     comments: String)
+case class TrackLang(
+  track: String,
+  boats: String,
+  tracks: String,
+  days: String,
+  routes: String,
+  speed: String,
+  water: String,
+  depth: String,
+  top: String,
+  duration: String,
+  hours: String,
+  distance: String,
+  topSpeed: String,
+  avgSpeed: String,
+  waterTemp: String,
+  date: String,
+  trackHistory: String,
+  graph: String,
+  coordinate: String,
+  comments: String
+)
 
 object TrackLang {
   implicit val json = Json.format[TrackLang]
 }
 
-case class MarkLang(markType: String,
-                    aidType: String,
-                    navigation: String,
-                    construction: String,
-                    influence: String,
-                    location: String,
-                    owner: String,
-                    types: MarkTypeLang,
-                    navTypes: NavMarkLang,
-                    structures: ConstructionLang,
-                    aidTypes: AidTypeLang)
+case class MarkLang(
+  markType: String,
+  aidType: String,
+  navigation: String,
+  construction: String,
+  influence: String,
+  location: String,
+  owner: String,
+  types: MarkTypeLang,
+  navTypes: NavMarkLang,
+  structures: ConstructionLang,
+  aidTypes: AidTypeLang
+)
 
 object MarkLang {
   implicit val json = Json.format[MarkLang]
 }
 
-case class SpecialWords(transportAgency: String,
-                        defenceForces: String,
-                        portOfHelsinki: String,
-                        cityOfHelsinki: String,
-                        cityOfEspoo: String)
+case class SpecialWords(
+  transportAgency: String,
+  defenceForces: String,
+  portOfHelsinki: String,
+  cityOfHelsinki: String,
+  cityOfEspoo: String
+)
 
 object SpecialWords {
   implicit val json = Json.format[SpecialWords]
@@ -484,11 +597,13 @@ object AttributionInfo {
   val fi = translated(
     "Lisenssit",
     "Merikartta-aineistot",
-    "Lähde: Liikennevirasto. Ei navigointikäyttöön. Ei täytä virallisen merikartan vaatimuksia.")
+    "Lähde: Liikennevirasto. Ei navigointikäyttöön. Ei täytä virallisen merikartan vaatimuksia."
+  )
   val se = translated(
     "Licenser",
     "Sjökortsmaterial",
-    "Källa: Trafikverket. Får inte användas för navigationsändamål. Uppfyller inte fordringarna för officiella sjökort.")
+    "Källa: Trafikverket. Får inte användas för navigationsändamål. Uppfyller inte fordringarna för officiella sjökort."
+  )
   val en = translated(
     "Attributions",
     "Nautical charts",
@@ -510,24 +625,28 @@ object AttributionInfo {
     )
 }
 
-case class ProfileLang(username: String,
-                       signedInAs: String,
-                       logout: String,
-                       chooseIdentityProvider: String,
-                       language: String,
-                       chooseLanguage: String,
-                       finnish: String,
-                       swedish: String,
-                       english: String)
+case class ProfileLang(
+  username: String,
+  signedInAs: String,
+  logout: String,
+  chooseIdentityProvider: String,
+  language: String,
+  chooseLanguage: String,
+  finnish: String,
+  swedish: String,
+  english: String
+)
 
 object ProfileLang {
   implicit val json = Json.format[ProfileLang]
 }
 
-case class MessagesLang(loading: String,
-                        failedToLoadProfile: String,
-                        noSavedTracks: String,
-                        notAvailable: String)
+case class MessagesLang(
+  loading: String,
+  failedToLoadProfile: String,
+  noSavedTracks: String,
+  notAvailable: String
+)
 
 object MessagesLang {
   implicit val json = Json.format[MessagesLang]
@@ -539,37 +658,41 @@ object FormatsLang {
   implicit val json = Json.format[FormatsLang]
 }
 
-case class BoatLang(boat: String,
-                    rename: String,
-                    renameBoat: String,
-                    addBoat: String,
-                    newName: String,
-                    token: String,
-                    tokenText: String,
-                    tokenTextLong: String)
+case class BoatLang(
+  boat: String,
+  rename: String,
+  renameBoat: String,
+  addBoat: String,
+  newName: String,
+  token: String,
+  tokenText: String,
+  tokenTextLong: String
+)
 
 object BoatLang {
   implicit val json = Json.format[BoatLang]
 }
 
-case class SettingsLang(welcome: String,
-                        welcomeText: String,
-                        laterText: String,
-                        notifications: String,
-                        notificationsText: String,
-                        howItWorks: String,
-                        signIn: String,
-                        signInText: String,
-                        giveTrackTitle: String,
-                        edit: String,
-                        cancel: String,
-                        back: String,
-                        done: String,
-                        noTracksHelp: String,
-                        formats: FormatsLang,
-                        boatLang: BoatLang,
-                        actions: String,
-                        delete: String)
+case class SettingsLang(
+  welcome: String,
+  welcomeText: String,
+  laterText: String,
+  notifications: String,
+  notificationsText: String,
+  howItWorks: String,
+  signIn: String,
+  signInText: String,
+  giveTrackTitle: String,
+  edit: String,
+  cancel: String,
+  back: String,
+  done: String,
+  noTracksHelp: String,
+  formats: FormatsLang,
+  boatLang: BoatLang,
+  actions: String,
+  delete: String
+)
 
 object SettingsLang {
   val jsonFormat = Json.format[SettingsLang]
@@ -588,33 +711,51 @@ object LanguageInfo {
   implicit val json = Json.format[LanguageInfo]
 }
 
-case class LimitTypes(speedLimit: String,
-                      noWaves: String,
-                      noWindSurfing: String,
-                      noJetSkiing: String,
-                      noMotorPower: String,
-                      noAnchoring: String,
-                      noStopping: String,
-                      noAttachment: String,
-                      noOvertaking: String,
-                      noRendezVous: String,
-                      speedRecommendation: String)
+case class LimitTypes(
+  speedLimit: String,
+  noWaves: String,
+  noWindSurfing: String,
+  noJetSkiing: String,
+  noMotorPower: String,
+  noAnchoring: String,
+  noStopping: String,
+  noAttachment: String,
+  noOvertaking: String,
+  noRendezVous: String,
+  speedRecommendation: String
+)
 
 object LimitTypes {
   implicit val json = Json.format[LimitTypes]
 }
 
-case class LimitLang(limit: String,
-                     magnitude: String,
-                     length: String,
-                     location: String,
-                     fairwayName: String,
-                     responsible: String,
-                     types: LimitTypes)
+case class LimitLang(
+  limit: String,
+  magnitude: String,
+  length: String,
+  location: String,
+  fairwayName: String,
+  responsible: String,
+  types: LimitTypes,
+  signs: TrafficSignLang
+)
 
 object LimitLang {
   implicit val json = Json.format[LimitLang]
 
+  val limitsFi = LimitTypes(
+    "Nopeusrajoitus",
+    "Aallokon aiheuttamisen kielto",
+    "Purjelautailukielto",
+    "Vesiskootterilla ajo kielletty",
+    "Aluksen kulku moottorivoimaa käyttäen kielletty",
+    "Ankkurin käyttökielto",
+    "Pysäköimiskielto",
+    "Kiinnittymiskielto",
+    "Ohittamiskielto",
+    "Kohtaamiskielto",
+    "Nopeussuositus"
+  )
   val fi = LimitLang(
     "Rajoitukset",
     "Nopeus",
@@ -622,19 +763,61 @@ object LimitLang {
     "Sijainti",
     "Väylän nimi",
     "Merkinnästä vastaava",
-    LimitTypes(
-      "Nopeusrajoitus",
-      "Aallokon aiheuttamisen kielto",
-      "Purjelautailukielto",
-      "Vesiskootterilla ajo kielletty",
-      "Aluksen kulku moottorivoimaa käyttäen kielletty",
-      "Ankkurin käyttökielto",
-      "Pysäköimiskielto",
-      "Kiinnittymiskielto",
-      "Ohittamiskielto",
-      "Kohtaamiskielto",
-      "Nopeussuositus"
+    limitsFi,
+    TrafficSignLang(
+      TrafficSignLimitsLang(
+        "Tuntematon",
+        "Vesihiihtokielto",
+        "Pysähtymismerkki",
+        "Yleinen varoitusmerkki",
+        "Annettava äänimerkki",
+        "Rajoitettu alikulkukorkeus",
+        "Rajoitettu kulkusyvyys",
+        "Rajoitettu kulkuleveys",
+        limitsFi
+      ),
+      TrafficSignInfoLang(
+        "Voimakas virtaus",
+        "Väylän reuna",
+        "Varoitus uimapaikasta",
+        "Otettava yhteys radiopuhelimella",
+        "Pysäköiminen sallittu",
+        "Kiinnittyminen sallittu",
+        "Ilmajohto",
+        "Puhelin",
+        "Lauttaväylän risteäminen, lossi",
+        "Lauttaväylän risteäminen, lautta",
+        "Mahdollisuus radiopuhelinyhteyteen",
+        "Juomavesipiste",
+        "Kiellon, määräyksen tai rajoituksen päättyminen",
+        "Kaapelitaulu",
+        "Johtotaulu",
+        "Suuntamerkki, ylempi",
+        "Suuntamerkki, alempi"
+      ),
+      TrafficSignTypeLang(
+        "Tuntematon",
+        "Kieltomerkki",
+        "Määräys- tai rajoitusmerkki",
+        "Tiedotusmerkki",
+        "Kaapeli- tai johtotaulu",
+        "Suuntamerkki",
+        "Valo-opaste"
+      )
     )
+  )
+  val limitsSe = LimitTypes(
+    "Hastighetsbegränsning",
+    "Förbjudet att orsaka vågor",
+    "Vindsurfing förbjudet",
+    "Förbjudet att åka vattenskoter",
+    "Motorkraft förbjudet",
+    "Förbjudet att använda ankare",
+    "Förbjudet att stanna",
+    "Förbjudet att stanna",
+    "Förbjudet att passera",
+    "Mötesförbud",
+    "Hastighetsrekommendation"
   )
   val se = LimitLang(
     "Begränsningar",
@@ -643,19 +826,61 @@ object LimitLang {
     "Plats",
     "Farledens namn",
     "Ansvarig",
-    LimitTypes(
-      "Hastighetsbegränsning",
-      "Förbjudet att orsaka vågor",
-      "Vindsurfing förbjudet",
-      "Förbjudet att åka vattenskoter",
-      "Motorkraft förbjudet",
-      "Förbjudet att använda ankare",
-      "Förbjudet att stanna",
-      "Förbjudet att stanna",
-      "Förbjudet att passera",
-      "Mötesförbud",
-      "Hastighetsrekommendation"
+    limitsSe,
+    TrafficSignLang(
+      TrafficSignLimitsLang(
+        "Okänd",
+        "Förbjudet att vattenskida",
+        "Stop-märke",
+        "Allmänt varningsmärke",
+        "Måste ge ljudsignal",
+        "Begränsad höjd",
+        "Begränsat djup",
+        "Begränsad bredd",
+        limitsSe
+      ),
+      TrafficSignInfoLang(
+        "Stark ström",
+        "Farledens gräns",
+        "Varning för simplats",
+        "Bör ta radiokontakt",
+        "Tillåtet att parkera",
+        "Tillåtet att stanna",
+        "Luftkabel",
+        "Telefon",
+        "Korsande kabelfärja",
+        "Korsande färja",
+        "Möjligt att ta radiokontakt",
+        "Drickspunkt, vatten",
+        "Begränsning eller förbud tar slut",
+        "Kabeltavla",
+        "Ledningstavla",
+        "Riktningsmärke, övre",
+        "Riktningsmärke, nedre"
+      ),
+      TrafficSignTypeLang(
+        "Okänd",
+        "Förbudsmärke",
+        "Begränsningsmärke",
+        "Informationsmärke",
+        "Kabel- eller ledningstavla",
+        "Riktningsmärke",
+        "Ljus"
+      )
     )
+  )
+  val limitsEn = LimitTypes(
+    "Speed limit",
+    "No waves",
+    "No windsurfing",
+    "No jet skiing",
+    "No motor power",
+    "No anchoring",
+    "No stopping",
+    "No stopping",
+    "No passing",
+    "No meeting",
+    "Speed recommendation"
   )
   val en = LimitLang(
     "Limits",
@@ -664,18 +889,47 @@ object LimitLang {
     "Location",
     "Fairway name",
     "Responsible",
-    LimitTypes(
-      "Speed limit",
-      "No waves",
-      "No windsurfing",
-      "No jet skiing",
-      "No motor power",
-      "No anchoring",
-      "No stopping",
-      "No stopping",
-      "No passing",
-      "No meeting",
-      "Speed recommendation"
+    limitsEn,
+    TrafficSignLang(
+      TrafficSignLimitsLang(
+        "Unknown",
+        "Waterskiing forbidden",
+        "Stop sign",
+        "General warning",
+        "Must make sound",
+        "Limited height",
+        "Limited depth",
+        "Limited width",
+        limitsEn
+      ),
+      TrafficSignInfoLang(
+        "Strong current",
+        "Fairway limit",
+        "Swimmers warning",
+        "Must make radio contact",
+        "Parking allowed",
+        "Stopping allowed",
+        "Air cable",
+        "Telephone",
+        "Cable ferry crossing",
+        "Ferry crossing",
+        "Radio contact possibility",
+        "Drinking point, water",
+        "End of warning or limit",
+        "Cable sign",
+        "Wire sign",
+        "Direction sign, upper",
+        "Direction sign, lower"
+      ),
+      TrafficSignTypeLang(
+        "Unknown",
+        "Not allowed",
+        "Limit",
+        "Informational",
+        "Cable or wire",
+        "Direction",
+        "Light assistance"
+      )
     )
   )
 }
@@ -686,18 +940,20 @@ object LabelsLang {
   implicit val json = Json.format[LabelsLang]
 }
 
-case class MonthsLang(jan: String,
-                      feb: String,
-                      mar: String,
-                      apr: String,
-                      may: String,
-                      jun: String,
-                      jul: String,
-                      aug: String,
-                      sep: String,
-                      oct: String,
-                      nov: String,
-                      dec: String) {
+case class MonthsLang(
+  jan: String,
+  feb: String,
+  mar: String,
+  apr: String,
+  may: String,
+  jun: String,
+  jul: String,
+  aug: String,
+  sep: String,
+  oct: String,
+  nov: String,
+  dec: String
+) {
   def apply(month: MonthVal) = month.value match {
     case 1  => jan
     case 2  => feb
@@ -718,42 +974,48 @@ case class MonthsLang(jan: String,
 object MonthsLang {
   implicit val json = Json.format[MonthsLang]
 
-  val se = apply("Januari",
-                 "Februari",
-                 "Mars",
-                 "April",
-                 "Maj",
-                 "Juni",
-                 "Juli",
-                 "Augusti",
-                 "September",
-                 "Oktober",
-                 "November",
-                 "December")
-  val fi = apply("Tammikuu",
-                 "Helmikuu",
-                 "Maaliskuu",
-                 "Huhtikuu",
-                 "Toukokuu",
-                 "Kesäkuu",
-                 "Heinäkuu",
-                 "Elokuu",
-                 "Syyskuu",
-                 "Lokakuu",
-                 "Marraskuu",
-                 "Joulukuu")
-  val en = apply("January",
-                 "February",
-                 "March",
-                 "April",
-                 "May",
-                 "June",
-                 "July",
-                 "August",
-                 "September",
-                 "October",
-                 "November",
-                 "December")
+  val se = apply(
+    "Januari",
+    "Februari",
+    "Mars",
+    "April",
+    "Maj",
+    "Juni",
+    "Juli",
+    "Augusti",
+    "September",
+    "Oktober",
+    "November",
+    "December"
+  )
+  val fi = apply(
+    "Tammikuu",
+    "Helmikuu",
+    "Maaliskuu",
+    "Huhtikuu",
+    "Toukokuu",
+    "Kesäkuu",
+    "Heinäkuu",
+    "Elokuu",
+    "Syyskuu",
+    "Lokakuu",
+    "Marraskuu",
+    "Joulukuu"
+  )
+  val en = apply(
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December"
+  )
 }
 
 case class CalendarLang(months: MonthsLang)
@@ -763,26 +1025,26 @@ object CalendarLang {
 }
 
 case class Lang(
-    appName: String,
-    map: String,
-    language: Language,
-    name: String,
-    qualityClass: String,
-    time: String,
-    comparisonLevel: String,
-    specialWords: SpecialWords,
-    fairway: FairwayLang,
-    track: TrackLang,
-    mark: MarkLang,
-    ais: AisLang,
-    shipTypes: ShipTypesLang,
-    attributions: AttributionInfo,
-    profile: ProfileLang,
-    messages: MessagesLang,
-    settings: SettingsLang,
-    limits: LimitLang,
-    labels: LabelsLang,
-    calendar: CalendarLang
+  appName: String,
+  map: String,
+  language: Language,
+  name: String,
+  qualityClass: String,
+  time: String,
+  comparisonLevel: String,
+  specialWords: SpecialWords,
+  fairway: FairwayLang,
+  track: TrackLang,
+  mark: MarkLang,
+  ais: AisLang,
+  shipTypes: ShipTypesLang,
+  attributions: AttributionInfo,
+  profile: ProfileLang,
+  messages: MessagesLang,
+  settings: SettingsLang,
+  limits: LimitLang,
+  labels: LabelsLang,
+  calendar: CalendarLang
 )
 
 object Lang {
@@ -886,15 +1148,17 @@ object Lang {
     ),
     shipTypes = ShipTypesLang.en,
     attributions = AttributionInfo.en,
-    ProfileLang("Username",
-                "Signed in as",
-                "Logout",
-                "Choose Identity Provider",
-                "Language",
-                "Choose Language",
-                "Suomeksi",
-                "Svenska",
-                "English"),
+    ProfileLang(
+      "Username",
+      "Signed in as",
+      "Logout",
+      "Choose Identity Provider",
+      "Language",
+      "Choose Language",
+      "Suomeksi",
+      "Svenska",
+      "English"
+    ),
     MessagesLang("Loading...", "Failed to load profile,", "No saved tracks.", "N/A"),
     SettingsLang(
       "Welcome",
@@ -920,7 +1184,7 @@ object Lang {
         "Provide a new name",
         "Token",
         s"Add the token to the $appName agent software running in your boat. For more information, see https://www.boat-tracker.com/docs/agent.",
-        s"Add the token provided after sign in to the $appName agent software running in your boat. Subsequently, tracks driven with the boat are saved to your account and can be viewed in this app. For agent installation instructions, see https://www.boat-tracker.com/docs/agent.",
+        s"Add the token provided after sign in to the $appName agent software running in your boat. Subsequently, tracks driven with the boat are saved to your account and can be viewed in this app. For agent installation instructions, see https://www.boat-tracker.com/docs/agent."
       ),
       "Actions",
       "Delete"
@@ -1019,19 +1283,23 @@ object Lang {
     ),
     shipTypes = ShipTypesLang.fi,
     AttributionInfo.fi,
-    ProfileLang("Käyttäjätunnus",
-                "Käyttäjätunnus",
-                "Kirjaudu ulos",
-                "Valitse kirjautuminen",
-                "Kieli",
-                "Valitse kieli",
-                "Suomeksi",
-                "Svenska",
-                "English"),
-    MessagesLang("Laddar...",
-                 "Käyttäjätietojen lataus epäonnistui.",
-                 "Ei tallennettuja reittejä.",
-                 "N/A"),
+    ProfileLang(
+      "Käyttäjätunnus",
+      "Käyttäjätunnus",
+      "Kirjaudu ulos",
+      "Valitse kirjautuminen",
+      "Kieli",
+      "Valitse kieli",
+      "Suomeksi",
+      "Svenska",
+      "English"
+    ),
+    MessagesLang(
+      "Laddar...",
+      "Käyttäjätietojen lataus epäonnistui.",
+      "Ei tallennettuja reittejä.",
+      "N/A"
+    ),
     SettingsLang(
       "Welcome",
       s"Lisää tämä avain veneeseen asennettuun $appName -sovellukseen tallentaaksesi ajettuja reittejä:",
@@ -1056,7 +1324,7 @@ object Lang {
         "Uusi nimi",
         "Avain",
         s"Lisää avain veneeseen asennettuun $appName -sovellukseen. Lisätietoja saat osoitteesta https://docs.boat-tracker.com/agent/.",
-        "Kirjautumisen jälkeen saat avaimen, jolla tallennat ajetut matkat käyttäjätunnuksellesi. Lisätietoja saat osoitteesta https://docs.boat-tracker.com/agent/.",
+        "Kirjautumisen jälkeen saat avaimen, jolla tallennat ajetut matkat käyttäjätunnuksellesi. Lisätietoja saat osoitteesta https://docs.boat-tracker.com/agent/."
       ),
       "Toimenpiteet",
       "Poista"
@@ -1155,15 +1423,17 @@ object Lang {
     ),
     shipTypes = ShipTypesLang.se,
     AttributionInfo.se,
-    ProfileLang("Användarnamn",
-                "Inloggad som",
-                "Logga ut",
-                "Identifiera dig",
-                "Språk",
-                "Välj språk",
-                "Suomeksi",
-                "Svenska",
-                "English"),
+    ProfileLang(
+      "Användarnamn",
+      "Inloggad som",
+      "Logga ut",
+      "Identifiera dig",
+      "Språk",
+      "Välj språk",
+      "Suomeksi",
+      "Svenska",
+      "English"
+    ),
     MessagesLang("Laddar...", "Laddning av profildata misslyckades.", "Inga sparade spår.", "N/A"),
     SettingsLang(
       "Välkommen",
@@ -1189,7 +1459,7 @@ object Lang {
         "Ange ett nytt namn",
         "Nyckel",
         s"Spara nyckeln i $appName-appen installerad i din båt. För mera information, se https://docs.boat-tracker.com/agent/.",
-        s"Inloggning skapar en nyckel du kan spara i $appName-appen installerad i din båt. Med nyckeln sparas körda spår under ditt användarnamn. För mera information, se https://docs.boat-tracker.com/agent/.",
+        s"Inloggning skapar en nyckel du kan spara i $appName-appen installerad i din båt. Med nyckeln sparas körda spår under ditt användarnamn. För mera information, se https://docs.boat-tracker.com/agent/."
       ),
       "Ändringar",
       "Radera"
