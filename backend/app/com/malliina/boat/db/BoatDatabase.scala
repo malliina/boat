@@ -4,14 +4,15 @@ import java.sql.{Timestamp, Types}
 import java.time.Instant
 
 import akka.actor.ActorSystem
-import com.malliina.boat.{Coord, Usernames}
+import com.malliina.boat.Coord
 import com.malliina.boat.db.BoatDatabase.log
 import com.malliina.measure.DistanceM
 import com.zaxxer.hikari.HikariDataSource
 import io.getquill.{MySQLDialect, MysqlJdbcContext, NamingStrategy, SnakeCase}
 import org.flywaydb.core.Flyway
 import play.api.Logger
-import concurrent.duration.DurationLong
+
+import scala.concurrent.duration.DurationLong
 import scala.concurrent.{ExecutionContext, Future}
 
 object BoatDatabase {
@@ -23,7 +24,6 @@ object BoatDatabase {
         .dataSource(conf.url, conf.user, conf.pass)
         .table("flyway_schema_history2")
         .load()
-    flyway.baseline()
     flyway.migrate()
     apply(as, conf)
   }
