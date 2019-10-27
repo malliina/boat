@@ -11,7 +11,7 @@ import com.zaxxer.hikari.HikariDataSource
 import io.getquill.{MySQLDialect, MysqlJdbcContext, NamingStrategy, SnakeCase}
 import org.flywaydb.core.Flyway
 import play.api.Logger
-
+import concurrent.duration.DurationLong
 import scala.concurrent.{ExecutionContext, Future}
 
 object BoatDatabase {
@@ -19,7 +19,11 @@ object BoatDatabase {
 
   def withMigrations(as: ActorSystem, conf: Conf): BoatDatabase[SnakeCase] = {
     val flyway =
-      Flyway.configure.dataSource(conf.url, conf.user, conf.pass).load()
+      Flyway.configure
+        .dataSource(conf.url, conf.user, conf.pass)
+        .table("flyway_schema_history2")
+        .load()
+    flyway.baseline()
     flyway.migrate()
     apply(as, conf)
   }
@@ -62,13 +66,17 @@ class BoatDatabase[N <: NamingStrategy](
 
   def transactionally[T](name: String)(io: IO[T, _]): Future[Result[T]] =
     performAsync(name)(io.transactional)
+
   def performAsync[T](name: String)(io: IO[T, _]): Future[Result[T]] = Future(perform(name, io))(ec)
 
   def perform[T](name: String, io: IO[T, _]): Result[T] = {
     val start = System.currentTimeMillis()
+    log.info(s"Loading $name...")
     val result = performIO(io)
     val end = System.currentTimeMillis()
-    log.warn(s"$name completed in ${end - start} ms.")
+    val duration = (end - start).millis
+    val message = s"$name completed in $duration."
+    if (duration > 500.millis) log.warn(message) else log.info(message)
     result
   }
 

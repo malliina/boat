@@ -18,12 +18,11 @@ object NewGPSDatabase {
   def apply(db: BoatDatabase[SnakeCase]): NewGPSDatabase =
     new NewGPSDatabase(db)
 
-  def collect(cs: Seq[JoinedGPS], formatter: TimeFormatter): Seq[GPSCoordsEvent] =
-    collectCoords(cs.map(c => (c.point, c.device)), formatter)
-
-  def collectCoords(rows: Seq[(GPSPointRow, JoinedBoat)], formatter: TimeFormatter) =
+  def collect(rows: Seq[JoinedGPS], formatter: TimeFormatter) =
     rows.foldLeft(Vector.empty[GPSCoordsEvent]) {
-      case (acc, (point, device)) =>
+      case (acc, joined) =>
+        val device = joined.device
+        val point = joined.point
         val idx = acc.indexWhere(_.from.device == device.device)
         val coord = GPSTimedCoord(point.id, point.coord, formatter.timing(point.gpsTime))
         if (idx >= 0) {
@@ -55,14 +54,15 @@ class NewGPSDatabase(val db: BoatDatabase[SnakeCase]) extends GPSSource {
     } yield JoinedGPS(point, boat)
   }
 
-  def history(user: MinimalUserInfo): Future[Seq[GPSCoordsEvent]] = performAsync("GPS history") {
-    runIO(historyByUser(lift(user.username))).map { cs =>
-      NewGPSDatabase.collect(cs, TimeFormatter(user.language))
+  def history(user: MinimalUserInfo): Future[Seq[GPSCoordsEvent]] =
+    performAsync(s"GPS history by ${user.username}") {
+      runIO(historyByUser(lift(user.username))).map { cs =>
+        NewGPSDatabase.collect(cs, TimeFormatter(user.language))
+      }
     }
-  }
 
   def saveSentences(sentences: GPSSentencesEvent): Future[Seq[GPSKeyedSentence]] =
-    transactionally("Save GPS sentences") {
+    transactionally(s"Save ${sentences.length} GPS sentences by ${sentences.from.user}") {
       val from = sentences.from
       IO.traverse(sentences.sentences) { s =>
         runIO(

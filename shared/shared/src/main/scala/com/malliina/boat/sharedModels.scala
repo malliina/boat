@@ -576,7 +576,9 @@ object CoordsBatch {
   implicit val json = Json.format[CoordsBatch]
 }
 
-case class GPSSentencesEvent(sentences: Seq[RawSentence], from: IdentifiedDeviceMeta)
+case class GPSSentencesEvent(sentences: Seq[RawSentence], from: IdentifiedDeviceMeta) {
+  def length: Int = sentences.length
+}
 
 case class SentencesEvent(sentences: Seq[RawSentence], from: TrackMetaShort) extends BoatFrontEvent
 

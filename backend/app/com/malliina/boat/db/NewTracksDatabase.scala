@@ -461,44 +461,47 @@ class NewTracksDatabase(val db: BoatDatabase[SnakeCase])(
     FullTrack(trackStats.strip(formatter), NewTracksDatabase.collectRows(coords, formatter))
   }
 
-  def history(user: MinimalUserInfo, limits: BoatQuery): Future[Seq[CoordsEvent]] = Future {
-    def trackSql = quote { ts: Query[JoinedTrack] =>
-      val q = for {
-        t <- ts
-        c <- rangedCoords(lift(limits.from), lift(limits.to))
-        if t.track == c.track
-      } yield TrackCoord(t, c)
-      q.sortBy(_.row.trackIndex)(Ord.desc)
-        .drop(lift(limits.offset))
-        .take(lift(limits.limit))
-    }
-    val defaultEligible = runIO {
-      trackSql(
-        nonEmptyTracks
-          .filter(_.boat.username == lift(user.username))
-          .sortBy(_.trackAdded)(Ord.desc)
-          .take(1)
-      )
-    }
-    val trackLimited = runIO {
-      trackSql(
-        nonEmptyTracks.filter(t => liftQuery(limits.tracks).contains(t.trackName))
-      )
-    }
-    val canonicalLimited = runIO {
-      trackSql(
-        nonEmptyTracks.filter(t => liftQuery(limits.canonicals).contains(t.canonical))
-      )
-    }
-    val fallback = runIO { trackSql(nonEmptyTracks) }
-    val eligibleTracks =
-      if (limits.tracks.nonEmpty) trackLimited
-      else if (limits.canonicals.nonEmpty) canonicalLimited
-      else if (limits.newest) defaultEligible
-      else fallback
+  def history(user: MinimalUserInfo, limits: BoatQuery): Future[Seq[CoordsEvent]] = {
     val keys = (limits.tracks.map(_.name) ++ limits.canonicals.map(_.name)).mkString(", ")
     val describe = if (keys.isEmpty) "" else s"for tracks $keys "
-    val rows = perform(s"Track history ${describe}by user ${user.username}", eligibleTracks)
-    NewTracksDatabase.collectTrackCoords(rows, user.language)
+    performAsync(s"Track history ${describe}by user ${user.username}") {
+      def trackSql = quote { ts: Query[JoinedTrack] =>
+        val q = for {
+          t <- ts
+          c <- rangedCoords(lift(limits.from), lift(limits.to))
+          if t.track == c.track
+        } yield TrackCoord(t, c)
+        q.sortBy(_.row.trackIndex)(Ord.desc)
+          .drop(lift(limits.offset))
+          .take(lift(limits.limit))
+      }
+      val defaultEligible = runIO {
+        trackSql(
+          nonEmptyTracks
+            .filter(_.boat.username == lift(user.username))
+            .sortBy(_.trackAdded)(Ord.desc)
+            .take(1)
+        )
+      }
+      val trackLimited = runIO {
+        trackSql(
+          nonEmptyTracks.filter(t => liftQuery(limits.tracks).contains(t.trackName))
+        )
+      }
+      val canonicalLimited = runIO {
+        trackSql(
+          nonEmptyTracks.filter(t => liftQuery(limits.canonicals).contains(t.canonical))
+        )
+      }
+      val fallback = runIO { trackSql(nonEmptyTracks) }
+      val eligibleTracks =
+        if (limits.tracks.nonEmpty) trackLimited
+        else if (limits.canonicals.nonEmpty) canonicalLimited
+        else if (limits.newest) defaultEligible
+        else fallback
+      eligibleTracks.map { rows =>
+        NewTracksDatabase.collectTrackCoords(rows, user.language)
+      }
+    }
   }
 }
