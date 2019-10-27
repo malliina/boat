@@ -29,6 +29,10 @@ val basicSettings = Seq(
   scalacOptions := Seq("-unchecked", "-deprecation")
 )
 
+val boatSettings = Seq(
+  version := "1.1.0"
+)
+
 val commonSettings = basicSettings ++ Seq(
   deployDocs := Process("mkdocs gh-deploy").run(streams.value.log).exitValue(),
   resolvers ++= Seq(
@@ -42,7 +46,7 @@ val cross = portableProject(JSPlatform, JVMPlatform)
   .crossType(PortableType.Full)
   .in(file("shared"))
   .disablePlugins(RevolverPlugin)
-  .settings(commonSettings)
+  .settings(commonSettings ++ boatSettings)
   .settings(
     libraryDependencies ++= Seq(
       "com.malliina" %%% "primitives" % primitiveVersion,
@@ -59,7 +63,7 @@ val frontend = project
   .enablePlugins(ScalaJSBundlerPlugin, ScalaJSWeb, NodeJsPlugin)
   .disablePlugins(RevolverPlugin)
   .dependsOn(crossJs)
-  .settings(commonSettings)
+  .settings(commonSettings ++ boatSettings)
   .settings(
     libraryDependencies ++= Seq(
       "com.typesafe.play" %%% "play-json" % "2.7.4",
@@ -107,9 +111,8 @@ val backend = Project("boat", file("backend"))
   .enablePlugins(FileTreePlugin, WebScalaJSBundlerPlugin, PlayLinuxPlugin)
   .disablePlugins(RevolverPlugin)
   .dependsOn(crossJvm)
-  .settings(commonSettings)
+  .settings(commonSettings ++ boatSettings)
   .settings(
-    version := "1.0.1",
     unmanagedResourceDirectories in Compile += baseDirectory.value / "docs",
     libraryDependencies ++= Seq(
       //    "net.sf.marineapi" % "marineapi" % "0.13.0-SNAPSHOT",
@@ -225,14 +228,14 @@ val agent = project
 val it = Project("integration-tests", file("boat-test"))
   .dependsOn(backend, backend % "test->test", agent)
   .disablePlugins(RevolverPlugin)
-  .settings(commonSettings)
+  .settings(commonSettings ++ boatSettings)
   .settings(libraryDependencies ++= Seq(utilPlayTestDep))
 
 val utils = project
   .in(file("utils"))
   .dependsOn(crossJvm)
   .disablePlugins(RevolverPlugin)
-  .settings(basicSettings)
+  .settings(basicSettings ++ boatSettings)
   .settings(
     resolvers += "GeoTools" at "https://download.osgeo.org/webdav/geotools/",
     libraryDependencies ++= Seq(
@@ -248,7 +251,7 @@ val utils = project
 val boatRoot = project
   .in(file("."))
   .aggregate(backend, frontend, agent, it, utils)
-  .settings(commonSettings)
+  .settings(commonSettings ++ boatSettings)
 
 def gitHash: String =
   Try(Process("git rev-parse --short HEAD").lineStream.head).toOption
