@@ -34,7 +34,7 @@ object LocalConf {
 }
 
 class AppLoader
-    extends DefaultApp(new AppComponents((conf, http, ec) => new ProdAppBuilder(conf, http, ec), _))
+  extends DefaultApp(new AppComponents((conf, http, ec) => new ProdAppBuilder(conf, http, ec), _))
 
 // Put modules that have different implementations in dev, prod or tests here.
 trait AppBuilder {
@@ -56,14 +56,15 @@ class ProdAppBuilder(conf: Configuration, http: OkClient, ec: ExecutionContext) 
 }
 
 class AppComponents(
-    init: (Configuration, OkClient, ExecutionContext) => AppBuilder,
-    context: Context
+  init: (Configuration, OkClient, ExecutionContext) => AppBuilder,
+  context: Context
 ) extends BuiltInComponentsFromContext(context)
-    with HttpFiltersComponents
-    with AssetsComponents {
+  with HttpFiltersComponents
+  with AssetsComponents {
   override lazy val httpErrorHandler: HttpErrorHandler = BoatErrorHandler
   val http = OkClient.default
-  override val configuration: Configuration = context.initialConfiguration ++ LocalConf.localConf
+  override val configuration: Configuration =
+    LocalConf.localConf.withFallback(context.initialConfiguration)
   val builder = init(configuration, http, executionContext)
 
   val appConf = builder.appConf
@@ -162,14 +163,13 @@ class AppComponents(
     files
   )
 
-  applicationLifecycle.addStopHook(
-    () =>
-      Future.successful {
-        ais.close()
-        deviceService.close()
-        boatService.close()
-        http.close()
-        db.close()
-      }
+  applicationLifecycle.addStopHook(() =>
+    Future.successful {
+      ais.close()
+      deviceService.close()
+      boatService.close()
+      http.close()
+      db.close()
+    }
   )
 }

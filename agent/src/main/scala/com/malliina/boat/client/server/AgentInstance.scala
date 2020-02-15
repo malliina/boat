@@ -7,12 +7,11 @@ import com.malliina.boat.client.server.Device.GpsDevice
 import com.malliina.http.FullUrl
 
 object AgentInstance {
-  def apply(initial: BoatConf, url: FullUrl, as: ActorSystem, mat: Materializer): AgentInstance =
-    new AgentInstance(initial, url)(as, mat)
+  def apply(initial: BoatConf, url: FullUrl, as: ActorSystem): AgentInstance =
+    new AgentInstance(initial, url)(as)
 }
 
-class AgentInstance(initialConf: BoatConf, url: FullUrl)(implicit as: ActorSystem,
-                                                         mat: Materializer) {
+class AgentInstance(initialConf: BoatConf, url: FullUrl)(implicit as: ActorSystem) {
   private var conf = initialConf
   private var agent = DeviceAgent(conf, url)
   if (initialConf.enabled) {

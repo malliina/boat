@@ -33,19 +33,19 @@ object BoatController {
 }
 
 class BoatController(
-    mapboxToken: AccessToken,
-    html: BoatHtml,
-    auther: UserManager,
-    googleAuth: EmailAuth,
-    boatService: BoatService,
-    deviceService: DeviceService,
-    db: TracksSource,
-    push: PushService,
-    comps: ControllerComponents
+  mapboxToken: AccessToken,
+  html: BoatHtml,
+  auther: UserManager,
+  googleAuth: EmailAuth,
+  boatService: BoatService,
+  deviceService: DeviceService,
+  db: TracksSource,
+  push: PushService,
+  comps: ControllerComponents
 )(implicit as: ActorSystem, mat: Materializer)
-    extends AuthController(googleAuth, auther, comps)
-    with Streams
-    with ContentVersions {
+  extends AuthController(googleAuth, auther, comps)
+  with Streams
+  with ContentVersions {
   val reverse = routes.BoatController
 
   val boatNameForm = Form[BoatName](BoatNames.Key -> BoatNames.mapping)
@@ -128,9 +128,7 @@ class BoatController(
 
   def canonical(track: TrackCanonical) = negotiated(
     html = index,
-    json = fetchTrack(
-      user => db.canonical(track, user.language).map(TrackResponse.apply)
-    )
+    json = fetchTrack(user => db.canonical(track, user.language).map(TrackResponse.apply))
   )
 
   private def negotiated(html: Action[AnyContent], json: Action[AnyContent]) =
@@ -283,7 +281,7 @@ class BoatController(
             else limits
           val history: Source[CoordsEvent, NotUsed] =
             Source
-              .fromFuture(db.history(user, historicalLimits))
+              .future(db.history(user, historicalLimits))
               .flatMapConcat { es =>
                 // unless a sample is specified, return about 300 historical points - this optimization is for charts
                 val intelligentSample =
@@ -295,7 +293,7 @@ class BoatController(
                 Source(es.toList.map(_.sample(actualSample)))
               }
           val gpsHistory =
-            Source.fromFuture(deviceService.db.history(user)).flatMapConcat { es =>
+            Source.future(deviceService.db.history(user)).flatMapConcat { es =>
               Source(es.toList)
             }
           val formatter = TimeFormatter(user.language)
@@ -321,7 +319,7 @@ class BoatController(
   }
 
   private def boatAction(
-      code: UserRequest[UserInfo, BoatName] => Future[BoatRow]
+    code: UserRequest[UserInfo, BoatName] => Future[BoatRow]
   ): Action[BoatName] =
     formAction(boatNameForm) { req =>
       code(req).map { b =>
@@ -330,7 +328,7 @@ class BoatController(
     }
 
   private def trackAction[F](
-      form: Form[F]
+    form: Form[F]
   )(code: UserRequest[UserInfo, F] => Future[JoinedTrack]): Action[F] =
     formAction(form) { req =>
       val formatter = TimeFormatter(req.user.language)
@@ -340,7 +338,7 @@ class BoatController(
     }
 
   private def formAction[T, W: Writeable](
-      form: Form[T]
+    form: Form[T]
   )(code: UserRequest[UserInfo, T] => Future[W]): Action[T] =
     formActionResult(form) { r =>
       code(r).map { w =>
@@ -349,7 +347,7 @@ class BoatController(
     }
 
   private def formActionResult[T](
-      form: Form[T]
+    form: Form[T]
   )(code: UserRequest[UserInfo, T] => Future[Result]): Action[T] =
     parsedAuth(parse.form(form, onErrors = (err: Form[T]) => formError(err)))(
       profile
@@ -358,18 +356,18 @@ class BoatController(
     }
 
   private def logTermination[In, Out, Mat](
-      flow: Flow[In, Out, Mat],
-      message: Try[Done] => String
+    flow: Flow[In, Out, Mat],
+    message: Try[Done] => String
   ): Flow[In, Out, Future[Done]] =
     terminationWatched(flow)(t => fut(log.info(message(t))))
 
   private def secureTrack(
-      run: BoatRequest[TrackQuery, MinimalUserInfo] => Future[Result]
+    run: BoatRequest[TrackQuery, MinimalUserInfo] => Future[Result]
   ) =
     secureAction(rh => TrackQuery.withDefault(rh, defaultLimit = 100))(run)
 
   private def secureJson[T, W: Writes](
-      parse: RequestHeader => Either[SingleError, T]
+    parse: RequestHeader => Either[SingleError, T]
   )(run: BoatRequest[T, MinimalUserInfo] => Future[W]) =
     secureAction(parse) { req =>
       run(req).map { w =>
@@ -378,13 +376,13 @@ class BoatController(
     }
 
   private def secureAction[T](
-      parse: RequestHeader => Either[SingleError, T]
+    parse: RequestHeader => Either[SingleError, T]
   )(run: BoatRequest[T, MinimalUserInfo] => Future[Result]) =
     userAction(authTypical, parse)(run)
 
   private def userAction[T, U](
-      authUser: RequestHeader => Future[U],
-      parse: RequestHeader => Either[SingleError, T]
+    authUser: RequestHeader => Future[U],
+    parse: RequestHeader => Either[SingleError, T]
   )(run: BoatRequest[T, U] => Future[Result]) =
     authAction(authUser) { req =>
       parse(req.req).fold(
@@ -406,7 +404,7 @@ class BoatController(
   private def badRequest(error: SingleError) = BadRequest(Errors(error))
 
   private def terminationWatched[In, Out, Mat](
-      flow: Flow[In, Out, Mat]
+    flow: Flow[In, Out, Mat]
   )(onTermination: Try[Done] => Future[Unit]): Flow[In, Out, Future[Done]] =
     flow.watchTermination()(Keep.right).mapMaterializedValue { done =>
       done.transformWith { t =>
@@ -436,7 +434,7 @@ class BoatController(
     recovered(boatAuth(rh).flatMap(meta => db.joinAsBoat(meta)), rh)
 
   private def authDevice(
-      rh: RequestHeader
+    rh: RequestHeader
   ): Future[Either[Result, JoinedBoat]] =
     recovered(boatAuthNoTrack(rh).flatMap(meta => db.joinAsDevice(meta)), rh)
 
@@ -467,8 +465,8 @@ class BoatController(
     authMinimal(rh, mce => Future.failed(mce))
 
   private def authMinimal(
-      rh: RequestHeader,
-      onFail: MissingCredentialsException => Future[MinimalUserInfo]
+    rh: RequestHeader,
+    onFail: MissingCredentialsException => Future[MinimalUserInfo]
   ): Future[MinimalUserInfo] =
     profile(rh).recoverWith {
       case mce: MissingCredentialsException =>

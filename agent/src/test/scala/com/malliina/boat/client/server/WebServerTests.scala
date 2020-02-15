@@ -13,7 +13,6 @@ import scala.concurrent.{Await, Future}
 
 class WebServerTests extends FunSuite {
   implicit val system = ActorSystem("agent-system")
-  implicit val materializer = ActorMaterializer()
   implicit val ec = system.dispatcher
 
   test("json") {
@@ -24,17 +23,16 @@ class WebServerTests extends FunSuite {
 
   test("get") {
     val server =
-      WebServer("127.0.0.1",
-                0,
-                AgentInstance(BoatConf.empty, DeviceAgent.BoatUrl, system, materializer))
+      WebServer("127.0.0.1", 0, AgentInstance(BoatConf.empty, DeviceAgent.BoatUrl, system))
     val testServer = Http().bindAndHandle(server.routes, "127.0.0.1", 0)
     val binding = await(testServer)
     val addr = binding.localAddress
     def urlTo(path: String) = s"http://${addr.getHostString}:${addr.getPort}$path"
 
     val res = await(
-      Http().singleRequest(
-        HttpRequest(method = HttpMethods.GET, uri = urlTo(WebServer.settingsUri))))
+      Http()
+        .singleRequest(HttpRequest(method = HttpMethods.GET, uri = urlTo(WebServer.settingsUri)))
+    )
     assert(res.status === StatusCodes.OK)
   }
 

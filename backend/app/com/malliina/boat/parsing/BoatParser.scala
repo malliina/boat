@@ -14,12 +14,16 @@ object BoatParser {
   def multi(src: Source[ParsedSentence, NotUsed])(implicit as: ActorSystem, mat: Materializer) =
     src.via(multiFlow())
 
-  def multiFlow()(implicit as: ActorSystem,
-                  mat: Materializer): Flow[ParsedSentence, FullCoord, NotUsed] =
+  def multiFlow()(
+    implicit as: ActorSystem,
+    mat: Materializer
+  ): Flow[ParsedSentence, FullCoord, NotUsed] =
     Streams.connected[ParsedSentence, FullCoord](dest => PlotterProcessorActor.props(dest), as)
 
-  def gpsFlow()(implicit as: ActorSystem,
-                mat: Materializer): Flow[ParsedGPSSentence, GPSCoord, NotUsed] =
+  def gpsFlow()(
+    implicit as: ActorSystem,
+    mat: Materializer
+  ): Flow[ParsedGPSSentence, GPSCoord, NotUsed] =
     Streams.connected[ParsedGPSSentence, GPSCoord](dest => GPSProcessorActor.props(dest), as)
 
   def read[T: Reads](json: JsValue): Either[JsError, T] =
@@ -91,14 +95,14 @@ object BoatParser {
   def handleError(err: SentenceError): Unit =
     err match {
       case is @ IgnoredSentence(_) =>
-        log.debug(is.message)
+        log.debug(is.messageString)
       case UnknownSentence(_, message) =>
         log.debug(message)
       case st @ SuspectTime(_) =>
-        log.warn(st.message)
+        log.warn(st.messageString)
       case SentenceFailure(_, ex) =>
-        log.error(err.message, ex)
+        log.error(err.messageString, ex)
       case _ =>
-        log.error(err.message)
+        log.error(err.messageString)
     }
 }

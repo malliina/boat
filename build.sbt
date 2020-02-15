@@ -7,12 +7,12 @@ import scala.sys.process.Process
 import scala.util.Try
 
 val mapboxVersion = "1.2.0"
-val utilPlayVersion = "5.2.4"
+val utilPlayVersion = "5.4.1"
 val scalaTestVersion = "3.0.8"
-val scalaTagsVersion = "0.7.0"
-val primitiveVersion = "1.11.0"
-val akkaVersion = "2.5.25"
-val akkaHttpVersion = "10.1.10"
+val scalaTagsVersion = "0.8.5"
+val primitiveVersion = "1.13.0"
+val akkaVersion = "2.6.1"
+val akkaHttpVersion = "10.1.11"
 val utilPlayDep = "com.malliina" %% "util-play" % utilPlayVersion
 val utilPlayTestDep = utilPlayDep % Test classifier "tests"
 val scalaTestDep = "org.scalatest" %% "scalatest" % scalaTestVersion % Test
@@ -66,7 +66,7 @@ val frontend = project
   .settings(commonSettings ++ boatSettings)
   .settings(
     libraryDependencies ++= Seq(
-      "com.typesafe.play" %%% "play-json" % "2.7.4",
+      "com.typesafe.play" %%% "play-json" % "2.8.1",
       "org.scala-js" %%% "scalajs-dom" % "0.9.7",
       "org.scalatest" %%% "scalatest" % scalaTestVersion % Test
     ),
@@ -96,7 +96,7 @@ val frontend = project
       "webpack-merge" -> "4.2.1"
     ),
     version in webpack := "4.38.0",
-    emitSourceMaps := false,
+    webpackEmitSourceMaps := false,
     scalaJSUseMainModuleInitializer := true,
     webpackBundlingMode := BundlingMode.LibraryOnly(),
     webpackConfigFile in fastOptJS := Some(
@@ -123,9 +123,9 @@ val backend = Project("boat", file("backend"))
       "org.flywaydb" % "flyway-core" % "6.0.3",
       "org.apache.commons" % "commons-text" % "1.8",
       "com.amazonaws" % "aws-java-sdk-s3" % "1.11.584",
-      "com.malliina" %% "logstreams-client" % "1.6.0",
+      "com.malliina" %% "logstreams-client" % "1.8.2",
       "com.malliina" %% "play-social" % utilPlayVersion,
-      "com.malliina" %% "mobile-push" % "1.19.0",
+      "com.malliina" %% "mobile-push" % "1.22.3",
       "com.typesafe.akka" %% "akka-slf4j" % akkaVersion,
       "com.typesafe.akka" %% "akka-stream" % akkaVersion,
       "com.typesafe.akka" %% "akka-http" % akkaHttpVersion,
@@ -242,8 +242,8 @@ val utils = project
       "ch.qos.logback" % "logback-classic" % "1.2.3",
       "org.slf4j" % "slf4j-api" % "1.7.28",
       "javax.media" % "jai_core" % "1.1.3" from "https://download.osgeo.org/webdav/geotools/javax/media/jai_core/1.1.3/jai_core-1.1.3.jar",
-      "org.geotools" % "gt-shapefile" % "20.0" exclude ("javax.media", "jai_core"),
-      "org.geotools" % "gt-geojson" % "20.0" exclude ("javax.media", "jai_core"),
+      "org.geotools" % "gt-shapefile" % "22.2" exclude ("javax.media", "jai_core"),
+      "org.geotools" % "gt-geojson" % "22.2" exclude ("javax.media", "jai_core"),
       scalaTestDep
     )
   )
@@ -256,3 +256,5 @@ val boatRoot = project
 def gitHash: String =
   Try(Process("git rev-parse --short HEAD").lineStream.head).toOption
     .getOrElse("unknown")
+
+Global / onChangedBuildSource := ReloadOnSourceChanges

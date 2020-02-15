@@ -18,20 +18,23 @@ object AuthController {
   private val log = Logger(getClass)
 }
 
-abstract class AuthController(googleAuth: EmailAuth,
-                              users: UserManager,
-                              comps: ControllerComponents)
-    extends AbstractController(comps) {
+abstract class AuthController(
+  googleAuth: EmailAuth,
+  users: UserManager,
+  comps: ControllerComponents
+) extends AbstractController(comps) {
   implicit val ec: ExecutionContext = comps.executionContext
 
   implicit def writeable[T: Writes] = Writeable.writeableOf_JsValue.map[T](t => Json.toJson(t))
 
-  protected def authAction[U](authenticate: RequestHeader => Future[U])(
-      code: UserRequest[U, AnyContent] => Future[Result]) =
+  protected def authAction[U](
+    authenticate: RequestHeader => Future[U]
+  )(code: UserRequest[U, AnyContent] => Future[Result]) =
     parsedAuth(parse.default)(authenticate)(code)
 
-  protected def parsedAuth[U, B](p: BodyParser[B])(authenticate: RequestHeader => Future[U])(
-      code: UserRequest[U, B] => Future[Result]) =
+  protected def parsedAuth[U, B](
+    p: BodyParser[B]
+  )(authenticate: RequestHeader => Future[U])(code: UserRequest[U, B] => Future[Result]) =
     Action(p).async { req =>
       recovered(authenticate(req), req).flatMap { e =>
         e.fold(fut, t => code(UserRequest(t, req)))
