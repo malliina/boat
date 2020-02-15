@@ -22,6 +22,3 @@ Seq(
   "ch.epfl.scala" % "sbt-bloop" % "1.3.4",
   "org.scalameta" % "sbt-scalafmt" % "2.3.0"
 ) map addSbtPlugin
-
-def ivyRepo(name: String, urlString: String) =
-  Resolver.url(name, url(urlString))(Resolver.ivyStylePatterns)
