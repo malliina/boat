@@ -1,2 +1,1 @@
 -XX:MaxMetaspaceSize=1024M
--Xmx4096m
