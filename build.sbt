@@ -6,7 +6,7 @@ import sbtrelease.ReleaseStateTransformations._
 import scala.sys.process.Process
 import scala.util.Try
 
-val mapboxVersion = "1.2.0"
+val mapboxVersion = "1.7.0"
 val utilPlayVersion = "5.4.1"
 val scalaTestVersion = "3.0.8"
 val scalaTagsVersion = "0.8.5"
@@ -71,31 +71,31 @@ val frontend = project
       "org.scalatest" %%% "scalatest" % scalaTestVersion % Test
     ),
     npmDependencies in Compile ++= Seq(
-      "@fortawesome/fontawesome-free" -> "5.10.0",
-      "@mapbox/mapbox-gl-geocoder" -> "4.4.1",
+      "@fortawesome/fontawesome-free" -> "5.12.1",
+      "@mapbox/mapbox-gl-geocoder" -> "4.5.1",
       "@turf/turf" -> "5.1.6",
-      "bootstrap" -> "4.3.1",
-      "chart.js" -> "2.8.0",
+      "bootstrap" -> "4.4.1",
+      "chart.js" -> "2.9.3",
       "jquery" -> "3.4.1",
       "mapbox-gl" -> mapboxVersion,
-      "popper.js" -> "1.15.0"
+      "popper.js" -> "1.16.1"
     ),
     npmDevDependencies in Compile ++= Seq(
-      "autoprefixer" -> "9.6.1",
+      "autoprefixer" -> "9.7.4",
       "cssnano" -> "4.1.10",
-      "css-loader" -> "3.1.0",
-      "file-loader" -> "4.1.0",
-      "less" -> "3.9.0",
+      "css-loader" -> "3.4.2",
+      "file-loader" -> "5.0.2",
+      "less" -> "3.11.1",
       "less-loader" -> "5.0.0",
-      "mini-css-extract-plugin" -> "0.8.0",
+      "mini-css-extract-plugin" -> "0.9.0",
       "postcss-import" -> "12.0.1",
       "postcss-loader" -> "3.0.0",
       "postcss-preset-env" -> "6.7.0",
-      "style-loader" -> "0.23.1",
-      "url-loader" -> "2.1.0",
-      "webpack-merge" -> "4.2.1"
+      "style-loader" -> "1.1.3",
+      "url-loader" -> "3.0.0",
+      "webpack-merge" -> "4.2.2"
     ),
-    version in webpack := "4.38.0",
+    version in webpack := "4.41.6",
     webpackEmitSourceMaps := false,
     scalaJSUseMainModuleInitializer := true,
     webpackBundlingMode := BundlingMode.LibraryOnly(),
@@ -115,7 +115,6 @@ val backend = Project("boat", file("backend"))
   .settings(
     unmanagedResourceDirectories in Compile += baseDirectory.value / "docs",
     libraryDependencies ++= Seq(
-      //    "net.sf.marineapi" % "marineapi" % "0.13.0-SNAPSHOT",
       "com.vividsolutions" % "jts" % "1.13",
       "org.orbisgis" % "h2gis" % "1.4.0",
       "io.getquill" %% "quill-jdbc" % "3.4.10",
