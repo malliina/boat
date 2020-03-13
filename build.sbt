@@ -117,8 +117,8 @@ val backend = Project("boat", file("backend"))
     libraryDependencies ++= Seq(
       "com.vividsolutions" % "jts" % "1.13",
       "org.orbisgis" % "h2gis" % "1.4.0",
-      "io.getquill" %% "quill-jdbc" % "3.4.10",
-      "mysql" % "mysql-connector-java" % "5.1.47",
+      "io.getquill" %% "quill-jdbc" % "3.5.0",
+      "mysql" % "mysql-connector-java" % "5.1.48",
       "org.flywaydb" % "flyway-core" % "6.0.3",
       "org.apache.commons" % "commons-text" % "1.8",
       "com.amazonaws" % "aws-java-sdk-s3" % "1.11.584",
@@ -129,7 +129,7 @@ val backend = Project("boat", file("backend"))
       "com.typesafe.akka" %% "akka-stream" % akkaVersion,
       "com.typesafe.akka" %% "akka-http" % akkaHttpVersion,
       "com.typesafe.akka" %% "akka-http-spray-json" % akkaHttpVersion,
-      "org.eclipse.paho" % "org.eclipse.paho.client.mqttv3" % "1.2.1",
+      "org.eclipse.paho" % "org.eclipse.paho.client.mqttv3" % "1.2.2",
       "org.eclipse.jetty" % "jetty-alpn-java-server" % "9.4.20.v20190813",
       "org.eclipse.jetty" % "jetty-alpn-java-client" % "9.4.20.v20190813",
       utilPlayDep,
@@ -159,6 +159,7 @@ val backend = Project("boat", file("backend"))
     javaOptions in Universal ++= {
       val linuxName = (name in Linux).value
       Seq(
+        "-J-Xmx192m",
         s"-Dconfig.file=/etc/$linuxName/production.conf",
         s"-Dlogger.file=/etc/$linuxName/logback-prod.xml"
       )
@@ -192,7 +193,7 @@ val agent = project
       "com.malliina" %% "primitives" % primitiveVersion,
       "com.malliina" %% "logback-streams" % "1.6.0",
       "com.neovisionaries" % "nv-websocket-client" % "2.9",
-      "org.slf4j" % "slf4j-api" % "1.7.28",
+      "org.slf4j" % "slf4j-api" % "1.7.30",
       "com.typesafe.akka" %% "akka-stream" % akkaVersion,
       "com.typesafe.akka" %% "akka-http" % akkaHttpVersion,
       "com.typesafe.akka" %% "akka-http-spray-json" % akkaHttpVersion,

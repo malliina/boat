@@ -1,7 +1,6 @@
 package com.malliina.boat.client.server
 
 import akka.actor.ActorSystem
-import akka.stream.Materializer
 import com.malliina.boat.client.DeviceAgent
 import com.malliina.boat.client.server.Device.GpsDevice
 import com.malliina.http.FullUrl

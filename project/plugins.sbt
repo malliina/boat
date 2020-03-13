@@ -9,7 +9,7 @@ Seq(
   "com.malliina" % "sbt-utils-maven" % "0.15.7",
   "com.malliina" %% "sbt-nodejs" % "0.15.7",
   "com.malliina" %% "sbt-packager" % "2.8.4",
-  "com.malliina" % "sbt-filetree" % "0.3.0",
+  "com.malliina" % "sbt-filetree" % "0.4.1",
   "com.typesafe.sbt" % "sbt-gzip" % "1.0.2",
   "com.typesafe.sbt" % "sbt-digest" % "1.1.4",
   "com.typesafe.sbt" % "sbt-less" % "1.1.2",
