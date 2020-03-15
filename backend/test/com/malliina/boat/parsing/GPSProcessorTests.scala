@@ -4,7 +4,6 @@ import java.nio.charset.StandardCharsets
 import java.nio.file.{Files, Paths}
 
 import akka.actor.ActorSystem
-import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.{Flow, Sink, Source}
 import com.malliina.boat.{DeviceId, GPSKeyedSentence, GPSSentenceKey, RawSentence}
 import tests.BaseSuite
@@ -13,7 +12,6 @@ import scala.jdk.CollectionConverters.CollectionHasAsScala
 
 class GPSProcessorTests extends BaseSuite {
   implicit val as = ActorSystem()
-  implicit val mat = ActorMaterializer()
 
   val testFile = Paths.get("gps.txt")
 

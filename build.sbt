@@ -9,7 +9,8 @@ import scala.util.Try
 val mapboxVersion = "1.7.0"
 val utilPlayVersion = "5.4.1"
 val scalaTestVersion = "3.0.8"
-val scalaTagsVersion = "0.8.5"
+val testContainersScalaVersion = "0.35.2"
+val scalaTagsVersion = "0.8.6"
 val primitiveVersion = "1.13.0"
 val akkaVersion = "2.6.1"
 val akkaHttpVersion = "10.1.11"
@@ -35,11 +36,9 @@ val boatSettings = Seq(
 
 val commonSettings = basicSettings ++ Seq(
   deployDocs := Process("mkdocs gh-deploy").run(streams.value.log).exitValue(),
-  resolvers ++= Seq(
-    Resolver.jcenterRepo,
-    Resolver.bintrayRepo("malliina", "maven"),
-    Resolver.mavenLocal
-  )
+  publishArtifact in (Compile, packageDoc) := false,
+  publishArtifact in packageDoc := false,
+  sources in (Compile, doc) := Seq.empty
 )
 
 val cross = portableProject(JSPlatform, JVMPlatform)
@@ -135,8 +134,9 @@ val backend = Project("boat", file("backend"))
       utilPlayDep,
       utilPlayTestDep,
       scalaTestDep,
-      "org.scalatestplus.play" %% "scalatestplus-play" % "4.0.3" % Test,
-      "ch.vorburger.mariaDB4j" % "mariaDB4j" % "2.4.0" % Test
+      "org.scalatestplus.play" %% "scalatestplus-play" % "5.0.0" % Test,
+      "com.dimafeng" %% "testcontainers-scala-scalatest" % testContainersScalaVersion % Test,
+      "com.dimafeng" %% "testcontainers-scala-mysql" % testContainersScalaVersion % Test
     ),
     routesImport ++= Seq(
       "com.malliina.boat.Bindables._",
@@ -163,7 +163,14 @@ val backend = Project("boat", file("backend"))
         s"-Dconfig.file=/etc/$linuxName/production.conf",
         s"-Dlogger.file=/etc/$linuxName/logback-prod.xml"
       )
-    }
+    },
+    releaseProcess := Seq[ReleaseStep](
+      releaseStepTask(clean in Compile),
+      checkSnapshotDependencies,
+      //      releaseStepInputTask(testOnly, " * -- -l tests.DbTest"),
+      //      releaseStepInputTask(testOnly, " tests.ImageTests"),
+      releaseStepTask(ciBuild)
+    )
   )
 
 val agent = project

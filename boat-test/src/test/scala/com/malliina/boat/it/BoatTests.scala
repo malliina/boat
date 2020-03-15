@@ -1,40 +1,45 @@
 package com.malliina.boat.it
 
-import akka.actor.ActorSystem
-import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.{Sink, Source, SourceQueue}
 import akka.{Done, NotUsed}
+import com.dimafeng.testcontainers.{ForAllTestContainer, MySQLContainer}
 import com.malliina.boat._
 import com.malliina.boat.client.{HttpUtil, KeyValue, WebSocketClient}
 import com.malliina.boat.db.Conf
 import com.malliina.http.FullUrl
 import com.malliina.values.{Password, Username}
+import org.scalatest.Suite
 import play.api.ApplicationLoader.Context
 import play.api.BuiltInComponents
 import play.api.libs.json.{JsValue, Json, Writes}
 import play.api.mvc.Call
-import tests.{AsyncSuite, BaseSuite, EmbeddedMySQL, OneServerPerSuite2, TestComponents}
+import tests.{AsyncSuite, BaseSuite, OneServerPerSuite2, TestComponents, TestConf}
 
 import scala.concurrent.Future
 
 abstract class TestAppSuite extends ServerSuite(TestComponents.apply)
 
+trait DockerDatabase extends ForAllTestContainer { self: Suite =>
+  override val container = MySQLContainer(mysqlImageVersion = "mysql:5.7.29")
+}
+
 abstract class ServerSuite[T <: BuiltInComponents](build: (Context, Conf) => T)
-    extends BaseSuite
-    with OneServerPerSuite2[T]
-    with EmbeddedMySQL {
+  extends BaseSuite
+  with OneServerPerSuite2[T]
+  with DockerDatabase {
   override def createComponents(context: Context): T = {
-    build(context, conf)
+    container.start()
+    build(context, TestConf(container))
   }
 }
 
-abstract class BoatTests extends TestAppSuite with BoatSockets {
+abstract class BoatTests extends TestAppSuite with BoatSockets with AsyncSuite {
   def openTestBoat[T](boat: BoatName)(code: TestBoat => T): T = {
     openBoat(urlFor(reverse.boatSocket()), Left(boat))(code)
   }
 
   def openViewerSocket[T](in: Sink[JsValue, Future[Done]], creds: Option[Creds] = None)(
-      code: WebSocketClient => T
+    code: WebSocketClient => T
   ): T = {
     val out = Source.maybe[JsValue].mapMaterializedValue(_ => NotUsed)
     val headers = creds.map { c =>
@@ -44,11 +49,11 @@ abstract class BoatTests extends TestAppSuite with BoatSockets {
   }
 
   def openWebSocket[T](
-      path: Call,
-      creds: Option[Creds],
-      in: Sink[JsValue, Future[Done]],
-      out: Source[JsValue, NotUsed],
-      headers: List[KeyValue]
+    path: Call,
+    creds: Option[Creds],
+    in: Sink[JsValue, Future[Done]],
+    out: Source[JsValue, NotUsed],
+    headers: List[KeyValue]
   )(code: WebSocketClient => T): T = {
     openSocket(urlFor(path), in, out, headers)(code)
   }
@@ -74,10 +79,10 @@ trait BoatSockets {
   }
 
   def openSocket[T](
-      url: FullUrl,
-      in: Sink[JsValue, Future[Done]],
-      out: Source[JsValue, NotUsed],
-      headers: List[KeyValue]
+    url: FullUrl,
+    in: Sink[JsValue, Future[Done]],
+    out: Source[JsValue, NotUsed],
+    headers: List[KeyValue]
   )(code: WebSocketClient => T): T = {
     val client = WebSocketClient(url, headers, as, mat)
     try {

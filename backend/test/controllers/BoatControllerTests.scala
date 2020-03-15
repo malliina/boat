@@ -15,6 +15,8 @@ import tests.{TestAppSuite, TestEmailAuth}
 
 class BoatControllerTests extends TestAppSuite {
   test("tracks endpoint supports versioning based on Accept header") {
+    implicit val ec = components.executionContext
+
     val user = Username("test")
     val service = components.tracks
     val init = for {

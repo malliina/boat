@@ -11,6 +11,7 @@ import com.malliina.boat.client.{DeviceAgent, TcpSource}
 import com.malliina.boat.{CoordsEvent, SentencesMessage}
 import com.malliina.http.FullUrl
 import play.api.libs.json.JsValue
+import tests.AsyncSuite
 
 import scala.concurrent.Promise
 

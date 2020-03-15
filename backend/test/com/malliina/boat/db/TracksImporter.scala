@@ -2,7 +2,6 @@ package com.malliina.boat.db
 
 import java.nio.charset.StandardCharsets
 import java.nio.file.{Files, Path}
-import java.time.LocalDate
 
 import akka.NotUsed
 import akka.actor.ActorSystem
@@ -12,18 +11,17 @@ import com.malliina.boat.parsing.{BoatParser, FullCoord}
 import com.malliina.boat.{BoatName, BoatUser, DateVal, DeviceId, InsertedPoint, KeyedSentence, LocalConf, RawSentence, SentencesEvent, TrackId, TrackInput, TrackNames}
 import com.malliina.util.FileUtils
 import com.malliina.values.Username
-import io.getquill.MappedEncoding
-import tests.EmbeddedMySQL
+import tests.{AsyncSuite, DockerDatabase, TestConf}
 
 import scala.concurrent.Future
 import scala.concurrent.duration.DurationLong
 import scala.jdk.CollectionConverters.CollectionHasAsScala
 
-class TracksImporter extends EmbeddedMySQL {
+class TracksImporter extends AsyncSuite with DockerDatabase {
   lazy val c = Conf.fromConf(LocalConf.localConf).toOption.get
 
   ignore("import tracks from plotter log file") {
-    val db = testDatabase(ec)
+    val db = testDatabase(as, TestConf(container))
     val tdb = NewTracksDatabase(db)
     val trackName = TrackNames.random()
     val track = await(
@@ -44,7 +42,10 @@ class TracksImporter extends EmbeddedMySQL {
 
   ignore("modify tracks") {
     val oldTrack = TrackId(175)
-    splitTracksByDate(oldTrack, NewTracksDatabase(BoatDatabase.withMigrations(as, conf)))
+    splitTracksByDate(
+      oldTrack,
+      NewTracksDatabase(BoatDatabase.withMigrations(as, TestConf(container)))
+    )
   }
 
   def fromFile(file: Path): Source[RawSentence, NotUsed] =
@@ -57,8 +58,8 @@ class TracksImporter extends EmbeddedMySQL {
     )
 
   def processSentences(
-      saveSentences: SentencesEvent => Future[Seq[KeyedSentence]],
-      saveCoord: FullCoord => Future[InsertedPoint]
+    saveSentences: SentencesEvent => Future[Seq[KeyedSentence]],
+    saveCoord: FullCoord => Future[InsertedPoint]
   ) =
     Flow[SentencesEvent]
       .via(Flow[SentencesEvent].mapAsync(1)(saveSentences))
@@ -66,13 +67,13 @@ class TracksImporter extends EmbeddedMySQL {
       .via(insertPointsFlow(saveCoord))
 
   def splitTracksByDate(oldTrack: TrackId, db: NewTracksDatabase) = {
+//    import db._
     import db.db._
-    import db._
 
     def createAndUpdateTrack(date: DateVal): IO[RunActionResult, Effect.Write] = {
       val in = TrackInput.empty(TrackNames.random(), DeviceId(14))
       for {
-        newTrack <- runIO(tracksInsert(lift(in)))
+        newTrack <- runIO(db.tracksInsert(lift(in)))
         updated <- runIO(
           quote {
             rawPointsTable
@@ -96,8 +97,8 @@ class TracksImporter extends EmbeddedMySQL {
   }
 
   def insertPointsFlow(save: FullCoord => Future[InsertedPoint])(
-      implicit as: ActorSystem,
-      mat: Materializer
+    implicit as: ActorSystem,
+    mat: Materializer
   ): Flow[KeyedSentence, InsertedPoint, NotUsed] = {
     Flow[KeyedSentence]
       .mapConcat(raw => BoatParser.parse(raw).toOption.toList)

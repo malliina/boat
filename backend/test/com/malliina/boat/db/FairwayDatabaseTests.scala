@@ -4,13 +4,13 @@ import java.nio.file.Files
 
 import com.malliina.boat.{FairwayInfo, FeatureCollection}
 import play.api.libs.json.Json
-import tests.EmbeddedMySQL
+import tests.{AsyncSuite, DockerDatabase, TestConf}
 
 import scala.concurrent.duration.DurationInt
 
-class FairwayDatabaseTests extends EmbeddedMySQL {
+class FairwayDatabaseTests extends AsyncSuite with DockerDatabase {
   ignore("import fairways to database") {
-    val db = testDatabase(ec)
+    val db = testDatabase(as, TestConf(container))
     val fileIn = userHome.resolve(".boat/vaylat/vaylat-geo.json")
     val strIn = Files.readAllBytes(fileIn)
     val coll = Json.parse(strIn).as[FeatureCollection]

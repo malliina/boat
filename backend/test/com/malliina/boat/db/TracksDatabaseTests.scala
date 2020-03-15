@@ -7,7 +7,7 @@ import com.malliina.boat.db.TestData._
 import com.malliina.boat.parsing.FullCoord
 import com.malliina.measure.{DistanceIntM, SpeedIntM, SpeedM, Temperature}
 import com.malliina.values.{Email, UserId, Username}
-import tests.EmbeddedMySQL
+import tests.{AsyncSuite, DockerDatabase, TestConf}
 
 import scala.concurrent.Future
 import scala.concurrent.duration.{Duration, DurationLong}
@@ -17,8 +17,10 @@ object TestData {
   val sanfran = Coord.build(-122.4, 37.8).toOption.get
 }
 
-class TracksDatabaseTests extends EmbeddedMySQL {
+class TracksDatabaseTests extends AsyncSuite with DockerDatabase {
   test("inserts update track aggregates") {
+    val conf = TestConf(container)
+
     val newDb = BoatDatabase.withMigrations(as, conf)
     val tdb = NewTracksDatabase(newDb)
     val users = NewUserManager(newDb)
@@ -40,6 +42,8 @@ class TracksDatabaseTests extends EmbeddedMySQL {
   }
 
   test("add comments to track") {
+    val conf = TestConf(container)
+
     val newDb = BoatDatabase.withMigrations(as, conf)
     val tdb = NewTracksDatabase(newDb)
     val udb = NewUserManager(newDb)

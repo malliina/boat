@@ -1,23 +1,41 @@
 package tests
 
+import akka.actor.ActorSystem
+import com.dimafeng.testcontainers.{ForAllTestContainer, MySQLContainer}
 import com.malliina.boat.auth.EmailAuth
-import com.malliina.boat.db.{Conf, IdentityException, MissingCredentials, PushDevice}
+import com.malliina.boat.db._
 import com.malliina.boat.push._
 import com.malliina.boat.{AccessToken, AppBuilder, AppComponents, AppConf}
 import com.malliina.play.auth.Auth
 import com.malliina.values.Email
-import org.scalatest.FunSuite
+import org.scalatest.{FunSuite, Suite}
 import play.api.ApplicationLoader.Context
 import play.api.mvc.RequestHeader
 
 import scala.concurrent.Future
 
+object TestConf {
+  def apply(container: MySQLContainer) = Conf(
+    s"${container.jdbcUrl}?useSSL=false",
+    container.username,
+    container.password,
+    container.driverClassName
+  )
+}
+
+trait DockerDatabase extends ForAllTestContainer { self: Suite =>
+  override val container = MySQLContainer(mysqlImageVersion = "mysql:5.7.29")
+
+  def testDatabase(as: ActorSystem, conf: Conf) = BoatDatabase.withMigrations(as, conf)
+}
+
 abstract class TestAppSuite
-    extends FunSuite
-    with OneAppPerSuite2[AppComponents]
-    with EmbeddedMySQL {
+  extends FunSuite
+  with OneAppPerSuite2[AppComponents]
+  with DockerDatabase {
   override def createComponents(context: Context): AppComponents = {
-    TestComponents(context, conf)
+    container.start()
+    TestComponents(context, TestConf(container))
   }
 }
 

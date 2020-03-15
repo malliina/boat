@@ -5,7 +5,7 @@ import java.time.Instant
 import com.malliina.boat.db.NewTracksDatabase.log
 import com.malliina.boat.http.{BoatQuery, SortOrder, TrackQuery, TrackSort}
 import com.malliina.boat.parsing.FullCoord
-import com.malliina.boat.{BoatName, BoatTokens, BoatTrackMeta, CombinedCoord, CombinedFullCoord, Coord, CoordsEvent, DateVal, DeviceId, DeviceMeta, FullTrack, InsertedPoint, JoinedBoat, JoinedTrack, KeyedSentence, Lang, Language, MinimalUserInfo, SentenceCoord2, SentenceRow, SentencesEvent, StatsResponse, TimeFormatter, TimedCoord, TrackCanonical, TrackId, TrackInfo, TrackInput, TrackMeta, TrackName, TrackPointRow, TrackRef, TrackTitle, Tracks, TracksBundle, Utils}
+import com.malliina.boat.{BoatName, BoatTokens, BoatTrackMeta, CombinedCoord, CombinedFullCoord, CoordsEvent, DateVal, DeviceId, DeviceMeta, FullTrack, InsertedPoint, JoinedBoat, JoinedTrack, KeyedSentence, Lang, Language, MinimalUserInfo, SentenceCoord2, SentenceRow, SentencesEvent, StatsResponse, TimeFormatter, TimedCoord, TrackCanonical, TrackId, TrackInfo, TrackInput, TrackMeta, TrackName, TrackRef, TrackTitle, Tracks, TracksBundle, Utils}
 import com.malliina.measure.{DistanceM, SpeedDoubleM, SpeedIntM, SpeedM, Temperature}
 import com.malliina.values.{UserId, Username}
 import io.getquill._
@@ -210,12 +210,11 @@ class NewTracksDatabase(val db: BoatDatabase[SnakeCase])(
   def joinAsBoat(meta: BoatTrackMeta): Future[TrackMeta] = Future {
     transaction {
       val existing = run(
-        trackMetas.filter(
-          t =>
-            t.username == lift(meta.user) && t.boatName == lift(meta.boat) && t.trackName == lift(
-              meta.track
-            )
-        )
+        trackMetas.filter { t =>
+          t.username == lift(meta.user) &&
+          t.boatName == lift(meta.boat) &&
+          t.trackName == lift(meta.track)
+        }
       ).headOption
       existing.getOrElse {
         val user = run(usersTable.filter(_.user == lift(meta.user))).headOption

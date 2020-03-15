@@ -15,16 +15,18 @@ import scala.concurrent.{ExecutionContext, Future}
 object BoatService {
   private val log = Logger(getClass)
 
-  def apply(aisClient: AISSource,
-            db: TracksSource,
-            as: ActorSystem,
-            mat: Materializer): BoatService =
+  def apply(
+    aisClient: AISSource,
+    db: TracksSource,
+    as: ActorSystem,
+    mat: Materializer
+  ): BoatService =
     new BoatService(aisClient, db)(as, mat)
 }
 
 class BoatService(aisClient: AISSource, db: TracksSource)(
-    implicit as: ActorSystem,
-    mat: Materializer
+  implicit as: ActorSystem,
+  mat: Materializer
 ) extends Streams {
   implicit val ec: ExecutionContext = mat.executionContext
   val killSwitch = KillSwitches.shared("boats-switch")
@@ -69,9 +71,7 @@ class BoatService(aisClient: AISSource, db: TracksSource)(
   private val ais = monitored(onlyOnce(aisClient.slow), "AIS messages")
   ais.runWith(Sink.ignore)
   errors.runWith(
-    Sink.foreach(
-      err => log.error(s"JSON error for '${err.boat}': '${err.error}'.")
-    )
+    Sink.foreach(err => log.error(s"JSON error for '${err.boat}': '${err.error}'."))
   )
 
   /** Location updates of boats (Boat-Tracker) and vessels (AIS).
