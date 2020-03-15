@@ -6,7 +6,7 @@ import sbtrelease.ReleaseStateTransformations._
 import scala.sys.process.Process
 import scala.util.Try
 
-val mapboxVersion = "1.7.0"
+val mapboxVersion = "1.8.1"
 val utilPlayVersion = "5.4.1"
 val scalaTestVersion = "3.0.8"
 val testContainersScalaVersion = "0.35.2"
@@ -83,7 +83,7 @@ val frontend = project
       "autoprefixer" -> "9.7.4",
       "cssnano" -> "4.1.10",
       "css-loader" -> "3.4.2",
-      "file-loader" -> "5.0.2",
+      "file-loader" -> "5.1.0",
       "less" -> "3.11.1",
       "less-loader" -> "5.0.0",
       "mini-css-extract-plugin" -> "0.9.0",
@@ -94,7 +94,7 @@ val frontend = project
       "url-loader" -> "3.0.0",
       "webpack-merge" -> "4.2.2"
     ),
-    version in webpack := "4.41.6",
+    version in webpack := "4.42.0",
     webpackEmitSourceMaps := false,
     scalaJSUseMainModuleInitializer := true,
     webpackBundlingMode := BundlingMode.LibraryOnly(),
