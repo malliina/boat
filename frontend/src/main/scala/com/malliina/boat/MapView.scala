@@ -28,14 +28,15 @@ object MapView extends CookieNames {
     .toMap
 }
 
-class MapView(accessToken: AccessToken,
-              language: Language,
-              val log: BaseLogger = BaseLogger.console)
-    extends BaseFront {
+class MapView(
+  accessToken: AccessToken,
+  language: Language,
+  val log: BaseLogger = BaseLogger.console
+) extends BaseFront {
   mapboxGl.accessToken = accessToken.token
   val mapOptions = MapOptions(
     container = MapId,
-    style = "mapbox://styles/malliina/cjgny1fjc008p2so90sbz8nbv",
+    style = "mapbox://styles/malliina/ck8eypgkb08gb1iqlew4vwobg",
     center = Coord(lng = Longitude(24.9), lat = Latitude(60.14)),
     zoom = 13,
     hash = true
@@ -91,7 +92,8 @@ class MapView(accessToken: AccessToken,
           .map { in =>
             e.preventDefault()
             in.focus()
-          })
+          }
+      )
   }
 
   def craftSampleQuery = {
@@ -130,7 +132,9 @@ class MapView(accessToken: AccessToken,
   private def initDeviceDropdown() = document.getElementsByClassName(DeviceLinkClass).map { boat =>
     boat.addOnClick { e =>
       val boatName = BoatName(e.target.asInstanceOf[HTMLElement].getAttribute("data-name"))
-      socket.foreach { s => s.fly(boatName) }
+      socket.foreach { s =>
+        s.fly(boatName)
+      }
     }
   }
 

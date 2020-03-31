@@ -1,5 +1,6 @@
 package com.malliina.boat
 
+import com.malliina.boat.JsonUtils.JsLookupResultOps
 import com.malliina.boat.MaritimeJson.doubleReader
 import com.malliina.measure.DistanceM
 import play.api.libs.json._
@@ -138,17 +139,17 @@ object SeaArea {
 }
 
 case class FairwayInfo(
-    nameFi: Option[String],
-    nameSe: Option[String],
-    start: Option[String],
-    end: Option[String],
-    depth: Option[DistanceM],
-    depth2: Option[DistanceM],
-    depth3: Option[DistanceM],
-    lighting: FairwayLighting,
-    classText: String,
-    seaArea: SeaArea,
-    state: Double
+  nameFi: Option[String],
+  nameSe: Option[String],
+  start: Option[String],
+  end: Option[String],
+  depth: Option[DistanceM],
+  depth2: Option[DistanceM],
+  depth3: Option[DistanceM],
+  lighting: FairwayLighting,
+  classText: String,
+  seaArea: SeaArea,
+  state: Double
 ) extends NameLike {
   def bestDepth = depth orElse depth2 orElse depth3
 }
@@ -156,10 +157,10 @@ case class FairwayInfo(
 object FairwayInfo {
   implicit val reader = Reads[FairwayInfo] { json =>
     for {
-      fi <- MaritimeJson.nonEmptyOpt(json \ "VAY_NIMISU")
-      se <- MaritimeJson.nonEmptyOpt(json \ "VAY_NIMIRU")
-      start <- MaritimeJson.nonEmptyOpt(json \ "SELOSTE_AL")
-      end <- MaritimeJson.nonEmptyOpt(json \ "SELOSTE_PA")
+      fi <- (json \ "VAY_NIMISU").nonEmptyOpt
+      se <- (json \ "VAY_NIMIRU").nonEmptyOpt
+      start <- (json \ "SELOSTE_AL").nonEmptyOpt
+      end <- (json \ "SELOSTE_PA").nonEmptyOpt
       depth <- (json \ "KULKUSYV1").validateOpt[DistanceM]
       depth2 <- (json \ "KULKUSYV2").validateOpt[DistanceM]
       depth3 <- (json \ "KULKUSYV3").validateOpt[DistanceM]
@@ -193,7 +194,7 @@ object MaritimeJson {
     partialReader[String, T](onError)(pf)
 
   def partialReader[In: Reads, Out](
-      onError: JsValue => String
+    onError: JsValue => String
   )(pf: PartialFunction[In, Out]): Reads[Out] =
     Reads[Out] { json =>
       json.validate[In].collect(JsonValidationError(onError(json)))(pf)

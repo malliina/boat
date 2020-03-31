@@ -18,18 +18,20 @@ case class FairwayInfoClick(info: FairwayInfo, target: LngLatLike) extends Click
 case class DepthClick(area: DepthArea, target: LngLatLike) extends ClickType
 case class LimitClick(limit: LimitArea, target: LngLatLike) extends ClickType
 case class LimitedFairwayClick(limit: LimitArea, area: FairwayArea, target: LngLatLike)
-    extends ClickType
+  extends ClickType
 
 object MapMouseListener {
   def apply(map: MapboxMap, pathFinder: PathFinder, ais: AISRenderer, html: Popups) =
     new MapMouseListener(map, pathFinder, ais, html)
 }
 
-class MapMouseListener(map: MapboxMap,
-                       pathFinder: PathFinder,
-                       ais: AISRenderer,
-                       html: Popups,
-                       val log: BaseLogger = BaseLogger.console) extends FrontKeys {
+class MapMouseListener(
+  map: MapboxMap,
+  pathFinder: PathFinder,
+  ais: AISRenderer,
+  html: Popups,
+  val log: BaseLogger = BaseLogger.console
+) extends FrontKeys {
   val markPopup = MapboxPopup(PopupOptions())
   var isTrackHover: Boolean = false
 
@@ -64,7 +66,6 @@ class MapMouseListener(map: MapboxMap,
         normalSymbol.left.flatMap(_ => minimalSymbol)
       }
     }.orElse {
-      markPopup.remove()
       if (!isTrackHover) {
         val limitInfo =
           features.flatMap(_.props.asOpt[LimitArea]).headOption.map(LimitClick(_, e.lngLat))
@@ -76,8 +77,15 @@ class MapMouseListener(map: MapboxMap,
           .map(FairwayClick(_, e.lngLat))
         val depth =
           features.flatMap(f => f.props.asOpt[DepthArea]).headOption.map(DepthClick(_, e.lngLat))
-        val combined = limitInfo.flatMap { l => fairway.map(fc => LimitedFairwayClick(l.limit, fc.area, l.target) ) }
-        fairwayInfo.orElse(combined).orElse(fairway).orElse(limitInfo).orElse(depth).map(Right.apply)
+        val combined = limitInfo.flatMap { l =>
+          fairway.map(fc => LimitedFairwayClick(l.limit, fc.area, l.target))
+        }
+        fairwayInfo
+          .orElse(combined)
+          .orElse(fairway)
+          .orElse(limitInfo)
+          .orElse(depth)
+          .map(Right.apply)
       } else {
         None
       }
@@ -86,7 +94,7 @@ class MapMouseListener(map: MapboxMap,
 
   map.on(
     "click",
-    e => {
+    (e: MapMouseEvent) => {
       if (pathFinder.isEnabled) {
         pathFinder.updatePath(e)
       } else {

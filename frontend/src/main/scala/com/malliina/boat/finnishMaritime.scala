@@ -1,11 +1,9 @@
 package com.malliina.boat
 
-import com.malliina.boat.MaritimeJson.{intReader, nonEmptyOpt, partialReader}
-import com.malliina.boat.MinimalMarineSymbol.nonEmpty
+import com.malliina.boat.JsonUtils.JsLookupResultOps
+import com.malliina.boat.MaritimeJson.{intReader, partialReader}
 import com.malliina.measure.{DistanceM, SpeedM}
 import play.api.libs.json._
-
-import scala.util.Try
 
 /** Navigointilaji (NAVL_TYYP)
   */
@@ -235,21 +233,22 @@ trait SymbolLike extends NameLike {
     if (lang == Lang.se) locationSe.orElse(locationFi) else locationFi.orElse(locationSe)
 }
 
-case class MarineSymbol(owner: String,
-                        exteriorLight: Boolean,
-                        topSign: Boolean,
-                        nameFi: Option[String],
-                        nameSe: Option[String],
-                        locationFi: Option[String],
-                        locationSe: Option[String],
-                        flotation: Flotation,
-                        state: String,
-                        lit: Boolean,
-                        aidType: AidType,
-                        navMark: NavMark,
-                        construction: Option[ConstructionInfo])
-    extends SymbolLike
-    with Owned
+case class MarineSymbol(
+  owner: String,
+  exteriorLight: Boolean,
+  topSign: Boolean,
+  nameFi: Option[String],
+  nameSe: Option[String],
+  locationFi: Option[String],
+  locationSe: Option[String],
+  flotation: Flotation,
+  state: String,
+  lit: Boolean,
+  aidType: AidType,
+  navMark: NavMark,
+  construction: Option[ConstructionInfo]
+) extends SymbolLike
+  with Owned
 
 /**
   * @see Vesiväyläaineistojen tietosisällön kuvaus
@@ -276,10 +275,10 @@ object MarineSymbol {
       owner <- (json \ "OMISTAJA").validate[String]
       topSign <- (json \ "HUIPPUMERK").validate[Boolean](boolNum)
       fasadi <- (json \ "FASADIVALO").validate[Boolean](boolNum)
-      nameFi <- (json \ "NIMIS").validate[Option[String]](nonEmpty)
-      nameSe <- (json \ "NIMIR").validate[Option[String]](nonEmpty)
-      locationFi <- (json \ "SIJAINTIS").validate[Option[String]](nonEmpty)
-      locationSe <- (json \ "SIJAINTIR").validate[Option[String]](nonEmpty)
+      nameFi <- (json \ "NIMIS").nonEmptyOpt
+      nameSe <- (json \ "NIMIR").nonEmptyOpt
+      locationFi <- (json \ "SIJAINTIS").nonEmptyOpt
+      locationSe <- (json \ "SIJAINTIR").nonEmptyOpt
       flotation <- (json \ "SUBTYPE").validate[Flotation]
       state <- (json \ "TILA").validate[String]
       lit <- (json \ "VALAISTU").validate[Boolean](boolString)
@@ -306,24 +305,24 @@ object MarineSymbol {
   }
 }
 
-case class MinimalMarineSymbol(owner: String,
-                               nameFi: Option[String],
-                               nameSe: Option[String],
-                               locationFi: Option[String],
-                               locationSe: Option[String],
-                               influence: ZoneOfInfluence)
-    extends SymbolLike
-    with Owned
+case class MinimalMarineSymbol(
+  owner: String,
+  nameFi: Option[String],
+  nameSe: Option[String],
+  locationFi: Option[String],
+  locationSe: Option[String],
+  influence: ZoneOfInfluence
+) extends SymbolLike
+  with Owned
 
 object MinimalMarineSymbol {
-  val nonEmpty = MaritimeJson.nonEmpty
   implicit val reader: Reads[MinimalMarineSymbol] = Reads[MinimalMarineSymbol] { json =>
     for {
       owner <- (json \ "OMISTAJA").validate[String]
-      nameFi <- (json \ "NIMIR").validate[Option[String]](nonEmpty)
-      nameSe <- (json \ "NIMIS").validate[Option[String]](nonEmpty)
-      locationFi <- (json \ "SIJAINTIS").validate[Option[String]](nonEmpty)
-      locationSe <- (json \ "SIJAINTIR").validate[Option[String]](nonEmpty)
+      nameFi <- (json \ "NIMIR").nonEmptyOpt
+      nameSe <- (json \ "NIMIS").nonEmptyOpt
+      locationFi <- (json \ "SIJAINTIS").nonEmptyOpt
+      locationSe <- (json \ "SIJAINTIR").nonEmptyOpt
       influence <- (json \ "VAIKUTUSAL").validate[ZoneOfInfluence]
     } yield {
       MinimalMarineSymbol(owner, nameFi, nameSe, locationFi, locationSe, influence)
@@ -466,15 +465,16 @@ object MarkType {
   * @see https://vayla.fi/documents/20473/38174/Vesiv%C3%A4yl%C3%A4aineistojen+tietosis%C3%A4ll%C3%B6n+kuvaus/68b5f496-19a3-4b3d-887c-971e3366f01e
   * @see http://merisanasto.kyamk.fi/aakkos.php
   */
-case class FairwayArea(owner: String,
-                       quality: QualityClass,
-                       fairwayType: FairwayType,
-                       fairwayDepth: DistanceM,
-                       harrowDepth: DistanceM,
-                       comparisonLevel: String,
-                       state: FairwayState,
-                       markType: Option[MarkType])
-    extends Owned
+case class FairwayArea(
+  owner: String,
+  quality: QualityClass,
+  fairwayType: FairwayType,
+  fairwayDepth: DistanceM,
+  harrowDepth: DistanceM,
+  comparisonLevel: String,
+  state: FairwayState,
+  markType: Option[MarkType]
+) extends Owned
 
 object FairwayArea {
   implicit val reader: Reads[FairwayArea] = Reads[FairwayArea] { json =>
@@ -487,8 +487,16 @@ object FairwayArea {
       comparison <- (json \ "VERT_TASO").validate[String]
       state <- (json \ "TILA").validate[FairwayState]
       mark <- (json \ "MERK_LAJI").validateOpt[MarkType]
-    } yield
-      FairwayArea(owner, quality, fairwayType, fairwayDepth, harrowDepth, comparison, state, mark)
+    } yield FairwayArea(
+      owner,
+      quality,
+      fairwayType,
+      fairwayDepth,
+      harrowDepth,
+      comparison,
+      state,
+      mark
+    )
   }
 }
 
@@ -586,13 +594,15 @@ object LimitType {
   * @param responsible merkinnästä vastaava
   * @param publishDate kohteen julkaisupäivämäärä
   */
-case class LimitArea(types: Seq[LimitType],
-                     limit: Option[SpeedM],
-                     length: Option[DistanceM],
-                     responsible: Option[String],
-                     location: Option[String],
-                     fairwayName: String,
-                     publishDate: String) {
+case class LimitArea(
+  types: Seq[LimitType],
+  limit: Option[SpeedM],
+  length: Option[DistanceM],
+  responsible: Option[String],
+  location: Option[String],
+  fairwayName: Option[String],
+  publishDate: String
+) {
   def describeTypes(lang: LimitTypes) = types.map(lt => lt.describe(lang))
   def describe(lang: LimitTypes): String = describeTypes(lang).mkString(", ")
 }
@@ -600,38 +610,14 @@ case class LimitArea(types: Seq[LimitType],
 object LimitArea {
   import com.malliina.measure.{DistanceDoubleM, SpeedDoubleM}
 
-  val doubleOptFromString = Reads[Option[Double]] { json =>
-    json.validateOpt[String].flatMap { opt =>
-      opt
-        .map(_.trim)
-        .filter(_.nonEmpty)
-        .map(s => toDouble(s).map(Option(_)))
-        .getOrElse(JsSuccess(None))
-    }
-  }
-
-  def toDouble(s: String) =
-    Try(s.toDouble).fold(_ => JsError(s"Invalid number: '$s'."), ok => JsSuccess(ok))
-
-  /** Example:
-    *
-    * {"MERK_VAST":"",
-    * "IRROTUS_PV":"2018-04-29T00:50:49",
-    * "RAJOITUSTY":"01, 02",
-    * "NIMI_SIJAI":"Tiiliruukinlahti-Rep",
-    * "VAY_NIMISU":"Killingholma-Ströms",
-    * "OBJECTID":"103984",
-    * "PITUUS":"1514",
-    * "SUURUUS":"10"}
-    */
   implicit val reader = Reads[LimitArea] { json =>
     for {
       types <- (json \ "RAJOITUSTY").validate[String].flatMap(LimitType.fromString)
-      limit <- (json \ "SUURUUS").validate[Option[Double]](doubleOptFromString).map(_.map(s => s.kmh))
-      length <- (json \ "PITUUS").validate[Option[Double]](doubleOptFromString).map(_.map(_.meters))
-      responsible <- nonEmptyOpt(json \ "MERK_VAST")
-      location <- nonEmptyOpt(json \ "NIMI_SIJAI")
-      fairwayName <- (json \ "VAY_NIMISU").validate[String]
+      limit <- (json \ "SUURUUS").validateOpt[Double].map(_.map(_.kmh))
+      length <- (json \ "PITUUS").validateOpt[Double].map(_.map(_.meters))
+      responsible <- (json \ "MERK_VAST").nonEmptyOpt
+      location <- (json \ "NIMI_SIJAI").nonEmptyOpt
+      fairwayName <- (json \ "VAY_NIMISU").nonEmptyOpt
       publishDate <- (json \ "IRROTUS_PV").validate[String]
     } yield LimitArea(types, limit, length, responsible, location, fairwayName, publishDate)
   }

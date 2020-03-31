@@ -38,5 +38,4 @@ package object boat {
 
     def addClickListener[E <: Event](code: E => Unit): Unit = et.addEventListener("click", code)
   }
-
 }
