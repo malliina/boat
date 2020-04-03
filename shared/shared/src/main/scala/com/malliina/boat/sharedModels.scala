@@ -67,10 +67,10 @@ case class FormattedDateTime(dateTime: String) extends AnyVal with WrappedString
 object FormattedDateTime extends StringCompanion[FormattedDateTime]
 
 case class Timing(
-    date: FormattedDate,
-    time: FormattedTime,
-    dateTime: FormattedDateTime,
-    millis: Long
+  date: FormattedDate,
+  time: FormattedTime,
+  dateTime: FormattedDateTime,
+  millis: Long
 )
 
 object Timing {
@@ -177,10 +177,10 @@ object RouteRequest {
   implicit val json = Json.format[RouteRequest]
 
   def apply(
-      srcLat: Double,
-      srcLng: Double,
-      destLat: Double,
-      destLng: Double
+    srcLat: Double,
+    srcLng: Double,
+    destLat: Double,
+    destLng: Double
   ): Either[ErrorMessage, RouteRequest] =
     for {
       from <- Coord.build(srcLng, srcLat)
@@ -189,15 +189,15 @@ object RouteRequest {
 }
 
 case class TimedCoord(
-    id: TrackPointId,
-    coord: Coord,
-    boatTime: FormattedDateTime,
-    boatTimeMillis: Long,
-    boatTimeOnly: FormattedTime,
-    speed: SpeedM,
-    waterTemp: Temperature,
-    depthMeters: DistanceM,
-    time: Timing
+  id: TrackPointId,
+  coord: Coord,
+  boatTime: FormattedDateTime,
+  boatTimeMillis: Long,
+  boatTimeOnly: FormattedTime,
+  speed: SpeedM,
+  waterTemp: Temperature,
+  depthMeters: DistanceM,
+  time: Timing
 ) {
   def lng = coord.lng
   def lat = coord.lat
@@ -342,7 +342,7 @@ trait IdentifiedDeviceMeta extends DeviceMeta {
 case class SimpleBoatMeta(user: Username, boat: BoatName) extends DeviceMeta
 
 case class IdentifiedDevice(user: Username, boat: BoatName, device: DeviceId)
-    extends IdentifiedDeviceMeta
+  extends IdentifiedDeviceMeta
 
 case class DeviceId(id: Long) extends AnyVal with WrappedId
 object DeviceId extends IdCompanion[DeviceId]
@@ -405,13 +405,13 @@ trait EmailUser extends MinimalUserInfo {
 case class SimpleEmailUser(username: Username, email: Email, language: Language) extends EmailUser
 
 case class UserInfo(
-    id: UserId,
-    username: Username,
-    email: Email,
-    language: Language,
-    boats: Seq[Boat],
-    enabled: Boolean,
-    addedMillis: Long
+  id: UserId,
+  username: Username,
+  email: Email,
+  language: Language,
+  boats: Seq[Boat],
+  enabled: Boolean,
+  addedMillis: Long
 ) extends EmailUser
 
 object UserInfo {
@@ -435,11 +435,11 @@ trait TrackLike extends TrackMetaLike {
 }
 
 case class TrackMetaShort(
-    track: TrackId,
-    trackName: TrackName,
-    boat: DeviceId,
-    boatName: BoatName,
-    username: Username
+  track: TrackId,
+  trackName: TrackName,
+  boat: DeviceId,
+  boatName: BoatName,
+  username: Username
 ) extends TrackMetaLike
 
 object TrackMetaShort {
@@ -453,22 +453,22 @@ object DeviceRef {
 }
 
 case class TrackRef(
-    track: TrackId,
-    trackName: TrackName,
-    trackTitle: Option[TrackTitle],
-    canonical: TrackCanonical,
-    comments: Option[String],
-    boat: DeviceId,
-    boatName: BoatName,
-    username: Username,
-    points: Int,
-    duration: Duration,
-    distanceMeters: DistanceM,
-    topSpeed: Option[SpeedM],
-    avgSpeed: Option[SpeedM],
-    avgWaterTemp: Option[Temperature],
-    topPoint: TimedCoord,
-    times: Times
+  track: TrackId,
+  trackName: TrackName,
+  trackTitle: Option[TrackTitle],
+  canonical: TrackCanonical,
+  comments: Option[String],
+  boat: DeviceId,
+  boatName: BoatName,
+  username: Username,
+  points: Int,
+  duration: Duration,
+  distanceMeters: DistanceM,
+  topSpeed: Option[SpeedM],
+  avgSpeed: Option[SpeedM],
+  avgWaterTemp: Option[Temperature],
+  topPoint: TimedCoord,
+  times: Times
 ) extends TrackLike {
   def describe = trackTitle.map(_.title).getOrElse(trackName.name)
 }
@@ -501,11 +501,11 @@ object GPSPointId extends IdCompanion[GPSPointId]
 case class BoatUser(track: TrackName, boat: BoatName, user: Username) extends BoatTrackMeta
 
 case class BoatInfo(
-    boatId: DeviceId,
-    boat: BoatName,
-    user: Username,
-    language: Language,
-    tracks: Seq[TrackRef]
+  boatId: DeviceId,
+  boat: BoatName,
+  user: Username,
+  language: Language,
+  tracks: Seq[TrackRef]
 )
 
 object BoatInfo {
@@ -678,6 +678,25 @@ object BoatJson {
   }
 }
 
+case class IconsConf(boat: String, trophy: String)
+
+object IconsConf {
+  implicit val json = Json.format[IconsConf]
+}
+
+case class MapConf(styleId: String, styleUrl: String, icons: IconsConf)
+
+object MapConf {
+  implicit val json = Json.format[MapConf]
+  val active = apply(Constants.StyleId)
+
+  def apply(styleId: String): MapConf = MapConf(
+    styleId,
+    s"mapbox://styles/malliina/$styleId",
+    IconsConf("boat-resized-opt-30", "trophy-gold-path")
+  )
+}
+
 abstract class Companion[Raw, T](implicit jsonFormat: Format[Raw], o: Ordering[Raw]) {
   def apply(raw: Raw): T
 
@@ -692,7 +711,7 @@ abstract class Companion[Raw, T](implicit jsonFormat: Format[Raw], o: Ordering[R
 }
 
 abstract class ValidatedDouble[T](implicit f: Format[Double])
-    extends ValidatingCompanion[Double, T]()(f, TotalOrdering)
+  extends ValidatingCompanion[Double, T]()(f, TotalOrdering)
 
 class ModelHtml[Builder, Output <: FragT, FragT](val bundle: Bundle[Builder, Output, FragT]) {
 

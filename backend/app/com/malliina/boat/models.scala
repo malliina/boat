@@ -50,11 +50,12 @@ object Layers {
   )
 }
 
-case class ClientConf(languages: Languages, layers: Layers)
+case class ClientConf(map: MapConf, languages: Languages, layers: Layers)
 
 object ClientConf {
   implicit val json = Json.format[ClientConf]
-  val default = ClientConf(Languages(Lang.fi, Lang.se, Lang.en), Layers.default)
+  val default =
+    ClientConf(MapConf.active, Languages(Lang.fi, Lang.se, Lang.en), Layers.default)
 }
 
 /** Alternative to LocalDate because according to its Javadoc reference equality and other

@@ -19,7 +19,7 @@ object MapView extends CookieNames {
   def readCookie(key: String): Either[NotFound, String] =
     cookies.get(key).toRight(NotFound(key))
 
-  def cookies = URIUtils
+  def cookies: Map[String, String] = URIUtils
     .decodeURIComponent(document.cookie)
     .split(";")
     .toList
@@ -36,7 +36,7 @@ class MapView(
   mapboxGl.accessToken = accessToken.token
   val mapOptions = MapOptions(
     container = MapId,
-    style = "mapbox://styles/malliina/ck8eypgkb08gb1iqlew4vwobg",
+    style = "mapbox://styles/malliina/ck8jax5mq1z061iqcucf8b9r4",
     center = Coord(lng = Longitude(24.9), lat = Latitude(60.14)),
     zoom = 13,
     hash = true
