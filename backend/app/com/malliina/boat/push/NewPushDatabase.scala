@@ -17,7 +17,7 @@ object NewPushDatabase {
 }
 
 class NewPushDatabase(val db: BoatDatabase[SnakeCase], val push: PushEndpoint)(
-    implicit ec: ExecutionContext
+  implicit ec: ExecutionContext
 ) extends PushService {
   import db._
   val pushTable = quote(querySchema[PushDevice]("push_clients"))
@@ -63,6 +63,7 @@ class NewPushDatabase(val db: BoatDatabase[SnakeCase], val push: PushEndpoint)(
     if (summary.isEmpty) {
       Future.successful(0)
     } else {
+      // Deletes "bad" tokens
       val deleteTask: IO[Int, Effect.Write] =
         runIO(pushTable.filter(t => liftQuery(summary.badTokens).contains(t.token)).delete).map {
           deleted =>

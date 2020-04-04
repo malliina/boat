@@ -25,11 +25,13 @@ object BoatState extends ValidatingCompanion[String, BoatState] {
 
 case class BoatNotification(boatName: BoatName, state: BoatState) {
   def message = s"$boatName $state"
+  def title = "Boat-Tracker"
 }
 
 object BoatNotification {
   implicit val json = Json.format[BoatNotification]
   val Message = "message"
+  val Title = "title"
 }
 
 case class APNSHttpResult(token: APNSToken, id: Option[APNSIdentifier], error: Option[APNSError])

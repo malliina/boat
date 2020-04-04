@@ -24,10 +24,12 @@ class FCMPush(fcm: FCMLegacyClient)(implicit ec: ExecutionContext) extends PushC
       Map(
         BoatName.Key -> notification.boatName.name,
         BoatState.Key -> notification.state.name,
-        BoatNotification.Message -> notification.message
-      ))
+        BoatNotification.Message -> notification.message,
+        BoatNotification.Title -> notification.title
+      )
+    )
     fcm.push(to, message).map { r =>
-      log.info(s"Push to '$to' complete. ${r.uninstalled.length}")
+      log.info(s"Push to '$to' complete. ${r.uninstalled.length} uninstalled device(s).")
       PushSummary(
         r.uninstalled.map(t => PushToken(t.token)),
         r.replacements.map(PushTokenReplacement.apply)

@@ -36,7 +36,7 @@ class MapView(
   mapboxGl.accessToken = accessToken.token
   val mapOptions = MapOptions(
     container = MapId,
-    style = "mapbox://styles/malliina/ck8jax5mq1z061iqcucf8b9r4",
+    style = "mapbox://styles/malliina/ck8lhls0r0obm1ilkvglk0ulr",
     center = Coord(lng = Longitude(24.9), lat = Latitude(60.14)),
     zoom = 13,
     hash = true
