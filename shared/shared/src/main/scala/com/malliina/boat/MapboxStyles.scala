@@ -1,7 +1,7 @@
 package com.malliina.boat
 
 object MapboxStyles {
-  val LimitLayerId = "rajoitusalue"
+  val LimitLayerId = "rajoitusalue_a"
   val FairwayAreaId = "vaylaalueet"
 
   val AisTrailLayer = "ais-vessels-trails"

@@ -5,7 +5,7 @@ object Constants extends Constants
 trait Constants extends CookieNames with BoatHeaders {
   val BoatTokenQuery = "token"
   val DefaultSample = 4
-  val StyleId = "ck8jax5mq1z061iqcucf8b9r4"
+  val StyleId = "ck8lhls0r0obm1ilkvglk0ulr"
 }
 
 object BoatHeaders extends BoatHeaders
