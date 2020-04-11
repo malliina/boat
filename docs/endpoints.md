@@ -57,6 +57,14 @@ Modifies the title of the given track:
 
 Provide the track name in the URL.
 
+## PATCH /tracks/:track_id
+
+Modifies the comments of the given track:
+
+    {
+        "comments": "Rainy and delightful!"
+    }
+
 ## GET /users/me
 
 Returns user information including any boats:

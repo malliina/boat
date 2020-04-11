@@ -8,7 +8,7 @@ See [Documentation](https://docs.boat-tracker.com).
 
 ## Code
 
-This repo is organized as follows:
+This repo contains:
 
 - a boat agent in folder [agent](agent)
 - server-side code in [backend](backend)
