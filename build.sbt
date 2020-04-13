@@ -248,7 +248,7 @@ val utils = project
     libraryDependencies ++= Seq(
       "ch.qos.logback" % "logback-classic" % "1.2.3",
       "org.slf4j" % "slf4j-api" % "1.7.28",
-      "javax.media" % "jai_core" % "1.1.3" from "https://download.osgeo.org/webdav/geotools/javax/media/jai_core/1.1.3/jai_core-1.1.3.jar",
+      "javax.media" % "jai_core" % "1.1.3",
       "org.geotools" % "gt-shapefile" % "22.2" exclude ("javax.media", "jai_core"),
       "org.geotools" % "gt-geojson" % "22.2" exclude ("javax.media", "jai_core"),
       scalaTestDep
