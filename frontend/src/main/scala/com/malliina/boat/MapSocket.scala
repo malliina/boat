@@ -53,41 +53,8 @@ class MapSocket(
     * @see https://docs.mapbox.com/mapbox-gl-js/example/heatmap-layer/
     * @param id layer ID
     */
-  def lineLayer(id: String) = {
-    import Json.arr
-    val colorBySpeed = arr(
-      "interpolate",
-      arr("linear"),
-      arr("get", TimedCoord.SpeedKey),
-      5,
-      "rgb(0,255,150)",
-      10,
-      "rgb(50,150,50)",
-      15,
-      "rgb(100,255,50)",
-      20,
-      "rgb(255,255,0)",
-      25,
-      "rgb(255,255,50)",
-      28,
-      "rgb(255,200,50)",
-      32,
-      "rgb(255,150,100)",
-      35,
-      "rgb(255,50,50)",
-      35,
-      "rgb(255,40,40)",
-      37,
-      "rgb(255,30,30)",
-      38,
-      "rgb(255,20,20)",
-      39,
-      "rgb(255,10,10)",
-      40,
-      "rgb(255,0,0)"
-    )
-    trackLineLayer(id, LinePaint(PropertyValue.Custom(colorBySpeed), 1, 1))
-  }
+  def lineLayer(id: String) =
+    trackLineLayer(id, LinePaint(PropertyValue.Custom(Styles.colorBySpeed), 1, 1))
 
   def trackLineLayer(id: String, paint: LinePaint): Layer = Layer.line(id, emptyTrack, paint, None)
 
