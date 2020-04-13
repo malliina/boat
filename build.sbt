@@ -244,7 +244,9 @@ val utils = project
   .disablePlugins(RevolverPlugin)
   .settings(basicSettings ++ boatSettings)
   .settings(
-    resolvers += "GeoTools" at "https://download.osgeo.org/webdav/geotools/",
+    resolvers ++= Seq(
+      "OSGeo Release Repository" at "https://repo.osgeo.org/repository/release/"
+    ),
     libraryDependencies ++= Seq(
       "ch.qos.logback" % "logback-classic" % "1.2.3",
       "org.slf4j" % "slf4j-api" % "1.7.28",
