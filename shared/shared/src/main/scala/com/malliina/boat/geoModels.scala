@@ -4,7 +4,7 @@ import com.malliina.values._
 import play.api.libs.json._
 
 case class MultiLineGeometry(`type`: String, coordinates: Seq[Seq[Coord]])
-    extends Geometry(MultiLineGeometry.Key) {
+  extends Geometry(MultiLineGeometry.Key) {
   override type Self = MultiLineGeometry
 
   override def updateCoords(coords: Seq[Coord]): MultiLineGeometry =
@@ -19,10 +19,13 @@ object MultiLineGeometry {
   val Key = "MultiLineString"
   implicit val coord: Format[Coord] = Coord.jsonArray
   implicit val json = Json.format[MultiLineGeometry]
+
+  def apply(coordinates: Seq[Seq[Coord]]): MultiLineGeometry =
+    MultiLineGeometry(Key, coordinates)
 }
 
 case class LineGeometry(`type`: String, coordinates: Seq[Coord])
-    extends Geometry(LineGeometry.Key) {
+  extends Geometry(LineGeometry.Key) {
   type Self = LineGeometry
 
   override def updateCoords(coords: Seq[Coord]): LineGeometry =
@@ -57,11 +60,12 @@ object PointGeometry {
 }
 
 case class MultiPolygon(`type`: String, coordinates: Seq[Seq[Seq[Coord]]])
-    extends Geometry(MultiPolygon.Key) {
+  extends Geometry(MultiPolygon.Key) {
   override type Self = MultiPolygon
 
   override def updateCoords(coords: Seq[Coord]): MultiPolygon = copy(
-    coordinates = coordinates :+ Seq(coords))
+    coordinates = coordinates :+ Seq(coords)
+  )
 
   override def coords: Seq[Coord] = coordinates.flatten.flatten
 }
@@ -136,11 +140,12 @@ object IconRotationAlignment extends StringEnumCompanion[IconRotationAlignment] 
   case object Auto extends IconRotationAlignment("auto")
 }
 
-case class ImageLayout(`icon-image`: String,
-                       `icon-size`: Int,
-                       `icon-rotate`: Option[Seq[String]] = None,
-                       `icon-rotation-alignment`: IconRotationAlignment = IconRotationAlignment.Map)
-    extends Layout
+case class ImageLayout(
+  `icon-image`: String,
+  `icon-size`: Int,
+  `icon-rotate`: Option[Seq[String]] = None,
+  `icon-rotation-alignment`: IconRotationAlignment = IconRotationAlignment.Map
+) extends Layout
 
 object ImageLayout {
   implicit val json = Json.format[ImageLayout]
@@ -177,27 +182,44 @@ object Layout {
   }
 }
 
+sealed trait PropertyValue
+object PropertyValue {
+  implicit val format = Format[PropertyValue](
+    Reads { json =>
+      json.validate[String].map(Literal.apply).orElse(json.validate[JsArray].map(Custom.apply))
+    },
+    Writes {
+      case Literal(value) => JsString(value)
+      case Custom(value)  => value
+    }
+  )
+
+  case class Literal(value: String) extends PropertyValue
+  case class Custom(value: JsArray) extends PropertyValue
+}
+
 case class CirclePaint(`circle-radius`: Int, `circle-color`: String) extends BasePaint
 
 object CirclePaint {
   implicit val json = Json.format[CirclePaint]
 }
 
-case class LinePaint(`line-color`: String,
-                     `line-width`: Int,
-                     `line-opacity`: Double,
-                     `line-gap-width`: Double = 0,
-                     `line-dasharray`: Option[List[Int]] = None)
-    extends BasePaint
+case class LinePaint(
+  `line-color`: PropertyValue,
+  `line-width`: Int,
+  `line-opacity`: Double,
+  `line-gap-width`: Double = 0,
+  `line-dasharray`: Option[List[Int]] = None
+) extends BasePaint
 
 object LinePaint {
   implicit val json = Json.format[LinePaint]
-  val blackColor = "#000"
+  val blackColor = PropertyValue.Literal("#000")
   val darkGray = "#A9A9A9"
 
-  def thin(color: String = blackColor) = LinePaint(color, 1, 1)
+  def thin(color: PropertyValue = blackColor) = LinePaint(color, 1, 1)
 
-  def dashed(color: String = blackColor) =
+  def dashed(color: PropertyValue = blackColor) =
     LinePaint(color, 1, 1, `line-dasharray` = Option(List(2, 4)))
 }
 
@@ -264,21 +286,25 @@ object LayerSource {
 /**
   * @see https://www.mapbox.com/mapbox-gl-js/style-spec/#layers
   */
-case class Layer(id: String,
-                 `type`: LayerType,
-                 source: LayerSource,
-                 layout: Option[Layout],
-                 paint: Option[BasePaint],
-                 minzoom: Option[Double] = None,
-                 maxzoom: Option[Double] = None)
+case class Layer(
+  id: String,
+  `type`: LayerType,
+  source: LayerSource,
+  layout: Option[Layout],
+  paint: Option[BasePaint],
+  minzoom: Option[Double] = None,
+  maxzoom: Option[Double] = None
+)
 
 object Layer {
   implicit val json = Json.format[Layer]
 
-  def line(id: String,
-           data: FeatureCollection,
-           paint: LinePaint = LinePaint.thin(),
-           minzoom: Option[Double] = None) =
+  def line(
+    id: String,
+    data: FeatureCollection,
+    paint: BasePaint = LinePaint.thin(),
+    minzoom: Option[Double] = None
+  ) =
     Layer(
       id,
       LayerType.Line,
@@ -300,10 +326,12 @@ object Layer {
     )
 }
 
-case class Feature(`type`: String,
-                   geometry: Geometry,
-                   properties: Map[String, JsValue],
-                   layer: Option[Layer]) {
+case class Feature(
+  `type`: String,
+  geometry: Geometry,
+  properties: Map[String, JsValue],
+  layer: Option[Layer]
+) {
   def addCoords(coords: Seq[Coord]): Feature = copy(
     geometry = geometry.updateCoords(coords)
   )
@@ -329,7 +357,8 @@ object Feature {
 
 case class FeatureCollection(`type`: String, features: Seq[Feature]) {
   def addCoords(coords: Seq[Coord]): FeatureCollection = copy(
-    features = features.map(_.addCoords(coords)))
+    features = features.map(_.addCoords(coords))
+  )
 }
 
 object FeatureCollection {

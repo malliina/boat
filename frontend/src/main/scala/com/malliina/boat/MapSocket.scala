@@ -3,6 +3,7 @@ package com.malliina.boat
 import com.malliina.boat.BoatFormats._
 import com.malliina.geojson.{GeoLineString, GeoPoint}
 import com.malliina.mapbox._
+import com.malliina.measure.SpeedM
 import com.malliina.turf.nearestPointOnLine
 import com.malliina.values.ErrorMessage
 import play.api.libs.json._
@@ -10,18 +11,19 @@ import play.api.libs.json._
 import scala.concurrent.Future
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 
-class MapSocket(val map: MapboxMap,
-                pathFinder: PathFinder,
-                track: PathState,
-                sample: Option[Int],
-                mode: MapMode,
-                language: Language)
-    extends BoatSocket(track, sample)
-    with GeoUtils {
+class MapSocket(
+  val map: MapboxMap,
+  pathFinder: PathFinder,
+  track: PathState,
+  sample: Option[Int],
+  mode: MapMode,
+  language: Language
+) extends BoatSocket(track, sample)
+  with GeoUtils {
 
   val lang = Lang(language)
   val trackLang = lang.track
-  val emptyTrack = lineFor(Nil)
+  val emptyTrack = lineForTrack(Nil)
   val trackPopup = MapboxPopup(PopupOptions())
   val boatPopup = MapboxPopup(PopupOptions(className = Option("popup-boat")))
   val ais = AISRenderer(map)
@@ -46,9 +48,44 @@ class MapSocket(val map: MapboxMap,
       case t => log.error("Unable to initialize image.", t)
     }
 
-  def lineLayer(id: String) = trackLineLayer(id, LinePaint.thin())
+  /** Colors the track by speed.
+    *
+    * @see https://docs.mapbox.com/mapbox-gl-js/example/heatmap-layer/
+    * @param id layer ID
+    */
+  def lineLayer(id: String) = {
+    import Json.arr
+    val colorBySpeed = arr(
+      "interpolate",
+      arr("linear"),
+      arr("get", TimedCoord.SpeedKey),
+      5,
+      "rgb(0,255,150)",
+      10,
+      "rgb(50,150,50)",
+      15,
+      "rgb(100,255,50)",
+      20,
+      "rgb(255,255,0)",
+      25,
+      "rgb(255,255,50)",
+      28,
+      "rgb(255,200,50)",
+      32,
+      "rgb(255,150,100)",
+      35,
+      "rgb(255,50,50)",
+      37,
+      "rgb(255,20,20)",
+      38,
+      "rgb(255,10,10)",
+      40,
+      "rgb(255,0,0)"
+    )
+    trackLineLayer(id, LinePaint(PropertyValue.Custom(colorBySpeed), 1, 1))
+  }
 
-  def trackLineLayer(id: String, paint: LinePaint) = Layer.line(id, emptyTrack, paint, None)
+  def trackLineLayer(id: String, paint: LinePaint): Layer = Layer.line(id, emptyTrack, paint, None)
 
   override def onCoords(event: CoordsEvent): Unit = {
     val from = event.from
@@ -61,7 +98,15 @@ class MapSocket(val map: MapboxMap,
     val hoverableTrack = s"$track-thick"
     val point = pointName(boat)
     val oldTrack: FeatureCollection = boats.getOrElse(track, emptyTrack)
-    val newTrack: FeatureCollection = oldTrack.addCoords(coords)
+    val latestMeasurement = for {
+      latestFeature <- oldTrack.features.lastOption
+      latestCoord <- latestFeature.geometry.coords.headOption
+      speedProp <- latestFeature.properties.get(TimedCoord.SpeedKey)
+      speed <- speedProp.validate[SpeedM].asOpt
+    } yield SimpleCoord(latestCoord, speed)
+    val newTrack: FeatureCollection =
+      oldTrack
+        .copy(features = oldTrack.features ++ speedFeatures(latestMeasurement.toSeq ++ coordsInfo))
     boats = boats.updated(track, newTrack)
     trails = trails.updated(trackId, trails.getOrElse(trackId, Nil) ++ coordsInfo)
     // adds layer if not already added
@@ -237,7 +282,7 @@ class MapSocket(val map: MapboxMap,
                   if (!popups.markPopup.isOpen())
                     devicePopup.showText(device.deviceName.name, in.lngLat, map)
                 }
-            },
+              },
             _ => {
               map.getCanvas().style.cursor = ""
               devicePopup.remove()
@@ -248,11 +293,14 @@ class MapSocket(val map: MapboxMap,
   }
 
   def fly(to: BoatName): Unit =
-    devices.get(to).map { device =>
-      map.flyTo(FlyOptions(device.coord, 0.8))
-    }.getOrElse {
-      log.info(s"Device not found on map: '$to'.")
-    }
+    devices
+      .get(to)
+      .map { device =>
+        map.flyTo(FlyOptions(device.coord, 0.8))
+      }
+      .getOrElse {
+        log.info(s"Device not found on map: '$to'.")
+      }
 
   override def onAIS(messages: Seq[VesselInfo]): Unit = {
     ais.onAIS(messages)
@@ -272,7 +320,8 @@ class MapSocket(val map: MapboxMap,
     val dLon = to.lng.lng - from.lng.lng
     val y = Math.sin(dLon) * Math.cos(to.lat.lat)
     val x = Math.cos(from.lat.lat) * Math.sin(to.lat.lat) - Math.sin(from.lat.lat) * Math.cos(
-      to.lat.lat) * Math.cos(dLon)
+      to.lat.lat
+    ) * Math.cos(dLon)
     val brng = toDeg(Math.atan2(y, x))
     360 - ((brng + 360) % 360)
   }
@@ -293,43 +342,4 @@ class MapSocket(val map: MapboxMap,
 
   def trophySymbolLayer(id: String, coord: Coord) =
     Layer.symbol(id, pointFor(coord), ImageLayout(trophyIconId, `icon-size` = 1))
-}
-
-trait GeoUtils {
-  val boatIconId = "boat-icon"
-  val trophyIconId = "trophy-icon"
-  val deviceIconId = "device-icon"
-
-  def map: MapboxMap
-
-  def updateOrSet(layer: Layer): Outcome =
-    map
-      .findSource(layer.id)
-      .map { geo =>
-        layer.source match {
-          case InlineLayerSource(_, data) =>
-            geo.updateData(data)
-            Outcome.Updated
-          case StringLayerSource(_) =>
-            Outcome.Noop
-        }
-      }
-      .getOrElse {
-        map.putLayer(layer)
-        Outcome.Added
-      }
-
-  def drawLine(id: String, geoJson: FeatureCollection, paint: LinePaint = LinePaint.thin()) =
-    updateOrSet(Layer.line(id, geoJson, paint, None))
-
-  def lineFor(coords: Seq[Coord]) = collectionFor(LineGeometry(coords), Map.empty)
-
-  def pointFor(coord: Coord, props: Map[String, JsValue] = Map.empty) =
-    collectionFor(PointGeometry(coord), props)
-
-  def pointForProps[T: OWrites](coord: Coord, props: T) =
-    pointFor(coord, Json.toJsObject(props).value.toMap)
-
-  def collectionFor(geo: Geometry, props: Map[String, JsValue]): FeatureCollection =
-    FeatureCollection(Seq(Feature(geo, props)))
 }

@@ -188,6 +188,13 @@ object RouteRequest {
     } yield RouteRequest(from, to)
 }
 
+trait MeasuredCoord {
+  def coord: Coord
+  def speed: SpeedM
+}
+
+case class SimpleCoord(coord: Coord, speed: SpeedM) extends MeasuredCoord
+
 case class TimedCoord(
   id: TrackPointId,
   coord: Coord,
@@ -198,12 +205,14 @@ case class TimedCoord(
   waterTemp: Temperature,
   depthMeters: DistanceM,
   time: Timing
-) {
+) extends MeasuredCoord {
   def lng = coord.lng
   def lat = coord.lat
 }
 
 object TimedCoord {
+  val SpeedKey = "speed"
+  val DepthKey = "depth"
   val modern = Json.format[TimedCoord]
   // For backwards compat
   implicit val json = Format[TimedCoord](
