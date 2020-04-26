@@ -58,15 +58,36 @@
   display: none;
 }
 
+.badges {
+  display: flex;
+  justify-content: center;
+}
+
 .badge-ios {
+  width: 200px;
+  height: 61px;
+  margin-top: 4px;
   display: inline-block;
   overflow: hidden;
   background: url("../img/badge_appstore-lrg.svg") no-repeat center;
+  background-size: 80%;
+}
+
+.badge-android {
+  width: 200px;
+  height: 70px;
+  display: inline-block;
+  overflow: hidden;
+  background: url("../img/google-play-badge.png") no-repeat center;
   background-size: contain;
-  height: 60px;
 }
 
 .modal-divider {
   margin-top: 2rem;
   margin-bottom: 2rem;
+}
+
+.language-form {
+  display: flex;
+  justify-content: center;
 }

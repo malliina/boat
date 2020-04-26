@@ -123,7 +123,6 @@ val backend = Project("boat", file("backend"))
     unmanagedResourceDirectories in Compile += baseDirectory.value / "docs",
     libraryDependencies ++= Seq(
       "com.vividsolutions" % "jts" % "1.13",
-//      "org.orbisgis" % "h2gis" % "1.4.0",
       "io.getquill" %% "quill-jdbc" % "3.5.1",
       "mysql" % "mysql-connector-java" % "5.1.48",
       "org.flywaydb" % "flyway-core" % "6.0.3",

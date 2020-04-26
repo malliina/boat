@@ -47,9 +47,19 @@ class About(lang: WebLang) extends AboutKeys {
         } else {
           empty
         },
-        a(
-          `class` := "badge-ios",
-          href := "https://itunes.apple.com/us/app/boat-tracker/id1434203398?ls=1&mt=8"
+        div(`class` := "badges")(
+          div(`class` := "badge-wrapper-android")(
+            a(
+              `class` := "badge-android",
+              href := "https://play.google.com/store/apps/details?id=com.malliina.boattracker&pcampaignid=pcampaignidMKT-Other-global-all-co-prtnr-py-PartBadge-Mar2515-1"
+            )
+          ),
+          div(`class` := "badge-wrapper-ios")(
+            a(
+              `class` := "badge-ios",
+              href := "https://itunes.apple.com/us/app/boat-tracker/id1434203398?ls=1&mt=8"
+            )
+          )
         ),
         hr(`class` := "modal-divider"),
         h2(lang.maritimeData),
@@ -68,17 +78,18 @@ class About(lang: WebLang) extends AboutKeys {
 
   case class RadioOptions(id: String, value: String, label: String, checked: Boolean)
 
-  def radios(groupName: String, rs: Seq[RadioOptions]) = div(rs.map { radio =>
-    div(`class` := "form-check form-check-inline")(
-      input(
-        `class` := "form-check-input",
-        `type` := "radio",
-        name := groupName,
-        id := radio.id,
-        value := radio.value,
-        if (radio.checked) checked else empty
-      ),
-      label(`class` := "form-check-label", `for` := radio.id)(radio.label)
-    )
+  def radios(groupName: String, rs: Seq[RadioOptions]) = div(`class` := "language-form")(rs.map {
+    radio =>
+      div(`class` := "form-check form-check-inline")(
+        input(
+          `class` := "form-check-input",
+          `type` := "radio",
+          name := groupName,
+          id := radio.id,
+          value := radio.value,
+          if (radio.checked) checked else empty
+        ),
+        label(`class` := "form-check-label", `for` := radio.id)(radio.label)
+      )
   })
 }
