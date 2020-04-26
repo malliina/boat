@@ -3,8 +3,7 @@ package controllers
 import com.malliina.http.FullUrl
 import play.api.mvc.{AbstractController, ControllerComponents}
 
-class DocsController(comps: ControllerComponents)
-  extends AbstractController(comps) {
+class DocsController(comps: ControllerComponents) extends AbstractController(comps) {
 
   def agent = redirect("agent")
 

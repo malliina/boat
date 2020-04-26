@@ -37,7 +37,8 @@ object DevicesPage extends BoatImplicits with CSRFConf {
               td(`class` := "table-button")(
                 form(method := "POST", action := reverse.deleteBoat(boat.id))(
                   button(`type` := "submit", `class` := "btn btn-sm btn-danger")(
-                    lang.settings.delete),
+                    lang.settings.delete
+                  ),
                   csrfInput(token)
                 )
               )
@@ -47,12 +48,14 @@ object DevicesPage extends BoatImplicits with CSRFConf {
       ),
       form(method := "POST", action := reverse.createBoat())(
         div(`class` := "form-group row")(
-          labeledInput(boatLang.addBoat,
-                       "boat-name-label",
-                       BoatNames.Key,
-                       "col-form-label col-form-label-sm col-sm-2",
-                       "form-control form-control-sm",
-                       "Titanic"),
+          labeledInput(
+            boatLang.addBoat,
+            "boat-name-label",
+            BoatNames.Key,
+            "col-form-label col-form-label-sm col-sm-2",
+            "form-control form-control-sm",
+            "Titanic"
+          ),
           div(`class` := "col-sm-3 pl-sm-0 pt-2 pt-sm-0")(
             button(`type` := "submit", `class` := "btn btn-sm btn-primary")(webLang.save)
           ),
@@ -62,19 +65,23 @@ object DevicesPage extends BoatImplicits with CSRFConf {
     )
   }
 
-  def labeledInput(labelText: String,
-                   inputId: String,
-                   inputName: String,
-                   labelClass: String,
-                   inputClass: String,
-                   placeholderValue: String) = modifier(
+  def labeledInput(
+    labelText: String,
+    inputId: String,
+    inputName: String,
+    labelClass: String,
+    inputClass: String,
+    placeholderValue: String
+  ) = modifier(
     label(`class` := labelClass, `for` := inputId)(labelText),
     div(`class` := "col-sm-7")(
-      input(`type` := "text",
-            id := inputId,
-            `class` := inputClass,
-            placeholder := placeholderValue,
-            name := BoatNames.Key)
+      input(
+        `type` := "text",
+        id := inputId,
+        `class` := inputClass,
+        placeholder := placeholderValue,
+        name := BoatNames.Key
+      )
     )
   )
 

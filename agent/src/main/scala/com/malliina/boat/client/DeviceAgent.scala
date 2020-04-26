@@ -18,8 +18,10 @@ object DeviceAgent {
   val BoatUrl = Host / "/ws/boats"
   val DeviceUrl = Host / "/ws/devices"
 
-  def apply(conf: BoatConf, url: FullUrl)(implicit as: ActorSystem,
-                                          mat: Materializer): DeviceAgent =
+  def apply(
+    conf: BoatConf,
+    url: FullUrl
+  )(implicit as: ActorSystem, mat: Materializer): DeviceAgent =
     new DeviceAgent(conf, url)
 }
 

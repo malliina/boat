@@ -13,12 +13,14 @@ object VesselProps {
   implicit val json = Json.format[VesselProps]
 }
 
-case class PointProps(boatName: BoatName,
-                      trackName: TrackName,
-                      speed: SpeedM,
-                      waterTemp: Temperature,
-                      depth: DistanceM,
-                      dateTime: FormattedDateTime)
+case class PointProps(
+  boatName: BoatName,
+  trackName: TrackName,
+  speed: SpeedM,
+  waterTemp: Temperature,
+  depth: DistanceM,
+  dateTime: FormattedDateTime
+)
 
 object PointProps {
   implicit val json = Json.format[PointProps]
@@ -27,10 +29,12 @@ object PointProps {
     PointProps(ref.boatName, ref.trackName, c.speed, c.waterTemp, c.depthMeters, c.time.dateTime)
 }
 
-case class DeviceProps(deviceName: BoatName,
-                       lng: Longitude,
-                       lat: Latitude,
-                       dateTime: FormattedDateTime) {
+case class DeviceProps(
+  deviceName: BoatName,
+  lng: Longitude,
+  lat: Latitude,
+  dateTime: FormattedDateTime
+) {
   def coord = Coord(lng, lat)
 }
 

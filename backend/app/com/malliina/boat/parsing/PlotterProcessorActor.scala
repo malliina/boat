@@ -25,35 +25,35 @@ class PlotterProcessorActor(processed: ActorRef) extends Actor {
   var coords: Map[TrackId, Seq[ParsedCoord]] = Map.empty
 
   override def receive: Receive = {
-    case pd@ParsedDateTime(_, _, _) =>
+    case pd @ ParsedDateTime(_, _, _) =>
       val track = pd.track
       latestDateTime = latestDateTime.updated(track, pd)
       emitIfComplete(track)
-    case pbs@ParsedBoatSpeed(_, _) =>
+    case pbs @ ParsedBoatSpeed(_, _) =>
       val track = pbs.track
       latestBoatSpeed = latestBoatSpeed.updated(track, pbs)
       emitIfComplete(track)
-    case pws@ParsedWaterSpeed(_, _) =>
+    case pws @ ParsedWaterSpeed(_, _) =>
     // does not seem to contain data, let's ignore it for now
     //      latestWaterSpeed = latestWaterSpeed.updated(from.track, knots)
-    case wd@WaterDepth(_, _, _) =>
+    case wd @ WaterDepth(_, _, _) =>
       val track = wd.track
       latestDepth = latestDepth.updated(track, wd)
       emitIfComplete(track)
-    case wt@WaterTemperature(_, _) =>
+    case wt @ WaterTemperature(_, _) =>
       val track = wt.track
       latestWaterTemp = latestWaterTemp.updated(track, wt)
       emitIfComplete(track)
-    case coord@ParsedCoord(_, _, _) =>
+    case coord @ ParsedCoord(_, _, _) =>
       val track = coord.track
       val emitted = emitIfComplete(track, Seq(coord))
       if (!emitted) {
         coords = coords.updated(track, coords.getOrElse(track, Nil) :+ coord)
       }
-    case success@Success(s) =>
+    case success @ Success(s) =>
       log.warn(s"Stream completed with message '$s'.")
       processed ! success
-    case failure@Failure(t) =>
+    case failure @ Failure(t) =>
       log.error(s"Stream completed with failure.", t)
       processed ! failure
   }
@@ -77,7 +77,15 @@ class PlotterProcessorActor(processed: ActorRef) extends Actor {
     } yield {
       buffer.foreach { coord =>
         val sentenceKeys = Seq(coord.key, dateTime.key, speed.key, temp.key, depth.key)
-        processed ! coord.complete(dateTime.date, dateTime.time, speed.speed, temp.temp, depth.depth, depth.offset, sentenceKeys)
+        processed ! coord.complete(
+          dateTime.date,
+          dateTime.time,
+          speed.speed,
+          temp.temp,
+          depth.depth,
+          depth.offset,
+          sentenceKeys
+        )
       }
       true
     }).getOrElse(false)

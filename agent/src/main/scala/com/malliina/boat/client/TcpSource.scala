@@ -25,13 +25,17 @@ object TcpSource {
   // Subscribes to NMEA messages. Depending on device, by default, nothing happens.
   val watchMessage = ByteString(GpsDevice.watchCommand + TcpSource.crlf, StandardCharsets.US_ASCII)
 
-  def apply(host: String, port: Int, delimiter: String = crlf)(implicit as: ActorSystem,
-                                                               mat: Materializer): TcpSource =
+  def apply(host: String, port: Int, delimiter: String = crlf)(
+    implicit as: ActorSystem,
+    mat: Materializer
+  ): TcpSource =
     new TcpSource(host, port, delimiter)
 }
 
-class TcpSource(host: String, port: Int, delimiter: String)(implicit as: ActorSystem,
-                                                            mat: Materializer) {
+class TcpSource(host: String, port: Int, delimiter: String)(
+  implicit as: ActorSystem,
+  mat: Materializer
+) {
   implicit val ec = mat.executionContext
   private val enabled = new AtomicBoolean(true)
   // Sends after maxBatchSize sentences have been collected or every sendTimeWindow, whichever comes first
@@ -59,8 +63,9 @@ class TcpSource(host: String, port: Int, delimiter: String)(implicit as: ActorSy
     setupTcp(Source.maybe[ByteString])
   }
 
-  def setupTcp(toSource: Source[ByteString, _])
-    : Source[SentencesMessage, (Future[Tcp.OutgoingConnection], Future[Done])] = {
+  def setupTcp(
+    toSource: Source[ByteString, _]
+  ): Source[SentencesMessage, (Future[Tcp.OutgoingConnection], Future[Done])] = {
     val conn = Tcp().outgoingConnection(host, port).via(flow).idleTimeout(20.seconds)
     toSource.viaMat(conn)(Keep.right).watchTermination()(Keep.both)
   }

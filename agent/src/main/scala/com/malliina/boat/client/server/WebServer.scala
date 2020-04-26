@@ -27,16 +27,19 @@ object WebServer {
   val settingsPath = "settings"
   val settingsUri = s"/$settingsPath"
 
-  def apply(host: String, port: Int, agentInstance: AgentInstance)(implicit as: ActorSystem,
-                                                                   mat: Materializer): WebServer =
+  def apply(host: String, port: Int, agentInstance: AgentInstance)(
+    implicit as: ActorSystem,
+    mat: Materializer
+  ): WebServer =
     new WebServer(host, port, agentInstance)
 
   def hash(pass: String): String = DigestUtils.md5Hex(pass)
 }
 
-class WebServer(host: String, port: Int, agentInstance: AgentInstance)(implicit as: ActorSystem,
-                                                                       mat: Materializer)
-    extends JsonSupport {
+class WebServer(host: String, port: Int, agentInstance: AgentInstance)(
+  implicit as: ActorSystem,
+  mat: Materializer
+) extends JsonSupport {
   implicit val ec = as.dispatcher
 
   implicit val tokenUn = Unmarshaller.strict[String, BoatToken](BoatToken.apply)
@@ -61,15 +64,16 @@ class WebServer(host: String, port: Int, agentInstance: AgentInstance)(implicit 
           complete(asHtml(boatForm(readConf())))
         },
         post {
-          formFields(Symbol("host"),
-                     Symbol("port").as[Int],
-                     Symbol("device").as[Device],
-                     Symbol("token").as[BoatToken].?,
-                     Symbol("enabled").as[Boolean] ? false) {
-            (host, port, device, token, enabled) =>
-              val conf = BoatConf(host, port, device, token.filter(_.token.nonEmpty), enabled)
-              saveAndReload(conf, agentInstance)
-              redirect(Uri(settingsUri), StatusCodes.SeeOther)
+          formFields(
+            Symbol("host"),
+            Symbol("port").as[Int],
+            Symbol("device").as[Device],
+            Symbol("token").as[BoatToken].?,
+            Symbol("enabled").as[Boolean] ? false
+          ) { (host, port, device, token, enabled) =>
+            val conf = BoatConf(host, port, device, token.filter(_.token.nonEmpty), enabled)
+            saveAndReload(conf, agentInstance)
+            redirect(Uri(settingsUri), StatusCodes.SeeOther)
           }
         }
       )

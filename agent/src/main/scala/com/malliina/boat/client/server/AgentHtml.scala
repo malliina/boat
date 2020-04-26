@@ -25,33 +25,41 @@ object AgentHtml {
     ),
     div(`class` := "form-field")(
       label(`for` := "token")("Token"),
-      input(`type` := "text",
-            name := "token",
-            id := "token",
-            conf.token.map(v => value := v.token).getOrElse(empty))
+      input(
+        `type` := "text",
+        name := "token",
+        id := "token",
+        conf.token.map(v => value := v.token).getOrElse(empty)
+      )
     ),
     div(`class` := "form-field")(
       label(`for` := "enabled")("Enabled"),
-      input(`type` := "checkbox",
-            name := "enabled",
-            id := "enabled",
-            if (conf.enabled) checked else empty)
+      input(
+        `type` := "checkbox",
+        name := "enabled",
+        id := "enabled",
+        if (conf.enabled) checked else empty
+      )
     ),
     div(`class` := "form-field")(
       button(`type` := "submit")("Save")
     )
   )
 
-  def radioButton(text: String,
-                  radioId: String,
-                  group: String,
-                  radioValue: String,
-                  isChecked: Boolean) = div(
-    input(`type` := "radio",
-          name := group,
-          id := radioId,
-          value := radioValue,
-          if (isChecked) checked else empty),
+  def radioButton(
+    text: String,
+    radioId: String,
+    group: String,
+    radioValue: String,
+    isChecked: Boolean
+  ) = div(
+    input(
+      `type` := "radio",
+      name := group,
+      id := radioId,
+      value := radioValue,
+      if (isChecked) checked else empty
+    ),
     label(`for` := radioId)(text)
   )
 

@@ -77,14 +77,16 @@ trait DataSet extends js.Object {
 }
 
 object DataSet {
-  def apply(label: String,
-            data: Seq[Double],
-            fill: Option[Boolean] = None,
-            backgroundColor: Seq[String] = Nil,
-            borderColor: Seq[String] = Nil,
-            borderWidth: Int = 1,
-            pointRadius: Int = 3,
-            lineTension: Double = 0.4): DataSet = literal(
+  def apply(
+    label: String,
+    data: Seq[Double],
+    fill: Option[Boolean] = None,
+    backgroundColor: Seq[String] = Nil,
+    borderColor: Seq[String] = Nil,
+    borderWidth: Int = 1,
+    pointRadius: Int = 3,
+    lineTension: Double = 0.4
+  ): DataSet = literal(
     label = label,
     data = data.toJSArray,
     fill = fill.orUndefined,
@@ -92,7 +94,8 @@ object DataSet {
     borderColor = borderColor.toJSArray,
     borderWidth = borderWidth,
     pointRadius = pointRadius,
-    lineTension = lineTension).asInstanceOf[DataSet]
+    lineTension = lineTension
+  ).asInstanceOf[DataSet]
 }
 
 @js.native
@@ -133,7 +136,11 @@ trait ChartSpecs extends js.Object {
 object ChartSpecs {
   def line(data: ChartData) = apply("line", data)
 
-  def apply(typeValue: String, data: ChartData, options: ChartOptions = ChartOptions()): ChartSpecs =
+  def apply(
+    typeValue: String,
+    data: ChartData,
+    options: ChartOptions = ChartOptions()
+  ): ChartSpecs =
     literal(`type` = typeValue, data = data, options = options).asInstanceOf[ChartSpecs]
 }
 

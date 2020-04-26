@@ -10,22 +10,24 @@ sealed trait TalkedSentence {
   def talker: String
 }
 
-case class VTGMessage(talker: String,
-                      courseTrue: Double,
-                      courseMagnetic: Double,
-                      speedKnots: SpeedM,
-                      speedKmh: SpeedM)
-    extends TalkedSentence
+case class VTGMessage(
+  talker: String,
+  courseTrue: Double,
+  courseMagnetic: Double,
+  speedKnots: SpeedM,
+  speedKmh: SpeedM
+) extends TalkedSentence
 case class DPTMessage(talker: String, depth: DistanceM, offset: DistanceM) extends TalkedSentence
 case class MTWMessage(talker: String, temperature: Temperature) extends TalkedSentence
-case class ZDAMessage(talker: String,
-                      timeUtc: LocalTime,
-                      day: Int,
-                      month: Int,
-                      year: Int,
-                      timeZoneOffsetHours: Option[Int],
-                      timeZoneOffsetMinutes: Option[Int])
-    extends TalkedSentence {
+case class ZDAMessage(
+  talker: String,
+  timeUtc: LocalTime,
+  day: Int,
+  month: Int,
+  year: Int,
+  timeZoneOffsetHours: Option[Int],
+  timeZoneOffsetMinutes: Option[Int]
+) extends TalkedSentence {
   val date = LocalDate.of(year, month, day)
   val dateTimeUtc = OffsetDateTime.of(date, timeUtc, ZoneOffset.UTC)
   def time: LocalTime = timeUtc
@@ -46,23 +48,26 @@ object ZDAMessage {
       .orElse(parseFormattedTime(s, timeFormatterGps))
 
   def parseFormattedTime(s: String, formatter: DateTimeFormatter): Either[SingleError, LocalTime] =
-    try { Right(LocalTime.parse(s, formatter)) } catch {
+    try {
+      Right(LocalTime.parse(s, formatter))
+    } catch {
       case _: DateTimeParseException =>
         Left(SingleError.input(s"Invalid time: '$s', expected format '$formatter'."))
     }
 }
 
-case class GGAMessage(talker: String,
-                      timeUtc: LocalTime,
-                      lat: LatitudeDM,
-                      lng: LongitudeDM,
-                      gpsQuality: Int,
-                      svCount: Int,
-                      hdop: Double,
-                      orthometricHeight: DistanceM,
-                      geoidSeparation: Option[Double],
-                      diffAge: Option[Double])
-    extends TalkedSentence
+case class GGAMessage(
+  talker: String,
+  timeUtc: LocalTime,
+  lat: LatitudeDM,
+  lng: LongitudeDM,
+  gpsQuality: Int,
+  svCount: Int,
+  hdop: Double,
+  orthometricHeight: DistanceM,
+  geoidSeparation: Option[Double],
+  diffAge: Option[Double]
+) extends TalkedSentence
 
 trait PrimitiveParsing {
   def attempt[In, Out](in: In, onFail: In => String)(pf: PartialFunction[In, Out]) =
@@ -104,12 +109,13 @@ object GPSFix extends PrimitiveParsing {
 
 case class GSAMessage(talker: String, mode: GPSMode, fix: GPSFix) extends TalkedSentence
 
-case class RMCMessage(talker: String,
-                      timeUtc: LocalTime,
-                      date: LocalDate,
-                      speed: SpeedM,
-                      course: Double)
-    extends TalkedSentence {
+case class RMCMessage(
+  talker: String,
+  timeUtc: LocalTime,
+  date: LocalDate,
+  speed: SpeedM,
+  course: Double
+) extends TalkedSentence {
   val dateTimeUtc = OffsetDateTime.of(date, timeUtc, ZoneOffset.UTC)
 }
 
@@ -117,7 +123,9 @@ object RMCMessage {
   val dateFormatter = DateTimeFormatter.ofPattern("ddMMyy")
 
   def parseDate(s: String) =
-    try { Right(LocalDate.parse(s, dateFormatter)) } catch {
+    try {
+      Right(LocalDate.parse(s, dateFormatter))
+    } catch {
       case _: DateTimeParseException =>
         Left(SingleError.input(s"Invalid date: '$s', expected format '$dateFormatter'."))
     }
@@ -142,4 +150,4 @@ object Azimuth extends PrimitiveParsing {
 }
 
 case class GSVMessage(talker: String, satellites: Int, elevation: Elevation, azimuth: Azimuth)
-    extends TalkedSentence
+  extends TalkedSentence

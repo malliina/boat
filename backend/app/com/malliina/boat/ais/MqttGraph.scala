@@ -21,11 +21,14 @@ object MqttGraph {
 }
 
 // https://github.com/akka/alpakka/blob/ae2e1e1d44d627ebc66a24ea35993398df7840bc/mqtt/src/main/scala/MqttSource.scala
-class MqttGraph(settings: MqttSettings) extends GraphStageWithMaterializedValue[SourceShape[MqMessage], Future[Done]] {
+class MqttGraph(settings: MqttSettings)
+  extends GraphStageWithMaterializedValue[SourceShape[MqMessage], Future[Done]] {
   val out = Outlet[MqMessage]("MqMessage.out")
   override val shape = SourceShape(out)
 
-  override def createLogicAndMaterializedValue(inheritedAttributes: Attributes): (GraphStageLogic, Future[Done]) = {
+  override def createLogicAndMaterializedValue(
+    inheritedAttributes: Attributes
+  ): (GraphStageLogic, Future[Done]) = {
     val subscriptionPromise = Promise[Done]()
     val queue = mutable.Queue[MqMessage]()
     val backpressure = new Semaphore(settings.bufferSize)

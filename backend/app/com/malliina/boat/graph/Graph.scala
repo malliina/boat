@@ -91,12 +91,12 @@ class Graph(val nodes: Map[CoordHash, ValueNode]) {
     nodes.get(from.hash).exists(_.links.exists(_.to.hash == to.hash))
 
   /** Adds `edge` to the graph. If `edge` intersects another edge, a node is added at the crossing
-   * along with four edges: to/from the endpoints of `edge` and to/from the endpoints of the
-   * intersected edge.
-   *
-   * @param edge edge to add
-   * @return a new graph with the edge added
-   */
+    * along with four edges: to/from the endpoints of `edge` and to/from the endpoints of the
+    * intersected edge.
+    *
+    * @param edge edge to add
+    * @return a new graph with the edge added
+    */
   def edge(edge: Edge): Graph = {
     if (contains(edge)) {
       this
@@ -168,8 +168,8 @@ class Graph(val nodes: Map[CoordHash, ValueNode]) {
     for {
       startNode <- start
       _ = log.info(s"Starting from ${startNode.from} and ending at $end...")
-      initialPaths = startNode.links.map(
-        link => ValueRoute(link, Link(startNode.from, DistanceM.zero) :: Nil)
+      initialPaths = startNode.links.map(link =>
+        ValueRoute(link, Link(startNode.from, DistanceM.zero) :: Nil)
       )
       result <- search(startNode.from, end, initialPaths, Map.empty)
         .map(_.reverse)
@@ -194,11 +194,11 @@ class Graph(val nodes: Map[CoordHash, ValueNode]) {
 
   @tailrec
   private def search(
-                      from: Coord,
-                      to: Coord,
-                      currentPaths: List[ValueRoute],
-                      shortestKnown: Map[CoordHash, ValueRoute]
-                    ): Either[GraphError, ValueRoute] = {
+    from: Coord,
+    to: Coord,
+    currentPaths: List[ValueRoute],
+    shortestKnown: Map[CoordHash, ValueRoute]
+  ): Either[GraphError, ValueRoute] = {
     val candidates = shortestKnown
       .get(to.hash)
       .map(hit => currentPaths.filter(_.cost < hit.cost))

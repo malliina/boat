@@ -30,7 +30,8 @@ object CustomSSLSocketFactory {
   * @param sslParameters SSL parameters, such as SNI settings
   * @see http://javabreaks.blogspot.fi/2015/12/java-ssl-handshake-with-server-name.html
   */
-class CustomSSLSocketFactory(inner: SSLSocketFactory, sslParameters: SSLParameters) extends SSLSocketFactory {
+class CustomSSLSocketFactory(inner: SSLSocketFactory, sslParameters: SSLParameters)
+  extends SSLSocketFactory {
   override def getDefaultCipherSuites: Array[String] = inner.getDefaultCipherSuites
 
   override def getSupportedCipherSuites: Array[String] = inner.getSupportedCipherSuites
@@ -50,7 +51,12 @@ class CustomSSLSocketFactory(inner: SSLSocketFactory, sslParameters: SSLParamete
   override def createSocket(inetAddress: InetAddress, i: Int): Socket =
     customized(inner.createSocket(inetAddress, i))
 
-  override def createSocket(inetAddress: InetAddress, i: Int, inetAddress1: InetAddress, i1: Int): Socket =
+  override def createSocket(
+    inetAddress: InetAddress,
+    i: Int,
+    inetAddress1: InetAddress,
+    i1: Int
+  ): Socket =
     customized(inner.createSocket(inetAddress, i, inetAddress1, i1))
 
   private def customized(s: Socket): Socket = {

@@ -19,7 +19,7 @@ object DeviceService {
 }
 
 class DeviceService(val db: GPSSource)(implicit as: ActorSystem, mat: Materializer)
-    extends Streams {
+  extends Streams {
   implicit val ec = mat.executionContext
 
   val killSwitch = KillSwitches.shared("devices-switch")

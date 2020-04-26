@@ -69,7 +69,8 @@ class PathFinder(val map: MapboxMap) extends GeoUtils with BaseFront {
       val route = res.route
       val coords = route.coords
       val coll = FeatureCollection(
-        Seq(Feature(LineGeometry(coords), Map(RouteSpec.Cost -> Json.toJson(route.cost)))))
+        Seq(Feature(LineGeometry(coords), Map(RouteSpec.Cost -> Json.toJson(route.cost))))
+      )
       elemGet[HTMLSpanElement](RouteLength).innerHTML = s"${formatDistance(route.cost)} km"
       drawLine(routeLayer, coll)
       coords.headOption.map { start =>

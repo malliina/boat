@@ -36,11 +36,13 @@ case class BoatConfOld(host: String, port: Int, token: Option[BoatToken], enable
   def toConf = BoatConf(host, port, BoatDevice, token, enabled)
 }
 
-case class BoatConf(host: String,
-                    port: Int,
-                    device: Device,
-                    token: Option[BoatToken],
-                    enabled: Boolean) {
+case class BoatConf(
+  host: String,
+  port: Int,
+  device: Device,
+  token: Option[BoatToken],
+  enabled: Boolean
+) {
   def describe = s"$host:$port-$enabled"
 }
 

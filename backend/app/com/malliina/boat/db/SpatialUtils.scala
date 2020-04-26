@@ -15,7 +15,8 @@ object SpatialUtils {
   val outputDimension = 2
   // TODO What is SRID 4326?
   val srid = 4326
-  val gf = new GeometryFactory(new PrecisionModel(), srid, CoordinateArraySequenceFactory.instance())
+  val gf =
+    new GeometryFactory(new PrecisionModel(), srid, CoordinateArraySequenceFactory.instance())
 
   def fromBytes[T](bytes: Array[Byte]): T = {
     val (_, wkb) = bytes.splitAt(4)

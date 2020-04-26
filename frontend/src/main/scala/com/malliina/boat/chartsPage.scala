@@ -60,13 +60,15 @@ class ChartSocket(ctx: CanvasRenderingContext2D, track: TrackName, sample: Optio
 
   override def onCoords(event: CoordsEvent): Unit = {
     val coords = event.coords
-    chart.data.append(coords.map(_.boatTimeOnly.time), Map(
-      depthLabel -> coords.map(_.depthMeters.toMeters),
-      speedLabel -> coords.map(c => math.rint(c.speed.toKnots * 100) / 100)
-    ))
+    chart.data.append(
+      coords.map(_.boatTimeOnly.time),
+      Map(
+        depthLabel -> coords.map(_.depthMeters.toMeters),
+        speedLabel -> coords.map(c => math.rint(c.speed.toKnots * 100) / 100)
+      )
+    )
     chart.update()
   }
-
 
   override def onGps(event: GPSCoordsEvent): Unit = ()
 

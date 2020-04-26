@@ -12,7 +12,7 @@ import io.getquill._
 import scala.concurrent.ExecutionContext
 
 class TestDatabase(val ds: HikariDataSource)(implicit val ec: ExecutionContext)
-    extends NewMappings {
+  extends NewMappings {
   val naming: SnakeCase = NamingStrategy(SnakeCase)
   lazy val ctx =
     new MysqlJdbcContext(naming, ds) with Quotes[MySQLDialect, SnakeCase]

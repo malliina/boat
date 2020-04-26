@@ -69,13 +69,19 @@ class BoatHtml(jsFiles: ScriptAssets) extends Tags(scalatags.Text) {
                   span(`class` := "dropdown-button", ""),
                   div(`class` := "dropdown-content", id := BoatDropdownContentId)(
                     ub.boats.map { boat =>
-                      a(`class` := s"track-link $DeviceLinkClass", href := "#", data("name") := s"${boat.boat}")(boat.boat)
+                      a(
+                        `class` := s"track-link $DeviceLinkClass",
+                        href := "#",
+                        data("name") := s"${boat.boat}"
+                      )(boat.boat)
                     }
                   )
                 ),
-                a(href := reverse.tracks(),
+                a(
+                  href := reverse.tracks(),
                   `class` := "icon-link history",
-                  title := lang.lang.track.tracks),
+                  title := lang.lang.track.tracks
+                ),
                 div(`class` := "dropdown nav-text tracks", id := DropdownLinkId)(
                   span(`class` := "dropdown-button", lang.lang.track.tracks),
                   div(`class` := "dropdown-content", id := DropdownContentId)(
@@ -136,26 +142,34 @@ class BoatHtml(jsFiles: ScriptAssets) extends Tags(scalatags.Text) {
   def personIcon(cls: String) =
     fontAwesomeLink(a, PersonLink, "user", cls, "Sign in", href := routes.Social.google().toString)
 
-  def fontAwesomeLink(tag: ConcreteHtmlTag[String],
-                      idValue: String,
-                      faIcon: String,
-                      classes: String,
-                      titleValue: String,
-                      more: AttrPair*) =
-    tag(id := idValue,
-        `class` := s"icon-link $faIcon $classes",
-        title := titleValue,
-        aria.hidden := "true",
-        more)
+  def fontAwesomeLink(
+    tag: ConcreteHtmlTag[String],
+    idValue: String,
+    faIcon: String,
+    classes: String,
+    titleValue: String,
+    more: AttrPair*
+  ) =
+    tag(
+      id := idValue,
+      `class` := s"icon-link $faIcon $classes",
+      title := titleValue,
+      aria.hidden := "true",
+      more
+    )
 
   def page(pageConf: PageConf) = TagPage(
     html(
       head(
         meta(charset := "utf-8"),
-        meta(name := "description",
-             content := "Free nautical charts for Finland with live AIS tracking."),
-        meta(name := "keywords",
-             content := "charts, nautical, boat, tracking, ais, live, vessels, marine"),
+        meta(
+          name := "description",
+          content := "Free nautical charts for Finland with live AIS tracking."
+        ),
+        meta(
+          name := "keywords",
+          content := "charts, nautical, boat, tracking, ais, live, vessels, marine"
+        ),
         titleTag(s"${AppConf.Name} - Free nautical charts for Finland"),
         deviceWidthViewport,
         StructuredData.appStructuredData,

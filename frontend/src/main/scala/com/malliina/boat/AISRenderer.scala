@@ -14,8 +14,8 @@ object AISRenderer {
 }
 
 class AISRenderer(val map: MapboxMap, val log: BaseLogger = BaseLogger.console)
-    extends GeoUtils
-    with Parsing {
+  extends GeoUtils
+  with Parsing {
   // How much memory does this consume, assume 5000 Mmsis?
   private var vessels = Map.empty[Mmsi, List[VesselInfo]]
 

@@ -20,11 +20,19 @@ import scala.concurrent.{Future, Promise}
 object WebSocketClient {
   private val log = Logging(getClass)
 
-  def apply(url: FullUrl, headers: List[KeyValue], as: ActorSystem, mat: Materializer): WebSocketClient =
+  def apply(
+    url: FullUrl,
+    headers: List[KeyValue],
+    as: ActorSystem,
+    mat: Materializer
+  ): WebSocketClient =
     new WebSocketClient(url, headers)(as, mat)
 }
 
-class WebSocketClient(url: FullUrl, headers: List[KeyValue])(implicit as: ActorSystem, mat: Materializer) {
+class WebSocketClient(url: FullUrl, headers: List[KeyValue])(
+  implicit as: ActorSystem,
+  mat: Materializer
+) {
   val validHeaders = headers.map(kv => HttpHeader.parse(kv.key, kv.value)).collect {
     case Ok(header, _) => header
   }
@@ -46,22 +54,29 @@ class WebSocketClient(url: FullUrl, headers: List[KeyValue])(implicit as: ActorS
     * @tparam T type of message (JsValue works)
     * @return a Future that completes when the connection is terminated
     */
-  def connectJson[T: Writes](in: Sink[JsValue, Future[Done]], out: Source[T, NotUsed]): Future[Done] = {
+  def connectJson[T: Writes](
+    in: Sink[JsValue, Future[Done]],
+    out: Source[T, NotUsed]
+  ): Future[Done] = {
     val incomingSink = in.contramap[Message] {
       case BinaryMessage.Strict(data) => Json.parse(data.iterator.asInputStream)
-      case TextMessage.Strict(text) => Json.parse(text)
-      case other => throw new Exception(s"Unsupported message: '$other'.")
+      case TextMessage.Strict(text)   => Json.parse(text)
+      case other                      => throw new Exception(s"Unsupported message: '$other'.")
     }
     connectInOut(incomingSink, out)
   }
 
-  def connectInOut[T: Writes](in: Sink[Message, Future[Done]], out: Source[T, NotUsed]): Future[Done] = {
+  def connectInOut[T: Writes](
+    in: Sink[Message, Future[Done]],
+    out: Source[T, NotUsed]
+  ): Future[Done] = {
     log.info(s"Connecting to '$url'...")
     val messageSource = out.map { t =>
       TextMessage(Json.stringify(Json.toJson(t)))
     }
     val flow = Flow.fromSinkAndSourceMat(in, messageSource)(Keep.left).via(switch.flow)
-    val (upgrade, closed) = Http().singleWebSocketRequest(WebSocketRequest(Uri(url.url), validHeaders), flow)
+    val (upgrade, closed) =
+      Http().singleWebSocketRequest(WebSocketRequest(Uri(url.url), validHeaders), flow)
     upgrade.map { up =>
       initialConnectionPromise.trySuccess(up)
       val code = up.response.status
@@ -71,9 +86,10 @@ class WebSocketClient(url: FullUrl, headers: List[KeyValue])(implicit as: ActorS
         log.error(s"WebSocket connection attempt failed with code ${code.intValue()}.")
       }
     }
-    closed.recover { case t =>
-      log.warn(s"WebSocket disconnected.", t)
-      Done
+    closed.recover {
+      case t =>
+        log.warn(s"WebSocket disconnected.", t)
+        Done
     }.flatMap { done =>
       if (enabled.get()) {
         log.warn(s"WebSocket disconnected. Reconnecting to '$url' after $reconnectInterval...")

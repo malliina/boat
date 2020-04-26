@@ -34,9 +34,9 @@ object BoatDatabase {
   }
 
   private def apply(
-      ds: HikariDataSource,
-      ec: ExecutionContext,
-      isMariaDb: Boolean
+    ds: HikariDataSource,
+    ec: ExecutionContext,
+    isMariaDb: Boolean
   ): BoatDatabase[SnakeCase] = {
     // Seems like the MysqlEscape NamingStrategy is buggy, but can be dangerous to live without it also
     // TODO: Perhaps roll my own escaping, and submit PR to quill
@@ -47,14 +47,14 @@ object BoatDatabase {
 }
 
 class BoatDatabase[N <: NamingStrategy](
-    val ds: HikariDataSource,
-    naming: N,
-    val ec: ExecutionContext,
-    isMariaDb: Boolean
+  val ds: HikariDataSource,
+  naming: N,
+  val ec: ExecutionContext,
+  isMariaDb: Boolean
 ) extends MysqlJdbcContext(naming, ds)
-    with NewMappings
-    with Quotes[MySQLDialect, N]
-    with StatsQuotes[MySQLDialect, N] {
+  with NewMappings
+  with Quotes[MySQLDialect, N]
+  with StatsQuotes[MySQLDialect, N] {
   implicit val ie: Encoder[Instant] = encoder(
     Types.TIMESTAMP,
     (idx, value, row) => row.setTimestamp(idx, new Timestamp(value.toEpochMilli))

@@ -50,9 +50,11 @@ class APNSPush(sandbox: APNSTokenClient, prod: APNSTokenClient) extends PushClie
     Future.sequence(Seq(pushSandbox, pushProd)).map(_.fold(PushSummary.empty)(_ ++ _))
   }
 
-  private def loggedMap(result: Either[APNSError, APNSIdentifier],
-                        token: APNSToken,
-                        useLog: Boolean): APNSHttpResult =
+  private def loggedMap(
+    result: Either[APNSError, APNSIdentifier],
+    token: APNSToken,
+    useLog: Boolean
+  ): APNSHttpResult =
     result.fold(
       err => {
         if (useLog) {

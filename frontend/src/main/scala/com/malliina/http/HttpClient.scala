@@ -39,25 +39,29 @@ class HttpClient extends CSRFConf {
     if (status >= 200 && status <= 300) {
       json
         .validate[R]
-        .fold(err => Future.failed(new JsonException(JsError(err), xhr)),
-              ok => Future.successful(ok))
+        .fold(
+          err => Future.failed(new JsonException(JsError(err), xhr)),
+          ok => Future.successful(ok)
+        )
     } else {
       Future.failed(new StatusException(uri, xhr))
     }
   }
 
   // Modified from Extensions.scala
-  def ajax(method: String,
-           url: String,
-           data: InputData = null,
-           timeout: Int = 0,
-           headers: Map[String, String] = Map.empty,
-           withCredentials: Boolean = false,
-           responseType: String = "") = {
+  def ajax(
+    method: String,
+    url: String,
+    data: InputData = null,
+    timeout: Int = 0,
+    headers: Map[String, String] = Map.empty,
+    withCredentials: Boolean = false,
+    responseType: String = ""
+  ) = {
     Ajax(method, url, data, timeout, headers, withCredentials, responseType)
   }
 }
 
 class JsonException(val error: JsError, val xhr: XMLHttpRequest) extends Exception
 class StatusException(val uri: String, val xhr: XMLHttpRequest)
-    extends Exception(s"Invalid response code '${xhr.status}' from '$uri'.")
+  extends Exception(s"Invalid response code '${xhr.status}' from '$uri'.")

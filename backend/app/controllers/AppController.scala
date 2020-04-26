@@ -7,11 +7,12 @@ import controllers.Assets.Asset
 import play.api.libs.json.Json
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
 
-class AppController(googleAuth: EmailAuth,
-                    auther: UserManager,
-                    assets: AssetsBuilder,
-                    comps: ControllerComponents)
-    extends AuthController(googleAuth, auther, comps) {
+class AppController(
+  googleAuth: EmailAuth,
+  auther: UserManager,
+  assets: AssetsBuilder,
+  comps: ControllerComponents
+) extends AuthController(googleAuth, auther, comps) {
 
   def health = Action {
     Ok(Json.toJson(AppMeta.default))

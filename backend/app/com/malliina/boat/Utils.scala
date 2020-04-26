@@ -5,7 +5,8 @@ import java.text.Normalizer
 import org.apache.commons.text.{CharacterPredicates, RandomStringGenerator}
 
 object Utils {
-  private val generator = new RandomStringGenerator.Builder().withinRange('a', 'z')
+  private val generator = new RandomStringGenerator.Builder()
+    .withinRange('a', 'z')
     .filteredBy(CharacterPredicates.LETTERS)
     .build()
 

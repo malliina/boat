@@ -13,42 +13,42 @@ import scala.concurrent.duration.FiniteDuration
 // Schema used by Quill. Member names match database columns.
 
 case class BoatRow(id: DeviceId, name: BoatName, token: BoatToken, owner: UserId, added: Instant)
-    extends Embedded {
+  extends Embedded {
   def toBoat = Boat(id, name, token, added.toEpochMilli)
 }
 
 case class UserRow(
-    id: UserId,
-    user: Username,
-    email: Option[Email],
-    token: UserToken,
-    language: Language,
-    enabled: Boolean,
-    added: Instant
+  id: UserId,
+  user: Username,
+  email: Option[Email],
+  token: UserToken,
+  language: Language,
+  enabled: Boolean,
+  added: Instant
 ) extends Embedded
 
 case class TrackRow(
-    id: TrackId,
-    name: TrackName,
-    boat: DeviceId,
-    avgSpeed: Option[SpeedM],
-    avgWaterTemp: Option[Temperature],
-    points: Int,
-    distance: DistanceM,
-    title: Option[TrackTitle],
-    canonical: TrackCanonical,
-    comments: Option[String],
-    added: Instant
+  id: TrackId,
+  name: TrackName,
+  boat: DeviceId,
+  avgSpeed: Option[SpeedM],
+  avgWaterTemp: Option[Temperature],
+  points: Int,
+  distance: DistanceM,
+  title: Option[TrackTitle],
+  canonical: TrackCanonical,
+  comments: Option[String],
+  added: Instant
 ) extends Embedded
 
 case class TrackOut(
-    id: TrackId,
-    name: TrackName,
-    title: Option[TrackTitle],
-    top: Option[SpeedM],
-    min: Option[FormattedDateTime],
-    max: Option[FormattedDateTime],
-    coord: TimedCoord
+  id: TrackId,
+  name: TrackName,
+  title: Option[TrackTitle],
+  top: Option[SpeedM],
+  min: Option[FormattedDateTime],
+  max: Option[FormattedDateTime],
+  coord: TimedCoord
 )
 
 object TrackOut {
@@ -56,11 +56,11 @@ object TrackOut {
 }
 
 case class Partial(
-    device: DeviceId,
-    id: TrackId,
-    start: Instant,
-    end: Instant,
-    coord: CombinedCoord
+  device: DeviceId,
+  id: TrackId,
+  start: Instant,
+  end: Instant,
+  coord: CombinedCoord
 ) extends Embedded {
   def strip =
     StrippedPartial(
@@ -74,12 +74,12 @@ case class Partial(
 }
 
 case class StrippedPartial(
-    device: DeviceId,
-    id: TrackId,
-    start: Option[Instant],
-    end: Option[Instant],
-    coord: TimedCoord,
-    date: Option[DateVal]
+  device: DeviceId,
+  id: TrackId,
+  start: Option[Instant],
+  end: Option[Instant],
+  coord: TimedCoord,
+  date: Option[DateVal]
 )
 
 object StrippedPartial {
@@ -87,13 +87,13 @@ object StrippedPartial {
 }
 
 case class TrackTimes(
-    track: TrackId,
-    start: Instant,
-    end: Instant,
-    duration: FiniteDuration,
-    date: DateVal,
-    month: MonthVal,
-    year: YearVal
+  track: TrackId,
+  start: Instant,
+  end: Instant,
+  duration: FiniteDuration,
+  date: DateVal,
+  month: MonthVal,
+  year: YearVal
 ) extends Embedded
 
 object TrackTimes {
@@ -102,11 +102,11 @@ object TrackTimes {
 }
 
 case class DailyAggregates(
-    date: DateVal,
-    distance: Option[DistanceM],
-    duration: Option[FiniteDuration],
-    tracks: Long,
-    days: Long
+  date: DateVal,
+  distance: Option[DistanceM],
+  duration: Option[FiniteDuration],
+  tracks: Long,
+  days: Long
 )
 
 object DailyAggregates {
@@ -115,27 +115,27 @@ object DailyAggregates {
 }
 
 case class MonthlyAggregates(
-    year: YearVal,
-    month: MonthVal,
-    distance: Option[DistanceM],
-    duration: Option[FiniteDuration],
-    tracks: Long,
-    days: Long
+  year: YearVal,
+  month: MonthVal,
+  distance: Option[DistanceM],
+  duration: Option[FiniteDuration],
+  tracks: Long,
+  days: Long
 )
 case class YearlyAggregates(
-    year: YearVal,
-    distance: Option[DistanceM],
-    duration: Option[FiniteDuration],
-    tracks: Long,
-    days: Long
+  year: YearVal,
+  distance: Option[DistanceM],
+  duration: Option[FiniteDuration],
+  tracks: Long,
+  days: Long
 )
 case class AllTimeAggregates(
-    from: Option[DateVal],
-    to: Option[DateVal],
-    distance: Option[DistanceM],
-    duration: Option[FiniteDuration],
-    tracks: Long,
-    days: Long
+  from: Option[DateVal],
+  to: Option[DateVal],
+  distance: Option[DistanceM],
+  duration: Option[FiniteDuration],
+  tracks: Long,
+  days: Long
 )
 
 case class TrackCoord(track: JoinedTrack, row: TrackPointRow)

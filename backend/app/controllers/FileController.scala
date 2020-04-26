@@ -17,7 +17,8 @@ object FileController {
 
 }
 
-class FileController(s3: S3Client, actions: BlockingActions, comps: ControllerComponents) extends AbstractController(comps) {
+class FileController(s3: S3Client, actions: BlockingActions, comps: ControllerComponents)
+  extends AbstractController(comps) {
   def list = actions { rh =>
     val urls = s3.files().map { summary =>
       FullUrls(routes.FileController.download(summary.getKey), rh)
@@ -30,6 +31,8 @@ class FileController(s3: S3Client, actions: BlockingActions, comps: ControllerCo
     val obj = s3.download(file)
     val meta = obj.getObjectMetadata
     val src = StreamConverters.fromInputStream(() => obj.getObjectContent)
-    Ok.sendEntity(HttpEntity.Streamed(src, Option(meta.getContentLength), Option(meta.getContentType)))
+    Ok.sendEntity(
+      HttpEntity.Streamed(src, Option(meta.getContentLength), Option(meta.getContentType))
+    )
   }
 }

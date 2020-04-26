@@ -36,8 +36,7 @@ trait UserManager {
 sealed trait IdentityError
 
 case class AlreadyExists(user: Username) extends IdentityError
-case class InvalidCredentials(user: Option[Username] = None)
-    extends IdentityError
+case class InvalidCredentials(user: Option[Username] = None) extends IdentityError
 case class InvalidToken(token: BoatToken) extends IdentityError
 case class UserDisabled(user: Username) extends IdentityError
 case class UserDoesNotExist(user: Username) extends IdentityError
@@ -45,8 +44,7 @@ case class MissingToken(rh: RequestHeader) extends IdentityError
 case class MissingCredentials(rh: RequestHeader) extends IdentityError
 case class JWTError(rh: RequestHeader, error: AuthError) extends IdentityError
 
-class MissingCredentialsException(error: MissingCredentials)
-    extends IdentityException(error) {
+class MissingCredentialsException(error: MissingCredentials) extends IdentityException(error) {
   def rh = error.rh
 }
 

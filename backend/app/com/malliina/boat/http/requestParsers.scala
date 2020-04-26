@@ -11,7 +11,7 @@ import play.api.mvc.{QueryStringBindable, Request, RequestHeader}
 import scala.concurrent.duration.DurationInt
 
 case class BoatEmailRequest[T](user: Email, query: T, rh: RequestHeader)
-    extends BoatRequest[T, Email]
+  extends BoatRequest[T, Email]
 
 case class AnyBoatRequest[T, U](user: U, query: T, rh: RequestHeader) extends BoatRequest[T, U]
 
@@ -58,8 +58,8 @@ object TrackQuery {
   def apply(rh: RequestHeader): Either[SingleError, TrackQuery] = withDefault(rh)
 
   def withDefault(
-      rh: RequestHeader,
-      defaultLimit: Int = Limits.DefaultLimit
+    rh: RequestHeader,
+    defaultLimit: Int = Limits.DefaultLimit
   ): Either[SingleError, TrackQuery] =
     for {
       sort <- TrackSort(rh)
@@ -88,11 +88,10 @@ abstract class EnumLike[T <: Named] {
   def apply(key: String, rh: RequestHeader): Option[Either[SingleError, T]] =
     QueryStringBindable.bindableString
       .bind(key, rh.queryString)
-      .map(
-        e =>
-          e.flatMap(
-            s => all.find(_.name == s).toRight(SingleError.input(s"Unknown $key value: '$s'."))
-          )
+      .map(e =>
+        e.flatMap(s =>
+          all.find(_.name == s).toRight(SingleError.input(s"Unknown $key value: '$s'."))
+        )
       )
 }
 
@@ -101,13 +100,13 @@ abstract class EnumLike[T <: Named] {
   * @param newest true to return the newest track if no tracks are specified, false means all tracks are returned
   */
 case class BoatQuery(
-    limits: Limits,
-    timeRange: TimeRange,
-    tracks: Seq[TrackName],
-    canonicals: Seq[TrackCanonical],
-    route: Option[RouteRequest],
-    sample: Option[Int],
-    newest: Boolean
+  limits: Limits,
+  timeRange: TimeRange,
+  tracks: Seq[TrackName],
+  canonicals: Seq[TrackCanonical],
+  route: Option[RouteRequest],
+  sample: Option[Int],
+  newest: Boolean
 ) {
   def limit = limits.limit
   def offset = limits.offset
@@ -198,7 +197,7 @@ object BoatQuery {
     transformDouble(key, rh)(Latitude.build)
 
   def transformDouble[T](key: String, rh: RequestHeader)(
-      transform: Double => Either[ErrorMessage, T]
+    transform: Double => Either[ErrorMessage, T]
   ) =
     readDouble(key, rh).map { e =>
       e.flatMap { d =>

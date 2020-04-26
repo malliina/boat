@@ -1,16 +1,6 @@
 package com.malliina.mapbox
 
-import com.malliina.boat.{
-  AccessToken,
-  Coord,
-  Feature,
-  FeatureCollection,
-  JsonError,
-  Latitude,
-  Layer,
-  Longitude,
-  Parsing
-}
+import com.malliina.boat.{AccessToken, Coord, Feature, FeatureCollection, JsonError, Latitude, Layer, Longitude, Parsing}
 import org.scalajs.dom
 import org.scalajs.dom.html
 import org.scalajs.dom.raw.{Event, HTMLCanvasElement}
@@ -38,13 +28,16 @@ trait GeocoderOptions extends js.Object {
 }
 
 object GeocoderOptions {
-  def apply(accessToken: String,
-            countries: Seq[String],
-            mapboxgl: Option[js.Object]): GeocoderOptions =
-    literal(accessToken = accessToken,
-            countries = countries.mkString(","),
-            mapboxgl = mapboxgl.orUndefined)
-      .asInstanceOf[GeocoderOptions]
+  def apply(
+    accessToken: String,
+    countries: Seq[String],
+    mapboxgl: Option[js.Object]
+  ): GeocoderOptions =
+    literal(
+      accessToken = accessToken,
+      countries = countries.mkString(","),
+      mapboxgl = mapboxgl.orUndefined
+    ).asInstanceOf[GeocoderOptions]
 }
 
 @js.native
@@ -83,10 +76,12 @@ class MapboxMarker(options: MarkerOptions) extends js.Object {
 }
 
 object MapboxMarker {
-  def apply[T <: dom.Element](html: TypedTag[T],
-                              coord: Coord,
-                              popup: MapboxPopup,
-                              on: MapboxMap): MapboxMarker = {
+  def apply[T <: dom.Element](
+    html: TypedTag[T],
+    coord: Coord,
+    popup: MapboxPopup,
+    on: MapboxMap
+  ): MapboxMarker = {
     new MapboxMarker(MarkerOptions(html)).at(coord).setPopup(popup).addTo(on)
   }
 
@@ -113,13 +108,16 @@ trait PopupOptions extends js.Object {
 }
 
 object PopupOptions {
-  def apply(className: Option[String] = None,
-            offset: Option[Double] = None,
-            closeButton: Boolean = false): PopupOptions =
-    literal(className = className.orUndefined,
-            offset = offset.orUndefined,
-            closeButton = closeButton)
-      .asInstanceOf[PopupOptions]
+  def apply(
+    className: Option[String] = None,
+    offset: Option[Double] = None,
+    closeButton: Boolean = false
+  ): PopupOptions =
+    literal(
+      className = className.orUndefined,
+      offset = offset.orUndefined,
+      closeButton = closeButton
+    ).asInstanceOf[PopupOptions]
 }
 
 @js.native
@@ -213,8 +211,10 @@ object MapboxMap {
       }
     }
 
-    def queryRendered(point: PixelCoord,
-                      options: QueryOptions = QueryOptions.all): Either[JsonError, Seq[Feature]] = {
+    def queryRendered(
+      point: PixelCoord,
+      options: QueryOptions = QueryOptions.all
+    ): Either[JsonError, Seq[Feature]] = {
       val fs = self.queryRenderedFeatures(point, options)
       Parsing.asJson[Seq[Feature]](fs)
     }
@@ -393,11 +393,13 @@ trait MapOptions extends js.Object {
 }
 
 object MapOptions {
-  def apply(container: String,
-            style: String,
-            center: Coord,
-            zoom: Double,
-            hash: Boolean = false): MapOptions =
+  def apply(
+    container: String,
+    style: String,
+    center: Coord,
+    zoom: Double,
+    hash: Boolean = false
+  ): MapOptions =
     literal(
       container = container,
       style = style,

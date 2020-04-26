@@ -12,5 +12,7 @@ object HttpUtil {
     KeyValue(HttpUtil.Authorization, authorizationValue(username, password))
 
   def authorizationValue(username: Username, password: String) =
-    "Basic " + Base64.getEncoder.encodeToString(s"$username:$password".getBytes(StandardCharsets.UTF_8))
+    "Basic " + Base64.getEncoder.encodeToString(
+      s"$username:$password".getBytes(StandardCharsets.UTF_8)
+    )
 }

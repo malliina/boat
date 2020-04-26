@@ -24,12 +24,13 @@ object FormHandlers extends BaseFront {
     } yield new CommentsHandler(form, editIcon, cancelButton)
 }
 
-class TitleHandler(form: HTMLFormElement,
-                   editIcon: Element,
-                   cancel: HTMLButtonElement,
-                   log: BaseLogger = BaseLogger.console)
-    extends BaseFront
-    with CSRFConf {
+class TitleHandler(
+  form: HTMLFormElement,
+  editIcon: Element,
+  cancel: HTMLButtonElement,
+  log: BaseLogger = BaseLogger.console
+) extends BaseFront
+  with CSRFConf {
   val trackRow = document.getElementsByClassName(TrackRow)
 
   editIcon.addEventListener("click", (_: Event) => {
@@ -58,12 +59,13 @@ class TitleHandler(form: HTMLFormElement,
   }
 }
 
-class CommentsHandler(form: HTMLFormElement,
-                      editIcon: Element,
-                      cancel: HTMLButtonElement,
-                      log: BaseLogger = BaseLogger.console)
-    extends BaseFront
-    with CSRFConf {
+class CommentsHandler(
+  form: HTMLFormElement,
+  editIcon: Element,
+  cancel: HTMLButtonElement,
+  log: BaseLogger = BaseLogger.console
+) extends BaseFront
+  with CSRFConf {
   val editRow = document.getElementsByClassName(CommentsRow)
 
   editIcon.addEventListener("click", (_: Event) => {

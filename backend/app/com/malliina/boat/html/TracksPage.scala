@@ -81,9 +81,11 @@ object TracksPage extends BoatImplicits {
                     td(year.days)
                   ),
                   year.monthly.map { month =>
-                    tr(`class` := s"month-row $Hidden",
-                       yearDataAttr := year.year,
-                       monthDataAttr := month.month)(
+                    tr(
+                      `class` := s"month-row $Hidden",
+                      yearDataAttr := year.year,
+                      monthDataAttr := month.month
+                    )(
                       td(translate(month.month, lang.calendar.months)),
                       td(month.distance),
                       td(durationHuman(month.duration)),
@@ -147,11 +149,13 @@ object TracksPage extends BoatImplicits {
         "sort"
     val inverseOrder = if (isAsc) SortOrder.Desc.name else SortOrder.Asc.name
     th(
-      a(href := withQuery(reverse.tracks(),
-                          Map(TrackSort.key -> sort.name, SortOrder.key -> inverseOrder)))(
-        name,
-        " ",
-        i(`class` := s"fas fa-$mod")))
+      a(
+        href := withQuery(
+          reverse.tracks(),
+          Map(TrackSort.key -> sort.name, SortOrder.key -> inverseOrder)
+        )
+      )(name, " ", i(`class` := s"fas fa-$mod"))
+    )
   }
 
   def withQuery(call: Call, params: Map[String, String]) = {

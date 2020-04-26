@@ -18,7 +18,7 @@ object TimeFormatter {
     case Language.finnish => fi
     case Language.swedish => se
     case Language.english => en
-    case _ => en
+    case _                => en
   }
 
   val fi = apply(TimePatterns.fi)
@@ -49,10 +49,7 @@ class TimeFormatter(patterns: TimePatterns) {
     s"${formatDateTime(start)} - ${formatTime(end)}"
 
   def timing(i: Instant) =
-    Timing(formatDate(i),
-           formatTime(i),
-           formatDateTime(i),
-           i.toEpochMilli)
+    Timing(formatDate(i), formatTime(i), formatDateTime(i), i.toEpochMilli)
 
   def times(start: Instant, end: Instant): Times = Times(
     timing(start),

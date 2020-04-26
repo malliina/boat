@@ -21,8 +21,9 @@ object Social {
     new Social(authConf, comps, http)(ec)
 }
 
-class Social(googleConf: AuthConf, comps: ControllerComponents, http: OkClient)(implicit ec: ExecutionContext)
-  extends AbstractController(comps) {
+class Social(googleConf: AuthConf, comps: ControllerComponents, http: OkClient)(
+  implicit ec: ExecutionContext
+) extends AbstractController(comps) {
   val log = Logger(getClass)
   val providerCookieDuration: Duration = 3650.days
 
@@ -30,7 +31,10 @@ class Social(googleConf: AuthConf, comps: ControllerComponents, http: OkClient)(
     val lastIdKey = "boatLastId"
 
     override def onAuthenticated(user: Email, req: RequestHeader): Result = {
-      val returnUri = req.cookies.get(Social.returnUriKey).map(_.value).getOrElse(routes.BoatController.index().path())
+      val returnUri = req.cookies
+        .get(Social.returnUriKey)
+        .map(_.value)
+        .getOrElse(routes.BoatController.index().path())
       log.info(s"Logging in '$user' through OAuth code flow, returning to '$returnUri'...")
       Redirect(returnUri)
         .withSession(EmailKey -> user.email)
@@ -41,7 +45,8 @@ class Social(googleConf: AuthConf, comps: ControllerComponents, http: OkClient)(
 
     override def onUnauthorized(error: AuthError, req: RequestHeader): Result = Unauthorized
   }
-  val handler2 = BasicAuthHandler(routes.BoatController.index(), sessionKey = EmailKey, lastIdKey = "boatLastId")
+  val handler2 =
+    BasicAuthHandler(routes.BoatController.index(), sessionKey = EmailKey, lastIdKey = "boatLastId")
   val oauthConf = OAuthConf(routes.Social.googleCallback(), handler, googleConf, http)
   val googleValidator = GoogleCodeValidator(oauthConf)
 
@@ -51,15 +56,15 @@ class Social(googleConf: AuthConf, comps: ControllerComponents, http: OkClient)(
 
   def googleCallback = Action.async { req =>
     googleValidator.validateCallback(req).map { r =>
-      val cookie = Cookie(ProviderCookieName, GoogleCookie, Option(providerCookieDuration.toSeconds.toInt))
+      val cookie =
+        Cookie(ProviderCookieName, GoogleCookie, Option(providerCookieDuration.toSeconds.toInt))
       if (r.header.status < 400) r.withCookies(cookie)
       else r
     }
   }
 
   def logout = Action {
-    Redirect(routes.BoatController.index())
-      .withNewSession
+    Redirect(routes.BoatController.index()).withNewSession
       .discardingCookies(DiscardingCookie(ProviderCookieName), DiscardingCookie(handler.lastIdKey))
   }
 }

@@ -29,9 +29,13 @@ class CSRFUtils(val log: BaseLogger = BaseLogger.console) extends CSRFConf {
   }
 
   def cookiesMap(in: String) =
-    in.split(";").toList.map(_.trim.split("=", 2).toList).collect {
-      case key :: value :: Nil => key -> value
-    }.toMap
+    in.split(";")
+      .toList
+      .map(_.trim.split("=", 2).toList)
+      .collect {
+        case key :: value :: Nil => key -> value
+      }
+      .toMap
 
   def csrfInput(inputName: String, inputValue: String) =
     input(`type` := "hidden", name := inputName, value := inputValue)

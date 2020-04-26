@@ -11,7 +11,11 @@ case class PushTokenReplacement(oldToken: PushToken, newToken: PushToken, device
 
 object PushTokenReplacement {
   def apply(gcm: TokenReplacement): PushTokenReplacement =
-    PushTokenReplacement(PushToken(gcm.oldToken.token), PushToken(gcm.newToken.token), MobileDevice.Android)
+    PushTokenReplacement(
+      PushToken(gcm.oldToken.token),
+      PushToken(gcm.newToken.token),
+      MobileDevice.Android
+    )
 }
 
 case class PushSummary(badTokens: Seq[PushToken], replacements: Seq[PushTokenReplacement]) {

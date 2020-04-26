@@ -72,9 +72,11 @@ class BoatMqttClient(url: FullUrl, topic: String) extends AISSource {
   private val maxBatchSize = 300
   private val sendTimeWindow = 5.seconds
   private val settings = MqttSettings(url, newClientId, topic, user, pass)
-  private val source = RestartSource.onFailuresWithBackoff(minBackoff = 5.seconds,
-                                                        maxBackoff = 12.hours,
-                                                        randomFactor = 0.2) { () =>
+  private val source = RestartSource.onFailuresWithBackoff(
+    minBackoff = 5.seconds,
+    maxBackoff = 12.hours,
+    randomFactor = 0.2
+  ) { () =>
     log.info(s"Starting MQTT source at '${settings.broker}'...")
     MqttSource(settings.copy(clientId = newClientId))
   }

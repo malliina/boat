@@ -20,18 +20,20 @@ object BoatLang {
 
 }
 
-case class WebLang(maritimeData: String,
-                   disclaimer: String,
-                   signedInAs: String,
-                   finnish: String,
-                   swedish: String,
-                   english: String,
-                   titlePlaceholder: String,
-                   commentsPlaceholder: String,
-                   save: String,
-                   cancel: String,
-                   editTitle: String,
-                   editComments: String)
+case class WebLang(
+  maritimeData: String,
+  disclaimer: String,
+  signedInAs: String,
+  finnish: String,
+  swedish: String,
+  english: String,
+  titlePlaceholder: String,
+  commentsPlaceholder: String,
+  save: String,
+  cancel: String,
+  editTitle: String,
+  editComments: String
+)
 
 object WebLang {
   val Fi = WebLang(

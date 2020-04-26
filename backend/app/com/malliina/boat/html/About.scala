@@ -22,18 +22,24 @@ class About(lang: WebLang) extends AboutKeys {
             radios(
               LanguageRadios,
               Seq(
-                RadioOptions("radio-se",
-                             Language.swedish.code,
-                             lang.swedish,
-                             language == Language.swedish),
-                RadioOptions("radio-fi",
-                             Language.finnish.code,
-                             lang.finnish,
-                             language == Language.finnish),
-                RadioOptions("radio-en",
-                             Language.english.code,
-                             lang.english,
-                             language == Language.english)
+                RadioOptions(
+                  "radio-se",
+                  Language.swedish.code,
+                  lang.swedish,
+                  language == Language.swedish
+                ),
+                RadioOptions(
+                  "radio-fi",
+                  Language.finnish.code,
+                  lang.finnish,
+                  language == Language.finnish
+                ),
+                RadioOptions(
+                  "radio-en",
+                  Language.english.code,
+                  lang.english,
+                  language == Language.english
+                )
               )
             ),
             hr(`class` := "modal-divider")
@@ -41,13 +47,17 @@ class About(lang: WebLang) extends AboutKeys {
         } else {
           empty
         },
-        a(`class` := "badge-ios",
-          href := "https://itunes.apple.com/us/app/boat-tracker/id1434203398?ls=1&mt=8"),
+        a(
+          `class` := "badge-ios",
+          href := "https://itunes.apple.com/us/app/boat-tracker/id1434203398?ls=1&mt=8"
+        ),
         hr(`class` := "modal-divider"),
         h2(lang.maritimeData),
-        p(a(href := "https://creativecommons.org/licenses/by/4.0/")("CC 4.0"),
+        p(
+          a(href := "https://creativecommons.org/licenses/by/4.0/")("CC 4.0"),
           " ",
-          lang.disclaimer),
+          lang.disclaimer
+        ),
         h2("Font Awesome"),
         p(a(href := "https://fontawesome.com")("fontawesome.com")),
         h2("POIJU.IO"),
@@ -60,12 +70,14 @@ class About(lang: WebLang) extends AboutKeys {
 
   def radios(groupName: String, rs: Seq[RadioOptions]) = div(rs.map { radio =>
     div(`class` := "form-check form-check-inline")(
-      input(`class` := "form-check-input",
-            `type` := "radio",
-            name := groupName,
-            id := radio.id,
-            value := radio.value,
-            if (radio.checked) checked else empty),
+      input(
+        `class` := "form-check-input",
+        `type` := "radio",
+        name := groupName,
+        id := radio.id,
+        value := radio.value,
+        if (radio.checked) checked else empty
+      ),
       label(`class` := "form-check-label", `for` := radio.id)(radio.label)
     )
   })

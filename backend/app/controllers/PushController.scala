@@ -11,10 +11,10 @@ import play.api.mvc.{ControllerComponents, Result}
 import scala.concurrent.Future
 
 class PushController(
-    push: PushService,
-    googleAuth: EmailAuth,
-    auther: UserManager,
-    comps: ControllerComponents
+  push: PushService,
+  googleAuth: EmailAuth,
+  auther: UserManager,
+  comps: ControllerComponents
 ) extends AuthController(googleAuth, auther, comps) {
   val NoChange = "No change."
 
