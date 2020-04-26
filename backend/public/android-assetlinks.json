@@ -7,7 +7,8 @@
       "namespace": "android_app",
       "package_name": "com.malliina.boattracker",
       "sha256_cert_fingerprints": [
-        "39:D3:BD:A4:F5:D1:B3:50:56:89:4B:0E:DE:69:07:A5:33:9B:CF:77:1B:82:DE:F4:4C:3F:21:89:F6:C0:A7:6D"
+        "39:D3:BD:A4:F5:D1:B3:50:56:89:4B:0E:DE:69:07:A5:33:9B:CF:77:1B:82:DE:F4:4C:3F:21:89:F6:C0:A7:6D",
+        "6A:FF:F3:3D:F4:C7:C3:27:8E:67:B3:58:10:99:DB:AE:98:B8:A1:F5:9B:BA:B4:A7:F2:06:3D:8A:EB:85:66:D1"
       ]
     }
   }
