@@ -38,4 +38,5 @@ class AppController(
     assets.versioned(path, file)
 
   def appleAppSiteAssociation = assets.at("/public", "apple-app-site-association.json")
+  def androidAppLink = assets.at("/public", "android-assetlinks.json")
 }
