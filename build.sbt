@@ -6,7 +6,7 @@ import sbtrelease.ReleaseStateTransformations._
 import scala.sys.process.Process
 import scala.util.Try
 
-val mapboxVersion = "1.8.1"
+val mapboxVersion = "1.9.1"
 val utilPlayVersion = "5.8.0"
 val munitVersion = "0.7.3"
 val testContainersScalaVersion = "0.36.1"
@@ -78,31 +78,31 @@ val frontend = project
       "org.scalameta" %%% "munit" % munitVersion % Test
     ),
     npmDependencies in Compile ++= Seq(
-      "@fortawesome/fontawesome-free" -> "5.12.1",
+      "@fortawesome/fontawesome-free" -> "5.13.0",
       "@mapbox/mapbox-gl-geocoder" -> "4.5.1",
       "@turf/turf" -> "5.1.6",
       "bootstrap" -> "4.4.1",
       "chart.js" -> "2.9.3",
-      "jquery" -> "3.4.1",
+      "jquery" -> "3.5.0",
       "mapbox-gl" -> mapboxVersion,
       "popper.js" -> "1.16.1"
     ),
     npmDevDependencies in Compile ++= Seq(
-      "autoprefixer" -> "9.7.4",
+      "autoprefixer" -> "9.7.6",
       "cssnano" -> "4.1.10",
-      "css-loader" -> "3.4.2",
-      "file-loader" -> "5.1.0",
+      "css-loader" -> "3.5.3",
+      "file-loader" -> "6.0.0",
       "less" -> "3.11.1",
-      "less-loader" -> "5.0.0",
+      "less-loader" -> "6.0.0",
       "mini-css-extract-plugin" -> "0.9.0",
       "postcss-import" -> "12.0.1",
       "postcss-loader" -> "3.0.0",
       "postcss-preset-env" -> "6.7.0",
-      "style-loader" -> "1.1.3",
-      "url-loader" -> "3.0.0",
+      "style-loader" -> "1.2.0",
+      "url-loader" -> "4.1.0",
       "webpack-merge" -> "4.2.2"
     ),
-    version in webpack := "4.42.0",
+    version in webpack := "4.43.0",
     webpackEmitSourceMaps := false,
     scalaJSUseMainModuleInitializer := true,
     webpackBundlingMode := BundlingMode.LibraryOnly(),
@@ -123,7 +123,7 @@ val backend = Project("boat", file("backend"))
     unmanagedResourceDirectories in Compile += baseDirectory.value / "docs",
     libraryDependencies ++= Seq(
       "com.vividsolutions" % "jts" % "1.13",
-      "org.orbisgis" % "h2gis" % "1.4.0",
+//      "org.orbisgis" % "h2gis" % "1.4.0",
       "io.getquill" %% "quill-jdbc" % "3.5.1",
       "mysql" % "mysql-connector-java" % "5.1.48",
       "org.flywaydb" % "flyway-core" % "6.0.3",
@@ -136,7 +136,7 @@ val backend = Project("boat", file("backend"))
       "com.typesafe.akka" %% "akka-stream" % akkaVersion,
       "com.typesafe.akka" %% "akka-http" % akkaHttpVersion,
       "com.typesafe.akka" %% "akka-http-spray-json" % akkaHttpVersion,
-      "org.eclipse.paho" % "org.eclipse.paho.client.mqttv3" % "1.2.2",
+      "org.eclipse.paho" % "org.eclipse.paho.client.mqttv3" % "1.2.4",
       "org.eclipse.jetty" % "jetty-alpn-java-server" % "9.4.20.v20190813",
       "org.eclipse.jetty" % "jetty-alpn-java-client" % "9.4.20.v20190813",
       utilPlayDep,
@@ -203,7 +203,7 @@ val agent = project
     },
     libraryDependencies ++= Seq(
       "com.malliina" %% "primitives" % primitiveVersion,
-      "com.malliina" %% "logback-streams" % "1.6.0",
+      "com.malliina" %% "logback-streams" % "1.7.2",
       "com.neovisionaries" % "nv-websocket-client" % "2.9",
       "org.slf4j" % "slf4j-api" % "1.7.30",
       "com.typesafe.akka" %% "akka-stream" % akkaVersion,
@@ -253,10 +253,10 @@ val utils = project
     ),
     libraryDependencies ++= Seq(
       "ch.qos.logback" % "logback-classic" % "1.2.3",
-      "org.slf4j" % "slf4j-api" % "1.7.28",
+      "org.slf4j" % "slf4j-api" % "1.7.30",
       "javax.media" % "jai_core" % "1.1.3",
-      "org.geotools" % "gt-shapefile" % "22.2" exclude ("javax.media", "jai_core"),
-      "org.geotools" % "gt-geojson" % "22.2" exclude ("javax.media", "jai_core"),
+      "org.geotools" % "gt-shapefile" % "23.0" exclude ("javax.media", "jai_core"),
+      "org.geotools" % "gt-geojson" % "23.0" exclude ("javax.media", "jai_core"),
       munitDep
     ),
     testFrameworks += new TestFramework("munit.Framework")
