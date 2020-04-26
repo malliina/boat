@@ -30,7 +30,7 @@ class MultiTrackTests extends AsyncSuite with BoatSockets {
 
   def msg(ts: Seq[String]) = SentencesMessage(ts.map(RawSentence.apply))
 
-  ignore("two tracks") {
+  test("two tracks".ignore) {
     openRandomBoat(url) { boat1 =>
       boat1.send(msg(track1))
       openRandomBoat(url) { boat2 =>

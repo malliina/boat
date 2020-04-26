@@ -11,7 +11,6 @@ import com.malliina.boat.client.{DeviceAgent, TcpSource}
 import com.malliina.boat.{CoordsEvent, SentencesMessage}
 import com.malliina.http.FullUrl
 import play.api.libs.json.JsValue
-import tests.AsyncSuite
 
 import scala.concurrent.Promise
 
@@ -67,7 +66,7 @@ class EndToEndTests extends BoatTests {
     }
   }
 
-  ignore("external unreliable TCP server") {
+  test("external unreliable TCP server".ignore) {
     val serverUrl = FullUrl.ws(s"localhost:$port", reverse.boatSocket().toString)
     val conf = BoatConf.anon("127.0.0.1", 10104)
     val agent = DeviceAgent(conf, serverUrl)
@@ -79,7 +78,7 @@ class EndToEndTests extends BoatTests {
     }
   }
 
-  ignore("unreliable plotter connection") {
+  test("unreliable plotter connection".ignore) {
     // this test does not work due to nonexistent termination signals of the TCP server
 
     // the client validates maximum frame length, so we must not concatenate multiple sentences
@@ -110,7 +109,7 @@ class EndToEndTests extends BoatTests {
       agent.connect()
       await(p.future)
       val msg = await(p2.future)
-      assert(msg.sentences.map(_.sentence) === sentences)
+      assert(msg.sentences.map(_.sentence) == sentences)
       // Simulates loss of plotter connectivity
       await(binding.unbind())
       val rePromise = Promise[Int]()

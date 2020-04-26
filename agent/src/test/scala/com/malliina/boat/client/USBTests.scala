@@ -1,12 +1,11 @@
 package com.malliina.boat.client
 
 import gnu.io.CommPortIdentifier
-import org.scalatest.FunSuite
 
 import scala.jdk.CollectionConverters.EnumerationHasAsScala
 
-class USBTests extends FunSuite {
-  ignore("usb") {
+class USBTests extends munit.FunSuite {
+  test("usb".ignore) {
     val serialPorts = CommPortIdentifier.getPortIdentifiers.asScala.toList
       .map(_.asInstanceOf[CommPortIdentifier])
       .filter(_.getPortType == CommPortIdentifier.PORT_SERIAL)

@@ -20,9 +20,9 @@ import scala.jdk.CollectionConverters.CollectionHasAsScala
 class TracksImporter extends AsyncSuite with DockerDatabase {
   lazy val c = Conf.fromConf(LocalConf.localConf).toOption.get
 
-  ignore("import tracks from plotter log file") {
-    val db = testDatabase(as, TestConf(container))
-    val tdb = NewTracksDatabase(db)
+  test("import tracks from plotter log file".ignore) {
+    val database = testDatabase(as, TestConf(db()))
+    val tdb = NewTracksDatabase(database)
     val trackName = TrackNames.random()
     val track = await(
       tdb.joinAsBoat(BoatUser(trackName, BoatName("Amina"), Username("mle"))),
@@ -40,11 +40,11 @@ class TracksImporter extends AsyncSuite with DockerDatabase {
     await(task, 300000.seconds)
   }
 
-  ignore("modify tracks") {
+  test("modify tracks".ignore) {
     val oldTrack = TrackId(175)
     splitTracksByDate(
       oldTrack,
-      NewTracksDatabase(BoatDatabase.withMigrations(as, TestConf(container)))
+      NewTracksDatabase(BoatDatabase.withMigrations(as, TestConf(db())))
     )
   }
 

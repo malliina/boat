@@ -10,7 +10,7 @@ import scala.concurrent.{Await, Promise, TimeoutException}
 
 class SentenceTests extends BoatTests {
   // TODO Why is this test ignored?
-  ignore("anonymously sent sentence is received by anonymous viewer") {
+  test("anonymously sent sentence is received by anonymous viewer".ignore) {
     openTestBoat(BoatNames.random()) { boat =>
       val sentencePromise = Promise[SentencesEvent]()
       val coordPromise = Promise[CoordsEvent]()
@@ -29,16 +29,16 @@ class SentenceTests extends BoatTests {
       openViewerSocket(in, None) { _ =>
         boat.send(testMessage)
         val received = await(sentencePromise.future)
-        assert(received.sentences === testMessage.sentences)
+        assert(received.sentences == testMessage.sentences)
         val coords = await(coordPromise.future).coords
         val expectedCoords = Seq(Coord.buildOrFail(24.867495, 60.133465))
-        assert(coords === expectedCoords)
+        assert(coords == expectedCoords)
       }
     }
   }
 
   // Ignored because the design is the opposite of the test
-  ignore("sent events are not received by unrelated viewer") {
+  test("sent events are not received by unrelated viewer".ignore) {
     val testUser = Username("User1")
     val testPass = Password("demo")
     await(components.users.addUser(NewUser(testUser, None, UserToken.random(), enabled = true)))

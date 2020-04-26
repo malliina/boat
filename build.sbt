@@ -7,16 +7,16 @@ import scala.sys.process.Process
 import scala.util.Try
 
 val mapboxVersion = "1.8.1"
-val utilPlayVersion = "5.4.1"
-val scalaTestVersion = "3.0.8"
-val testContainersScalaVersion = "0.35.2"
+val utilPlayVersion = "5.8.0"
+val munitVersion = "0.7.3"
+val testContainersScalaVersion = "0.36.1"
 val scalaTagsVersion = "0.8.6"
-val primitiveVersion = "1.13.0"
+val primitiveVersion = "1.15.0"
 val akkaVersion = "2.6.1"
 val akkaHttpVersion = "10.1.11"
 val utilPlayDep = "com.malliina" %% "util-play" % utilPlayVersion
 val utilPlayTestDep = utilPlayDep % Test classifier "tests"
-val scalaTestDep = "org.scalatest" %% "scalatest" % scalaTestVersion % Test
+val munitDep = "org.scalameta" %% "munit" % munitVersion % Test
 val buildAndUpload = taskKey[FullUrl]("Uploads to S3")
 val upFiles = taskKey[Seq[String]]("lists")
 val deployDocs = taskKey[Unit]("Deploys documentation")
@@ -26,12 +26,12 @@ concurrentRestrictions in Global += Tags.limit(Tags.Test, 1)
 
 val basicSettings = Seq(
   organization := "com.malliina",
-  scalaVersion := "2.13.1",
+  scalaVersion := "2.13.2",
   scalacOptions := Seq("-unchecked", "-deprecation")
 )
 
 val boatSettings = Seq(
-  version := "1.1.0"
+  version := "1.2.0"
 )
 
 val commonSettings = basicSettings ++ Seq(
@@ -39,6 +39,13 @@ val commonSettings = basicSettings ++ Seq(
   publishArtifact in (Compile, packageDoc) := false,
   publishArtifact in packageDoc := false,
   sources in (Compile, doc) := Seq.empty
+)
+
+val jvmSettings = commonSettings ++ Seq(
+  libraryDependencies ++= Seq(
+    munitDep
+  ),
+  testFrameworks += new TestFramework("munit.Framework")
 )
 
 val cross = portableProject(JSPlatform, JVMPlatform)
@@ -50,8 +57,9 @@ val cross = portableProject(JSPlatform, JVMPlatform)
     libraryDependencies ++= Seq(
       "com.malliina" %%% "primitives" % primitiveVersion,
       "com.lihaoyi" %%% "scalatags" % scalaTagsVersion,
-      "org.scalatest" %%% "scalatest" % scalaTestVersion % Test
-    )
+      "org.scalameta" %%% "munit" % munitVersion % Test
+    ),
+    testFrameworks += new TestFramework("munit.Framework")
   )
 
 val crossJvm = cross.jvm
@@ -59,7 +67,7 @@ val crossJs = cross.js
 
 val frontend = project
   .in(file("frontend"))
-  .enablePlugins(ScalaJSBundlerPlugin, ScalaJSWeb, NodeJsPlugin)
+  .enablePlugins(ScalaJSBundlerPlugin, NodeJsPlugin)
   .disablePlugins(RevolverPlugin)
   .dependsOn(crossJs)
   .settings(commonSettings ++ boatSettings)
@@ -67,7 +75,7 @@ val frontend = project
     libraryDependencies ++= Seq(
       "com.typesafe.play" %%% "play-json" % "2.8.1",
       "org.scala-js" %%% "scalajs-dom" % "0.9.7",
-      "org.scalatest" %%% "scalatest" % scalaTestVersion % Test
+      "org.scalameta" %%% "munit" % munitVersion % Test
     ),
     npmDependencies in Compile ++= Seq(
       "@fortawesome/fontawesome-free" -> "5.12.1",
@@ -110,20 +118,20 @@ val backend = Project("boat", file("backend"))
   .enablePlugins(FileTreePlugin, WebScalaJSBundlerPlugin, PlayLinuxPlugin)
   .disablePlugins(RevolverPlugin)
   .dependsOn(crossJvm)
-  .settings(commonSettings ++ boatSettings)
+  .settings(jvmSettings ++ boatSettings)
   .settings(
     unmanagedResourceDirectories in Compile += baseDirectory.value / "docs",
     libraryDependencies ++= Seq(
       "com.vividsolutions" % "jts" % "1.13",
       "org.orbisgis" % "h2gis" % "1.4.0",
-      "io.getquill" %% "quill-jdbc" % "3.5.0",
+      "io.getquill" %% "quill-jdbc" % "3.5.1",
       "mysql" % "mysql-connector-java" % "5.1.48",
       "org.flywaydb" % "flyway-core" % "6.0.3",
       "org.apache.commons" % "commons-text" % "1.8",
       "com.amazonaws" % "aws-java-sdk-s3" % "1.11.584",
       "com.malliina" %% "logstreams-client" % "1.8.2",
       "com.malliina" %% "play-social" % utilPlayVersion,
-      "com.malliina" %% "mobile-push" % "1.22.3",
+      "com.malliina" %% "mobile-push" % "1.23.0",
       "com.typesafe.akka" %% "akka-slf4j" % akkaVersion,
       "com.typesafe.akka" %% "akka-stream" % akkaVersion,
       "com.typesafe.akka" %% "akka-http" % akkaHttpVersion,
@@ -133,9 +141,6 @@ val backend = Project("boat", file("backend"))
       "org.eclipse.jetty" % "jetty-alpn-java-client" % "9.4.20.v20190813",
       utilPlayDep,
       utilPlayTestDep,
-      scalaTestDep,
-      "org.scalatestplus.play" %% "scalatestplus-play" % "5.0.0" % Test,
-      "com.dimafeng" %% "testcontainers-scala-scalatest" % testContainersScalaVersion % Test,
       "com.dimafeng" %% "testcontainers-scala-mysql" % testContainersScalaVersion % Test
     ),
     routesImport ++= Seq(
@@ -177,7 +182,7 @@ val agent = project
   .in(file("agent"))
   .enablePlugins(JavaServerAppPackaging, DebianPlugin, SystemdPlugin)
   .dependsOn(crossJvm)
-  .settings(commonSettings)
+  .settings(jvmSettings)
   .settings(
     name in Linux := "boat-agent",
     normalizedName := "boat-agent",
@@ -205,9 +210,8 @@ val agent = project
       "com.typesafe.akka" %% "akka-http" % akkaHttpVersion,
       "com.typesafe.akka" %% "akka-http-spray-json" % akkaHttpVersion,
       "com.lihaoyi" %% "scalatags" % scalaTagsVersion,
-      "commons-codec" % "commons-codec" % "1.13",
-      "com.neuronrobotics" % "nrjavaserial" % "3.14.0",
-      scalaTestDep
+      "commons-codec" % "commons-codec" % "1.14",
+      "com.neuronrobotics" % "nrjavaserial" % "3.14.0"
     ),
     releaseUseGlobalVersion := false,
     buildAndUpload := {
@@ -235,7 +239,7 @@ val agent = project
 val it = Project("integration-tests", file("boat-test"))
   .dependsOn(backend, backend % "test->test", agent)
   .disablePlugins(RevolverPlugin)
-  .settings(commonSettings ++ boatSettings)
+  .settings(jvmSettings ++ boatSettings)
   .settings(libraryDependencies ++= Seq(utilPlayTestDep))
 
 val utils = project
@@ -253,8 +257,9 @@ val utils = project
       "javax.media" % "jai_core" % "1.1.3",
       "org.geotools" % "gt-shapefile" % "22.2" exclude ("javax.media", "jai_core"),
       "org.geotools" % "gt-geojson" % "22.2" exclude ("javax.media", "jai_core"),
-      scalaTestDep
-    )
+      munitDep
+    ),
+    testFrameworks += new TestFramework("munit.Framework")
   )
 
 val boatRoot = project

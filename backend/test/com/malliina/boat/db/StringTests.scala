@@ -4,9 +4,8 @@ import java.time.format.DateTimeFormatter
 import java.time.{Instant, ZoneOffset}
 
 import org.apache.commons.codec.digest.DigestUtils
-import org.scalatest.FunSuite
 
-class StringTests extends FunSuite {
+class StringTests extends munit.FunSuite {
   test("create hash") {
     val hex = DigestUtils.md5Hex("a:b")
   }

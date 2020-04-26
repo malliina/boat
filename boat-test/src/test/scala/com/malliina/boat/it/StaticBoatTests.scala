@@ -35,10 +35,10 @@ class StaticBoatTests extends BoatTests {
         boat.send(testMessage)
         //        assert(received.from.boatName === boatName)
         val coordsEvent = await(coordPromise.future)
-        assert(coordsEvent.from.boatName === boatName)
-        assert(coordsEvent.coords.map(_.coord) === Seq(testCoord))
+        assert(coordsEvent.from.boatName == boatName)
+        assert(coordsEvent.coords.map(_.coord) == Seq(testCoord))
         val first = coordsEvent.coords.head
-        assert(first.boatTimeMillis === 1525443455000L)
+        assert(first.boatTimeMillis == 1525443455000L)
       }
     }
   }

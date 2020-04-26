@@ -17,7 +17,7 @@ import scala.concurrent.{Await, Future}
   *</ol>
   */
 class GPSTests extends BasicSuite {
-  ignore("receive sentences from GPS source") {
+  test("receive sentences from GPS source".ignore) {
     val client = TcpSource("10.0.0.4", 2947)
     try {
       client.connect(Source.single(TcpSource.watchMessage).concat(Source.maybe[ByteString]))
@@ -32,12 +32,10 @@ class GPSTests extends BasicSuite {
     }
   }
 
-  ignore("write to file") {
+  test("write to file".ignore) {
     val sampleSink = FileIO.toPath(Paths.get("gps2.txt"))
     val init = Source.single(TcpSource.watchMessage).concat(Source.maybe[ByteString])
     val io = init.via(Tcp().outgoingConnection("10.0.0.4", 2947).take(200)).runWith(sampleSink)
     await(io)
   }
-
-  def await[T](f: Future[T], duration: Duration = 10.seconds): T = Await.result(f, duration)
 }

@@ -8,8 +8,7 @@ import akka.stream.{KillSwitches, StreamTcpException}
 import akka.util.ByteString
 import com.malliina.boat.{RawSentence, SentencesMessage}
 
-import scala.concurrent.duration.Duration
-import scala.concurrent.{Await, Future, Promise}
+import scala.concurrent.Promise
 
 class TcpSourceTests extends BasicSuite {
   test("client receives sentences over TCP socket") {
@@ -21,7 +20,8 @@ class TcpSourceTests extends BasicSuite {
     )
     // the client validates maximum frame length, so we must not concatenate multiple sentences
     val plotterOutput = Source(
-      sentences.map(s => ByteString(s"$s${TcpSource.crlf}", StandardCharsets.US_ASCII)).toList)
+      sentences.map(s => ByteString(s"$s${TcpSource.crlf}", StandardCharsets.US_ASCII)).toList
+    )
 
     // pretend-plotter
     val tcpHost = "127.0.0.1"
@@ -47,7 +47,7 @@ class TcpSourceTests extends BasicSuite {
       client.connect()
       client.sentencesHub.runWith(clientSink)
       val received = await(p.future)
-      assert(received === sentences.map(RawSentence.apply).head)
+      assert(received == sentences.map(RawSentence.apply).head)
     } finally {
       client.close()
       plotter.shutdown()
@@ -68,6 +68,4 @@ class TcpSourceTests extends BasicSuite {
       client.close()
     }
   }
-
-  def await[T](f: Future[T], duration: Duration = 3.seconds): T = Await.result(f, duration)
 }

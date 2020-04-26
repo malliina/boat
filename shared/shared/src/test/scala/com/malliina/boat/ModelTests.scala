@@ -1,12 +1,11 @@
 package com.malliina.boat
 
-import org.scalatest.FunSuite
 import play.api.libs.json.Json
 
-class ModelTests extends FunSuite {
+class ModelTests extends munit.FunSuite {
   test("coord cheap hash") {
     val c = Coord(Longitude(12.1), Latitude(13.412456789))
-    assert(c.approx === "12.10000,13.41245")
+    assert(c.approx == "12.10000,13.41245")
   }
 
   test("parse vessel location") {
@@ -64,6 +63,6 @@ class ModelTests extends FunSuite {
 
   test("PingEvent JSON") {
     val json = Json.toJson(PingEvent(123))
-    assert(Json.stringify(json) === """{"event":"ping","body":{"sent":123}}""")
+    assert(Json.stringify(json) == """{"event":"ping","body":{"sent":123}}""")
   }
 }

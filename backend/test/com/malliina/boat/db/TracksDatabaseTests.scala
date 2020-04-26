@@ -19,7 +19,7 @@ object TestData {
 
 class TracksDatabaseTests extends AsyncSuite with DockerDatabase {
   test("inserts update track aggregates") {
-    val conf = TestConf(container)
+    val conf = TestConf(db())
 
     val newDb = BoatDatabase.withMigrations(as, conf)
     val tdb = NewTracksDatabase(newDb)
@@ -37,12 +37,12 @@ class TracksDatabaseTests extends AsyncSuite with DockerDatabase {
       _ <- users.deleteUser(user.username)
     } yield track
     val t = await(action)
-    assert(t.points === 2)
+    assert(t.points == 2)
     assert(t.avgSpeed.exists(s => s > 14.kmh && s < 16.kmh))
   }
 
   test("add comments to track") {
-    val conf = TestConf(container)
+    val conf = TestConf(db())
 
     val newDb = BoatDatabase.withMigrations(as, conf)
     val tdb = NewTracksDatabase(newDb)

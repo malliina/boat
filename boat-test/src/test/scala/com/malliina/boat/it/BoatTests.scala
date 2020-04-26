@@ -2,38 +2,59 @@ package com.malliina.boat.it
 
 import akka.stream.scaladsl.{Sink, Source, SourceQueue}
 import akka.{Done, NotUsed}
-import com.dimafeng.testcontainers.{ForAllTestContainer, MySQLContainer}
+import com.dimafeng.testcontainers.MySQLContainer
 import com.malliina.boat._
 import com.malliina.boat.client.{HttpUtil, KeyValue, WebSocketClient}
-import com.malliina.boat.db.Conf
 import com.malliina.http.FullUrl
 import com.malliina.values.{Password, Username}
-import org.scalatest.Suite
-import play.api.ApplicationLoader.Context
-import play.api.BuiltInComponents
 import play.api.libs.json.{JsValue, Json, Writes}
 import play.api.mvc.Call
-import tests.{AsyncSuite, BaseSuite, OneServerPerSuite2, TestComponents, TestConf}
+import play.api.test.{DefaultTestServerFactory, RunningServer}
+import tests.{AsyncSuite, TestAppLoader, TestComponents, TestConf}
 
 import scala.concurrent.Future
 
-abstract class TestAppSuite extends ServerSuite(TestComponents.apply)
+case class TestServer(server: RunningServer, components: AppComponents)
 
-trait DockerDatabase extends ForAllTestContainer { self: Suite =>
-  override val container = MySQLContainer(mysqlImageVersion = "mysql:5.7.29")
-}
+class TestAppSuite extends ServerSuite
 
-abstract class ServerSuite[T <: BuiltInComponents](build: (Context, Conf) => T)
-  extends BaseSuite
-  with OneServerPerSuite2[T]
-  with DockerDatabase {
-  override def createComponents(context: Context): T = {
-    container.start()
-    build(context, TestConf(container))
+class ServerSuite extends AsyncSuite {
+  val server: Fixture[TestServer] = new Fixture[TestServer]("boat-server") {
+    private var testServer: TestServer = null
+    def apply(): TestServer = testServer
+    override def beforeAll(): Unit = {
+      val container = MySQLContainer(mysqlImageVersion = "mysql:5.7.29")
+      container.start()
+      val comps = TestComponents(TestAppLoader.createTestAppContext, TestConf(container))
+      val runningServer = DefaultTestServerFactory.start(comps.application)
+      testServer = TestServer(runningServer, comps)
+    }
+    override def afterAll(): Unit = {
+      testServer.server.stopServer.close()
+    }
   }
+  def testServer = server().server
+  def components = server().components
+  def port = testServer.endpoints.httpEndpoint.map(_.port).get
+
+  override def munitFixtures = Seq(server)
 }
 
-abstract class BoatTests extends TestAppSuite with BoatSockets with AsyncSuite {
+//trait DockerDatabase extends ForAllTestContainer { self: Suite =>
+//  override val container = MySQLContainer(mysqlImageVersion = "mysql:5.7.29")
+//}
+
+//abstract class ServerSuite[T <: BuiltInComponents](build: (Context, Conf) => T)
+//  extends BaseSuite
+//  with ServerPerSuite[T]
+//  with DockerDatabase {
+//  override def createComponents(context: Context): T = {
+//    container.start()
+//    build(context, TestConf(container))
+//  }
+//}
+
+abstract class BoatTests extends TestAppSuite with BoatSockets {
   def openTestBoat[T](boat: BoatName)(code: TestBoat => T): T = {
     openBoat(urlFor(reverse.boatSocket()), Left(boat))(code)
   }

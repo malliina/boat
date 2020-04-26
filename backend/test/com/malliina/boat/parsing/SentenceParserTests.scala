@@ -2,9 +2,8 @@ package com.malliina.boat.parsing
 
 import com.malliina.boat.RawSentence
 import com.malliina.measure.{LatitudeDM, LongitudeDM}
-import org.scalatest.FunSuite
 
-class SentenceParserTests extends FunSuite {
+class SentenceParserTests extends munit.FunSuite {
   val track = Seq(
     "$SDDPT,23.9,0.0,*43",
     "$GPVTG,51.0,T,42.2,M,2.4,N,4.4,K,A*25",
@@ -28,7 +27,7 @@ class SentenceParserTests extends FunSuite {
         s"GGA ${lat.toDecimalDegrees} ${lng.toDecimalDegrees}"
       case _ => ""
     }
-    assert(strs.length === track.length)
+    assert(strs.length == track.length)
   }
 
   test("read and convert GGA coordinates from degrees minutes to decimal degrees") {
@@ -37,12 +36,12 @@ class SentenceParserTests extends FunSuite {
     val dmLat = dmLatResult.toOption.get
     val dLat = dmLat.minutes / 60
     val actualLat = dmLat.degrees + dLat
-    assert(actualLat.toString.take(9) === "60.153175")
+    assert(actualLat.toString.take(9) == "60.153175")
 
     val dmLng = LongitudeDM.parse("02453.4979,E").toOption.get
     val dLng = dmLng.minutes / 60
     val actualLng = dmLng.degrees + dLng
-    assert(actualLng.toString.take(9) === "24.891631")
+    assert(actualLng.toString.take(9) == "24.891631")
   }
 
   test("parse RMC") {
@@ -55,6 +54,6 @@ class SentenceParserTests extends FunSuite {
           msg.dateTimeUtc
       }
       .get
-    assert(rmc.getHour === 20)
+    assert(rmc.getHour == 20)
   }
 }

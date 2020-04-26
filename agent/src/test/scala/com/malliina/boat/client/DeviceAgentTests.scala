@@ -6,7 +6,7 @@ import com.malliina.boat.client.server.Device.GpsDevice
 import com.malliina.http.FullUrl
 
 class DeviceAgentTests extends BasicSuite {
-  ignore("receive-send to dot com") {
+  test("receive-send to dot com".ignore) {
     val url = FullUrl.ws("localhost:9000", "/ws/boats")
     val agent = DeviceAgent(BoatConf.anon("192.168.0.11", 10110), url)
     try {
@@ -15,7 +15,7 @@ class DeviceAgentTests extends BasicSuite {
     } finally agent.close()
   }
 
-  ignore("listen to GPS device") {
+  test("listen to GPS device".ignore) {
 //    val url = FullUrl.wss("api.boat-tracker.com", "/ws/devices")
     val url = FullUrl.ws("localhost:9000", "/ws/devices")
     val conf = BoatConf("10.0.0.4", 2947, GpsDevice, Option(BoatToken("changeme")), enabled = true)

@@ -15,14 +15,13 @@ import org.geotools.geometry.jts.JTS
 import org.geotools.referencing.CRS
 import org.geotools.referencing.crs.DefaultGeographicCRS
 import org.locationtech.jts.geom.Geometry
-import org.scalatest.FunSuite
 
 import scala.jdk.CollectionConverters.{CollectionHasAsScala, MapHasAsJava}
 
-class ShapeUtils extends FunSuite {
+class ShapeUtils extends munit.FunSuite {
   val userHome = Paths.get(sys.props("user.home"))
 
-  ignore("write shapefile to geojson with geographic WGS84") {
+  test("write shapefile to geojson with geographic WGS84".ignore) {
     val file = userHome.resolve(".boat/vaylat/vaylat.shp")
     val fileOut = userHome.resolve(".boat/vaylat/vaylat-geo.json")
     val store = DataStoreFinder.getDataStore(Map("url" -> file.toUri.toString).asJava)
@@ -53,7 +52,7 @@ class ShapeUtils extends FunSuite {
     writer.writeFeatureCollection(transformedCollections.head, fileOut.toFile)
   }
 
-  ignore("read shape file") {
+  test("read shape file".ignore) {
     val file = userHome.resolve(".boat/vaylat/vaylat.shp")
     val fileOut = userHome.resolve(".boat/vaylat/vaylat.json")
     val store = DataStoreFinder.getDataStore(Map("url" -> file.toUri.toString).asJava)
@@ -81,7 +80,7 @@ class ShapeUtils extends FunSuite {
 //    writer.writeFeatureCollection(collections.head, fileOut.toFile)
   }
 
-  ignore("read shp file") {
+  test("read shp file".ignore) {
     val inFile: Path = ???
     val store = DataStoreFinder.getDataStore(Map("url" -> inFile.toUri.toString).asJava)
     val sources = store.getTypeNames.map(store.getFeatureSource).map(_.getFeatures.features())
@@ -97,14 +96,18 @@ class ShapeUtils extends FunSuite {
     }
   }
 
-  ignore("convert dbf file from ISO-8859-1 to UTF-8") {
-    changeEncoding(userHome.resolve(".boat/vaylat/vaylat.dbf"),
-                   userHome.resolve(".boat/vaylat/vaylat-utf8.dbf"))
+  test("convert dbf file from ISO-8859-1 to UTF-8".ignore) {
+    changeEncoding(
+      userHome.resolve(".boat/vaylat/vaylat.dbf"),
+      userHome.resolve(".boat/vaylat/vaylat-utf8.dbf")
+    )
   }
 
-  ignore("convert limit file") {
-    changeEncoding(userHome.resolve(".boat/dbfs/rajoitusalue_a.dbf"),
-                   userHome.resolve(".boat/dbfs/rajoitusalue_a-utf8.dbf"))
+  test("convert limit file".ignore) {
+    changeEncoding(
+      userHome.resolve(".boat/dbfs/rajoitusalue_a.dbf"),
+      userHome.resolve(".boat/dbfs/rajoitusalue_a-utf8.dbf")
+    )
   }
 
   /** Fixes scandics in Finnish shapefiles.
@@ -116,10 +119,12 @@ class ShapeUtils extends FunSuite {
     * @param from in encoding
     * @param to out encoding
     */
-  def changeEncoding(in: Path,
-                     out: Path,
-                     from: Charset = StandardCharsets.ISO_8859_1,
-                     to: Charset = StandardCharsets.UTF_8) = {
+  def changeEncoding(
+    in: Path,
+    out: Path,
+    from: Charset = StandardCharsets.ISO_8859_1,
+    to: Charset = StandardCharsets.UTF_8
+  ) = {
     Files.createFile(out)
     val inChannel = new FileInputStream(in.toFile).getChannel
     val reader = new DbaseFileReader(inChannel, true, from)

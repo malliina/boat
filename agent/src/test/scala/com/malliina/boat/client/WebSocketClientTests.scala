@@ -9,7 +9,7 @@ import play.api.libs.json.{JsValue, Json}
 import scala.concurrent.Await
 
 class WebSocketClientTests extends BasicSuite {
-  ignore("connect boat to boat-tracker.com") {
+  test("connect boat to boat-tracker.com".ignore) {
     val url = FullUrl.ws("localhost:9000", "/ws/devices")
 //    val url = FullUrl.wss("api.boat-tracker.com", "/ws/devices")
     val samples = Seq(
@@ -29,7 +29,7 @@ class WebSocketClientTests extends BasicSuite {
     try {
       val conn =
         client.connectJson(Sink.foreach[JsValue](println), src.mapMaterializedValue(_ => NotUsed))
-      Await.result(conn, 20.seconds)
+      await(conn)
     } finally client.close()
 
   }

@@ -16,7 +16,7 @@ import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, Future, Promise}
 
 class AkkaStreamsClientTests extends BasicSuite {
-  ignore("kill TCP server") {
+  test("kill TCP server".ignore) {
     // this test does not work because the client never gets a termination signal even when the TCP server is shut down
     // TODO devise a fix
     val tcpHost = "127.0.0.1"
@@ -50,7 +50,7 @@ class AkkaStreamsClientTests extends BasicSuite {
     await(binding2.unbind())
   }
 
-  ignore("TCP client") {
+  test("TCP client".ignore) {
     val tcpHost = "127.0.0.1"
     val tcpPort = 10110
     val client = TcpSource(tcpHost, tcpPort, TcpSource.crlf)
@@ -61,7 +61,7 @@ class AkkaStreamsClientTests extends BasicSuite {
 
   }
 
-  ignore("receives sentences") {
+  test("receives sentences".ignore) {
     val jsons = mutable.Buffer[SentencesMessage]()
     val out = Sink.foreach[SentencesMessage](msg => jsons.append(msg))
     val client = TcpSource("192.168.0.11", 10110)
@@ -72,13 +72,13 @@ class AkkaStreamsClientTests extends BasicSuite {
     } finally client.close()
   }
 
-  ignore("count") {
+  test("count".ignore) {
     val msgs =
       Json.parse(new FileInputStream(Paths.get("demo2.json").toFile)).as[Seq[SentencesMessage]]
     println(msgs.flatMap(_.sentences).length)
   }
 
-  ignore("TCP client receives and parses messages from TCP server") {
+  test("TCP client receives and parses messages from TCP server".ignore) {
     val localHost = "127.0.0.1"
     val localPort = 8816
     val testSentences = Iterable("a", "b", "c", "d")
@@ -98,10 +98,8 @@ class AkkaStreamsClientTests extends BasicSuite {
     client.sentencesSource.runWith(out)
     val expected = SentencesMessage(testSentences.toList.map(RawSentence.apply))
     val actual = await(p1.future)
-    assert(expected === actual)
+    assert(expected == actual)
     val actual2 = await(p2.future)
-    assert(expected === actual2)
+    assert(expected == actual2)
   }
-
-  def await[T](f: Future[T], duration: Duration = 3.seconds): T = Await.result(f, duration)
 }

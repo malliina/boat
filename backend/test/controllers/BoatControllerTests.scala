@@ -15,6 +15,7 @@ import tests.{TestAppSuite, TestEmailAuth}
 
 class BoatControllerTests extends TestAppSuite {
   test("tracks endpoint supports versioning based on Accept header") {
+    def components = app()
     implicit val ec = components.executionContext
 
     val user = Username("test")
@@ -39,16 +40,16 @@ class BoatControllerTests extends TestAppSuite {
     await(init)
     val response1 = tracksRequest(ContentVersions.Version1)
     val summaries = contentAsJson(response1).as[TrackSummaries]
-    assert(summaries.tracks.length === 1)
+    assert(summaries.tracks.length == 1)
     val response2 = tracksRequest(ContentVersions.Version2)
     val tracks = contentAsJson(response2).as[Tracks]
-    assert(tracks.tracks.length === 1)
+    assert(tracks.tracks.length == 1)
   }
 
   def tracksRequest(accept: String) = {
     val authHeader = s"Bearer ${TestEmailAuth.testToken}"
     val req = FakeRequest(routes.BoatController.tracks())
       .withHeaders(AUTHORIZATION -> authHeader, ACCEPT -> accept)
-    route(app, req).get
+    route(app().application, req).get
   }
 }

@@ -35,11 +35,11 @@ class GPSProcessorTests extends BaseSuite {
     }
     val task = Source(samples.toList).via(flow).via(BoatParser.gpsFlow()).runWith(Sink.seq)
     val seq: Seq[GPSCoord] = await(task)
-    assert(seq.exists(_.time.getHour === 15))
-    assert(seq.exists(_.date.getDayOfMonth === 17))
+    assert(seq.exists(_.time.getHour == 15))
+    assert(seq.exists(_.date.getDayOfMonth == 17))
   }
 
-  ignore("read") {
+  test("read".ignore) {
     samples.foreach { s =>
       val res = SentenceParser.parse(s)
       println(res)

@@ -6,14 +6,13 @@ import java.util.concurrent.{Executors, TimeUnit}
 
 import com.malliina.boat._
 import com.malliina.measure.{DistanceDoubleM, DistanceIntM}
-import org.scalatest.FunSuite
 import play.api.libs.json.Json
 
 import scala.annotation.tailrec
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.{Await, ExecutionContext, Future}
 
-class GraphTests extends FunSuite {
+class GraphTests extends munit.FunSuite {
   test("find route") {
     val from = 19.97655 lngLat 60.27473
     val to = 20.01310 lngLat 60.24488
@@ -43,7 +42,7 @@ class GraphTests extends FunSuite {
     assert(route2.isRight)
     val r1 = route.toOption.get
     val r2 = route.toOption.get
-    assert(r1.route.coords.size === r2.route.coords.size)
+    assert(r1.route.coords.size == r2.route.coords.size)
     assert(r1.route.cost - r2.route.cost < 0.1.meters)
   }
 
@@ -73,23 +72,23 @@ class GraphTests extends FunSuite {
     assert(cost < 55.7.kilometers)
   }
 
-  ignore("kemi to kotka") {
+  test("kemi to kotka".ignore) {
     val aland = 20.2218 lngLat 60.1419
     val kotka = 26.9771 lngLat 60.4505
     val route = findRoute(from = aland, to = kotka)
     assert(route.isRight)
   }
 
-  ignore("read and write graph") {
+  test("read and write graph".ignore) {
     val g = fromResource("vaylat-geo.json")
     Files.write(Paths.get("vaylat-all2.json"), Json.toBytes(Json.toJson(g)))
   }
 
-  ignore("create graph from geojson") {
+  test("create graph from geojson".ignore) {
     fromResource("vaylat-geo.json")
   }
 
-  ignore("nearest") {
+  test("nearest".ignore) {
     val graph = fromResource("vaylat-mini.json")
     val n = graph.nearest(24 lngLat 60)
     println(graph.nodes)
@@ -109,7 +108,8 @@ class GraphTests extends FunSuite {
   }
 
   def toGeo(r: RouteResult) = FeatureCollection(
-    List(Feature.line(r.route.coords), Feature.point(r.from), Feature.point(r.to)))
+    List(Feature.line(r.route.coords), Feature.point(r.from), Feature.point(r.to))
+  )
 
   def fromResource(filename: String) = {
     val file = Graph.file(filename)

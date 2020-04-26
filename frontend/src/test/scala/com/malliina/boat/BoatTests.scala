@@ -1,12 +1,11 @@
 package com.malliina.boat
 
-import org.scalatest.FunSuite
 import play.api.libs.json.Json
 
-class BoatTests extends FunSuite with DemoJson {
+class BoatTests extends munit.FunSuite with DemoJson {
   test("serialize GeoJSON") {
     val geo = LineGeometry("LineString", Seq(Coord.buildOrFail(24, 60)))
-    assert(1 === 1)
+    assert(1 == 1)
   }
 
   test("parse mark") {

@@ -24,7 +24,7 @@ class ManualBoatTests extends BoatTests {
 
   def url = FullUrl.wss("www.boat-tracker.com", reverse.boatSocket().toString)
 
-  ignore("local GPS reporting") {
+  test("local GPS reporting".ignore) {
     //    println("Lines " + gpsSentences.toList.length)
     val testMessages = relevantSentences.toList.grouped(1000).map(SentencesMessage.apply).toList
     openRandomBoat(url) { boat =>
@@ -37,7 +37,7 @@ class ManualBoatTests extends BoatTests {
     }
   }
 
-  ignore("slow anon GPS reporting") {
+  test("slow anon GPS reporting".ignore) {
     val testMessages =
       relevantSentences.toList.grouped(30).map(SentencesMessage.apply).slice(50, 100).toList
     openRandomBoat(url) { boat =>
@@ -48,7 +48,7 @@ class ManualBoatTests extends BoatTests {
     }
   }
 
-  ignore("slow GPS reporting") {
+  test("slow GPS reporting".ignore) {
     val token = BoatToken("todo")
     val testMessages =
       relevantSentences.toList.grouped(30).map(SentencesMessage.apply).slice(50, 100).toList
@@ -60,14 +60,14 @@ class ManualBoatTests extends BoatTests {
     }
   }
 
-  ignore("generate names") {
+  test("generate names".ignore) {
     val name = BoatNames.random()
     val token = BoatTokens.random()
     println(name)
     println(token)
   }
 
-  ignore("boat can connect") {
+  test("boat can connect".ignore) {
     val token = BoatToken("todo")
     openBoat(url, Right(token)) { boat =>
       Thread.sleep(10000)
