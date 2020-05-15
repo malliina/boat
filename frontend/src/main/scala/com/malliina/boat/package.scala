@@ -1,7 +1,7 @@
 package com.malliina
 
 import com.malliina.boat.FrontKeys.Hidden
-import org.scalajs.dom.raw.{Element, Event, EventTarget}
+import org.scalajs.dom.raw.{Element, Event, EventTarget, HTMLElement}
 import org.scalajs.dom.{DOMList, Node}
 
 package object boat {
@@ -14,7 +14,6 @@ package object boat {
     }
 
     override def length: Int = nodes.length
-
     override def apply(idx: Int): T = nodes(idx)
   }
 
@@ -35,7 +34,11 @@ package object boat {
 
   implicit class EventTargetOps(val et: EventTarget) {
     def addOnClick(code: Event => Unit): Unit = addClickListener[Event](code)
-
     def addClickListener[E <: Event](code: E => Unit): Unit = et.addEventListener("click", code)
+    def isOutside(elem: HTMLElement): Boolean = !isInside(elem)
+    def isInside(elem: HTMLElement): Boolean = et match {
+      case element: HTMLElement => DOM.isInside(element, elem)
+      case _                    => false
+    }
   }
 }

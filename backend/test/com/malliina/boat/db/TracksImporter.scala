@@ -11,18 +11,18 @@ import com.malliina.boat.parsing.{BoatParser, FullCoord}
 import com.malliina.boat.{BoatName, BoatUser, DateVal, DeviceId, InsertedPoint, KeyedSentence, LocalConf, RawSentence, SentencesEvent, TrackId, TrackInput, TrackNames}
 import com.malliina.util.FileUtils
 import com.malliina.values.Username
-import tests.{AsyncSuite, DockerDatabase, TestConf}
+import tests.AsyncSuite
 
 import scala.concurrent.Future
 import scala.concurrent.duration.DurationLong
 import scala.jdk.CollectionConverters.CollectionHasAsScala
 
-class TracksImporter extends AsyncSuite with DockerDatabase {
+class TracksImporter extends AsyncSuite {
   lazy val c = Conf.fromConf(LocalConf.localConf).toOption.get
+  lazy val db = BoatDatabase(as, c)
 
   test("import tracks from plotter log file".ignore) {
-    val database = testDatabase(as, TestConf(db()))
-    val tdb = NewTracksDatabase(database)
+    val tdb = NewTracksDatabase(db)
     val trackName = TrackNames.random()
     val track = await(
       tdb.joinAsBoat(BoatUser(trackName, BoatName("Amina"), Username("mle"))),
@@ -30,8 +30,9 @@ class TracksImporter extends AsyncSuite with DockerDatabase {
     )
     println(s"Using $track")
     val s: Source[RawSentence, NotUsed] =
-      fromFile(FileUtils.userHome.resolve("boat/logs/Log201910.txt"))
-        .drop(1236503)
+      fromFile(FileUtils.userHome.resolve(".boat/Log20200513.txt"))
+        .drop(1273831)
+        .take(1320488 - 1273831)
         .filter(_ != RawSentence.initialZda)
     val events = s.map(s => SentencesEvent(Seq(s), track.short))
     val task = events
@@ -44,7 +45,7 @@ class TracksImporter extends AsyncSuite with DockerDatabase {
     val oldTrack = TrackId(175)
     splitTracksByDate(
       oldTrack,
-      NewTracksDatabase(BoatDatabase.withMigrations(as, TestConf(db())))
+      NewTracksDatabase(db)
     )
   }
 

@@ -1,4 +1,4 @@
-scalaVersion := "2.12.10"
+scalaVersion := "2.12.11"
 
 scalacOptions ++= Seq("-unchecked", "-deprecation")
 
@@ -19,6 +19,6 @@ Seq(
   "com.vmunier" % "sbt-web-scalajs" % "1.0.6",
   "com.typesafe.sbt" % "sbt-native-packager" % "1.7.0",
   "io.spray" % "sbt-revolver" % "0.9.1",
-  "ch.epfl.scala" % "sbt-bloop" % "1.3.4",
-  "org.scalameta" % "sbt-scalafmt" % "2.3.0"
+  "ch.epfl.scala" % "sbt-bloop" % "1.4.1",
+  "org.scalameta" % "sbt-scalafmt" % "2.4.0"
 ) map addSbtPlugin
