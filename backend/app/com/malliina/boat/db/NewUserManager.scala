@@ -3,7 +3,7 @@ package com.malliina.boat.db
 import java.sql.SQLException
 
 import com.malliina.boat.db.NewUserManager.log
-import com.malliina.boat.{Boat, BoatInfo, BoatNames, BoatToken, BoatTokens, JoinedBoat, JoinedTrack, Language, TimeFormatter, UserBoats, UserInfo, UserToken, Usernames}
+import com.malliina.boat.{Boat, BoatInfo, BoatNames, BoatToken, BoatTokens, DeviceId, JoinedBoat, JoinedTrack, Language, TimeFormatter, UserBoats, UserInfo, UserToken, Usernames}
 import com.malliina.values.{Email, UserId, Username}
 import io.getquill.SnakeCase
 import play.api.Logger
@@ -95,6 +95,11 @@ class NewUserManager(val db: BoatDatabase[SnakeCase]) extends UserManager {
       )
       .returningGenerated(_.id)
   }
+  val userBoat = quote { (boat: DeviceId, user: UserId) =>
+    usersBoatsTable.filter { ub =>
+      ub.boat == boat && ub.user == user
+    }
+  }
 
   def users: Future[Seq[UserInfo]] =
     performAsync("All users") { runIO(allUsers).map(NewUserManager.collect) }
@@ -182,6 +187,23 @@ class NewUserManager(val db: BoatDatabase[SnakeCase]) extends UserManager {
         }
         wasChanged
       }
+    }
+
+  def grantAccess(boat: DeviceId, to: UserId): Future[Boolean] =
+    transactionally(s"Allow user $to access to $boat.") {
+      for {
+        exists <- runIO(userBoat(lift(boat), lift(to)).nonEmpty)
+        _ <- if (exists) IO.successful(())
+        else runIO(usersBoatsTable.insert(_.boat -> lift(boat), _.user -> lift(to)))
+      } yield exists
+    }
+
+  def revokeAccess(boat: DeviceId, from: UserId): Future[Boolean] =
+    performAsync(s"Revoke access for $from to $boat.") {
+      for {
+        existed <- runIO(userBoat(lift(boat), lift(from)).nonEmpty)
+        _ <- if (existed) runIO(userBoat(lift(boat), lift(from)).delete) else IO.successful(())
+      } yield existed
     }
 
   private def getOrCreate(email: Email) = for {

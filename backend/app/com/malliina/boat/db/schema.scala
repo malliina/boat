@@ -27,6 +27,8 @@ case class UserRow(
   added: Instant
 ) extends Embedded
 
+case class UserBoatRow(user: UserId, boat: DeviceId, added: Instant)
+
 case class TrackRow(
   id: TrackId,
   name: TrackName,

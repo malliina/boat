@@ -55,6 +55,7 @@ class BoatController(
   val LanguageSessionKey = "boatLanguage"
   val UserSessionKey = "boatUser"
   val anonUser = Usernames.anon
+
   implicit val updatesTransformer =
     jsonMessageFlowTransformer[JsValue, FrontEvent]
 

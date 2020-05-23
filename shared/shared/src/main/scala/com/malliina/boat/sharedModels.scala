@@ -354,7 +354,9 @@ case class IdentifiedDevice(user: Username, boat: BoatName, device: DeviceId)
   extends IdentifiedDeviceMeta
 
 case class DeviceId(id: Long) extends AnyVal with WrappedId
-object DeviceId extends IdCompanion[DeviceId]
+object DeviceId extends IdCompanion[DeviceId] {
+  val Key = "boat"
+}
 
 case class TrackId(id: Long) extends AnyVal with WrappedId
 object TrackId extends IdCompanion[TrackId]

@@ -1,6 +1,6 @@
 package com.malliina.boat.db
 
-import com.malliina.boat.{BoatToken, JoinedBoat, Language, UserBoats, UserInfo}
+import com.malliina.boat.{BoatToken, DeviceId, JoinedBoat, Language, UserBoats, UserInfo}
 import com.malliina.play.auth.AuthError
 import com.malliina.values.{Email, Password, UserId, Username}
 import org.apache.commons.codec.digest.DigestUtils
@@ -28,7 +28,8 @@ trait UserManager {
   def deleteUser(user: Username): Future[Either[UserDoesNotExist, Unit]]
   def users: Future[Seq[UserInfo]]
   def changeLanguage(user: UserId, to: Language): Future[Boolean]
-
+  def grantAccess(boat: DeviceId, to: UserId): Future[Boolean]
+  def revokeAccess(boat: DeviceId, from: UserId): Future[Boolean]
   protected def hash(user: Username, pass: Password): String =
     DigestUtils.md5Hex(user.name + ":" + pass.pass)
 }
