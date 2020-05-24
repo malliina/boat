@@ -7,10 +7,12 @@ import akka.stream.Materializer
 import akka.stream.scaladsl.{Flow, Keep, Sink, Source}
 import akka.{Done, NotUsed}
 import com.malliina.boat.Constants._
+import com.malliina.boat.InviteState.Rejected
 import com.malliina.boat._
 import com.malliina.boat.auth.EmailAuth
 import com.malliina.boat.db._
 import com.malliina.boat.html.{BoatHtml, BoatLang}
+import com.malliina.boat.http.AccessOperation.{Grant, Revoke}
 import com.malliina.boat.http._
 import com.malliina.boat.parsing.{BoatService, DeviceService}
 import com.malliina.boat.push.{BoatState, PushService}
@@ -189,6 +191,29 @@ class BoatController(
   def stats = userAction(profile, TrackQuery.apply) { req =>
     db.stats(req.user, req.query, BoatLang(req.user.language).lang).map { sr =>
       Ok(Json.toJson(sr))
+    }
+  }
+
+  def boatAccess = jsonAuth[BoatAccess] { req =>
+    val body = req.body
+    val task = body.operation match {
+      case Grant  => auther.grantAccess(body.boat, body.user, req.user.id)
+      case Revoke => auther.revokeAccess(body.boat, body.user, req.user.id)
+    }
+    task.map { result =>
+      Ok(result)
+    }
+  }
+
+  def boatAccessAnswers = jsonAuth[InviteAnswer] { req =>
+    val body = req.body
+    body.state match {
+      case InviteState.Accepted | InviteState.Rejected =>
+        auther.updateInvite(body.boat, req.user.id, body.state).map { _ =>
+          Ok(SimpleMessage("Updated."))
+        }
+      case other =>
+        fut(BadRequest(Errors(s"Invalid state: '$other'.")))
     }
   }
 

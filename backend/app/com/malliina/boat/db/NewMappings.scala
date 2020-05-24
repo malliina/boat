@@ -4,7 +4,7 @@ import java.time.{Instant, LocalDate}
 import java.util.Date
 
 import com.malliina.boat.parsing.GPSFix
-import com.malliina.boat.{Coord, DateVal, FairwayLighting, Latitude, Longitude, MobileDevice, SeaArea}
+import com.malliina.boat.{Coord, DateVal, FairwayLighting, InviteState, Latitude, Longitude, MobileDevice, SeaArea}
 import com.malliina.measure.{SpeedDoubleM, SpeedM}
 import com.malliina.values.UserId
 import com.vividsolutions.jts.geom.Point
@@ -46,6 +46,9 @@ trait NewMappings {
 
   implicit val gpsFixDecoder = MappedEncoding[String, GPSFix](GPSFix.orOther)
   implicit val gpsFixEncoder = MappedEncoding[GPSFix, String](_.value)
+
+  implicit val inviteStateEnc = MappedEncoding[String, InviteState](InviteState.orOther)
+  implicit val inviteStateDec = MappedEncoding[InviteState, String](_.name)
 
   private def toCoord(point: Point): Coord = {
     val c = point.getCoordinate

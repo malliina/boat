@@ -1,6 +1,6 @@
 package com.malliina.boat.http
 
-import com.malliina.boat.DeviceId
+import com.malliina.boat.{DeviceId, InviteState}
 import com.malliina.values.{StringEnumCompanion, UserId}
 import play.api.libs.json.Json
 
@@ -18,4 +18,16 @@ case class BoatAccess(boat: DeviceId, user: UserId, operation: AccessOperation)
 
 object BoatAccess {
   implicit val json = Json.format[BoatAccess]
+}
+
+case class InviteAnswer(boat: DeviceId, state: InviteState)
+
+object InviteAnswer {
+  implicit val json = Json.format[InviteAnswer]
+}
+
+case class AccessResult(existed: Boolean)
+
+object AccessResult {
+  implicit val json = Json.format[AccessResult]
 }

@@ -6,14 +6,14 @@ import sbtrelease.ReleaseStateTransformations._
 import scala.sys.process.Process
 import scala.util.Try
 
-val mapboxVersion = "1.9.1"
-val utilPlayVersion = "5.8.0"
-val munitVersion = "0.7.3"
-val testContainersScalaVersion = "0.36.1"
-val scalaTagsVersion = "0.8.6"
-val primitiveVersion = "1.15.0"
-val akkaVersion = "2.6.1"
-val akkaHttpVersion = "10.1.11"
+val mapboxVersion = "1.10.1"
+val utilPlayVersion = "5.10.0"
+val munitVersion = "0.7.7"
+val testContainersScalaVersion = "0.37.0"
+val scalaTagsVersion = "0.9.1"
+val primitiveVersion = "1.16.0"
+val akkaVersion = "2.6.5"
+val akkaHttpVersion = "10.1.12"
 val utilPlayDep = "com.malliina" %% "util-play" % utilPlayVersion
 val utilPlayTestDep = utilPlayDep % Test classifier "tests"
 val munitDep = "org.scalameta" %% "munit" % munitVersion % Test
@@ -81,24 +81,24 @@ val frontend = project
       "@fortawesome/fontawesome-free" -> "5.13.0",
       "@mapbox/mapbox-gl-geocoder" -> "4.5.1",
       "@turf/turf" -> "5.1.6",
-      "bootstrap" -> "4.4.1",
+      "bootstrap" -> "4.5.0",
       "chart.js" -> "2.9.3",
-      "jquery" -> "3.5.0",
+      "jquery" -> "3.5.1",
       "mapbox-gl" -> mapboxVersion,
       "popper.js" -> "1.16.1"
     ),
     npmDevDependencies in Compile ++= Seq(
-      "autoprefixer" -> "9.7.6",
+      "autoprefixer" -> "9.8.0",
       "cssnano" -> "4.1.10",
       "css-loader" -> "3.5.3",
       "file-loader" -> "6.0.0",
       "less" -> "3.11.1",
-      "less-loader" -> "6.0.0",
+      "less-loader" -> "6.1.0",
       "mini-css-extract-plugin" -> "0.9.0",
       "postcss-import" -> "12.0.1",
       "postcss-loader" -> "3.0.0",
       "postcss-preset-env" -> "6.7.0",
-      "style-loader" -> "1.2.0",
+      "style-loader" -> "1.2.1",
       "url-loader" -> "4.1.0",
       "webpack-merge" -> "4.2.2"
     ),

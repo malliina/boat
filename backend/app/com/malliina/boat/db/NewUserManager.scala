@@ -2,8 +2,10 @@ package com.malliina.boat.db
 
 import java.sql.SQLException
 
+import com.malliina.boat.InviteState.Awaiting
 import com.malliina.boat.db.NewUserManager.log
-import com.malliina.boat.{Boat, BoatInfo, BoatNames, BoatToken, BoatTokens, DeviceId, JoinedBoat, JoinedTrack, Language, TimeFormatter, UserBoats, UserInfo, UserToken, Usernames}
+import com.malliina.boat.http.AccessResult
+import com.malliina.boat.{Boat, BoatInfo, BoatNames, BoatToken, BoatTokens, DeviceId, InviteState, JoinedBoat, JoinedTrack, Language, TimeFormatter, UserBoats, UserInfo, UserToken, Usernames}
 import com.malliina.values.{Email, UserId, Username}
 import io.getquill.SnakeCase
 import play.api.Logger
@@ -189,22 +191,52 @@ class NewUserManager(val db: BoatDatabase[SnakeCase]) extends UserManager {
       }
     }
 
-  def grantAccess(boat: DeviceId, to: UserId): Future[Boolean] =
+  def grantAccess(boat: DeviceId, to: UserId, principal: UserId): Future[AccessResult] =
     transactionally(s"Allow user $to access to $boat.") {
-      for {
-        exists <- runIO(userBoat(lift(boat), lift(to)).nonEmpty)
-        _ <- if (exists) IO.successful(())
-        else runIO(usersBoatsTable.insert(_.boat -> lift(boat), _.user -> lift(to)))
-      } yield exists
+      manageGroups(boat, to, principal) { existed =>
+        if (existed) IO.successful(())
+        else
+          runIO(
+            usersBoatsTable
+              .insert(
+                _.boat -> lift(boat),
+                _.user -> lift(to),
+                _.state -> lift(Awaiting: InviteState)
+              )
+          )
+      }
     }
 
-  def revokeAccess(boat: DeviceId, from: UserId): Future[Boolean] =
+  def revokeAccess(boat: DeviceId, from: UserId, principal: UserId): Future[AccessResult] =
     performAsync(s"Revoke access for $from to $boat.") {
-      for {
-        existed <- runIO(userBoat(lift(boat), lift(from)).nonEmpty)
-        _ <- if (existed) runIO(userBoat(lift(boat), lift(from)).delete) else IO.successful(())
-      } yield existed
+      manageGroups(boat, from, principal) { existed =>
+        if (existed) runIO(userBoat(lift(boat), lift(from)).delete)
+        else IO.successful(())
+      }
     }
+
+  def updateInvite(boat: DeviceId, user: UserId, state: InviteState): Future[Long] =
+    performAsync(s"Update invite to boat $boat for user $user to $state.") {
+      runIO(userBoat(lift(boat), lift(user)).update(_.state -> lift(state)))
+    }
+
+  private def manageGroups[T](boat: DeviceId, from: UserId, principal: UserId)(
+    run: Boolean => IO[T, Effect.Write]
+  ) =
+    for {
+      owns <- runIO(
+        boatsTable.filter(b => b.id == lift(boat) && b.owner == lift(principal)).nonEmpty
+      )
+      auth <- if (owns) IO.successful(())
+      else
+        IO.failed(
+          fail(
+            s"User $principal is not authorized to modify access to boat $boat for user $from."
+          )
+        )
+      existed <- runIO(userBoat(lift(boat), lift(from)).nonEmpty)
+      _ <- run(existed)
+    } yield AccessResult(existed)
 
   private def getOrCreate(email: Email) = for {
     existing <- runIO(userByEmail(lift(email)))

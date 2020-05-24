@@ -730,3 +730,17 @@ class ModelHtml[Builder, Output <: FragT, FragT](val bundle: Bundle[Builder, Out
 
   implicit def wrappedFrag[T <: WrappedString](t: T): Frag = stringFrag(t.value)
 }
+
+sealed abstract class InviteState(val name: String)
+
+object InviteState extends StringEnumCompanion[InviteState] {
+  case object Awaiting extends InviteState("awaiting")
+  case object Accepted extends InviteState("accepted")
+  case object Rejected extends InviteState("rejected")
+  case class Other(n: String) extends InviteState(n)
+
+  def orOther(in: String): InviteState = build(in).getOrElse(Other(in))
+
+  override def all = Seq(Accepted, Rejected)
+  override def write(t: InviteState) = t.name
+}

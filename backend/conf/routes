@@ -4,6 +4,8 @@ GET          /health                                          controllers.AppCon
 GET          /conf                                            controllers.AppController.conf
 GET          /users/me                                        controllers.AppController.me
 PUT          /users/me                                        controllers.PushController.changeLanguage
+POST         /users/boats                                     controllers.BoatController.boatAccess
+POST         /users/boats/answers                             controllers.BoatController.boatAccessAnswers
 POST         /users/notifications                             controllers.PushController.enableNotifications
 POST         /users/notifications/disable                     controllers.PushController.disableNotifications
 GET          /boats                                           controllers.BoatController.devices
