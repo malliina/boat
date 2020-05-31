@@ -85,9 +85,7 @@ class BoatController(
     Future.successful {
       CSRF
         .getToken(req.rh)
-        .map { token =>
-          Ok(html.devices(req.user, token))
-        }
+        .map { token => Ok(html.devices(req.user, token)) }
         .getOrElse {
           InternalServerError
         }
@@ -97,9 +95,7 @@ class BoatController(
   def tracks = negotiated(tracksHtml, tracksJson)
 
   def history = userAction(profile, BoatQuery.apply) { req =>
-    db.history(req.user, req.query).map { e =>
-      Ok(Json.toJson(e))
-    }
+    db.history(req.user, req.query).map { e => Ok(Json.toJson(e)) }
   }
 
   private def tracksJson = userAction(profile, TrackQuery.apply) { req =>
@@ -119,9 +115,7 @@ class BoatController(
 
   private def tracksHtml = userAction(profile, TrackQuery.apply) { req =>
     val lang = BoatLang(req.user.language).lang
-    db.tracksBundle(req.user, req.query, lang).map { ts =>
-      Ok(html.tracks(ts, req.query, lang))
-    }
+    db.tracksBundle(req.user, req.query, lang).map { ts => Ok(html.tracks(ts, req.query, lang)) }
   }
 
   def track(track: TrackName) = negotiated(
@@ -135,14 +129,10 @@ class BoatController(
   )
 
   private def negotiated(html: Action[AnyContent], json: Action[AnyContent]) =
-    EssentialAction { rh =>
-      respond(rh)(html, json)(rh)
-    }
+    EssentialAction { rh => respond(rh)(html, json)(rh) }
 
   def fetchTrack[W: Writes](load: MinimalUserInfo => Future[W]) =
-    secureJson(TrackQuery.apply) { req =>
-      load(req.user)
-    }
+    secureJson(TrackQuery.apply) { req => load(req.user) }
 
   def full(track: TrackName) = secureTrack { req =>
     val lang = req.user.language
@@ -156,9 +146,7 @@ class BoatController(
 
   def chart(track: TrackName) = secureTrack { req =>
     val lang = req.user.language
-    db.ref(track, lang).map { ref =>
-      Ok(html.chart(ref, BoatLang(lang)))
-    }
+    db.ref(track, lang).map { ref => Ok(html.chart(ref, BoatLang(lang))) }
   }
 
   def modifyTitle(track: TrackName) = trackAction(trackTitleForm) { req =>
@@ -184,13 +172,17 @@ class BoatController(
     }
   }
 
-  def renameBoat(id: DeviceId) = boatAction { req =>
-    db.renameBoat(id, req.body, req.user.id)
-  }
+  def renameBoat(id: DeviceId) = boatAction { req => db.renameBoat(id, req.body, req.user.id) }
 
   def stats = userAction(profile, TrackQuery.apply) { req =>
     db.stats(req.user, req.query, BoatLang(req.user.language).lang).map { sr =>
       Ok(Json.toJson(sr))
+    }
+  }
+
+  def inviteByEmail(boat: DeviceId) = jsonAuth[BoatInvite] { req =>
+    auther.invite(InviteInfo(boat, req.body.email, req.user.id)).map { result =>
+      Ok(SimpleMessage(s"Invited '${req.body.email}' if such an email existed."))
     }
   }
 
@@ -200,9 +192,7 @@ class BoatController(
       case Grant  => auther.grantAccess(body.boat, body.user, req.user.id)
       case Revoke => auther.revokeAccess(body.boat, body.user, req.user.id)
     }
-    task.map { result =>
-      Ok(result)
-    }
+    task.map { result => Ok(result) }
   }
 
   def boatAccessAnswers = jsonAuth[InviteAnswer] { req =>
@@ -319,9 +309,7 @@ class BoatController(
                 Source(es.toList.map(_.sample(actualSample)))
               }
           val gpsHistory =
-            Source.future(deviceService.db.history(user)).flatMapConcat { es =>
-              Source(es.toList)
-            }
+            Source.future(deviceService.db.history(user)).flatMapConcat { es => Source(es.toList) }
           val formatter = TimeFormatter(user.language)
           val eventSource = history
             .merge(gpsHistory)
@@ -337,9 +325,7 @@ class BoatController(
             .keepAlive(10.seconds, () => PingEvent(Instant.now.toEpochMilli))
             .backpressureTimeout(3.seconds)
           logTermination(flow, _ => s"Viewer '$username' left.")
-        }.left.map { err =>
-          BadRequest(Errors(err))
-        }
+        }.left.map { err => BadRequest(Errors(err)) }
       }
     }
   }
@@ -347,39 +333,27 @@ class BoatController(
   private def boatAction(
     code: UserRequest[UserInfo, BoatName] => Future[BoatRow]
   ): Action[BoatName] =
-    formAction(boatNameForm) { req =>
-      code(req).map { b =>
-        BoatResponse(b.toBoat)
-      }
-    }
+    formAction(boatNameForm) { req => code(req).map { b => BoatResponse(b.toBoat) } }
 
   private def trackAction[F](
     form: Form[F]
   )(code: UserRequest[UserInfo, F] => Future[JoinedTrack]): Action[F] =
     formAction(form) { req =>
       val formatter = TimeFormatter(req.user.language)
-      code(req).map { t =>
-        TrackResponse(t.strip(formatter))
-      }
+      code(req).map { t => TrackResponse(t.strip(formatter)) }
     }
 
   private def formAction[T, W: Writeable](
     form: Form[T]
   )(code: UserRequest[UserInfo, T] => Future[W]): Action[T] =
-    formActionResult(form) { r =>
-      code(r).map { w =>
-        Ok(w)
-      }
-    }
+    formActionResult(form) { r => code(r).map { w => Ok(w) } }
 
   private def formActionResult[T](
     form: Form[T]
   )(code: UserRequest[UserInfo, T] => Future[Result]): Action[T] =
     parsedAuth(parse.form(form, onErrors = (err: Form[T]) => formError(err)))(
       profile
-    ) { req =>
-      code(req)
-    }
+    ) { req => code(req) }
 
   private def logTermination[In, Out, Mat](
     flow: Flow[In, Out, Mat],
@@ -395,11 +369,7 @@ class BoatController(
   private def secureJson[T, W: Writes](
     parse: RequestHeader => Either[SingleError, T]
   )(run: BoatRequest[T, MinimalUserInfo] => Future[W]) =
-    secureAction(parse) { req =>
-      run(req).map { w =>
-        Ok(Json.toJson(w))
-      }
-    }
+    secureAction(parse) { req => run(req).map { w => Ok(Json.toJson(w)) } }
 
   private def secureAction[T](
     parse: RequestHeader => Either[SingleError, T]
@@ -433,11 +403,7 @@ class BoatController(
     flow: Flow[In, Out, Mat]
   )(onTermination: Try[Done] => Future[Unit]): Flow[In, Out, Future[Done]] =
     flow.watchTermination()(Keep.right).mapMaterializedValue { done =>
-      done.transformWith { t =>
-        onTermination(t).transform { _ =>
-          t
-        }
-      }
+      done.transformWith { t => onTermination(t).transform { _ => t } }
     }
 
   /** Auths with boat token or user/pass. If no credentials are provided, falls back to the anonymous user.
@@ -465,16 +431,12 @@ class BoatController(
     recovered(boatAuthNoTrack(rh).flatMap(meta => db.joinAsDevice(meta)), rh)
 
   private def boatAuth(rh: RequestHeader): Future[BoatTrackMeta] =
-    boatAuthNoTrack(rh).map { b =>
-      b.withTrack(trackOrRandom(rh))
-    }
+    boatAuthNoTrack(rh).map { b => b.withTrack(trackOrRandom(rh)) }
 
   private def boatAuthNoTrack(rh: RequestHeader): Future[DeviceMeta] =
     rh.headers
       .get(BoatTokenHeader)
-      .map { token =>
-        auther.authBoat(BoatToken(token))
-      }
+      .map { token => auther.authBoat(BoatToken(token)) }
       .getOrElse {
         val boatName =
           rh.headers
@@ -517,14 +479,8 @@ class BoatController(
     * <p>If the user has no session and no auth cookie, return None which means unauthenticated mode.
     */
   private def optionalWebAuth(rh: RequestHeader): Future[Option[UserBoats]] =
-    sessionEmail(rh).map { email =>
-      auther.boats(email).map { boats =>
-        Option(boats)
-      }
-    }.getOrElse {
-      googleCookie(rh).map { _ =>
-        Future.failed(IdentityException.missingCredentials(rh))
-      }.getOrElse {
+    sessionEmail(rh).map { email => auther.boats(email).map { boats => Option(boats) } }.getOrElse {
+      googleCookie(rh).map { _ => Future.failed(IdentityException.missingCredentials(rh)) }.getOrElse {
         fut(None)
       }
     }

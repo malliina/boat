@@ -294,10 +294,19 @@ object Errors {
 
 object BoatNames {
   val Key = "boatName"
+  val BoatKey = "boat"
   val mapping: Mapping[BoatName] =
     Forms.nonEmptyText.transform(s => BoatName(s), b => b.name)
 
   def random() = BoatName(Utils.randomString(6))
+}
+
+object Emails {
+  val Key = "email"
+
+  val mapping: Mapping[Email] =
+    Forms.nonEmptyText.transform(s => Email(s), b => b.email)
+
 }
 
 case class SingleToken(token: PushToken)

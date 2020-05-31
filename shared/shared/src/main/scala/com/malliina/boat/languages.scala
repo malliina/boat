@@ -691,7 +691,9 @@ case class SettingsLang(
   formats: FormatsLang,
   boatLang: BoatLang,
   actions: String,
-  delete: String
+  delete: String,
+  invite: String,
+  invitePlaceholder: String
 )
 
 object SettingsLang {
@@ -1187,7 +1189,9 @@ object Lang {
         s"Add the token provided after sign in to the $appName agent software running in your boat. Subsequently, tracks driven with the boat are saved to your account and can be viewed in this app. For agent installation instructions, see https://www.boat-tracker.com/docs/agent."
       ),
       "Actions",
-      "Delete"
+      "Delete",
+      "Invite",
+      "Email"
     ),
     LimitLang.en,
     LabelsLang("Statistics", "Monthly", "Yearly", "All time"),
@@ -1327,7 +1331,9 @@ object Lang {
         "Kirjautumisen jälkeen saat avaimen, jolla tallennat ajetut matkat käyttäjätunnuksellesi. Lisätietoja saat osoitteesta https://docs.boat-tracker.com/agent/."
       ),
       "Toimenpiteet",
-      "Poista"
+      "Poista",
+      "Kutsu",
+      "Sähköposti"
     ),
     LimitLang.fi,
     LabelsLang("Tilastot", "Kuukausittain", "Vuosittain", "Kaikki"),
@@ -1462,7 +1468,9 @@ object Lang {
         s"Inloggning skapar en nyckel du kan spara i $appName-appen installerad i din båt. Med nyckeln sparas körda spår under ditt användarnamn. För mera information, se https://docs.boat-tracker.com/agent/."
       ),
       "Ändringar",
-      "Radera"
+      "Radera",
+      "Bjud in",
+      "E-post"
     ),
     LimitLang.se,
     LabelsLang("Statistik", "Per månad", "Per år", "Alla tider"),

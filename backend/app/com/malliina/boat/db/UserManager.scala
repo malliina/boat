@@ -1,6 +1,6 @@
 package com.malliina.boat.db
 
-import com.malliina.boat.http.AccessResult
+import com.malliina.boat.http.{AccessResult, BoatInvite, InviteInfo}
 import com.malliina.boat.{BoatToken, DeviceId, InviteState, JoinedBoat, Language, UserBoats, UserInfo}
 import com.malliina.play.auth.AuthError
 import com.malliina.values.{Email, Password, UserId, Username}
@@ -29,6 +29,7 @@ trait UserManager {
   def deleteUser(user: Username): Future[Either[UserDoesNotExist, Unit]]
   def users: Future[Seq[UserInfo]]
   def changeLanguage(user: UserId, to: Language): Future[Boolean]
+  def invite(i: InviteInfo): Future[AccessResult]
   def grantAccess(boat: DeviceId, to: UserId, principal: UserId): Future[AccessResult]
   def revokeAccess(boat: DeviceId, from: UserId, principal: UserId): Future[AccessResult]
   def updateInvite(boat: DeviceId, user: UserId, state: InviteState): Future[Long]

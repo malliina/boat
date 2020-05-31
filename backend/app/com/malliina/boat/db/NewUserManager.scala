@@ -4,7 +4,7 @@ import java.sql.SQLException
 
 import com.malliina.boat.InviteState.Awaiting
 import com.malliina.boat.db.NewUserManager.log
-import com.malliina.boat.http.AccessResult
+import com.malliina.boat.http.{AccessResult, BoatInvite, InviteInfo}
 import com.malliina.boat.{Boat, BoatInfo, BoatNames, BoatToken, BoatTokens, DeviceId, InviteState, JoinedBoat, JoinedTrack, Language, TimeFormatter, UserBoats, UserInfo, UserToken, Usernames}
 import com.malliina.values.{Email, UserId, Username}
 import io.getquill.SnakeCase
@@ -66,12 +66,8 @@ object NewUserManager {
 class NewUserManager(val db: BoatDatabase[SnakeCase]) extends UserManager {
   import db._
   implicit val exec: ExecutionContext = db.ec
-  val userByEmail = quote { email: Email =>
-    usersTable.filter(u => u.email.contains(email))
-  }
-  val userById = quote { id: UserId =>
-    usersTable.filter(u => u.id == id)
-  }
+  val userByEmail = quote { email: Email => usersTable.filter(u => u.email.contains(email)) }
+  val userById = quote { id: UserId => usersTable.filter(u => u.id == id) }
   val usersWithBoats = quote { q: Query[UserRow] =>
     q.leftJoin(boatsTable).on(_.id == _.owner).map {
       case (user, boatOpt) =>
@@ -98,9 +94,7 @@ class NewUserManager(val db: BoatDatabase[SnakeCase]) extends UserManager {
       .returningGenerated(_.id)
   }
   val userBoat = quote { (boat: DeviceId, user: UserId) =>
-    usersBoatsTable.filter { ub =>
-      ub.boat == boat && ub.user == user
-    }
+    usersBoatsTable.filter { ub => ub.boat == boat && ub.user == user }
   }
 
   def users: Future[Seq[UserInfo]] =
@@ -191,19 +185,36 @@ class NewUserManager(val db: BoatDatabase[SnakeCase]) extends UserManager {
       }
     }
 
+  def invite(i: InviteInfo): Future[AccessResult] =
+    transactionally(s"Invite ${i.email} to boat ${i.boat} by ${i.principal}.") {
+      for {
+        invitee <- runIO(userByEmail(lift(i.email)))
+        result <- invitee.headOption.map { user =>
+          manageGroupsAction(i.boat, user.id, i.principal)
+        }.getOrElse {
+          IO.successful(AccessResult(false))
+        }
+      } yield result
+    }
+
   def grantAccess(boat: DeviceId, to: UserId, principal: UserId): Future[AccessResult] =
     transactionally(s"Allow user $to access to $boat.") {
-      manageGroups(boat, to, principal) { existed =>
-        if (existed) IO.successful(())
-        else
-          runIO(
-            usersBoatsTable
-              .insert(
-                _.boat -> lift(boat),
-                _.user -> lift(to),
-                _.state -> lift(Awaiting: InviteState)
-              )
-          )
+      manageGroupsAction(boat, to, principal)
+    }
+
+  private def manageGroupsAction(boat: DeviceId, to: UserId, principal: UserId) =
+    manageGroups(boat, to, principal) { existed =>
+      if (existed) {
+        IO.successful(())
+      } else {
+        runIO(
+          usersBoatsTable
+            .insert(
+              _.boat -> lift(boat),
+              _.user -> lift(to),
+              _.state -> lift(Awaiting: InviteState)
+            )
+        )
       }
     }
 
@@ -227,13 +238,15 @@ class NewUserManager(val db: BoatDatabase[SnakeCase]) extends UserManager {
       owns <- runIO(
         boatsTable.filter(b => b.id == lift(boat) && b.owner == lift(principal)).nonEmpty
       )
-      auth <- if (owns) IO.successful(())
-      else
+      auth <- if (owns) {
+        IO.successful(())
+      } else {
         IO.failed(
           fail(
             s"User $principal is not authorized to modify access to boat $boat for user $from."
           )
         )
+      }
       existed <- runIO(userBoat(lift(boat), lift(from)).nonEmpty)
       _ <- run(existed)
     } yield AccessResult(existed)

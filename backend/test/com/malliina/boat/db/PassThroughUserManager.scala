@@ -2,7 +2,7 @@ package com.malliina.boat.db
 
 import java.time.Instant
 
-import com.malliina.boat.http.AccessResult
+import com.malliina.boat.http.{AccessResult, BoatInvite, InviteInfo}
 import com.malliina.boat.{BoatToken, DeviceId, InviteState, JoinedBoat, Language, UserBoats, UserInfo, UserToken}
 import com.malliina.values.{Email, UserId, Username}
 
@@ -39,6 +39,8 @@ object PassThroughUserManager extends UserManager {
     fut(Left(UserDoesNotExist(user)))
   override def changeLanguage(user: UserId, to: Language): Future[Boolean] =
     fut(false)
+  override def invite(i: InviteInfo): Future[AccessResult] =
+    fut(AccessResult(false))
   def grantAccess(boat: DeviceId, to: UserId, principal: UserId): Future[AccessResult] =
     fut(AccessResult(false))
   def revokeAccess(boat: DeviceId, from: UserId, principal: UserId): Future[AccessResult] =

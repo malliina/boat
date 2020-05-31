@@ -1,7 +1,7 @@
 package com.malliina.boat.http
 
 import com.malliina.boat.{DeviceId, InviteState}
-import com.malliina.values.{StringEnumCompanion, UserId}
+import com.malliina.values.{Email, StringEnumCompanion, UserId}
 import play.api.libs.json.Json
 
 sealed abstract class AccessOperation(val name: String)
@@ -13,6 +13,14 @@ object AccessOperation extends StringEnumCompanion[AccessOperation] {
   override def all = Seq(Grant, Revoke)
   override def write(t: AccessOperation) = t.name
 }
+
+case class BoatInvite(email: Email)
+
+object BoatInvite {
+  implicit val json = Json.format[BoatInvite]
+}
+
+case class InviteInfo(boat: DeviceId, email: Email, principal: UserId)
 
 case class BoatAccess(boat: DeviceId, user: UserId, operation: AccessOperation)
 
