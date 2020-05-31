@@ -7,13 +7,14 @@ import scala.sys.process.Process
 import scala.util.Try
 
 val mapboxVersion = "1.10.1"
-val utilPlayVersion = "5.10.0"
+val utilPlayVersion = "5.11.0"
 val munitVersion = "0.7.7"
 val testContainersScalaVersion = "0.37.0"
 val scalaTagsVersion = "0.9.1"
-val primitiveVersion = "1.16.0"
+val primitiveVersion = "1.17.0"
 val akkaVersion = "2.6.5"
 val akkaHttpVersion = "10.1.12"
+val playJsonVersion = "2.9.0"
 val utilPlayDep = "com.malliina" %% "util-play" % utilPlayVersion
 val utilPlayTestDep = utilPlayDep % Test classifier "tests"
 val munitDep = "org.scalameta" %% "munit" % munitVersion % Test
@@ -73,8 +74,8 @@ val frontend = project
   .settings(commonSettings ++ boatSettings)
   .settings(
     libraryDependencies ++= Seq(
-      "com.typesafe.play" %%% "play-json" % "2.8.1",
-      "org.scala-js" %%% "scalajs-dom" % "0.9.7",
+      "com.typesafe.play" %%% "play-json" % playJsonVersion,
+      "org.scala-js" %%% "scalajs-dom" % "1.0.0",
       "org.scalameta" %%% "munit" % munitVersion % Test
     ),
     npmDependencies in Compile ++= Seq(
@@ -124,13 +125,13 @@ val backend = Project("boat", file("backend"))
     libraryDependencies ++= Seq(
       "com.vividsolutions" % "jts" % "1.13",
       "io.getquill" %% "quill-jdbc" % "3.5.1",
-      "mysql" % "mysql-connector-java" % "5.1.48",
+      "mysql" % "mysql-connector-java" % "5.1.49",
       "org.flywaydb" % "flyway-core" % "6.0.3",
       "org.apache.commons" % "commons-text" % "1.8",
       "com.amazonaws" % "aws-java-sdk-s3" % "1.11.584",
-      "com.malliina" %% "logstreams-client" % "1.8.2",
+      "com.malliina" %% "logstreams-client" % "1.10.1",
       "com.malliina" %% "play-social" % utilPlayVersion,
-      "com.malliina" %% "mobile-push" % "1.23.0",
+      "com.malliina" %% "mobile-push" % "1.24.0",
       "com.typesafe.akka" %% "akka-slf4j" % akkaVersion,
       "com.typesafe.akka" %% "akka-stream" % akkaVersion,
       "com.typesafe.akka" %% "akka-http" % akkaHttpVersion,
@@ -202,15 +203,15 @@ val agent = project
     },
     libraryDependencies ++= Seq(
       "com.malliina" %% "primitives" % primitiveVersion,
-      "com.malliina" %% "logback-streams" % "1.7.2",
+      "com.malliina" %% "logback-streams" % "1.8.0",
       "com.neovisionaries" % "nv-websocket-client" % "2.9",
       "org.slf4j" % "slf4j-api" % "1.7.30",
       "com.typesafe.akka" %% "akka-stream" % akkaVersion,
       "com.typesafe.akka" %% "akka-http" % akkaHttpVersion,
       "com.typesafe.akka" %% "akka-http-spray-json" % akkaHttpVersion,
       "com.lihaoyi" %% "scalatags" % scalaTagsVersion,
-      "commons-codec" % "commons-codec" % "1.14",
-      "com.neuronrobotics" % "nrjavaserial" % "3.14.0"
+      "commons-codec" % "commons-codec" % "1.14"
+//      "com.neuronrobotics" % "nrjavaserial" % "3.14.0"
     ),
     releaseUseGlobalVersion := false,
     buildAndUpload := {

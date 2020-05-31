@@ -139,6 +139,9 @@ case class AllTimeAggregates(
   tracks: Long,
   days: Long
 )
+object AllTimeAggregates {
+  val empty = AllTimeAggregates(None, None, None, None, 0L, 0L)
+}
 
 case class TrackCoord(track: JoinedTrack, row: TrackPointRow)
 case class TopTrack(track: TrackRow, times: TrackTimes, coord: CombinedCoord)

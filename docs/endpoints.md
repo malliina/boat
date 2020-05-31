@@ -198,28 +198,28 @@ The response contains the following items:
  
 Boat owners may invite other users to access the data of their boat:
 
-To grant access to boat 14 to user 123:
+To invite user 123 to access boat 14:
 
     {
         "operation": "grant",
-        "boat": 14,
-        "user": 123
+        "boat": "14",
+        "user": "123"
     }
 
 To revoke access:
 
     {
         "operation": "revoke",
-        "boat": 14,
-        "user": 123
+        "boat": "14",
+        "user": "123"
     }
 
 ## POST /users/boats/answers
 
-Users may accept or reject invites to the data of a given boat:
+Invitees may accept or reject invites to the data of a given boat:
 
     {
-        "boat": 14,
+        "boat": "14",
         "state": "accepted"
     }
 
