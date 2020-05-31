@@ -1,3 +1,5 @@
+@import "general";
+
 /* https://www.w3schools.com/howto/howto_css_modals.asp */
 
 .modal {
@@ -58,9 +60,20 @@
   display: none;
 }
 
+.badges-title {
+  @media @phones {
+    text-align: center;
+  }
+}
+
 .badges {
   display: flex;
   justify-content: center;
+  flex-direction: column;
+
+  @media @phones {
+    flex-direction: row;
+  }
 }
 
 .badge-ios {

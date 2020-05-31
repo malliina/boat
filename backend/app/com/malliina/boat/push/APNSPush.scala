@@ -11,17 +11,31 @@ import play.api.{Configuration, Logger}
 
 import scala.concurrent.Future
 
+trait APNS {
+  def push(notification: BoatNotification, to: APNSToken): Future[PushSummary]
+}
+
+object NoopAPNS extends APNS {
+  override def push(notification: BoatNotification, to: APNSToken): Future[PushSummary] =
+    Future.successful(PushSummary.empty)
+}
+
 object APNSPush {
   private val log = Logger(getClass)
 
   def apply(sandbox: APNSTokenClient, prod: APNSTokenClient): APNSPush =
     new APNSPush(sandbox, prod)
 
-  def apply(conf: Configuration): APNSPush = {
+  def apply(conf: Configuration): APNS = {
     val apnsConf = conf.get[Configuration]("boat.push.apns")
-    val sandbox = APNSTokenClient(tokenConf(apnsConf), isSandbox = true)
-    val prod = APNSTokenClient(tokenConf(apnsConf), isSandbox = false)
-    apply(sandbox, prod)
+    val isEnabled = apnsConf.get[Boolean]("enabled")
+    if(isEnabled) {
+      val sandbox = APNSTokenClient(tokenConf(apnsConf), isSandbox = true)
+      val prod = APNSTokenClient(tokenConf(apnsConf), isSandbox = false)
+      apply(sandbox, prod)
+    } else {
+      NoopAPNS
+    }
   }
 
   private def tokenConf(conf: Configuration): APNSTokenConf = APNSTokenConf(
@@ -31,7 +45,7 @@ object APNSPush {
   )
 }
 
-class APNSPush(sandbox: APNSTokenClient, prod: APNSTokenClient) extends PushClient[APNSToken] {
+class APNSPush(sandbox: APNSTokenClient, prod: APNSTokenClient) extends PushClient[APNSToken] with APNS {
   val topic = APNSTopic("com.malliina.BoatTracker")
 
   def push(notification: BoatNotification, to: APNSToken): Future[PushSummary] = {

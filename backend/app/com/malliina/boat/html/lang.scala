@@ -7,7 +7,7 @@ abstract class BoatLang(val web: WebLang, val lang: Lang)
 object BoatLang {
   val default = Fi
 
-  def apply(lang: Language) = lang match {
+  def apply(lang: Language): BoatLang = lang match {
     case Language.finnish => Fi
     case Language.swedish => Se
     case Language.english => En
@@ -17,10 +17,10 @@ object BoatLang {
   object Fi extends BoatLang(WebLang.Fi, Lang.fi)
   object Se extends BoatLang(WebLang.Se, Lang.se)
   object En extends BoatLang(WebLang.En, Lang.en)
-
 }
 
 case class WebLang(
+  getTheApp: String,
   maritimeData: String,
   disclaimer: String,
   signedInAs: String,
@@ -37,6 +37,7 @@ case class WebLang(
 
 object WebLang {
   val Fi = WebLang(
+    "Lataa sovellus",
     "Merikartta-aineistot",
     "Lähde: Liikennevirasto. Ei navigointikäyttöön. Ei täytä virallisen merikartan vaatimuksia.",
     "Käyttäjätunnus",
@@ -51,6 +52,7 @@ object WebLang {
     "Muokkaa kommentteja"
   )
   val Se = WebLang(
+    "Ladda appen",
     "Sjökortsmaterial",
     "Källa: Trafikverket. Får inte användas för navigationsändamål. Uppfyller inte fordringarna för officiella sjökort.",
     "Inloggad som",
@@ -65,6 +67,7 @@ object WebLang {
     "Redigera kommentarer"
   )
   val En = WebLang(
+    "Get the app",
     "Nautical charts",
     "Source: Finnish Transport Agency. Not for navigational use. Does not meet the requirements for official nautical charts.",
     "Signed in as",
