@@ -51,6 +51,7 @@ class About(lang: WebLang, profile: ProfileLang) extends AboutKeys {
         } else {
           empty
         },
+        h2(`class` := "badges-title")(lang.getTheApp),
         div(`class` := "badges")(
           div(`class` := "badge-wrapper-android")(
             a(
