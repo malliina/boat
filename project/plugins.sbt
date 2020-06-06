@@ -16,7 +16,6 @@ Seq(
   "org.portable-scala" % "sbt-scalajs-crossproject" % "1.0.0",
   "org.scala-js" % "sbt-scalajs" % "1.1.0",
   "com.vmunier" % "sbt-web-scalajs" % "1.0.11",
-  "com.typesafe.sbt" % "sbt-native-packager" % "1.7.2",
   "io.spray" % "sbt-revolver" % "0.9.1",
   "ch.epfl.scala" % "sbt-bloop" % "1.4.1",
   "org.scalameta" % "sbt-scalafmt" % "2.4.0"
