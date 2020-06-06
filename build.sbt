@@ -21,7 +21,7 @@ val munitDep = "org.scalameta" %% "munit" % munitVersion % Test
 val buildAndUpload = taskKey[FullUrl]("Uploads to S3")
 val upFiles = taskKey[Seq[String]]("lists")
 val deployDocs = taskKey[Unit]("Deploys documentation")
-val prodPort = 8456
+val prodPort = 9000
 
 parallelExecution in ThisBuild := false
 concurrentRestrictions in Global += Tags.limit(Tags.Test, 1)
