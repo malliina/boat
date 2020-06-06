@@ -167,7 +167,8 @@ val backend = Project("boat", file("backend"))
       Seq(
         "-J-Xmx192m",
         s"-Dconfig.file=/etc/$linuxName/production.conf",
-        s"-Dlogger.file=/etc/$linuxName/logback-prod.xml"
+        s"-Dlogger.file=/etc/$linuxName/logback-prod.xml",
+        s"-Dpidfile.path=/dev/null"
       )
     },
     releaseProcess := Seq[ReleaseStep](
