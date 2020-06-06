@@ -163,11 +163,8 @@ val backend = Project("boat", file("backend"))
     linuxPackageSymlinks := linuxPackageSymlinks.value
       .filterNot(_.link == "/usr/bin/starter"),
     javaOptions in Universal ++= {
-      val linuxName = (name in Linux).value
       Seq(
         "-J-Xmx1024m",
-        s"-Dconfig.file=/etc/$linuxName/production.conf",
-        s"-Dlogger.file=/etc/$linuxName/logback-prod.xml",
         s"-Dpidfile.path=/dev/null"
       )
     },
