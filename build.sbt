@@ -2,6 +2,7 @@ import com.malliina.http.FullUrl
 import sbtcrossproject.CrossPlugin.autoImport.{CrossType => PortableType, crossProject => portableProject}
 import sbtrelease.ReleasePlugin.autoImport.{ReleaseStep, releaseProcess}
 import sbtrelease.ReleaseStateTransformations._
+import com.typesafe.sbt.packager.docker.DockerVersion
 
 import scala.sys.process.Process
 import scala.util.Try
@@ -175,6 +176,7 @@ val backend = Project("boat", file("backend"))
       //      releaseStepInputTask(testOnly, " tests.ImageTests"),
       releaseStepTask(ciBuild)
     ),
+    dockerVersion := Option(DockerVersion(19, 3, 5, None)),
     dockerBaseImage := "openjdk:11",
     daemonUser in Docker := "boat",
     version in Docker := gitHash,
