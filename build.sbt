@@ -175,7 +175,12 @@ val backend = Project("boat", file("backend"))
       //      releaseStepInputTask(testOnly, " * -- -l tests.DbTest"),
       //      releaseStepInputTask(testOnly, " tests.ImageTests"),
       releaseStepTask(ciBuild)
-    )
+    ),
+    dockerBaseImage := "openjdk:11",
+    daemonUser in Docker := "boat",
+    version in Docker := gitHash,
+    dockerRepository := Option("malliinaboat.azurecr.io"),
+    dockerExposedPorts ++= Seq(9000)
   )
 
 val agent = project
@@ -268,7 +273,9 @@ val boatRoot = project
   .settings(commonSettings ++ boatSettings)
 
 def gitHash: String =
-  Try(Process("git rev-parse --short HEAD").lineStream.head).toOption
+  sys.env
+    .get("GITHUB_SHA")
+    .orElse(Try(Process("git rev-parse --short HEAD").lineStream.head).toOption)
     .getOrElse("unknown")
 
 Global / onChangedBuildSource := ReloadOnSourceChanges

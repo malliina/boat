@@ -12,7 +12,6 @@ Seq(
   "com.malliina" % "sbt-filetree" % "0.4.1",
   "com.typesafe.sbt" % "sbt-gzip" % "1.0.2",
   "com.typesafe.sbt" % "sbt-digest" % "1.1.4",
-  "com.typesafe.sbt" % "sbt-less" % "1.1.2",
   "ch.epfl.scala" % "sbt-web-scalajs-bundler" % "0.18.0",
   "org.portable-scala" % "sbt-scalajs-crossproject" % "1.0.0",
   "org.scala-js" % "sbt-scalajs" % "1.1.0",

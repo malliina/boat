@@ -17,7 +17,7 @@ import play.api.ApplicationLoader.Context
 import play.api.http.{HttpConfiguration, HttpErrorHandler}
 import play.api.mvc.EssentialFilter
 import play.api.routing.Router
-import play.api.{BuiltInComponentsFromContext, Configuration, Mode}
+import play.api.{BuiltInComponentsFromContext, Configuration}
 import play.filters.HttpFiltersComponents
 import play.filters.csrf.CSRFConfig
 import play.filters.gzip.GzipFilter
@@ -71,6 +71,7 @@ class AppComponents(
   val allowedHosts = Seq(
     "www.boat-tracker.com",
     "api.boat-tracker.com",
+    "beta.boat-tracker.com",
     "boat-tracker.com",
     "localhost"
   )
