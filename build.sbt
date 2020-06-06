@@ -156,7 +156,7 @@ val backend = Project("boat", file("backend"))
 //    buildInfoKeys := Seq[BuildInfoKey](name, version, scalaVersion, "gitHash" -> gitHash, "mapboxVersion" -> mapboxVersion),
 //    buildInfoPackage := "com.malliina.boat",
     // linux packaging
-    httpPort in Linux := Option(prodPort),
+    httpPort in Linux := Option(s"$prodPort"),
     httpsPort in Linux := Option("disabled"),
     maintainer := "Michael Skogberg <malliina123@gmail.com>",
     // WTF?
