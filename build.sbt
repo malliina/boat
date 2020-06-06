@@ -128,7 +128,7 @@ val backend = Project("boat", file("backend"))
       "com.vividsolutions" % "jts" % "1.13",
       "io.getquill" %% "quill-jdbc" % "3.5.1",
       "mysql" % "mysql-connector-java" % "5.1.49",
-      "org.flywaydb" % "flyway-core" % "6.0.3",
+      "org.flywaydb" % "flyway-core" % "6.4.3",
       "org.apache.commons" % "commons-text" % "1.8",
       "com.amazonaws" % "aws-java-sdk-s3" % "1.11.584",
       "com.malliina" %% "logstreams-client" % "1.10.1",
