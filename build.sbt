@@ -21,6 +21,7 @@ val munitDep = "org.scalameta" %% "munit" % munitVersion % Test
 val buildAndUpload = taskKey[FullUrl]("Uploads to S3")
 val upFiles = taskKey[Seq[String]]("lists")
 val deployDocs = taskKey[Unit]("Deploys documentation")
+val prodPort = 8456
 
 parallelExecution in ThisBuild := false
 concurrentRestrictions in Global += Tags.limit(Tags.Test, 1)
@@ -155,7 +156,7 @@ val backend = Project("boat", file("backend"))
 //    buildInfoKeys := Seq[BuildInfoKey](name, version, scalaVersion, "gitHash" -> gitHash, "mapboxVersion" -> mapboxVersion),
 //    buildInfoPackage := "com.malliina.boat",
     // linux packaging
-    httpPort in Linux := Option("8465"),
+    httpPort in Linux := Option(prodPort),
     httpsPort in Linux := Option("disabled"),
     maintainer := "Michael Skogberg <malliina123@gmail.com>",
     // WTF?
@@ -180,7 +181,7 @@ val backend = Project("boat", file("backend"))
     daemonUser in Docker := "boat",
     version in Docker := gitHash,
     dockerRepository := Option("malliinaboat.azurecr.io"),
-    dockerExposedPorts ++= Seq(9000)
+    dockerExposedPorts ++= Seq(prodPort)
   )
 
 val agent = project
