@@ -8,7 +8,7 @@ import scala.util.Try
 
 val mapboxVersion = "1.10.1"
 val utilPlayVersion = "5.11.0"
-val munitVersion = "0.7.7"
+val munitVersion = "0.7.8"
 val testContainersScalaVersion = "0.37.0"
 val scalaTagsVersion = "0.9.1"
 val primitiveVersion = "1.17.0"
