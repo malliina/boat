@@ -117,7 +117,7 @@ val frontend = project
   )
 
 val backend = Project("boat", file("backend"))
-  .enablePlugins(FileTreePlugin, WebScalaJSBundlerPlugin, PlayLinuxPlugin)
+  .enablePlugins(PlayScala, FileTreePlugin, WebScalaJSBundlerPlugin)
   .disablePlugins(RevolverPlugin)
   .dependsOn(crossJvm)
   .settings(jvmSettings ++ boatSettings)
@@ -165,7 +165,7 @@ val backend = Project("boat", file("backend"))
     javaOptions in Universal ++= {
       val linuxName = (name in Linux).value
       Seq(
-        "-J-Xmx192m",
+        "-J-Xmx1024m",
         s"-Dconfig.file=/etc/$linuxName/production.conf",
         s"-Dlogger.file=/etc/$linuxName/logback-prod.xml",
         s"-Dpidfile.path=/dev/null"
