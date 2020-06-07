@@ -166,7 +166,8 @@ val backend = Project("boat", file("backend"))
     javaOptions in Universal ++= {
       Seq(
         "-J-Xmx1024m",
-        s"-Dpidfile.path=/dev/null"
+        s"-Dpidfile.path=/dev/null",
+        "-Dlogger.resource=logback-prod.xml"
       )
     },
     releaseProcess := Seq[ReleaseStep](
