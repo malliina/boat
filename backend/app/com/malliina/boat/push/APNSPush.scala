@@ -29,7 +29,7 @@ object APNSPush {
   def apply(conf: Configuration): APNS = {
     val apnsConf = conf.get[Configuration]("boat.push.apns")
     val isEnabled = apnsConf.get[Boolean]("enabled")
-    if(isEnabled) {
+    if (isEnabled) {
       val sandbox = APNSTokenClient(tokenConf(apnsConf), isSandbox = true)
       val prod = APNSTokenClient(tokenConf(apnsConf), isSandbox = false)
       apply(sandbox, prod)
@@ -45,7 +45,9 @@ object APNSPush {
   )
 }
 
-class APNSPush(sandbox: APNSTokenClient, prod: APNSTokenClient) extends PushClient[APNSToken] with APNS {
+class APNSPush(sandbox: APNSTokenClient, prod: APNSTokenClient)
+  extends PushClient[APNSToken]
+  with APNS {
   val topic = APNSTopic("com.malliina.BoatTracker")
 
   def push(notification: BoatNotification, to: APNSToken): Future[PushSummary] = {

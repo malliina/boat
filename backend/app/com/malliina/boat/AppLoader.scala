@@ -17,7 +17,7 @@ import play.api.ApplicationLoader.Context
 import play.api.http.{HttpConfiguration, HttpErrorHandler}
 import play.api.mvc.EssentialFilter
 import play.api.routing.Router
-import play.api.{BuiltInComponentsFromContext, Configuration}
+import play.api.{BuiltInComponentsFromContext, Configuration, Mode}
 import play.filters.HttpFiltersComponents
 import play.filters.csrf.CSRFConfig
 import play.filters.gzip.GzipFilter
@@ -68,13 +68,16 @@ class AppComponents(
   val builder = init(configuration, http, executionContext)
 
   val appConf = builder.appConf
-  val allowedHosts = Seq(
+  val mode = environment.mode
+  val isProd = mode == Mode.Prod
+  val prodHosts = Seq(
     "www.boat-tracker.com",
     "api.boat-tracker.com",
     "beta.boat-tracker.com",
-    "boat-tracker.com",
-    "localhost"
+    "boat-tracker.com"
   )
+  val devHosts = Seq("localhost")
+  val allowedHosts = if (isProd) prodHosts else prodHosts ++ devHosts
   override lazy val allowedHostsConfig = AllowedHostsConfig(allowedHosts)
 
   override lazy val csrfConfig = CSRFConfig(
@@ -85,7 +88,7 @@ class AppComponents(
   )
 
   override def httpFilters: Seq[EssentialFilter] =
-    Seq(new GzipFilter(), csrfFilter, securityHeadersFilter)
+    Seq(new GzipFilter(), csrfFilter, securityHeadersFilter, allowedHostsFilter)
 
   val csps = Seq(
     "default-src 'self' 'unsafe-inline' *.mapbox.com",
@@ -109,7 +112,6 @@ class AppComponents(
         .copy(cookieName = "boatSession", sameSite = None)
     )
 
-  val mode = environment.mode
   val html = BoatHtml(mode)
   val dbConf = builder.databaseConf
   val db = BoatDatabase.withMigrations(actorSystem, dbConf)
