@@ -1,7 +1,5 @@
 package com.malliina.boat.push
 
-import java.nio.file.{Files, Paths}
-import scala.jdk.CollectionConverters.IteratorHasAsScala
 import com.malliina.boat.MobileDevice.{Android, IOS, Unknown}
 import com.malliina.boat.db.PushDevice
 import com.malliina.boat.push.BoatPushService.log
@@ -22,14 +20,6 @@ object BoatPushService {
 }
 
 class BoatPushService(ios: APNS, android: PushClient[GCMToken]) extends PushEndpoint {
-  testFiles()
-
-  def testFiles(): Unit = {
-    val path = "/files"
-    val fs = Files.list(Paths.get(path)).iterator().asScala.toList
-    log.info(s"${fs.length} files in $path: ${fs.mkString(", ")}")
-  }
-
   override def push(notification: BoatNotification, to: PushDevice): Future[PushSummary] =
     to.device match {
       case IOS =>

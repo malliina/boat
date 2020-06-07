@@ -30,8 +30,12 @@ object APNSPush {
     val apnsConf = conf.get[Configuration]("boat.push.apns")
     val isEnabled = apnsConf.get[Boolean]("enabled")
     if (isEnabled) {
-      val sandbox = APNSTokenClient(tokenConf(apnsConf), isSandbox = true)
-      val prod = APNSTokenClient(tokenConf(apnsConf), isSandbox = false)
+      val confModel = tokenConf(apnsConf)
+      log.info(
+        s"Initializing APNS with team ID ${confModel.teamId} and private key at ${confModel.privateKey}..."
+      )
+      val sandbox = APNSTokenClient(confModel, isSandbox = true)
+      val prod = APNSTokenClient(confModel, isSandbox = false)
       apply(sandbox, prod)
     } else {
       NoopAPNS
