@@ -13,7 +13,7 @@ object StatsDatabase {
   def apply(db: BoatDatabase[SnakeCase]): StatsDatabase = new StatsDatabase(db)
 }
 
-class StatsDatabase(db: BoatDatabase[SnakeCase]) {
+class StatsDatabase(db: BoatDatabase[SnakeCase]) extends StatsSource {
   import db._
   implicit val exec = db.ec
 

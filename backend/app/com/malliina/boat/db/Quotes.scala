@@ -2,7 +2,7 @@ package com.malliina.boat.db
 
 import java.time.Instant
 
-import com.malliina.boat.{BoatName, BoatToken, CombinedCoord, Coord, DateVal, DeviceId, JoinedBoat, JoinedTrack, MonthVal, RawSentence, SentencePointLink, SentenceRow, TrackId, TrackMeta, TrackName, TrackPointRow, YearVal}
+import com.malliina.boat.{BoatName, BoatToken, CombinedCoord, Coord, DateVal, DeviceId, JoinedBoat, JoinedTrack, MonthVal, RawSentence, SentencePointLink, SentenceRow, TrackId, TrackInput, TrackMeta, TrackName, TrackPointRow, YearVal}
 import com.malliina.measure.DistanceM
 import com.malliina.values.{UserId, Username}
 import io.getquill.NamingStrategy
@@ -12,21 +12,11 @@ import io.getquill.idiom.Idiom
 import scala.concurrent.duration.FiniteDuration
 
 trait Quotes[I <: Idiom, N <: NamingStrategy] { this: Context[I, N] =>
-  val dateOf = quote { i: Instant =>
-    infix"DATE($i)".as[DateVal]
-  }
-  val dateOfOpt = quote { i: Option[Instant] =>
-    infix"DATE($i)".as[Option[DateVal]]
-  }
-  val monthOf = quote { i: Instant =>
-    infix"MONTH($i)".as[MonthVal]
-  }
-  val yearOf = quote { i: Instant =>
-    infix"YEAR($i)".as[YearVal]
-  }
-  val yearOfOpt = quote { i: Option[Instant] =>
-    infix"YEAR($i)".as[Option[YearVal]]
-  }
+  val dateOf = quote { i: Instant => infix"DATE($i)".as[DateVal] }
+  val dateOfOpt = quote { i: Option[Instant] => infix"DATE($i)".as[Option[DateVal]] }
+  val monthOf = quote { i: Instant => infix"MONTH($i)".as[MonthVal] }
+  val yearOf = quote { i: Instant => infix"YEAR($i)".as[YearVal] }
+  val yearOfOpt = quote { i: Option[Instant] => infix"YEAR($i)".as[Option[YearVal]] }
   val secondsDiff = quote { (start: Instant, end: Instant) =>
     infix"TIMESTAMPDIFF(SECOND,$start,$end)".as[FiniteDuration]
   }
@@ -166,15 +156,9 @@ trait Quotes[I <: Idiom, N <: NamingStrategy] { this: Context[I, N] =>
       )
     }
   }
-  val rawTrackById = quote { id: TrackId =>
-    tracksTable.filter(_.id == id)
-  }
-  val trackById = quote { id: TrackId =>
-    nonEmptyTracks.filter(_.track == id)
-  }
-  val boatById = quote { id: DeviceId =>
-    boatsTable.filter(_.id == id)
-  }
+  val rawTrackById = quote { id: TrackId => tracksTable.filter(_.id == id) }
+  val trackById = quote { id: TrackId => nonEmptyTracks.filter(_.track == id) }
+  val boatById = quote { id: DeviceId => boatsTable.filter(_.id == id) }
   val saveNewBoat = quote { (boat: BoatName, user: UserId, token: BoatToken) =>
     boatsTable
       .insert(_.name -> boat, _.owner -> user, _.token -> token)
@@ -185,9 +169,7 @@ trait Quotes[I <: Idiom, N <: NamingStrategy] { this: Context[I, N] =>
       .insert(_.sentence -> s, _.track -> track)
       .returningGenerated(_.id)
   }
-  val namedTrack = quote { name: TrackName =>
-    nonEmptyTracks.filter(_.trackName == name)
-  }
+  val namedTrack = quote { name: TrackName => nonEmptyTracks.filter(_.trackName == name) }
   val pointsQuery = quote { track: TrackName =>
     for {
       p <- pointsTable
@@ -195,14 +177,34 @@ trait Quotes[I <: Idiom, N <: NamingStrategy] { this: Context[I, N] =>
       if p.track == t.id && t.name == track
     } yield p
   }
-//  val rangedCoords = quote { (from: Option[Instant], to: Option[Instant]) =>
-//    rawPointsTable.filter { p =>
-//      from.forall(f => p.added >= f) && to.forall(t => p.added <= t)
-//    }
-//  }
-  val tracksBy = quote { user: Username =>
-    nonEmptyTracks.filter { t =>
-      t.boat.username == user
-    }
+  val tracksBy = quote { user: Username => nonEmptyTracks.filter { t => t.boat.username == user } }
+
+  // Tracks
+
+  implicit class InstantQuotes(left: Instant) {
+    def >=(right: Instant) = quote(infix"$left >= $right".as[Boolean])
+    def <=(right: Instant) = quote(infix"$left <= $right".as[Boolean])
+  }
+
+  implicit class DateValQuotes(left: DateVal) {
+    def is(right: DateVal) = quote(infix"$left == $right".as[Boolean])
+  }
+
+  val tracksInsert = quote { in: TrackInput =>
+    tracksTable
+      .insert(
+        _.name -> in.name,
+        _.boat -> in.boat,
+        _.avgSpeed -> in.avgSpeed,
+        _.avgWaterTemp -> in.avgWaterTemp,
+        _.points -> in.points,
+        _.distance -> in.distance,
+        _.canonical -> in.canonical
+      )
+      .returningGenerated(_.id)
+  }
+
+  val rangedCoords = quote { (from: Option[Instant], to: Option[Instant]) =>
+    rawPointsTable.filter { p => from.forall(f => p.added >= f) && to.forall(t => p.added <= t) }
   }
 }

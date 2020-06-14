@@ -119,13 +119,15 @@ class AppComponents(
   // Services
   val users: NewUserManager = NewUserManager(db)
   users.initUser()
-  val tracks: TracksSource = NewTracksDatabase(db)
+  val stats = StatsDatabase(db)
+  val tracks: TracksSource = NewTracksDatabase(db, stats)
+  val inserts = TrackInserts(db)
   val gps: GPSSource = NewGPSDatabase(db)
   lazy val pushService: PushEndpoint = builder.pushService
   lazy val push: PushService = NewPushDatabase(db, pushService)
   val googleAuth: EmailAuth = builder.emailAuth
   val ais = BoatMqttClient(mode)
-  val boatService = BoatService(ais, tracks, actorSystem, materializer)
+  val boatService = BoatService(ais, inserts, actorSystem, materializer)
   val deviceService = DeviceService(gps, actorSystem, materializer)
 
   // Controllers
@@ -150,6 +152,8 @@ class AppComponents(
     boatService,
     deviceService,
     tracks,
+    inserts,
+    stats,
     push,
     controllerComponents
   )(actorSystem, materializer)

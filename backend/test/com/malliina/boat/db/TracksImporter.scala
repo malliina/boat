@@ -21,18 +21,23 @@ class TracksImporter extends AsyncSuite {
   lazy val c = Conf.fromConf(LocalConf.localConf).toOption.get
   lazy val db = BoatDatabase(as, c)
 
-  test("import tracks from plotter log file".ignore) {
-    val tdb = NewTracksDatabase(db)
+  test("import tracks from plotter log file") {
+    importSlice(".boat/Log20200513.txt", 1273831, 1320488)
+    importSlice(".boat/20200611LOG.txt", 1276539, 1367409)
+  }
+
+  private def importSlice(file: String, drop: Int, last: Int) = {
+    val inserts = TrackInserts(db)
     val trackName = TrackNames.random()
     val track = await(
-      tdb.joinAsBoat(BoatUser(trackName, BoatName("Amina"), Username("mle"))),
+      inserts.joinAsBoat(BoatUser(trackName, BoatName("Amina"), Username("mle"))),
       10.seconds
     )
     println(s"Using $track")
     val s: Source[RawSentence, NotUsed] =
-      fromFile(FileUtils.userHome.resolve(".boat/20200611LOG.txt"))
-        .drop(1276539)
-        .take(1367409 - 1276539)
+      fromFile(FileUtils.userHome.resolve(file))
+        .drop(drop)
+        .take(last - drop)
         .filter(_ != RawSentence.initialZda)
     val events = s.map(s => SentencesEvent(Seq(s), track.short))
     Sink.fold[Long, InsertedPoint](0L) { (acc, _) =>
@@ -42,7 +47,7 @@ class TracksImporter extends AsyncSuite {
       acc + 1
     }
     val task = events
-      .via(processSentences(tdb.saveSentences, tdb.saveCoords))
+      .via(processSentences(inserts.saveSentences, inserts.saveCoords))
       .runWith(Sink.ignore)
     await(task, 300000.seconds)
   }
@@ -51,7 +56,7 @@ class TracksImporter extends AsyncSuite {
     val oldTrack = TrackId(175)
     splitTracksByDate(
       oldTrack,
-      NewTracksDatabase(db)
+      TrackInserts(db)
     )
   }
 
@@ -73,14 +78,14 @@ class TracksImporter extends AsyncSuite {
       .mapConcat(saved => saved.toList)
       .via(insertPointsFlow(saveCoord))
 
-  def splitTracksByDate(oldTrack: TrackId, db: NewTracksDatabase) = {
+  def splitTracksByDate(oldTrack: TrackId, db: TrackInserts) = {
 //    import db._
     import db.db._
 
     def createAndUpdateTrack(date: DateVal): IO[RunActionResult, Effect.Write] = {
       val in = TrackInput.empty(TrackNames.random(), DeviceId(14))
       for {
-        newTrack <- runIO(db.tracksInsert(lift(in)))
+        newTrack <- runIO(tracksInsert(lift(in)))
         updated <- runIO(
           quote {
             rawPointsTable

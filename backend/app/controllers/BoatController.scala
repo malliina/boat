@@ -7,7 +7,6 @@ import akka.stream.Materializer
 import akka.stream.scaladsl.{Flow, Keep, Sink, Source}
 import akka.{Done, NotUsed}
 import com.malliina.boat.Constants._
-import com.malliina.boat.InviteState.Rejected
 import com.malliina.boat._
 import com.malliina.boat.auth.EmailAuth
 import com.malliina.boat.db._
@@ -42,6 +41,8 @@ class BoatController(
   boatService: BoatService,
   deviceService: DeviceService,
   db: TracksSource,
+  inserts: TrackInsertsDatabase,
+  statsSource: StatsSource,
   push: PushService,
   comps: ControllerComponents
 )(implicit as: ActorSystem, mat: Materializer)
@@ -150,15 +151,15 @@ class BoatController(
   }
 
   def modifyTitle(track: TrackName) = trackAction(trackTitleForm) { req =>
-    db.updateTitle(track, req.body, req.user.id)
+    inserts.updateTitle(track, req.body, req.user.id)
   }
 
   def updateComments(track: TrackId) = trackAction(trackCommentsForm) { req =>
-    db.updateComments(track, req.body, req.user.id)
+    inserts.updateComments(track, req.body, req.user.id)
   }
 
   def createBoat = formActionResult(boatNameForm) { req =>
-    db.addBoat(req.body, req.user.id).map { boat =>
+    inserts.addBoat(req.body, req.user.id).map { boat =>
       respond(req.req)(
         Redirect(reverse.devices()),
         Ok(BoatResponse(boat.toBoat))
@@ -167,15 +168,15 @@ class BoatController(
   }
 
   def deleteBoat(id: DeviceId) = authAction(profile) { req =>
-    db.removeDevice(id, req.user.id).map { rows =>
+    inserts.removeDevice(id, req.user.id).map { rows =>
       respond(req.req)(Redirect(reverse.devices()), Ok(SimpleMessage("Done.")))
     }
   }
 
-  def renameBoat(id: DeviceId) = boatAction { req => db.renameBoat(id, req.body, req.user.id) }
+  def renameBoat(id: DeviceId) = boatAction { req => inserts.renameBoat(id, req.body, req.user.id) }
 
   def stats = userAction(profile, TrackQuery.apply) { req =>
-    db.stats(req.user, req.query, BoatLang(req.user.language).lang).map { sr =>
+    statsSource.stats(req.user, req.query, BoatLang(req.user.language).lang).map { sr =>
       Ok(Json.toJson(sr))
     }
   }
@@ -423,12 +424,12 @@ class BoatController(
     * @return
     */
   private def authBoat(rh: RequestHeader): Future[Either[Result, TrackMeta]] =
-    recovered(boatAuth(rh).flatMap(meta => db.joinAsBoat(meta)), rh)
+    recovered(boatAuth(rh).flatMap(meta => inserts.joinAsBoat(meta)), rh)
 
   private def authDevice(
     rh: RequestHeader
   ): Future[Either[Result, JoinedBoat]] =
-    recovered(boatAuthNoTrack(rh).flatMap(meta => db.joinAsDevice(meta)), rh)
+    recovered(boatAuthNoTrack(rh).flatMap(meta => inserts.joinAsDevice(meta)), rh)
 
   private def boatAuth(rh: RequestHeader): Future[BoatTrackMeta] =
     boatAuthNoTrack(rh).map { b => b.withTrack(trackOrRandom(rh)) }

@@ -22,17 +22,18 @@ class TracksDatabaseTests extends AsyncSuite with DockerDatabase {
     val conf = TestConf(db())
 
     val newDb = BoatDatabase.withMigrations(as, conf)
-    val tdb = NewTracksDatabase(newDb)
+    val tdb = NewTracksDatabase(newDb, StatsDatabase(newDb))
+    val inserts = TrackInserts(newDb)
     val users = NewUserManager(newDb)
     val user = await(users.userInfo(Email("aggregate@example.com")))
     val uid = user.id
     val boat = user.boats.head
     val bid = boat.id
     val action = for {
-      t: TrackMeta <- tdb.joinAsBoat(BoatUser(TrackNames.random(), boat.name, user.username))
+      t: TrackMeta <- inserts.joinAsBoat(BoatUser(TrackNames.random(), boat.name, user.username))
       tid = t.track
-      _ <- tdb.saveCoords(fakeCoord(london, 10.kmh, tid, bid, uid))
-      _ <- tdb.saveCoords(fakeCoord(sanfran, 20.kmh, tid, bid, uid))
+      _ <- inserts.saveCoords(fakeCoord(london, 10.kmh, tid, bid, uid))
+      _ <- inserts.saveCoords(fakeCoord(sanfran, 20.kmh, tid, bid, uid))
       track: TrackRef <- tdb.ref(t.trackName, Language.swedish)
       _ <- users.deleteUser(user.username)
     } yield track
@@ -45,7 +46,7 @@ class TracksDatabaseTests extends AsyncSuite with DockerDatabase {
     val conf = TestConf(db())
 
     val newDb = BoatDatabase.withMigrations(as, conf)
-    val tdb = NewTracksDatabase(newDb)
+    val tdb = TrackInserts(newDb)
     val udb = NewUserManager(newDb)
     val testComment = "test"
     val userInput =
