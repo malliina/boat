@@ -30,11 +30,17 @@ class TracksImporter extends AsyncSuite {
     )
     println(s"Using $track")
     val s: Source[RawSentence, NotUsed] =
-      fromFile(FileUtils.userHome.resolve(".boat/Log20200513.txt"))
-        .drop(1273831)
-        .take(1320488 - 1273831)
+      fromFile(FileUtils.userHome.resolve(".boat/20200611LOG.txt"))
+        .drop(1276539)
+        .take(1367409 - 1276539)
         .filter(_ != RawSentence.initialZda)
     val events = s.map(s => SentencesEvent(Seq(s), track.short))
+    Sink.fold[Long, InsertedPoint](0L) { (acc, _) =>
+      if (acc % 1000 == 0) {
+        println(s"Inserted $acc items...")
+      }
+      acc + 1
+    }
     val task = events
       .via(processSentences(tdb.saveSentences, tdb.saveCoords))
       .runWith(Sink.ignore)

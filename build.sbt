@@ -114,7 +114,8 @@ val frontend = project
     ),
     webpackConfigFile in fullOptJS := Some(
       baseDirectory.value / "webpack.prod.config.js"
-    )
+    ),
+    scalaJSLinkerConfig in (Compile, fullOptJS) ~= { _.withSourceMap(false) }
   )
 
 val backend = Project("boat", file("backend"))
