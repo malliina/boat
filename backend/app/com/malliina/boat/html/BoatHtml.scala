@@ -54,7 +54,7 @@ class BoatHtml(jsFiles: ScriptAssets) extends Tags(scalatags.Text) {
 
   def map(ub: UserBoats) = {
     val lang = BoatLang(ub.language)
-    val about = About(lang.web)
+    val about = About(lang.web, lang.lang.profile)
     val user = ub.user
     val isAnon = user == Usernames.anon
     val mapClass = if (ub.boats.isEmpty) "anon" else "auth"

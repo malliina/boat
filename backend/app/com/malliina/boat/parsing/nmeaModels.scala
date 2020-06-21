@@ -71,7 +71,7 @@ case class GGAMessage(
 
 trait PrimitiveParsing {
   def attempt[In, Out](in: In, onFail: In => String)(pf: PartialFunction[In, Out]) =
-    pf.lift(in).toRight(SingleError.input(s"Invalid input: '$in'."))
+    pf.lift(in).toRight(SingleError.input(onFail(in)))
 
   def limitedInt[T](s: String, p: Int => Boolean, build: Int => T): Either[SingleError, T] =
     Inputs.toInt(s).flatMap { i =>

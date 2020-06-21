@@ -2,7 +2,7 @@ package com.malliina.boat.db
 
 import java.time.Instant
 
-import com.malliina.boat.{Boat, BoatName, BoatPrimitives, BoatToken, CombinedCoord, DateVal, DeviceId, FormattedDateTime, GPSPointRow, JoinedBoat, JoinedTrack, Language, MonthVal, TimeFormatter, TimedCoord, TrackCanonical, TrackId, TrackName, TrackPointId, TrackPointRow, TrackTitle, UserToken, YearVal}
+import com.malliina.boat.{Boat, BoatName, BoatPrimitives, BoatToken, CombinedCoord, DateVal, DeviceId, FormattedDateTime, GPSPointRow, InviteState, JoinedBoat, JoinedTrack, Language, MonthVal, TimeFormatter, TimedCoord, TrackCanonical, TrackId, TrackName, TrackPointId, TrackPointRow, TrackTitle, UserToken, YearVal}
 import com.malliina.measure.{DistanceM, SpeedM, Temperature}
 import com.malliina.values.{Email, UserId, Username}
 import io.getquill.Embedded
@@ -26,6 +26,8 @@ case class UserRow(
   enabled: Boolean,
   added: Instant
 ) extends Embedded
+
+case class UserBoatRow(user: UserId, boat: DeviceId, state: InviteState, added: Instant)
 
 case class TrackRow(
   id: TrackId,
@@ -137,6 +139,9 @@ case class AllTimeAggregates(
   tracks: Long,
   days: Long
 )
+object AllTimeAggregates {
+  val empty = AllTimeAggregates(None, None, None, None, 0L, 0L)
+}
 
 case class TrackCoord(track: JoinedTrack, row: TrackPointRow)
 case class TopTrack(track: TrackRow, times: TrackTimes, coord: CombinedCoord)

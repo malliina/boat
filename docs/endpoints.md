@@ -194,6 +194,40 @@ The response contains the following items:
 | route.cost | Number | Distance in meters along fairways
 | route.links | Array | The route as an array of hops along fairway points
 
+## POST /users/boats
+ 
+Boat owners may invite other users to access the data of their boat:
+
+To invite user 123 to access boat 14:
+
+    {
+        "operation": "grant",
+        "boat": "14",
+        "user": "123"
+    }
+
+To revoke access:
+
+    {
+        "operation": "revoke",
+        "boat": "14",
+        "user": "123"
+    }
+
+## POST /users/boats/answers
+
+Invitees may accept or reject invites to the data of a given boat:
+
+    {
+        "boat": "14",
+        "state": "accepted"
+    }
+
+Key `state` must be one of:
+
+- accepted
+- rejected
+
 ## WebSocket /ws/updates
 
 Clients (web, iOS, Android) receive live boat updates using this WebSocket endpoint. The JSON-formatted messages use
@@ -301,7 +335,7 @@ The JSON-formatted messages must be of the following format:
       ]
     }
 
-Provide newest sentences last in the *sentences* array.
+Provide the newest sentences last in the *sentences* array.
 
 The server may send *ping* events to the agent over the socket at any time:
 

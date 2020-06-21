@@ -64,9 +64,9 @@ object ClientConf {
   */
 case class DateVal(year: YearVal, month: MonthVal, day: DayVal) {
   def toLocalDate = LocalDate.of(year.year, month.month, day.day)
-  def plusDays(days: Int) = DateVal(toLocalDate.plusDays(1))
-  def plusMonths(months: Int) = DateVal(toLocalDate.plusMonths(1))
-  def plusYears(years: Int) = DateVal(toLocalDate.plusYears(1))
+  def plusDays(days: Int) = DateVal(toLocalDate.plusDays(days))
+  def plusMonths(months: Int) = DateVal(toLocalDate.plusMonths(months))
+  def plusYears(years: Int) = DateVal(toLocalDate.plusYears(years))
   def iso8601 = toLocalDate.toString
   override def toString = iso8601
 }
@@ -294,10 +294,19 @@ object Errors {
 
 object BoatNames {
   val Key = "boatName"
+  val BoatKey = "boat"
   val mapping: Mapping[BoatName] =
     Forms.nonEmptyText.transform(s => BoatName(s), b => b.name)
 
   def random() = BoatName(Utils.randomString(6))
+}
+
+object Emails {
+  val Key = "email"
+
+  val mapping: Mapping[Email] =
+    Forms.nonEmptyText.transform(s => Email(s), b => b.email)
+
 }
 
 case class SingleToken(token: PushToken)

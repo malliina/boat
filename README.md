@@ -25,17 +25,17 @@ The Android app is in repo [boattracker-android](https://github.com/malliina/boa
 
 ## Deploying documentation
 
-The documentation site is hosted on GitHub Pages. To deploy:
+GitHub Pages hosts the documentation. To deploy:
 
     mkdocs gh-deploy
 
 ## Releasing the agent
 
-To release a new version of the agent, run
+To release a new version of the agent, run:
 
     sbt "project agent" release
     
-To upload a new downloadable `.deb` binary to S3, run
+To upload a new downloadable `.deb` binary to S3, run:
 
     sbt "project agent" buildAndUpload
     

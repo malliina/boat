@@ -9,7 +9,7 @@ import controllers.AuthController.log
 import controllers.Social.{EmailKey, GoogleCookie, ProviderCookieName}
 import play.api.Logger
 import play.api.http.Writeable
-import play.api.libs.json.{Json, Writes}
+import play.api.libs.json.{Json, Reads, Writes}
 import play.api.mvc._
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -27,14 +27,21 @@ abstract class AuthController(
 
   implicit def writeable[T: Writes] = Writeable.writeableOf_JsValue.map[T](t => Json.toJson(t))
 
+  def jsonAuth[R: Reads](code: UserRequest[UserInfo, R] => Future[Result]): Action[R] =
+    parsedAuth(parse.json[R])(profile) { req =>
+      code(req)
+    }
+
   protected def authAction[U](
     authenticate: RequestHeader => Future[U]
-  )(code: UserRequest[U, AnyContent] => Future[Result]) =
+  )(code: UserRequest[U, AnyContent] => Future[Result]): Action[AnyContent] =
     parsedAuth(parse.default)(authenticate)(code)
 
   protected def parsedAuth[U, B](
     p: BodyParser[B]
-  )(authenticate: RequestHeader => Future[U])(code: UserRequest[U, B] => Future[Result]) =
+  )(
+    authenticate: RequestHeader => Future[U]
+  )(code: UserRequest[U, B] => Future[Result]): Action[B] =
     Action(p).async { req =>
       recovered(authenticate(req), req).flatMap { e =>
         e.fold(fut, t => code(UserRequest(t, req)))

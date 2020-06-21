@@ -39,9 +39,4 @@ class PushController(
       Ok(SimpleMessage(msg))
     }
   }
-
-  def jsonAuth[R: Reads](code: UserRequest[UserInfo, R] => Future[Result]) =
-    parsedAuth(parse.json[R])(profile) { req =>
-      code(req)
-    }
 }

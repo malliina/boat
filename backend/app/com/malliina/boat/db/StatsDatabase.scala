@@ -29,9 +29,7 @@ class StatsDatabase(db: BoatDatabase[SnakeCase]) {
       else runIO(yearlyQueryDesc(lift(username)))
       allTime <- runIO(allTimeQuery(lift(username)))
     } yield {
-      val all = allTime.headOption.getOrElse(
-        fail(s"Failed to load stats: No all time statistics available.")
-      )
+      val all = allTime.headOption.getOrElse(AllTimeAggregates.empty)
       val now = DateVal.now()
       val zeroDistance = DistanceM.zero
       val zeroDuration: FiniteDuration = 0.seconds

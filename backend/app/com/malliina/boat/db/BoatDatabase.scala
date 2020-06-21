@@ -28,7 +28,7 @@ object BoatDatabase {
     apply(as, conf)
   }
 
-  private def apply(as: ActorSystem, dbConf: Conf): BoatDatabase[SnakeCase] = {
+  def apply(as: ActorSystem, dbConf: Conf): BoatDatabase[SnakeCase] = {
     val pool = as.dispatchers.lookup("contexts.database")
     apply(Conf.dataSource(dbConf), pool, dbConf.isMariaDb)
   }

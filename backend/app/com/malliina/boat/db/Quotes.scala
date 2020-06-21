@@ -35,6 +35,7 @@ trait Quotes[I <: Idiom, N <: NamingStrategy] { this: Context[I, N] =>
   }
   val boatsTable = quote(querySchema[BoatRow]("boats"))
   val usersTable = quote(querySchema[UserRow]("users"))
+  val usersBoatsTable = quote(querySchema[UserBoatRow]("users_boats"))
   val tracksTable = quote(querySchema[TrackRow]("tracks"))
   val rawPointsTable = quote(querySchema[TrackPointRow]("points"))
   val pointsTable = quote(querySchema[TrackPointRow]("points").map { r =>

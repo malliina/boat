@@ -15,13 +15,11 @@ object BoatPushService {
   def apply(conf: Configuration, ec: ExecutionContext): BoatPushService =
     apply(APNSPush(conf), FCMPush(conf, ec))
 
-  def apply(ios: PushClient[APNSToken], android: PushClient[GCMToken]): BoatPushService =
+  def apply(ios: APNS, android: PushClient[GCMToken]): BoatPushService =
     new BoatPushService(ios, android)
 }
 
-class BoatPushService(ios: PushClient[APNSToken], android: PushClient[GCMToken])
-  extends PushEndpoint {
-
+class BoatPushService(ios: APNS, android: PushClient[GCMToken]) extends PushEndpoint {
   override def push(notification: BoatNotification, to: PushDevice): Future[PushSummary] =
     to.device match {
       case IOS =>

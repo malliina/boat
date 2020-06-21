@@ -4,14 +4,17 @@ GET          /health                                          controllers.AppCon
 GET          /conf                                            controllers.AppController.conf
 GET          /users/me                                        controllers.AppController.me
 PUT          /users/me                                        controllers.PushController.changeLanguage
+POST         /users/boats                                     controllers.BoatController.boatAccess
+POST         /users/boats/answers                             controllers.BoatController.boatAccessAnswers
+POST         /users/boats/*boat                               controllers.BoatController.inviteByEmail(boat: com.malliina.boat.DeviceId)
 POST         /users/notifications                             controllers.PushController.enableNotifications
 POST         /users/notifications/disable                     controllers.PushController.disableNotifications
 GET          /boats                                           controllers.BoatController.devices
 POST         /boats                                           controllers.BoatController.createBoat
 PATCH        /boats/:boat                                     controllers.BoatController.renameBoat(boat: com.malliina.boat.DeviceId)
 POST         /boats/:boat/delete                              controllers.BoatController.deleteBoat(boat: com.malliina.boat.DeviceId)
-GET          /tracks                                          controllers.BoatController.tracks
 GET          /history                                         controllers.BoatController.history
+GET          /tracks                                          controllers.BoatController.tracks
 GET          /tracks/:track                                   controllers.BoatController.track(track: com.malliina.boat.TrackName)
 PUT          /tracks/:track                                   controllers.BoatController.modifyTitle(track: com.malliina.boat.TrackName)
 PATCH        /tracks/:track                                   controllers.BoatController.updateComments(track: com.malliina.boat.TrackId)

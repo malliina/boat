@@ -102,7 +102,11 @@ class MapView(
   }
 
   def initModal(modal: Element): Unit = {
-    window.addOnClick(e => if (e.target == modal) modal.hide())
+    window.addOnClick { e =>
+      if (e.target == modal) {
+        modal.hide()
+      }
+    }
     modal.getElementsByClassName(Close).headOption.foreach { node =>
       node.asInstanceOf[HTMLSpanElement].onclick = _ => modal.hide()
     }
@@ -120,11 +124,15 @@ class MapView(
   }
 
   private def initDropdown(linkId: String, contentId: String): Unit =
-    htmlElem(linkId).foreach { e =>
+    htmlElem(linkId).foreach { link =>
       htmlElem(contentId).foreach { content =>
-        e.addOnClick(_ => toggleClass(content, Visible))
+        link.addOnClick(_ => toggleClass(content, Visible))
         window.addOnClick { e =>
-          if (e.target == content) htmlElem(contentId).foreach(_.classList.remove(Visible))
+          if (e.target.isOutside(content) && e.target.isOutside(link) && content.classList.contains(
+                Visible
+              )) {
+            content.classList.remove(Visible)
+          }
         }
       }
     }

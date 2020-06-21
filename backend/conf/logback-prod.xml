@@ -9,7 +9,7 @@
         <endpoint>${LOGSTREAMS_HOST:-logs.malliina.com}</endpoint>
         <secure>true</secure>
         <username>${LOGSTREAMS_USER:-boat}</username>
-        <password>changeme</password>
+        <password>${LOGSTREAMS_PASS:-changeme}</password>
         <enabled>true</enabled>
     </appender>
     <appender name="FILE" class="ch.qos.logback.core.FileAppender">

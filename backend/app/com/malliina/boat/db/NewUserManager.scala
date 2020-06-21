@@ -2,8 +2,10 @@ package com.malliina.boat.db
 
 import java.sql.SQLException
 
+import com.malliina.boat.InviteState.Awaiting
 import com.malliina.boat.db.NewUserManager.log
-import com.malliina.boat.{Boat, BoatInfo, BoatNames, BoatToken, BoatTokens, JoinedBoat, JoinedTrack, Language, TimeFormatter, UserBoats, UserInfo, UserToken, Usernames}
+import com.malliina.boat.http.{AccessResult, BoatInvite, InviteInfo}
+import com.malliina.boat.{Boat, BoatInfo, BoatNames, BoatToken, BoatTokens, DeviceId, InviteState, JoinedBoat, JoinedTrack, Language, TimeFormatter, UserBoats, UserInfo, UserToken, Usernames}
 import com.malliina.values.{Email, UserId, Username}
 import io.getquill.SnakeCase
 import play.api.Logger
@@ -64,12 +66,8 @@ object NewUserManager {
 class NewUserManager(val db: BoatDatabase[SnakeCase]) extends UserManager {
   import db._
   implicit val exec: ExecutionContext = db.ec
-  val userByEmail = quote { email: Email =>
-    usersTable.filter(u => u.email.contains(email))
-  }
-  val userById = quote { id: UserId =>
-    usersTable.filter(u => u.id == id)
-  }
+  val userByEmail = quote { email: Email => usersTable.filter(u => u.email.contains(email)) }
+  val userById = quote { id: UserId => usersTable.filter(u => u.id == id) }
   val usersWithBoats = quote { q: Query[UserRow] =>
     q.leftJoin(boatsTable).on(_.id == _.owner).map {
       case (user, boatOpt) =>
@@ -94,6 +92,9 @@ class NewUserManager(val db: BoatDatabase[SnakeCase]) extends UserManager {
         _.enabled -> user.enabled
       )
       .returningGenerated(_.id)
+  }
+  val userBoat = quote { (boat: DeviceId, user: UserId) =>
+    usersBoatsTable.filter { ub => ub.boat == boat && ub.user == user }
   }
 
   def users: Future[Seq[UserInfo]] =
@@ -183,6 +184,72 @@ class NewUserManager(val db: BoatDatabase[SnakeCase]) extends UserManager {
         wasChanged
       }
     }
+
+  def invite(i: InviteInfo): Future[AccessResult] =
+    transactionally(s"Invite ${i.email} to boat ${i.boat} by ${i.principal}.") {
+      for {
+        invitee <- runIO(userByEmail(lift(i.email)))
+        result <- invitee.headOption.map { user =>
+          manageGroupsAction(i.boat, user.id, i.principal)
+        }.getOrElse {
+          IO.successful(AccessResult(false))
+        }
+      } yield result
+    }
+
+  def grantAccess(boat: DeviceId, to: UserId, principal: UserId): Future[AccessResult] =
+    transactionally(s"Allow user $to access to $boat.") {
+      manageGroupsAction(boat, to, principal)
+    }
+
+  private def manageGroupsAction(boat: DeviceId, to: UserId, principal: UserId) =
+    manageGroups(boat, to, principal) { existed =>
+      if (existed) {
+        IO.successful(())
+      } else {
+        runIO(
+          usersBoatsTable
+            .insert(
+              _.boat -> lift(boat),
+              _.user -> lift(to),
+              _.state -> lift(Awaiting: InviteState)
+            )
+        )
+      }
+    }
+
+  def revokeAccess(boat: DeviceId, from: UserId, principal: UserId): Future[AccessResult] =
+    performAsync(s"Revoke access for $from to $boat.") {
+      manageGroups(boat, from, principal) { existed =>
+        if (existed) runIO(userBoat(lift(boat), lift(from)).delete)
+        else IO.successful(())
+      }
+    }
+
+  def updateInvite(boat: DeviceId, user: UserId, state: InviteState): Future[Long] =
+    performAsync(s"Update invite to boat $boat for user $user to $state.") {
+      runIO(userBoat(lift(boat), lift(user)).update(_.state -> lift(state)))
+    }
+
+  private def manageGroups[T](boat: DeviceId, from: UserId, principal: UserId)(
+    run: Boolean => IO[T, Effect.Write]
+  ) =
+    for {
+      owns <- runIO(
+        boatsTable.filter(b => b.id == lift(boat) && b.owner == lift(principal)).nonEmpty
+      )
+      auth <- if (owns) {
+        IO.successful(())
+      } else {
+        IO.failed(
+          fail(
+            s"User $principal is not authorized to modify access to boat $boat for user $from."
+          )
+        )
+      }
+      existed <- runIO(userBoat(lift(boat), lift(from)).nonEmpty)
+      _ <- run(existed)
+    } yield AccessResult(existed)
 
   private def getOrCreate(email: Email) = for {
     existing <- runIO(userByEmail(lift(email)))

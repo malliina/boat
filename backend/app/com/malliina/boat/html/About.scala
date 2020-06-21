@@ -1,43 +1,47 @@
 package com.malliina.boat.html
 
 import com.malliina.boat.FrontKeys.{Hidden, ModalId}
-import com.malliina.boat.{AboutKeys, FrontKeys, Language, Usernames}
+import com.malliina.boat.{AboutKeys, FrontKeys, Language, ProfileLang, Usernames}
 import com.malliina.values.Username
 import scalatags.Text.all._
 
 object About {
-  def apply(lang: WebLang) = new About(lang)
+  def apply(lang: WebLang, profile: ProfileLang) = new About(lang, profile)
 }
 
-class About(lang: WebLang) extends AboutKeys {
+class About(lang: WebLang, profile: ProfileLang) extends AboutKeys {
   val empty = modifier()
 
   def about(user: Username, language: Language) = {
+    val isLoggedIn = user != Usernames.anon
     div(id := ModalId, `class` := s"${FrontKeys.Modal} $Hidden")(
       div(`class` := "modal-content")(
         i(`class` := "close fas fa-times"),
-        if (user != Usernames.anon) {
+        if (isLoggedIn) {
           modifier(
-            p(`class` := "text-center", s"${lang.signedInAs} $user."),
+            h2(`class` := "text-center")(profile.username),
+            p(`class` := "text-center")(s"${profile.signedInAs} $user."),
+            hr(`class` := "modal-divider"),
+            h2(`class` := "text-center")(profile.language),
             radios(
               LanguageRadios,
               Seq(
                 RadioOptions(
                   "radio-se",
                   Language.swedish.code,
-                  lang.swedish,
+                  profile.swedish,
                   language == Language.swedish
                 ),
                 RadioOptions(
                   "radio-fi",
                   Language.finnish.code,
-                  lang.finnish,
+                  profile.finnish,
                   language == Language.finnish
                 ),
                 RadioOptions(
                   "radio-en",
                   Language.english.code,
-                  lang.english,
+                  profile.english,
                   language == Language.english
                 )
               )
@@ -47,6 +51,7 @@ class About(lang: WebLang) extends AboutKeys {
         } else {
           empty
         },
+        h2(`class` := "badges-title")(lang.getTheApp),
         div(`class` := "badges")(
           div(`class` := "badge-wrapper-android")(
             a(
@@ -71,7 +76,19 @@ class About(lang: WebLang) extends AboutKeys {
         h2("Font Awesome"),
         p(a(href := "https://fontawesome.com")("fontawesome.com")),
         h2("POIJU.IO"),
-        p(a(href := "https://github.com/iaue/poiju.io")("POIJU.IO"))
+        p(a(href := "https://github.com/iaue/poiju.io")("POIJU.IO")),
+        if (isLoggedIn) {
+          modifier(
+            hr(`class` := "modal-divider"),
+            div(`class` := "button-container")(
+              a(`type` := "button", `class` := "btn btn-sm btn-danger", href := "/sign-out")(
+                profile.logout
+              )
+            )
+          )
+        } else {
+          empty
+        }
       )
     )
   }
