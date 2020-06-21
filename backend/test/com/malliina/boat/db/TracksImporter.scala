@@ -21,7 +21,7 @@ class TracksImporter extends AsyncSuite {
   lazy val c = Conf.fromConf(LocalConf.localConf).toOption.get
   lazy val db = BoatDatabase(as, c)
 
-  test("import tracks from plotter log file") {
+  test("import tracks from plotter log file".ignore) {
     importSlice(".boat/Log20200513.txt", 1273831, 1320488)
     importSlice(".boat/20200611LOG.txt", 1276539, 1367409)
   }

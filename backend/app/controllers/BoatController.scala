@@ -24,7 +24,7 @@ import play.api.libs.json.{JsValue, Json, Writes}
 import play.api.mvc.WebSocket.MessageFlowTransformer.jsonMessageFlowTransformer
 import play.api.mvc._
 import play.filters.csrf.CSRF
-
+import com.malliina.storage.StorageInt
 import scala.concurrent.Future
 import scala.concurrent.duration.DurationInt
 import scala.util.{Failure, Success, Try}
@@ -94,6 +94,12 @@ class BoatController(
   }
 
   def tracks = negotiated(tracksHtml, tracksJson)
+
+  def saveTrack = Action(parse.temporaryFile(1024.megs.toBytes)).async { req =>
+    val file = req.body.path
+
+    fut(Accepted)
+  }
 
   def history = userAction(profile, BoatQuery.apply) { req =>
     db.history(req.user, req.query).map { e => Ok(Json.toJson(e)) }
@@ -421,31 +427,32 @@ class BoatController(
     * provided.
     *
     * @param rh request
-    * @return
     */
   private def authBoat(rh: RequestHeader): Future[Either[Result, TrackMeta]] =
     recovered(boatAuth(rh).flatMap(meta => inserts.joinAsBoat(meta)), rh)
 
-  private def authDevice(
-    rh: RequestHeader
-  ): Future[Either[Result, JoinedBoat]] =
+  private def authExistingBoat(rh: RequestHeader): Future[Either[Result, TrackMeta]] =
+    recovered(boatTokenAuth(rh).flatMap(meta => inserts.joinAsBoat(meta)), rh)
+
+  private def authDevice(rh: RequestHeader): Future[Either[Result, JoinedBoat]] =
     recovered(boatAuthNoTrack(rh).flatMap(meta => inserts.joinAsDevice(meta)), rh)
 
   private def boatAuth(rh: RequestHeader): Future[BoatTrackMeta] =
     boatAuthNoTrack(rh).map { b => b.withTrack(trackOrRandom(rh)) }
 
   private def boatAuthNoTrack(rh: RequestHeader): Future[DeviceMeta] =
-    rh.headers
-      .get(BoatTokenHeader)
-      .map { token => auther.authBoat(BoatToken(token)) }
-      .getOrElse {
-        val boatName =
-          rh.headers
-            .get(BoatNameHeader)
-            .map(BoatName.apply)
-            .getOrElse(BoatNames.random())
-        fut(SimpleBoatMeta(anonUser, boatName))
-      }
+    boatTokenAuth(rh).getOrElse {
+      val boatName =
+        rh.headers
+          .get(BoatNameHeader)
+          .map(BoatName.apply)
+          .getOrElse(BoatNames.random())
+      fut(SimpleBoatMeta(anonUser, boatName))
+    }
+
+  private def boatTokenAuth(rh: RequestHeader) = rh.headers
+    .get(BoatTokenHeader)
+    .map { token => auther.authBoat(BoatToken(token)) }
 
   private def authOrAnon(rh: RequestHeader): Future[MinimalUserInfo] =
     authMinimal(rh, _ => Future.successful(MinimalUserInfo.anon))
