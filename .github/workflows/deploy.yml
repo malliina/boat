@@ -1,9 +1,9 @@
+name: Deploy
+
 on:
   push:
     branches:
-      - groups
-
-name: Linux_Container_Scala_Workflow
+      - master
 
 jobs:
   build-and-deploy:
