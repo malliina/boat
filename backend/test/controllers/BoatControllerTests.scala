@@ -19,12 +19,12 @@ class BoatControllerTests extends TestAppSuite {
     implicit val ec = components.executionContext
 
     val user = Username("test")
-    val service = components.tracks
+    val inserts = components.inserts
     val init = for {
       _ <- components.users.addUser(
         NewUser(user, Option(TestEmailAuth.testEmail), UserToken.random(), enabled = true)
       )
-      track <- service.joinAsBoat(BoatUser(TrackNames.random(), BoatNames.random(), user))
+      track <- inserts.joinAsBoat(BoatUser(TrackNames.random(), BoatNames.random(), user))
       coord = FullCoord(
         Coord.buildOrFail(60, 24),
         LocalTime.now(),
@@ -35,7 +35,7 @@ class BoatControllerTests extends TestAppSuite {
         0.meters,
         track.short
       )
-      p <- service.saveCoords(coord)
+      p <- inserts.saveCoords(coord)
     } yield p
     await(init)
     val response1 = tracksRequest(ContentVersions.Version1)

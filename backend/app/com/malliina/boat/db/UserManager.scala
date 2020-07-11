@@ -1,6 +1,6 @@
 package com.malliina.boat.db
 
-import com.malliina.boat.http.{AccessResult, BoatInvite, InviteInfo}
+import com.malliina.boat.http.{AccessResult, InviteInfo}
 import com.malliina.boat.{BoatToken, DeviceId, InviteState, JoinedBoat, Language, UserBoats, UserInfo}
 import com.malliina.play.auth.AuthError
 import com.malliina.values.{Email, Password, UserId, Username}
@@ -38,7 +38,9 @@ trait UserManager {
     DigestUtils.md5Hex(user.name + ":" + pass.pass)
 }
 
-sealed trait IdentityError
+sealed trait IdentityError {
+  def toException = IdentityException(this)
+}
 
 case class AlreadyExists(user: Username) extends IdentityError
 case class InvalidCredentials(user: Option[Username] = None) extends IdentityError

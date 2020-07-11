@@ -77,7 +77,7 @@ class AkkaStreams extends BaseSuite {
         Seq(10, 8, 2, 1, 3)
       )
     )
-    val processed = BoatParser.multi(parsed).take(4)
+    val processed = parsed.via(BoatParser.multiFlow()).take(4)
     val listSink =
       Sink.fold[List[FullCoord], FullCoord](List.empty[FullCoord])((acc, dc) => acc :+ dc)
     val actual = await(processed.runWith(listSink))
@@ -87,9 +87,7 @@ class AkkaStreams extends BaseSuite {
   test("one-time side-effect".ignore) {
     val orig = Source.tick(1.second, 1.second, "msg").take(1)
     // only side-effects once, if others run `src` instead of `effected`
-    val effected = orig.map { msg =>
-      println(msg); s"$msg!"
-    }
+    val effected = orig.map { msg => println(msg); s"$msg!" }
     val pub = effected.runWith(Sink.asPublisher(fanout = true))
     val src = Source.fromPublisher(pub)
     val f1 = src.runForeach(println)
@@ -174,9 +172,7 @@ class AkkaStreams extends BaseSuite {
 
   test("socket stream".ignore) {
     WebSocket.accept[JsValue, JsValue] { rh =>
-      Flow[JsValue].map { json =>
-        Json.obj("echo" -> json)
-      }
+      Flow[JsValue].map { json => Json.obj("echo" -> json) }
     }
   }
 

@@ -6,9 +6,15 @@ import com.malliina.boat.{Constants, RawSentence, SentencesMessage}
 import com.malliina.http.FullUrl
 import play.api.libs.json.{JsValue, Json}
 
-import scala.concurrent.Await
-
 class WebSocketClientTests extends BasicSuite {
+  test("can connect to api.boat-tracker.com".ignore) {
+//    val client = WebSocketClient(DeviceAgent.BoatUrl, List(KeyValue(Constants.BoatTokenHeader, token)), as, mat)
+    val client = WebSocketClient(DeviceAgent.BoatUrl, Nil, as, mat)
+    val hm = client.connect(Source.maybe[JsValue].mapMaterializedValue(_ => NotUsed))
+    await(hm, 10.seconds)
+    println("Done.")
+  }
+
   test("connect boat to boat-tracker.com".ignore) {
     val url = FullUrl.ws("localhost:9000", "/ws/devices")
 //    val url = FullUrl.wss("api.boat-tracker.com", "/ws/devices")

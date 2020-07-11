@@ -5,7 +5,7 @@ import akka.actor.ActorSystem
 import akka.stream.{KillSwitches, Materializer}
 import akka.stream.scaladsl.{BroadcastHub, Keep, MergeHub, Sink, Source}
 import com.malliina.boat.ais.AISSource
-import com.malliina.boat.db.TracksSource
+import com.malliina.boat.db.{TrackInsertsDatabase, TracksSource}
 import com.malliina.boat.parsing.BoatService.log
 import com.malliina.boat.{BoatEvent, BoatJsonError, CoordsEvent, FrontEvent, InsertedPoint, SentencesMessage, Streams, TimeFormatter, VesselMessages}
 import play.api.Logger
@@ -17,14 +17,14 @@ object BoatService {
 
   def apply(
     aisClient: AISSource,
-    db: TracksSource,
+    db: TrackInsertsDatabase,
     as: ActorSystem,
     mat: Materializer
   ): BoatService =
     new BoatService(aisClient, db)(as, mat)
 }
 
-class BoatService(aisClient: AISSource, db: TracksSource)(
+class BoatService(aisClient: AISSource, db: TrackInsertsDatabase)(
   implicit as: ActorSystem,
   mat: Materializer
 ) extends Streams {
@@ -90,15 +90,11 @@ class BoatService(aisClient: AISSource, db: TracksSource)(
       .merge(ais.map(pairs => VesselMessages(pairs.map(_.toInfo(formatter)))))
 
   private def saveRecovered(coord: FullCoord): Future[List[Inserted]] =
-    db.saveCoords(coord)
-      .map { inserted =>
-        List(Inserted(coord, inserted))
-      }
-      .recover {
-        case t =>
-          log.error(s"Unable to save coords.", t)
-          Nil
-      }
+    db.saveCoords(coord).map { inserted => List(Inserted(coord, inserted)) }.recover {
+      case t =>
+        log.error(s"Unable to save coords.", t)
+        Nil
+    }
 
   def close(): Unit = killSwitch.shutdown()
 }

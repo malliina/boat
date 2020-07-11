@@ -7,8 +7,7 @@ import com.malliina.values.{UserId, Username}
 
 import scala.concurrent.Future
 
-trait TracksSource {
-  def stats(user: MinimalUserInfo, limits: TrackQuery, lang: Lang): Future[StatsResponse]
+trait TrackInsertsDatabase {
   def updateTitle(track: TrackName, title: TrackTitle, user: UserId): Future[JoinedTrack]
   def updateComments(track: TrackId, comments: String, user: UserId): Future[JoinedTrack]
   def addBoat(boat: BoatName, user: UserId): Future[BoatRow]
@@ -30,6 +29,13 @@ trait TracksSource {
   def joinAsDevice(meta: DeviceMeta): Future[JoinedBoat]
   def saveSentences(sentences: SentencesEvent): Future[Seq[KeyedSentence]]
   def saveCoords(coords: FullCoord): Future[InsertedPoint]
+}
+
+trait StatsSource {
+  def stats(user: MinimalUserInfo, limits: TrackQuery, lang: Lang): Future[StatsResponse]
+}
+
+trait TracksSource {
   def tracksFor(user: MinimalUserInfo, filter: TrackQuery): Future[Tracks]
   def tracksBundle(user: MinimalUserInfo, filter: TrackQuery, lang: Lang): Future[TracksBundle]
   def ref(track: TrackName, language: Language): Future[TrackRef]
