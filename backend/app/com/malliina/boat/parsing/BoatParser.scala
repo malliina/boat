@@ -11,9 +11,6 @@ import play.api.libs.json.{JsError, JsValue, Reads}
 object BoatParser {
   private val log = Logger(getClass)
 
-  def multi(src: Source[ParsedSentence, NotUsed])(implicit as: ActorSystem, mat: Materializer) =
-    src.via(multiFlow())
-
   def multiFlow()(
     implicit as: ActorSystem,
     mat: Materializer

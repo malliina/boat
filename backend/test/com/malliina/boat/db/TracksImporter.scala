@@ -1,82 +1,45 @@
 package com.malliina.boat.db
 
-import java.nio.charset.StandardCharsets
-import java.nio.file.{Files, Path}
-
-import akka.NotUsed
-import akka.actor.ActorSystem
-import akka.stream.Materializer
-import akka.stream.scaladsl.{Flow, Sink, Source}
-import com.malliina.boat.parsing.{BoatParser, FullCoord}
-import com.malliina.boat.{BoatName, BoatUser, DateVal, DeviceId, InsertedPoint, KeyedSentence, LocalConf, RawSentence, SentencesEvent, TrackId, TrackInput, TrackNames}
+import akka.stream.IOResult
+import akka.stream.scaladsl.Source
+import com.malliina.boat.{BoatName, BoatUser, DateVal, DeviceId, LocalConf, RawSentence, TrackId, TrackInput, TrackNames}
 import com.malliina.util.FileUtils
 import com.malliina.values.Username
 import tests.AsyncSuite
 
 import scala.concurrent.Future
 import scala.concurrent.duration.DurationLong
-import scala.jdk.CollectionConverters.CollectionHasAsScala
 
 class TracksImporter extends AsyncSuite {
   lazy val c = Conf.fromConf(LocalConf.localConf).toOption.get
   lazy val db = BoatDatabase(as, c)
 
   test("import tracks from plotter log file".ignore) {
-    importSlice(".boat/Log20200513.txt", 1273831, 1320488)
-    importSlice(".boat/20200611LOG.txt", 1276539, 1367409)
+//    importSlice(".boat/Log20200513.txt", 1273831, 1320488)
+    importSlice(".boat/latest.txt", 1233566, 1350930)
+  }
+
+  test("modify tracks".ignore) {
+    val oldTrack = TrackId(175)
+    splitTracksByDate(oldTrack, TrackInserts(db))
   }
 
   private def importSlice(file: String, drop: Int, last: Int) = {
     val inserts = TrackInserts(db)
+    val importer = new TrackImporter(inserts)
     val trackName = TrackNames.random()
     val track = await(
       inserts.joinAsBoat(BoatUser(trackName, BoatName("Amina"), Username("mle"))),
       10.seconds
     )
-    println(s"Using $track")
-    val s: Source[RawSentence, NotUsed] =
-      fromFile(FileUtils.userHome.resolve(file))
+    val s: Source[RawSentence, Future[IOResult]] =
+      importer
+        .fileSource(FileUtils.userHome.resolve(file))
         .drop(drop)
         .take(last - drop)
-        .filter(_ != RawSentence.initialZda)
-    val events = s.map(s => SentencesEvent(Seq(s), track.short))
-    Sink.fold[Long, InsertedPoint](0L) { (acc, _) =>
-      if (acc % 1000 == 0) {
-        println(s"Inserted $acc items...")
-      }
-      acc + 1
-    }
-    val task = events
-      .via(processSentences(inserts.saveSentences, inserts.saveCoords))
-      .runWith(Sink.ignore)
+    val task = importer.saveSource(s, track.short)
     await(task, 300000.seconds)
   }
-
-  test("modify tracks".ignore) {
-    val oldTrack = TrackId(175)
-    splitTracksByDate(
-      oldTrack,
-      TrackInserts(db)
-    )
-  }
-
-  def fromFile(file: Path): Source[RawSentence, NotUsed] =
-    Source(
-      Files
-        .readAllLines(file, StandardCharsets.UTF_8)
-        .asScala
-        .map(RawSentence.apply)
-        .toList
-    )
-
-  def processSentences(
-    saveSentences: SentencesEvent => Future[Seq[KeyedSentence]],
-    saveCoord: FullCoord => Future[InsertedPoint]
-  ) =
-    Flow[SentencesEvent]
-      .via(Flow[SentencesEvent].mapAsync(1)(saveSentences))
-      .mapConcat(saved => saved.toList)
-      .via(insertPointsFlow(saveCoord))
 
   def splitTracksByDate(oldTrack: TrackId, db: TrackInserts) = {
 //    import db._
@@ -106,15 +69,5 @@ class TracksImporter extends AsyncSuite {
       updates <- IO.traverse(dates)(date => createAndUpdateTrack(date))
     } yield updates
     performIO(action)
-  }
-
-  def insertPointsFlow(save: FullCoord => Future[InsertedPoint])(
-    implicit as: ActorSystem,
-    mat: Materializer
-  ): Flow[KeyedSentence, InsertedPoint, NotUsed] = {
-    Flow[KeyedSentence]
-      .mapConcat(raw => BoatParser.parse(raw).toOption.toList)
-      .via(BoatParser.multiFlow())
-      .via(Flow[FullCoord].mapAsync(1)(save))
   }
 }

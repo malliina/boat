@@ -7,7 +7,7 @@ case class TimePatterns(date: String, time: String, dateTime: String)
 
 object TimePatterns {
   val fi = TimePatterns("dd.MM.yyyy", "HH:mm:ss", "dd.MM.yyyy HH:mm:ss")
-  val se = TimePatterns("dd.MM.yyyy", "HH:mm:ss", "dd.MM.yyyy HH:mm:ss")
+  val se = fi
   val en = TimePatterns("dd MMM yyyy", "HH:mm:ss", "dd MMM yyyy HH:mm:ss")
 }
 

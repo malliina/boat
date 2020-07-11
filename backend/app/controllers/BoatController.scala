@@ -1,5 +1,6 @@
 package controllers
 
+import java.nio.file.Files
 import java.time.Instant
 
 import akka.actor.ActorSystem
@@ -15,16 +16,18 @@ import com.malliina.boat.http.AccessOperation.{Grant, Revoke}
 import com.malliina.boat.http._
 import com.malliina.boat.parsing.{BoatService, DeviceService}
 import com.malliina.boat.push.{BoatState, PushService}
+import com.malliina.storage.StorageInt
 import com.malliina.values.Username
 import controllers.BoatController.log
 import play.api.Logger
 import play.api.data.{Form, Forms}
 import play.api.http.{MimeTypes, Writeable}
 import play.api.libs.json.{JsValue, Json, Writes}
+import play.api.libs.streams.Accumulator
 import play.api.mvc.WebSocket.MessageFlowTransformer.jsonMessageFlowTransformer
 import play.api.mvc._
 import play.filters.csrf.CSRF
-import com.malliina.storage.StorageInt
+
 import scala.concurrent.Future
 import scala.concurrent.duration.DurationInt
 import scala.util.{Failure, Success, Try}
@@ -42,6 +45,7 @@ class BoatController(
   deviceService: DeviceService,
   db: TracksSource,
   inserts: TrackInsertsDatabase,
+  imports: TrackImporter,
   statsSource: StatsSource,
   push: PushService,
   comps: ControllerComponents
@@ -88,17 +92,31 @@ class BoatController(
         .getToken(req.rh)
         .map { token => Ok(html.devices(req.user, token)) }
         .getOrElse {
-          InternalServerError
+          InternalServerError(Errors("Server error.", "server"))
         }
     }
   }
 
   def tracks = negotiated(tracksHtml, tracksJson)
 
-  def saveTrack = Action(parse.temporaryFile(1024.megs.toBytes)).async { req =>
-    val file = req.body.path
-
-    fut(Accepted)
+  def saveTrack = EssentialAction { rh =>
+    val uploadAction = authExistingBoat(rh).map { meta =>
+      val action = Action(parse.temporaryFile(1024.megs.toBytes)).async { req =>
+        val file = req.body.path
+        imports
+          .save(file, meta.short)
+          .map { bytes =>
+            log.info(s"Done importing $bytes bytes from $file to ${meta.trackName}.")
+          }
+          .recover {
+            case e =>
+              log.error(s"Failed to import $file to ${meta.trackName}", e)
+          }
+        fut(Accepted(SimpleMessage(s"Started import to '${meta.trackName}'.")))
+      }
+      action(rh)
+    }
+    Accumulator.flatten(uploadAction)
   }
 
   def history = userAction(profile, BoatQuery.apply) { req =>
@@ -431,8 +449,10 @@ class BoatController(
   private def authBoat(rh: RequestHeader): Future[Either[Result, TrackMeta]] =
     recovered(boatAuth(rh).flatMap(meta => inserts.joinAsBoat(meta)), rh)
 
-  private def authExistingBoat(rh: RequestHeader): Future[Either[Result, TrackMeta]] =
-    recovered(boatTokenAuth(rh).flatMap(meta => inserts.joinAsBoat(meta)), rh)
+  private def authExistingBoat(rh: RequestHeader) =
+    boatTokenAuth(rh).getOrElse(Future.failed(InvalidCredentials(None).toException)).flatMap {
+      meta => inserts.joinAsBoat(meta.withTrack(trackOrRandom(rh)))
+    }
 
   private def authDevice(rh: RequestHeader): Future[Either[Result, JoinedBoat]] =
     recovered(boatAuthNoTrack(rh).flatMap(meta => inserts.joinAsDevice(meta)), rh)
@@ -450,7 +470,7 @@ class BoatController(
       fut(SimpleBoatMeta(anonUser, boatName))
     }
 
-  private def boatTokenAuth(rh: RequestHeader) = rh.headers
+  private def boatTokenAuth(rh: RequestHeader): Option[Future[JoinedBoat]] = rh.headers
     .get(BoatTokenHeader)
     .map { token => auther.authBoat(BoatToken(token)) }
 

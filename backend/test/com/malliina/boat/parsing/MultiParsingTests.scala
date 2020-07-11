@@ -45,7 +45,7 @@ class MultiParsingTests extends BaseSuite {
       BoatParser.parse(KeyedSentence(SentenceKey(1), raw, from)).toOption.toList
     )
     val singleParsed = Source(sentences.toList).via(flow)
-    val multiParsed = BoatParser.multi(singleParsed)
+    val multiParsed = singleParsed.via(BoatParser.multiFlow())
 //    val task = multiParsed.runWith(Sink.foreach(println))
     val start = System.currentTimeMillis()
     val task = multiParsed.runWith(Sink.seq)
@@ -67,12 +67,8 @@ class MultiParsingTests extends BaseSuite {
   }
 
   test("process".ignore) {
-    val intSink = Sink.foreach[Int] { i =>
-      i + 1
-    }
-    val stringSink = intSink.contramap[String] { s =>
-      s.length
-    }
+    val intSink = Sink.foreach[Int] { i => i + 1 }
+    val stringSink = intSink.contramap[String] { s => s.length }
     val stringToInt = Flow[String].map(s => s.length)
     val target: Sink[Int, Future[Done]] = ???
     Sink.foreach[String](println)

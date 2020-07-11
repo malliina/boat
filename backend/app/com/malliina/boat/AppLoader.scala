@@ -153,6 +153,7 @@ class AppComponents(
     deviceService,
     tracks,
     inserts,
+    TrackImporter(inserts, actorSystem, executionContext),
     stats,
     push,
     controllerComponents

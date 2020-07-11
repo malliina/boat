@@ -288,8 +288,8 @@ object Errors {
     Writeable.writeableOf_JsValue.map[Errors](e => Json.toJson(e))
 
   def apply(error: SingleError): Errors = Errors(Seq(error))
-
-  def apply(message: String): Errors = apply(SingleError(message, "generic"))
+  def apply(message: String): Errors = apply(message, "generic")
+  def apply(message: String, key: String): Errors = apply(SingleError(message, key))
 }
 
 object BoatNames {
