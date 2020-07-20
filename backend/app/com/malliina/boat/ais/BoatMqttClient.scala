@@ -96,9 +96,7 @@ class BoatMqttClient(url: FullUrl, topic: String) extends AISSource {
         case loc: VesselLocation =>
           metadata
             .get(loc.mmsi)
-            .map { meta =>
-              Source.single(AisPair(loc, meta))
-            }
+            .map { meta => Source.single(AisPair(loc, meta)) }
             .getOrElse {
               // Drops location updates for which there is no vessel metadata
               Source.empty
