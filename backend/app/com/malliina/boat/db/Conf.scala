@@ -2,6 +2,7 @@ package com.malliina.boat.db
 
 import com.zaxxer.hikari.{HikariConfig, HikariDataSource}
 import play.api.{Configuration, Logger}
+import concurrent.duration.DurationInt
 
 case class Conf(url: String, user: String, pass: String, driver: String, isMariaDb: Boolean = false)
 
@@ -33,6 +34,8 @@ object Conf {
     hikari.setJdbcUrl(conf.url)
     hikari.setUsername(conf.user)
     hikari.setPassword(conf.pass)
+    hikari.setMaxLifetime(180.seconds.toMillis)
+    hikari.setMaximumPoolSize(5)
     log info s"Connecting to '${conf.url}'..."
     new HikariDataSource(hikari)
   }

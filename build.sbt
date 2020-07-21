@@ -9,13 +9,14 @@ import scala.util.Try
 
 val mapboxVersion = "1.10.1"
 val utilPlayVersion = "5.11.0"
-val munitVersion = "0.7.8"
+val munitVersion = "0.7.9"
 val testContainersScalaVersion = "0.37.0"
 val scalaTagsVersion = "0.9.1"
 val primitiveVersion = "1.17.0"
 val akkaVersion = "2.6.5"
 val akkaHttpVersion = "10.1.12"
 val playJsonVersion = "2.9.0"
+val alpnVersion = "9.4.30.v20200611"
 val utilPlayDep = "com.malliina" %% "util-play" % utilPlayVersion
 val utilPlayTestDep = utilPlayDep % Test classifier "tests"
 val munitDep = "org.scalameta" %% "munit" % munitVersion % Test
@@ -29,7 +30,7 @@ concurrentRestrictions in Global += Tags.limit(Tags.Test, 1)
 
 val basicSettings = Seq(
   organization := "com.malliina",
-  scalaVersion := "2.13.2",
+  scalaVersion := "2.13.3",
   scalacOptions := Seq("-unchecked", "-deprecation")
 )
 
@@ -129,7 +130,7 @@ val backend = Project("boat", file("backend"))
       "com.vividsolutions" % "jts" % "1.13",
       "io.getquill" %% "quill-jdbc" % "3.5.1",
       "mysql" % "mysql-connector-java" % "5.1.49",
-      "org.flywaydb" % "flyway-core" % "6.4.3",
+      "org.flywaydb" % "flyway-core" % "6.5.1",
       "org.apache.commons" % "commons-text" % "1.8",
       "com.amazonaws" % "aws-java-sdk-s3" % "1.11.584",
       "com.malliina" %% "logstreams-client" % "1.10.1",
@@ -139,9 +140,9 @@ val backend = Project("boat", file("backend"))
       "com.typesafe.akka" %% "akka-stream" % akkaVersion,
       "com.typesafe.akka" %% "akka-http" % akkaHttpVersion,
       "com.typesafe.akka" %% "akka-http-spray-json" % akkaHttpVersion,
-      "org.eclipse.paho" % "org.eclipse.paho.client.mqttv3" % "1.2.4",
-      "org.eclipse.jetty" % "jetty-alpn-java-server" % "9.4.20.v20190813",
-      "org.eclipse.jetty" % "jetty-alpn-java-client" % "9.4.20.v20190813",
+      "org.eclipse.paho" % "org.eclipse.paho.client.mqttv3" % "1.2.5",
+      "org.eclipse.jetty" % "jetty-alpn-java-server" % alpnVersion,
+      "org.eclipse.jetty" % "jetty-alpn-java-client" % alpnVersion,
       utilPlayDep,
       utilPlayTestDep,
       "com.dimafeng" %% "testcontainers-scala-mysql" % testContainersScalaVersion % Test
@@ -212,7 +213,7 @@ val agent = project
     libraryDependencies ++= Seq(
       "com.malliina" %% "primitives" % primitiveVersion,
       "com.malliina" %% "logback-streams" % "1.8.0",
-      "com.neovisionaries" % "nv-websocket-client" % "2.9",
+      "com.neovisionaries" % "nv-websocket-client" % "2.10",
       "org.slf4j" % "slf4j-api" % "1.7.30",
       "com.typesafe.akka" %% "akka-stream" % akkaVersion,
       "com.typesafe.akka" %% "akka-http" % akkaHttpVersion,
