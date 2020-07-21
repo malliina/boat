@@ -12,7 +12,7 @@ import play.api.data.{Forms, Mapping}
 import play.api.http.Writeable
 import play.api.libs.json._
 import play.api.mvc.PathBindable
-
+import com.malliina.boat.BuildInfo
 import scala.concurrent.duration.FiniteDuration
 
 case class CSRFToken(token: String) extends AnyVal
@@ -108,10 +108,8 @@ case class AppMeta(name: String, version: String, gitHash: String, mapboxVersion
 
 object AppMeta {
   implicit val json = Json.format[AppMeta]
-//  val default =
-//    AppMeta(BuildInfo.name, BuildInfo.version, BuildInfo.gitHash, BuildInfo.mapboxVersion)
   val default =
-    AppMeta("test", "0.0.1", "abcd123", "0.53.1")
+    AppMeta(BuildInfo.name, BuildInfo.version, BuildInfo.gitHash, BuildInfo.mapboxVersion)
 }
 
 case class JoinedTrack(

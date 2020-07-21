@@ -156,8 +156,14 @@ val backend = Project("boat", file("backend"))
     pipelineStages := Seq(digest, gzip),
     pipelineStages in Assets := Seq(scalaJSPipeline),
     //  npmAssets ++= NpmAssets.ofProject(client) { modules => (modules / "font-awesome").allPaths }.value,
-//    buildInfoKeys := Seq[BuildInfoKey](name, version, scalaVersion, "gitHash" -> gitHash, "mapboxVersion" -> mapboxVersion),
-//    buildInfoPackage := "com.malliina.boat",
+    buildInfoKeys := Seq[BuildInfoKey](
+      name,
+      version,
+      scalaVersion,
+      "gitHash" -> gitHash,
+      "mapboxVersion" -> mapboxVersion
+    ),
+    buildInfoPackage := "com.malliina.boat",
     // linux packaging
     httpPort in Linux := Option(s"$prodPort"),
     httpsPort in Linux := Option("disabled"),
