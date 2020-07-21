@@ -120,7 +120,7 @@ val frontend = project
   )
 
 val backend = Project("boat", file("backend"))
-  .enablePlugins(PlayScala, FileTreePlugin, WebScalaJSBundlerPlugin)
+  .enablePlugins(PlayScala, FileTreePlugin, WebScalaJSBundlerPlugin, BuildInfoPlugin)
   .disablePlugins(RevolverPlugin)
   .dependsOn(crossJvm)
   .settings(jvmSettings ++ boatSettings)
