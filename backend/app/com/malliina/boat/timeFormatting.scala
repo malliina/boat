@@ -27,17 +27,18 @@ object TimeFormatter {
 }
 
 class TimeFormatter(patterns: TimePatterns) {
+  val helsinkiZone = ZoneId.of("Europe/Helsinki")
   val dateFormatter = DateTimeFormatter
     .ofPattern(patterns.date)
-    .withZone(ZoneId.systemDefault())
+    .withZone(helsinkiZone)
 
   val timeFormatter = DateTimeFormatter
     .ofPattern(patterns.time)
-    .withZone(ZoneId.systemDefault())
+    .withZone(helsinkiZone)
 
   val dateTimeFormatter = DateTimeFormatter
     .ofPattern(patterns.dateTime)
-    .withZone(ZoneId.systemDefault())
+    .withZone(helsinkiZone)
 
   def formatDate(i: Instant) = FormattedDate(dateFormatter.format(i))
 
