@@ -123,7 +123,9 @@ class TrackInserts(val db: BoatDatabase[SnakeCase]) extends TrackInsertsDatabase
         val user = run(usersTable.filter(_.user == lift(meta.user))).headOption
           .getOrElse(fail(s"User not found: '${meta.user}'."))
         val maybeBoat =
-          run(boatsTable.filter(b => b.name == lift(meta.boat) && b.owner == lift(user.id))).headOption
+          run(
+            boatsTable.filter(b => b.name == lift(meta.boat) && b.owner == lift(user.id))
+          ).headOption
         val boat = maybeBoat.getOrElse {
           val exists: Boolean = run(boatsTable.filter(_.name == lift(meta.boat)).nonEmpty)
           if (exists) {
@@ -137,7 +139,9 @@ class TrackInserts(val db: BoatDatabase[SnakeCase]) extends TrackInsertsDatabase
         }
         // Prepares track
         val maybeTrack =
-          run(trackMetas.filter(t => t.trackName == lift(meta.track) && t.boat == lift(boat.id))).headOption
+          run(
+            trackMetas.filter(t => t.trackName == lift(meta.track) && t.boat == lift(boat.id))
+          ).headOption
         maybeTrack.getOrElse {
           val in = TrackInput.empty(meta.track, boat.id)
           val inserted = run(tracksInsert(lift(in)))
@@ -161,7 +165,9 @@ class TrackInserts(val db: BoatDatabase[SnakeCase]) extends TrackInsertsDatabase
           .getOrElse(fail(s"User not found: '$user'."))
         val userId = userRow.id
         val maybeBoat =
-          run(boatsView.filter(b => b.boatName == lift(boat) && b.userId == lift(userId))).headOption
+          run(
+            boatsView.filter(b => b.boatName == lift(boat) && b.userId == lift(userId))
+          ).headOption
         maybeBoat.getOrElse {
           val alreadyExists = run(boatsTable.filter(b => b.name == lift(boat)).nonEmpty)
           if (alreadyExists) {

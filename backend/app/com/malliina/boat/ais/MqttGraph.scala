@@ -51,13 +51,16 @@ class MqttGraph(settings: MqttSettings)
         failStage(ex)
       }
 
-      setHandler(out, new OutHandler {
-        override def onPull(): Unit = {
-          if (queue.nonEmpty) {
-            pushMessage(queue.dequeue())
+      setHandler(
+        out,
+        new OutHandler {
+          override def onPull(): Unit = {
+            if (queue.nonEmpty) {
+              pushMessage(queue.dequeue())
+            }
           }
         }
-      })
+      )
 
       override def preStart(): Unit = {
         val client = new MqttAsyncClient(

@@ -33,10 +33,13 @@ class TitleHandler(
   with CSRFConf {
   val trackRow = document.getElementsByClassName(TrackRow)
 
-  editIcon.addEventListener("click", (_: Event) => {
-    trackRow.foreach(_.hide())
-    form.show()
-  })
+  editIcon.addEventListener(
+    "click",
+    (_: Event) => {
+      trackRow.foreach(_.hide())
+      form.show()
+    }
+  )
 
   form.onsubmit = (e: Event) => {
     elemAs[HTMLInputElement](TitleInputId).map { in =>
@@ -68,10 +71,13 @@ class CommentsHandler(
   with CSRFConf {
   val editRow = document.getElementsByClassName(CommentsRow)
 
-  editIcon.addEventListener("click", (_: Event) => {
-    editRow.foreach(_.hide())
-    form.show()
-  })
+  editIcon.addEventListener(
+    "click",
+    (_: Event) => {
+      editRow.foreach(_.hide())
+      form.show()
+    }
+  )
   form.onsubmit = (e: Event) => {
     elemAs[HTMLInputElement](CommentsInputId).map { in =>
       HttpClient

@@ -14,7 +14,7 @@ import scala.concurrent.{Await, Future}
   *   <li>Open TCP connection to gpsd</li>
   *   <li>Send WATCH command to subscribe to NMEA sentences</li>
   *   <li>Receive sentences for further processing</li>
-  *</ol>
+  * </ol>
   */
 class GPSTests extends BasicSuite {
   test("receive sentences from GPS source".ignore) {

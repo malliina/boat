@@ -128,9 +128,11 @@ class MapView(
       htmlElem(contentId).foreach { content =>
         link.addOnClick(_ => toggleClass(content, Visible))
         window.addOnClick { e =>
-          if (e.target.isOutside(content) && e.target.isOutside(link) && content.classList.contains(
-                Visible
-              )) {
+          if (
+            e.target.isOutside(content) && e.target.isOutside(link) && content.classList.contains(
+              Visible
+            )
+          ) {
             content.classList.remove(Visible)
           }
         }

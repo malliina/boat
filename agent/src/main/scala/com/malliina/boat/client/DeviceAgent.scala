@@ -33,9 +33,14 @@ class DeviceAgent(conf: BoatConf, url: FullUrl)(implicit as: ActorSystem, mat: M
   val isGps = conf.device == GpsDevice
   val delimiter = TcpSource.crlf
   val tcp = TcpSource(conf.host, conf.port, delimiter)
-  val ws = WebSocketClient(url, conf.token.map { t =>
-    KeyValue(BoatTokenHeader, t.token)
-  }.toList, as, mat)
+  val ws = WebSocketClient(
+    url,
+    conf.token.map { t =>
+      KeyValue(BoatTokenHeader, t.token)
+    }.toList,
+    as,
+    mat
+  )
   val toTcp =
     if (isGps)
       Source.single(TcpSource.watchMessage).concat(Source.maybe[ByteString])

@@ -27,8 +27,8 @@ object WebServer {
   val settingsPath = "settings"
   val settingsUri = s"/$settingsPath"
 
-  def apply(host: String, port: Int, agentInstance: AgentInstance)(
-    implicit as: ActorSystem,
+  def apply(host: String, port: Int, agentInstance: AgentInstance)(implicit
+    as: ActorSystem,
     mat: Materializer
   ): WebServer =
     new WebServer(host, port, agentInstance)
@@ -36,8 +36,8 @@ object WebServer {
   def hash(pass: String): String = DigestUtils.md5Hex(pass)
 }
 
-class WebServer(host: String, port: Int, agentInstance: AgentInstance)(
-  implicit as: ActorSystem,
+class WebServer(host: String, port: Int, agentInstance: AgentInstance)(implicit
+  as: ActorSystem,
   mat: Materializer
 ) extends JsonSupport {
   implicit val ec = as.dispatcher

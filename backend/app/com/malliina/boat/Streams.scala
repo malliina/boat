@@ -50,8 +50,8 @@ trait Streams {
     src.via(flow)
   }
 
-  def connected[T, U](processorProps: ActorRef => Props, as: ActorSystem)(
-    implicit mat: Materializer
+  def connected[T, U](processorProps: ActorRef => Props, as: ActorSystem)(implicit
+    mat: Materializer
   ): Flow[T, U, NotUsed] = {
     val publisherSink: Sink[U, Publisher[U]] = Sink.asPublisher[U](fanout = true)
     val completion: PartialFunction[Any, CompletionStrategy] = {
@@ -73,8 +73,8 @@ trait Streams {
     Flow.fromSinkAndSource(processorSink, processed)
   }
 
-  def monitored[In, Mat](src: Source[In, Mat], label: String)(
-    implicit ec: ExecutionContext
+  def monitored[In, Mat](src: Source[In, Mat], label: String)(implicit
+    ec: ExecutionContext
   ): Source[In, Future[Done]] =
     src.watchTermination()(Keep.right).mapMaterializedValue { done =>
       done.transform { tryDone =>

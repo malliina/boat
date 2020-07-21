@@ -21,12 +21,15 @@ class StatsDatabase(db: BoatDatabase[SnakeCase]) extends StatsSource {
     val username = user.username
     val isAsc = limits.order == SortOrder.Asc
     val task = for {
-      daily <- if (isAsc) runIO(dailyQueryAsc(lift(username)))
-      else runIO(dailyQueryDesc(lift(username)))
-      monthly <- if (isAsc) runIO(monthlyQueryAsc(lift(username)))
-      else runIO(monthlyQueryDesc(lift(username)))
-      yearly <- if (isAsc) runIO(yearlyQueryAsc(lift(username)))
-      else runIO(yearlyQueryDesc(lift(username)))
+      daily <-
+        if (isAsc) runIO(dailyQueryAsc(lift(username)))
+        else runIO(dailyQueryDesc(lift(username)))
+      monthly <-
+        if (isAsc) runIO(monthlyQueryAsc(lift(username)))
+        else runIO(monthlyQueryDesc(lift(username)))
+      yearly <-
+        if (isAsc) runIO(yearlyQueryAsc(lift(username)))
+        else runIO(yearlyQueryDesc(lift(username)))
       allTime <- runIO(allTimeQuery(lift(username)))
     } yield {
       val all = allTime.headOption.getOrElse(AllTimeAggregates.empty)

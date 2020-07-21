@@ -168,9 +168,8 @@ class Graph(val nodes: Map[CoordHash, ValueNode]) {
     for {
       startNode <- start
       _ = log.info(s"Starting from ${startNode.from} and ending at $end...")
-      initialPaths = startNode.links.map(link =>
-        ValueRoute(link, Link(startNode.from, DistanceM.zero) :: Nil)
-      )
+      initialPaths =
+        startNode.links.map(link => ValueRoute(link, Link(startNode.from, DistanceM.zero) :: Nil))
       result <- search(startNode.from, end, initialPaths, Map.empty)
         .map(_.reverse)
     } yield {

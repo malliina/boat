@@ -238,15 +238,16 @@ class NewUserManager(val db: BoatDatabase[SnakeCase]) extends UserManager {
       owns <- runIO(
         boatsTable.filter(b => b.id == lift(boat) && b.owner == lift(principal)).nonEmpty
       )
-      auth <- if (owns) {
-        IO.successful(())
-      } else {
-        IO.failed(
-          fail(
-            s"User $principal is not authorized to modify access to boat $boat for user $from."
+      auth <-
+        if (owns) {
+          IO.successful(())
+        } else {
+          IO.failed(
+            fail(
+              s"User $principal is not authorized to modify access to boat $boat for user $from."
+            )
           )
-        )
-      }
+        }
       existed <- runIO(userBoat(lift(boat), lift(from)).nonEmpty)
       _ <- run(existed)
     } yield AccessResult(existed)

@@ -211,8 +211,11 @@ class MapSocket(
             map.fitBounds(bs, SimplePaddingOptions(20))
           } catch {
             case e: Exception =>
-              log.error(s"Unable to fit using ${bs.getSouthWest()} ${bs.getNorthWest()} ${bs
-                .getNorthEast()} ${bs.getSouthEast()}", e)
+              log.error(
+                s"Unable to fit using ${bs.getSouthWest()} ${bs.getNorthWest()} ${bs
+                  .getNorthEast()} ${bs.getSouthEast()}",
+                e
+              )
           }
         }
         mapMode = MapMode.Follow

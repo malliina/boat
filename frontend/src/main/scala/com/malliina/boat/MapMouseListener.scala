@@ -98,39 +98,38 @@ class MapMouseListener(
       if (pathFinder.isEnabled) {
         pathFinder.updatePath(e)
       } else {
-        parseClick(e).map {
-          result =>
-            result.map {
-              case DeviceClick(props, target) =>
-                markPopup.show(html.device(props), target, map)
-              case TrophyClick(props, target) =>
-                markPopup.show(html.track(props), target, map)
-              case VesselClick(boat, target) =>
-                ais
-                  .info(boat.mmsi)
-                  .map { info =>
-                    markPopup.show(html.ais(info), target, map)
-                  }
-                  .recover { err =>
-                    log.info(s"Vessel info not available for '$boat'. $err.")
-                  }
-              case SymbolClick(marker, target) =>
-                markPopup.show(html.mark(marker), target, map)
-              case MinimalClick(marker, target) =>
-                markPopup.show(html.minimalMark(marker), target, map)
-              case FairwayClick(area, target) =>
-                markPopup.show(html.fairway(area), target, map)
-              case DepthClick(area, target) =>
-                markPopup.show(html.depthArea(area), target, map)
-              case FairwayInfoClick(info, target) =>
-                markPopup.show(html.fairwayInfo(info), target, map)
-              case LimitClick(limit, target) =>
-                markPopup.show(html.limitArea(limit), target, map)
-              case LimitedFairwayClick(limit, area, target) =>
-                markPopup.show(html.limitedFairway(limit, area), target, map)
-            }.recover { err =>
-              log.info(err.describe)
-            }
+        parseClick(e).map { result =>
+          result.map {
+            case DeviceClick(props, target) =>
+              markPopup.show(html.device(props), target, map)
+            case TrophyClick(props, target) =>
+              markPopup.show(html.track(props), target, map)
+            case VesselClick(boat, target) =>
+              ais
+                .info(boat.mmsi)
+                .map { info =>
+                  markPopup.show(html.ais(info), target, map)
+                }
+                .recover { err =>
+                  log.info(s"Vessel info not available for '$boat'. $err.")
+                }
+            case SymbolClick(marker, target) =>
+              markPopup.show(html.mark(marker), target, map)
+            case MinimalClick(marker, target) =>
+              markPopup.show(html.minimalMark(marker), target, map)
+            case FairwayClick(area, target) =>
+              markPopup.show(html.fairway(area), target, map)
+            case DepthClick(area, target) =>
+              markPopup.show(html.depthArea(area), target, map)
+            case FairwayInfoClick(info, target) =>
+              markPopup.show(html.fairwayInfo(info), target, map)
+            case LimitClick(limit, target) =>
+              markPopup.show(html.limitArea(limit), target, map)
+            case LimitedFairwayClick(limit, area, target) =>
+              markPopup.show(html.limitedFairway(limit, area), target, map)
+          }.recover { err =>
+            log.info(err.describe)
+          }
         }
       }
 

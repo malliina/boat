@@ -508,7 +508,9 @@ class BoatController(
     */
   private def optionalWebAuth(rh: RequestHeader): Future[Option[UserBoats]] =
     sessionEmail(rh).map { email => auther.boats(email).map { boats => Option(boats) } }.getOrElse {
-      googleCookie(rh).map { _ => Future.failed(IdentityException.missingCredentials(rh)) }.getOrElse {
+      googleCookie(rh).map { _ =>
+        Future.failed(IdentityException.missingCredentials(rh))
+      }.getOrElse {
         fut(None)
       }
     }

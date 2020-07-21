@@ -21,8 +21,8 @@ object Social {
     new Social(authConf, comps, http)(ec)
 }
 
-class Social(googleConf: AuthConf, comps: ControllerComponents, http: OkClient)(
-  implicit ec: ExecutionContext
+class Social(googleConf: AuthConf, comps: ControllerComponents, http: OkClient)(implicit
+  ec: ExecutionContext
 ) extends AbstractController(comps) {
   val log = Logger(getClass)
   val providerCookieDuration: Duration = 3650.days

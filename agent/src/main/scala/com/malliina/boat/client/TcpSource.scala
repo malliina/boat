@@ -25,15 +25,15 @@ object TcpSource {
   // Subscribes to NMEA messages. Depending on device, by default, nothing happens.
   val watchMessage = ByteString(GpsDevice.watchCommand + TcpSource.crlf, StandardCharsets.US_ASCII)
 
-  def apply(host: String, port: Int, delimiter: String = crlf)(
-    implicit as: ActorSystem,
+  def apply(host: String, port: Int, delimiter: String = crlf)(implicit
+    as: ActorSystem,
     mat: Materializer
   ): TcpSource =
     new TcpSource(host, port, delimiter)
 }
 
-class TcpSource(host: String, port: Int, delimiter: String)(
-  implicit as: ActorSystem,
+class TcpSource(host: String, port: Int, delimiter: String)(implicit
+  as: ActorSystem,
   mat: Materializer
 ) {
   implicit val ec = mat.executionContext

@@ -97,10 +97,11 @@ trait Quotes[I <: Idiom, N <: NamingStrategy] { this: Context[I, N] =>
       (track, topSpeed) <- rawPointsTable.groupBy(_.track).map {
         case (t, ps) => (t, ps.map(_.boatSpeed).max)
       }
-      (trackId, topPoint) <- rawPointsTable
-        .filter(p => track == p.track && topSpeed.contains(p.boatSpeed))
-        .groupBy(_.track)
-        .map { case (id, winners) => (id, winners.map(_.id).min) }
+      (trackId, topPoint) <-
+        rawPointsTable
+          .filter(p => track == p.track && topSpeed.contains(p.boatSpeed))
+          .groupBy(_.track)
+          .map { case (id, winners) => (id, winners.map(_.id).min) }
     } yield TrackTop(trackId, topPoint)
   }
   val topRows = quote {

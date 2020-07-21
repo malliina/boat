@@ -11,9 +11,12 @@ class CSRFUtils(val log: BaseLogger = BaseLogger.console) extends CSRFConf {
 
   def installCsrf(parent: Element): Unit =
     parent.getElementsByTagName("form").foreach { node =>
-      node.addEventListener("submit", (e: Event) => {
-        installTo(e.target.asInstanceOf[HTMLFormElement])
-      })
+      node.addEventListener(
+        "submit",
+        (e: Event) => {
+          installTo(e.target.asInstanceOf[HTMLFormElement])
+        }
+      )
     }
 
   def installTo(form: HTMLFormElement) = {

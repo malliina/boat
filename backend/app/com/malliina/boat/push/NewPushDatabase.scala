@@ -16,8 +16,8 @@ object NewPushDatabase {
     new NewPushDatabase(db, push)(db.ec)
 }
 
-class NewPushDatabase(val db: BoatDatabase[SnakeCase], val push: PushEndpoint)(
-  implicit ec: ExecutionContext
+class NewPushDatabase(val db: BoatDatabase[SnakeCase], val push: PushEndpoint)(implicit
+  ec: ExecutionContext
 ) extends PushService {
   import db._
   val pushTable = quote(querySchema[PushDevice]("push_clients"))

@@ -11,14 +11,14 @@ import play.api.libs.json.{JsError, JsValue, Reads}
 object BoatParser {
   private val log = Logger(getClass)
 
-  def multiFlow()(
-    implicit as: ActorSystem,
+  def multiFlow()(implicit
+    as: ActorSystem,
     mat: Materializer
   ): Flow[ParsedSentence, FullCoord, NotUsed] =
     Streams.connected[ParsedSentence, FullCoord](dest => PlotterProcessorActor.props(dest), as)
 
-  def gpsFlow()(
-    implicit as: ActorSystem,
+  def gpsFlow()(implicit
+    as: ActorSystem,
     mat: Materializer
   ): Flow[ParsedGPSSentence, GPSCoord, NotUsed] =
     Streams.connected[ParsedGPSSentence, GPSCoord](dest => GPSProcessorActor.props(dest), as)

@@ -24,8 +24,8 @@ object BoatService {
     new BoatService(aisClient, db)(as, mat)
 }
 
-class BoatService(aisClient: AISSource, db: TrackInsertsDatabase)(
-  implicit as: ActorSystem,
+class BoatService(aisClient: AISSource, db: TrackInsertsDatabase)(implicit
+  as: ActorSystem,
   mat: Materializer
 ) extends Streams {
   implicit val ec: ExecutionContext = mat.executionContext

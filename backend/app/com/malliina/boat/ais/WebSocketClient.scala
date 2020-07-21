@@ -36,8 +36,8 @@ object WebSocketClient {
     apply(ProdUrl, headers, as, mat)
 }
 
-class WebSocketClient(url: FullUrl, headers: List[KeyValue])(
-  implicit as: ActorSystem,
+class WebSocketClient(url: FullUrl, headers: List[KeyValue])(implicit
+  as: ActorSystem,
   mat: Materializer
 ) {
   val validHeaders = headers.map(kv => HttpHeader.parse(kv.key, kv.value)).collect {

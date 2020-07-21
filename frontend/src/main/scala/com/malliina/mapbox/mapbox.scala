@@ -236,10 +236,13 @@ object MapboxMap {
 
     def fetchImage(uri: String): Future[js.Any] = {
       val p = Promise[js.Any]()
-      self.loadImage(uri, (err, data) => {
-        if (err == null) p.success(data)
-        else p.failure(new Exception(s"Failed to load '$uri'."))
-      })
+      self.loadImage(
+        uri,
+        (err, data) => {
+          if (err == null) p.success(data)
+          else p.failure(new Exception(s"Failed to load '$uri'."))
+        }
+      )
       p.future
     }
 
