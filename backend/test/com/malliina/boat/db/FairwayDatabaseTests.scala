@@ -10,7 +10,7 @@ import scala.concurrent.duration.DurationInt
 
 class FairwayDatabaseTests extends AsyncSuite with DockerDatabase {
   test("import fairways to database".ignore) {
-    val database = testDatabase(as, TestConf(db()))
+    val database = testDatabase(dbExecutor, TestConf(db()))
     val fileIn = userHome.resolve(".boat/vaylat/vaylat-geo.json")
     val strIn = Files.readAllBytes(fileIn)
     val coll = Json.parse(strIn).as[FeatureCollection]

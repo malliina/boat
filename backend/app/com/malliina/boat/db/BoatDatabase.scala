@@ -2,6 +2,7 @@ package com.malliina.boat.db
 
 import java.sql.{Timestamp, Types}
 import java.time.Instant
+import java.util.concurrent.{Executor, Executors}
 
 import akka.actor.ActorSystem
 import com.malliina.boat.Coord
@@ -13,25 +14,23 @@ import org.flywaydb.core.Flyway
 import play.api.Logger
 
 import scala.concurrent.duration.DurationLong
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{ExecutionContext, ExecutionContextExecutor, Future}
 
 object BoatDatabase {
   private val log = Logger(getClass)
 
-  def withMigrations(as: ActorSystem, conf: Conf): BoatDatabase[SnakeCase] = {
+  def withMigrations(ec: ExecutionContext, conf: Conf): BoatDatabase[SnakeCase] = {
     val flyway =
       Flyway.configure
         .dataSource(conf.url, conf.user, conf.pass)
         .table("flyway_schema_history2")
         .load()
     flyway.migrate()
-    apply(as, conf)
+    apply(ec, conf)
   }
 
-  def apply(as: ActorSystem, dbConf: Conf): BoatDatabase[SnakeCase] = {
-    val pool = as.dispatchers.lookup("contexts.database")
-    apply(Conf.dataSource(dbConf), pool, dbConf.isMariaDb)
-  }
+  def apply(ec: ExecutionContext, dbConf: Conf): BoatDatabase[SnakeCase] =
+    apply(Conf.dataSource(dbConf), ec, dbConf.isMariaDb)
 
   private def apply(
     ds: HikariDataSource,

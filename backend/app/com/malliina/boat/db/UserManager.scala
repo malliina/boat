@@ -3,7 +3,7 @@ package com.malliina.boat.db
 import com.malliina.boat.http.{AccessResult, InviteInfo}
 import com.malliina.boat.{BoatToken, DeviceId, InviteState, JoinedBoat, Language, UserBoats, UserInfo}
 import com.malliina.play.auth.AuthError
-import com.malliina.values.{Email, Password, UserId, Username}
+import com.malliina.values.{Email, ErrorMessage, Password, UserId, Username}
 import org.apache.commons.codec.digest.DigestUtils
 import play.api.mvc.RequestHeader
 
@@ -38,24 +38,28 @@ trait UserManager {
     DigestUtils.md5Hex(user.name + ":" + pass.pass)
 }
 
-sealed trait IdentityError {
-  def toException = IdentityException(this)
+sealed abstract class IdentityError(val message: ErrorMessage) {
+  def this(message: String) = this(ErrorMessage(message))
+  def toException: IdentityException = IdentityException(this)
+  override def toString: String = message.message
 }
 
-case class AlreadyExists(user: Username) extends IdentityError
-case class InvalidCredentials(user: Option[Username] = None) extends IdentityError
-case class InvalidToken(token: BoatToken) extends IdentityError
-case class UserDisabled(user: Username) extends IdentityError
-case class UserDoesNotExist(user: Username) extends IdentityError
-case class MissingToken(rh: RequestHeader) extends IdentityError
-case class MissingCredentials(rh: RequestHeader) extends IdentityError
-case class JWTError(rh: RequestHeader, error: AuthError) extends IdentityError
+case class AlreadyExists(user: Username) extends IdentityError(s"User $user already exists.")
+case class InvalidCredentials(user: Option[Username] = None)
+  extends IdentityError(s"Invalid credentials.")
+case class InvalidToken(token: BoatToken) extends IdentityError(s"Invalid token: '$token'.")
+case class UserDisabled(user: Username) extends IdentityError(s"User is disabled: '$user'.")
+case class UserDoesNotExist(user: Username) extends IdentityError(s"User does not exist: '$user'.")
+case class MissingToken(rh: RequestHeader) extends IdentityError(s"Missing token in '$rh'.")
+case class MissingCredentials(rh: RequestHeader)
+  extends IdentityError(s"Missing credentials in '$rh'.")
+case class JWTError(rh: RequestHeader, error: AuthError) extends IdentityError(error.message)
 
 class MissingCredentialsException(error: MissingCredentials) extends IdentityException(error) {
-  def rh = error.rh
+  def rh: RequestHeader = error.rh
 }
 
-class IdentityException(val error: IdentityError) extends Exception
+class IdentityException(val error: IdentityError) extends Exception(error.message.message)
 
 object IdentityException {
   def apply(error: IdentityError): IdentityException = error match {

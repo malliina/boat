@@ -12,7 +12,7 @@ import scala.concurrent.duration.DurationLong
 
 class TracksImporter extends AsyncSuite {
   lazy val c = Conf.fromConf(LocalConf.localConf).toOption.get
-  lazy val db = BoatDatabase(as, c)
+  lazy val db = BoatDatabase(dbExecutor, c)
 
   test("import tracks from plotter log file".ignore) {
 //    importSlice(".boat/Log20200513.txt", 1273831, 1320488)

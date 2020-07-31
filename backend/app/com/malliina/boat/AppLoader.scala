@@ -1,6 +1,7 @@
 package com.malliina.boat
 
 import java.nio.file.Paths
+import java.util.concurrent.{Executors, TimeUnit}
 
 import com.malliina.boat.ais.BoatMqttClient
 import com.malliina.boat.auth.{EmailAuth, GoogleTokenAuth}
@@ -114,7 +115,9 @@ class AppComponents(
 
   val html = BoatHtml(mode)
   val dbConf = builder.databaseConf
-  val db = BoatDatabase.withMigrations(actorSystem, dbConf)
+  val executor = Executors.newFixedThreadPool(20)
+  val dbExecutor = ExecutionContext.fromExecutor(executor)
+  val db = BoatDatabase.withMigrations(dbExecutor, dbConf)
 
   // Services
   val users: NewUserManager = NewUserManager(db)
@@ -178,6 +181,8 @@ class AppComponents(
       boatService.close()
       http.close()
       db.close()
+      executor.shutdown()
+      executor.awaitTermination(5, TimeUnit.SECONDS)
     }
   )
 }

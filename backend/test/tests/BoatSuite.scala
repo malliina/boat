@@ -12,7 +12,7 @@ import play.api.ApplicationLoader.Context
 import play.api.Play
 import play.api.mvc.RequestHeader
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 object TestConf {
   def apply(container: MySQLContainer) = Conf(
@@ -62,7 +62,7 @@ trait DockerDatabase { self: munit.Suite =>
 
   override def munitFixtures = Seq(db)
 
-  def testDatabase(as: ActorSystem, conf: Conf) = BoatDatabase.withMigrations(as, conf)
+  def testDatabase(ec: ExecutionContext, conf: Conf) = BoatDatabase.withMigrations(ec, conf)
 }
 
 //trait DockerDatabase extends ForAllTestContainer { self: Suite =>

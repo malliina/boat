@@ -1,6 +1,7 @@
 package tests
 
 import java.nio.file.Paths
+import java.util.concurrent.{Executors, TimeUnit}
 
 import akka.actor.ActorSystem
 import akka.stream.Materializer
@@ -19,9 +20,13 @@ class AsyncSuite extends BaseSuite {
   implicit val as: ActorSystem = ActorSystem()
   implicit val mat = Materializer(as)
   implicit val ec: ExecutionContext = mat.executionContext
+  private val executor = Executors.newCachedThreadPool()
+  val dbExecutor = ExecutionContext.fromExecutor(executor)
 
   override def afterAll(): Unit = {
     await(as.terminate())
+    executor.shutdown()
+    executor.awaitTermination(3, TimeUnit.SECONDS)
     super.afterAll()
   }
 }
