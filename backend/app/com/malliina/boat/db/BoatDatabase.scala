@@ -2,9 +2,7 @@ package com.malliina.boat.db
 
 import java.sql.{Timestamp, Types}
 import java.time.Instant
-import java.util.concurrent.{Executor, Executors}
 
-import akka.actor.ActorSystem
 import com.malliina.boat.Coord
 import com.malliina.boat.db.BoatDatabase.log
 import com.malliina.measure.DistanceM
@@ -14,7 +12,7 @@ import org.flywaydb.core.Flyway
 import play.api.Logger
 
 import scala.concurrent.duration.DurationLong
-import scala.concurrent.{ExecutionContext, ExecutionContextExecutor, Future}
+import scala.concurrent.{ExecutionContext, Future}
 
 object BoatDatabase {
   private val log = Logger(getClass)

@@ -42,7 +42,6 @@ class TracksImporter extends AsyncSuite {
   }
 
   def splitTracksByDate(oldTrack: TrackId, db: TrackInserts) = {
-//    import db._
     import db.db._
 
     def createAndUpdateTrack(date: DateVal): IO[RunActionResult, Effect.Write] = {

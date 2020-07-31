@@ -4,7 +4,7 @@ import java.sql.SQLException
 
 import com.malliina.boat.InviteState.Awaiting
 import com.malliina.boat.db.NewUserManager.log
-import com.malliina.boat.http.{AccessResult, BoatInvite, InviteInfo}
+import com.malliina.boat.http.{AccessResult, InviteInfo}
 import com.malliina.boat.{Boat, BoatInfo, BoatNames, BoatToken, BoatTokens, DeviceId, InviteState, JoinedBoat, JoinedTrack, Language, TimeFormatter, UserBoats, UserInfo, UserToken, Usernames}
 import com.malliina.values.{Email, UserId, Username}
 import io.getquill.SnakeCase
