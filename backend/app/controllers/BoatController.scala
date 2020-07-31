@@ -115,6 +115,9 @@ class BoatController(
         fut(Accepted(SimpleMessage(s"Started import to '${meta.trackName}'.")))
       }
       action(rh)
+    }.recover {
+      case ie: IdentityException =>
+        Accumulator.done(Unauthorized(toError(ie)))
     }
     Accumulator.flatten(uploadAction)
   }
@@ -450,8 +453,8 @@ class BoatController(
     recovered(boatAuth(rh).flatMap(meta => inserts.joinAsBoat(meta)), rh)
 
   private def authExistingBoat(rh: RequestHeader) =
-    boatTokenAuth(rh).getOrElse(Future.failed(InvalidCredentials(None).toException)).flatMap {
-      meta => inserts.joinAsBoat(meta.withTrack(trackOrRandom(rh)))
+    boatTokenAuth(rh).getOrElse(Future.failed(MissingCredentials(rh).toException)).flatMap { meta =>
+      inserts.joinAsBoat(meta.withTrack(trackOrRandom(rh)))
     }
 
   private def authDevice(rh: RequestHeader): Future[Either[Result, JoinedBoat]] =
