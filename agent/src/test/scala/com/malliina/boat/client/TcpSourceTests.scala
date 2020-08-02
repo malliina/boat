@@ -68,4 +68,12 @@ class TcpSourceTests extends BasicSuite {
       client.close()
     }
   }
+
+  test("connect to source".ignore) {
+    val host = "192.168.77.11"
+    val port = 10110
+    val (_, task) =
+      Tcp().outgoingConnection(host, port).runWith(Source.maybe, Sink.foreach(println))
+    await(task)
+  }
 }
