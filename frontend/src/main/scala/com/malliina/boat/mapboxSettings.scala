@@ -11,9 +11,9 @@ case class MapCamera(center: Coord, zoom: Double, timestampMs: Double = Date.now
 object MapCamera {
   implicit val json = Json.format[MapCamera]
 
-  def default = MapCamera(Coord(lng = Longitude(24.9), lat = Latitude(60.14)), 13)
+  def default: MapCamera = MapCamera(Coord(lng = Longitude(24.9), lat = Latitude(60.14)), 13)
 
-  def apply() = MapSettings.load().getOrElse(default)
+  def apply(): MapCamera = MapSettings.load().getOrElse(default)
 }
 
 object MapSettings {
