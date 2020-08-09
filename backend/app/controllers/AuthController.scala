@@ -25,7 +25,8 @@ abstract class AuthController(
 ) extends AbstractController(comps) {
   implicit val ec: ExecutionContext = comps.executionContext
 
-  implicit def writeable[T: Writes] = Writeable.writeableOf_JsValue.map[T](t => Json.toJson(t))
+  implicit def writeable[T: Writes]: Writeable[T] =
+    Writeable.writeableOf_JsValue.map[T](t => Json.toJson(t))
 
   def jsonAuth[R: Reads](code: UserRequest[UserInfo, R] => Future[Result]): Action[R] =
     parsedAuth(parse.json[R])(profile) { req =>
@@ -71,12 +72,16 @@ abstract class AuthController(
         Left(redirectToLoginIfGoogle(mce.rh).getOrElse(unauth))
       case ie: IdentityException =>
         log.warn(s"Authentication failed from '$rh': '${ie.error}'.")
-        val error: SingleError = ie.error match {
-          case JWTError(_, err) => SingleError(err.message, err.key)
-          case _                => unauthError
-        }
-        Left(Unauthorized(Errors(error)))
+        Left(Unauthorized(toError(ie)))
     }
+
+  protected def toError(ie: IdentityException) = {
+    val error = ie.error match {
+      case JWTError(_, err) => SingleError(err.message, err.key)
+      case _                => unauthError
+    }
+    Errors(error)
+  }
 
   private def redirectToLoginIfGoogle(rh: RequestHeader): Option[Result] =
     googleCookie(rh).map { _ =>
