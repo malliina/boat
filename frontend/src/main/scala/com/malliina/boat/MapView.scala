@@ -1,6 +1,6 @@
 package com.malliina.boat
 
-import com.malliina.mapbox.{MapOptions, MapboxGeocoder, MapboxMap, mapboxGl}
+import com.malliina.mapbox.{LngLat, MapOptions, MapboxGeocoder, MapboxMap, mapboxGl}
 import org.scalajs.dom.raw._
 import org.scalajs.dom.{document, window}
 import play.api.libs.json.{Json, Writes}
@@ -34,16 +34,19 @@ class MapView(
   val log: BaseLogger = BaseLogger.console
 ) extends BaseFront {
   mapboxGl.accessToken = accessToken.token
+
+  val initialSettings = MapCamera()
   val mapOptions = MapOptions(
     container = MapId,
     style = MapConf.active.styleUrl,
-    center = Coord(lng = Longitude(24.9), lat = Latitude(60.14)),
-    zoom = 13,
+    center = initialSettings.center,
+    zoom = initialSettings.zoom,
     hash = true
   )
   val map = new MapboxMap(mapOptions)
   val geocoder = MapboxGeocoder.finland(accessToken)
   val pathFinder = PathFinder(map)
+  val settings = MapSettings
   val SearchKey = "s"
   val DirectionsKey = "d"
   private var isGeocoderVisible = false
@@ -75,6 +78,14 @@ class MapView(
       val mode = if (Option(href.getFragment).isDefined) MapMode.Stay else MapMode.Fit
       val sample = queryInt(SampleKey).getOrElse(Constants.DefaultSample)
       socket = Option(new MapSocket(map, pathFinder, readTrack, Option(sample), mode, language))
+    }
+  )
+
+  map.on(
+    "moveend",
+    () => {
+      val camera = MapCamera(LngLat.coord(map.getCenter()), map.getZoom())
+      settings.save(camera)
     }
   )
 
