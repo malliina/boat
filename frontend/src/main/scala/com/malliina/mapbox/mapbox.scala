@@ -178,6 +178,8 @@ class MapboxMap(options: MapOptions) extends js.Object {
   def setLayoutProperty(layer: String, prop: String, value: js.Any): Unit = js.native
   def queryRenderedFeatures(point: PixelCoord, options: QueryOptions): js.Any = js.native
   def getCanvas(): HTMLCanvasElement = js.native
+  def getCenter(): LngLat = js.native
+  def getZoom(): Double = js.native
 
   /** The bearing is the compass direction that is "up".
     *
@@ -357,6 +359,7 @@ class LngLat(lng: Double, lat: Double) extends LngLatLike
 
 object LngLat {
   def apply(coord: Coord): LngLat = new LngLat(coord.lng.lng, coord.lat.lat)
+  def coord(lngLat: LngLat): Coord = Coord(lng = Longitude(lngLat.lng), lat = Latitude(lngLat.lat))
 }
 
 @js.native
