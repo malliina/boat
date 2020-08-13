@@ -115,15 +115,18 @@ class AppComponents(
 
   val html = BoatHtml(mode)
   val dbConf = builder.databaseConf
+  BoatDatabase.migrate(dbConf)
+  val ds = Conf.dataSource(dbConf)
   val executor = Executors.newFixedThreadPool(20)
   val dbExecutor = ExecutionContext.fromExecutor(executor)
-  val db = BoatDatabase.withMigrations(dbExecutor, dbConf)
+  val db = BoatDatabase(ds, dbExecutor, dbConf.isMariaDb)
 
   // Services
   val users: NewUserManager = NewUserManager(db)
   users.initUser()
   val stats = StatsDatabase(db)
   val tracks: TracksSource = NewTracksDatabase(db, stats)
+  val tracks2 = DoobieTracksDatabase(ds, dbExecutor)
   val inserts = TrackInserts(db)
   val gps: GPSSource = NewGPSDatabase(db)
   lazy val pushService: PushEndpoint = builder.pushService

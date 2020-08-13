@@ -18,19 +18,28 @@ object BoatDatabase {
   private val log = Logger(getClass)
 
   def withMigrations(ec: ExecutionContext, conf: Conf): BoatDatabase[SnakeCase] = {
+    migrate(conf)
+    apply(ec, conf)
+  }
+
+  def migrate(conf: Conf) = {
     val flyway =
       Flyway.configure
         .dataSource(conf.url, conf.user, conf.pass)
         .table("flyway_schema_history2")
         .load()
     flyway.migrate()
-    apply(ec, conf)
+  }
+
+  def newDataSource(conf: Conf): HikariDataSource = {
+    migrate(conf)
+    Conf.dataSource(conf)
   }
 
   def apply(ec: ExecutionContext, dbConf: Conf): BoatDatabase[SnakeCase] =
     apply(Conf.dataSource(dbConf), ec, dbConf.isMariaDb)
 
-  private def apply(
+  def apply(
     ds: HikariDataSource,
     ec: ExecutionContext,
     isMariaDb: Boolean

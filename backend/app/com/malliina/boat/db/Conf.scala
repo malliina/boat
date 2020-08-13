@@ -35,9 +35,11 @@ object Conf {
     hikari.setJdbcUrl(conf.url)
     hikari.setUsername(conf.user)
     hikari.setPassword(conf.pass)
+    // Azure complains if using default values
     hikari.setMaxLifetime(60.seconds.toMillis)
+    // Why is this set to 5?
     hikari.setMaximumPoolSize(5)
-    log info s"Connecting to '${conf.url}'..."
+    log.info(s"Connecting to '${conf.url}'...")
     new HikariDataSource(hikari)
   }
 }
