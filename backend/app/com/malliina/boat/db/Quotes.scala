@@ -107,14 +107,6 @@ trait Quotes[I <: Idiom, N <: NamingStrategy] { this: Context[I, N] =>
   val topRows = quote {
     pointsTable.join(topPoints).on((p, t) => t.top.contains(p.id)).map(_._1)
   }
-  val topRows3 = quote {
-    for {
-      t <- topPoints
-      p <- pointsTable
-      if t.top.contains(p.id)
-    } yield p
-//    pointsTable.join(topPoints).on((p, t) => t.top.contains(p.id)).map(_._1)
-  }
   val timedTracks = quote {
     for {
       t <- tracksTable

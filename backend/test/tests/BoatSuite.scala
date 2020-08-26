@@ -1,6 +1,5 @@
 package tests
 
-import akka.actor.ActorSystem
 import com.dimafeng.testcontainers.MySQLContainer
 import com.malliina.boat.auth.EmailAuth
 import com.malliina.boat.db._

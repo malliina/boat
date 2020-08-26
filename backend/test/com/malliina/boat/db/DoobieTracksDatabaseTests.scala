@@ -12,3 +12,19 @@ class DoobieTracksDatabaseTests extends AsyncSuite with DockerDatabase {
     ds.close()
   }
 }
+
+class DoobieTests extends AsyncSuite {
+  test("make query".ignore) {
+    val conf =
+      Conf(
+        "jdbc:mysql://localhost:3306/boat?useSSL=false",
+        "changeme",
+        "changeme",
+        Conf.MySQLDriver
+      )
+    val db = DoobieTracksDatabase(BoatDatabase.newDataSource(conf), dbExecutor)
+    val res = await(db.test)
+    res foreach println
+    db.ds.close()
+  }
+}
