@@ -50,17 +50,17 @@ therefore it is currently a separate step from the release process.
 1. Obtain CLI tools `certbot` and `openssl`.
 1. Run:
 
-        certbot certonly --manual --preferred-challenges=dns --email malliina123@gmail.com --server https://acme-v02.api.letsencrypt.org/directory --agree-tos --domain "boat-tracker.com,www.boat-tracker.com,api.boat-tracker.com,beta.boat-tracker.com" --work-dir /tmp/certbot --config-dir /tmp/certbot --logs-dir /tmp/certbot
+        certbot certonly --manual --preferred-challenges=dns --email malliina123@gmail.com --server https://acme-v02.api.letsencrypt.org/directory --agree-tos --domain "boat-tracker.com,www.boat-tracker.com,api.boat-tracker.com,beta.boat-tracker.com" --work-dir ~/certbot --config-dir ~/certbot --logs-dir ~/certbot
 
 1. Deploy TXT records as instructed by certbot.
 1. Run:
 
-        openssl pkcs12 -inkey /tmp/certbot/live/boat-tracker.com/privkey.pem -in /tmp/certbot/live/boat-tracker.com/cert.pem -export -out /tmp/certbot/live/boat-tracker.com/cert.pfx
+        openssl pkcs12 -inkey ~/certbot/live/boat-tracker.com/privkey.pem -in ~/certbot/live/boat-tracker.com/cert.pem -export -out ~/certbot/live/boat-tracker.com/cert.pfx
 
 1. Provide a certificate password when requested.
 1. Upload the certificate in the Azure Portal: App Service -> TLS/SSL Settings -> .pfx -> Upload Certificate
-1. Provide certificate password
-1. Add the uploaded certificate to Bindings: TLS/TTL Settings -> Bindings -> Add TLS/SSL Binding or update existing ones
+1. Provide the certificate password.
+1. Add the uploaded certificate to Bindings: TLS/TTL Settings -> Bindings -> Add TLS/SSL Binding or update existing ones.
 
 ### IntelliJ
 
