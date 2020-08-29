@@ -124,9 +124,8 @@ class AppComponents(
   // Services
   val users: NewUserManager = NewUserManager(db)
   users.initUser()
-  val stats = StatsDatabase(db)
-  val tracks: TracksSource = NewTracksDatabase(db, stats)
-  val tracks2 = DoobieTracksDatabase(ds, dbExecutor)
+  val doobie = DoobieDatabase(ds, dbExecutor)
+  val tracks: TracksSource with StatsSource = DoobieTracksDatabase(doobie)
   val inserts = TrackInserts(db)
   val gps: GPSSource = NewGPSDatabase(db)
   lazy val pushService: PushEndpoint = builder.pushService
@@ -160,7 +159,7 @@ class AppComponents(
     tracks,
     inserts,
     TrackImporter(inserts, actorSystem, executionContext),
-    stats,
+    tracks,
     push,
     controllerComponents
   )(actorSystem, materializer)

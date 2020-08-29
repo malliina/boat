@@ -1,21 +1,26 @@
 package com.malliina.boat.db
 
-import java.time.LocalDate
+import java.time.{Instant, LocalDate}
 
-import com.malliina.boat.{BoatName, BoatToken, Coord, DateVal, Latitude, Longitude, MonthVal, TrackCanonical, TrackId, TrackName, TrackPointId, TrackTitle, YearVal}
+import com.malliina.boat.{BoatName, BoatToken, Coord, DateVal, Language, Latitude, Longitude, MonthVal, RawSentence, SentenceKey, TrackCanonical, TrackId, TrackName, TrackPointId, TrackTitle, UserToken, YearVal}
 import com.malliina.measure.{DistanceM, SpeedM, Temperature}
-import com.malliina.values.Username
+import com.malliina.values.{Email, UserId, Username}
 import com.vividsolutions.jts.geom.Point
 import doobie._
 
 import scala.concurrent.duration.FiniteDuration
 import concurrent.duration.DurationDouble
 
-object doobieMappings {
-  implicit val instantMeta = doobie.implicits.legacy.instant.JavaTimeInstantMeta
-  implicit val localDateMeta = doobie.implicits.legacy.localdate.JavaTimeLocalDateMeta
+object DoobieMappings extends DoobieMappings
+
+trait DoobieMappings {
+  implicit val instantMeta: Meta[Instant] = doobie.implicits.legacy.instant.JavaTimeInstantMeta
+  implicit val localDateMeta: Meta[LocalDate] =
+    doobie.implicits.legacy.localdate.JavaTimeLocalDateMeta
 
   implicit val tpi: Meta[TrackPointId] = Meta[Long].timap(TrackPointId.apply)(_.id)
+  implicit val sk: Meta[SentenceKey] = Meta[Long].timap(SentenceKey.apply)(_.id)
+  implicit val rs: Meta[RawSentence] = Meta[String].timap(RawSentence.apply)(_.sentence)
   implicit val ti: Meta[TrackId] = Meta[Long].timap(TrackId.apply)(_.id)
   implicit val tn: Meta[TrackName] = Meta[String].timap(TrackName.apply)(_.name)
   implicit val tt: Meta[TrackTitle] = Meta[String].timap(TrackTitle.apply)(_.title)
@@ -25,7 +30,11 @@ object doobieMappings {
   implicit val lon: Meta[Longitude] = Meta[Double].timap(Longitude.apply)(_.lng)
   implicit val lat: Meta[Latitude] = Meta[Double].timap(Latitude.apply)(_.lat)
   implicit val speed: Meta[SpeedM] = Meta[Double].timap(SpeedM.apply)(_.toMps)
+  implicit val uid: Meta[UserId] = Meta[Long].timap(UserId.apply)(_.id)
   implicit val us: Meta[Username] = Meta[String].timap(Username.apply)(_.name)
+  implicit val em: Meta[Email] = Meta[String].timap(Email.apply)(_.value)
+  implicit val ut: Meta[UserToken] = Meta[String].timap(UserToken.apply)(_.value)
+  implicit val lan: Meta[Language] = Meta[String].timap(Language.apply)(_.value)
   implicit val temperature: Meta[Temperature] = Meta[Double].timap(Temperature.apply)(_.celsius)
   implicit val distance: Meta[DistanceM] = Meta[Double].timap(DistanceM.apply)(_.meters)
   implicit val du: Meta[FiniteDuration] =

@@ -119,8 +119,10 @@ case class JoinedTrack(
   canonical: TrackCanonical,
   comments: Option[String],
   trackAdded: Instant,
-  boat: JoinedBoat,
   points: Int,
+  avgSpeed: Option[SpeedM],
+  avgWaterTemp: Option[Temperature],
+  distance: DistanceM,
   start: Option[Instant],
   startDate: DateVal,
   startMonth: MonthVal,
@@ -128,10 +130,8 @@ case class JoinedTrack(
   end: Option[Instant],
   duration: FiniteDuration,
   topSpeed: Option[SpeedM],
-  avgSpeed: Option[SpeedM],
-  avgWaterTemp: Option[Temperature],
-  distance: DistanceM,
-  tip: CombinedCoord
+  tip: CombinedCoord,
+  boat: JoinedBoat
 ) extends TrackLike
   with Embedded {
   def boatId = boat.device

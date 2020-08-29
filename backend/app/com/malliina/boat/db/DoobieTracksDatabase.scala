@@ -1,62 +1,23 @@
 package com.malliina.boat.db
 
-import java.time.Instant
-
-import cats.effect.IO._
-import cats.effect.{Blocker, ContextShift, IO, Resource}
-import com.malliina.boat.http.{Limits, SortOrder, TrackQuery, TrackSort}
-import com.malliina.boat.{CombinedCoord, DeviceId, JoinedBoat, JoinedTrack, TrackCanonical, TrackId, TrackName, TrackPointId, TrackPointRow, TrackTitle}
-import com.malliina.measure.{DistanceM, SpeedM, Temperature}
+import cats.data.NonEmptyList
+import com.malliina.boat.http.{BoatQuery, SortOrder, TrackQuery}
+import com.malliina.boat.{CombinedCoord, CoordsEvent, DateVal, FullTrack, JoinedBoat, JoinedTrack, Lang, Language, MinimalUserInfo, MonthlyStats, SentenceCoord2, Stats, StatsResponse, TimeFormatter, TrackCanonical, TrackInfo, TrackName, TrackPointRow, TrackRef, Tracks, TracksBundle, YearlyStats}
+import com.malliina.measure.DistanceM
 import com.malliina.values.Username
-import com.zaxxer.hikari.HikariDataSource
 import doobie._
 import doobie.implicits._
-import doobie.util.ExecutionContexts
-import doobie.util.log.{ExecFailure, ProcessingFailure, Success}
-import doobie.util.transactor.Transactor.Aux
-import javax.sql.DataSource
-import play.api.Logger
 
-import scala.concurrent.{ExecutionContext, Future}
-
-case class DoobieTrack(
-  track: TrackId,
-  trackName: TrackName,
-  trackTitle: Option[TrackTitle],
-  canonical: TrackCanonical,
-  comments: Option[String],
-  trackAdded: Instant,
-  points: Long,
-  avgSpeed: Option[SpeedM],
-  avgTemperature: Option[Temperature],
-  distance: DistanceM
-)
-
-case class DoobieCoord(id: TrackPointId, topSpeed: SpeedM)
-
-case class DoobieBoat(id: DeviceId)
+import scala.concurrent.Future
+import scala.concurrent.duration.{DurationInt, FiniteDuration}
 
 object DoobieTracksDatabase {
-  def apply(ds: HikariDataSource, ec: ExecutionContext) = new DoobieTracksDatabase(ds)(ec)
+  def apply(db: DoobieDatabase): DoobieTracksDatabase = new DoobieTracksDatabase(db)
 }
 
-class DoobieTracksDatabase(val ds: HikariDataSource)(implicit ec: ExecutionContext) {
-  private val log = Logger(getClass)
-  private implicit val cs: ContextShift[IO] = IO.contextShift(ec)
-  private val tx: Resource[IO, Aux[IO, DataSource]] = for {
-    ec <- ExecutionContexts.fixedThreadPool[IO](32) // our connect EC
-    be <- Blocker[IO] // our blocking EC
-  } yield Transactor.fromDataSource[IO](ds, ec, be)
-  implicit val logHandler = LogHandler {
-    case Success(sql, args, exec, processing) =>
-      val dur = (exec + processing).toMillis
-      log.info(s"OK '$sql' exec ${exec.toMillis} ms processing ${processing.toMillis} ms.")
-    case ProcessingFailure(sql, args, exec, processing, failure) =>
-      log.error(s"Failed '$sql' in ${exec + processing}.", failure)
-    case ExecFailure(sql, args, exec, failure) =>
-      log.error(s"Exec failed '$sql' in $exec.'", failure)
-  }
-  import doobieMappings._
+class DoobieTracksDatabase(val db: DoobieDatabase) extends TracksSource with StatsSource {
+  implicit val ec = db.ec
+  import DoobieMappings._
 
   object sql {
     val boats =
@@ -70,10 +31,11 @@ class DoobieTracksDatabase(val ds: HikariDataSource)(implicit ec: ExecutionConte
                     (select track, max(boat_speed) maxSpeed from points group by track) tops
                 where p.track = tops.track and p.boat_speed = tops.maxSpeed) winners
           group by winners.track"""
-    val topRows =
+    val selectAllPoints =
       sql"""select id, longitude, latitude, coord, boat_speed, water_temp, depthm, depth_offsetm, boat_time, track, track_index, diff, added 
-           from points p 
-           where p.id in (select point from ($topPoints) fastestPoints)"""
+           from points p"""
+    val topRows =
+      sql"""$selectAllPoints where p.id in (select point from ($topPoints) fastestPoints)"""
     val minMaxTimes =
       sql"""select track,
        min(boat_time)                                        start,
@@ -93,11 +55,38 @@ class DoobieTracksDatabase(val ds: HikariDataSource)(implicit ec: ExecutionConte
       sql"""select t.id, t.name, t.title, t.canonical, t.comments, t.added, t.points, t.avg_speed, t.avg_water_temp, t.distance, t.start, t.end, t.secs, t.startDate, t.startMonth, t.startYear, t.boat, top.id pointId, top.longitude, top.latitude, top.coord, top.boat_speed, top.water_temp, top.depthm, top.depth_offsetm, top.boat_time, date(top.boat_time) trackDate, top.track, top.added topAdded
             from ($topRows) top, ($timedTracks) t
             where top.track = t.id"""
+    val trackColumns =
+      fr"t.id tid, t.name, t.title, t.canonical, t.comments, t.added, t.points, t.avg_speed, t.avg_water_temp, t.distance, t.start, t.startDate, t.startMonth, t.startYear, t.end, t.secs duration, t.boat_speed maxBoatspeed, t.pointId, t.longitude, t.latitude, t.coord, t.boat_speed topSpeed, t.water_temp, t.depthm, t.depth_offsetm, t.boat_time, t.trackDate, t.track, t.topAdded, b.id boatId, b.name boatName, b.token, b.uid, b.user, b.email, b.language"
     val nonEmptyTracks =
-      sql"""select t.id tid, t.name, t.title, t.canonical, t.comments, t.added, t.points, t.avg_speed, t.avg_water_temp, t.distance, t.id trackId, t.start, t.end, t.secs, t.startDate, t.startMonth, t.startYear, t.pointId, t.longitude, t.latitude, t.coord, t.boat_speed topSpeed, t.water_temp, t.depthm, t.depth_offsetm, t.boat_time, t.trackDate, t.track, t.topAdded, b.id bid, b.name boatName, b.token, b.uid, b.user, b.email, b.language
+      sql"""select t.id tid, t.name, t.title, t.canonical, t.comments, t.added, t.points, t.avg_speed, t.avg_water_temp, t.distance, t.start, t.startDate, t.startMonth, t.startYear, t.end, t.secs duration, t.boat_speed maxBoatspeed, t.pointId, t.longitude, t.latitude, t.coord, t.boat_speed topSpeed, t.water_temp, t.depthm, t.depth_offsetm, t.boat_time, t.trackDate, t.track, t.topAdded, b.id boatId, b.name boatName, b.token, b.uid, b.user, b.email, b.language
           from ($boats) b, ($trackHighlights) t
           where b.id = t.boat"""
-    def tracksBy(user: Username) = sql"""$nonEmptyTracks and user = $user"""
+    val pointColumns =
+      fr"p.id, p.longitude, p.latitude, p.coord, p.boat_speed, p.water_temp, p.depthm, p.depth_offsetm, p.boat_time, date(p.boat_time), p.track, p.added"
+    def pointsByTrack(name: TrackName) =
+      sql"""select $pointColumns
+           from points p, tracks t 
+           where p.track = t.id and t.name = $name"""
+    def pointsByTime(name: TrackName) = {
+      val selectPoints = pointsByTrack(name)
+      sql"""$selectPoints order by p.boat_time asc"""
+    }
+    def topPointByTrack(name: TrackName) = {
+      val selectPoints = pointsByTrack(name)
+      sql"$selectPoints order by p.boat_speed desc limit 1"
+    }
+    def tracksByUser(user: Username) = sql"$nonEmptyTracks and user = $user"
+    def trackByName(name: TrackName) = sql"$nonEmptyTracks and t.name = $name"
+    def tracksByNames(names: NonEmptyList[TrackName]) =
+      sql"$nonEmptyTracks and " ++ Fragments.in(fr"t.name", names)
+    def tracksByCanonicals(names: NonEmptyList[TrackCanonical]) =
+      sql"$nonEmptyTracks and " ++ Fragments.in(fr"t.canonical", names)
+    def tracksByCanonical(canonical: TrackCanonical) =
+      sql"$nonEmptyTracks and canonical = $canonical"
+    def latestTrack(name: Username) = {
+      val userTracks = tracksByUser(name)
+      sql"$userTracks order by t.added desc limit 1"
+    }
     import com.malliina.boat.http.TrackSort._
 
     def tracksFor(user: Username, filter: TrackQuery) = {
@@ -110,7 +99,7 @@ class DoobieTracksDatabase(val ds: HikariDataSource)(implicit ec: ExecutionConte
         case Length   => fr"t.distance $order, t.id $order"
         case _        => fr"t.start $order, t.id $order"
       }
-      val unsorted = tracksBy(user)
+      val unsorted = tracksByUser(user)
       val limits = filter.limits
       sql"""$unsorted order by $sortColumns limit ${limits.limit} offset ${limits.offset}"""
     }
@@ -125,38 +114,190 @@ class DoobieTracksDatabase(val ds: HikariDataSource)(implicit ec: ExecutionConte
 
   def boats = run { boatsView }
   def topRows = run { topView }
-  def nonEmpty = run { sql.nonEmptyTracks.query[(DoobieTrack, CombinedCoord, JoinedBoat)].to[List] }
-  def test = run {
-    sql
-      .tracksFor(Username("mle"), TrackQuery(TrackSort.TopSpeed, SortOrder.Desc, Limits(1, 0)))
-      .query[(DoobieTrack, TrackTimes, CombinedCoord, JoinedBoat)]
-      .to[List]
-      .map { list => list.map { case (track, times, top, boat) => join(track, times, top, boat) } }
+
+  def tracksBundle(user: MinimalUserInfo, filter: TrackQuery, lang: Lang): Future[TracksBundle] =
+    run {
+      val tf = tracksFor(user, filter)
+      val tracks = sql.tracksByUser(user.username)
+      val ord = if (filter.order == SortOrder.Desc) fr"desc" else fr"asc"
+      for {
+        ts <- tracksForIO(user, filter)
+        ss <- statsIO(user, filter, lang)
+      } yield TracksBundle(ts.tracks, ss)
+    }
+
+  def stats(user: MinimalUserInfo, filter: TrackQuery, lang: Lang): Future[StatsResponse] = run {
+    statsIO(user, filter, lang)
   }
 
-  def join(track: DoobieTrack, times: TrackTimes, top: CombinedCoord, boat: JoinedBoat) =
-    JoinedTrack(
-      track.track,
-      track.trackName,
-      track.trackTitle,
-      track.canonical,
-      track.comments,
-      track.trackAdded,
-      boat,
-      track.points.toInt,
-      Option(times.start),
-      times.date,
-      times.month,
-      times.year,
-      Option(times.`end`),
-      times.duration,
-      Option(top.boatSpeed),
-      track.avgSpeed,
-      track.avgTemperature,
-      track.distance,
-      top
-    )
+  def statsIO(user: MinimalUserInfo, filter: TrackQuery, lang: Lang) = {
+    val tracks = sql.tracksByUser(user.username)
+    val zeroDistance = DistanceM.zero
+    val zeroDuration: FiniteDuration = 0.seconds
+    val now = DateVal.now()
+    val ord = if (filter.order == SortOrder.Desc) fr"desc" else fr"asc"
+    val aggregates =
+      fr"sum(t.distance), sum(t.duration), count(t.track), count(distinct(t.startDate))"
+    val dailyIO =
+      sql"""select t.startDate, $aggregates
+          from ($tracks) t 
+          group by t.startDate
+          order by t.startDate $ord"""
+        .query[DailyAggregates]
+        .to[List]
+    val monthlyIO =
+      sql"""select t.startYear, t.startMonth, $aggregates
+          from ($tracks) t 
+          group by t.startYear, t.startMonth
+          order by t.startYear $ord, t.startMonth $ord"""
+        .query[MonthlyAggregates]
+        .to[List]
+    val yearlyIO =
+      sql"""select t.startYear, $aggregates
+          from ($tracks) t
+          group by t.startYear
+          order by t.startYear $ord"""
+        .query[YearlyAggregates]
+        .to[List]
+    val allTimeIO = sql"""select min(t.startDate), max(t.startDate), $aggregates
+          from ($tracks) t"""
+      .query[AllTimeAggregates]
+      .to[List]
+    for {
+      daily <- dailyIO
+      monthly <- monthlyIO
+      yearly <- yearlyIO
+      allTime <- allTimeIO
+    } yield {
+      val all = allTime.headOption.getOrElse(AllTimeAggregates.empty)
+      val months = monthly.map { ma =>
+        MonthlyStats(
+          lang.calendar.months(ma.month),
+          ma.year,
+          ma.month,
+          ma.tracks,
+          ma.distance.getOrElse(zeroDistance),
+          ma.duration.getOrElse(zeroDuration),
+          ma.days
+        )
+      }
+      StatsResponse(
+        daily.map { da =>
+          Stats(
+            da.date.iso8601,
+            da.date,
+            da.date.plusDays(1),
+            da.tracks,
+            da.distance.getOrElse(zeroDistance),
+            da.duration.getOrElse(zeroDuration),
+            da.days
+          )
+        },
+        yearly.map { ya =>
+          YearlyStats(
+            ya.year.toString,
+            ya.year,
+            ya.tracks,
+            ya.distance.getOrElse(zeroDistance),
+            ya.duration.getOrElse(zeroDuration),
+            ya.days,
+            months.filter(_.year == ya.year)
+          )
+        },
+        Stats(
+          lang.labels.allTime,
+          all.from.getOrElse(now),
+          all.to.getOrElse(now),
+          all.tracks,
+          all.distance.getOrElse(zeroDistance),
+          all.duration.getOrElse(zeroDuration),
+          all.days
+        )
+      )
+    }
+  }
 
-  protected def run[T](io: ConnectionIO[T]): Future[T] =
-    tx.use(r => io.transact(r)).unsafeToFuture()
+  def ref(track: TrackName, language: Language): Future[TrackRef] =
+    single(sql.trackByName(track), language)
+
+  def canonical(trackCanonical: TrackCanonical, language: Language): Future[TrackRef] =
+    single(sql.tracksByCanonical(trackCanonical), language)
+
+  def track(track: TrackName, user: Username, query: TrackQuery): Future[TrackInfo] = run {
+    for {
+      points <- sql.pointsByTime(track).query[CombinedCoord].to[List]
+      top <- sql.topPointByTrack(track).query[CombinedCoord].option
+    } yield TrackInfo(points, top)
+  }
+
+  def full(track: TrackName, language: Language, query: TrackQuery): Future[FullTrack] = run {
+    val rows = sql.pointsByTrack(track)
+    val limited =
+      sql"""$rows order by p.boat_time asc, p.id asc, p.added asc limit ${query.limit} offset ${query.offset}"""
+    val coordsIO = sql"""select ${sql.pointColumns}, s.id, s.sentence, s.added sentenceAdded
+         from ($limited) p, sentence_points sp, sentences s 
+         where p.id = sp.point and sp.sentence = s.id
+         order by p.boat_time, p.id, sentenceAdded"""
+      .query[SentenceCoord2]
+      .to[List]
+    val trackIO = sql.trackByName(track).query[JoinedTrack].unique
+    val formatter = TimeFormatter(language)
+    for {
+      stats <- trackIO
+      coords <- coordsIO
+    } yield FullTrack(stats.strip(formatter), NewTracksDatabase.collectRows(coords, formatter))
+  }
+
+  def history(user: MinimalUserInfo, limits: BoatQuery): Future[Seq[CoordsEvent]] = run {
+    val eligible = limits.neTracks
+      .map(names => sql.tracksByNames(names))
+      .orElse(limits.neCanonicals.map(cs => sql.tracksByCanonicals(cs)))
+      .getOrElse(if (limits.newest) sql.latestTrack(user.username) else sql.nonEmptyTracks)
+      .query[JoinedTrack]
+      .to[List]
+    eligible.flatMap { ts =>
+      val conditions = Fragments.andOpt(
+        BoatQuery.toNonEmpty(ts.map(_.track).distinct).map(ids => Fragments.in(fr"p.track", ids)),
+        limits.from.map(f => fr"p.added >= $f"),
+        limits.to.map(t => fr"p.added <= $t")
+      )
+      sql"""${sql.selectAllPoints} 
+         where $conditions 
+         order by p.track_index desc 
+         limit ${limits.limit} 
+         offset ${limits.offset}"""
+        .query[TrackPointRow]
+        .to[List]
+        .map { ps =>
+          val tracksById = ts.groupBy(_.track)
+          val coords = ps.flatMap { pointRow =>
+            tracksById.get(pointRow.track).map { ts => TrackCoord(ts.head, pointRow) }
+          }
+          NewTracksDatabase.collectTrackCoords(coords, user.language)
+        }
+    }
+  }
+
+  private def single(oneRowSql: Fragment, language: Language) = run {
+    oneRowSql.query[JoinedTrack].unique.map { row =>
+      row.strip(TimeFormatter(language))
+    }
+  }
+
+  def tracksFor(user: MinimalUserInfo, filter: TrackQuery): Future[Tracks] = run {
+    tracksForIO(user, filter)
+  }
+
+  def tracksForIO(user: MinimalUserInfo, filter: TrackQuery) = {
+    val formatter = TimeFormatter(user.language)
+    sql
+      .tracksFor(user.username, filter)
+      .query[JoinedTrack]
+      .to[List]
+      .map { list =>
+        Tracks(list.map(_.strip(formatter)))
+      }
+  }
+
+  def run[T](io: ConnectionIO[T]): Future[T] = db.run(io)
 }

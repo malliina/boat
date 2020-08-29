@@ -133,8 +133,10 @@ trait Quotes[I <: Idiom, N <: NamingStrategy] { this: Context[I, N] =>
         topTrack.track.canonical,
         topTrack.track.comments,
         topTrack.track.added,
-        boat,
         topTrack.track.points,
+        topTrack.track.avgSpeed,
+        topTrack.track.avgWaterTemp,
+        topTrack.track.distance,
         Option(topTrack.times.start),
         topTrack.times.date,
         topTrack.times.month,
@@ -142,10 +144,8 @@ trait Quotes[I <: Idiom, N <: NamingStrategy] { this: Context[I, N] =>
         Option(topTrack.times.end),
         topTrack.times.duration,
         Option(topTrack.coord.boatSpeed),
-        topTrack.track.avgSpeed,
-        topTrack.track.avgWaterTemp,
-        topTrack.track.distance,
-        topTrack.coord
+        topTrack.coord,
+        boat
       )
     }
   }
