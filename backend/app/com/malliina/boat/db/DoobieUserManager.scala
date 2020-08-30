@@ -165,7 +165,8 @@ class DoobieUserManager(db: DoobieDatabase) {
   }
 
   def updateInvite(boat: DeviceId, user: UserId, state: InviteState): Future[Long] = db.run {
-    sql"update users_boats set state = $state where boat = $boat and user = $user".update.run
+    sql"update users_boats set state = ${state.name} where boat = $boat and user = $user".update.run
+      .map(_.toLong)
   }
 
   private def addInviteIO(boat: DeviceId, to: UserId, principal: UserId) =
