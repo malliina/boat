@@ -29,7 +29,11 @@ class FCMPush(fcm: FCMLegacyClient)(implicit ec: ExecutionContext) extends PushC
       )
     )
     fcm.push(to, message).map { r =>
-      log.info(s"Push to '$to' complete. ${r.uninstalled.length} uninstalled device(s).")
+      val uninstalledCount = r.uninstalled.length
+      val hasUninstalled = uninstalledCount > 0
+      val suffix = if (uninstalledCount > 1) "s" else ""
+      val detailed = if (hasUninstalled) s" $uninstalledCount uninstalled device$suffix." else ""
+      log.info(s"FCM push to '$to' complete.$detailed")
       PushSummary(
         r.uninstalled.map(t => PushToken(t.token)),
         r.replacements.map(PushTokenReplacement.apply)

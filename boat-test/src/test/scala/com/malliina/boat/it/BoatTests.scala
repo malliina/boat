@@ -16,9 +16,7 @@ import scala.concurrent.Future
 
 case class TestServer(server: RunningServer, components: AppComponents)
 
-class TestAppSuite extends ServerSuite
-
-class ServerSuite extends AsyncSuite {
+abstract class ServerSuite extends AsyncSuite {
   val server: Fixture[TestServer] = new Fixture[TestServer]("boat-server") {
     private var testServer: TestServer = null
     def apply(): TestServer = testServer
@@ -40,21 +38,7 @@ class ServerSuite extends AsyncSuite {
   override def munitFixtures = Seq(server)
 }
 
-//trait DockerDatabase extends ForAllTestContainer { self: Suite =>
-//  override val container = MySQLContainer(mysqlImageVersion = "mysql:5.7.29")
-//}
-
-//abstract class ServerSuite[T <: BuiltInComponents](build: (Context, Conf) => T)
-//  extends BaseSuite
-//  with ServerPerSuite[T]
-//  with DockerDatabase {
-//  override def createComponents(context: Context): T = {
-//    container.start()
-//    build(context, TestConf(container))
-//  }
-//}
-
-abstract class BoatTests extends TestAppSuite with BoatSockets {
+abstract class BoatTests extends ServerSuite with BoatSockets {
   def openTestBoat[T](boat: BoatName)(code: TestBoat => T): T = {
     openBoat(urlFor(reverse.boatSocket()), Left(boat))(code)
   }

@@ -115,19 +115,19 @@ class AppComponents(
 
   val html = BoatHtml(mode)
   val dbConf = builder.databaseConf
+  val ds = Conf.dataSource(dbConf)
   val executor = Executors.newFixedThreadPool(20)
   val dbExecutor = ExecutionContext.fromExecutor(executor)
-  val db = BoatDatabase.withMigrations(dbExecutor, dbConf)
 
   // Services
-  val users: NewUserManager = NewUserManager(db)
+  val doobie = DoobieDatabase.withMigrations(dbConf, dbExecutor)
+  val users: UserManager = DoobieUserManager(doobie)
   users.initUser()
-  val stats = StatsDatabase(db)
-  val tracks: TracksSource = NewTracksDatabase(db, stats)
-  val inserts = TrackInserts(db)
-  val gps: GPSSource = NewGPSDatabase(db)
+  val tracks: TracksSource with StatsSource = DoobieTracksDatabase(doobie)
+  val inserts = DoobieTrackInserts(doobie)
+  val gps: GPSSource = DoobieGPSDatabase(doobie)
   lazy val pushService: PushEndpoint = builder.pushService
-  lazy val push: PushService = NewPushDatabase(db, pushService)
+  lazy val push: PushService = DoobiePushDatabase(doobie, pushService)
   val googleAuth: EmailAuth = builder.emailAuth
   val ais = BoatMqttClient(mode)
   val boatService = BoatService(ais, inserts, actorSystem, materializer)
@@ -157,7 +157,7 @@ class AppComponents(
     tracks,
     inserts,
     TrackImporter(inserts, actorSystem, executionContext),
-    stats,
+    tracks,
     push,
     controllerComponents
   )(actorSystem, materializer)
@@ -180,7 +180,7 @@ class AppComponents(
       deviceService.close()
       boatService.close()
       http.close()
-      db.close()
+      doobie.close()
       executor.shutdown()
       executor.awaitTermination(5, TimeUnit.SECONDS)
     }

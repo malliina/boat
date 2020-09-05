@@ -28,6 +28,8 @@ object PassThroughUserManager extends UserManager {
     addedMillis = Instant.now().toEpochMilli
   )
 
+  override def initUser(user: Username): Future[NewUser] =
+    Future.successful(NewUser(user, None, UserToken.random(), enabled = true))
   def userMeta(email: Email): Future[UserRow] = fut(godUser)
   def userInfo(email: Email): Future[UserInfo] = fut(god)
   def authBoat(token: BoatToken): Future[JoinedBoat] =

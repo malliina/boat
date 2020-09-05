@@ -2,17 +2,16 @@ package com.malliina.boat
 
 import java.time.{Instant, LocalDate, LocalTime, ZoneOffset}
 
+import com.malliina.boat.BoatPrimitives.durationFormat
 import com.malliina.boat.parsing.{FullCoord, GPSCoord, GPSFix}
 import com.malliina.measure.{DistanceM, SpeedM, Temperature}
 import com.malliina.play.auth.JWTError
 import com.malliina.values._
-import com.malliina.boat.BoatPrimitives.durationFormat
-import io.getquill.Embedded
 import play.api.data.{Forms, Mapping}
 import play.api.http.Writeable
 import play.api.libs.json._
 import play.api.mvc.PathBindable
-import com.malliina.boat.BuildInfo
+
 import scala.concurrent.duration.FiniteDuration
 
 case class CSRFToken(token: String) extends AnyVal
@@ -119,8 +118,10 @@ case class JoinedTrack(
   canonical: TrackCanonical,
   comments: Option[String],
   trackAdded: Instant,
-  boat: JoinedBoat,
   points: Int,
+  avgSpeed: Option[SpeedM],
+  avgWaterTemp: Option[Temperature],
+  distance: DistanceM,
   start: Option[Instant],
   startDate: DateVal,
   startMonth: MonthVal,
@@ -128,12 +129,9 @@ case class JoinedTrack(
   end: Option[Instant],
   duration: FiniteDuration,
   topSpeed: Option[SpeedM],
-  avgSpeed: Option[SpeedM],
-  avgWaterTemp: Option[Temperature],
-  distance: DistanceM,
-  tip: CombinedCoord
-) extends TrackLike
-  with Embedded {
+  tip: CombinedCoord,
+  boat: JoinedBoat
+) extends TrackLike {
   def boatId = boat.device
   def language = boat.language
   def user = boat.user
@@ -227,7 +225,7 @@ case class InsertedPoint(point: TrackPointId, track: JoinedTrack) {
 
 case class JoinedDevice(id: DeviceId, username: Username)
 
-case class GPSInsertedPoint(point: GPSPointId, from: JoinedBoat) extends Embedded
+case class GPSInsertedPoint(point: GPSPointId, from: JoinedBoat)
 
 case class TrackNumbers(
   track: TrackId,
@@ -375,8 +373,7 @@ case class JoinedBoat(
   email: Option[Email],
   language: Language
 ) extends IdentifiedDeviceMeta
-  with UserDevice
-  with Embedded {
+  with UserDevice {
   override def user = username
   override def boat = boatName
   override def deviceName = boatName
@@ -391,7 +388,7 @@ case class TrackInput(
   points: Int,
   distance: DistanceM,
   canonical: TrackCanonical
-) extends Embedded
+)
 
 object TrackInput {
   def empty(name: TrackName, boat: DeviceId): TrackInput =
@@ -422,8 +419,7 @@ case class SentenceInput(sentence: RawSentence, track: TrackId)
 
 case class KeyedSentence(key: SentenceKey, sentence: RawSentence, from: TrackMetaShort)
 
-case class SentenceRow(id: SentenceKey, sentence: RawSentence, track: TrackId, added: Instant)
-  extends Embedded {
+case class SentenceRow(id: SentenceKey, sentence: RawSentence, track: TrackId, added: Instant) {
   def timed(formatter: TimeFormatter) =
     TimedSentence(id, sentence, track, added, formatter.timing(added))
 }
@@ -482,7 +478,7 @@ case class GPSPointRow(
   diff: DistanceM,
   device: DeviceId,
   added: Instant
-) extends Embedded
+)
 
 case class TimedSentence(
   id: SentenceKey,
@@ -581,7 +577,7 @@ case class CombinedCoord(
   date: DateVal,
   track: TrackId,
   added: Instant
-) extends Embedded {
+) {
 
   def toFull(sentences: Seq[SentenceRow], formatter: TimeFormatter): CombinedFullCoord =
     CombinedFullCoord(
@@ -671,7 +667,7 @@ case class TrackPointRow(
   trackIndex: Int,
   diff: DistanceM,
   added: Instant
-) extends Embedded {
+) {
   def depth = depthm
   def depthOffset = depthOffsetm
   def dateTimeUtc = boatTime.atOffset(ZoneOffset.UTC)

@@ -1,6 +1,5 @@
 package controllers
 
-import java.nio.file.Files
 import java.time.Instant
 
 import akka.actor.ActorSystem
@@ -302,7 +301,7 @@ class BoatController(
             case Failure(f) =>
               log.error(s"Boat '${boat.boatName}' left.", f)
           }
-          push.push(boat, BoatState.Disconnected)
+          push.push(boat, BoatState.Disconnected).map(_ => ())
         }
       }
     }.recoverWith {

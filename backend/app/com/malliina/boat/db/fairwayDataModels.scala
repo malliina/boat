@@ -3,7 +3,6 @@ package com.malliina.boat.db
 import com.malliina.boat.{Coord, CoordHash, FairwayLighting, Latitude, Longitude, SeaArea}
 import com.malliina.measure.DistanceM
 import com.malliina.values.{IdCompanion, WrappedId}
-import io.getquill.Embedded
 
 case class FairwayId(id: Long) extends AnyVal with WrappedId
 object FairwayId extends IdCompanion[FairwayId]
@@ -24,7 +23,7 @@ case class FairwayRow(
   classText: String,
   seaArea: SeaArea,
   state: Double
-) extends Embedded
+)
 
 case class FairwayCoord(
   id: FairwayCoordId,

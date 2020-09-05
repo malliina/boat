@@ -4,6 +4,7 @@ import java.time.Instant
 import java.time.format.DateTimeParseException
 import java.time.temporal.ChronoUnit
 
+import cats.data.NonEmptyList
 import com.malliina.boat.{Constants, Coord, Latitude, Longitude, RouteRequest, SingleError, TrackCanonical, TrackName}
 import com.malliina.values.{Email, ErrorMessage}
 import play.api.mvc.{QueryStringBindable, Request, RequestHeader}
@@ -52,7 +53,10 @@ object SortOrder extends EnumLike[SortOrder] {
   case object Desc extends SortOrder("desc")
 }
 
-case class TrackQuery(sort: TrackSort, order: SortOrder, limits: Limits)
+case class TrackQuery(sort: TrackSort, order: SortOrder, limits: Limits) extends LimitLike {
+  override def limit = limits.limit
+  override def offset = limits.offset
+}
 
 object TrackQuery {
   def apply(rh: RequestHeader): Either[SingleError, TrackQuery] = withDefault(rh)
@@ -108,6 +112,8 @@ case class BoatQuery(
   sample: Option[Int],
   newest: Boolean
 ) {
+  def neTracks = BoatQuery.toNonEmpty(tracks.toList)
+  def neCanonicals = BoatQuery.toNonEmpty(canonicals.toList)
   def limit = limits.limit
   def offset = limits.offset
   def from = timeRange.from
@@ -211,11 +217,20 @@ object BoatQuery {
     QueryStringBindable.bindableDouble
       .bind(key, rh.queryString)
       .map(_.left.map(SingleError.input))
+
+  def toNonEmpty[T](ts: List[T]): Option[NonEmptyList[T]] = ts match {
+    case t :: head => Option(NonEmptyList(t, head))
+    case Nil       => None
+  }
 }
 
-case class Limits(limit: Int, offset: Int) {
+trait LimitLike {
+  def limit: Int
+  def offset: Int
   def page = offset / limit + 1
 }
+
+case class Limits(limit: Int, offset: Int) extends LimitLike
 
 object Limits {
   val Limit = "limit"

@@ -1,6 +1,5 @@
 package tests
 
-import akka.actor.ActorSystem
 import com.dimafeng.testcontainers.MySQLContainer
 import com.malliina.boat.auth.EmailAuth
 import com.malliina.boat.db._
@@ -62,7 +61,7 @@ trait DockerDatabase { self: munit.Suite =>
 
   override def munitFixtures = Seq(db)
 
-  def testDatabase(ec: ExecutionContext, conf: Conf) = BoatDatabase.withMigrations(ec, conf)
+  def testDatabase(conf: Conf, ec: ExecutionContext) = DoobieDatabase.withMigrations(conf, ec)
 }
 
 //trait DockerDatabase extends ForAllTestContainer { self: Suite =>
