@@ -119,7 +119,6 @@ class AppComponents(
   val ds = Conf.dataSource(dbConf)
   val executor = Executors.newFixedThreadPool(20)
   val dbExecutor = ExecutionContext.fromExecutor(executor)
-  val db = BoatDatabase(ds, dbExecutor, dbConf.isMariaDb)
 
   // Services
   val doobie = DoobieDatabase(ds, dbExecutor)
@@ -182,7 +181,7 @@ class AppComponents(
       deviceService.close()
       boatService.close()
       http.close()
-      db.close()
+      doobie.close()
       executor.shutdown()
       executor.awaitTermination(5, TimeUnit.SECONDS)
     }
