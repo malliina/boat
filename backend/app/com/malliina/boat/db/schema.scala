@@ -5,15 +5,11 @@ import java.time.Instant
 import com.malliina.boat.{Boat, BoatName, BoatPrimitives, BoatToken, CombinedCoord, DateVal, DeviceId, FormattedDateTime, GPSPointRow, InviteState, JoinedBoat, JoinedTrack, Language, MonthVal, TimeFormatter, TimedCoord, TrackCanonical, TrackId, TrackName, TrackPointId, TrackPointRow, TrackTitle, UserToken, YearVal}
 import com.malliina.measure.{DistanceM, SpeedM, Temperature}
 import com.malliina.values.{Email, UserId, Username}
-import io.getquill.Embedded
 import play.api.libs.json.Json
 
 import scala.concurrent.duration.FiniteDuration
 
-// Schema used by Quill. Member names match database columns.
-
-case class BoatRow(id: DeviceId, name: BoatName, token: BoatToken, owner: UserId, added: Instant)
-  extends Embedded {
+case class BoatRow(id: DeviceId, name: BoatName, token: BoatToken, owner: UserId, added: Instant) {
   def toBoat = Boat(id, name, token, added.toEpochMilli)
 }
 
@@ -25,7 +21,7 @@ case class UserRow(
   language: Language,
   enabled: Boolean,
   added: Instant
-) extends Embedded
+)
 
 case class UserBoatRow(user: UserId, boat: DeviceId, state: InviteState, added: Instant)
 
@@ -41,7 +37,7 @@ case class TrackRow(
   canonical: TrackCanonical,
   comments: Option[String],
   added: Instant
-) extends Embedded
+)
 
 case class TrackOut(
   id: TrackId,
@@ -63,7 +59,7 @@ case class Partial(
   start: Instant,
   end: Instant,
   coord: CombinedCoord
-) extends Embedded {
+) {
   def strip =
     StrippedPartial(
       device,
@@ -96,7 +92,7 @@ case class TrackTimes(
   date: DateVal,
   month: MonthVal,
   year: YearVal
-) extends Embedded
+)
 
 object TrackTimes {
   implicit val dur = BoatPrimitives.durationFormat
@@ -150,4 +146,4 @@ case class TrackTop(track: TrackId, top: Option[TrackPointId])
 
 case class JoinedUser(user: UserRow, boat: Option[BoatRow])
 
-case class JoinedGPS(point: GPSPointRow, device: JoinedBoat) extends Embedded
+case class JoinedGPS(point: GPSPointRow, device: JoinedBoat)

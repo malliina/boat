@@ -1,7 +1,6 @@
 package com.malliina.boat.db
 
 import com.malliina.boat.{Coord, CoordHash}
-import io.getquill.SnakeCase
 
 import scala.concurrent.Future
 
@@ -15,8 +14,6 @@ trait FairwaySource {
 }
 
 object NewFairwayService {
-  def apply(db: BoatDatabase[SnakeCase]): NewFairwayService = new NewFairwayService(db)
-
   def collect(rows: Seq[CoordFairway]): Seq[CoordFairways] =
     rows.foldLeft(Vector.empty[CoordFairways]) {
       case (acc, cf) =>
@@ -27,29 +24,5 @@ object NewFairwayService {
         } else {
           acc :+ CoordFairways(cf.coord, Seq(cf.fairway))
         }
-    }
-}
-
-class NewFairwayService(val db: BoatDatabase[SnakeCase]) extends FairwaySource {
-  import db._
-
-  val fairwaysTable = quote(querySchema[FairwayRow]("fairways"))
-  val fairwaysCoordsTable = quote(querySchema[FairwayCoord]("fairway_coords"))
-
-  val fairwaysByCoords = quote { cs: Query[CoordHash] =>
-    for {
-      f <- fairwaysTable
-      c <- fairwaysCoordsTable.filter(c => cs.contains(c.coordHash))
-      if f.id == c.fairway
-    } yield CoordFairway(c.coordHash, f)
-  }
-
-  def fairways(at: CoordHash): Future[Seq[FairwayRow]] = performAsync("Load fairways") {
-    runIO(fairwaysByCoords(liftQuery(Seq(at))).map(_.fairway))
-  }
-
-  def fairwaysAt(route: Seq[CoordHash]): Future[Seq[CoordFairways]] =
-    performAsync("Fairways at route") {
-      runIO(fairwaysByCoords(liftQuery(route))).map(NewFairwayService.collect)
     }
 }

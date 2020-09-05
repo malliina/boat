@@ -130,7 +130,6 @@ val backend = Project("boat", file("backend"))
       "org.tpolecat" %% d % "0.9.0"
     } ++ Seq(
       "com.vividsolutions" % "jts" % "1.13",
-      "io.getquill" %% "quill-jdbc" % "3.5.1",
       "mysql" % "mysql-connector-java" % "5.1.49",
       "org.flywaydb" % "flyway-core" % "6.5.1",
       "org.apache.commons" % "commons-text" % "1.8",

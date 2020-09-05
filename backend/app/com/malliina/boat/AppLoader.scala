@@ -115,13 +115,12 @@ class AppComponents(
 
   val html = BoatHtml(mode)
   val dbConf = builder.databaseConf
-  BoatDatabase.migrate(dbConf)
   val ds = Conf.dataSource(dbConf)
   val executor = Executors.newFixedThreadPool(20)
   val dbExecutor = ExecutionContext.fromExecutor(executor)
 
   // Services
-  val doobie = DoobieDatabase(ds, dbExecutor)
+  val doobie = DoobieDatabase.withMigrations(dbConf, dbExecutor)
   val users: UserManager = DoobieUserManager(doobie)
   users.initUser()
   val tracks: TracksSource with StatsSource = DoobieTracksDatabase(doobie)
