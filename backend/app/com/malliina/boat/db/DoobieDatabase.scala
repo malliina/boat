@@ -14,7 +14,12 @@ import play.api.Logger
 import scala.concurrent.{ExecutionContext, Future}
 
 object DoobieDatabase {
+  def apply(conf: Conf, ec: ExecutionContext): DoobieDatabase = apply(Conf.dataSource(conf), ec)
   def apply(ds: HikariDataSource, ec: ExecutionContext): DoobieDatabase = new DoobieDatabase(ds, ec)
+  def withMigrations(conf: Conf, ec: ExecutionContext): DoobieDatabase = {
+    BoatDatabase.migrate(conf)
+    apply(conf, ec)
+  }
 }
 
 class DoobieDatabase(ds: HikariDataSource, val ec: ExecutionContext) {

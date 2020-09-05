@@ -20,10 +20,10 @@ object TestData {
 class TracksDatabaseTests extends AsyncSuite with DockerDatabase {
   test("inserts update track aggregates") {
     val conf = TestConf(db())
-    val newDb = BoatDatabase.withMigrations(dbExecutor, conf)
-    val tdb = NewTracksDatabase(newDb, StatsDatabase(newDb))
-    val inserts = TrackInserts(newDb)
-    val users = NewUserManager(newDb)
+    val newDb = DoobieDatabase.withMigrations(conf, dbExecutor)
+    val tdb = DoobieTracksDatabase(newDb)
+    val inserts = DoobieTrackInserts(newDb)
+    val users = DoobieUserManager(newDb)
     val user = await(users.userInfo(Email("aggregate@example.com")))
     val uid = user.id
     val boat = user.boats.head
@@ -44,9 +44,9 @@ class TracksDatabaseTests extends AsyncSuite with DockerDatabase {
   test("add comments to track") {
     val conf = TestConf(db())
 
-    val newDb = BoatDatabase.withMigrations(dbExecutor, conf)
-    val tdb = TrackInserts(newDb)
-    val udb = NewUserManager(newDb)
+    val newDb = DoobieDatabase.withMigrations(conf, dbExecutor)
+    val tdb = DoobieTrackInserts(newDb)
+    val udb = DoobieUserManager(newDb)
     val testComment = "test"
     val userInput =
       NewUser(

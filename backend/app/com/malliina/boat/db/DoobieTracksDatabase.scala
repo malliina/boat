@@ -68,6 +68,7 @@ object DoobieTracksDatabase {
 class DoobieTracksDatabase(val db: DoobieDatabase) extends TracksSource with StatsSource {
   implicit val ec = db.ec
   import DoobieMappings._
+  import db.logHandler
 
   object sql extends CommonSql {
     def pointsByTrack(name: TrackName) =
@@ -129,9 +130,6 @@ class DoobieTracksDatabase(val db: DoobieDatabase) extends TracksSource with Sta
 
   def tracksBundle(user: MinimalUserInfo, filter: TrackQuery, lang: Lang): Future[TracksBundle] =
     run {
-      val tf = tracksFor(user, filter)
-      val tracks = sql.tracksByUser(user.username)
-      val ord = if (filter.order == SortOrder.Desc) fr"desc" else fr"asc"
       for {
         ts <- tracksForIO(user, filter)
         ss <- statsIO(user, filter, lang)
@@ -268,13 +266,13 @@ class DoobieTracksDatabase(val db: DoobieDatabase) extends TracksSource with Sta
       .query[JoinedTrack]
       .to[List]
     eligible.flatMap { ts =>
-      val conditions = Fragments.andOpt(
+      val conditions = Fragments.whereAndOpt(
         BoatQuery.toNonEmpty(ts.map(_.track).distinct).map(ids => Fragments.in(fr"p.track", ids)),
         limits.from.map(f => fr"p.added >= $f"),
         limits.to.map(t => fr"p.added <= $t")
       )
       sql"""${sql.selectAllPoints} 
-         where $conditions 
+         $conditions 
          order by p.track_index desc 
          limit ${limits.limit} 
          offset ${limits.offset}"""

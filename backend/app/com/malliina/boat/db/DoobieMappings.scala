@@ -56,7 +56,7 @@ trait DoobieMappings {
   implicit val coordMeta: Meta[Coord] = Meta[Array[Byte]].timap(bytes =>
     toCoord(SpatialUtils.fromBytes[Point](bytes))
   )(SpatialUtils.coordToBytes)
-  implicit val date: Meta[DateVal] = Meta[LocalDate].timap(d => DateVal(d))(_.toLocalDate)
+  implicit val dateMapping: Meta[DateVal] = Meta[LocalDate].timap(d => DateVal(d))(_.toLocalDate)
   implicit val year: Meta[YearVal] = Meta[Int].timap(y => YearVal(y))(_.year)
   implicit val month: Meta[MonthVal] = Meta[Int].timap(m => MonthVal(m))(_.month)
 

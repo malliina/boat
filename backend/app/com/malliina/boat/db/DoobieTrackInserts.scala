@@ -3,28 +3,28 @@ package com.malliina.boat.db
 import cats.implicits._
 import com.malliina.boat.db.DoobieTrackInserts.log
 import com.malliina.boat.parsing.FullCoord
-import com.malliina.boat.{BoatName, BoatToken, BoatTokens, BoatTrackMeta, DeviceId, DeviceMeta, InsertedPoint, JoinedBoat, JoinedTrack, KeyedSentence, SentenceKey, SentencesEvent, TrackCanonical, TrackId, TrackInput, TrackMeta, TrackName, TrackPointId, TrackPointRow, TrackTitle, Utils}
+import com.malliina.boat.{BoatName, BoatToken, BoatTokens, BoatTrackMeta, DateVal, DeviceId, DeviceMeta, InsertedPoint, JoinedBoat, JoinedTrack, KeyedSentence, SentenceKey, SentencesEvent, TrackCanonical, TrackId, TrackInput, TrackMeta, TrackName, TrackPointId, TrackPointRow, TrackTitle, Utils}
 import com.malliina.measure.{DistanceM, SpeedIntM, SpeedM}
 import com.malliina.values.UserId
 import doobie._
 import doobie.implicits._
 import play.api.Logger
-
+import DoobieTrackInserts.IO
 import scala.concurrent.Future
 
 object DoobieTrackInserts {
   private val log = Logger(getClass)
-
+  type IO[A] = ConnectionIO[A]
   def apply(db: DoobieDatabase): DoobieTrackInserts = new DoobieTrackInserts(db)
 }
 
-class DoobieTrackInserts(db: DoobieDatabase) extends TrackInsertsDatabase with DoobieSQL {
+class DoobieTrackInserts(val db: DoobieDatabase) extends TrackInsertsDatabase with DoobieSQL {
   import DoobieMappings._
   val minSpeed: SpeedM = 1.kmh
 
   private val trackIds = CommonSql.nonEmptyTracksWith(fr0"t.id")
   private def trackById(id: TrackId) =
-    sql"${CommonSql.nonEmptyTracks} and tid = $id".query[JoinedTrack].unique
+    sql"${CommonSql.nonEmptyTracks} and t.id = $id".query[JoinedTrack].unique
 
   private val trackMetas =
     sql"""select t.id, t.name, t.title, t.canonical, t.comments, t.added, t.avg_speed, t.avg_water_temp, t.points, t.distance, b.id boatId, b.name boatName, b.token boatToken, u.id userId, u.user, u.email
@@ -32,7 +32,7 @@ class DoobieTrackInserts(db: DoobieDatabase) extends TrackInsertsDatabase with D
          where t.boat = b.id and b.owner = u.id"""
   def updateTitle(track: TrackName, title: TrackTitle, user: UserId): Future[JoinedTrack] = {
     val trackIO =
-      sql"""$trackIds and t.name = $track and owner = $user"""
+      sql"""$trackIds and t.name = $track and b.uid = $user"""
         .query[TrackId]
         .option
         .flatMap { opt => opt.map(pure).getOrElse(fail(s"Track not found: '$track'.")) }
@@ -45,7 +45,7 @@ class DoobieTrackInserts(db: DoobieDatabase) extends TrackInsertsDatabase with D
 
   def updateComments(track: TrackId, comments: String, user: UserId): Future[JoinedTrack] = {
     val trackIO =
-      sql"""$trackIds and tid = $track and owner = $user"""
+      sql"""$trackIds and t.id = $track and b.uid = $user"""
         .query[TrackId]
         .option
         .flatMap { opt => opt.map(pure).getOrElse(fail(s"Track not found: '$track'.")) }
@@ -88,14 +88,14 @@ class DoobieTrackInserts(db: DoobieDatabase) extends TrackInsertsDatabase with D
 
   def joinAsBoat(meta: BoatTrackMeta): Future[TrackMeta] = db.run {
     val existing =
-      sql"""$trackMetas and u.user = ${meta.user} and boatName = ${meta.boat} and name = ${meta.track}"""
+      sql"""$trackMetas and u.user = ${meta.user} and b.name = ${meta.boat} and t.name = ${meta.track}"""
         .query[TrackMeta]
         .option
     existing.flatMap { opt =>
       opt.map(pure).getOrElse {
         joinBoat(meta).flatMap { boat =>
           // Is this necessary?
-          sql"$trackMetas and t.name = ${meta.track} and boatId = ${boat.id}"
+          sql"$trackMetas and t.name = ${meta.track} and b.id = ${boat.id}"
             .query[TrackMeta]
             .option
             .flatMap { opt =>
@@ -186,22 +186,32 @@ class DoobieTrackInserts(db: DoobieDatabase) extends TrackInsertsDatabase with D
          values(${c.lng}, ${c.lat}, ${c.coord}, ${c.boatSpeed}, ${c.waterTemp}, ${c.depth}, ${c.depthOffset}, ${c.boatTime}, ${c.from.track}, $atIndex, $diff)""".update
       .withUniqueGeneratedKeys[TrackPointId]("id")
 
-  private def insertTrack(in: TrackInput): ConnectionIO[TrackMeta] =
+  def dates(track: TrackId): IO[List[DateVal]] =
+    sql"""select distinct(date(boat_time)) 
+          from points p 
+          where p.track = $track""".query[DateVal].to[List]
+
+  def changeTrack(old: TrackId, date: DateVal, newTrack: TrackId): IO[Int] = {
+    sql"""update points set track = $newTrack 
+          where track = $old and date(boat_time) = $date""".update.run
+  }
+
+  def insertTrack(in: TrackInput): ConnectionIO[TrackMeta] =
     sql"""insert into tracks(name, boat, avg_speed, avg_water_temp, points, distance, canonical) 
          values(${in.name}, ${in.boat}, ${in.avgSpeed}, ${in.avgWaterTemp}, ${in.points}, ${in.distance}, ${in.canonical})""".update
       .withUniqueGeneratedKeys[TrackId]("id")
       .flatMap { id =>
-        sql"$trackMetas and id = $id".query[TrackMeta].unique
+        sql"$trackMetas and t.id = $id".query[TrackMeta].unique
       }
 
-  private def insertBoat(boatName: BoatName, owner: UserId): ConnectionIO[JoinedBoat] =
+  private def insertBoat(boatName: BoatName, owner: UserId): IO[JoinedBoat] =
     sql"""insert into boats(name, owner) values($boatName, $owner)""".update
       .withUniqueGeneratedKeys[DeviceId]("id")
       .flatMap { id =>
         sql"${CommonSql.boats} and b.id = $id".query[JoinedBoat].unique
       }
 
-  private def joinBoat(meta: BoatTrackMeta): ConnectionIO[BoatRow] = {
+  private def joinBoat(meta: BoatTrackMeta): IO[BoatRow] = {
     val user = sql"select id from users u where u.user = ${meta.user}".query[UserId].unique
     def existingBoat(uid: UserId) =
       sql"select id, name, token, owner, added from boats b where b.name = ${meta.boat} and b.owner = $uid"

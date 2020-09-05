@@ -21,7 +21,7 @@ class DoobieGPSDatabase(db: DoobieDatabase) extends GPSSource with DoobieSQL {
 
   def history(user: MinimalUserInfo): Future[Seq[GPSCoordsEvent]] = db.run {
     sql"""select $pointColumns, b.id, b.name, b.token, b.uid, b.user, b.email, b.language
-          from (${CommonSql.boats} and user = ${user.username}) b, gps_points p, (select device, max(point_index) pointIndex from gps_points group by device) l
+          from (${CommonSql.boats} and u.user = ${user.username}) b, gps_points p, (select device, max(point_index) pointIndex from gps_points group by device) l
           where p.device = b.id and p.device = l.device and p.point_index = l.pointIndex"""
       .query[JoinedGPS]
       .to[List]

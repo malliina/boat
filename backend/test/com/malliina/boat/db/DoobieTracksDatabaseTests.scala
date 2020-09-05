@@ -27,7 +27,7 @@ class DoobieTests extends AsyncSuite {
     Conf.MySQLDriver
   )
 
-  test("make query") {
+  test("make query".ignore) {
     val doobie = DoobieDatabase(BoatDatabase.newDataSource(conf), dbExecutor)
     try {
       val db = DoobieTracksDatabase(doobie)
@@ -41,7 +41,7 @@ class DoobieTests extends AsyncSuite {
     } finally doobie.close()
   }
 
-  test("measure distance") {
+  test("measure distance".ignore) {
     import DoobieMappings.coordMeta
     val doobie = DoobieDatabase(BoatDatabase.newDataSource(conf), dbExecutor)
     try {

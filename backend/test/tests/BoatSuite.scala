@@ -61,7 +61,7 @@ trait DockerDatabase { self: munit.Suite =>
 
   override def munitFixtures = Seq(db)
 
-  def testDatabase(ec: ExecutionContext, conf: Conf) = BoatDatabase.withMigrations(ec, conf)
+  def testDatabase(conf: Conf, ec: ExecutionContext) = DoobieDatabase.withMigrations(conf, ec)
 }
 
 //trait DockerDatabase extends ForAllTestContainer { self: Suite =>

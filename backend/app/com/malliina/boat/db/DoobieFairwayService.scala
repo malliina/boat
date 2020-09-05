@@ -1,14 +1,19 @@
 package com.malliina.boat.db
 
 import cats.data.NonEmptyList
-import com.malliina.boat.CoordHash
+import com.malliina.boat.db.DoobieTrackInserts.IO
+import com.malliina.boat.{CoordHash, FairwayInfo}
 import com.malliina.boat.http.BoatQuery
 import doobie._
 import doobie.implicits._
-
+import cats.implicits._
 import scala.concurrent.Future
 
-class DoobieFairwayService(db: DoobieDatabase) {
+object DoobieFairwayService {
+  def apply(db: DoobieDatabase): DoobieFairwayService = new DoobieFairwayService(db)
+}
+
+class DoobieFairwayService(db: DoobieDatabase) extends FairwaySource {
   import DoobieMappings._
   def byCoords(coords: NonEmptyList[CoordHash]) = {
     val inClause = Fragments.in(fr"fc.coord_hash", coords)
@@ -33,4 +38,18 @@ class DoobieFairwayService(db: DoobieDatabase) {
         AsyncConnectionIO.pure(Nil)
       }
   }
+
+  def insert(in: FairwayInfo): ConnectionIO[FairwayId] =
+    sql"""insert into fairways(name_fi, name_se, start, end, depth, depth2, depth3, lighting, class_text, sea_area, state) 
+         values (${in.nameFi}, ${in.nameSe}, ${in.start}, ${in.end}, ${in.depth}, ${in.depth2}, ${in.depth3}, ${in.lighting}, ${in.classText}, ${in.seaArea}, ${in.state})""".update
+      .withUniqueGeneratedKeys[FairwayId]("id")
+
+  def insertCoords(ins: List[FairwayCoordInput]): ConnectionIO[List[FairwayCoordId]] =
+    ins.traverse { in =>
+      sql"""insert into fairway_coords(coord, latitude, longitude, coord_hash, fairway)
+         values(${in.coord}, ${in.latitude}, ${in.longitude}, ${in.coordHash}, ${in.fairway})""".update
+        .withUniqueGeneratedKeys[FairwayCoordId]("id")
+    }
+
+  def delete = sql"truncate fairways".update.run
 }

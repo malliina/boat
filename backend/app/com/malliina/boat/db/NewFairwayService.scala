@@ -30,7 +30,7 @@ object NewFairwayService {
     }
 }
 
-class NewFairwayService(val db: BoatDatabase[SnakeCase]) {
+class NewFairwayService(val db: BoatDatabase[SnakeCase]) extends FairwaySource {
   import db._
 
   val fairwaysTable = quote(querySchema[FairwayRow]("fairways"))

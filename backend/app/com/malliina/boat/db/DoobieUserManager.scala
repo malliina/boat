@@ -64,11 +64,11 @@ class DoobieUserManager(db: DoobieDatabase) extends UserManager with DoobieSQL {
   }
 
   def boats(email: Email) = db.run {
-    def boatRowsIO(id: UserId) = sql"""${sql.nonEmptyTracks} and owner = $id and t.points > 100"""
+    def boatRowsIO(id: UserId) = sql"""${sql.nonEmptyTracks} and b.uid = $id and t.points > 100"""
       .query[JoinedTrack]
       .to[List]
     def deviceRowsIO(email: Email) =
-      sql"""${sql.boats} and email = $email and id not in (select boat from tracks)"""
+      sql"""${sql.boats} and u.email = $email and b.id not in (select boat from tracks)"""
         .query[JoinedBoat]
         .to[List]
     for {

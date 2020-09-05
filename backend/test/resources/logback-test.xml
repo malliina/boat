@@ -6,7 +6,7 @@
         </encoder>
     </appender>
     <logger name="com.malliina.boat.db" level="INFO"/>
-    <root level="WARN">
+    <root level="INFO">
         <appender-ref ref="STDOUT"/>
     </root>
 </configuration>
