@@ -10,7 +10,11 @@ import play.api.Logger
 
 import scala.concurrent.Future
 
-class DoobieUserManager(db: DoobieDatabase) {
+object DoobieUserManager {
+  def apply(db: DoobieDatabase): DoobieUserManager = new DoobieUserManager(db)
+}
+
+class DoobieUserManager(db: DoobieDatabase) extends UserManager with DoobieSQL {
   object sql extends CommonSql
   private val log = Logger(getClass)
 
@@ -201,9 +205,4 @@ class DoobieUserManager(db: DoobieDatabase) {
       res <- run(link.isDefined).map(t => AccessResult(link.isDefined))
     } yield res
   }
-
-  protected def pure[A](a: A): ConnectionIO[A] = AsyncConnectionIO.pure(a)
-  protected def fail[A](message: String): ConnectionIO[A] = fail(new Exception(message))
-  protected def fail[A](e: Throwable): ConnectionIO[A] = AsyncConnectionIO.raiseError(e)
-
 }

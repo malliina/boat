@@ -3,6 +3,7 @@ package com.malliina.boat.db
 import java.time.Instant
 
 import com.malliina.boat.{MobileDevice, PushId, PushToken}
+import com.malliina.measure.{DistanceM, SpeedM, Temperature}
 import com.malliina.values.UserId
 
 case class PushDevice(
@@ -14,3 +15,5 @@ case class PushDevice(
 )
 
 case class PushInput(token: PushToken, device: MobileDevice, user: UserId)
+
+case class TrackInfo(avgTemp: Temperature, distance: DistanceM, points: Int)

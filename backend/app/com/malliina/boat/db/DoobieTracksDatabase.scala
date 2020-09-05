@@ -2,7 +2,7 @@ package com.malliina.boat.db
 
 import cats.data.NonEmptyList
 import com.malliina.boat.http.{BoatQuery, SortOrder, TrackQuery}
-import com.malliina.boat.{CombinedCoord, CoordsEvent, DateVal, FullTrack, JoinedBoat, JoinedTrack, Lang, Language, MinimalUserInfo, MonthlyStats, SentenceCoord2, Stats, StatsResponse, TimeFormatter, TrackCanonical, TrackInfo, TrackName, TrackPointRow, TrackRef, Tracks, TracksBundle, YearlyStats}
+import com.malliina.boat.{CombinedCoord, CoordsEvent, DateVal, FullTrack, JoinedBoat, JoinedTrack, Lang, Language, MinimalUserInfo, MonthlyStats, SentenceCoord2, Stats, StatsResponse, TimeFormatter, TrackCanonical, TrackId, TrackInfo, TrackName, TrackPointRow, TrackRef, Tracks, TracksBundle, YearlyStats}
 import com.malliina.measure.DistanceM
 import com.malliina.values.Username
 import doobie._
@@ -50,11 +50,15 @@ trait CommonSql {
             from ($topRows) top, ($timedTracks) t
             where top.track = t.id"""
   val trackColumns =
-    fr"t.id tid, t.name, t.title, t.canonical, t.comments, t.added, t.points, t.avg_speed, t.avg_water_temp, t.distance, t.start, t.startDate, t.startMonth, t.startYear, t.end, t.secs duration, t.boat_speed maxBoatspeed, t.pointId, t.longitude, t.latitude, t.coord, t.boat_speed topSpeed, t.water_temp, t.depthm, t.depth_offsetm, t.boat_time, t.trackDate, t.track, t.topAdded, b.id boatId, b.name boatName, b.token, b.uid, b.user, b.email, b.language"
-  val nonEmptyTracks =
-    sql"""select t.id tid, t.name, t.title, t.canonical, t.comments, t.added, t.points, t.avg_speed, t.avg_water_temp, t.distance, t.start, t.startDate, t.startMonth, t.startYear, t.end, t.secs duration, t.boat_speed maxBoatSpeed, t.pointId, t.longitude, t.latitude, t.coord, t.boat_speed topSpeed, t.water_temp, t.depthm, t.depth_offsetm, t.boat_time, t.trackDate, t.track, t.topAdded, b.id boatId, b.name boatName, b.token, b.uid, b.user owner, b.email, b.language
+    fr0"t.id tid, t.name, t.title, t.canonical, t.comments, t.added, t.points, t.avg_speed, t.avg_water_temp, t.distance, t.start, t.startDate, t.startMonth, t.startYear, t.end, t.secs duration, t.boat_speed maxBoatspeed, t.pointId, t.longitude, t.latitude, t.coord, t.boat_speed topSpeed, t.water_temp, t.depthm, t.depth_offsetm, t.boat_time, t.trackDate, t.track, t.topAdded, b.id boatId, b.name boatName, b.token, b.uid, b.user owner, b.email, b.language"
+  val nonEmptyTracks = nonEmptyTracksWith(trackColumns)
+  def nonEmptyTracksWith(cols: Fragment) =
+    sql"""select $cols
           from ($boats) b, ($trackHighlights) t
           where b.id = t.boat"""
+
+  val pointColumns =
+    fr"p.id, p.longitude, p.latitude, p.coord, p.boat_speed, p.water_temp, p.depthm, p.depth_offsetm, p.boat_time, date(p.boat_time), p.track, p.added"
 }
 
 object DoobieTracksDatabase {
@@ -66,12 +70,15 @@ class DoobieTracksDatabase(val db: DoobieDatabase) extends TracksSource with Sta
   import DoobieMappings._
 
   object sql extends CommonSql {
-    val pointColumns =
-      fr"p.id, p.longitude, p.latitude, p.coord, p.boat_speed, p.water_temp, p.depthm, p.depth_offsetm, p.boat_time, date(p.boat_time), p.track, p.added"
     def pointsByTrack(name: TrackName) =
       sql"""select $pointColumns
            from points p, tracks t 
            where p.track = t.id and t.name = $name"""
+
+    def pointsByTrackId(id: TrackId) =
+      sql"""select $pointColumns
+            from points p
+            where p.track = $id"""
     def pointsByTime(name: TrackName) = {
       val selectPoints = pointsByTrack(name)
       sql"""$selectPoints order by p.boat_time asc"""

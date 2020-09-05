@@ -9,5 +9,5 @@ import scala.concurrent.Future
 trait PushService {
   def enable(input: PushInput): Future[PushId]
   def disable(token: PushToken, user: UserId): Future[Boolean]
-  def push(device: UserDevice, state: BoatState): Future[Unit]
+  def push(device: UserDevice, state: BoatState): Future[PushSummary]
 }

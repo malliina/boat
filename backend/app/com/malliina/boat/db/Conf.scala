@@ -10,17 +10,19 @@ case class Conf(url: String, user: String, pass: String, driver: String, isMaria
 object Conf {
   private val log = Logger(getClass)
 
-  val UrlKey = "boat.db.url"
-  val UserKey = "boat.db.user"
-  val PassKey = "boat.db.pass"
-  val DriverKey = "boat.db.driver"
+  val UrlKey = "url"
+  val UserKey = "user"
+  val PassKey = "pass"
+  val DriverKey = "driver"
   val MySQLDriver = "com.mysql.jdbc.Driver"
   val DefaultDriver = MySQLDriver
 
-  def fromConf(conf: Configuration) = from(key => conf.getOptional[String](key))
-
-  def from(readKey: String => Option[String]) = {
-    def read(key: String) = readKey(key).toRight(s"Key missing: '$key'.")
+  def fromConf(conf: Configuration) = {
+    def read(key: String) =
+      conf
+        .get[Configuration]("boat.db")
+        .getOptional[String](key)
+        .toRight(s"Key missing: 'boat.db.$key'.")
 
     for {
       url <- read(UrlKey)

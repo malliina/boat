@@ -122,14 +122,14 @@ class AppComponents(
   val db = BoatDatabase(ds, dbExecutor, dbConf.isMariaDb)
 
   // Services
-  val users: NewUserManager = NewUserManager(db)
-  users.initUser()
   val doobie = DoobieDatabase(ds, dbExecutor)
+  val users: UserManager = DoobieUserManager(doobie)
+  users.initUser()
   val tracks: TracksSource with StatsSource = DoobieTracksDatabase(doobie)
-  val inserts = TrackInserts(db)
-  val gps: GPSSource = NewGPSDatabase(db)
+  val inserts = DoobieTrackInserts(doobie)
+  val gps: GPSSource = DoobieGPSDatabase(doobie)
   lazy val pushService: PushEndpoint = builder.pushService
-  lazy val push: PushService = NewPushDatabase(db, pushService)
+  lazy val push: PushService = DoobiePushDatabase(doobie, pushService)
   val googleAuth: EmailAuth = builder.emailAuth
   val ais = BoatMqttClient(mode)
   val boatService = BoatService(ais, inserts, actorSystem, materializer)

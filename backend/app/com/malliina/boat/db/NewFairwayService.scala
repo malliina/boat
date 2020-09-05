@@ -16,6 +16,18 @@ trait FairwaySource {
 
 object NewFairwayService {
   def apply(db: BoatDatabase[SnakeCase]): NewFairwayService = new NewFairwayService(db)
+
+  def collect(rows: Seq[CoordFairway]): Seq[CoordFairways] =
+    rows.foldLeft(Vector.empty[CoordFairways]) {
+      case (acc, cf) =>
+        val idx = acc.indexWhere(_.coord == cf.coord)
+        if (idx >= 0) {
+          val old = acc(idx)
+          acc.updated(idx, old.copy(fairways = old.fairways :+ cf.fairway))
+        } else {
+          acc :+ CoordFairways(cf.coord, Seq(cf.fairway))
+        }
+    }
 }
 
 class NewFairwayService(val db: BoatDatabase[SnakeCase]) {
@@ -38,18 +50,6 @@ class NewFairwayService(val db: BoatDatabase[SnakeCase]) {
 
   def fairwaysAt(route: Seq[CoordHash]): Future[Seq[CoordFairways]] =
     performAsync("Fairways at route") {
-      runIO(fairwaysByCoords(liftQuery(route))).map(collect)
-    }
-
-  private def collect(rows: Seq[CoordFairway]): Seq[CoordFairways] =
-    rows.foldLeft(Vector.empty[CoordFairways]) {
-      case (acc, cf) =>
-        val idx = acc.indexWhere(_.coord == cf.coord)
-        if (idx >= 0) {
-          val old = acc(idx)
-          acc.updated(idx, old.copy(fairways = old.fairways :+ cf.fairway))
-        } else {
-          acc :+ CoordFairways(cf.coord, Seq(cf.fairway))
-        }
+      runIO(fairwaysByCoords(liftQuery(route))).map(NewFairwayService.collect)
     }
 }

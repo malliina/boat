@@ -50,13 +50,14 @@ class NewPushDatabase(val db: BoatDatabase[SnakeCase], val push: PushEndpoint)(i
           }
       }
     }
-  def push(device: UserDevice, state: BoatState): Future[Unit] = {
+  def push(device: UserDevice, state: BoatState): Future[PushSummary] = {
     val notification = BoatNotification(device.deviceName, state)
     for {
       tokens <- performAsync("Load tokens")(runIO(pushTable.filter(_.user == lift(device.userId))))
       results <- Future.traverse(tokens: Seq[PushDevice])(token => push.push(notification, token))
-      _ <- handle(results.fold(PushSummary.empty)(_ ++ _))
-    } yield ()
+      summary = results.fold(PushSummary.empty)(_ ++ _)
+      _ <- handle(summary)
+    } yield summary
   }
 
   private def handle(summary: PushSummary): Future[Int] =
