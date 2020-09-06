@@ -81,8 +81,8 @@ class WebServer(host: String, port: Int, agentInstance: AgentInstance)(implicit
     getFromResourceDirectory("assets")
   )
 
-  val binding = Http().newServerAt(host, port).bindFlow(routes)
-//  val binding = Http().bindAndHandle(routes, host, port)
+//  val binding = Http().newServerAt(host, port).bindFlow(routes)
+  val binding = Http().bindAndHandle(routes, host, port)
 
   binding.foreach { _ =>
     log.info(s"Listening on $host:$port")
