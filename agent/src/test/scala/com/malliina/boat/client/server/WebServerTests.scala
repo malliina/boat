@@ -15,7 +15,7 @@ class WebServerTests extends BasicSuite {
   test("get") {
     val server =
       WebServer("127.0.0.1", 0, AgentInstance(BoatConf.empty, DeviceAgent.BoatUrl, as))
-    val testServer = Http().bindAndHandle(server.routes, "127.0.0.1", 0)
+    val testServer = Http().newServerAt("127.0.0.1", 0).bindFlow(server.routes)
     val binding = await(testServer)
     val addr = binding.localAddress
     def urlTo(path: String) = s"http://${addr.getHostString}:${addr.getPort}$path"

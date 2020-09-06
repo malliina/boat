@@ -9,12 +9,12 @@ import scala.util.Try
 
 val mapboxVersion = "1.10.1"
 val utilPlayVersion = "5.11.0"
-val munitVersion = "0.7.9"
-val testContainersScalaVersion = "0.37.0"
+val munitVersion = "0.7.12"
+val testContainersScalaVersion = "0.38.1"
 val scalaTagsVersion = "0.9.1"
 val primitiveVersion = "1.17.0"
-val akkaVersion = "2.6.5"
-val akkaHttpVersion = "10.1.12"
+val akkaVersion = "2.6.8"
+val akkaHttpVersion = "10.2.0"
 val playJsonVersion = "2.9.0"
 val alpnVersion = "9.4.30.v20200611"
 val utilPlayDep = "com.malliina" %% "util-play" % utilPlayVersion
@@ -78,7 +78,7 @@ val frontend = project
   .settings(
     libraryDependencies ++= Seq(
       "com.typesafe.play" %%% "play-json" % playJsonVersion,
-      "org.scala-js" %%% "scalajs-dom" % "1.0.0",
+      "org.scala-js" %%% "scalajs-dom" % "1.1.0",
       "org.scalameta" %%% "munit" % munitVersion % Test
     ),
     npmDependencies in Compile ++= Seq(
@@ -131,9 +131,9 @@ val backend = Project("boat", file("backend"))
     } ++ Seq(
       "com.vividsolutions" % "jts" % "1.13",
       "mysql" % "mysql-connector-java" % "5.1.49",
-      "org.flywaydb" % "flyway-core" % "6.5.1",
-      "org.apache.commons" % "commons-text" % "1.8",
-      "com.amazonaws" % "aws-java-sdk-s3" % "1.11.584",
+      "org.flywaydb" % "flyway-core" % "6.5.5",
+      "org.apache.commons" % "commons-text" % "1.9",
+      "com.amazonaws" % "aws-java-sdk-s3" % "1.11.856",
       "com.malliina" %% "logstreams-client" % "1.10.1",
       "com.malliina" %% "play-social" % utilPlayVersion,
       "com.malliina" %% "mobile-push" % "1.24.0",
@@ -226,8 +226,7 @@ val agent = project
       "com.typesafe.akka" %% "akka-http" % akkaHttpVersion,
       "com.typesafe.akka" %% "akka-http-spray-json" % akkaHttpVersion,
       "com.lihaoyi" %% "scalatags" % scalaTagsVersion,
-      "commons-codec" % "commons-codec" % "1.14"
-//      "com.neuronrobotics" % "nrjavaserial" % "3.14.0"
+      "commons-codec" % "commons-codec" % "1.15"
     ),
     releaseUseGlobalVersion := false,
     buildAndUpload := {

@@ -65,11 +65,11 @@ class WebServer(host: String, port: Int, agentInstance: AgentInstance)(implicit
         },
         post {
           formFields(
-            Symbol("host"),
-            Symbol("port").as[Int],
-            Symbol("device").as[Device],
-            Symbol("token").as[BoatToken].?,
-            Symbol("enabled").as[Boolean] ? false
+            "host",
+            "port".as[Int],
+            "device".as[Device],
+            "token".as[BoatToken].?,
+            "enabled".as[Boolean] ? false
           ) { (host, port, device, token, enabled) =>
             val conf = BoatConf(host, port, device, token.filter(_.token.nonEmpty), enabled)
             saveAndReload(conf, agentInstance)
@@ -81,7 +81,8 @@ class WebServer(host: String, port: Int, agentInstance: AgentInstance)(implicit
     getFromResourceDirectory("assets")
   )
 
-  val binding = Http().bindAndHandle(routes, host, port)
+  val binding = Http().newServerAt(host, port).bindFlow(routes)
+//  val binding = Http().bindAndHandle(routes, host, port)
 
   binding.foreach { _ =>
     log.info(s"Listening on $host:$port")
