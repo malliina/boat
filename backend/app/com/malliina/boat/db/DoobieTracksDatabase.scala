@@ -106,6 +106,10 @@ class DoobieTracksDatabase(val db: DoobieDatabase) extends TracksSource with Sta
       val userTracks = tracksByUser(name)
       sql"$userTracks order by t.added desc limit 1"
     }
+    def latestTracks(name: Username) = {
+      val userTracks = tracksByUser(name)
+      sql"$userTracks order by t.added desc"
+    }
     import com.malliina.boat.http.TrackSort._
 
     def tracksFor(user: Username, filter: TrackQuery) = {
@@ -268,7 +272,10 @@ class DoobieTracksDatabase(val db: DoobieDatabase) extends TracksSource with Sta
     val eligible = limits.neTracks
       .map(names => sql.tracksByNames(names))
       .orElse(limits.neCanonicals.map(cs => sql.tracksByCanonicals(cs)))
-      .getOrElse(if (limits.newest) sql.latestTrack(user.username) else sql.nonEmptyTracks)
+      .getOrElse(
+        if (limits.newest) sql.latestTrack(user.username)
+        else sql.latestTracks(user.username)
+      )
       .query[JoinedTrack]
       .to[List]
     eligible.flatMap { ts =>
