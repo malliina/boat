@@ -2,11 +2,8 @@ package com.malliina.boat.db
 
 import com.zaxxer.hikari.HikariDataSource
 import org.flywaydb.core.Flyway
-import play.api.Logger
 
 object BoatDatabase {
-  private val log = Logger(getClass)
-
   def migrate(conf: Conf) = {
     val flyway =
       Flyway.configure

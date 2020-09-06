@@ -11,7 +11,7 @@ import play.api.ApplicationLoader.Context
 import play.api.Play
 import play.api.mvc.RequestHeader
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.Future
 
 object TestConf {
   def apply(container: MySQLContainer) = Conf(
@@ -58,8 +58,6 @@ trait DockerDatabase { self: munit.Suite =>
   }
 
   override def munitFixtures: Seq[Fixture[_]] = Seq(db)
-
-  def testDatabase(conf: Conf, ec: ExecutionContext) = DoobieDatabase.withMigrations(conf, ec)
 }
 
 abstract class TestAppSuite extends munit.FunSuite with MUnitAppSuite

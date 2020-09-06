@@ -4,7 +4,7 @@ import com.malliina.boat.{Coord, Lang, Language, SimpleUserInfo}
 import com.malliina.boat.http.{Limits, SortOrder, TrackQuery, TrackSort}
 import com.malliina.measure.DistanceM
 import com.malliina.values.Username
-import tests.{AsyncSuite, DockerDatabase, TestConf}
+import tests.{AsyncSuite, DockerDatabase}
 import doobie._
 import doobie.implicits._
 

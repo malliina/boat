@@ -2,7 +2,7 @@ package com.malliina.boat.db
 
 import com.malliina.boat.db.DoobieMappings._
 import com.malliina.boat.http.{AccessResult, InviteInfo}
-import com.malliina.boat.{BoatInfo, BoatNames, BoatToken, BoatTokens, DeviceId, InviteState, JoinedBoat, JoinedTrack, Language, TimeFormatter, UserBoats, UserInfo, UserToken, Usernames}
+import com.malliina.boat.{Boat, BoatInfo, BoatNames, BoatToken, BoatTokens, DeviceId, InviteState, JoinedBoat, JoinedTrack, Language, TimeFormatter, UserBoats, UserInfo, UserToken, Usernames}
 import com.malliina.values.{Email, UserId, Username}
 import doobie._
 import doobie.implicits._
@@ -12,6 +12,50 @@ import scala.concurrent.Future
 
 object DoobieUserManager {
   def apply(db: DoobieDatabase): DoobieUserManager = new DoobieUserManager(db)
+
+  def collectUsers(rows: Seq[JoinedUser]): Vector[UserInfo] =
+    rows.foldLeft(Vector.empty[UserInfo]) {
+      case (acc, ub) =>
+        val user = ub.user
+        val idx = acc.indexWhere(_.id == user.id)
+        val newBoats =
+          ub.boat.toSeq.map(b => Boat(b.id, b.name, b.token, b.added.toEpochMilli))
+        if (idx >= 0) {
+          val old = acc(idx)
+          acc.updated(idx, old.copy(boats = old.boats ++ newBoats))
+        } else {
+          user.email.fold(acc) { email =>
+            acc :+ UserInfo(
+              user.id,
+              user.user,
+              email,
+              user.language,
+              newBoats,
+              user.enabled,
+              user.added.toEpochMilli
+            )
+          }
+        }
+    }
+
+  def collectBoats(rows: Seq[JoinedTrack], formatter: TimeFormatter): Seq[BoatInfo] =
+    rows.foldLeft(Vector.empty[BoatInfo]) { (acc, row) =>
+      val boatIdx =
+        acc.indexWhere(b => b.user == row.username && b.boatId == row.boatId)
+      val newRow = row.strip(formatter)
+      if (boatIdx >= 0) {
+        val old = acc(boatIdx)
+        acc.updated(boatIdx, old.copy(tracks = old.tracks :+ newRow))
+      } else {
+        acc :+ BoatInfo(
+          row.boatId,
+          row.boatName,
+          row.username,
+          row.language,
+          Seq(newRow)
+        )
+      }
+    }
 }
 
 class DoobieUserManager(db: DoobieDatabase) extends UserManager with DoobieSQL {
@@ -41,7 +85,7 @@ class DoobieUserManager(db: DoobieDatabase) extends UserManager with DoobieSQL {
             where u.id = $id""".query[JoinedUser].to[List]
     val task = for {
       userId <- getOrCreate(email)
-      info <- by(userId).map(NewUserManager.collect)
+      info <- by(userId).map(DoobieUserManager.collectUsers)
     } yield info
     task.flatMap[UserInfo] { infos =>
       infos.headOption.map { profile =>
@@ -77,7 +121,7 @@ class DoobieUserManager(db: DoobieDatabase) extends UserManager with DoobieSQL {
       boatRows <- boatRowsIO(id)
       devices <- deviceRowsIO(email)
     } yield {
-      val bs = NewUserManager.collectBoats(boatRows, TimeFormatter(user.language))
+      val bs = DoobieUserManager.collectBoats(boatRows, TimeFormatter(user.language))
       val gpsDevices = devices.map(d => BoatInfo(d.device, d.boatName, d.username, d.language, Nil))
       UserBoats(user.user, user.language, bs ++ gpsDevices)
     }

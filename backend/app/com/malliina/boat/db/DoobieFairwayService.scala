@@ -1,16 +1,29 @@
 package com.malliina.boat.db
 
 import cats.data.NonEmptyList
-import com.malliina.boat.db.DoobieTrackInserts.IO
-import com.malliina.boat.{CoordHash, FairwayInfo}
+import cats.implicits._
+import com.malliina.boat.db.DoobieFairwayService.collect
 import com.malliina.boat.http.BoatQuery
+import com.malliina.boat.{CoordHash, FairwayInfo}
 import doobie._
 import doobie.implicits._
-import cats.implicits._
+
 import scala.concurrent.Future
 
 object DoobieFairwayService {
   def apply(db: DoobieDatabase): DoobieFairwayService = new DoobieFairwayService(db)
+
+  def collect(rows: Seq[CoordFairway]): Seq[CoordFairways] =
+    rows.foldLeft(Vector.empty[CoordFairways]) {
+      case (acc, cf) =>
+        val idx = acc.indexWhere(_.coord == cf.coord)
+        if (idx >= 0) {
+          val old = acc(idx)
+          acc.updated(idx, old.copy(fairways = old.fairways :+ cf.fairway))
+        } else {
+          acc :+ CoordFairways(cf.coord, Seq(cf.fairway))
+        }
+    }
 }
 
 class DoobieFairwayService(db: DoobieDatabase) extends FairwaySource {
@@ -32,7 +45,7 @@ class DoobieFairwayService(db: DoobieDatabase) extends FairwaySource {
     BoatQuery
       .toNonEmpty(route.toList)
       .map { routes =>
-        byCoords(routes).map { cs => NewFairwayService.collect(cs) }
+        byCoords(routes).map { cs => collect(cs) }
       }
       .getOrElse {
         AsyncConnectionIO.pure(Nil)

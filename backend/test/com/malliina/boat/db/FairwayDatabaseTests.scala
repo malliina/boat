@@ -6,13 +6,13 @@ import cats.implicits._
 import com.malliina.boat.{FairwayInfo, FeatureCollection}
 import doobie.implicits._
 import play.api.libs.json.Json
-import tests.{AsyncSuite, DockerDatabase, TestConf}
+import tests.{AsyncSuite, DockerDatabase}
 
 import scala.concurrent.duration.DurationInt
 
 class FairwayDatabaseTests extends AsyncSuite with DockerDatabase {
   test("import fairways to database".ignore) {
-    val database = testDatabase(db(), dbExecutor)
+    val database = DoobieDatabase.withMigrations(db(), dbExecutor)
     val fileIn = userHome.resolve(".boat/vaylat/vaylat-geo.json")
     val strIn = Files.readAllBytes(fileIn)
     val coll = Json.parse(strIn).as[FeatureCollection]

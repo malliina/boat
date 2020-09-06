@@ -1,6 +1,6 @@
 package com.malliina.boat.db
 
-import com.malliina.boat.{GPSCoordsEvent, GPSInsertedPoint, GPSKeyedSentence, GPSPointId, GPSPointInput, GPSPointRow, GPSSentenceKey, GPSSentencesEvent, JoinedBoat, MinimalUserInfo, TimeFormatter}
+import com.malliina.boat.{GPSCoordsEvent, GPSInsertedPoint, GPSKeyedSentence, GPSPointId, GPSPointRow, GPSSentenceKey, GPSSentencesEvent, GPSTimedCoord, JoinedBoat, MinimalUserInfo, TimeFormatter}
 
 import scala.concurrent.Future
 import doobie._
@@ -11,6 +11,21 @@ import com.malliina.measure.DistanceM
 
 object DoobieGPSDatabase {
   def apply(db: DoobieDatabase): DoobieGPSDatabase = new DoobieGPSDatabase(db)
+
+  def collect(rows: Seq[JoinedGPS], formatter: TimeFormatter) =
+    rows.foldLeft(Vector.empty[GPSCoordsEvent]) {
+      case (acc, joined) =>
+        val device = joined.device
+        val point = joined.point
+        val idx = acc.indexWhere(_.from.device == device.device)
+        val coord = GPSTimedCoord(point.id, point.coord, formatter.timing(point.gpsTime))
+        if (idx >= 0) {
+          val old = acc(idx)
+          acc.updated(idx, old.copy(coords = coord :: old.coords))
+        } else {
+          acc :+ GPSCoordsEvent(List(coord), device.strip)
+        }
+    }
 }
 
 class DoobieGPSDatabase(db: DoobieDatabase) extends GPSSource with DoobieSQL {
@@ -26,7 +41,7 @@ class DoobieGPSDatabase(db: DoobieDatabase) extends GPSSource with DoobieSQL {
       .query[JoinedGPS]
       .to[List]
       .map { joined =>
-        NewGPSDatabase.collect(joined, TimeFormatter(user.language))
+        DoobieGPSDatabase.collect(joined, TimeFormatter(user.language))
       }
   }
 
