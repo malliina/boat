@@ -1,11 +1,11 @@
 package com.malliina.boat.db
 
-import com.malliina.boat.{Coord, CoordHash, FairwayLighting, Latitude, Longitude, SeaArea}
+import com.malliina.boat.{BoatIdCompanion, Coord, CoordHash, FairwayLighting, Latitude, Longitude, SeaArea}
 import com.malliina.measure.DistanceM
 import com.malliina.values.{IdCompanion, WrappedId}
 
 case class FairwayId(id: Long) extends AnyVal with WrappedId
-object FairwayId extends IdCompanion[FairwayId]
+object FairwayId extends BoatIdCompanion[FairwayId]
 
 case class FairwayCoordId(id: Long) extends AnyVal with WrappedId
 object FairwayCoordId extends IdCompanion[FairwayCoordId]

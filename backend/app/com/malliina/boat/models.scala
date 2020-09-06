@@ -7,12 +7,14 @@ import com.malliina.boat.parsing.{FullCoord, GPSCoord, GPSFix}
 import com.malliina.measure.{DistanceM, SpeedM, Temperature}
 import com.malliina.play.auth.JWTError
 import com.malliina.values._
+import doobie.Meta
 import play.api.data.{Forms, Mapping}
 import play.api.http.Writeable
 import play.api.libs.json._
 import play.api.mvc.PathBindable
 
 import scala.concurrent.duration.FiniteDuration
+import scala.reflect.runtime.universe.TypeTag
 
 case class CSRFToken(token: String) extends AnyVal
 
@@ -88,7 +90,7 @@ case class UserToken(token: String) extends AnyVal with WrappedString {
   override def value = token
 }
 
-object UserToken extends StringCompanion[UserToken] {
+object UserToken extends BoatStringCompanion[UserToken] {
   val minLength = 3
 
   override def build(in: String): Either[ErrorMessage, UserToken] =
@@ -405,11 +407,11 @@ object TrackInput {
 
 case class SentenceKey(id: Long) extends AnyVal with WrappedId
 
-object SentenceKey extends IdCompanion[SentenceKey]
+object SentenceKey extends BoatIdCompanion[SentenceKey]
 
 case class GPSSentenceKey(id: Long) extends AnyVal with WrappedId
 
-object GPSSentenceKey extends IdCompanion[GPSSentenceKey]
+object GPSSentenceKey extends BoatIdCompanion[GPSSentenceKey]
 
 case class GPSKeyedSentence(key: GPSSentenceKey, sentence: RawSentence, from: DeviceId)
 
@@ -715,4 +717,12 @@ case class Route(id: RouteId, name: String, points: Seq[Coord])
 
 object Route {
   implicit val json = Json.format[Route]
+}
+
+abstract class BoatStringCompanion[T <: WrappedString: TypeTag] extends StringCompanion[T] {
+  val db: Meta[T] = Meta[String].timap[T](apply)(_.value)
+}
+
+abstract class BoatIdCompanion[T <: WrappedId: TypeTag] extends IdCompanion[T] {
+  val db: Meta[T] = Meta[Long].timap[T](apply)(_.id)
 }

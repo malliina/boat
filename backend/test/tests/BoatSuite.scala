@@ -64,12 +64,6 @@ trait DockerDatabase { self: munit.Suite =>
   def testDatabase(conf: Conf, ec: ExecutionContext) = DoobieDatabase.withMigrations(conf, ec)
 }
 
-//trait DockerDatabase extends ForAllTestContainer { self: Suite =>
-//  override val container = MySQLContainer(mysqlImageVersion = "mysql:5.7.29")
-//
-//  def testDatabase(as: ActorSystem, conf: Conf) = BoatDatabase.withMigrations(as, conf)
-//}
-
 abstract class TestAppSuite extends munit.FunSuite with MUnitAppSuite
 
 object TestComponents {
@@ -82,7 +76,6 @@ class TestAppBuilder(conf: Conf) extends AppBuilder {
   override val pushService: PushEndpoint = NoopPushSystem
   override val emailAuth = TestEmailAuth
   override val databaseConf: Conf = conf
-  override val isMariaDb: Boolean = true
 }
 
 object NoopPushSystem extends PushEndpoint {

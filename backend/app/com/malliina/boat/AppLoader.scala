@@ -43,7 +43,6 @@ trait AppBuilder {
   def pushService: PushEndpoint
   def emailAuth: EmailAuth
   def databaseConf: Conf
-  def isMariaDb: Boolean
 }
 
 class ProdAppBuilder(conf: Configuration, http: OkClient, ec: ExecutionContext) extends AppBuilder {
@@ -53,7 +52,6 @@ class ProdAppBuilder(conf: Configuration, http: OkClient, ec: ExecutionContext) 
     GoogleTokenAuth(appConf.webClientId, appConf.iosClientId, http, ec)
   override val databaseConf: Conf =
     Conf.fromConf(conf).fold(msg => throw new Exception(msg), identity)
-  override val isMariaDb: Boolean = false
 }
 
 class AppComponents(
