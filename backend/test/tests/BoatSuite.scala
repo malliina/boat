@@ -12,6 +12,7 @@ import play.api.{Configuration, Play}
 import play.api.mvc.RequestHeader
 
 import scala.concurrent.Future
+import scala.util.Try
 
 object TestConf {
   def apply(container: MySQLContainer) = Conf(
@@ -47,14 +48,17 @@ trait DockerDatabase { self: munit.Suite =>
     var conf: Option[Conf] = None
     def apply() = conf.get
     override def beforeAll(): Unit = {
-      val dbc =
-        Conf.fromDatabaseConf(LocalConf.localConf.get[Configuration]("boat.testdb")).getOrElse {
-          val c = MySQLContainer(mysqlImageVersion = "mysql:5.7.29")
-          c.start()
-          container = Option(c)
-          TestConf(c)
+      val localTestDb =
+        Try(LocalConf.localConf.get[Configuration]("boat.testdb")).toEither.flatMap { c =>
+          Conf.fromDatabaseConf(c)
         }
-      conf = Option(dbc)
+      val testDb = localTestDb.getOrElse {
+        val c = MySQLContainer(mysqlImageVersion = "mysql:5.7.29")
+        c.start()
+        container = Option(c)
+        TestConf(c)
+      }
+      conf = Option(testDb)
     }
     override def afterAll(): Unit = {
       container.foreach(_.stop())
