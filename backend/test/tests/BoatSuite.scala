@@ -4,11 +4,11 @@ import com.dimafeng.testcontainers.MySQLContainer
 import com.malliina.boat.auth.EmailAuth
 import com.malliina.boat.db._
 import com.malliina.boat.push._
-import com.malliina.boat.{AccessToken, AppBuilder, AppComponents, AppConf}
+import com.malliina.boat.{AccessToken, AppBuilder, AppComponents, AppConf, LocalConf}
 import com.malliina.play.auth.Auth
 import com.malliina.values.Email
 import play.api.ApplicationLoader.Context
-import play.api.Play
+import play.api.{Configuration, Play}
 import play.api.mvc.RequestHeader
 
 import scala.concurrent.Future
@@ -47,10 +47,14 @@ trait DockerDatabase { self: munit.Suite =>
     var conf: Option[Conf] = None
     def apply() = conf.get
     override def beforeAll(): Unit = {
-      val c = MySQLContainer(mysqlImageVersion = "mysql:5.7.29")
-      c.start()
-      container = Option(c)
-      conf = Option(TestConf(c))
+      val dbc =
+        Conf.fromDatabaseConf(LocalConf.localConf.get[Configuration]("boat.testdb")).getOrElse {
+          val c = MySQLContainer(mysqlImageVersion = "mysql:5.7.29")
+          c.start()
+          container = Option(c)
+          TestConf(c)
+        }
+      conf = Option(dbc)
     }
     override def afterAll(): Unit = {
       container.foreach(_.stop())

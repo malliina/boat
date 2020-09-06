@@ -17,12 +17,13 @@ object Conf {
   val MySQLDriver = "com.mysql.jdbc.Driver"
   val DefaultDriver = MySQLDriver
 
-  def fromConf(conf: Configuration) = {
+  def fromConf(conf: Configuration) = fromDatabaseConf(conf.get[Configuration]("boat.db"))
+
+  def fromDatabaseConf(conf: Configuration) = {
     def read(key: String) =
       conf
-        .get[Configuration]("boat.db")
         .getOptional[String](key)
-        .toRight(s"Key missing: 'boat.db.$key'.")
+        .toRight(s"Key missing: '$key'.")
 
     for {
       url <- read(UrlKey)
