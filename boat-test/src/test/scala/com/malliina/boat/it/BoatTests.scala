@@ -10,20 +10,18 @@ import com.malliina.values.{Password, Username}
 import play.api.libs.json.{JsValue, Json, Writes}
 import play.api.mvc.Call
 import play.api.test.{DefaultTestServerFactory, RunningServer}
-import tests.{AsyncSuite, TestAppLoader, TestComponents, TestConf}
+import tests.{AkkaStreamsSuite, DockerDatabase, TestAppLoader, TestComponents, TestConf}
 
 import scala.concurrent.Future
 
 case class TestServer(server: RunningServer, components: AppComponents)
 
-abstract class ServerSuite extends AsyncSuite {
+abstract class ServerSuite extends AkkaStreamsSuite with DockerDatabase {
   val server: Fixture[TestServer] = new Fixture[TestServer]("boat-server") {
     private var testServer: TestServer = null
     def apply(): TestServer = testServer
     override def beforeAll(): Unit = {
-      val container = MySQLContainer(mysqlImageVersion = "mysql:5.7.29")
-      container.start()
-      val comps = TestComponents(TestAppLoader.createTestAppContext, TestConf(container))
+      val comps = TestComponents(TestAppLoader.createTestAppContext, TestConf(db()))
       val runningServer = DefaultTestServerFactory.start(comps.application)
       testServer = TestServer(runningServer, comps)
     }
@@ -35,7 +33,7 @@ abstract class ServerSuite extends AsyncSuite {
   def components = server().components
   def port = testServer.endpoints.httpEndpoint.map(_.port).get
 
-  override def munitFixtures = Seq(server)
+  override def munitFixtures: Seq[Fixture[_]] = Seq(db, server)
 }
 
 abstract class BoatTests extends ServerSuite with BoatSockets {
@@ -50,12 +48,11 @@ abstract class BoatTests extends ServerSuite with BoatSockets {
     val headers = creds.map { c =>
       KeyValue(HttpUtil.Authorization, HttpUtil.authorizationValue(c.user, c.pass.pass))
     }.toList
-    openWebSocket(reverse.clientSocket(), creds, in, out, headers)(code)
+    openWebSocket(reverse.clientSocket(), in, out, headers)(code)
   }
 
   def openWebSocket[T](
     path: Call,
-    creds: Option[Creds],
     in: Sink[JsValue, Future[Done]],
     out: Source[JsValue, NotUsed],
     headers: List[KeyValue]
@@ -67,7 +64,7 @@ abstract class BoatTests extends ServerSuite with BoatSockets {
 }
 
 trait BoatSockets {
-  this: AsyncSuite =>
+  this: AkkaStreamsSuite =>
 
   def openRandomBoat[T](url: FullUrl)(code: TestBoat => T): T =
     openBoat(url, Left(BoatNames.random()))(code)

@@ -2,19 +2,17 @@ package com.malliina.boat.ais
 
 import java.time.Instant
 
-import akka.actor.ActorSystem
-import akka.stream.{ActorMaterializer, Materializer}
 import akka.stream.scaladsl.Sink
 import com.malliina.boat._
 import com.malliina.boat.ais.BoatMqttClient._
 import org.eclipse.paho.client.mqttv3._
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence
 import play.api.libs.json.{JsError, Json}
-import tests.{AsyncSuite, BaseSuite}
+import tests.AkkaStreamsSuite
 
 import scala.concurrent.duration.DurationInt
 
-class AISTests extends AsyncSuite {
+class AISTests extends AkkaStreamsSuite {
   test("MqttSource".ignore) {
     val client = BoatMqttClient.test()
     val fut = client.slow.take(3).runWith(Sink.foreach(msg => println(msg)))

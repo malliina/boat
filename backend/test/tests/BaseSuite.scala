@@ -15,18 +15,3 @@ abstract class BaseSuite extends munit.FunSuite {
 
   def await[T](f: Future[T], duration: Duration = 40.seconds): T = Await.result(f, duration)
 }
-
-abstract class AsyncSuite extends BaseSuite {
-  implicit val as: ActorSystem = ActorSystem()
-  implicit val mat = Materializer(as)
-  implicit val ec: ExecutionContext = mat.executionContext
-  private val executor = Executors.newCachedThreadPool()
-  val dbExecutor = ExecutionContext.fromExecutor(executor)
-
-  override def afterAll(): Unit = {
-    await(as.terminate())
-    executor.shutdownNow()
-    executor.awaitTermination(3, TimeUnit.SECONDS)
-    super.afterAll()
-  }
-}

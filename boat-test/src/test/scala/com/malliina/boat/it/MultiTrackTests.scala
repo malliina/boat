@@ -2,9 +2,9 @@ package com.malliina.boat.it
 
 import com.malliina.boat.{RawSentence, SentencesMessage}
 import com.malliina.http.FullUrl
-import tests.AsyncSuite
+import tests.AkkaStreamsSuite
 
-class MultiTrackTests extends AsyncSuite with BoatSockets {
+class MultiTrackTests extends AkkaStreamsSuite with BoatSockets {
   //  def url = FullUrl.ws("localhost:9000", reverse.boats().toString)
   def url = FullUrl.wss("www.boat-tracker.com", reverse.boatSocket().toString)
 

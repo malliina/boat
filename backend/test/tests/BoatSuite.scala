@@ -22,28 +22,23 @@ object TestConf {
   )
 }
 
-trait MUnitAppSuite { self: munit.Suite =>
+trait MUnitAppSuite extends DockerDatabase { self: munit.Suite =>
   val app: Fixture[AppComponents] = new Fixture[AppComponents]("boat-app") {
-    private var container: Option[MySQLContainer] = None
     private var comps: AppComponents = null
     def apply() = comps
     override def beforeAll(): Unit = {
-      val db = MySQLContainer(mysqlImageVersion = "mysql:5.7.29")
-      db.start()
-      container = Option(db)
       comps = TestComponents(
         TestAppLoader.createTestAppContext,
-        TestConf(db)
+        TestConf(db())
       )
       Play.start(comps.application)
     }
     override def afterAll(): Unit = {
       Play.stop(comps.application)
-      container.foreach(_.stop())
     }
   }
 
-  override def munitFixtures = Seq(app)
+  override def munitFixtures: Seq[Fixture[_]] = Seq(db, app)
 }
 
 trait DockerDatabase { self: munit.Suite =>
@@ -59,7 +54,7 @@ trait DockerDatabase { self: munit.Suite =>
     }
   }
 
-  override def munitFixtures = Seq(db)
+  override def munitFixtures: Seq[Fixture[_]] = Seq(db)
 
   def testDatabase(conf: Conf, ec: ExecutionContext) = DoobieDatabase.withMigrations(conf, ec)
 }

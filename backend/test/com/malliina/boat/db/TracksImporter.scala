@@ -2,15 +2,16 @@ package com.malliina.boat.db
 
 import akka.stream.IOResult
 import akka.stream.scaladsl.Source
+import cats.implicits._
 import com.malliina.boat.{BoatName, BoatUser, DateVal, DeviceId, LocalConf, RawSentence, TrackId, TrackInput, TrackNames}
 import com.malliina.util.FileUtils
 import com.malliina.values.Username
-import tests.AsyncSuite
-import cats.implicits._
+import tests.AkkaStreamsSuite
+
 import scala.concurrent.Future
 import scala.concurrent.duration.DurationLong
 
-class TracksImporter extends AsyncSuite {
+class TracksImporter extends AkkaStreamsSuite {
   lazy val c = Conf.fromConf(LocalConf.localConf).toOption.get
   lazy val db = DoobieDatabase(c, dbExecutor)
 
