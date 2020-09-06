@@ -2,7 +2,6 @@ package com.malliina.boat.it
 
 import akka.stream.scaladsl.{Sink, Source, SourceQueue}
 import akka.{Done, NotUsed}
-import com.dimafeng.testcontainers.MySQLContainer
 import com.malliina.boat._
 import com.malliina.boat.client.{HttpUtil, KeyValue, WebSocketClient}
 import com.malliina.http.FullUrl
@@ -10,7 +9,7 @@ import com.malliina.values.{Password, Username}
 import play.api.libs.json.{JsValue, Json, Writes}
 import play.api.mvc.Call
 import play.api.test.{DefaultTestServerFactory, RunningServer}
-import tests.{AkkaStreamsSuite, DockerDatabase, TestAppLoader, TestComponents, TestConf}
+import tests.{AkkaStreamsSuite, DockerDatabase, TestAppLoader, TestComponents}
 
 import scala.concurrent.Future
 
@@ -21,7 +20,7 @@ abstract class ServerSuite extends AkkaStreamsSuite with DockerDatabase {
     private var testServer: TestServer = null
     def apply(): TestServer = testServer
     override def beforeAll(): Unit = {
-      val comps = TestComponents(TestAppLoader.createTestAppContext, TestConf(db()))
+      val comps = TestComponents(TestAppLoader.createTestAppContext, db())
       val runningServer = DefaultTestServerFactory.start(comps.application)
       testServer = TestServer(runningServer, comps)
     }

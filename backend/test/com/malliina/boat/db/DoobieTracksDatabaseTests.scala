@@ -10,8 +10,7 @@ import doobie.implicits._
 
 class DoobieTracksDatabaseTests extends AsyncSuite with DockerDatabase {
   test("run doobie query") {
-    val conf = TestConf(db())
-    val doobie = DoobieDatabase(BoatDatabase.newDataSource(conf), dbExecutor)
+    val doobie = DoobieDatabase(BoatDatabase.newDataSource(db()), dbExecutor)
     val service = DoobieTracksDatabase(doobie)
     val res = await(service.hm)
     assert(res == 42)

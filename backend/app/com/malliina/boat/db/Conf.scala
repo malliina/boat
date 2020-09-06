@@ -5,7 +5,7 @@ import play.api.{Configuration, Logger}
 
 import scala.concurrent.duration.DurationInt
 
-case class Conf(url: String, user: String, pass: String, driver: String, isMariaDb: Boolean = false)
+case class Conf(url: String, user: String, pass: String, driver: String)
 
 object Conf {
   private val log = Logger(getClass)
@@ -28,7 +28,7 @@ object Conf {
       url <- read(UrlKey)
       user <- read(UserKey)
       pass <- read(PassKey)
-    } yield Conf(url, user, pass, read(DriverKey).getOrElse(DefaultDriver), isMariaDb = false)
+    } yield Conf(url, user, pass, read(DriverKey).getOrElse(DefaultDriver))
   }
 
   def dataSource(conf: Conf): HikariDataSource = {

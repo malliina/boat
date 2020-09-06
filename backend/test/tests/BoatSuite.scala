@@ -29,7 +29,7 @@ trait MUnitAppSuite extends DockerDatabase { self: munit.Suite =>
     override def beforeAll(): Unit = {
       comps = TestComponents(
         TestAppLoader.createTestAppContext,
-        TestConf(db())
+        db()
       )
       Play.start(comps.application)
     }
@@ -42,15 +42,18 @@ trait MUnitAppSuite extends DockerDatabase { self: munit.Suite =>
 }
 
 trait DockerDatabase { self: munit.Suite =>
-  val db: Fixture[MySQLContainer] = new Fixture[MySQLContainer]("database") {
-    var container: MySQLContainer = null
-    def apply() = container
+  val db: Fixture[Conf] = new Fixture[Conf]("database") {
+    var container: Option[MySQLContainer] = None
+    var conf: Option[Conf] = None
+    def apply() = conf.get
     override def beforeAll(): Unit = {
-      container = MySQLContainer(mysqlImageVersion = "mysql:5.7.29")
-      container.start()
+      val c = MySQLContainer(mysqlImageVersion = "mysql:5.7.29")
+      c.start()
+      container = Option(c)
+      conf = Option(TestConf(c))
     }
     override def afterAll(): Unit = {
-      container.stop()
+      container.foreach(_.stop())
     }
   }
 
