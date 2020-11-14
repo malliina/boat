@@ -1026,6 +1026,12 @@ object CalendarLang {
   implicit val json = Json.format[CalendarLang]
 }
 
+case class AppMetaLang(appName: String, version: String, build: String)
+
+object AppMetaLang {
+  implicit val json = Json.format[AppMetaLang]
+}
+
 case class Lang(
   appName: String,
   map: String,
@@ -1034,6 +1040,7 @@ case class Lang(
   qualityClass: String,
   time: String,
   comparisonLevel: String,
+  appMeta: AppMetaLang,
   specialWords: SpecialWords,
   fairway: FairwayLang,
   track: TrackLang,
@@ -1062,13 +1069,14 @@ object Lang {
   }
 
   val en = Lang(
-    "Boat-Tracker",
+    appName,
     "Map",
     language = Language.english,
     name = "Name",
     qualityClass = "Quality",
     time = "Time",
     comparisonLevel = "Comparison",
+    AppMetaLang(appName, "Version", "build"),
     specialWords = SpecialWords(
       transportAgency = "Finnish Transport Agency",
       defenceForces = "Defence forces",
@@ -1206,6 +1214,7 @@ object Lang {
     qualityClass = "Laatuluokka",
     time = "Aika",
     comparisonLevel = "Vertaustaso",
+    AppMetaLang(appName, "Versio", "paketti"),
     specialWords = SpecialWords(
       transportAgency = "Liikennevirasto",
       defenceForces = "Puolustusvoimat",
@@ -1348,6 +1357,7 @@ object Lang {
     qualityClass = "Kvalitet",
     time = "Tid",
     comparisonLevel = "Jämförelse",
+    AppMetaLang(appName, "Version", "paket"),
     specialWords = SpecialWords(
       transportAgency = "Trafikverket",
       defenceForces = "Försvarsmakten",

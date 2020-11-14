@@ -5,7 +5,7 @@ scalacOptions ++= Seq("-unchecked", "-deprecation")
 libraryDependencies += "com.amazonaws" % "aws-java-sdk-s3" % "1.11.856"
 
 Seq(
-  "com.typesafe.play" % "sbt-plugin" % "2.8.2",
+  "com.typesafe.play" % "sbt-plugin" % "2.8.3",
   "com.malliina" % "sbt-utils-maven" % "1.0.0",
   "com.malliina" %% "sbt-nodejs" % "1.0.0",
   "com.malliina" %% "sbt-packager" % "2.9.0",
