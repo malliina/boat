@@ -1,0 +1,68 @@
+trigger:
+  - master
+
+pool:
+  vmImage: 'Ubuntu 18.04'
+
+variables:
+  azureSubscriptionEndpoint: malliinaresources
+  ResourceGroupName: personal
+  DockerNamespace: malliinaboat.azurecr.io
+  DockerRepository: boat
+  WebAppName: malliinaboat
+  SbtVersion: 1.4.4
+  ContainerRegistry: malliinaboatconnection
+
+steps:
+
+  - task: JavaToolInstaller@0
+    inputs:
+      versionSpec: '11'
+      jdkArchitectureOption: 'x64'
+      jdkSourceOption: 'PreInstalled'
+
+  - script: wget https://dl.bintray.com/sbt/debian/sbt-$(sbtVersion).deb
+    displayName: 'Download sbt'
+
+  - script: sudo dpkg -i sbt-$(sbtVersion).deb
+    displayName: 'Install sbt'
+
+  - script: sbt test
+    displayName: 'Compile'
+
+  - task: Docker@2
+    displayName: Login to ACR
+    inputs:
+      command: login
+      containerRegistry: $(ContainerRegistry)
+
+  - script: sbt "set scalaJSStage in Global := FullOptStage" "project boat" docker:publish
+    displayName: 'Push to ACR'
+
+  - task: AzureRMWebAppDeployment@4
+    displayName: Azure App Service Deploy
+    inputs:
+      appType: webAppContainer
+      ConnectedServiceName: $(azureSubscriptionEndpoint)
+      WebAppName: $(WebAppName)
+      DockerNamespace: $(DockerNamespace)
+      DockerRepository: $(DockerRepository)
+      DockerImageTag: $(Build.SourceVersion)
+      DeployToSlotOrASEFlag: true
+      SlotName: staging
+      ResourceGroupName: $(ResourceGroupName)
+
+  - task: AzureCLI@2
+    displayName: Swap to production using Azure CLI
+    inputs:
+      azureSubscription: $(azureSubscriptionEndpoint)
+      scriptType: pscore
+      scriptLocation: inlineScript
+      inlineScript: |
+        az webapp deployment slot swap -g $(ResourceGroupName) -n $(WebAppName) --slot staging --target-slot production
+
+  - task: Docker@2
+    displayName: Logout of ACR
+    inputs:
+      command: logout
+      containerRegistry: $(ContainerRegistry)
