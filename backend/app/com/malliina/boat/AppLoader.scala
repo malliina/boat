@@ -77,7 +77,7 @@ class AppComponents(
   )
   val devHosts = Seq("localhost")
   val allowedHosts = if (isProd) prodHosts else prodHosts ++ devHosts
-  override lazy val allowedHostsConfig = AllowedHostsConfig(allowedHosts)
+//  override lazy val allowedHostsConfig = AllowedHostsConfig(allowedHosts)
 
   override lazy val csrfConfig = CSRFConfig(
     tokenName = CsrfTokenName,
@@ -87,7 +87,7 @@ class AppComponents(
   )
 
   override def httpFilters: Seq[EssentialFilter] =
-    Seq(new GzipFilter(), csrfFilter, securityHeadersFilter, allowedHostsFilter)
+    Seq(new GzipFilter(), csrfFilter, securityHeadersFilter)
 
   val csps = Seq(
     "default-src 'self' 'unsafe-inline' *.mapbox.com",
