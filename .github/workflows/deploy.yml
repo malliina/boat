@@ -23,7 +23,7 @@ jobs:
 
       - uses: azure/docker-login@v1
         with:
-          login-server: malliinaboat.azurecr.io
+          login-server: malliinacr.azurecr.io
           username: ${{ secrets.ACR_USERNAME }}
           password: ${{ secrets.ACR_PASSWORD }}
 
@@ -34,7 +34,7 @@ jobs:
         uses: azure/webapps-deploy@v2
         with:
           app-name: 'malliinaboat'
-          images: 'malliinaboat.azurecr.io/boat:${{ github.sha }}'
+          images: 'malliinacr.azurecr.io/boat:${{ github.sha }}'
 
       - name: Azure logout
         run: |

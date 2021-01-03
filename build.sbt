@@ -190,7 +190,7 @@ val backend = Project("boat", file("backend"))
     dockerBaseImage := "openjdk:11",
     daemonUser in Docker := "boat",
     version in Docker := gitHash,
-    dockerRepository := Option("malliinaboat.azurecr.io"),
+    dockerRepository := Option("malliinacr.azurecr.io"),
     dockerExposedPorts ++= Seq(prodPort)
   )
 
