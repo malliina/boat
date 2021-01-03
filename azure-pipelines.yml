@@ -7,11 +7,11 @@ pool:
 variables:
   azureSubscriptionEndpoint: malliinaresources
   ResourceGroupName: personal
-  DockerNamespace: malliinaboat.azurecr.io
+  DockerNamespace: malliinacr.azurecr.io
   DockerRepository: boat
   WebAppName: malliinaboat
-  SbtVersion: 1.4.4
-  ContainerRegistry: malliinaboatconnection
+  SbtVersion: 1.4.6
+  ContainerRegistry: malliinacrconnection
 
 steps:
 

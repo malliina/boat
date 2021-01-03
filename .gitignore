@@ -16,3 +16,4 @@ site
 .bloop
 .metals
 out
+.bsp
