@@ -182,8 +182,6 @@ val backend = Project("boat", file("backend"))
     releaseProcess := Seq[ReleaseStep](
       releaseStepTask(clean in Compile),
       checkSnapshotDependencies,
-      //      releaseStepInputTask(testOnly, " * -- -l tests.DbTest"),
-      //      releaseStepInputTask(testOnly, " tests.ImageTests"),
       releaseStepTask(ciBuild)
     ),
     dockerVersion := Option(DockerVersion(19, 3, 5, None)),
