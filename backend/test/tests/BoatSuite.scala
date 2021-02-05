@@ -7,6 +7,7 @@ import com.malliina.boat.push._
 import com.malliina.boat.{AccessToken, AppBuilder, AppComponents, AppConf, LocalConf}
 import com.malliina.play.auth.Auth
 import com.malliina.values.Email
+import org.testcontainers.utility.DockerImageName
 import play.api.ApplicationLoader.Context
 import play.api.{Configuration, Play}
 import play.api.mvc.RequestHeader
@@ -53,7 +54,8 @@ trait DockerDatabase { self: munit.Suite =>
           Conf.fromDatabaseConf(c)
         }
       val testDb = localTestDb.getOrElse {
-        val c = MySQLContainer(mysqlImageVersion = "mysql:5.7.29")
+        val image = DockerImageName.parse("mysql:5.7.29")
+        val c = MySQLContainer(mysqlImageVersion = image)
         c.start()
         container = Option(c)
         TestConf(c)

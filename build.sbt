@@ -9,10 +9,10 @@ import scala.util.Try
 
 val mapboxVersion = "1.10.1"
 val utilPlayVersion = "5.11.0"
-val munitVersion = "0.7.12"
-val testContainersScalaVersion = "0.38.1"
-val scalaTagsVersion = "0.9.1"
-val primitiveVersion = "1.17.0"
+val munitVersion = "0.7.21"
+val testContainersScalaVersion = "0.38.8"
+val scalaTagsVersion = "0.9.3"
+val primitiveVersion = "1.18.0"
 val akkaVersion = "2.6.5"
 val akkaHttpVersion = "10.1.12"
 val playJsonVersion = "2.9.0"
@@ -127,11 +127,11 @@ val backend = Project("boat", file("backend"))
   .settings(
     unmanagedResourceDirectories in Compile += baseDirectory.value / "docs",
     libraryDependencies ++= Seq("doobie-core", "doobie-hikari").map { d =>
-      "org.tpolecat" %% d % "0.9.0"
+      "org.tpolecat" %% d % "0.10.0"
     } ++ Seq(
       "com.vividsolutions" % "jts" % "1.13",
       "mysql" % "mysql-connector-java" % "5.1.49",
-      "org.flywaydb" % "flyway-core" % "6.5.5",
+      "org.flywaydb" % "flyway-core" % "7.5.2",
       "org.apache.commons" % "commons-text" % "1.9",
       "com.amazonaws" % "aws-java-sdk-s3" % "1.11.856",
       "com.malliina" %% "logstreams-client" % "1.10.1",
@@ -218,7 +218,7 @@ val agent = project
     libraryDependencies ++= Seq(
       "com.malliina" %% "primitives" % primitiveVersion,
       "com.malliina" %% "logback-streams" % "1.8.0",
-      "com.neovisionaries" % "nv-websocket-client" % "2.10",
+      "com.neovisionaries" % "nv-websocket-client" % "2.11",
       "org.slf4j" % "slf4j-api" % "1.7.30",
       "com.typesafe.akka" %% "akka-stream" % akkaVersion,
       "com.typesafe.akka" %% "akka-http" % akkaHttpVersion,
