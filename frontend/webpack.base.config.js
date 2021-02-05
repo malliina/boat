@@ -7,6 +7,9 @@ const cssDir = path.resolve(rootDir, 'src/main/resources/css');
 const vendorsDir = path.resolve(rootDir, 'src/main/resources/vendors');
 
 const WebApp = Merge(ScalaJS, {
+  node: {
+    fs: 'empty'
+  },
   entry: {
     styles: [path.resolve(cssDir, './boat.js')],
     fonts: [path.resolve(cssDir, './fonts.js')],
