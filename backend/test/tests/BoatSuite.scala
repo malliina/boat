@@ -4,7 +4,7 @@ import com.dimafeng.testcontainers.MySQLContainer
 import com.malliina.boat.auth.EmailAuth
 import com.malliina.boat.db._
 import com.malliina.boat.push._
-import com.malliina.boat.{AccessToken, AppBuilder, AppComponents, AppConf, LocalConf}
+import com.malliina.boat.{AccessToken, AppComps, AppComponents, AppConf, LocalConf}
 import com.malliina.play.auth.Auth
 import com.malliina.values.Email
 import org.testcontainers.utility.DockerImageName
@@ -77,7 +77,7 @@ object TestComponents {
     new AppComponents((_, _, _) => new TestAppBuilder(conf), ctx)
 }
 
-class TestAppBuilder(conf: Conf) extends AppBuilder {
+class TestAppBuilder(conf: Conf) extends AppComps {
   override val appConf = AppConf("", "", "", AccessToken(""))
   override val pushService: PushEndpoint = NoopPushSystem
   override val emailAuth = TestEmailAuth

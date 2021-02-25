@@ -8,7 +8,7 @@ import scala.sys.process.Process
 import scala.util.Try
 
 val mapboxVersion = "1.10.1"
-val utilPlayVersion = "5.11.0"
+val webAuthVersion = "6.0.0"
 val munitVersion = "0.7.21"
 val testContainersScalaVersion = "0.38.8"
 val scalaTagsVersion = "0.9.3"
@@ -17,8 +17,9 @@ val akkaVersion = "2.6.5"
 val akkaHttpVersion = "10.1.12"
 val playJsonVersion = "2.9.0"
 val alpnVersion = "9.4.30.v20200611"
-val utilPlayDep = "com.malliina" %% "util-play" % utilPlayVersion
-val utilPlayTestDep = utilPlayDep % Test classifier "tests"
+val webAuthDep = "com.malliina" %% "web-auth" % webAuthVersion
+val utilHtmlDep = "com.malliina" %% "util-html" % webAuthVersion
+val webAuthTestDep = webAuthDep % Test classifier "tests"
 val munitDep = "org.scalameta" %% "munit" % munitVersion % Test
 val buildAndUpload = taskKey[FullUrl]("Uploads to S3")
 val upFiles = taskKey[Seq[String]]("lists")
@@ -71,7 +72,7 @@ val crossJs = cross.js
 
 val frontend = project
   .in(file("frontend"))
-  .enablePlugins(ScalaJSBundlerPlugin, NodeJsPlugin)
+  .enablePlugins(NodeJsPlugin, ClientPlugin)
   .disablePlugins(RevolverPlugin)
   .dependsOn(crossJs)
   .settings(commonSettings ++ boatSettings)
@@ -119,24 +120,38 @@ val frontend = project
     scalaJSLinkerConfig in (Compile, fullOptJS) ~= { _.withSourceMap(false) }
   )
 
+val http4sModules = Seq("blaze-server", "blaze-client", "dsl", "scalatags", "play-json")
+
 val backend = Project("boat", file("backend"))
-  .enablePlugins(PlayScala, FileTreePlugin, WebScalaJSBundlerPlugin, BuildInfoPlugin)
+  .enablePlugins(
+    ServerPlugin,
+    FileTreePlugin,
+    JavaServerAppPackaging,
+    SystemdPlugin,
+    BuildInfoPlugin
+  )
   .disablePlugins(RevolverPlugin)
   .dependsOn(crossJvm)
   .settings(jvmSettings ++ boatSettings)
   .settings(
     unmanagedResourceDirectories in Compile += baseDirectory.value / "docs",
-    libraryDependencies ++= Seq("doobie-core", "doobie-hikari").map { d =>
+    libraryDependencies ++= http4sModules.map { m =>
+      "org.http4s" %% s"http4s-$m" % "0.21.16"
+    } ++ Seq("doobie-core", "doobie-hikari").map { d =>
       "org.tpolecat" %% d % "0.10.0"
     } ++ Seq(
+      "com.github.pureconfig" %% "pureconfig" % "0.14.0",
       "com.vividsolutions" % "jts" % "1.13",
       "mysql" % "mysql-connector-java" % "5.1.49",
       "org.flywaydb" % "flyway-core" % "7.5.2",
       "org.apache.commons" % "commons-text" % "1.9",
       "com.amazonaws" % "aws-java-sdk-s3" % "1.11.856",
       "com.malliina" %% "logstreams-client" % "1.10.1",
-      "com.malliina" %% "play-social" % utilPlayVersion,
+      "com.malliina" %% "play-social" % webAuthVersion,
       "com.malliina" %% "mobile-push" % "1.24.0",
+      "org.slf4j" % "slf4j-api" % "1.7.30",
+      "ch.qos.logback" % "logback-classic" % "1.2.3",
+      "ch.qos.logback" % "logback-core" % "1.2.3",
       "com.typesafe.akka" %% "akka-slf4j" % akkaVersion,
       "com.typesafe.akka" %% "akka-stream" % akkaVersion,
       "com.typesafe.akka" %% "akka-http" % akkaHttpVersion,
@@ -144,19 +159,12 @@ val backend = Project("boat", file("backend"))
       "org.eclipse.paho" % "org.eclipse.paho.client.mqttv3" % "1.2.5",
       "org.eclipse.jetty" % "jetty-alpn-java-server" % alpnVersion,
       "org.eclipse.jetty" % "jetty-alpn-java-client" % alpnVersion,
-      utilPlayDep,
-      utilPlayTestDep,
+      utilHtmlDep,
+      webAuthDep,
+      webAuthTestDep,
       "com.dimafeng" %% "testcontainers-scala-mysql" % testContainersScalaVersion % Test
     ),
-    routesImport ++= Seq(
-      "com.malliina.boat.Bindables._",
-      "com.malliina.boat.TrackName",
-      "com.malliina.boat.BoatName"
-    ),
-    scalaJSProjects := Seq(frontend),
-    pipelineStages := Seq(digest, gzip),
-    pipelineStages in Assets := Seq(scalaJSPipeline),
-    //  npmAssets ++= NpmAssets.ofProject(client) { modules => (modules / "font-awesome").allPaths }.value,
+    clientProject := frontend,
     buildInfoKeys := Seq[BuildInfoKey](
       name,
       version,
@@ -169,14 +177,11 @@ val backend = Project("boat", file("backend"))
     httpPort in Linux := Option(s"$prodPort"),
     httpsPort in Linux := Option("disabled"),
     maintainer := "Michael Skogberg <malliina123@gmail.com>",
-    // WTF?
-    linuxPackageSymlinks := linuxPackageSymlinks.value
-      .filterNot(_.link == "/usr/bin/starter"),
     javaOptions in Universal ++= {
       Seq(
         "-J-Xmx1024m",
         s"-Dpidfile.path=/dev/null",
-        "-Dlogger.resource=logback-prod.xml"
+        "-Dlogback.configurationFile=logback-prod.xml"
       )
     },
     releaseProcess := Seq[ReleaseStep](
@@ -189,7 +194,10 @@ val backend = Project("boat", file("backend"))
     daemonUser in Docker := "boat",
     version in Docker := gitHash,
     dockerRepository := Option("malliinacr.azurecr.io"),
-    dockerExposedPorts ++= Seq(prodPort)
+    dockerExposedPorts ++= Seq(prodPort),
+    publishArtifact in (Compile, packageDoc) := false,
+    publishArtifact in packageDoc := false,
+    sources in (Compile, doc) := Seq.empty
   )
 
 val agent = project
@@ -253,7 +261,7 @@ val it = Project("integration-tests", file("boat-test"))
   .dependsOn(backend, backend % "test->test", agent)
   .disablePlugins(RevolverPlugin)
   .settings(jvmSettings ++ boatSettings)
-  .settings(libraryDependencies ++= Seq(utilPlayTestDep))
+  .settings(libraryDependencies ++= Seq(webAuthTestDep))
 
 val utils = project
   .in(file("utils"))
@@ -285,5 +293,3 @@ def gitHash: String =
     .get("GITHUB_SHA")
     .orElse(Try(Process("git rev-parse HEAD").lineStream.head).toOption)
     .getOrElse("unknown")
-
-Global / onChangedBuildSource := ReloadOnSourceChanges
