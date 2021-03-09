@@ -11,6 +11,13 @@ import java.nio.charset.StandardCharsets
 object MqttStream {
   private val log = AppLogger(getClass)
 
+  def unsafe(settings: MqttSettings)(implicit c: Concurrent[IO]): MqttStream = apply(
+    settings,
+    Topic[IO, MqttPayload](MqttPayload(settings.topic, Array.empty[Byte])).unsafeRunSync(),
+    SignallingRef[IO, Boolean](false).unsafeRunSync(),
+    c
+  )
+
   def apply(
     settings: MqttSettings,
     in: Topic[IO, MqttPayload],
@@ -36,7 +43,8 @@ class MqttStream(
     settings.persistence
   )
   val events: fs2.Stream[IO, MqttPayload] =
-    in.subscribe(100).drop(1).interruptWhen(signal).attempts()
+    in.subscribe(100).drop(1).interruptWhen(signal)
+  // TODO .attempts() or .retry()
   client.setCallback(new MqttCallback {
     def messageArrived(topic: String, message: MqttMessage): Unit = {
       in.publish1(MqttPayload(topic, message.getPayload)).unsafeRunAsync { e =>
