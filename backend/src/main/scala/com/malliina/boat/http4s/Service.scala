@@ -7,7 +7,7 @@ import com.malliina.boat.Constants.{LanguageName, TokenCookieName}
 import com.malliina.boat.{Utils => BoatUtils, _}
 import com.malliina.boat.auth.AuthProvider.{PromptKey, SelectAccount}
 import com.malliina.boat.auth.{AuthProvider, SettingsPayload, UserPayload}
-import com.malliina.boat.db.{BoatRow, PushInput, StatsSource, TrackInsertsDatabase, TracksSource}
+import com.malliina.boat.db.{BoatRow, IdentityError, PushInput, StatsSource, TrackInsertsDatabase, TracksSource}
 import com.malliina.boat.graph._
 import com.malliina.boat.html.{BoatHtml, BoatLang}
 import com.malliina.boat.http._
@@ -19,7 +19,11 @@ import com.malliina.values.{Email, Username}
 import com.malliina.web.OAuthKeys.{Nonce, State}
 import com.malliina.web.Utils.randomString
 import com.malliina.web._
+import fs2.Pipe
 import org.http4s.headers.{Location, `WWW-Authenticate`}
+import org.http4s.server.websocket.WebSocketBuilder
+import org.http4s.websocket.WebSocketFrame
+import org.http4s.websocket.WebSocketFrame.Text
 import play.api.libs.json.{Json, Reads}
 import org.http4s.{Callback => _, _}
 
@@ -37,6 +41,7 @@ object Service {
     mapboxToken: AccessToken,
     s3: S3Client,
     push: PushService,
+    streams: BoatStreams,
     blocker: Blocker,
     cs: ContextShift[IO]
   )
@@ -174,6 +179,52 @@ class Service(comps: BoatComps) extends BasicService[IO] {
       }.recover { err =>
         badRequest(Errors(err.message))
       }
+    case req @ GET -> Root / "ws" / "updates" =>
+      auth.authOrAnon(req.headers).flatMap { user =>
+        val username = user.username
+        BoatQuery(req.uri.query).map { limits =>
+          val historicalLimits =
+            if (limits.tracks.nonEmpty && username == Usernames.anon)
+              BoatQuery.tracks(limits.tracks)
+            else if (username == Usernames.anon) BoatQuery.empty
+            else limits
+          val history = db.history(user, historicalLimits).flatMap { es =>
+            // unless a sample is specified, return about 300 historical points - this optimization is for charts
+            val intelligentSample = math.max(1, es.map(_.coords.length).sum / 300)
+            val actualSample = limits.sample.getOrElse(intelligentSample)
+            log.debug(
+              s"Points ${es.map(_.coords.length).sum} intelligent $intelligentSample actual $actualSample"
+            )
+            IO.pure(es.toList.map(_.sample(actualSample)))
+          }
+          val formatter = TimeFormatter(user.language)
+          val updates = comps.streams.clientEvents(formatter)
+          val eventSource =
+            (fs2.Stream.evalSeq(history) ++ updates).filter(_.isIntendedFor(username))
+//          val eventSource = history
+//            .merge(gpsHistory)
+//            .concat(
+//              boatService
+//                .clientEvents(formatter)
+//                .merge(deviceService.clientEvents(formatter))
+//            )
+//            .filter(_.isIntendedFor(username))
+          val fromClient: Pipe[IO, WebSocketFrame, Unit] = _.evalMap {
+            case Text(message, _) => IO(log.info(message))
+            case f                => IO(log.debug(s"Unknown WebSocket frame: $f"))
+          }
+          val toClient = eventSource.map { message =>
+            Text(Json.stringify(Json.toJson(message)))
+          }
+          WebSocketBuilder[IO].build(toClient, fromClient)
+        }.recover { errors =>
+          badRequest(errors)
+        }
+      }
+    case req @ GET -> Root / "ws" / "boats" =>
+      ???
+    case req @ GET -> Root / "ws" / "devices" =>
+      ???
     case req @ GET -> Root / "sign-in" / "google" =>
       startHinted(AuthProvider.Google, auth.flow, req)
     case req @ GET -> Root / "sign-in" / "callbacks" / "google" =>
@@ -415,7 +466,7 @@ class Service(comps: BoatComps) extends BasicService[IO] {
     s"User '${req.user}' from '${req.req.remoteAddr.getOrElse("unknown")}' $message."
 
   def onUnauthorized(error: IdentityError): IO[Response[IO]] = {
-    log.warn("Unauthorized.")
+    log.warn(error.message.message)
     unauthorized(Errors(s"Unauthorized."))
   }
 

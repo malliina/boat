@@ -41,6 +41,9 @@ object Server extends IOApp {
   def appService(conf: BoatConf): Resource[IO, Service] = for {
     blocker <- Blocker[IO]
     db <- DoobieDatabase.withMigrations(conf.db, blocker)
+    trackInserts = DoobieTrackInserts(db)
+    ais = BoatMqttClient(conf.mode)
+    streams <- Resource.liftF(BoatStreams(trackInserts, ais))
   } yield {
     val http = HttpClientIO()
     val auth = Http4sAuth(JWT(conf.secret))
@@ -49,9 +52,7 @@ object Server extends IOApp {
     val authComps = AuthComps(googleAuth, auth, GoogleAuthFlow(conf.google.webAuthConf, http))
     val auths = new AuthService(users, authComps)
     val tracksDatabase = DoobieTracksDatabase(db)
-    val trackInserts = DoobieTrackInserts(db)
     val gps = DoobieGPSDatabase(db)
-    val ais = BoatMqttClient(conf.mode)
     val push = DoobiePushDatabase(db, BoatPushService(conf.push, contextShift))
     val comps = BoatComps(
       BoatHtml(conf.mode),
@@ -62,6 +63,7 @@ object Server extends IOApp {
       conf.mapbox.token,
       S3Client(),
       push,
+      streams,
       blocker,
       contextShift
     )

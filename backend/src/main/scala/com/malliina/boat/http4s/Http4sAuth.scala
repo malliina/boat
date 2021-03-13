@@ -2,6 +2,7 @@ package com.malliina.boat.http4s
 
 import cats.effect.IO
 import com.malliina.boat.auth.{AuthProvider, CookieConf, JWT, UserPayload}
+import com.malliina.boat.db.{IdentityError, JWTError, MissingCredentials}
 import com.malliina.values.{IdToken, Username}
 import org.http4s.Credentials.Token
 import org.http4s.headers.{Authorization, Cookie}

@@ -35,7 +35,7 @@ class GoogleTokenAuth(validator: KeyClient) extends EmailAuth {
       .map { token =>
         validate(token).flatMap { e =>
           e.fold(
-            err => IO.raiseError(IdentityException(JWTError(headers, err))),
+            err => IO.raiseError(IdentityException(JWTError(err, headers))),
             email => IO.pure(email)
           )
         }

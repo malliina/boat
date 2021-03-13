@@ -99,4 +99,8 @@ object BoatService {
 //  def close(): Unit = killSwitch.shutdown()
 //}
 
-case class Inserted(coord: FullCoord, inserted: InsertedPoint)
+sealed trait SavedEvent
+
+case object EmptySavedEvent extends SavedEvent
+
+case class Inserted(coord: FullCoord, inserted: InsertedPoint) extends SavedEvent

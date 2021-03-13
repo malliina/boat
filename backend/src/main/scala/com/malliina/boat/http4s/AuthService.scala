@@ -3,7 +3,7 @@ package com.malliina.boat.http4s
 import cats.effect.IO
 import com.malliina.boat.Constants.BoatTokenHeader
 import com.malliina.boat.auth.{SettingsPayload, UserPayload}
-import com.malliina.boat.db.{IdentityException, UserManager}
+import com.malliina.boat.db.{IdentityException, MissingCredentialsException, UserManager}
 import com.malliina.boat.http.UserRequest
 import com.malliina.boat.http4s.AuthService.{GoogleCookie, ProviderCookieName}
 import com.malliina.boat.{BoatToken, MinimalUserInfo, Usernames}

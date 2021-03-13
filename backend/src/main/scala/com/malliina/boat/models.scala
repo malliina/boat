@@ -257,8 +257,11 @@ case class TrackMeta(
   def short = TrackMetaShort(track, trackName, boat, boatName, username)
 }
 
-case class BoatEvent(message: JsValue, from: TrackMeta)
-case class DeviceEvent(message: JsValue, from: IdentifiedDeviceMeta)
+sealed trait InputEvent
+
+case object EmptyEvent extends InputEvent
+case class BoatEvent(message: JsValue, from: TrackMeta) extends InputEvent
+case class DeviceEvent(message: JsValue, from: IdentifiedDeviceMeta) extends InputEvent
 
 case class BoatJsonError(error: JsError, boat: BoatEvent)
 case class DeviceJsonError(error: JsError, boat: DeviceEvent)
