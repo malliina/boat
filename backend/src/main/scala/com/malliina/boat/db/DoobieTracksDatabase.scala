@@ -9,7 +9,7 @@ import com.malliina.util.AppLogger
 import com.malliina.values.Username
 import doobie._
 import doobie.implicits._
-
+import DoobieTracksDatabase.log
 import scala.concurrent.Future
 import scala.concurrent.duration.{DurationInt, DurationLong, FiniteDuration}
 

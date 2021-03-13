@@ -2,7 +2,8 @@ package com.malliina.boat.http4s
 
 import cats.Applicative
 import cats.data.NonEmptyList
-import cats.effect.IO
+import cats.effect.{IO, Sync}
+import cats.implicits._
 import com.malliina.boat.Errors
 import com.malliina.boat.http4s.BasicService.{log, noCache}
 import com.malliina.util.AppLogger
@@ -26,7 +27,7 @@ object BasicService extends BasicService[IO] {
     .getOrElse(NonEmptyList.of(MediaRange.`*/*`))
 }
 
-class BasicService[F[_]: Applicative] extends Implicits[F] {
+class BasicService[F[_]: Applicative: Sync] extends Implicits[F] {
   def ok[A](a: A)(implicit w: EntityEncoder[F, A]) = Ok(a, noCache)
   def badRequest[A](a: A)(implicit w: EntityEncoder[F, A]) = BadRequest(a, noCache)
   def notFoundReq(req: Request[F]): F[Response[F]] =
@@ -38,10 +39,12 @@ class BasicService[F[_]: Applicative] extends Implicits[F] {
 
   def errorHandler(t: Throwable): F[Response[F]] = t match {
     case ir: InvalidRequest =>
-      log.warn(ir.message, ir)
-      badRequest(ir.errors)
+      Sync[F].delay(log.warn(ir.message, ir)).flatMap { _ =>
+        badRequest(ir.errors)
+      }
     case other =>
-      log.error("Server error.", other)
-      serverError(Errors("Server error."))
+      Sync[F].delay(log.error("Server error.", other)).flatMap { _ =>
+        serverError(Errors("Server error."))
+      }
   }
 }

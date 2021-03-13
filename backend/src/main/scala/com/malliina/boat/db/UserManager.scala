@@ -4,9 +4,7 @@ import cats.effect.IO
 import com.malliina.boat.http.{AccessResult, InviteInfo}
 import com.malliina.boat.{BoatToken, DeviceId, InviteState, JoinedBoat, Language, UserBoats, UserInfo, Usernames}
 import com.malliina.values._
-import com.malliina.web.AuthError
 import org.apache.commons.codec.digest.DigestUtils
-import org.http4s.Headers
 
 trait UserManager {
   def userMeta(email: Email): IO[UserRow]

@@ -121,10 +121,10 @@ class DoobieUserManager(db: DoobieDatabase) extends UserManager with DoobieSQL {
     for {
       id <- getOrCreate(email)
       user <- userById(id).query[UserRow].unique
-      boatRows <- boatRowsIO(id)
+      userTracks <- boatRowsIO(id)
       devices <- deviceRowsIO(email)
     } yield {
-      val bs = DoobieUserManager.collectBoats(boatRows, TimeFormatter(user.language))
+      val bs = DoobieUserManager.collectBoats(userTracks, TimeFormatter(user.language))
       val gpsDevices = devices.map(d => BoatInfo(d.device, d.boatName, d.username, d.language, Nil))
       UserBoats(user.user, user.language, bs ++ gpsDevices)
     }

@@ -62,14 +62,13 @@ class BoatStreams(
   inserted.evalMap { i =>
     saved.publish1(i)
   }.compile.drain.unsafeRunAsyncAndForget()
-  ais.slow
 
   def clientEvents(formatter: TimeFormatter): fs2.Stream[IO, FrontEvent] = {
     val boatEvents = saved
       .subscribe(100)
       .drop(1)
       .collect {
-        case i @ Inserted(coord, inserted) => i
+        case i @ Inserted(_, _) => i
       }
       .map { ip =>
         CoordsEvent(

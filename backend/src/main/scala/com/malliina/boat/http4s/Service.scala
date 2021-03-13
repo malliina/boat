@@ -55,6 +55,7 @@ class Service(comps: BoatComps) extends BasicService[IO] {
   val html = comps.html
   val db = comps.db
   val inserts = comps.inserts
+  val streams = comps.streams
   val web = auth.web
   val cookieNames = web.cookieNames
   val reverse = Reverse
@@ -198,7 +199,7 @@ class Service(comps: BoatComps) extends BasicService[IO] {
             IO.pure(es.toList.map(_.sample(actualSample)))
           }
           val formatter = TimeFormatter(user.language)
-          val updates = comps.streams.clientEvents(formatter)
+          val updates = streams.clientEvents(formatter)
           val eventSource =
             (fs2.Stream.evalSeq(history) ++ updates).filter(_.isIntendedFor(username))
 //          val eventSource = history
@@ -222,7 +223,27 @@ class Service(comps: BoatComps) extends BasicService[IO] {
         }
       }
     case req @ GET -> Root / "ws" / "boats" =>
-      ???
+      auth
+        .boatToken(req.headers)
+        .map { io =>
+          io.flatMap { boat =>
+            val boatTrack = boat.withTrack(TrackNames.random())
+            inserts.joinAsBoat(boatTrack).flatMap { meta =>
+              val fromClient: Pipe[IO, WebSocketFrame, Unit] = _.evalMap {
+                case Text(message, _) =>
+                  streams.boatIn.publish1(BoatEvent(Json.parse(message), meta))
+                case f => IO(log.debug(s"Unknown WebSocket frame: $f"))
+              }
+              val toClient: fs2.Stream[IO, WebSocketFrame] = fs2.Stream.never[IO].map { _ =>
+                Text(Json.stringify(Json.toJson(PingEvent(System.currentTimeMillis()))))
+              }
+              WebSocketBuilder[IO].build(toClient, fromClient)
+            }
+          }
+        }
+        .getOrElse {
+          unauthorized(Errors("Credentials required."))
+        }
     case req @ GET -> Root / "ws" / "devices" =>
       ???
     case req @ GET -> Root / "sign-in" / "google" =>
