@@ -108,7 +108,7 @@ val frontend = project
       "webpack-merge" -> "4.2.2"
     ),
     version in webpack := "4.43.0",
-    webpackEmitSourceMaps := false,
+    webpackEmitSourceMaps := true,
     scalaJSUseMainModuleInitializer := true,
     webpackBundlingMode := BundlingMode.LibraryOnly(),
     webpackConfigFile in fastOptJS := Some(
@@ -130,11 +130,12 @@ val backend = Project("boat", file("backend"))
     SystemdPlugin,
     BuildInfoPlugin
   )
-  .disablePlugins(RevolverPlugin)
   .dependsOn(crossJvm)
   .settings(jvmSettings ++ boatSettings)
   .settings(
-    unmanagedResourceDirectories in Compile += baseDirectory.value / "docs",
+    unmanagedResourceDirectories in Compile ++= Seq(
+      baseDirectory.value / "docs"
+    ),
     libraryDependencies ++= http4sModules.map { m =>
       "org.http4s" %% s"http4s-$m" % "0.21.16"
     } ++ Seq("doobie-core", "doobie-hikari").map { d =>
@@ -147,7 +148,6 @@ val backend = Project("boat", file("backend"))
       "org.apache.commons" % "commons-text" % "1.9",
       "com.amazonaws" % "aws-java-sdk-s3" % "1.11.856",
       "com.malliina" %% "logstreams-client" % "1.10.1",
-      "com.malliina" %% "play-social" % webAuthVersion,
       "com.malliina" %% "mobile-push" % "1.24.0",
       "org.slf4j" % "slf4j-api" % "1.7.30",
       "ch.qos.logback" % "logback-classic" % "1.2.3",

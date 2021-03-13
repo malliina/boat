@@ -18,12 +18,7 @@ import com.malliina.storage.StorageInt
 import com.malliina.util.AppLogger
 import com.malliina.values.Username
 import controllers.BoatController.log
-import play.api.data.{Form, Forms}
-import play.api.http.{MimeTypes, Writeable}
 import play.api.libs.json.{JsValue, Json, Writes}
-import play.api.libs.streams.Accumulator
-import play.api.mvc.WebSocket.MessageFlowTransformer.jsonMessageFlowTransformer
-import play.api.mvc._
 
 import scala.concurrent.Future
 import scala.concurrent.duration.DurationInt

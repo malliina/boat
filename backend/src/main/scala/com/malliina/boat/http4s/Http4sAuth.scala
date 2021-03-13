@@ -16,15 +16,15 @@ object Http4sAuth {
 
 class Http4sAuth(
   val jwt: JWT,
-  val cookieNames: CookieConf = CookieConf.prefixed("logstreams")
+  val cookieNames: CookieConf = CookieConf.prefixed("boat")
 ) {
   val cookiePath = Option("/")
 
   def authenticate(headers: Headers): Either[IdentityError, Username] =
     readUser(cookieNames.user, headers)
 
-  def session[T: Reads](from: Headers): Either[IdentityError, T] =
-    read[T](cookieNames.session, from)
+  def authState[T: Reads](from: Headers): Either[IdentityError, T] =
+    read[T](cookieNames.authState, from)
 
   def token(headers: Headers) = headers
     .get(Authorization)
@@ -35,13 +35,13 @@ class Http4sAuth(
     })
 
   def withSession[T: OWrites](t: T, isSecure: Boolean, res: Response[IO]): res.Self =
-    withJwt(cookieNames.session, t, isSecure, res)
+    withJwt(cookieNames.authState, t, isSecure, res)
 
   def clearSession(res: Response[IO]): res.Self =
     res
       .removeCookie(cookieNames.provider)
       .removeCookie(cookieNames.lastId)
-      .removeCookie(ResponseCookie(cookieNames.session, "", path = cookiePath))
+      .removeCookie(ResponseCookie(cookieNames.authState, "", path = cookiePath))
       .removeCookie(ResponseCookie(cookieNames.user, "", path = cookiePath))
 
   def withAppUser(

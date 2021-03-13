@@ -4,8 +4,7 @@ import com.malliina.boat.BoatFormats.{formatDistance, formatSpeed, formatTemp}
 import com.malliina.boat.{DateVal, WrappedInt}
 import com.malliina.measure.{DistanceM, SpeedM, Temperature}
 import com.malliina.values.WrappedString
-import play.api.mvc.Call
-import scalatags.Text.all.{Attr, AttrValue, Frag, StringFrag, genericAttr, intFrag, stringFrag}
+import scalatags.Text.all.{Attr, AttrValue, Frag, StringFrag, intFrag, stringFrag}
 import scalatags.text.Builder
 
 import scala.language.implicitConversions
@@ -13,8 +12,6 @@ import scala.language.implicitConversions
 object BoatImplicits extends BoatImplicits
 
 trait BoatImplicits {
-  implicit val callAttr = genericAttr[Call]
-
   implicit def speedHtml(s: SpeedM): StringFrag = stringFrag(formatSpeed(s))
   implicit def distanceHtml(d: DistanceM): StringFrag = stringFrag(formatDistance(d))
   implicit def tempHtml(t: Temperature): StringFrag = stringFrag(formatTemp(t))

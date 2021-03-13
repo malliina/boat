@@ -80,6 +80,6 @@ class AuthService(val users: UserManager, comps: AuthComps) {
 
   private def authSession(headers: Headers) =
     web
-      .session[UserPayload](headers)
-      .map(payload => Email(payload.username.name))
+      .authenticate(headers)
+      .map(user => Email(user.name))
 }

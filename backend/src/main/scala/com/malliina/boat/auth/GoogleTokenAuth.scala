@@ -4,10 +4,9 @@ import cats.effect.IO
 import com.malliina.boat.db.{IdentityException, JWTError, MissingCredentials}
 import com.malliina.boat.http4s.Auth
 import com.malliina.http.HttpClient
-import com.malliina.play.auth.KeyClient
 import com.malliina.values.{Email, ErrorMessage, IdToken}
-import com.malliina.web.{AuthError, ClientId, InvalidClaims, KeyClient}
-import org.http4s.{Headers, Request}
+import com.malliina.web._
+import org.http4s.Headers
 
 object GoogleTokenAuth {
 
@@ -21,7 +20,7 @@ object GoogleTokenAuth {
     iosClientId: ClientId,
     http: HttpClient[IO]
   ): GoogleTokenAuth =
-    new GoogleTokenAuth(KeyClient.google(Seq(webClientId, iosClientId), http))
+    new GoogleTokenAuth(GoogleAuthFlow.keyClient(Seq(webClientId, iosClientId), http))
 }
 
 /** Validates Google ID tokens and extracts the email address.

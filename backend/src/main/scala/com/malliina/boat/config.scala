@@ -5,8 +5,9 @@ import com.malliina.boat.db.Conf
 import com.malliina.push.apns.{KeyId, TeamId}
 import com.malliina.web.{AuthConf, ClientId, ClientSecret}
 import com.typesafe.config.ConfigFactory
-import pureconfig.{ConfigObjectSource, ConfigReader, ConfigSource}
+import pureconfig.{CamelCase, ConfigFieldMapping, ConfigObjectSource, ConfigReader, ConfigSource}
 import pureconfig.error.{CannotConvert, ConfigReaderException, ConfigReaderFailures}
+import pureconfig.generic.ProductHint
 
 import java.nio.file.Paths
 
@@ -54,6 +55,7 @@ case class BoatConf(
 case class WrappedConf(boat: BoatConf)
 
 object BoatConf {
+  implicit def camelCaseConf[A] = ProductHint[A](ConfigFieldMapping(CamelCase, CamelCase))
   import pureconfig.generic.auto.exportReader
   val attempt: Either[ConfigReaderFailures, BoatConf] =
     ConfigObjectSource(Right(LocalConf.localConf))

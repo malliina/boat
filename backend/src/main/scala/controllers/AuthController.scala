@@ -7,9 +7,7 @@ import com.malliina.boat.{Errors, SingleError, UserInfo}
 import com.malliina.util.AppLogger
 import com.malliina.values.Email
 import controllers.AuthController.log
-import play.api.http.Writeable
 import play.api.libs.json.{Json, Reads, Writes}
-import play.api.mvc._
 
 import scala.concurrent.{ExecutionContext, Future}
 

@@ -24,7 +24,10 @@ object DoobieDatabase {
     Resource.pure[IO, MigrateResult](migrate(conf)).flatMap { _ => apply(conf, blocker) }
 
   def migrate(conf: Conf): MigrateResult = {
-    val flyway = Flyway.configure.dataSource(conf.url, conf.user, conf.pass).load()
+    val flyway = Flyway.configure
+      .dataSource(conf.url, conf.user, conf.pass)
+      .table("flyway_schema_history2")
+      .load()
     flyway.migrate()
   }
 

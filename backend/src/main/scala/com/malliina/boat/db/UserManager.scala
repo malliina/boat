@@ -7,7 +7,6 @@ import com.malliina.values._
 import com.malliina.web.AuthError
 import org.apache.commons.codec.digest.DigestUtils
 import org.http4s.Headers
-import play.api.mvc.RequestHeader
 
 trait UserManager {
   def userMeta(email: Email): IO[UserRow]
@@ -50,7 +49,7 @@ case class InvalidCredentials(user: Option[Username] = None)
 case class InvalidToken(token: BoatToken) extends IdentityError(s"Invalid token: '$token'.")
 case class UserDisabled(user: Username) extends IdentityError(s"User is disabled: '$user'.")
 case class UserDoesNotExist(user: Username) extends IdentityError(s"User does not exist: '$user'.")
-case class MissingToken(rh: RequestHeader) extends IdentityError(s"Missing token in '$rh'.")
+case class MissingToken(hs: Headers) extends IdentityError(s"Missing token in '$hs'.")
 case class MissingCredentials(hs: Headers) extends IdentityError(s"Missing credentials in '$hs'.")
 case class JWTError(hs: Headers, error: AuthError) extends IdentityError(error.message)
 

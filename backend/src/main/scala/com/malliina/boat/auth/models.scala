@@ -12,7 +12,7 @@ case class BasicCredentials(username: Username, password: Password)
 
 case class CookieConf(
   user: String,
-  session: String,
+  authState: String,
   returnUri: String,
   lastId: String,
   provider: String,

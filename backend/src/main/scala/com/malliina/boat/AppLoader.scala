@@ -1,30 +1,36 @@
 package com.malliina.boat
 
+import com.malliina.boat.auth.EmailAuth
+import com.malliina.boat.db.Conf
+import com.malliina.boat.push.PushEndpoint
+
 import java.nio.file.Paths
-import java.util.concurrent.{Executors, TimeUnit}
 
-import com.malliina.boat.ais.BoatMqttClient
-import com.malliina.boat.auth.{EmailAuth, GoogleTokenAuth}
-import com.malliina.boat.db._
-import com.malliina.boat.html.BoatHtml
-import com.malliina.boat.http.CSRFConf._
-import com.malliina.boat.parsing.{BoatService, DeviceService}
-import com.malliina.boat.push._
-import com.malliina.http.OkClient
-import com.typesafe.config.ConfigFactory
-import controllers._
-import play.api.ApplicationLoader.Context
-import play.api.http.{HttpConfiguration, HttpErrorHandler}
-import play.api.mvc.EssentialFilter
-import play.api.routing.Router
-import play.api.{BuiltInComponentsFromContext, Configuration, Mode}
-
-import scala.concurrent.{ExecutionContext, Future}
+//import java.nio.file.Paths
+//import java.util.concurrent.{Executors, TimeUnit}
+//
+//import com.malliina.boat.ais.BoatMqttClient
+//import com.malliina.boat.auth.{EmailAuth, GoogleTokenAuth}
+//import com.malliina.boat.db._
+//import com.malliina.boat.html.BoatHtml
+//import com.malliina.boat.http.CSRFConf._
+//import com.malliina.boat.parsing.{BoatService, DeviceService}
+//import com.malliina.boat.push._
+//import com.malliina.http.OkClient
+//import com.typesafe.config.ConfigFactory
+//import controllers._
+//import play.api.ApplicationLoader.Context
+//import play.api.http.{HttpConfiguration, HttpErrorHandler}
+//import play.api.mvc.EssentialFilter
+//import play.api.routing.Router
+//import play.api.{BuiltInComponentsFromContext, Configuration, Mode}
+//
+//import scala.concurrent.{ExecutionContext, Future}
 
 object LocalConf2 {
   val localConfFile =
     Paths.get(sys.props("user.home")).resolve(".boat/boat.conf")
-  val localConf = Configuration(ConfigFactory.parseFile(localConfFile.toFile))
+//  val localConf = Configuration(ConfigFactory.parseFile(localConfFile.toFile))
 }
 
 // Put modules that have different implementations in dev, prod or tests here.

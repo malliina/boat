@@ -26,7 +26,8 @@ object BoatHtml {
   case class ScriptAssets(library: String, loader: String, app: String)
 }
 
-class BoatHtml(jsFiles: ScriptAssets) extends Bootstrap(HtmlTags) {
+class BoatHtml(jsFiles: ScriptAssets, assets: AssetsSource = HashedAssetsSource)
+  extends Bootstrap(HtmlTags) {
   val reverse = Reverse
 //  val mapboxVersion = AppMeta.default.mapboxVersion
 
@@ -181,6 +182,5 @@ class BoatHtml(jsFiles: ScriptAssets) extends Bootstrap(HtmlTags) {
     )
   )
 
-  def versioned(file: String): Uri = ???
-//  def versioned(file: String) = reverseApp.versioned(file)
+  def versioned(file: String): Uri = assets.at(file)
 }

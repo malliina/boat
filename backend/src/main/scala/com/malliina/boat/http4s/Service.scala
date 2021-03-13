@@ -378,7 +378,7 @@ class Service(comps: BoatComps) extends BasicService[IO] {
     validate: Callback => IO[Either[AuthError, Email]]
   ): IO[Response[IO]] = {
     val params = req.uri.query.params
-    val session = web.session[Map[String, String]](req.headers).toOption.getOrElse(Map.empty)
+    val session = web.authState[Map[String, String]](req.headers).toOption.getOrElse(Map.empty)
     val cb = Callback(
       params.get(OAuthKeys.State),
       session.get(State),

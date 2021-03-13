@@ -136,19 +136,21 @@ object Mmsi extends IdCompanion[Mmsi] {
   val Key = "mmsi"
 }
 
-case class VesselInfo(mmsi: Mmsi,
-                      name: VesselName,
-                      shipType: ShipType,
-                      coord: Coord,
-                      sog: SpeedM,
-                      cog: Double,
-                      draft: DistanceM,
-                      destination: Option[String],
-                      heading: Option[Int],
-                      eta: Long,
-                      timestampMillis: Long,
-                      timestampFormatted: FormattedDateTime,
-                      time: Timing)
+case class VesselInfo(
+  mmsi: Mmsi,
+  name: VesselName,
+  shipType: ShipType,
+  coord: Coord,
+  sog: SpeedM,
+  cog: Double,
+  draft: DistanceM,
+  destination: Option[String],
+  heading: Option[Int],
+  eta: Long,
+  timestampMillis: Long,
+  timestampFormatted: FormattedDateTime,
+  time: Timing
+)
 
 object VesselInfo {
   val HeadingKey = "heading"
@@ -164,13 +166,14 @@ sealed trait VesselMessage extends AISMessage {
   def timestamp: Long
 }
 
-case class VesselLocation(mmsi: Mmsi,
-                          coord: Coord,
-                          sog: SpeedM,
-                          cog: Double,
-                          heading: Option[Int],
-                          timestamp: Long)
-    extends VesselMessage {
+case class VesselLocation(
+  mmsi: Mmsi,
+  coord: Coord,
+  sog: SpeedM,
+  cog: Double,
+  heading: Option[Int],
+  timestamp: Long
+) extends VesselMessage {
   def toInfo(meta: VesselMetadata, time: Timing) = VesselInfo(
     mmsi,
     meta.name,
@@ -219,16 +222,17 @@ object VesselName extends StringCompanion[VesselName] {
   val Key = "name"
 }
 
-case class VesselMetadata(name: VesselName,
-                          mmsi: Mmsi,
-                          timestamp: Long,
-                          imo: Long,
-                          eta: Long,
-                          draft: DistanceM,
-                          destination: Option[String],
-                          shipType: ShipType,
-                          callSign: String)
-    extends VesselMessage
+case class VesselMetadata(
+  name: VesselName,
+  mmsi: Mmsi,
+  timestamp: Long,
+  imo: Long,
+  eta: Long,
+  draft: DistanceM,
+  destination: Option[String],
+  shipType: ShipType,
+  callSign: String
+) extends VesselMessage
 
 object VesselMetadata {
   implicit val df = PrimitiveFormats.durationFormat

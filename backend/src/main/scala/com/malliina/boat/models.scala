@@ -9,10 +9,7 @@ import com.malliina.measure.{DistanceM, SpeedM, Temperature}
 import com.malliina.values._
 import com.malliina.web.JWTError
 import doobie.Meta
-import play.api.data.{Forms, Mapping}
-import play.api.http.Writeable
 import play.api.libs.json._
-import play.api.mvc.PathBindable
 
 import scala.concurrent.duration.FiniteDuration
 import scala.reflect.runtime.universe.TypeTag
@@ -295,8 +292,6 @@ object Errors {
       Writes.list[T].contramap(_.toList)
     )
   implicit val json = Json.format[Errors]
-  implicit val html: Writeable[Errors] =
-    Writeable.writeableOf_JsValue.map[Errors](e => Json.toJson(e))
 
   def apply(error: SingleError): Errors = Errors(NonEmptyList.of(error))
   def apply(message: String): Errors = apply(message, "generic")
@@ -318,18 +313,12 @@ object Errors {
 object BoatNames {
   val Key = "boatName"
   val BoatKey = "boat"
-  val mapping: Mapping[BoatName] =
-    Forms.nonEmptyText.transform(s => BoatName(s), b => b.name)
 
   def random() = BoatName(Utils.randomString(6))
 }
 
 object Emails {
   val Key = "email"
-
-  val mapping: Mapping[Email] =
-    Forms.nonEmptyText.transform(s => Email(s), b => b.email)
-
 }
 
 case class SingleToken(token: PushToken)
@@ -353,34 +342,10 @@ object TrackNames {
 
 object TrackTitles {
   val MaxLength = 191
-  val mapping: Mapping[TrackTitle] = Forms.nonEmptyText
-    .verifying(_.length <= TrackTitle.MaxLength)
-    .transform(s => TrackTitle(s), t => t.title)
 }
 
 object BoatTokens {
   def random() = BoatToken(Utils.randomString(8))
-}
-
-// Bindables._ is imported to the routes file, see build.sbt
-object Bindables {
-  implicit val trackName: PathBindable[TrackName] =
-    PathBindable.bindableString
-      .transform[TrackName](s => TrackName(s), t => t.name)
-
-  implicit val trackCanonical: PathBindable[TrackCanonical] =
-    PathBindable.bindableString
-      .transform[TrackCanonical](s => TrackCanonical(s), t => t.name)
-
-  implicit val boatName: PathBindable[BoatName] =
-    PathBindable.bindableString
-      .transform[BoatName](s => BoatName(s), t => t.name)
-
-  implicit val boatId: PathBindable[DeviceId] =
-    PathBindable.bindableLong.transform[DeviceId](s => DeviceId(s), id => id.id)
-
-  implicit val trackId: PathBindable[TrackId] =
-    PathBindable.bindableLong.transform[TrackId](TrackId.apply, _.id)
 }
 
 case class BoatInput(name: BoatName, token: BoatToken, owner: UserId)
