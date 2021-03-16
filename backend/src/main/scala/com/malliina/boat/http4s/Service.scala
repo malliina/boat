@@ -42,6 +42,7 @@ object Service {
     s3: S3Client,
     push: PushService,
     streams: BoatStreams,
+    devices: GPSStreams,
     blocker: Blocker,
     cs: ContextShift[IO]
   )
@@ -56,11 +57,16 @@ class Service(comps: BoatComps) extends BasicService[IO] {
   val db = comps.db
   val inserts = comps.inserts
   val streams = comps.streams
+  val deviceStreams = comps.devices
   val web = auth.web
   val cookieNames = web.cookieNames
   val reverse = Reverse
   val g = Graph.all
   val NoChange = "No change."
+
+  val toClients: fs2.Stream[IO, WebSocketFrame] = fs2.Stream.never[IO].map { _ =>
+    Text(Json.stringify(Json.toJson(PingEvent(System.currentTimeMillis()))))
+  }
 
   val routes: HttpRoutes[IO] = HttpRoutes.of[IO] {
     case req @ GET -> Root      => index(req)
@@ -189,7 +195,7 @@ class Service(comps: BoatComps) extends BasicService[IO] {
               BoatQuery.tracks(limits.tracks)
             else if (username == Usernames.anon) BoatQuery.empty
             else limits
-          val history = db.history(user, historicalLimits).flatMap { es =>
+          val historyIO = db.history(user, historicalLimits).flatMap { es =>
             // unless a sample is specified, return about 300 historical points - this optimization is for charts
             val intelligentSample = math.max(1, es.map(_.coords.length).sum / 300)
             val actualSample = limits.sample.getOrElse(intelligentSample)
@@ -198,18 +204,14 @@ class Service(comps: BoatComps) extends BasicService[IO] {
             )
             IO.pure(es.toList.map(_.sample(actualSample)))
           }
+          val history = fs2.Stream.evalSeq(historyIO)
+          val gpsHistory = fs2.Stream.evalSeq(deviceStreams.db.history(user))
           val formatter = TimeFormatter(user.language)
           val updates = streams.clientEvents(formatter)
+          val deviceUpdates = deviceStreams.clientEvents(formatter)
           val eventSource =
-            (fs2.Stream.evalSeq(history) ++ updates).filter(_.isIntendedFor(username))
-//          val eventSource = history
-//            .merge(gpsHistory)
-//            .concat(
-//              boatService
-//                .clientEvents(formatter)
-//                .merge(deviceService.clientEvents(formatter))
-//            )
-//            .filter(_.isIntendedFor(username))
+            (history.mergeHaltBoth(gpsHistory) ++ updates.mergeHaltBoth(deviceUpdates))
+              .filter(_.isIntendedFor(username))
           val fromClient: Pipe[IO, WebSocketFrame, Unit] = _.evalMap {
             case Text(message, _) => IO(log.info(message))
             case f                => IO(log.debug(s"Unknown WebSocket frame: $f"))
@@ -234,10 +236,7 @@ class Service(comps: BoatComps) extends BasicService[IO] {
                   streams.boatIn.publish1(BoatEvent(Json.parse(message), meta))
                 case f => IO(log.debug(s"Unknown WebSocket frame: $f"))
               }
-              val toClient: fs2.Stream[IO, WebSocketFrame] = fs2.Stream.never[IO].map { _ =>
-                Text(Json.stringify(Json.toJson(PingEvent(System.currentTimeMillis()))))
-              }
-              WebSocketBuilder[IO].build(toClient, fromClient)
+              WebSocketBuilder[IO].build(toClients, fromClient)
             }
           }
         }
@@ -245,7 +244,16 @@ class Service(comps: BoatComps) extends BasicService[IO] {
           unauthorized(Errors("Credentials required."))
         }
     case req @ GET -> Root / "ws" / "devices" =>
-      ???
+      auth.authDevice(req.headers).flatMap { meta =>
+        inserts.joinAsDevice(meta).flatMap { boat =>
+          val fromClient: Pipe[IO, WebSocketFrame, Unit] = _.evalMap {
+            case Text(message, _) =>
+              deviceStreams.in.publish1(DeviceEvent(Json.parse(message), boat))
+            case f => IO(log.debug(s"Unknown WebSocket frame: $f"))
+          }
+          WebSocketBuilder[IO].build(toClients, fromClient)
+        }
+      }
     case req @ GET -> Root / "sign-in" / "google" =>
       startHinted(AuthProvider.Google, auth.flow, req)
     case req @ GET -> Root / "sign-in" / "callbacks" / "google" =>

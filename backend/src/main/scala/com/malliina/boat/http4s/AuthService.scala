@@ -1,12 +1,12 @@
 package com.malliina.boat.http4s
 
 import cats.effect.IO
-import com.malliina.boat.Constants.BoatTokenHeader
+import com.malliina.boat.Constants.{BoatNameHeader, BoatTokenHeader}
 import com.malliina.boat.auth.{SettingsPayload, UserPayload}
 import com.malliina.boat.db.{IdentityException, MissingCredentialsException, UserManager}
 import com.malliina.boat.http.UserRequest
 import com.malliina.boat.http4s.AuthService.{GoogleCookie, ProviderCookieName}
-import com.malliina.boat.{BoatToken, MinimalUserInfo, Usernames}
+import com.malliina.boat.{BoatName, BoatNames, BoatToken, DeviceMeta, MinimalUserInfo, SimpleBoatMeta, Usernames}
 import com.malliina.values.Email
 import org.http4s.headers.Cookie
 import org.http4s.util.CaseInsensitiveString
@@ -52,6 +52,15 @@ class AuthService(val users: UserManager, comps: AuthComps) {
       .read[SettingsPayload](SettingsPayload.cookieName, headers)
       .toOption
       .filter(_.username != Usernames.anon)
+
+  def authDevice(headers: Headers): IO[DeviceMeta] =
+    boatToken(headers).getOrElse {
+      val boatName = headers
+        .get(CaseInsensitiveString(BoatNameHeader))
+        .map(h => BoatName(h.value))
+        .getOrElse(BoatNames.random())
+      IO.pure(SimpleBoatMeta(Usernames.anon, boatName))
+    }
 
   def boatToken(headers: Headers) =
     headers.get(CaseInsensitiveString(BoatTokenHeader)).map { h =>

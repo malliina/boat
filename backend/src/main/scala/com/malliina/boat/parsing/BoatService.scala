@@ -7,7 +7,7 @@ import akka.stream.scaladsl.{BroadcastHub, Keep, MergeHub, Sink, Source}
 import com.malliina.boat.ais.AISSource
 import com.malliina.boat.db.{TrackInsertsDatabase, TracksSource}
 import com.malliina.boat.parsing.BoatService.log
-import com.malliina.boat.{BoatEvent, BoatJsonError, CoordsEvent, FrontEvent, InsertedPoint, SentencesMessage, Streams, TimeFormatter, VesselMessages}
+import com.malliina.boat.{BoatEvent, BoatJsonError, CoordsEvent, FrontEvent, GPSInsertedPoint, InsertedPoint, SentencesMessage, Streams, TimeFormatter, VesselMessages}
 import com.malliina.util.AppLogger
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -100,7 +100,6 @@ object BoatService {
 //}
 
 sealed trait SavedEvent
-
 case object EmptySavedEvent extends SavedEvent
-
 case class Inserted(coord: FullCoord, inserted: InsertedPoint) extends SavedEvent
+case class GPSInserted(coord: GPSCoord, inserted: GPSInsertedPoint) extends SavedEvent

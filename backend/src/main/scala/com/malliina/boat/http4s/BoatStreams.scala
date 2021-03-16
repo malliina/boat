@@ -3,7 +3,7 @@ package com.malliina.boat.http4s
 import cats.effect.{Concurrent, ContextShift, IO}
 import com.malliina.boat.ais.AISSource
 import com.malliina.boat.db.TrackInsertsDatabase
-import com.malliina.boat.http4s.BoatStreams.log
+import com.malliina.boat.http4s.BoatStreams.{log, rights}
 import com.malliina.boat.parsing._
 import com.malliina.boat.{BoatEvent, BoatJsonError, CoordsEvent, EmptyEvent, FrontEvent, InputEvent, PingEvent, SentencesMessage, TimeFormatter, VesselMessages}
 import com.malliina.util.AppLogger
@@ -20,6 +20,10 @@ object BoatStreams {
     out <- Topic[IO, FrontEvent](PingEvent(System.currentTimeMillis()))
     saved <- Topic[IO, SavedEvent](EmptySavedEvent)
   } yield new BoatStreams(db, ais, in, out, saved)
+
+  def rights[L, R](src: fs2.Stream[IO, Either[L, R]]): fs2.Stream[IO, R] = src.flatMap { e =>
+    e.fold(l => fs2.Stream.empty, r => fs2.Stream(r))
+  }
 }
 
 class BoatStreams(
@@ -85,8 +89,4 @@ class BoatStreams(
       log.error(s"Unable to save coords.", t)
       IO.pure(Nil)
     }
-
-  private def rights[L, R](src: fs2.Stream[IO, Either[L, R]]): fs2.Stream[IO, R] = src.flatMap {
-    e => e.fold(l => fs2.Stream.empty, r => fs2.Stream(r))
-  }
 }
