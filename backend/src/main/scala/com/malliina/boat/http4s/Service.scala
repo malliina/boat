@@ -13,13 +13,14 @@ import com.malliina.boat.html.{BoatHtml, BoatLang}
 import com.malliina.boat.http._
 import com.malliina.boat.http4s.BasicService.{cached, noCache, ranges}
 import com.malliina.boat.http4s.Service.{BoatComps, log}
-import com.malliina.boat.push.PushService
+import com.malliina.boat.push.{BoatState, PushService}
 import com.malliina.util.AppLogger
 import com.malliina.values.{Email, Username}
 import com.malliina.web.OAuthKeys.{Nonce, State}
 import com.malliina.web.Utils.randomString
 import com.malliina.web._
 import fs2.Pipe
+import fs2.concurrent.Topic
 import org.http4s.headers.{Location, `WWW-Authenticate`}
 import org.http4s.server.websocket.WebSocketBuilder
 import org.http4s.websocket.WebSocketFrame
@@ -58,6 +59,7 @@ class Service(comps: BoatComps) extends BasicService[IO] {
   val inserts = comps.inserts
   val streams = comps.streams
   val deviceStreams = comps.devices
+  val push = comps.push
   val web = auth.web
   val cookieNames = web.cookieNames
   val reverse = Reverse
@@ -84,13 +86,13 @@ class Service(comps: BoatComps) extends BasicService[IO] {
       }
     case req @ POST -> Root / "users" / "notifications" =>
       jsonAction[PushPayload](req) { (payload, user) =>
-        comps.push.enable(PushInput(payload.token, payload.device, user.id)).flatMap { _ =>
+        push.enable(PushInput(payload.token, payload.device, user.id)).flatMap { _ =>
           ok(SimpleMessage("Enabled."))
         }
       }
     case req @ PUT -> Root / "users" / "notifications" / "disable" =>
       jsonAction[PushPayload](req) { (payload, user) =>
-        comps.push.disable(payload.token, user.id).flatMap { disabled =>
+        push.disable(payload.token, user.id).flatMap { disabled =>
           val msg = if (disabled) "Disabled." else NoChange
           ok(SimpleMessage(msg))
         }
@@ -212,14 +214,12 @@ class Service(comps: BoatComps) extends BasicService[IO] {
           val eventSource =
             (history.mergeHaltBoth(gpsHistory) ++ updates.mergeHaltBoth(deviceUpdates))
               .filter(_.isIntendedFor(username))
-          val fromClient: Pipe[IO, WebSocketFrame, Unit] = _.evalMap {
-            case Text(message, _) => IO(log.info(message))
-            case f                => IO(log.debug(s"Unknown WebSocket frame: $f"))
-          }
-          val toClient = eventSource.map { message =>
-            Text(Json.stringify(Json.toJson(message)))
-          }
-          WebSocketBuilder[IO].build(toClient, fromClient)
+              .map(message => Text(Json.stringify(Json.toJson(message))))
+          webSocket(
+            eventSource,
+            message => IO(log.info(message)),
+            onClose = IO(log.info(s"Viewer '$username' left."))
+          )
         }.recover { errors =>
           badRequest(errors)
         }
@@ -231,12 +231,22 @@ class Service(comps: BoatComps) extends BasicService[IO] {
           io.flatMap { boat =>
             val boatTrack = boat.withTrack(TrackNames.random())
             inserts.joinAsBoat(boatTrack).flatMap { meta =>
-              val fromClient: Pipe[IO, WebSocketFrame, Unit] = _.evalMap {
-                case Text(message, _) =>
-                  streams.boatIn.publish1(BoatEvent(Json.parse(message), meta))
-                case f => IO(log.debug(s"Unknown WebSocket frame: $f"))
-              }
-              WebSocketBuilder[IO].build(toClients, fromClient)
+              push
+                .push(meta, BoatState.Connected)
+                .handleErrorWith { t =>
+                  IO(log.error(s"Failed to push all device notifications.", t))
+                }
+                .flatMap { _ =>
+                  webSocket(
+                    toClients,
+                    message => streams.boatIn.publish1(BoatEvent(Json.parse(message), meta)),
+                    onClose =
+                      IO(log.info(s"Boat '${boat.boatName}' by '${boat.username}' left.")).flatMap {
+                        _ =>
+                          push.push(meta, BoatState.Disconnected).map(_ => ())
+                      }
+                  )
+                }
             }
           }
         }
@@ -246,12 +256,11 @@ class Service(comps: BoatComps) extends BasicService[IO] {
     case req @ GET -> Root / "ws" / "devices" =>
       auth.authDevice(req.headers).flatMap { meta =>
         inserts.joinAsDevice(meta).flatMap { boat =>
-          val fromClient: Pipe[IO, WebSocketFrame, Unit] = _.evalMap {
-            case Text(message, _) =>
-              deviceStreams.in.publish1(DeviceEvent(Json.parse(message), boat))
-            case f => IO(log.debug(s"Unknown WebSocket frame: $f"))
-          }
-          WebSocketBuilder[IO].build(toClients, fromClient)
+          webSocket(
+            toClients,
+            message => deviceStreams.in.publish1(DeviceEvent(Json.parse(message), boat)),
+            onClose = IO(log.info(s"Device '${boat.boatName}' by '${boat.username}' left."))
+          )
         }
       }
     case req @ GET -> Root / "sign-in" / "google" =>
@@ -283,11 +292,28 @@ class Service(comps: BoatComps) extends BasicService[IO] {
     case req @ GET -> Root / ".well-known" / "assetlinks.json" =>
       fileFromResources("assetlinks.json", req)
     case req @ GET -> Root / TrackCanonicalVar(canonical) =>
-      authedTrackQuery(req).flatMap { authed =>
-        db.canonical(canonical, authed.user.language).flatMap { ref =>
-          ok(TrackResponse(ref))
-        }
-      }
+      respond(req)(
+        json = authedTrackQuery(req).flatMap { authed =>
+          db.canonical(canonical, authed.user.language).flatMap { ref =>
+            ok(TrackResponse(ref))
+          }
+        },
+        html = index(req)
+      )
+  }
+
+  private def webSocket[T](
+    toClient: fs2.Stream[IO, WebSocketFrame],
+    onMessage: String => IO[Unit],
+    onClose: IO[Unit]
+  ) = {
+    val fromClient: Pipe[IO, WebSocketFrame, Unit] = _.evalMap {
+      case Text(message, _) =>
+        onMessage(message)
+      case f =>
+        IO(log.debug(s"Unknown WebSocket frame: $f"))
+    }
+    WebSocketBuilder[IO].build(toClient, fromClient, onClose = onClose)
   }
 
   private def index(req: Request[IO]) =

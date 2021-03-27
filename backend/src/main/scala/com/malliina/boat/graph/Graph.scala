@@ -1,14 +1,14 @@
 package com.malliina.boat.graph
 
-import java.nio.file.{Files, Paths}
-
-import ch.qos.logback.core.util.SystemInfo
 import com.malliina.boat._
 import com.malliina.boat.graph.Graph.{intersection, log}
 import com.malliina.measure.DistanceM
+import com.malliina.storage.StorageLong
 import org.slf4j.LoggerFactory
 import play.api.libs.json.{Format, Json, Reads, Writes}
 
+import java.io.{Closeable, FileOutputStream, InputStream}
+import java.nio.file.{Files, Path}
 import scala.annotation.tailrec
 import scala.concurrent.duration.DurationLong
 
@@ -23,12 +23,22 @@ object Graph {
   lazy val all = Json.parse(Files.readAllBytes(graphFile)).as[Graph]
 
   def file(name: String) = {
-    val resource = getClass.getClassLoader.getResource(s"com/malliina/boat/graph/$name").getFile
-    // Windows prepends "/", which Paths.get does not accept
-    val isWindows = sys.props.get("os.name").exists(_.toLowerCase.contains("windows"))
-    val path = if (resource.startsWith("/") && isWindows) resource.tail else resource
-    Paths.get(path)
+    val resource = getClass.getClassLoader.getResourceAsStream(s"com/malliina/boat/graph/$name")
+    using(resource) { res =>
+      write(res, Files.createTempFile("temp", name))
+    }
   }
+
+  def write(in: InputStream, to: Path) =
+    using(new FileOutputStream(to.toFile, false)) { out =>
+      val size = in.transferTo(out).bytes
+      log.info(s"Wrote '${to.toAbsolutePath}', $size.")
+      to
+    }
+
+  def using[T <: Closeable, U](t: T)(code: T => U) =
+    try code(t)
+    finally t.close()
 
   def apply(edges: List[Edge]): Graph = {
     val g = Graph()

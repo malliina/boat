@@ -17,9 +17,9 @@ object BoatStreams {
     c: Concurrent[IO]
   ) = for {
     in <- Topic[IO, InputEvent](EmptyEvent)
-    out <- Topic[IO, FrontEvent](PingEvent(System.currentTimeMillis()))
+//    out <- Topic[IO, FrontEvent](PingEvent(System.currentTimeMillis()))
     saved <- Topic[IO, SavedEvent](EmptySavedEvent)
-  } yield new BoatStreams(db, ais, in, out, saved)
+  } yield new BoatStreams(db, ais, in, saved)
 
   def rights[L, R](src: fs2.Stream[IO, Either[L, R]]): fs2.Stream[IO, R] = src.flatMap { e =>
     e.fold(l => fs2.Stream.empty, r => fs2.Stream(r))
@@ -30,7 +30,7 @@ class BoatStreams(
   db: TrackInsertsDatabase,
   ais: AISSource,
   val boatIn: Topic[IO, InputEvent],
-  viewerOut: Topic[IO, FrontEvent],
+//  viewerOut: Topic[IO, FrontEvent],
   saved: Topic[IO, SavedEvent]
 )(implicit cs: ContextShift[IO]) {
   private val trackState = TrackManager()
