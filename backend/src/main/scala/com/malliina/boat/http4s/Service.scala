@@ -206,13 +206,13 @@ class Service(comps: BoatComps) extends BasicService[IO] {
             )
             IO.pure(es.toList.map(_.sample(actualSample)))
           }
-          val history = fs2.Stream.evalSeq(historyIO)
+          val deviceHistory = fs2.Stream.evalSeq(historyIO)
           val gpsHistory = fs2.Stream.evalSeq(deviceStreams.db.history(user))
           val formatter = TimeFormatter(user.language)
           val updates = streams.clientEvents(formatter)
           val deviceUpdates = deviceStreams.clientEvents(formatter)
           val eventSource =
-            (history.mergeHaltBoth(gpsHistory) ++ updates.mergeHaltBoth(deviceUpdates))
+            ((deviceHistory ++ gpsHistory) ++ updates.mergeHaltBoth(deviceUpdates))
               .filter(_.isIntendedFor(username))
               .map(message => Text(Json.stringify(Json.toJson(message))))
           webSocket(
