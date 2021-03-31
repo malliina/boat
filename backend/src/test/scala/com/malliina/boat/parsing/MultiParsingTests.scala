@@ -40,19 +40,19 @@ class MultiParsingTests extends BaseSuite {
   def sentences: Seq[RawSentence] =
     Files.readAllLines(testFile, StandardCharsets.UTF_8).asScala.toList.map(RawSentence.apply)
 
-  test("parse dates and coords".ignore) {
-    val flow = Flow[RawSentence].mapConcat(raw =>
-      BoatParser.parse(KeyedSentence(SentenceKey(1), raw, from)).toOption.toList
-    )
-    val singleParsed = Source(sentences.toList).via(flow)
-    val multiParsed = singleParsed.via(BoatParser.multiFlow())
-//    val task = multiParsed.runWith(Sink.foreach(println))
-    val start = System.currentTimeMillis()
-    val task = multiParsed.runWith(Sink.seq)
-    val coords = await(task, 30.seconds)
-    val end = System.currentTimeMillis()
-    println(s"${coords.length} coords in ${end - start} ms")
-  }
+//  test("parse dates and coords".ignore) {
+//    val flow = Flow[RawSentence].mapConcat(raw =>
+//      BoatParser.parse(KeyedSentence(SentenceKey(1), raw, from)).toOption.toList
+//    )
+//    val singleParsed = Source(sentences.toList).via(flow)
+//    val multiParsed = singleParsed.via(BoatParser.multiFlow())
+////    val task = multiParsed.runWith(Sink.foreach(println))
+//    val start = System.currentTimeMillis()
+//    val task = multiParsed.runWith(Sink.seq)
+//    val coords = await(task, 30.seconds)
+//    val end = System.currentTimeMillis()
+//    println(s"${coords.length} coords in ${end - start} ms")
+//  }
 
   test("just parse".ignore) {
     val flow = Flow[RawSentence].mapConcat(raw =>

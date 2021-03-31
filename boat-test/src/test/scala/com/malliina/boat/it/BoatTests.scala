@@ -2,14 +2,59 @@ package com.malliina.boat.it
 
 import akka.stream.scaladsl.{Sink, Source, SourceQueue}
 import akka.{Done, NotUsed}
+import cats.effect.{ContextShift, IO, Timer}
 import com.malliina.boat._
 import com.malliina.boat.client.{HttpUtil, KeyValue, WebSocketClient}
+import com.malliina.boat.http4s.Service
 import com.malliina.http.FullUrl
 import com.malliina.values.{Password, Username}
+import munit.FunSuite
 import play.api.libs.json.{JsValue, Json, Writes}
 import play.api.mvc.Call
+
+import scala.concurrent.Promise
 //import play.api.test.{DefaultTestServerFactory, RunningServer}
 //import tests.{AkkaStreamsSuite, DockerDatabase, TestAppLoader, TestComponents}
+
+//trait Http4sSuite extends MUnitDatabaseSuite { self: FunSuite =>
+//  implicit def munitContextShift: ContextShift[IO] =
+//    IO.contextShift(munitExecutionContext)
+//
+//  implicit def munitTimer: Timer[IO] =
+//    IO.timer(munitExecutionContext)
+//
+//  val app: Fixture[Service] = new Fixture[Service]("pics-app2") {
+//    private var service: Option[AppService] = None
+//    val promise = Promise[IO[Unit]]()
+//
+//    override def apply(): AppService = service.get
+//
+//    override def beforeAll(): Unit = {
+//      val resource =
+//        PicsServer.appResource(PicsConf.load.copy(db = db()), MultiSizeHandlerIO.empty())
+//      val resourceEffect = resource.allocated[IO, AppService]
+//      val setupEffect =
+//        resourceEffect.map {
+//          case (t, release) =>
+//            promise.success(release)
+//            t
+//        }
+//          .flatTap(t => IO.pure(()))
+//
+//      service = Option(await(setupEffect.unsafeToFuture()))
+//    }
+//
+//    override def afterAll(): Unit = {
+//      val f = IO
+//        .pure(())
+//        .flatMap(_ => IO.fromFuture(IO(promise.future))(munitContextShift).flatten)
+//        .unsafeToFuture()
+//      await(f)
+//    }
+//  }
+//
+//  override def munitFixtures: Seq[Fixture[_]] = Seq(db, app)
+//}
 
 import scala.concurrent.Future
 

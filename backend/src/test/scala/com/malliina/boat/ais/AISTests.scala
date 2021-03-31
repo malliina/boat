@@ -2,7 +2,6 @@ package com.malliina.boat.ais
 
 import java.time.Instant
 
-import akka.stream.scaladsl.Sink
 import com.malliina.boat._
 import com.malliina.boat.ais.BoatMqttClient._
 import org.eclipse.paho.client.mqttv3._
@@ -13,17 +12,17 @@ import tests.AkkaStreamsSuite
 import scala.concurrent.duration.DurationInt
 
 class AISTests extends AkkaStreamsSuite {
-  test("MqttSource".ignore) {
-    val client = BoatMqttClient.test()
-    val fut = client.slow.take(3).runWith(Sink.foreach(msg => println(msg)))
-    await(fut, 100.seconds)
-  }
-
-  test("metadata only".ignore) {
-    val client = BoatMqttClient(TestUrl, MetadataTopic)
-    val fut = client.vesselMessages.take(4).runWith(Sink.foreach(msg => println(msg)))
-    await(fut, 100.seconds)
-  }
+//  test("MqttSource".ignore) {
+//    val client = BoatMqttClient.test()
+//    val fut = client.slow.take(3).runWith(Sink.foreach(msg => println(msg)))
+//    await(fut, 100.seconds)
+//  }
+//
+//  test("metadata only".ignore) {
+//    val client = BoatMqttClient(TestUrl, MetadataTopic)
+//    val fut = client.vesselMessages.take(4).runWith(Sink.foreach(msg => println(msg)))
+//    await(fut, 100.seconds)
+//  }
 
   test("Connect".ignore) {
     val p = new MemoryPersistence

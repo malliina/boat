@@ -12,7 +12,7 @@ val webAuthVersion = "6.0.0"
 val munitVersion = "0.7.21"
 val testContainersScalaVersion = "0.38.8"
 val scalaTagsVersion = "0.9.3"
-val primitiveVersion = "1.18.0"
+val primitiveVersion = "1.18.1"
 val akkaVersion = "2.6.5"
 val akkaHttpVersion = "10.1.12"
 val playJsonVersion = "2.9.0"
@@ -149,6 +149,7 @@ val backend = Project("boat", file("backend"))
       "com.amazonaws" % "aws-java-sdk-s3" % "1.11.856",
       "com.malliina" %% "logstreams-client" % "1.10.1",
       "com.malliina" %% "mobile-push" % "1.24.0",
+      "com.malliina" %% "okclient-io" % "1.18.1",
       "org.slf4j" % "slf4j-api" % "1.7.30",
       "ch.qos.logback" % "logback-classic" % "1.2.3",
       "ch.qos.logback" % "logback-core" % "1.2.3",
@@ -162,6 +163,7 @@ val backend = Project("boat", file("backend"))
       utilHtmlDep,
       webAuthDep,
       webAuthTestDep,
+      munitDep,
       "com.dimafeng" %% "testcontainers-scala-mysql" % testContainersScalaVersion % Test
     ),
     clientProject := frontend,
