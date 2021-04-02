@@ -8,7 +8,7 @@ import com.malliina.values.{Email, UserId, Username}
 
 import scala.concurrent.Future
 
-object PassThroughUserManager extends UserManager {
+trait PassThroughUserManager extends UserManager {
   val godUser = UserRow(
     UserId(1L),
     Username("test"),
@@ -28,27 +28,27 @@ object PassThroughUserManager extends UserManager {
     addedMillis = Instant.now().toEpochMilli
   )
 
-  override def initUser(user: Username): Future[NewUser] =
-    Future.successful(NewUser(user, None, UserToken.random(), enabled = true))
-  def userMeta(email: Email): Future[UserRow] = fut(godUser)
-  def userInfo(email: Email): Future[UserInfo] = fut(god)
-  def authBoat(token: BoatToken): Future[JoinedBoat] =
-    Future.failed(IdentityException(InvalidToken(token)))
-  def boats(user: Email): Future[UserBoats] = fut(UserBoats.anon)
-  def addUser(user: NewUser): Future[Either[AlreadyExists, UserRow]] =
-    fut(Left(AlreadyExists(user.user)))
-  def deleteUser(user: Username): Future[Either[UserDoesNotExist, Unit]] =
-    fut(Left(UserDoesNotExist(user)))
-  override def changeLanguage(user: UserId, to: Language): Future[Boolean] =
-    fut(false)
-  override def invite(i: InviteInfo): Future[AccessResult] =
-    fut(AccessResult(false))
-  def grantAccess(boat: DeviceId, to: UserId, principal: UserId): Future[AccessResult] =
-    fut(AccessResult(false))
-  def revokeAccess(boat: DeviceId, from: UserId, principal: UserId): Future[AccessResult] =
-    fut(AccessResult(false))
-  def updateInvite(boat: DeviceId, user: UserId, state: InviteState): Future[Long] =
-    fut(0L)
+//  override def initUser(user: Username): Future[NewUser] =
+//    Future.successful(NewUser(user, None, UserToken.random(), enabled = true))
+//  def userMeta(email: Email): Future[UserRow] = fut(godUser)
+//  def userInfo(email: Email): Future[UserInfo] = fut(god)
+//  def authBoat(token: BoatToken): Future[JoinedBoat] =
+//    Future.failed(IdentityException(InvalidToken(token)))
+//  def boats(user: Email): Future[UserBoats] = fut(UserBoats.anon)
+//  def addUser(user: NewUser): Future[Either[AlreadyExists, UserRow]] =
+//    fut(Left(AlreadyExists(user.user)))
+//  def deleteUser(user: Username): Future[Either[UserDoesNotExist, Unit]] =
+//    fut(Left(UserDoesNotExist(user)))
+//  override def changeLanguage(user: UserId, to: Language): Future[Boolean] =
+//    fut(false)
+//  override def invite(i: InviteInfo): Future[AccessResult] =
+//    fut(AccessResult(false))
+//  def grantAccess(boat: DeviceId, to: UserId, principal: UserId): Future[AccessResult] =
+//    fut(AccessResult(false))
+//  def revokeAccess(boat: DeviceId, from: UserId, principal: UserId): Future[AccessResult] =
+//    fut(AccessResult(false))
+//  def updateInvite(boat: DeviceId, user: UserId, state: InviteState): Future[Long] =
+//    fut(0L)
   def users: Future[Seq[UserInfo]] = fut(Seq(god))
 
   def fut[T](t: T) = Future.successful(t)

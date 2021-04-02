@@ -148,7 +148,7 @@ val backend = Project("boat", file("backend"))
       "org.apache.commons" % "commons-text" % "1.9",
       "com.amazonaws" % "aws-java-sdk-s3" % "1.11.856",
       "com.malliina" %% "logstreams-client" % "1.10.1",
-      "com.malliina" %% "mobile-push" % "1.24.0",
+      "com.malliina" %% "mobile-push" % "1.26.1",
       "com.malliina" %% "okclient-io" % "1.18.1",
       "org.slf4j" % "slf4j-api" % "1.7.30",
       "ch.qos.logback" % "logback-classic" % "1.2.3",

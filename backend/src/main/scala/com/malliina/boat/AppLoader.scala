@@ -1,8 +1,10 @@
 package com.malliina.boat
 
-import com.malliina.boat.auth.EmailAuth
+import cats.effect.{ContextShift, IO}
+import com.malliina.boat.auth.{EmailAuth, GoogleTokenAuth}
 import com.malliina.boat.db.Conf
-import com.malliina.boat.push.PushEndpoint
+import com.malliina.boat.push.{BoatPushService, PushEndpoint}
+import com.malliina.http.HttpClient
 
 import java.nio.file.Paths
 
@@ -32,23 +34,6 @@ object LocalConf2 {
     Paths.get(sys.props("user.home")).resolve(".boat/boat.conf")
 //  val localConf = Configuration(ConfigFactory.parseFile(localConfFile.toFile))
 }
-
-// Put modules that have different implementations in dev, prod or tests here.
-trait AppComps {
-  def appConf: AppConf
-  def pushService: PushEndpoint
-  def emailAuth: EmailAuth
-  def databaseConf: Conf
-}
-
-//class ProdAppBuilder(conf: Configuration, http: OkClient, ec: ExecutionContext) extends AppComps {
-//  override val appConf = AppConf(conf)
-//  override val pushService: PushEndpoint = BoatPushService(conf, ec)
-//  override val emailAuth: EmailAuth =
-//    GoogleTokenAuth(appConf.webClientId, appConf.iosClientId, http, ec)
-//  override val databaseConf: Conf =
-//    Conf.fromConf(conf).fold(msg => throw new Exception(msg), identity)
-//}
 
 //class AppComponents(
 //  init: (Configuration, OkClient, ExecutionContext) => AppComps,

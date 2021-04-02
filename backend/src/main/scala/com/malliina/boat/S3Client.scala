@@ -12,7 +12,6 @@ import scala.jdk.CollectionConverters.CollectionHasAsScala
 
 trait FileStore {
   def upload(file: Path): PutObjectResult
-
   def files(): Seq[S3ObjectSummary]
 }
 

@@ -5,10 +5,10 @@ import com.malliina.boat.db.Conf
 import com.malliina.push.apns.{KeyId, TeamId}
 import com.malliina.web.{AuthConf, ClientId, ClientSecret}
 import com.typesafe.config.ConfigFactory
-import pureconfig.{CamelCase, ConfigFieldMapping, ConfigObjectSource, ConfigReader, ConfigSource}
+import pureconfig.{CamelCase, ConfigFieldMapping, ConfigObjectSource, ConfigReader, ConfigSource, Exported}
 import pureconfig.error.{CannotConvert, ConfigReaderException, ConfigReaderFailures}
 import pureconfig.generic.ProductHint
-
+import pureconfig.generic.semiauto.deriveReader
 import java.nio.file.Paths
 
 sealed trait AppMode {
@@ -31,9 +31,16 @@ object LocalConf {
   val appDir = homeDir.resolve(".boat")
   val localConfFile = appDir.resolve("boat.conf")
   val localConf = ConfigFactory.parseFile(localConfFile.toFile)
+
+  def apply(): ConfigObjectSource = {
+    implicit def hint[A] = ProductHint[A](ConfigFieldMapping(CamelCase, CamelCase))
+    ConfigObjectSource(Right(LocalConf.localConf))
+      .withFallback(ConfigSource.default)
+  }
 }
 
 case class MapboxConf(token: AccessToken)
+
 case class AppleConf(id: ClientId)
 case class WebConf(id: ClientId, secret: ClientSecret)
 case class GoogleConf(ios: AppleConf, web: WebConf) {
@@ -51,17 +58,11 @@ case class BoatConf(
   google: GoogleConf,
   push: PushConf
 )
-
-case class WrappedConf(boat: BoatConf)
-
 object BoatConf {
-  implicit def camelCaseConf[A] = ProductHint[A](ConfigFieldMapping(CamelCase, CamelCase))
   import pureconfig.generic.auto.exportReader
-  val attempt: Either[ConfigReaderFailures, BoatConf] =
-    ConfigObjectSource(Right(LocalConf.localConf))
-      .withFallback(ConfigSource.default)
-      .load[WrappedConf]
-      .map(_.boat)
+  val attempt: Either[ConfigReaderFailures, BoatConf] = LocalConf().load[WrappedConf].map(_.boat)
 
   def load = attempt.fold(err => throw ConfigReaderException(err), identity)
 }
+
+case class WrappedConf(boat: BoatConf)

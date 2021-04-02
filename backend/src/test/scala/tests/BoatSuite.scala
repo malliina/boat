@@ -1,5 +1,14 @@
 package tests
 
+import cats.effect.IO
+import com.dimafeng.testcontainers.MySQLContainer
+import com.malliina.boat.auth.EmailAuth
+import com.malliina.boat.db.{Conf, IdentityException, MissingCredentials, PushDevice}
+import com.malliina.boat.http4s.Auth
+import com.malliina.boat.push.{BoatNotification, PushEndpoint, PushSummary}
+import com.malliina.values.Email
+import org.http4s.Headers
+
 //import com.dimafeng.testcontainers.MySQLContainer
 //import com.malliina.boat.auth.EmailAuth
 //import com.malliina.boat.db._
@@ -15,14 +24,7 @@ package tests
 //import scala.concurrent.Future
 //import scala.util.Try
 //
-//object TestConf {
-//  def apply(container: MySQLContainer) = Conf(
-//    s"${container.jdbcUrl}?useSSL=false",
-//    container.username,
-//    container.password,
-//    container.driverClassName
-//  )
-//}
+
 //
 //trait MUnitAppSuite extends DockerDatabase { self: munit.Suite =>
 //  val app: Fixture[AppComponents] = new Fixture[AppComponents]("boat-app") {
@@ -84,16 +86,3 @@ package tests
 //  override val databaseConf: Conf = conf
 //}
 //
-//object NoopPushSystem extends PushEndpoint {
-//  override def push(notification: BoatNotification, to: PushDevice): Future[PushSummary] =
-//    Future.successful(PushSummary.empty)
-//}
-//
-//object TestEmailAuth extends EmailAuth {
-//  val testToken = "header.payload.signature"
-//  val testEmail = Email("test@example.com")
-//
-//  override def authEmail(rh: RequestHeader): Future[Email] =
-//    if (Auth.readAuthToken(rh).contains(testToken)) Future.successful(testEmail)
-//    else Future.failed(IdentityException(MissingCredentials(rh)))
-//}

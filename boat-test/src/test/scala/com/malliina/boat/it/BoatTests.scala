@@ -10,7 +10,6 @@ import com.malliina.http.FullUrl
 import com.malliina.values.{Password, Username}
 import munit.FunSuite
 import play.api.libs.json.{JsValue, Json, Writes}
-import play.api.mvc.Call
 
 import scala.concurrent.Promise
 //import play.api.test.{DefaultTestServerFactory, RunningServer}

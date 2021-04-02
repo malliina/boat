@@ -15,9 +15,8 @@ object BoatPushService {
   def apply(ios: APNS, android: PushClient[GCMToken]): BoatPushService =
     new BoatPushService(ios, android)
 
-  def apply(c: PushConf, cs: ContextShift[IO]): BoatPushService = {
+  def apply(c: PushConf, cs: ContextShift[IO]): BoatPushService =
     apply(APNSPush(c.apns)(cs), FCMPush(c.fcm, cs))
-  }
 }
 
 class BoatPushService(ios: APNS, android: PushClient[GCMToken]) extends PushEndpoint {

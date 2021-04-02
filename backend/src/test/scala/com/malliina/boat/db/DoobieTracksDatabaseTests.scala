@@ -1,4 +1,8 @@
 package com.malliina.boat.db
+
+import cats.effect.{Blocker, IO}
+import tests.{AsyncSuite, MUnitDatabaseSuite, MUnitSuite}
+
 //
 //import com.malliina.boat.{Coord, Lang, Language, SimpleUserInfo}
 //import com.malliina.boat.http.{Limits, SortOrder, TrackQuery, TrackSort}
@@ -8,15 +12,15 @@ package com.malliina.boat.db
 //import doobie._
 //import doobie.implicits._
 //
-//class DoobieTracksDatabaseTests extends AsyncSuite with DockerDatabase {
-//  test("run doobie query") {
-//    val doobie = DoobieDatabase(BoatDatabase.newDataSource(db()), dbExecutor)
-//    val service = DoobieTracksDatabase(doobie)
-//    val res = await(service.hm)
-//    assert(res == 42)
-//    doobie.close()
-//  }
-//}
+
+class DoobieTracksDatabaseTests extends MUnitSuite with MUnitDatabaseSuite {
+  doobieDb.test("run doobie query") { doobie =>
+    val service = DoobieTracksDatabase(doobie.resource)
+    val res = service.hm.unsafeRunSync()
+    assertEquals(res, 42)
+  }
+}
+
 //
 //class DoobieTests extends AsyncSuite {
 //  val conf = Conf(
