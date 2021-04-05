@@ -2,11 +2,11 @@ package com.malliina.boat.http4s
 
 import cats.effect.IO
 import com.malliina.boat.Constants.{BoatNameHeader, BoatTokenHeader}
-import com.malliina.boat.auth.{SettingsPayload, UserPayload}
+import com.malliina.boat.auth.SettingsPayload
 import com.malliina.boat.db.{IdentityException, MissingCredentialsException, UserManager}
 import com.malliina.boat.http.UserRequest
 import com.malliina.boat.http4s.AuthService.{GoogleCookie, ProviderCookieName}
-import com.malliina.boat.{BoatName, BoatNames, BoatToken, DeviceMeta, MinimalUserInfo, SimpleBoatMeta, Usernames}
+import com.malliina.boat.{BoatName, BoatNames, BoatToken, DeviceMeta, JoinedBoat, MinimalUserInfo, SimpleBoatMeta, UserInfo, Usernames}
 import com.malliina.values.Email
 import org.http4s.headers.Cookie
 import org.http4s.util.CaseInsensitiveString
@@ -22,7 +22,9 @@ class AuthService(val users: UserManager, comps: AuthComps) {
   val web = comps.web
   val flow = comps.flow
 
-  def profile(headers: Headers) = emailOnly(headers).flatMap { email =>
+  def profile(req: Request[IO]): IO[UserInfo] = profile(req.headers)
+
+  def profile(headers: Headers): IO[UserInfo] = emailOnly(headers).flatMap { email =>
     users.userInfo(email)
   }
 
@@ -53,6 +55,8 @@ class AuthService(val users: UserManager, comps: AuthComps) {
       .toOption
       .filter(_.username != Usernames.anon)
 
+  def authBoat(headers: Headers): IO[DeviceMeta] = authDevice(headers)
+
   def authDevice(headers: Headers): IO[DeviceMeta] =
     boatToken(headers).getOrElse {
       val boatName = headers
@@ -62,7 +66,7 @@ class AuthService(val users: UserManager, comps: AuthComps) {
       IO.pure(SimpleBoatMeta(Usernames.anon, boatName))
     }
 
-  def boatToken(headers: Headers) =
+  def boatToken(headers: Headers): Option[IO[JoinedBoat]] =
     headers.get(CaseInsensitiveString(BoatTokenHeader)).map { h =>
       users.authBoat(BoatToken(h.value))
     }

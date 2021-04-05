@@ -3,7 +3,7 @@ package com.malliina.boat.db
 import cats.effect.IO
 import com.malliina.boat.db.TestData.{london, sanfran}
 import com.malliina.boat.parsing.FullCoord
-import com.malliina.boat.{BoatNames, BoatUser, Coord, DeviceId, Language, TrackId, TrackMetaShort, TrackNames, TrackRef, UserToken}
+import com.malliina.boat.{BoatNames, BoatUser, Coord, DeviceId, Language, TrackId, TrackMetaShort, TrackNames, TrackRef, UserToken, UserUtils, Usernames}
 import com.malliina.measure.{DistanceIntM, SpeedIntM, SpeedM, Temperature}
 import com.malliina.values.{Email, Username}
 import tests.{MUnitDatabaseSuite, MUnitSuite}
@@ -42,9 +42,10 @@ class TracksDatabaseTests extends MUnitSuite with MUnitDatabaseSuite {
     val tdb = DoobieTrackInserts(newDb)
     val udb = DoobieUserManager(newDb)
     val testComment = "test"
+    Usernames
     val userInput =
       NewUser(
-        Username("test-comments-user"),
+        UserUtils.random(),
         None,
         UserToken.random(),
         enabled = true

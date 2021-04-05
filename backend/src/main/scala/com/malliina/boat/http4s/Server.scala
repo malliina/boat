@@ -68,6 +68,8 @@ object Server extends IOApp {
   def appService(conf: BoatConf, builder: AppCompsBuilder): Resource[IO, Service] = for {
     blocker <- Blocker[IO]
     db <- DoobieDatabase.withMigrations(conf.db, blocker)
+    users = DoobieUserManager(db)
+    _ <- Resource.liftF(users.initUser())
     trackInserts = DoobieTrackInserts(db)
     gps = DoobieGPSDatabase(db)
     ais = BoatMqttClient(conf.mode)
@@ -77,7 +79,6 @@ object Server extends IOApp {
     val http = HttpClientIO()
     val appComps = builder(conf, http, contextShift)
     val auth = Http4sAuth(JWT(conf.secret))
-    val users = DoobieUserManager(db)
     val googleAuth = appComps.emailAuth
     val authComps = AuthComps(googleAuth, auth, GoogleAuthFlow(conf.google.webAuthConf, http))
     val auths = new AuthService(users, authComps)

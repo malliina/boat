@@ -5,11 +5,7 @@ import com.malliina.boat.{BoatConf, DateVal, DeviceId, TrackId, TrackInput, Trac
 import tests.MUnitSuite
 
 class TracksImporter extends MUnitSuite {
-  val dbResource = resourceFixture {
-    blocker.flatMap { b =>
-      DoobieDatabase(BoatConf.load.db, b)
-    }
-  }
+  val dbResource = databaseFixture(BoatConf.load.db)
 
   dbResource.test("import tracks from plotter log file".ignore) { db =>
 ////    importSlice(".boat/Log20200513.txt", 1273831, 1320488)

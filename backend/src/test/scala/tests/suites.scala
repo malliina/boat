@@ -3,16 +3,18 @@ package tests
 import cats.effect.{Blocker, ContextShift, IO, Resource, Timer}
 import com.dimafeng.testcontainers.MySQLContainer
 import com.malliina.boat.db.{Conf, DoobieDatabase}
-import com.malliina.boat.http4s.{Server, Service}
+import com.malliina.boat.http4s.{Server, ServerComponents, Service}
 import com.malliina.boat.{BoatConf, LocalConf}
-import com.malliina.http.HttpClient
-import com.malliina.http.io.HttpClientIO
+import com.malliina.http.FullUrl
 import com.malliina.util.AppLogger
 import munit.FunSuite
+import org.http4s.{HttpApp, Uri}
+import org.http4s.client.Client
+import org.http4s.client.blaze.BlazeClientBuilder
 import org.testcontainers.utility.DockerImageName
+import pureconfig.{CamelCase, ConfigFieldMapping}
 import pureconfig.error.ConfigReaderFailures
 import pureconfig.generic.ProductHint
-import pureconfig.{CamelCase, ConfigFieldMapping, ConfigObjectSource, ConfigSource}
 
 import java.nio.file.Paths
 import java.util.concurrent.atomic.AtomicReference
@@ -27,6 +29,14 @@ trait MUnitSuite extends FunSuite {
 
   implicit def munitContextShift: ContextShift[IO] =
     IO.contextShift(munitExecutionContext)
+  implicit def munitTimer: Timer[IO] =
+    IO.timer(munitExecutionContext)
+
+  def databaseFixture(conf: => Conf) = resourceFixture {
+    blocker.flatMap { b =>
+      DoobieDatabase(conf, b)
+    }
+  }
 
   def resourceFixture[T](res: Resource[IO, T]) = FunFixture[TestResource[T]](
     setup = { options =>
@@ -36,13 +46,6 @@ trait MUnitSuite extends FunSuite {
     teardown = { tr =>
       tr.close.unsafeRunSync()
     }
-  )
-}
-
-object Suites extends FunSuite {
-  val httpClient = FunFixture[HttpClient[IO]](
-    setup = opts => HttpClientIO(),
-    teardown = http => http.close()
   )
 }
 
@@ -88,7 +91,9 @@ trait MUnitDatabaseSuite { self: MUnitSuite =>
     }
 
     def readTestConf(): Either[ConfigReaderFailures, Conf] = {
-      import pureconfig.generic.auto.exportReader
+      import pureconfig.generic.auto._
+      implicit def hint[A] = ProductHint[A](ConfigFieldMapping(CamelCase, CamelCase))
+
       LocalConf().load[WrappedTestConf].fold(f => Left(f), c => Right(c.boat.testdb))
     }
   }
@@ -96,22 +101,21 @@ trait MUnitDatabaseSuite { self: MUnitSuite =>
   override def munitFixtures: Seq[Fixture[_]] = Seq(db)
 }
 
+case class AppComponents(service: Service, routes: HttpApp[IO])
+
 // https://github.com/typelevel/munit-cats-effect
 trait Http4sSuite extends MUnitDatabaseSuite { self: MUnitSuite =>
-  implicit def munitTimer: Timer[IO] =
-    IO.timer(munitExecutionContext)
-
-  val app: Fixture[Service] = new Fixture[Service]("boat-app") {
-    private var service: Option[Service] = None
+  val app: Fixture[AppComponents] = new Fixture[AppComponents]("boat-app") {
+    private var service: Option[AppComponents] = None
     val finalizer = new AtomicReference[IO[Unit]](IO.pure(()))
 
-    override def apply(): Service = service.get
+    override def apply(): AppComponents = service.get
 
     override def beforeAll(): Unit = {
       val resource = Server.appService(BoatConf.load.copy(db = db()), TestComps.builder)
       val (t, release) = resource.allocated[IO, Service].unsafeRunSync()
       finalizer.set(release)
-      service = Option(t)
+      service = Option(AppComponents(t, Server.makeHandler(t, t.blocker)))
     }
 
     override def afterAll(): Unit = {
@@ -120,4 +124,37 @@ trait Http4sSuite extends MUnitDatabaseSuite { self: MUnitSuite =>
   }
 
   override def munitFixtures: Seq[Fixture[_]] = Seq(db, app)
+}
+
+case class ServerTools(server: ServerComponents, client: Client[IO]) {
+  def port = server.server.address.getPort
+  def baseHttpUri = Uri.unsafeFromString(s"http://localhost:$port")
+  def baseWsUri = Uri.unsafeFromString(s"ws://localhost:$port")
+  def baseHttpUrl = FullUrl("http", s"localhost:$port", "")
+  def baseWsUrl = FullUrl("ws", s"localhost:$port", "")
+}
+
+trait ServerSuite extends MUnitDatabaseSuite { self: MUnitSuite =>
+  val server: Fixture[ServerTools] = new Fixture[ServerTools]("server") {
+    private var tools: Option[ServerTools] = None
+    val finalizer = new AtomicReference[IO[Unit]](IO.pure(()))
+
+    override def apply(): ServerTools = tools.get
+
+    override def beforeAll(): Unit = {
+      val testServer = Server.server(BoatConf.load.copy(db = db()), TestComps.builder, port = 12345)
+      val testClient = BlazeClientBuilder[IO](munitExecutionContext, None).resource
+      val (instance, closable) = testServer.flatMap { s =>
+        testClient.map { c => ServerTools(s, c) }
+      }.allocated.unsafeRunSync()
+      tools = Option(instance)
+      finalizer.set(closable)
+    }
+
+    override def afterAll(): Unit = {
+      finalizer.get().unsafeRunSync()
+    }
+  }
+
+  override def munitFixtures: Seq[Fixture[_]] = Seq(db, server)
 }

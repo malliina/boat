@@ -58,10 +58,11 @@ case class BoatConf(
   google: GoogleConf,
   push: PushConf
 )
+
 object BoatConf {
   import pureconfig.generic.auto.exportReader
+  implicit def hint[A] = ProductHint[A](ConfigFieldMapping(CamelCase, CamelCase))
   val attempt: Either[ConfigReaderFailures, BoatConf] = LocalConf().load[WrappedConf].map(_.boat)
-
   def load = attempt.fold(err => throw ConfigReaderException(err), identity)
 }
 

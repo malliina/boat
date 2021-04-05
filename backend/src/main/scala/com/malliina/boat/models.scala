@@ -347,6 +347,10 @@ object TrackTitles {
   val MaxLength = 191
 }
 
+object UserUtils {
+  def random() = Username(Utils.randomString(6))
+}
+
 object BoatTokens {
   def random() = BoatToken(Utils.randomString(8))
 }

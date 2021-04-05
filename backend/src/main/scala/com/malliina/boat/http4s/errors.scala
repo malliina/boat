@@ -6,7 +6,12 @@ import org.http4s._
 import _root_.play.api.libs.json.{JsError, JsValue}
 
 class JsonException(val error: JsError, val json: JsValue) extends DecodeFailure {
-  override def message: String = s"JSON exception for '$json'."
+  val errors = Errors.fromJson(error)
+  val detailed = errors.errors
+    .filter(_.message.message.nonEmpty)
+    .map(e => e.message)
+    .mkString(", ")
+  override def message: String = s"JSON exception for '$json'. $detailed"
   override def cause: Option[Throwable] = None
   override def toHttpResponse[F[_]](httpVersion: HttpVersion): Response[F] =
     Response(Status.BadRequest, httpVersion).withEntity(Errors.fromJson(error))(

@@ -1,17 +1,11 @@
 package com.malliina.boat.db
 
-import cats.effect.{Blocker, IO}
-import tests.{AsyncSuite, MUnitDatabaseSuite, MUnitSuite}
-
-//
-//import com.malliina.boat.{Coord, Lang, Language, SimpleUserInfo}
-//import com.malliina.boat.http.{Limits, SortOrder, TrackQuery, TrackSort}
-//import com.malliina.measure.DistanceM
-//import com.malliina.values.Username
-//import tests.{AsyncSuite, DockerDatabase}
-//import doobie._
-//import doobie.implicits._
-//
+import com.malliina.boat.http.{Limits, SortOrder, TrackQuery, TrackSort}
+import com.malliina.boat.{Coord, Lang, Language, SimpleUserInfo}
+import com.malliina.measure.{DistanceIntM, DistanceM}
+import com.malliina.values.Username
+import doobie.implicits.toSqlInterpolator
+import tests.{MUnitDatabaseSuite, MUnitSuite}
 
 class DoobieTracksDatabaseTests extends MUnitSuite with MUnitDatabaseSuite {
   doobieDb.test("run doobie query") { doobie =>
@@ -21,42 +15,39 @@ class DoobieTracksDatabaseTests extends MUnitSuite with MUnitDatabaseSuite {
   }
 }
 
-//
-//class DoobieTests extends AsyncSuite {
-//  val conf = Conf(
-//    "jdbc:mysql://localhost:3306/boat?useSSL=false",
-//    "changeme",
-//    "changeme",
-//    Conf.MySQLDriver
-//  )
-//
-//  test("make query".ignore) {
-//    val doobie = DoobieDatabase(BoatDatabase.newDataSource(conf), dbExecutor)
-//    try {
-//      val db = DoobieTracksDatabase(doobie)
-//      def test = db.tracksBundle(
-//        SimpleUserInfo(Username("mle"), Language.english),
-//        TrackQuery(TrackSort.TopSpeed, SortOrder.Desc, Limits(10, 0)),
-//        Lang.default
-//      )
-//      val res = await(test).tracks
-//      res foreach println
-//    } finally doobie.close()
-//  }
-//
-//  test("measure distance".ignore) {
-//    import DoobieMappings.coordMeta
-//    val doobie = DoobieDatabase(BoatDatabase.newDataSource(conf), dbExecutor)
-//    try {
-//      val db = DoobieTracksDatabase(doobie)
-//      val c1 = Coord.buildOrFail(60, 30)
-//      val c2 = Coord.buildOrFail(70, 13)
-//      val task = db.run {
-//        sql"select st_distance_sphere($c1, $c2)".query[DistanceM].unique
-//      }
-//      val distance = await(task)
-//      println(distance)
-//    } finally doobie.close()
-//
-//  }
-//}
+class DoobieTests extends MUnitSuite {
+  val conf = Conf(
+    "jdbc:mysql://localhost:3306/boat?useSSL=false",
+    "changeme",
+    "changeme",
+    Conf.MySQLDriver,
+    maxPoolSize = 5
+  )
+
+  val dbResource = databaseFixture(conf)
+
+  dbResource.test("make query".ignore) { dbr =>
+    val doobie = dbr.resource
+    val db = DoobieTracksDatabase(doobie)
+    val task = db.tracksBundle(
+      SimpleUserInfo(Username("mle"), Language.english),
+      TrackQuery(TrackSort.TopSpeed, SortOrder.Desc, Limits(10, 0)),
+      Lang.default
+    )
+    val bundle = task.unsafeRunSync()
+  }
+
+  dbResource.test("measure distance".ignore) { dbr =>
+    implicit val coordMeta = DoobieMappings.coordMeta
+    val doobie = dbr.resource
+    val db = DoobieTracksDatabase(doobie)
+    val c1 = Coord.buildOrFail(60, 30)
+    val c2 = Coord.buildOrFail(70, 13)
+    val task = db.run {
+      sql"select st_distance_sphere($c1, $c2)".query[DistanceM].unique
+    }
+    val distance = task.unsafeRunSync()
+    assert(distance > 2100.km)
+    assert(distance < 2200.km)
+  }
+}

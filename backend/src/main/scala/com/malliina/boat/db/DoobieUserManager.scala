@@ -2,15 +2,13 @@ package com.malliina.boat.db
 
 import cats.effect.IO
 import com.malliina.boat.db.DoobieMappings._
+import com.malliina.boat.db.DoobieUserManager.log
 import com.malliina.boat.http.{AccessResult, InviteInfo}
 import com.malliina.boat.{Boat, BoatInfo, BoatNames, BoatToken, BoatTokens, DeviceId, InviteState, JoinedBoat, JoinedTrack, Language, TimeFormatter, UserBoats, UserInfo, UserToken, Usernames}
 import com.malliina.util.AppLogger
 import com.malliina.values.{Email, UserId, Username}
 import doobie._
 import doobie.implicits._
-import DoobieUserManager.log
-
-import scala.concurrent.Future
 
 object DoobieUserManager {
   private val log = AppLogger(getClass)
@@ -64,7 +62,7 @@ object DoobieUserManager {
 
 class DoobieUserManager(db: DoobieDatabase) extends UserManager with DoobieSQL {
   object sql extends CommonSql
-
+  import db.{run, logHandler}
   val userColumns = fr"u.id, u.user, u.email, u.token, u.language, u.enabled, u.added"
   val selectUsers = sql"select $userColumns from users u"
 
@@ -76,11 +74,11 @@ class DoobieUserManager(db: DoobieDatabase) extends UserManager with DoobieSQL {
   def userByEmail(email: Email) = sql"$selectUsers where u.email = $email"
   def userByName(name: Username) = sql"$selectUsers where u.user = $name"
   def userByEmailIO(email: Email) = userByEmail(email).query[UserRow].unique
-  def userMeta(email: Email): IO[UserRow] = db.run {
+  def userMeta(email: Email): IO[UserRow] = run {
     userByEmailIO(email)
   }
 
-  def userInfo(email: Email): IO[UserInfo] = db.run {
+  def userInfo(email: Email): IO[UserInfo] = run {
     def by(id: UserId) =
       sql"""select $userColumns, b.id boatId, b.name boatName, b.token boatToken, b.owner boatOwner, b.added boatAdded
             from users u
@@ -103,14 +101,20 @@ class DoobieUserManager(db: DoobieDatabase) extends UserManager with DoobieSQL {
     }
   }
 
-  def authBoat(token: BoatToken): IO[JoinedBoat] = db.run {
+  def authBoat(token: BoatToken): IO[JoinedBoat] = run {
     val boats = CommonSql.boats
+    log.info(s"Auth boat...")
     sql"$boats and b.token = $token".query[JoinedBoat].option.flatMap { opt =>
-      opt.map { b => pure(b) }.getOrElse { fail(IdentityException(InvalidToken(token))) }
+      opt.map { b =>
+        log.info(s"Got boat $b...")
+        pure(b)
+      }.getOrElse {
+        fail(IdentityException(InvalidToken(token)))
+      }
     }
   }
 
-  def boats(email: Email) = db.run {
+  def boats(email: Email) = run {
     def boatRowsIO(id: UserId) = sql"""${sql.nonEmptyTracks} and b.uid = $id and t.points > 100"""
       .query[JoinedTrack]
       .to[List]
@@ -130,7 +134,7 @@ class DoobieUserManager(db: DoobieDatabase) extends UserManager with DoobieSQL {
     }
   }
 
-  def initUser(user: Username = Usernames.anon): IO[NewUser] = db.run {
+  def initUser(user: Username = Usernames.anon): IO[NewUser] = run {
     val anon = NewUser(user, None, UserToken.random(), enabled = true)
     for {
       exists <- userByName(user).query[UserRow].option
@@ -138,8 +142,9 @@ class DoobieUserManager(db: DoobieDatabase) extends UserManager with DoobieSQL {
     } yield anon
   }
 
-  def addUser(user: NewUser): IO[Either[AlreadyExists, UserRow]] = db.run {
+  def addUser(user: NewUser): IO[Either[AlreadyExists, UserRow]] = run {
     userInsertion(user).flatMap { uid =>
+      log.info(s"User $uid...")
       userById(uid).query[UserRow].unique
     }.map[Either[AlreadyExists, UserRow]] { u =>
       Right(u)
@@ -151,7 +156,7 @@ class DoobieUserManager(db: DoobieDatabase) extends UserManager with DoobieSQL {
     }
   }
 
-  def deleteUser(user: Username): IO[Either[UserDoesNotExist, Unit]] = db.run {
+  def deleteUser(user: Username): IO[Either[UserDoesNotExist, Unit]] = run {
     sql"""delete from users where user = $user""".update.run.map { changed =>
       if (changed > 0) {
         log.info(s"Deleted user '$user'.")
@@ -162,7 +167,7 @@ class DoobieUserManager(db: DoobieDatabase) extends UserManager with DoobieSQL {
     }
   }
 
-  def changeLanguage(user: UserId, to: Language): IO[Boolean] = db.run {
+  def changeLanguage(user: UserId, to: Language): IO[Boolean] = run {
     sql"""update users set language = $to where id = $user""".update.run.map { changed =>
       val wasChanged = changed > 0
       if (wasChanged) {
@@ -177,7 +182,7 @@ class DoobieUserManager(db: DoobieDatabase) extends UserManager with DoobieSQL {
          from users_boats 
          where user = $user and boat = $boat"""
 
-  def invite(i: InviteInfo): IO[AccessResult] = db.run {
+  def invite(i: InviteInfo): IO[AccessResult] = run {
     userByEmail(i.email).query[UserRow].option.flatMap { invitee =>
       invitee.map { user =>
         addInviteIO(i.boat, user.id, i.principal)
@@ -204,18 +209,18 @@ class DoobieUserManager(db: DoobieDatabase) extends UserManager with DoobieSQL {
       _ <- boatInsertion(userId)
     } yield userId
   }
-  def grantAccess(boat: DeviceId, to: UserId, principal: UserId): IO[AccessResult] = db.run {
+  def grantAccess(boat: DeviceId, to: UserId, principal: UserId): IO[AccessResult] = run {
     addInviteIO(boat, to, principal)
   }
 
-  def revokeAccess(boat: DeviceId, from: UserId, principal: UserId): IO[AccessResult] = db.run {
+  def revokeAccess(boat: DeviceId, from: UserId, principal: UserId): IO[AccessResult] = run {
     manageGroups(boat, from, principal) { existed =>
       if (existed) sql"delete from users_boats where boat = $boat and user = $from".update.run
       else pure(0)
     }
   }
 
-  def updateInvite(boat: DeviceId, user: UserId, state: InviteState): IO[Long] = db.run {
+  def updateInvite(boat: DeviceId, user: UserId, state: InviteState): IO[Long] = run {
     sql"update users_boats set state = ${state.name} where boat = $boat and user = $user".update.run
       .map(_.toLong)
   }

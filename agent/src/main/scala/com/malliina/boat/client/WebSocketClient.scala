@@ -83,19 +83,19 @@ class WebSocketClient(url: FullUrl, headers: List[KeyValue])(implicit
       if (code == StatusCodes.SwitchingProtocols) {
         log.info(s"WebSocket connected to '$url'.")
       } else {
-        log.error(s"WebSocket connection attempt failed with code ${code.intValue()}.")
+        log.error(s"WebSocket connection attempt to '$url' failed with code ${code.intValue()}.")
       }
     }
     closed.recover {
       case t =>
-        log.warn(s"WebSocket disconnected.", t)
+        log.warn(s"WebSocket to '$url' disconnected.", t)
         Done
     }.flatMap { done =>
       if (enabled.get()) {
         log.warn(s"WebSocket disconnected. Reconnecting to '$url' after $reconnectInterval...")
         after(reconnectInterval, scheduler)(connectInOut(in, out))
       } else {
-        log.info(s"WebSocket disconnected. No more reconnects.")
+        log.info(s"WebSocket to '$url' disconnected. No more reconnects.")
         Future.successful(done)
       }
     }

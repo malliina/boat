@@ -19,6 +19,7 @@ object DoobieTrackInserts {
 
 class DoobieTrackInserts(val db: DoobieDatabase) extends TrackInsertsDatabase with DoobieSQL {
   import DoobieMappings._
+  import db.{run, logHandler}
   val minSpeed: SpeedM = 1.kmh
 
   private val trackIds = CommonSql.nonEmptyTracksWith(fr0"t.id")
@@ -55,14 +56,14 @@ class DoobieTrackInserts(val db: DoobieDatabase) extends TrackInsertsDatabase wi
     updateTrack(trackIO, updateIO)
   }
 
-  def addBoat(boat: BoatName, user: UserId): IO[BoatRow] = db.run {
+  def addBoat(boat: BoatName, user: UserId): IO[BoatRow] = run {
     saveNewBoat(boat, user, BoatTokens.random()).flatMap { id =>
       log.info(s"Registered boat '$boat' with ID '$id' owned by '$user'.")
       boatById(id)
     }
   }
 
-  def removeDevice(device: DeviceId, user: UserId): IO[Int] = db.run {
+  def removeDevice(device: DeviceId, user: UserId): IO[Int] = run {
     sql"delete from boats where owner = $user and id = $device".update.run.map { rows =>
       if (rows == 1) log.info(s"Deleted boat '$device' owned by '$user'.")
       else log.warn(s"Boat '$device' owned by '$user' not found.")
@@ -70,7 +71,7 @@ class DoobieTrackInserts(val db: DoobieDatabase) extends TrackInsertsDatabase wi
     }
   }
 
-  def renameBoat(boat: DeviceId, newName: BoatName, user: UserId): IO[BoatRow] = db.run {
+  def renameBoat(boat: DeviceId, newName: BoatName, user: UserId): IO[BoatRow] = run {
     val ownershipCheck =
       sql"select exists(${CommonSql.boats} and b.id = $boat and b.owner = $user)"
         .query[Boolean]
@@ -86,7 +87,7 @@ class DoobieTrackInserts(val db: DoobieDatabase) extends TrackInsertsDatabase wi
     }
   }
 
-  def joinAsBoat(meta: BoatTrackMeta): IO[TrackMeta] = db.run {
+  def joinAsBoat(meta: BoatTrackMeta): IO[TrackMeta] = run {
     val existing =
       sql"""$trackMetas and u.user = ${meta.user} and b.name = ${meta.boat} and t.name = ${meta.track}"""
         .query[TrackMeta]
@@ -111,7 +112,7 @@ class DoobieTrackInserts(val db: DoobieDatabase) extends TrackInsertsDatabase wi
     }
   }
 
-  def joinAsDevice(from: DeviceMeta): IO[JoinedBoat] = db.run {
+  def joinAsDevice(from: DeviceMeta): IO[JoinedBoat] = run {
     val user = from.user
     val boat = from.boat
     sql"${CommonSql.boats} and b.name = $boat and u.user = $user".query[JoinedBoat].option.flatMap {
@@ -142,7 +143,7 @@ class DoobieTrackInserts(val db: DoobieDatabase) extends TrackInsertsDatabase wi
     }
   }
 
-  def saveSentences(sentences: SentencesEvent): IO[Seq[KeyedSentence]] = db.run {
+  def saveSentences(sentences: SentencesEvent): IO[Seq[KeyedSentence]] = run {
     val from = sentences.from
     sentences.sentences.toList.traverse { s =>
       sql"""insert into sentences(sentence, track) 
@@ -153,7 +154,7 @@ class DoobieTrackInserts(val db: DoobieDatabase) extends TrackInsertsDatabase wi
     }
   }
 
-  def saveCoords(coord: FullCoord): IO[InsertedPoint] = db.run {
+  def saveCoords(coord: FullCoord): IO[InsertedPoint] = run {
     val track = coord.from.track
     val trail =
       sql"""select id, longitude, latitude, coord, boat_speed, water_temp, depthm, depth_offsetm, boat_time, track, track_index, diff, added 
@@ -183,7 +184,7 @@ class DoobieTrackInserts(val db: DoobieDatabase) extends TrackInsertsDatabase wi
 
   private def insertPoint(c: FullCoord, atIndex: Int, diff: DistanceM): ConnectionIO[TrackPointId] =
     sql"""insert into points(longitude, latitude, coord, boat_speed, water_temp, depthm, depth_offsetm, boat_time, track, track_index, diff)
-         values(${c.lng}, ${c.lat}, ${c.coord}, ${c.boatSpeed}, ${c.waterTemp}, ${c.depth}, ${c.depthOffset}, ${c.boatTime}, ${c.from.track}, $atIndex, $diff)""".update
+          values(${c.lng}, ${c.lat}, ${c.coord}, ${c.boatSpeed}, ${c.waterTemp}, ${c.depth}, ${c.depthOffset}, ${c.boatTime}, ${c.from.track}, $atIndex, $diff)""".update
       .withUniqueGeneratedKeys[TrackPointId]("id")
 
   def dates(track: TrackId): ConnectionIO[List[DateVal]] =
@@ -198,7 +199,7 @@ class DoobieTrackInserts(val db: DoobieDatabase) extends TrackInsertsDatabase wi
 
   def insertTrack(in: TrackInput): ConnectionIO[TrackMeta] =
     sql"""insert into tracks(name, boat, avg_speed, avg_water_temp, points, distance, canonical) 
-         values(${in.name}, ${in.boat}, ${in.avgSpeed}, ${in.avgWaterTemp}, ${in.points}, ${in.distance}, ${in.canonical})""".update
+          values(${in.name}, ${in.boat}, ${in.avgSpeed}, ${in.avgWaterTemp}, ${in.points}, ${in.distance}, ${in.canonical})""".update
       .withUniqueGeneratedKeys[TrackId]("id")
       .flatMap { id =>
         sql"$trackMetas and t.id = $id".query[TrackMeta].unique

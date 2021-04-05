@@ -3,7 +3,7 @@ package tests
 import cats.effect.{ContextShift, IO}
 import com.malliina.boat.BoatConf
 import com.malliina.boat.auth.EmailAuth
-import com.malliina.boat.db.{IdentityException, MissingCredentials, PushDevice}
+import com.malliina.boat.db.{IdentityException, PushDevice}
 import com.malliina.boat.http4s.{AppComps, AppCompsBuilder, Auth}
 import com.malliina.boat.push.{BoatNotification, PushEndpoint, PushSummary}
 import com.malliina.http.HttpClient
@@ -20,8 +20,12 @@ object TestEmailAuth extends EmailAuth {
   val testEmail = Email("test@example.com")
 
   override def authEmail(headers: Headers): IO[Email] =
-    if (Auth.token(headers).contains(testToken)) IO.pure(testEmail)
-    else IO.raiseError(IdentityException(MissingCredentials(headers)))
+    Auth
+      .token(headers)
+      .fold(
+        mc => IO.raiseError(IdentityException(mc)),
+        ok => IO.pure(testEmail)
+      )
 }
 
 class TestComps extends AppComps {

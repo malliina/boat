@@ -23,9 +23,14 @@ object Graph {
   lazy val all = Json.parse(Files.readAllBytes(graphFile)).as[Graph]
 
   def file(name: String) = {
-    val resource = getClass.getClassLoader.getResourceAsStream(s"com/malliina/boat/graph/$name")
-    using(resource) { res =>
-      write(res, Files.createTempFile("temp", name))
+    val resourcePath = s"com/malliina/boat/graph/$name"
+    val resource = Option(getClass.getClassLoader.getResourceAsStream(resourcePath))
+    resource.map { is =>
+      using(is) { res =>
+        write(res, Files.createTempFile("temp", name))
+      }
+    }.getOrElse {
+      throw new Exception(s"Not found: '$resourcePath'.")
     }
   }
 

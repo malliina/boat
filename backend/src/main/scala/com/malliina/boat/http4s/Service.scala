@@ -20,7 +20,6 @@ import com.malliina.web.OAuthKeys.{Nonce, State}
 import com.malliina.web.Utils.randomString
 import com.malliina.web._
 import fs2.Pipe
-import fs2.concurrent.Topic
 import org.http4s.headers.{Location, `WWW-Authenticate`}
 import org.http4s.server.websocket.WebSocketBuilder
 import org.http4s.websocket.WebSocketFrame
@@ -53,7 +52,9 @@ object Service {
 
 class Service(comps: BoatComps) extends BasicService[IO] {
   implicit val cs: ContextShift[IO] = comps.cs
+  val blocker = comps.blocker
   val auth = comps.auth
+  val userMgmt = auth.users
   val html = comps.html
   val db = comps.db
   val inserts = comps.inserts
@@ -74,12 +75,12 @@ class Service(comps: BoatComps) extends BasicService[IO] {
     case req @ GET -> Root      => index(req)
     case GET -> Root / "health" => ok(AppMeta.default)
     case req @ GET -> Root / "pingAuth" =>
-      auth.profile(req.headers).flatMap { _ => ok(AppMeta.default) }
+      auth.profile(req).flatMap { _ => ok(AppMeta.default) }
     case req @ GET -> Root / "users" / "me" =>
-      auth.profile(req.headers).flatMap { user => ok(UserContainer(user)) }
+      auth.profile(req).flatMap { user => ok(UserContainer(user)) }
     case req @ PUT -> Root / "users" / "me" =>
       jsonAction[ChangeLanguage](req) { (newLanguage, user) =>
-        auth.users.changeLanguage(user.id, newLanguage.language).flatMap { changed =>
+        userMgmt.changeLanguage(user.id, newLanguage.language).flatMap { changed =>
           val msg = if (changed) s"Changed language to $newLanguage." else NoChange
           ok(SimpleMessage(msg))
         }
@@ -99,7 +100,7 @@ class Service(comps: BoatComps) extends BasicService[IO] {
       }
     case GET -> Root / "conf" => ok(ClientConf.default)
     case req @ GET -> Root / "boats" =>
-      auth.profile(req.headers).flatMap { user =>
+      auth.profile(req).flatMap { user =>
         ok(html.devices(user))
       }
     case req @ POST -> Root / "boats" =>
@@ -111,7 +112,7 @@ class Service(comps: BoatComps) extends BasicService[IO] {
         inserts.renameBoat(device, boatName, user.id)
       }
     case req @ POST -> Root / "boats" / DeviceIdVar(device) / "delete" =>
-      auth.profile(req.headers).flatMap { user =>
+      auth.profile(req).flatMap { user =>
         inserts.removeDevice(device, user.id).flatMap { rows =>
           respond(req)(
             json = ok(SimpleMessage("Done.")),
@@ -121,8 +122,17 @@ class Service(comps: BoatComps) extends BasicService[IO] {
       }
     case req @ GET -> Root / "tracks" =>
       authedQuery(req, TrackQuery.apply).flatMap { authed =>
-        respond(req)(
-          json = db.tracksFor(authed.user, authed.query).flatMap { ts => ok(ts) },
+        respondCustom(req)(
+          json = rs => {
+            db.tracksFor(authed.user, authed.query).flatMap { ts =>
+              if (rs.exists(_.satisfies(ContentVersions.Version2)))
+                ok(ts)
+              else if (rs.exists(_.satisfies(ContentVersions.Version1)))
+                ok(TrackSummaries(ts.tracks.map(t => TrackSummary(t))))
+              else
+                ok(ts)
+            }
+          },
           html = {
             val lang = BoatLang(authed.user.language).lang
             db.tracksBundle(authed.user, authed.query, lang).flatMap { ts =>
@@ -226,33 +236,34 @@ class Service(comps: BoatComps) extends BasicService[IO] {
       }
     case req @ GET -> Root / "ws" / "boats" =>
       auth
-        .boatToken(req.headers)
-        .map { io =>
-          io.flatMap { boat =>
-            val boatTrack = boat.withTrack(TrackNames.random())
-            inserts.joinAsBoat(boatTrack).flatMap { meta =>
-              push
-                .push(meta, BoatState.Connected)
-                .handleErrorWith { t =>
-                  IO(log.error(s"Failed to push all device notifications.", t))
-                }
-                .flatMap { _ =>
-                  webSocket(
-                    toClients,
-                    message => streams.boatIn.publish1(BoatEvent(Json.parse(message), meta)),
-                    onClose =
-                      IO(log.info(s"Boat '${boat.boatName}' by '${boat.username}' left.")).flatMap {
-                        _ =>
-                          push.push(meta, BoatState.Disconnected).map(_ => ())
-                      }
-                  )
-                }
-            }
+        .authBoat(req.headers)
+        .flatMap { boat =>
+          val boatTrack = boat.withTrack(TrackNames.random())
+          inserts.joinAsBoat(boatTrack).flatMap { meta =>
+            push
+              .push(meta, BoatState.Connected)
+              .handleErrorWith { t =>
+                IO(log.error(s"Failed to push all device notifications.", t))
+              }
+              .flatMap { _ =>
+                webSocket(
+                  toClients,
+                  message => streams.boatIn.publish1(BoatEvent(Json.parse(message), meta)),
+                  onClose = IO(log.info(s"Boat '${boat.boat}' by '${boat.user}' left.")).flatMap {
+                    _ =>
+                      push.push(meta, BoatState.Disconnected).map(_ => ())
+                  }
+                )
+              }
           }
         }
-        .getOrElse {
-          unauthorized(Errors("Credentials required."))
-        }
+//        .getOrElse {
+//          IO(
+//            log.info(s"Boat authentication failed. No credentials. Got headers ${req.headers}.")
+//          ).flatMap { _ =>
+//            unauthorized(Errors("Credentials required."))
+//          }
+//        }
     case req @ GET -> Root / "ws" / "devices" =>
       auth.authDevice(req.headers).flatMap { meta =>
         inserts.joinAsDevice(meta).flatMap { boat =>
@@ -361,7 +372,7 @@ class Service(comps: BoatComps) extends BasicService[IO] {
   private def formAction[T](req: Request[IO], readForm: FormReader => Either[Errors, T])(
     code: (T, UserInfo) => IO[Response[IO]]
   ) =
-    auth.profile(req.headers).flatMap { user =>
+    auth.profile(req).flatMap { user =>
       req.decode[UrlForm] { form =>
         readForm(new FormReader(form)).map { t =>
           code(t, user)
@@ -375,7 +386,7 @@ class Service(comps: BoatComps) extends BasicService[IO] {
   private def jsonAction[T: Reads](req: Request[IO])(
     code: (T, UserInfo) => IO[Response[IO]]
   ) =
-    auth.profile(req.headers).flatMap { user =>
+    auth.profile(req).flatMap { user =>
       req.as[T](implicitly, jsonBody[IO, T]).flatMap { t =>
         code(t, user)
       }
@@ -383,11 +394,17 @@ class Service(comps: BoatComps) extends BasicService[IO] {
 
   private def respond(
     req: Request[IO]
-  )(json: IO[Response[IO]], html: IO[Response[IO]]): IO[Response[IO]] = {
+  )(json: IO[Response[IO]], html: IO[Response[IO]]): IO[Response[IO]] =
+    respondCustom(req)(_ => json, html)
+
+  private def respondCustom(req: Request[IO])(
+    json: NonEmptyList[MediaRange] => IO[Response[IO]],
+    html: IO[Response[IO]]
+  ): IO[Response[IO]] = {
     val rs = ranges(req.headers)
     val qp = req.uri.query.params
     if (rs.exists(_.satisfies(MediaType.text.html)) && !qp.contains("json")) html
-    else json
+    else json(rs)
   }
 
   def fileFromResources(file: String, req: Request[IO]): IO[Response[IO]] =
