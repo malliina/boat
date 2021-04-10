@@ -1,18 +1,13 @@
 package com.malliina.boat.parsing
 
-import java.nio.charset.StandardCharsets
-import java.nio.file.{Files, Paths}
-
-import akka.actor.ActorSystem
-import akka.stream.scaladsl.{Flow, Sink, Source}
 import com.malliina.boat.{DeviceId, GPSKeyedSentence, GPSSentenceKey, RawSentence}
 import tests.BaseSuite
 
+import java.nio.charset.StandardCharsets
+import java.nio.file.{Files, Paths}
 import scala.jdk.CollectionConverters.CollectionHasAsScala
 
 class GPSProcessorTests extends BaseSuite {
-  implicit val as = ActorSystem()
-
   val testFile = Paths.get("gps.txt")
 
   def sentences: Seq[RawSentence] =
@@ -30,11 +25,12 @@ class GPSProcessorTests extends BaseSuite {
   ).map(RawSentence.apply)
 
   test("parse samples") {
-    val flow = Flow[RawSentence].mapConcat { raw =>
+    val manager = GPSManager()
+    val seq = samples.flatMap { raw =>
       BoatParser.parseGps(GPSKeyedSentence(GPSSentenceKey(1), raw, DeviceId(0))).toOption.toList
+    }.flatMap { parsed =>
+      manager.update(parsed)
     }
-    val task = Source(samples.toList).via(flow).via(BoatParser.gpsFlow()).runWith(Sink.seq)
-    val seq: Seq[GPSCoord] = await(task)
     assert(seq.exists(_.time.getHour == 15))
     assert(seq.exists(_.date.getDayOfMonth == 17))
   }
