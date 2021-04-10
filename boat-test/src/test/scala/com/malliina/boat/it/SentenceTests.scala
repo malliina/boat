@@ -39,9 +39,12 @@ class SentenceTests extends BoatTests {
 
   // Ignored because the design is the opposite of the test
   test("sent events are not received by unrelated viewer".ignore) {
+    val s = server()
     val testUser = Username("User1")
     val testPass = Password("demo")
-    await(components.users.addUser(NewUser(testUser, None, UserToken.random(), enabled = true)))
+    s.server.app.userMgmt
+      .addUser(NewUser(testUser, None, UserToken.random(), enabled = true))
+      .unsafeRunSync()
     val creds = Option(Creds(testUser, testPass))
     openTestBoat(BoatNames.random()) { boat =>
       val authPromise = Promise[CoordsEvent]()
@@ -69,6 +72,5 @@ class SentenceTests extends BoatTests {
         }
       }
     }
-
   }
 }

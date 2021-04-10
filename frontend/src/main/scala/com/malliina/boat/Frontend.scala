@@ -8,15 +8,23 @@ object Frontend extends BodyClasses {
   def main(args: Array[String]): Unit = {
     val bodyClasses = dom.document.body.classList
 
-    def contains(cls: String) = bodyClasses.contains(cls)
-
-    if (contains(MapClass)) MapView()
-    if (contains(ChartsClass)) ChartsView()
-    if (contains(FormsClass)) {
-      FormHandlers.titles()
-      FormHandlers.comments()
+    def init(cls: String)(run: => Either[NotFound, Any]): Unit = {
+      val result = if (bodyClasses.contains(cls)) run else Right(())
+      result.left.foreach { notFound =>
+        log.info(s"Not found: '$notFound'.")
+      }
     }
-    if (contains(AboutClass)) AboutPage()
-    if (contains(StatsClass)) StatsPage()
+
+    init(MapClass) { MapView() }
+    init(ChartsClass) { ChartsView() }
+    init(FormsClass) {
+      FormHandlers.titles().flatMap(_ => FormHandlers.comments())
+    }
+    init(AboutClass) {
+      Right(AboutPage())
+    }
+    init(StatsClass) {
+      Right(StatsPage())
+    }
   }
 }

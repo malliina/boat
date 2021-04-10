@@ -1,0 +1,82 @@
+package com.malliina.boat.parsing
+
+import com.malliina.boat.TrackId
+
+/** Combines various NMEA0183 events, returning any complete events of type `FullCoord`.
+  */
+object TrackManager {
+  def apply(): TrackManager = new TrackManager
+}
+
+class TrackManager {
+  private var latestDepth: Map[TrackId, WaterDepth] = Map.empty
+  private var latestWaterTemp: Map[TrackId, WaterTemperature] = Map.empty
+  private var latestWaterSpeed: Map[TrackId, ParsedWaterSpeed] = Map.empty
+  private var latestBoatSpeed: Map[TrackId, ParsedBoatSpeed] = Map.empty
+  // latest suitable date, if any
+  private var latestDateTime: Map[TrackId, ParsedDateTime] = Map.empty
+  // buffer for coords without a suitable date
+  private var coords: Map[TrackId, List[ParsedCoord]] = Map.empty
+
+  def update(event: ParsedSentence): List[FullCoord] = event match {
+    case pd @ ParsedDateTime(_, _, _) =>
+      val track = pd.track
+      latestDateTime = latestDateTime.updated(track, pd)
+      completed(track)
+    case pbs @ ParsedBoatSpeed(_, _) =>
+      val track = pbs.track
+      latestBoatSpeed = latestBoatSpeed.updated(track, pbs)
+      completed(track)
+    case ParsedWaterSpeed(_, _) =>
+      // does not seem to contain data, let's ignore it for now
+      //      latestWaterSpeed = latestWaterSpeed.updated(from.track, knots)
+      Nil
+    case wd @ WaterDepth(_, _, _) =>
+      val track = wd.track
+      latestDepth = latestDepth.updated(track, wd)
+      completed(track)
+    case wt @ WaterTemperature(_, _) =>
+      val track = wt.track
+      latestWaterTemp = latestWaterTemp.updated(track, wt)
+      completed(track)
+    case coord @ ParsedCoord(_, _, _) =>
+      val track = coord.track
+      val emittable = complete(track, List(coord))
+      if (emittable.isEmpty) {
+        coords = coords.updated(track, coords.getOrElse(track, Nil) :+ coord)
+      }
+      emittable
+  }
+
+  private def completed(track: TrackId): List[FullCoord] = {
+    val emittable = complete(track, coords.getOrElse(track, Nil))
+    if (emittable.nonEmpty) {
+      coords = coords.updated(track, Nil)
+    }
+    emittable
+  }
+
+  /**
+    * @return true if complete, false otherwise
+    */
+  private def complete(track: TrackId, buffer: List[ParsedCoord]): List[FullCoord] =
+    (for {
+      dateTime <- latestDateTime.get(track)
+      speed <- latestBoatSpeed.get(track)
+      temp <- latestWaterTemp.get(track)
+      depth <- latestDepth.get(track)
+    } yield {
+      buffer.map { coord =>
+        val sentenceKeys = List(coord.key, dateTime.key, speed.key, temp.key, depth.key)
+        coord.complete(
+          dateTime.date,
+          dateTime.time,
+          speed.speed,
+          temp.temp,
+          depth.depth,
+          depth.offset,
+          sentenceKeys
+        )
+      }
+    }).getOrElse { Nil }
+}

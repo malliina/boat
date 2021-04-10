@@ -6,7 +6,7 @@ import tests.AkkaStreamsSuite
 
 class MultiTrackTests extends AkkaStreamsSuite with BoatSockets {
   //  def url = FullUrl.ws("localhost:9000", reverse.boats().toString)
-  def url = FullUrl.wss("www.boat-tracker.com", reverse.boatSocket().toString)
+  def url = FullUrl.wss("www.boat-tracker.com", reverse.ws.boats.renderString)
 
   val track1 = Seq(
     "$SDDPT,23.9,0.0,*43",

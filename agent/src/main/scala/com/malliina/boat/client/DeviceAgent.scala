@@ -28,6 +28,7 @@ object DeviceAgent {
 /** Connects a TCP source to a WebSocket.
   *
   * @param conf agent conf
+  * @param url URL to boat-tracker websocket
   */
 class DeviceAgent(conf: BoatConf, url: FullUrl)(implicit as: ActorSystem, mat: Materializer) {
   val isGps = conf.device == GpsDevice

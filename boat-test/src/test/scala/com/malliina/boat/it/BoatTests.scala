@@ -6,39 +6,15 @@ import com.malliina.boat._
 import com.malliina.boat.client.{HttpUtil, KeyValue, WebSocketClient}
 import com.malliina.http.FullUrl
 import com.malliina.values.{Password, Username}
+import org.http4s.Uri
 import play.api.libs.json.{JsValue, Json, Writes}
-import play.api.mvc.Call
-import play.api.test.{DefaultTestServerFactory, RunningServer}
-import tests.{AkkaStreamsSuite, DockerDatabase, TestAppLoader, TestComponents}
+import tests.{AkkaStreamsSuite, ServerSuite}
 
 import scala.concurrent.Future
 
-case class TestServer(server: RunningServer, components: AppComponents)
-
-abstract class ServerSuite extends AkkaStreamsSuite with DockerDatabase {
-  val server: Fixture[TestServer] = new Fixture[TestServer]("boat-server") {
-    private var testServer: TestServer = null
-    def apply(): TestServer = testServer
-    override def beforeAll(): Unit = {
-      val comps = TestComponents(TestAppLoader.createTestAppContext, db())
-      val runningServer = DefaultTestServerFactory.start(comps.application)
-      testServer = TestServer(runningServer, comps)
-    }
-    override def afterAll(): Unit = {
-      testServer.server.stopServer.close()
-    }
-  }
-  def testServer = server().server
-  def components = server().components
-  def port = testServer.endpoints.httpEndpoint.map(_.port).get
-
-  override def munitFixtures: Seq[Fixture[_]] = Seq(db, server)
-}
-
-abstract class BoatTests extends ServerSuite with BoatSockets {
-  def openTestBoat[T](boat: BoatName)(code: TestBoat => T): T = {
-    openBoat(urlFor(reverse.boatSocket()), Left(boat))(code)
-  }
+abstract class BoatTests extends AkkaStreamsSuite with ServerSuite with BoatSockets {
+  def openTestBoat[T](boat: BoatName)(code: TestBoat => T): T =
+    openBoat(urlFor(reverse.ws.boats), Left(boat))(code)
 
   def openViewerSocket[T](in: Sink[JsValue, Future[Done]], creds: Option[Creds] = None)(
     code: WebSocketClient => T
@@ -47,11 +23,11 @@ abstract class BoatTests extends ServerSuite with BoatSockets {
     val headers = creds.map { c =>
       KeyValue(HttpUtil.Authorization, HttpUtil.authorizationValue(c.user, c.pass.pass))
     }.toList
-    openWebSocket(reverse.clientSocket(), in, out, headers)(code)
+    openWebSocket(reverse.ws.updates, in, out, headers)(code)
   }
 
   def openWebSocket[T](
-    path: Call,
+    path: Uri,
     in: Sink[JsValue, Future[Done]],
     out: Source[JsValue, NotUsed],
     headers: List[KeyValue]
@@ -59,12 +35,10 @@ abstract class BoatTests extends ServerSuite with BoatSockets {
     openSocket(urlFor(path), in, out, headers)(code)
   }
 
-  def urlFor(call: Call) = FullUrl("ws", s"localhost:$port", call.toString)
+  def urlFor(call: Uri): FullUrl = server().baseWsUrl.append(call.renderString)
 }
 
-trait BoatSockets {
-  this: AkkaStreamsSuite =>
-
+trait BoatSockets { self: AkkaStreamsSuite =>
   def openRandomBoat[T](url: FullUrl)(code: TestBoat => T): T =
     openBoat(url, Left(BoatNames.random()))(code)
 
@@ -97,10 +71,8 @@ trait BoatSockets {
 
   class TestBoat(val queue: SourceQueue[Option[JsValue]], val socket: WebSocketClient) {
     def send[T: Writes](t: T) = await(queue.offer(Option(Json.toJson(t))), 30.seconds)
-
     def close(): Unit = queue.offer(None)
   }
-
 }
 
 case class Creds(user: Username, pass: Password)

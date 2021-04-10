@@ -1,7 +1,5 @@
 package com.malliina.boat.it
 
-import java.nio.charset.StandardCharsets
-
 import akka.stream.KillSwitches
 import akka.stream.scaladsl.Tcp.IncomingConnection
 import akka.stream.scaladsl.{Keep, Sink, Source, Tcp}
@@ -9,9 +7,9 @@ import akka.util.ByteString
 import com.malliina.boat.client.server.BoatConf
 import com.malliina.boat.client.{DeviceAgent, TcpSource}
 import com.malliina.boat.{CoordsEvent, SentencesMessage}
-import com.malliina.http.FullUrl
 import play.api.libs.json.JsValue
 
+import java.nio.charset.StandardCharsets
 import scala.concurrent.Promise
 
 class EndToEndTests extends BoatTests {
@@ -27,6 +25,7 @@ class EndToEndTests extends BoatTests {
   )
 
   test("plotter to frontend") {
+    val s = server()
     // the client validates maximum frame length, so we must not concatenate multiple sentences
     val plotterOutput = Source(
       sentences.map(s => ByteString(s"$s${TcpSource.crlf}", StandardCharsets.US_ASCII)).toList
@@ -37,13 +36,13 @@ class EndToEndTests extends BoatTests {
     val incomingSink = Sink.foreach[IncomingConnection] { conn =>
       conn.flow.runWith(plotterOutput.concat(Source.maybe), Sink.foreach(msg => println(msg)))
     }
-    val (server, plotter) = Tcp()
+    val (tcpServer, plotter) = Tcp()
       .bind(tcpHost, tcpPort)
       .viaMat(KillSwitches.single)(Keep.both)
       .toMat(incomingSink)(Keep.left)
       .run()
-    await(server)
-    val serverUrl = FullUrl.ws(s"localhost:$port", reverse.boatSocket().toString)
+    await(tcpServer)
+    val serverUrl = s.baseWsUrl.append(reverse.ws.boats.renderString)
     val agent = DeviceAgent(BoatConf.anon(tcpHost, tcpPort), serverUrl)
     try {
       val p = Promise[JsValue]()
@@ -67,7 +66,8 @@ class EndToEndTests extends BoatTests {
   }
 
   test("external unreliable TCP server".ignore) {
-    val serverUrl = FullUrl.ws(s"localhost:$port", reverse.boatSocket().toString)
+    val s = server()
+    val serverUrl = s.baseWsUrl.append(reverse.ws.boats.renderString)
     val conf = BoatConf.anon("127.0.0.1", 10104)
     val agent = DeviceAgent(conf, serverUrl)
     try {
@@ -79,6 +79,7 @@ class EndToEndTests extends BoatTests {
   }
 
   test("unreliable plotter connection".ignore) {
+    val s = server()
     // this test does not work due to nonexistent termination signals of the TCP server
 
     // the client validates maximum frame length, so we must not concatenate multiple sentences
@@ -91,9 +92,9 @@ class EndToEndTests extends BoatTests {
     val incomingSink = Sink.foreach[IncomingConnection] { conn =>
       conn.flow.runWith(plotterOutput.concat(Source.maybe), Sink.foreach(msg => println(msg)))
     }
-    val server = Tcp().bind(tcpHost, tcpPort).toMat(incomingSink)(Keep.left).run()
-    val binding = await(server)
-    val serverUrl = FullUrl.ws(s"localhost:$port", reverse.boatSocket().toString)
+    val tcpServer = Tcp().bind(tcpHost, tcpPort).toMat(incomingSink)(Keep.left).run()
+    val binding = await(tcpServer)
+    val serverUrl = s.baseWsUrl.append(reverse.ws.boats.renderString)
     //    val serverUrl = FullUrl.wss("boat.malliina.com", reverse.boats().toString)
     val agent = DeviceAgent(BoatConf.anon(tcpHost, tcpPort), serverUrl)
     val p = Promise[JsValue]()
