@@ -18,11 +18,21 @@ sealed trait AppMode {
 object AppMode {
   case object Prod extends AppMode
   case object Dev extends AppMode
+  val fromBuild = unsafe(BuildInfo.mode)
 
-  implicit val reader: ConfigReader[AppMode] = ConfigReader.stringConfigReader.emap {
+  implicit val reader: ConfigReader[AppMode] = ConfigReader.stringConfigReader.emap { s =>
+    fromString(s).left.map { msg =>
+      CannotConvert(s, "AppMode", msg)
+    }
+  }
+
+  def unsafe(in: String): AppMode =
+    fromString(in).fold(err => throw new IllegalArgumentException(err), identity)
+
+  def fromString(in: String): Either[String, AppMode] = in match {
     case "prod" => Right(Prod)
     case "dev"  => Right(Dev)
-    case other  => Left(CannotConvert(other, "AppMode", "Must be 'prod' or 'dev'."))
+    case other  => Left(s"Invalid mode: '$other'. Must be 'prod' or 'dev'.")
   }
 }
 
@@ -51,7 +61,6 @@ case class FCMConf(apiKey: String)
 case class PushConf(apns: APNSConf, fcm: FCMConf)
 
 case class BoatConf(
-  mode: AppMode,
   mapbox: MapboxConf,
   secret: SecretKey,
   db: Conf,

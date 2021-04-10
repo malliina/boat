@@ -15,6 +15,8 @@ import scalatags.Text.all._
 import scala.language.implicitConversions
 
 object BoatHtml {
+  def fromBuild = apply(AppMode.fromBuild)
+
   def apply(mode: AppMode): BoatHtml = apply(mode == AppMode.Prod)
 
   def apply(isProd: Boolean): BoatHtml = {

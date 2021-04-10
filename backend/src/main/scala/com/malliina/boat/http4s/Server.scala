@@ -8,7 +8,7 @@ import com.malliina.boat.db.{DoobieDatabase, DoobieGPSDatabase, DoobiePushDataba
 import com.malliina.boat.html.BoatHtml
 import com.malliina.boat.http4s.Service.BoatComps
 import com.malliina.boat.push.{BoatPushService, PushEndpoint}
-import com.malliina.boat.{AppMeta, BoatConf, S3Client}
+import com.malliina.boat.{AppMeta, AppMode, BoatConf, S3Client}
 import com.malliina.http.HttpClient
 import com.malliina.http.io.HttpClientIO
 import com.malliina.util.AppLogger
@@ -72,7 +72,7 @@ object Server extends IOApp {
     _ <- Resource.liftF(users.initUser())
     trackInserts = DoobieTrackInserts(db)
     gps = DoobieGPSDatabase(db)
-    ais = BoatMqttClient(conf.mode)
+    ais = BoatMqttClient(AppMode.fromBuild)
     streams <- Resource.liftF(BoatStreams(trackInserts, ais))
     deviceStreams <- Resource.liftF(GPSStreams(gps))
   } yield {
@@ -85,7 +85,7 @@ object Server extends IOApp {
     val tracksDatabase = DoobieTracksDatabase(db)
     val push = DoobiePushDatabase(db, appComps.pushService)
     val comps = BoatComps(
-      BoatHtml(conf.mode),
+      BoatHtml.fromBuild,
       tracksDatabase,
       trackInserts,
       tracksDatabase,
