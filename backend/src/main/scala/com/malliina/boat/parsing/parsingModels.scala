@@ -1,8 +1,7 @@
 package com.malliina.boat.parsing
 
 import java.time.{LocalDate, LocalTime, ZoneOffset}
-
-import com.malliina.boat.{Coord, DeviceId, GPSKeyedSentence, GPSPointId, GPSSentenceKey, GPSTimedCoord, KeyedSentence, RawSentence, SentenceKey, TimeFormatter, TimedCoord, TrackId, TrackMetaShort, TrackPointId}
+import com.malliina.boat.{Coord, DeviceId, GPSInsertedPoint, GPSKeyedSentence, GPSPointId, GPSSentenceKey, GPSTimedCoord, InsertedPoint, KeyedSentence, RawSentence, SentenceKey, TimeFormatter, TimedCoord, TrackId, TrackMetaShort, TrackPointId}
 import com.malliina.measure.{DistanceM, SpeedM, Temperature}
 import com.malliina.values.ErrorMessage
 
@@ -148,3 +147,8 @@ case class SentenceFailure(sentence: RawSentence, e: Exception) extends Sentence
 case class IgnoredSentence(sentence: RawSentence) extends SentenceError {
   override def message = ErrorMessage(s"Ignoring sentence '$sentence'.")
 }
+
+sealed trait SavedEvent
+case object EmptySavedEvent extends SavedEvent
+case class Inserted(coord: FullCoord, inserted: InsertedPoint) extends SavedEvent
+case class GPSInserted(coord: GPSCoord, inserted: GPSInsertedPoint) extends SavedEvent

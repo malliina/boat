@@ -1,4 +1,4 @@
-package controllers
+package com.malliina.boat.http4s
 
 import cats.effect.IO
 import com.malliina.boat.db.NewUser
@@ -14,7 +14,7 @@ import tests.{Http4sSuite, MUnitSuite, TestEmailAuth}
 
 import java.time.{LocalDate, LocalTime}
 
-class BoatControllerTests extends MUnitSuite with Http4sSuite {
+class ServiceTests extends MUnitSuite with Http4sSuite {
   test("tracks endpoint supports versioning based on Accept header") {
     val comps = app()
     val service = comps.service
