@@ -11,10 +11,12 @@ import java.nio.charset.StandardCharsets
 object MqttStream {
   private val log = AppLogger(getClass)
 
-  def unsafe(settings: MqttSettings)(implicit c: Concurrent[IO]): MqttStream = apply(
+  def unsafe(settings: MqttSettings, interrupter: SignallingRef[IO, Boolean])(implicit
+    c: Concurrent[IO]
+  ): MqttStream = apply(
     settings,
     Topic[IO, MqttPayload](MqttPayload(settings.topic, Array.empty[Byte])).unsafeRunSync(),
-    SignallingRef[IO, Boolean](false).unsafeRunSync(),
+    interrupter,
     c
   )
 

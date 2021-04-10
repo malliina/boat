@@ -5,6 +5,8 @@ import com.malliina.boat.ais.BoatMqttClient.{AisPair, pass, user}
 import com.malliina.boat.{AISMessage, AppMode, Locations, Metadata, Mmsi, StatusTopic, TimeFormatter, VesselLocation, VesselMetadata, VesselStatus}
 import com.malliina.http.FullUrl
 import com.malliina.util.AppLogger
+import fs2.Stream
+import fs2.concurrent.{SignallingRef, Topic}
 import play.api.libs.json.{JsError, JsResult, JsSuccess, Json}
 
 import java.time.Instant
@@ -25,7 +27,7 @@ object BoatMqttClient {
 
   def apply(mode: AppMode)(implicit c: Concurrent[IO], t: Timer[IO]): AISSource = mode match {
     case AppMode.Prod => prod()
-    case AppMode.Dev  => SilentAISSource
+    case AppMode.Dev  => prod()
   }
 
   def prod()(implicit c: Concurrent[IO], t: Timer[IO]): BoatMqttClient =
@@ -34,8 +36,10 @@ object BoatMqttClient {
   def test()(implicit c: Concurrent[IO], t: Timer[IO]): BoatMqttClient =
     apply(TestUrl, AllDataTopic)
 
-  def apply(url: FullUrl, topic: String)(implicit c: Concurrent[IO], t: Timer[IO]): BoatMqttClient =
-    new BoatMqttClient(url, topic)
+  def apply(url: FullUrl, topic: String)(implicit
+    c: Concurrent[IO],
+    t: Timer[IO]
+  ): BoatMqttClient = new BoatMqttClient(url, topic)
 
   case class AisPair(location: VesselLocation, meta: VesselMetadata) {
     def when = Instant.ofEpochMilli(location.timestamp)
@@ -49,7 +53,7 @@ trait AISSource {
 }
 
 object SilentAISSource extends AISSource {
-  override val slow: fs2.Stream[IO, Seq[AisPair]] = fs2.Stream.never[IO]
+  override val slow: Stream[IO, Seq[AisPair]] = fs2.Stream.never[IO]
   override def close(): Unit = ()
 }
 
@@ -60,55 +64,59 @@ object SilentAISSource extends AISSource {
   */
 class BoatMqttClient(url: FullUrl, topic: String)(implicit c: Concurrent[IO], t: Timer[IO])
   extends AISSource {
+  val interrupter = SignallingRef[IO, Boolean](false).unsafeRunSync()
   private val metadata = TrieMap.empty[Mmsi, VesselMetadata]
 
   private val maxBatchSize = 300
   private val sendTimeWindow = 5.seconds
-  private val settings = MqttSettings(url, newClientId, topic, user, pass)
-//  private val sourceOld = RestartSource.onFailuresWithBackoff(
-//    minBackoff = 5.seconds,
-//    maxBackoff = 12.hours,
-//    randomFactor = 0.2
-//  ) { () =>
-//    log.info(s"Starting MQTT source at '${settings.broker}'...")
-//    MqttSource(settings.copy(clientId = newClientId))
-//  }
-  private val stream = MqttStream.unsafe(settings.copy(clientId = newClientId))
-  val parsed: fs2.Stream[IO, JsResult[AISMessage]] = stream.events.map { msg =>
-    val json = Json.parse(msg.payloadString)
-    msg.topic match {
-      case Locations()   => VesselLocation.readerGeoJson.reads(json)
-      case Metadata()    => VesselMetadata.readerGeoJson.reads(json)
-      case StatusTopic() => VesselStatus.reader.reads(json)
-      case other         => JsError(s"Unknown topic: '$other'. JSON: '$json'.")
+  private val connection = IO(
+    MqttStream.unsafe(MqttSettings(url, newClientId(), topic, user, pass), interrupter)
+  )
+  private val restartingConnection =
+    Stream.retry(connection, 5.seconds, d => d * 2, maxAttempts = 1000).interruptWhen(interrupter)
+  val parsed: Stream[IO, JsResult[AISMessage]] =
+    restartingConnection.flatMap(_.events).map { msg =>
+      val json = Json.parse(msg.payloadString)
+      msg.topic match {
+        case Locations()   => VesselLocation.readerGeoJson.reads(json)
+        case Metadata()    => VesselMetadata.readerGeoJson.reads(json)
+        case StatusTopic() => VesselStatus.reader.reads(json)
+        case other         => JsError(s"Unknown topic: '$other'. JSON: '$json'.")
+      }
     }
-  }
   val vesselMessages = parsed.flatMap {
     case JsSuccess(msg, _) =>
       msg match {
         case loc: VesselLocation =>
           metadata
             .get(loc.mmsi)
-            .map { meta => fs2.Stream(AisPair(loc, meta)) }
+            .map { meta => Stream(AisPair(loc, meta)) }
             .getOrElse {
               // Drops location updates for which there is no vessel metadata
-              fs2.Stream.empty
+              Stream.empty
             }
         case vm: VesselMetadata =>
           metadata.update(vm.mmsi, vm)
-          fs2.Stream.empty
+          Stream.empty
         case _ =>
-          fs2.Stream.empty
+          Stream.empty
       }
-    case JsError(_) => fs2.Stream.empty
+    case JsError(_) => Stream.empty
   }
+  private val internalMessages =
+    vesselMessages.groupWithin(maxBatchSize, sendTimeWindow).map(_.toList)
+  internalMessages
+    .evalMap(list => messagesTopic.publish1(list))
+    .compile
+    .drain
+    .unsafeRunAsyncAndForget()
+  val messagesTopic = Topic[IO, List[AisPair]](Nil).unsafeRunSync()
 
   /** A Source of AIS messages. The "public API" of AIS data.
     */
-  val slow: fs2.Stream[IO, List[AisPair]] =
-    vesselMessages.groupWithin(maxBatchSize, sendTimeWindow).map(_.toList)
+  val slow: Stream[IO, List[AisPair]] = messagesTopic.subscribe(100).drop(1)
 
-  private def newClientId = s"boattracker-$date"
-  private def date = Instant.now().toEpochMilli
-  override def close(): Unit = stream.close()
+  private def newClientId() = s"boattracker-${date()}"
+  private def date() = Instant.now().toEpochMilli
+  override def close(): Unit = interrupter.set(true).unsafeRunSync()
 }
