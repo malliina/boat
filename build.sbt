@@ -7,7 +7,7 @@ import com.typesafe.sbt.packager.docker.DockerVersion
 import scala.sys.process.Process
 import scala.util.Try
 
-val mapboxVersion = "1.10.1"
+val mapboxVersion = "2.2.0"
 val webAuthVersion = "6.0.0"
 val munitVersion = "0.7.21"
 val testContainersScalaVersion = "0.38.8"
@@ -83,31 +83,32 @@ val frontend = project
       "org.scalameta" %%% "munit" % munitVersion % Test
     ),
     npmDependencies in Compile ++= Seq(
-      "@fortawesome/fontawesome-free" -> "5.13.0",
-      "@mapbox/mapbox-gl-geocoder" -> "4.5.1",
-      "@turf/turf" -> "5.1.6",
-      "bootstrap" -> "4.5.0",
-      "chart.js" -> "2.9.3",
-      "jquery" -> "3.5.1",
+      "@fortawesome/fontawesome-free" -> "5.15.3",
+      "@mapbox/mapbox-gl-geocoder" -> "4.7.0",
+      "@turf/turf" -> "6.3.0",
+      "bootstrap" -> "4.6.0",
+      "chart.js" -> "3.0.2",
+      "jquery" -> "3.6.0",
       "mapbox-gl" -> mapboxVersion,
       "popper.js" -> "1.16.1"
     ),
     npmDevDependencies in Compile ++= Seq(
-      "autoprefixer" -> "9.8.0",
-      "cssnano" -> "4.1.10",
-      "css-loader" -> "3.5.3",
-      "file-loader" -> "6.0.0",
-      "less" -> "3.11.1",
-      "less-loader" -> "6.1.0",
-      "mini-css-extract-plugin" -> "0.9.0",
-      "postcss-import" -> "12.0.1",
-      "postcss-loader" -> "3.0.0",
+      "autoprefixer" -> "10.2.5",
+      "cssnano" -> "4.1.11",
+      "css-loader" -> "5.2.1",
+      "file-loader" -> "6.2.0",
+      "less" -> "4.1.1",
+      "less-loader" -> "7.3.0",
+      "mini-css-extract-plugin" -> "1.4.1",
+      "postcss" -> "8.2.9",
+      "postcss-import" -> "14.0.1",
+      "postcss-loader" -> "4.2.0",
       "postcss-preset-env" -> "6.7.0",
-      "style-loader" -> "1.2.1",
-      "url-loader" -> "4.1.0",
-      "webpack-merge" -> "4.2.2"
+      "style-loader" -> "2.0.0",
+      "url-loader" -> "4.1.1",
+      "webpack-merge" -> "5.7.3"
     ),
-    version in webpack := "4.43.0",
+    version in webpack := "4.44.2",
     webpackEmitSourceMaps := true,
     scalaJSUseMainModuleInitializer := true,
     webpackBundlingMode := BundlingMode.LibraryOnly(),
@@ -141,7 +142,7 @@ val backend = Project("boat", file("backend"))
     } ++ Seq("doobie-core", "doobie-hikari").map { d =>
       "org.tpolecat" %% d % "0.10.0"
     } ++ Seq(
-      "com.github.pureconfig" %% "pureconfig" % "0.14.0",
+      "com.github.pureconfig" %% "pureconfig" % "0.14.1",
       "com.vividsolutions" % "jts" % "1.13",
       "mysql" % "mysql-connector-java" % "5.1.49",
       "org.flywaydb" % "flyway-core" % "7.5.2",
