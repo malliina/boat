@@ -332,16 +332,22 @@ class Service(comps: BoatComps) extends BasicService[IO] {
       val maybeBoat = userRequest.user
       val u: Username = maybeBoat.map(_.user).getOrElse(Usernames.anon)
       val lang = maybeBoat.map(_.language).getOrElse(Language.default)
-      val tokenCookie =
-        ResponseCookie(TokenCookieName, comps.mapboxToken.token, httpOnly = false)
+      val isSecure = Urls.isSecure(req)
+      val tokenCookie = ResponseCookie(
+        TokenCookieName,
+        comps.mapboxToken.token,
+        secure = isSecure,
+        httpOnly = false
+      )
       val languageCookie = ResponseCookie(
         LanguageName,
         maybeBoat.map(_.language).getOrElse(Language.default).code,
+        secure = isSecure,
         httpOnly = false
       )
       ok(html.map(maybeBoat.getOrElse(UserBoats.anon))).map { res =>
         val cookied = res.addCookie(tokenCookie).addCookie(languageCookie)
-        auth.saveSettings(SettingsPayload(u, lang), cookied, Urls.isSecure(req))
+        auth.saveSettings(SettingsPayload(u, lang), cookied, isSecure)
       }
     }
 
