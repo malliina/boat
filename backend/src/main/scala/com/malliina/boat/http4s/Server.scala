@@ -14,7 +14,7 @@ import com.malliina.http.io.HttpClientIO
 import com.malliina.util.AppLogger
 import com.malliina.web.GoogleAuthFlow
 import org.http4s.server.blaze.BlazeServerBuilder
-import org.http4s.server.middleware.HSTS
+import org.http4s.server.middleware.{GZip, HSTS}
 import org.http4s.server.{Router, Server}
 import org.http4s.{HttpApp, HttpRoutes, Request, Response}
 
@@ -101,12 +101,14 @@ object Server extends IOApp {
     Service(comps)
   }
 
-  def makeHandler(service: Service, blocker: Blocker) = HSTS {
-    orNotFound {
-      Router(
-        "/" -> service.routes,
-        "/assets" -> StaticService(blocker, contextShift).routes
-      )
+  def makeHandler(service: Service, blocker: Blocker) = GZip {
+    HSTS {
+      orNotFound {
+        Router(
+          "/" -> service.routes,
+          "/assets" -> StaticService(blocker, contextShift).routes
+        )
+      }
     }
   }
 
