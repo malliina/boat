@@ -114,7 +114,7 @@ class BoatMqttClient(url: FullUrl, topic: String)(implicit c: Concurrent[IO], t:
 
   /** A Source of AIS messages. The "public API" of AIS data.
     */
-  val slow: Stream[IO, List[AisPair]] = messagesTopic.subscribe(100).drop(1)
+  val slow: Stream[IO, List[AisPair]] = messagesTopic.subscribe(100)
 
   private def newClientId() = s"boattracker-${date()}"
   private def date() = Instant.now().toEpochMilli
