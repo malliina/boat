@@ -328,26 +328,30 @@ class Service(comps: BoatComps) extends BasicService[IO] {
   }
 
   private def index(req: Request[IO]) =
-    auth.optionalWebAuth(req).flatMap { userRequest =>
-      val maybeBoat = userRequest.user
-      val u: Username = maybeBoat.map(_.user).getOrElse(Usernames.anon)
-      val lang = maybeBoat.map(_.language).getOrElse(Language.default)
-      val isSecure = Urls.isSecure(req)
-      val tokenCookie = ResponseCookie(
-        TokenCookieName,
-        comps.mapboxToken.token,
-        secure = isSecure,
-        httpOnly = false
-      )
-      val languageCookie = ResponseCookie(
-        LanguageName,
-        maybeBoat.map(_.language).getOrElse(Language.default).code,
-        secure = isSecure,
-        httpOnly = false
-      )
-      ok(html.map(maybeBoat.getOrElse(UserBoats.anon))).map { res =>
-        val cookied = res.addCookie(tokenCookie).addCookie(languageCookie)
-        auth.saveSettings(SettingsPayload(u, lang), cookied, isSecure)
+    auth.optionalWebAuth(req).flatMap { result =>
+      result.map { userRequest =>
+        val maybeBoat = userRequest.user
+        val u: Username = maybeBoat.map(_.user).getOrElse(Usernames.anon)
+        val lang = maybeBoat.map(_.language).getOrElse(Language.default)
+        val isSecure = Urls.isSecure(req)
+        val tokenCookie = ResponseCookie(
+          TokenCookieName,
+          comps.mapboxToken.token,
+          secure = isSecure,
+          httpOnly = false
+        )
+        val languageCookie = ResponseCookie(
+          LanguageName,
+          maybeBoat.map(_.language).getOrElse(Language.default).code,
+          secure = isSecure,
+          httpOnly = false
+        )
+        ok(html.map(maybeBoat.getOrElse(UserBoats.anon))).map { res =>
+          val cookied = res.addCookie(tokenCookie).addCookie(languageCookie)
+          auth.saveSettings(SettingsPayload(u, lang), cookied, isSecure)
+        }
+      }.recover { mc =>
+        redirectToLogin
       }
     }
 
@@ -548,7 +552,8 @@ class Service(comps: BoatComps) extends BasicService[IO] {
     unauthorized(Errors(s"Unauthorized."))
   }
 
-  def unauthorized(errors: Errors) = SeeOther(Location(reverse.google))
+  def unauthorized(errors: Errors) = redirectToLogin
+  def redirectToLogin = SeeOther(Location(reverse.google))
 
   def unauthorizedEnd(errors: Errors) =
     Unauthorized(

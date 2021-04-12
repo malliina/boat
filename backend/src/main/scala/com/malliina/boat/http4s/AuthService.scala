@@ -3,10 +3,10 @@ package com.malliina.boat.http4s
 import cats.effect.IO
 import com.malliina.boat.Constants.{BoatNameHeader, BoatTokenHeader}
 import com.malliina.boat.auth.SettingsPayload
-import com.malliina.boat.db.{IdentityException, MissingCredentialsException, UserManager}
+import com.malliina.boat.db.{IdentityException, MissingCredentials, MissingCredentialsException, UserManager}
 import com.malliina.boat.http.UserRequest
 import com.malliina.boat.http4s.AuthService.{GoogleCookie, ProviderCookieName}
-import com.malliina.boat.{BoatName, BoatNames, BoatToken, DeviceMeta, JoinedBoat, MinimalUserInfo, SimpleBoatMeta, UserInfo, Usernames}
+import com.malliina.boat.{BoatName, BoatNames, BoatToken, DeviceMeta, JoinedBoat, MinimalUserInfo, SimpleBoatMeta, UserBoats, UserInfo, Usernames}
 import com.malliina.values.Email
 import org.http4s.headers.Cookie
 import org.http4s.util.CaseInsensitiveString
@@ -28,8 +28,8 @@ class AuthService(val users: UserManager, comps: AuthComps) {
     users.userInfo(email)
   }
 
-  def optionalWebAuth(req: Request[IO]) = optionalUserInfo(req).map { opt =>
-    UserRequest(opt, req)
+  def optionalWebAuth(req: Request[IO]) = optionalUserInfo(req).map { e =>
+    e.map { opt => UserRequest(opt, req) }
   }
 
   def authOrAnon(headers: Headers) = minimal(headers, _ => IO.pure(MinimalUserInfo.anon))
@@ -79,15 +79,21 @@ class AuthService(val users: UserManager, comps: AuthComps) {
         IO.raiseError(t)
     }
 
-  private def optionalUserInfo(req: Request[IO]) = {
+  private def optionalUserInfo(
+    req: Request[IO]
+  ): IO[Either[MissingCredentials, Option[UserBoats]]] = {
     val headers = req.headers
     authSession(headers).map { email =>
-      users.boats(email).map { boats => Option(boats) }
+      users.boats(email).map { boats => Right(Option(boats)) }
     }.getOrElse {
-      val hasGoogleCookie =
-        Cookie.from(headers).exists(c => c.name == ProviderCookieName && c.value == GoogleCookie)
-      if (hasGoogleCookie) IO.raiseError(IdentityException.missingCredentials(headers))
-      else IO.pure(None)
+      val providerCookieName = comps.web.cookieNames.provider
+      val hasGoogleCookie = Cookie
+        .from(headers)
+        .exists { header =>
+          header.values.exists(r => r.name == providerCookieName && r.content == GoogleCookie.value)
+        }
+      if (hasGoogleCookie) IO.pure(Left(MissingCredentials(headers)))
+      else IO.pure(Right(None))
     }
   }
 
