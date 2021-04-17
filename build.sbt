@@ -8,15 +8,15 @@ import scala.sys.process.Process
 import scala.util.Try
 
 val mapboxVersion = "2.2.0"
-val webAuthVersion = "6.0.0"
-val munitVersion = "0.7.21"
+val webAuthVersion = "6.0.1"
+val munitVersion = "0.7.23"
 val testContainersScalaVersion = "0.38.8"
 val scalaTagsVersion = "0.9.3"
-val primitiveVersion = "1.18.1"
+val primitiveVersion = "1.19.0"
 val akkaVersion = "2.6.5"
 val akkaHttpVersion = "10.1.12"
 val playJsonVersion = "2.9.0"
-val alpnVersion = "9.4.30.v20200611"
+val alpnVersion = "11.0.2"
 val webAuthDep = "com.malliina" %% "web-auth" % webAuthVersion
 val utilHtmlDep = "com.malliina" %% "util-html" % webAuthVersion
 val webAuthTestDep = webAuthDep % Test classifier "tests"
@@ -26,8 +26,8 @@ val upFiles = taskKey[Seq[String]]("lists")
 val deployDocs = taskKey[Unit]("Deploys documentation")
 val prodPort = 9000
 
-parallelExecution in ThisBuild := false
-concurrentRestrictions in Global += Tags.limit(Tags.Test, 1)
+ThisBuild / parallelExecution := false
+Global / concurrentRestrictions += Tags.limit(Tags.Test, 1)
 
 val basicSettings = Seq(
   organization := "com.malliina",
@@ -41,9 +41,9 @@ val boatSettings = Seq(
 
 val commonSettings = basicSettings ++ Seq(
   deployDocs := Process("mkdocs gh-deploy").run(streams.value.log).exitValue(),
-  publishArtifact in (Compile, packageDoc) := false,
-  publishArtifact in packageDoc := false,
-  sources in (Compile, doc) := Seq.empty
+  Compile / packageDoc / publishArtifact := false,
+  packageDoc / publishArtifact := false,
+  Compile / doc / sources := Seq.empty
 )
 
 val jvmSettings = commonSettings ++ Seq(
@@ -82,7 +82,7 @@ val frontend = project
       "org.scala-js" %%% "scalajs-dom" % "1.1.0",
       "org.scalameta" %%% "munit" % munitVersion % Test
     ),
-    npmDependencies in Compile ++= Seq(
+    Compile / npmDependencies ++= Seq(
       "@fortawesome/fontawesome-free" -> "5.15.3",
       "@mapbox/mapbox-gl-geocoder" -> "4.7.0",
       "@turf/turf" -> "6.3.0",
@@ -92,7 +92,7 @@ val frontend = project
       "mapbox-gl" -> mapboxVersion,
       "popper.js" -> "1.16.1"
     ),
-    npmDevDependencies in Compile ++= Seq(
+    Compile / npmDevDependencies ++= Seq(
       "autoprefixer" -> "10.2.5",
       "cssnano" -> "4.1.11",
       "css-loader" -> "5.2.1",
@@ -108,17 +108,17 @@ val frontend = project
       "url-loader" -> "4.1.1",
       "webpack-merge" -> "5.7.3"
     ),
-    version in webpack := "4.44.2",
+    webpack / version := "4.44.2",
     webpackEmitSourceMaps := true,
     scalaJSUseMainModuleInitializer := true,
     webpackBundlingMode := BundlingMode.LibraryOnly(),
-    webpackConfigFile in fastOptJS := Some(
+    fastOptJS / webpackConfigFile := Some(
       baseDirectory.value / "webpack.dev.config.js"
     ),
-    webpackConfigFile in fullOptJS := Some(
+    fullOptJS / webpackConfigFile := Some(
       baseDirectory.value / "webpack.prod.config.js"
     ),
-    scalaJSLinkerConfig in (Compile, fullOptJS) ~= { _.withSourceMap(false) }
+    Compile / fullOptJS / scalaJSLinkerConfig ~= { _.withSourceMap(false) }
   )
 
 val http4sModules = Seq("blaze-server", "blaze-client", "dsl", "scalatags", "play-json")
@@ -134,11 +134,11 @@ val backend = Project("boat", file("backend"))
   .dependsOn(crossJvm)
   .settings(jvmSettings ++ boatSettings)
   .settings(
-    unmanagedResourceDirectories in Compile ++= Seq(
+    Compile / unmanagedResourceDirectories ++= Seq(
       baseDirectory.value / "docs"
     ),
     libraryDependencies ++= http4sModules.map { m =>
-      "org.http4s" %% s"http4s-$m" % "0.21.16"
+      "org.http4s" %% s"http4s-$m" % "0.21.22"
     } ++ Seq("doobie-core", "doobie-hikari").map { d =>
       "org.tpolecat" %% d % "0.10.0"
     } ++ Seq(
@@ -149,8 +149,8 @@ val backend = Project("boat", file("backend"))
       "org.apache.commons" % "commons-text" % "1.9",
       "com.amazonaws" % "aws-java-sdk-s3" % "1.11.856",
       "com.malliina" %% "logstreams-client" % "1.10.1",
-      "com.malliina" %% "mobile-push" % "1.26.1",
-      "com.malliina" %% "okclient-io" % "1.18.1",
+      "com.malliina" %% "mobile-push" % "2.0.3",
+      "com.malliina" %% "okclient-io" % primitiveVersion,
       "org.slf4j" % "slf4j-api" % "1.7.30",
       "ch.qos.logback" % "logback-classic" % "1.2.3",
       "ch.qos.logback" % "logback-core" % "1.2.3",
@@ -178,10 +178,10 @@ val backend = Project("boat", file("backend"))
     ),
     buildInfoPackage := "com.malliina.boat",
     // linux packaging
-    httpPort in Linux := Option(s"$prodPort"),
-    httpsPort in Linux := Option("disabled"),
+    Linux / httpPort := Option(s"$prodPort"),
+    Linux / httpsPort := Option("disabled"),
     maintainer := "Michael Skogberg <malliina123@gmail.com>",
-    javaOptions in Universal ++= {
+    Universal / javaOptions ++= {
       Seq(
         "-J-Xmx1024m",
         s"-Dpidfile.path=/dev/null",
@@ -189,19 +189,19 @@ val backend = Project("boat", file("backend"))
       )
     },
     releaseProcess := Seq[ReleaseStep](
-      releaseStepTask(clean in Compile),
+      releaseStepTask(Compile / clean),
       checkSnapshotDependencies,
       releaseStepTask(ciBuild)
     ),
     dockerVersion := Option(DockerVersion(19, 3, 5, None)),
     dockerBaseImage := "openjdk:11",
-    daemonUser in Docker := "boat",
-    version in Docker := gitHash,
+    Docker / daemonUser := "boat",
+    Docker / version := gitHash,
     dockerRepository := Option("malliinacr.azurecr.io"),
     dockerExposedPorts ++= Seq(prodPort),
-    publishArtifact in (Compile, packageDoc) := false,
-    publishArtifact in packageDoc := false,
-    sources in (Compile, doc) := Seq.empty
+    Compile / packageDoc / publishArtifact := false,
+    packageDoc / publishArtifact := false,
+    Compile / doc / sources := Seq.empty
   )
 
 val agent = project
@@ -210,11 +210,11 @@ val agent = project
   .dependsOn(crossJvm)
   .settings(jvmSettings)
   .settings(
-    name in Linux := "boat-agent",
+    Linux / name := "boat-agent",
     normalizedName := "boat-agent",
     maintainer := "Michael Skogberg",
-    javaOptions in Universal ++= {
-      val linuxName = (normalizedName in Debian).value
+    Universal / javaOptions ++= {
+      val linuxName = (Debian / normalizedName).value
       Seq(
         s"-Dconf.dir=/usr/share/$linuxName/conf",
         s"-Dlogback.configurationFile=logback-prod.xml",
@@ -222,7 +222,7 @@ val agent = project
       )
     },
     linuxPackageMappings += {
-      val linuxName = (normalizedName in Debian).value
+      val linuxName = (Debian / normalizedName).value
       packageTemplateMapping(s"/usr/share/$linuxName/conf")()
         .withUser(daemonUser.value)
         .withGroup(daemonUser.value)
@@ -240,7 +240,7 @@ val agent = project
     ),
     releaseUseGlobalVersion := false,
     buildAndUpload := {
-      val debFile = (packageBin in Debian).value
+      val debFile = (Debian / packageBin).value
       val filename = S3Client.upload(debFile.toPath)
       val url = FullUrl("https", "www.boat-tracker.com", s"/files/$filename")
       streams.value.log.info(s"Uploaded package to '$url'.")

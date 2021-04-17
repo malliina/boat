@@ -21,44 +21,44 @@ object ServerPlugin extends AutoPlugin {
 
   override def projectSettings: Seq[Def.Setting[_]] = Seq(
     assetsPackage := "com.malliina.assets",
-    resources in Compile ++= resources.in(Compile).value ++ Def.taskDyn {
-      val sjsStage = scalaJSStage.in(clientProject).value match {
+    Compile / resources ++= (Compile / resources).value ++ Def.taskDyn {
+      val sjsStage = (clientProject / scalaJSStage).value match {
         case Stage.FastOpt => fastOptJS
         case Stage.FullOpt => fullOptJS
       }
       val client = clientProject.value
       Def.task {
         val webpackFiles =
-          webpack.in(client, Compile, sjsStage).value.map(_.data)
+          (client / Compile / sjsStage / webpack).value.map(_.data)
         val hashedFiles =
-          hashAssets.in(client, Compile, sjsStage).value.map(_.hashedFile.toFile)
+          (client / Compile / sjsStage / hashAssets).value.map(_.hashedFile.toFile)
         webpackFiles ++ hashedFiles
       }
     }.value,
-    resourceDirectories in Compile += Def
-      .settingDyn(assetsDir.in(clientDyn.value, Compile))
+    Compile / resourceDirectories += Def
+      .settingDyn(clientDyn.value / Compile / assetsDir)
       .value
       .toFile,
     reStart := Def
       .inputTaskDyn[AppProcess] {
         reStart
           .toTask(" ")
-          .dependsOn(webpack.in(clientDyn.value, Compile, fastOptJS))
+          .dependsOn(clientDyn.value / Compile / fastOptJS / webpack)
       }
       .evaluated,
-    watchSources ++= watchSources.in(clientProject).value,
-    sourceGenerators in Compile := sourceGenerators.in(Compile).value :+ Def
+    watchSources ++= (clientProject / watchSources).value,
+    Compile / sourceGenerators := (Compile / sourceGenerators).value :+ Def
       .taskDyn[Seq[File]] {
-        val sjsStage = Def.settingDyn(scalaJSStage.in(clientDyn.value)).value
+        val sjsStage = Def.settingDyn(clientDyn.value / scalaJSStage).value
         val sjsTask = sjsStage match {
           case Stage.FastOpt => fastOptJS
           case Stage.FullOpt => fullOptJS
         }
         val client = clientProject.value
         Def.task[Seq[File]] {
-          val dest = (sourceManaged in Compile).value
-          val hashed = hashAssets.in(client, Compile, sjsTask).value
-          val prefix = assetsPrefix.in(client).value
+          val dest = (Compile / sourceManaged).value
+          val hashed = (client / Compile / sjsTask / hashAssets).value
+          val prefix = (client / assetsPrefix).value
           val log = streams.value.log
           val cached = FileFunction.cached(streams.value.cacheDirectory / "assets") { in =>
             makeAssetsFile(dest, assetsPackage.value, prefix, hashed, log)

@@ -33,8 +33,8 @@ object ClientPlugin extends AutoPlugin {
       case Stage.FullOpt => fullOptJS
     }
     Seq(
-      hashAssets.in(Compile, stageTask) := {
-        val files = webpack.in(Compile, stageTask).value
+      (Compile / stageTask / hashAssets) := {
+        val files = (Compile / stageTask / webpack).value
         val log = streams.value.log
         files.flatMap { file =>
           val root = assetsDir.value.resolve(assetsPrefix.value)
@@ -57,11 +57,11 @@ object ClientPlugin extends AutoPlugin {
           extraFiles
         }
       },
-      webpack.in(Compile, stageTask) := {
-        val files = webpack.in(Compile, stageTask).value
+      Compile / stageTask / webpack := {
+        val files = (Compile / stageTask / webpack).value
         val log = streams.value.log
         files.map { file =>
-          val relativeFile = file.data.relativeTo(crossTarget.in(Compile, npmUpdate).value).get
+          val relativeFile = file.data.relativeTo((Compile / npmUpdate / crossTarget).value).get
           val dest = assetsDir.value.resolve(assetsPrefix.value).resolve(relativeFile.toPath)
           val path = file.data.toPath
           Files.createDirectories(dest.getParent)
@@ -71,7 +71,7 @@ object ClientPlugin extends AutoPlugin {
           file.copy(dest.toFile)(file.metadata)
         }
       },
-      webpack.in(Compile, stageTask) := webpack.in(Compile, stageTask).dependsOn(prepTarget).value
+      Compile / stageTask / webpack := (Compile / stageTask / webpack).dependsOn(prepTarget).value
     )
   }
 
