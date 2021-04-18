@@ -10,12 +10,12 @@ import scala.util.Try
 val mapboxVersion = "2.2.0"
 val webAuthVersion = "6.0.1"
 val munitVersion = "0.7.23"
-val testContainersScalaVersion = "0.38.8"
-val scalaTagsVersion = "0.9.3"
+val testContainersScalaVersion = "0.39.3"
+val scalaTagsVersion = "0.9.4"
 val primitiveVersion = "1.19.0"
 val akkaVersion = "2.6.5"
 val akkaHttpVersion = "10.1.12"
-val playJsonVersion = "2.9.0"
+val playJsonVersion = "2.9.2"
 val alpnVersion = "11.0.2"
 val webAuthDep = "com.malliina" %% "web-auth" % webAuthVersion
 val utilHtmlDep = "com.malliina" %% "util-html" % webAuthVersion
@@ -140,17 +140,16 @@ val backend = Project("boat", file("backend"))
     libraryDependencies ++= http4sModules.map { m =>
       "org.http4s" %% s"http4s-$m" % "0.21.22"
     } ++ Seq("doobie-core", "doobie-hikari").map { d =>
-      "org.tpolecat" %% d % "0.10.0"
+      "org.tpolecat" %% d % "0.12.1"
     } ++ Seq(
       "com.github.pureconfig" %% "pureconfig" % "0.14.1",
       "com.vividsolutions" % "jts" % "1.13",
       "mysql" % "mysql-connector-java" % "5.1.49",
-      "org.flywaydb" % "flyway-core" % "7.5.2",
+      "org.flywaydb" % "flyway-core" % "7.8.1",
       "org.apache.commons" % "commons-text" % "1.9",
       "com.amazonaws" % "aws-java-sdk-s3" % "1.11.856",
       "com.malliina" %% "logstreams-client" % "1.10.1",
-      "com.malliina" %% "mobile-push" % "2.0.3",
-      "com.malliina" %% "okclient-io" % primitiveVersion,
+      "com.malliina" %% "mobile-push-io" % "2.1.1",
       "org.slf4j" % "slf4j-api" % "1.7.30",
       "ch.qos.logback" % "logback-classic" % "1.2.3",
       "ch.qos.logback" % "logback-core" % "1.2.3",

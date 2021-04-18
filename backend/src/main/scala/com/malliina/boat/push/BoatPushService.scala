@@ -1,10 +1,11 @@
 package com.malliina.boat.push
 
-import cats.effect.{ContextShift, IO}
+import cats.effect.IO
 import com.malliina.boat.MobileDevice.{Android, IOS, Unknown}
 import com.malliina.boat.PushConf
 import com.malliina.boat.db.PushDevice
 import com.malliina.boat.push.BoatPushService.log
+import com.malliina.http.HttpClient
 import com.malliina.push.apns.APNSToken
 import com.malliina.push.gcm.GCMToken
 import com.malliina.util.AppLogger
@@ -15,8 +16,8 @@ object BoatPushService {
   def apply(ios: APNS, android: PushClient[GCMToken]): BoatPushService =
     new BoatPushService(ios, android)
 
-  def apply(c: PushConf, cs: ContextShift[IO]): BoatPushService =
-    apply(APNSPush(c.apns)(cs), FCMPush(c.fcm, cs))
+  def apply(c: PushConf, http: HttpClient[IO]): BoatPushService =
+    apply(APNSPush(c.apns, http), FCMPush(c.fcm, http))
 }
 
 class BoatPushService(ios: APNS, android: PushClient[GCMToken]) extends PushEndpoint {

@@ -1,13 +1,14 @@
 package com.malliina.boat.push
 
-import cats.effect.{ContextShift, IO}
-
-import java.nio.file.Paths
-import com.malliina.boat.{APNSConf, PushToken}
+import cats.effect.IO
 import com.malliina.boat.push.APNSPush.log
+import com.malliina.boat.{APNSConf, PushToken}
+import com.malliina.http.HttpClient
 import com.malliina.push.apns._
 import com.malliina.util.AppLogger
 import play.api.libs.json.Json
+
+import java.nio.file.Paths
 
 trait APNS {
   def push(notification: BoatNotification, to: APNSToken): IO[PushSummary]
@@ -21,26 +22,25 @@ object NoopAPNS extends APNS {
 object APNSPush {
   private val log = AppLogger(getClass)
 
-  def apply(sandbox: APNSTokenClient, prod: APNSTokenClient)(implicit
-    cs: ContextShift[IO]
-  ): APNSPush =
+  def apply(sandbox: APNSHttpClientF[IO], prod: APNSHttpClientF[IO]): APNSPush =
     new APNSPush(sandbox, prod)
 
-  def apply(conf: APNSConf)(implicit cs: ContextShift[IO]): APNS =
+  def apply(conf: APNSConf, http: HttpClient[IO]): APNS =
     if (conf.enabled) {
       val confModel = APNSTokenConf(Paths.get(conf.privateKey), conf.keyId, conf.teamId)
       log.info(
         s"Initializing APNS with team ID ${confModel.teamId.team} and private key at ${confModel.privateKey}..."
       )
-      val sandbox = APNSTokenClient(confModel, isSandbox = true)
-      val prod = APNSTokenClient(confModel, isSandbox = false)
+      val prep = RequestPreparer.token(confModel)
+      val sandbox = new APNSHttpClientF(http, prep, isSandbox = true)
+      val prod = new APNSHttpClientF(http, prep, isSandbox = false)
       apply(sandbox, prod)
     } else {
       NoopAPNS
     }
 }
 
-class APNSPush(sandbox: APNSTokenClient, prod: APNSTokenClient)(implicit cs: ContextShift[IO])
+class APNSPush(sandbox: APNSHttpClientF[IO], prod: APNSHttpClientF[IO])
   extends PushClient[APNSToken]
   with APNS {
   val topic = APNSTopic("com.malliina.BoatTracker")
@@ -53,21 +53,20 @@ class APNSPush(sandbox: APNSTokenClient, prod: APNSTokenClient)(implicit cs: Con
     def pushSandbox = push(to, request, isProd = false)
     def pushProd = push(to, request, isProd = true)
     import cats.implicits._
-    (pushSandbox, pushProd).parMapN(_ ++ _)
+    pushProd.map2(pushSandbox)(_ ++ _)
   }
 
-  def push(to: APNSToken, request: APNSRequest, isProd: Boolean) = {
+  def push(to: APNSToken, request: APNSRequest, isProd: Boolean): IO[PushSummary] = {
     val service = if (isProd) prod else sandbox
-    IO.fromFuture(IO(service.push(to, request))).map(loggedMap(_, to, useLog = isProd)).map {
-      result =>
-        if (isProd) {
-          PushSummary(
-            if (result.error.contains(BadDeviceToken)) Seq(PushToken(result.token.token)) else Nil,
-            Nil
-          )
-        } else {
-          PushSummary.empty
-        }
+    service.push(to, request).map(loggedMap(_, to, useLog = isProd)).map { result =>
+      if (isProd) {
+        PushSummary(
+          if (result.error.contains(BadDeviceToken)) Seq(PushToken(result.token.token)) else Nil,
+          Nil
+        )
+      } else {
+        PushSummary.empty
+      }
     }
   }
 

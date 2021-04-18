@@ -9,6 +9,7 @@ import org.http4s.play.PlayInstances
 import org.http4s.scalatags.ScalatagsInstances
 import org.http4s.{DecodeResult, EntityDecoder, EntityEncoder, syntax}
 import play.api.libs.json.{JsError, Json, Reads, Writes}
+import scalatags.Text
 
 trait Extractors {
   object UsernameVar extends NonEmpty(Username.apply)
@@ -33,7 +34,8 @@ trait Extractors {
 }
 
 trait HtmlInstances extends ScalatagsInstances {
-  implicit def htmlEncoder[F[_]]: EntityEncoder[F, TagPage] = scalatagsEncoder[F].contramap(_.tags)
+  implicit def htmlEncoder[F[_]]: EntityEncoder[F, TagPage] =
+    scalatagsEncoder[F, Text.TypedTag[String]].contramap(_.tags)
 }
 
 object JsonInstances extends JsonInstances
@@ -47,8 +49,8 @@ trait JsonInstances extends PlayInstances {
       decoder
         .reads(json)
         .fold(
-          errors => DecodeResult.failure(new JsonException(JsError(errors), json)),
-          ok => DecodeResult.success(ok)
+          errors => DecodeResult.failureT(new JsonException(JsError(errors), json)),
+          ok => DecodeResult.successT(ok)
         )
     }
 }

@@ -40,7 +40,7 @@ trait AppComps {
 }
 
 class ProdAppComps(conf: BoatConf, http: HttpClient[IO], cs: ContextShift[IO]) extends AppComps {
-  override val pushService: PushEndpoint = BoatPushService(conf.push, cs)
+  override val pushService: PushEndpoint = BoatPushService(conf.push, http)
   override val emailAuth: EmailAuth = GoogleTokenAuth(conf.google.web.id, conf.google.ios.id, http)
 }
 
@@ -56,7 +56,7 @@ object Server extends IOApp {
     blocker <- Blocker[IO]
     service <- appService(conf, builder)
     handler = makeHandler(service, blocker)
-    _ <- Resource.liftF(
+    _ <- Resource.eval(
       IO(log.info(s"Binding on port $port using app version ${AppMeta.default.gitHash}..."))
     )
     server <- BlazeServerBuilder[IO](ExecutionContext.global)
@@ -69,12 +69,12 @@ object Server extends IOApp {
     blocker <- Blocker[IO]
     db <- DoobieDatabase.withMigrations(conf.db, blocker)
     users = DoobieUserManager(db)
-    _ <- Resource.liftF(users.initUser())
+    _ <- Resource.eval(users.initUser())
     trackInserts = DoobieTrackInserts(db)
     gps = DoobieGPSDatabase(db)
     ais = BoatMqttClient(AppMode.fromBuild)
-    streams <- Resource.liftF(BoatStreams(trackInserts, ais))
-    deviceStreams <- Resource.liftF(GPSStreams(gps))
+    streams <- Resource.eval(BoatStreams(trackInserts, ais))
+    deviceStreams <- Resource.eval(GPSStreams(gps))
   } yield {
     val http = HttpClientIO()
     val appComps = builder(conf, http, contextShift)
