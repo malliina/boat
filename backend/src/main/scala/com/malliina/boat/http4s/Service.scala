@@ -257,13 +257,6 @@ class Service(comps: BoatComps) extends BasicService[IO] {
               }
           }
         }
-//        .getOrElse {
-//          IO(
-//            log.info(s"Boat authentication failed. No credentials. Got headers ${req.headers}.")
-//          ).flatMap { _ =>
-//            unauthorized(Errors("Credentials required."))
-//          }
-//        }
     case req @ GET -> Root / "ws" / "devices" =>
       auth.authDevice(req.headers).flatMap { meta =>
         inserts.joinAsDevice(meta).flatMap { boat =>

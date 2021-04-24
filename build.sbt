@@ -125,6 +125,7 @@ val http4sModules = Seq("blaze-server", "blaze-client", "dsl", "scalatags", "pla
 
 val backend = Project("boat", file("backend"))
   .enablePlugins(
+    RevolverPlugin,
     ServerPlugin,
     FileTreePlugin,
     JavaServerAppPackaging,
@@ -296,3 +297,5 @@ def gitHash: String =
     .get("GITHUB_SHA")
     .orElse(Try(Process("git rev-parse HEAD").lineStream.head).toOption)
     .getOrElse("unknown")
+
+Global / onChangedBuildSource := ReloadOnSourceChanges

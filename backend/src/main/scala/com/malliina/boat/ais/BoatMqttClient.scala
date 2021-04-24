@@ -70,7 +70,10 @@ class BoatMqttClient(url: FullUrl, topic: String)(implicit c: Concurrent[IO], t:
   private val maxBatchSize = 300
   private val sendTimeWindow = 5.seconds
   private val connection = IO(
-    MqttStream.unsafe(MqttSettings(url, newClientId(), topic, user, pass), interrupter)
+    MqttStream.unsafe(
+      MqttSettings(url, newClientId(), topic, user, pass),
+      SignallingRef[IO, Boolean](false).unsafeRunSync()
+    )
   )
   private val restartingConnection =
     Stream.retry(connection, 5.seconds, d => d * 2, maxAttempts = 1000).interruptWhen(interrupter)
