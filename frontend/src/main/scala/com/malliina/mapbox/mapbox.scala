@@ -129,6 +129,7 @@ class MapboxPopup(options: PopupOptions) extends js.Object {
   def addTo(map: MapboxMap): MapboxPopup = js.native
   def remove(): Unit = js.native
   def isOpen(): Boolean = js.native
+  def setMaxWidth(v: String): MapboxPopup = js.native
 }
 
 object MapboxPopup {
@@ -136,7 +137,7 @@ object MapboxPopup {
 
   implicit class PopupExt(val self: MapboxPopup) extends AnyVal {
     def show[T <: dom.Element](htmlPayload: TypedTag[T], coord: LngLatLike, on: MapboxMap): Unit =
-      html(htmlPayload).setLngLat(coord).addTo(on)
+      html(htmlPayload).setLngLat(coord).setMaxWidth("none").addTo(on)
 
     def html[T <: dom.Element](html: TypedTag[T]): MapboxPopup =
       self.setHTML(html.render.outerHTML)
