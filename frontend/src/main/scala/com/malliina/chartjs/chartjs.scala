@@ -60,19 +60,12 @@ object ChartOptions {
 @js.native
 trait DataSet extends js.Object {
   def label: String = js.native
-
   def data: js.Array[Double] = js.native
-
   def backgroundColor: js.Array[String] = js.native
-
   def borderColor: js.Array[String] = js.native
-
   def borderWidth: Int = js.native
-
   def pointRadius: Int = js.native
-
   def fill: js.UndefOr[Boolean] = js.native
-
   def lineTension: Double = js.native
 }
 
@@ -101,7 +94,6 @@ object DataSet {
 @js.native
 trait ChartData extends js.Object {
   def labels: js.Array[String] = js.native
-
   def datasets: js.Array[DataSet] = js.native
 }
 
@@ -127,9 +119,7 @@ object ChartData {
 trait ChartSpecs extends js.Object {
   @JSName("type")
   def `type`: String = js.native
-
   def data: ChartData = js.native
-
   def options: ChartOptions = js.native
 }
 
@@ -145,10 +135,9 @@ object ChartSpecs {
 }
 
 @js.native
-@JSImport("chart.js", JSImport.Default)
+@JSImport("chart.js", "Chart")
 class Chart(ctx: CanvasRenderingContext2D, options: ChartSpecs) extends js.Object {
   def data: ChartData = js.native
-
   def update(): Unit = js.native
 }
 
@@ -156,3 +145,33 @@ object Chart {
   def apply(ctx: CanvasRenderingContext2D, options: ChartSpecs): Chart =
     new Chart(ctx, options)
 }
+
+@js.native
+@JSImport("chart.js", "Chart")
+object ChartObj extends js.Object {
+  def register(obj: js.Object*): Unit = js.native
+}
+
+@js.native
+@JSImport("chart.js", "LinearScale")
+object LinearScale extends js.Object
+
+@js.native
+@JSImport("chart.js", "LineElement")
+object LineElement extends js.Object
+
+@js.native
+@JSImport("chart.js", "LineController")
+object LineController extends js.Object
+
+@js.native
+@JSImport("chart.js", "Title")
+object Title extends js.Object
+
+@js.native
+@JSImport("chart.js", "PointElement")
+object PointElement extends js.Object
+
+@js.native
+@JSImport("chart.js", "CategoryScale")
+object CategoryScale extends js.Object

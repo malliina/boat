@@ -209,6 +209,7 @@ class DoobieUserManager(db: DoobieDatabase) extends UserManager with DoobieSQL {
       _ <- boatInsertion(userId)
     } yield userId
   }
+
   def grantAccess(boat: DeviceId, to: UserId, principal: UserId): IO[AccessResult] = run {
     addInviteIO(boat, to, principal)
   }

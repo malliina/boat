@@ -37,26 +37,21 @@ class ChartSocket(ctx: CanvasRenderingContext2D, track: TrackName, sample: Optio
   val depthLabel = "Depth"
   val speedLabel = "Speed"
 
-  val depths = DataSet(
-    label = depthLabel,
-    fill = Option(false),
-    data = Nil,
-    backgroundColor = Seq(seaBlue),
-    pointRadius = 1,
-    borderColor = Seq(seaBlue),
-    borderWidth = 2
-  )
-  val speeds = DataSet(
-    label = speedLabel,
-    fill = Option(false),
-    data = Nil,
-    backgroundColor = Seq(red),
-    pointRadius = 1,
-    borderColor = Seq(red),
-    borderWidth = 2
-  )
+  val depths = dataSet(depthLabel, seaBlue)
+  val speeds = dataSet(speedLabel, red)
   val chartData = ChartData(Nil, Seq(depths, speeds))
+  ChartObj.register(CategoryScale, LineController, LineElement, PointElement, LinearScale, Title)
   val chart = Chart(ctx, ChartSpecs.line(chartData))
+
+  private def dataSet(label: String, color: String) = DataSet(
+    label = label,
+    fill = Option(false),
+    data = Nil,
+    backgroundColor = Seq(color),
+    pointRadius = 1,
+    borderColor = Seq(color),
+    borderWidth = 2
+  )
 
   override def onCoords(event: CoordsEvent): Unit = {
     val coords = event.coords
