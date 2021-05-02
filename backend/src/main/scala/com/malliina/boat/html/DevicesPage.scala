@@ -13,7 +13,8 @@ object DevicesPage extends BoatImplicits with CSRFConf {
     val langs = BoatLang(user.language)
     val lang = langs.lang
     val webLang = langs.web
-    val boatLang = lang.settings.boatLang
+    val settings = lang.settings
+    val boatLang = settings.boatLang
     div(`class` := "container")(
       div(`class` := "row")(
         div(`class` := "col-md-12")(
@@ -25,24 +26,25 @@ object DevicesPage extends BoatImplicits with CSRFConf {
           tr(
             th(boatLang.boat),
             th(boatLang.token),
-            th(lang.settings.actions)
+            th(settings.actions)
           )
         ),
         tbody(
           user.boats.map { boat =>
+            val confirmDeletionText = s"${settings.delete} ${boat.name}?"
             tr(
               td(boat.name),
               td(boat.token),
               td(`class` := "table-button")(
-                form(method := "POST", action := reverse.boatDelete(boat.id))(
-                  button(`type` := "submit", `class` := "btn btn-sm btn-danger")(
-                    lang.settings.delete
-                  )
+                form(
+                  method := "POST",
+                  action := reverse.boatDelete(boat.id),
+                  onsubmit := s"return confirm('$confirmDeletionText');"
+                )(
+                  button(`type` := "submit", `class` := "btn btn-sm btn-danger")(settings.delete)
 //                  csrfInput(token)
                 ),
-                button(`type` := "button", `class` := "btn btn-sm btn-link")(
-                  lang.settings.invite
-                )
+                button(`type` := "button", `class` := "btn btn-sm btn-link")(settings.invite)
               )
             )
           }

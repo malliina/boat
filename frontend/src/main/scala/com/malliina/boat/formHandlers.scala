@@ -1,5 +1,6 @@
 package com.malliina.boat
 
+import com.malliina.boat.FrontKeys.{CommentsRow, TrackRow}
 import com.malliina.boat.http.CSRFConf
 import com.malliina.http.HttpClient
 import org.scalajs.dom.raw._
@@ -29,18 +30,8 @@ class TitleHandler(
   editIcon: Element,
   cancel: HTMLButtonElement,
   log: BaseLogger = BaseLogger.console
-) extends BaseFront
+) extends AjaxForm(form, editIcon, TrackRow, cancel)
   with CSRFConf {
-  val trackRow = document.getElementsByClassName(TrackRow)
-
-  editIcon.addEventListener(
-    "click",
-    (_: Event) => {
-      trackRow.foreach(_.hide())
-      form.show()
-    }
-  )
-
   form.onsubmit = (e: Event) => {
     elemAs[HTMLInputElement](TitleInputId).map { in =>
       HttpClient
@@ -50,15 +41,10 @@ class TitleHandler(
             span.textContent = res.track.describe
           }
           form.hide()
-          trackRow.foreach(_.show())
+          editable.foreach(_.show())
         }
     }
     e.preventDefault()
-  }
-
-  cancel.onclick = (_: MouseEvent) => {
-    trackRow.foreach(_.show())
-    form.hide()
   }
 }
 
@@ -67,17 +53,8 @@ class CommentsHandler(
   editIcon: Element,
   cancel: HTMLButtonElement,
   log: BaseLogger = BaseLogger.console
-) extends BaseFront
+) extends AjaxForm(form, editIcon, CommentsRow, cancel)
   with CSRFConf {
-  val editRow = document.getElementsByClassName(CommentsRow)
-
-  editIcon.addEventListener(
-    "click",
-    (_: Event) => {
-      editRow.foreach(_.hide())
-      form.show()
-    }
-  )
   form.onsubmit = (e: Event) => {
     elemAs[HTMLInputElement](CommentsInputId).map { in =>
       HttpClient
@@ -90,14 +67,33 @@ class CommentsHandler(
               span.classList.remove(Hidden)
           }
           form.hide()
-          editRow.foreach(_.show())
+          editable.foreach(_.show())
         }
     }
     e.preventDefault()
   }
+}
+
+//class InviteHandler(form: HTMLFormElement, editIcon: Element, cancel: HTMLButtonElement)
+//  extends AjaxForm(form, editIcon, ???, cancel) {}
+
+abstract class AjaxForm(
+  form: HTMLFormElement,
+  editIcon: Element,
+  editableClass: String,
+  cancel: HTMLButtonElement
+) extends BaseFront {
+  val editable = document.getElementsByClassName(editableClass)
+  editIcon.addEventListener(
+    "click",
+    (_: Event) => {
+      editable.foreach(_.hide())
+      form.show()
+    }
+  )
 
   cancel.onclick = (_: MouseEvent) => {
-    editRow.foreach(_.show())
+    editable.foreach(_.show())
     form.hide()
   }
 }
