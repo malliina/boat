@@ -1,8 +1,10 @@
 import com.malliina.http.FullUrl
+import com.malliina.bundler.HashedFile
 import sbtcrossproject.CrossPlugin.autoImport.{CrossType => PortableType, crossProject => portableProject}
 import sbtrelease.ReleasePlugin.autoImport.{ReleaseStep, releaseProcess}
 import sbtrelease.ReleaseStateTransformations._
 import com.typesafe.sbt.packager.docker.DockerVersion
+import java.nio.file.{Files, Path, StandardCopyOption}
 
 import scala.sys.process.Process
 import scala.util.Try
@@ -16,7 +18,8 @@ val primitiveVersion = "1.19.0"
 val akkaVersion = "2.6.5"
 val akkaHttpVersion = "10.1.12"
 val playJsonVersion = "2.9.2"
-val alpnVersion = "11.0.2"
+// Do not upgrade to 11.0.2 because it depends on slf4j-api alpha versions, breaking logging
+val alpnVersion = "9.4.40.v20210413"
 val webAuthDep = "com.malliina" %% "web-auth" % webAuthVersion
 val utilHtmlDep = "com.malliina" %% "util-html" % webAuthVersion
 val webAuthTestDep = webAuthDep % Test classifier "tests"
@@ -118,7 +121,16 @@ val frontend = project
     fullOptJS / webpackConfigFile := Some(
       baseDirectory.value / "webpack.prod.config.js"
     ),
-    Compile / fullOptJS / scalaJSLinkerConfig ~= { _.withSourceMap(false) }
+    Compile / fullOptJS / scalaJSLinkerConfig ~= { _.withSourceMap(false) },
+    Compile / fastOptJS / hashAssets += {
+      // TODO hack; fix properly later in sbt-bundler plugin
+      // For some reason task webpack does not emit .map file for frontend-fastopt.js even though it is generated
+      val filename = "frontend-fastopt.js.map"
+      val path = (Compile / npmUpdate / crossTarget).value / filename
+      val dest = assetsDir.value.resolve("public").resolve(filename)
+      Files.copy(path.toPath, dest, StandardCopyOption.REPLACE_EXISTING)
+      HashedFile(filename, filename, dest, dest)
+    }
   )
 
 val http4sModules = Seq("blaze-server", "blaze-client", "dsl", "scalatags", "play-json")
@@ -141,7 +153,7 @@ val backend = Project("boat", file("backend"))
     libraryDependencies ++= http4sModules.map { m =>
       "org.http4s" %% s"http4s-$m" % "0.21.22"
     } ++ Seq("doobie-core", "doobie-hikari").map { d =>
-      "org.tpolecat" %% d % "0.12.1"
+      "org.tpolecat" %% d % "0.13.1"
     } ++ Seq(
       "com.github.pureconfig" %% "pureconfig" % "0.14.1",
       "com.vividsolutions" % "jts" % "1.13",
@@ -149,8 +161,8 @@ val backend = Project("boat", file("backend"))
       "org.flywaydb" % "flyway-core" % "7.8.1",
       "org.apache.commons" % "commons-text" % "1.9",
       "com.amazonaws" % "aws-java-sdk-s3" % "1.11.856",
-      "com.malliina" %% "logstreams-client" % "1.10.1",
-      "com.malliina" %% "mobile-push-io" % "2.1.1",
+      "com.malliina" %% "logstreams-client" % "1.11.3-SNAPSHOT",
+      "com.malliina" %% "mobile-push-io" % "2.1.3-SNAPSHOT",
       "org.slf4j" % "slf4j-api" % "1.7.30",
       "ch.qos.logback" % "logback-classic" % "1.2.3",
       "ch.qos.logback" % "logback-core" % "1.2.3",

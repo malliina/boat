@@ -26,7 +26,7 @@ class StaticService[F[_]](blocker: Blocker)(implicit cs: ContextShift[F], s: Syn
   extends BasicService[F] {
   val fontExtensions = List(".woff", ".woff2", ".eot", ".ttf")
   val supportedStaticExtensions =
-    List(".html", ".js", ".map", ".css", ".png", ".ico", ".svg") ++ fontExtensions
+    List(".html", ".js", ".map", ".css", ".png", ".ico", ".svg", ".map") ++ fontExtensions
 
   val prefix = HashedAssets.prefix
   //  val routes = resourceService[F](ResourceService.Config("/db", blocker))
@@ -34,7 +34,7 @@ class StaticService[F[_]](blocker: Blocker)(implicit cs: ContextShift[F], s: Syn
   val routes = HttpRoutes.of[F] {
     case req @ GET -> rest if supportedStaticExtensions.exists(rest.toString.endsWith) =>
       val file = UnixPath(rest.toList.mkString("/"))
-      val isCacheable = file.value.count(_ == '.') == 2
+      val isCacheable = file.value.count(_ == '.') == 2 && !file.value.endsWith(".map")
       val cacheHeaders =
         if (isCacheable) NonEmptyList.of(`max-age`(365.days), `public`)
         else NonEmptyList.of(`no-cache`())
