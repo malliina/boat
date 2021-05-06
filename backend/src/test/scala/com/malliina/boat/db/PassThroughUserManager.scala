@@ -1,11 +1,9 @@
 package com.malliina.boat.db
 
-import java.time.Instant
-
-import com.malliina.boat.http.{AccessResult, BoatInvite, InviteInfo}
-import com.malliina.boat.{BoatToken, DeviceId, InviteState, JoinedBoat, Language, UserBoats, UserInfo, UserToken}
+import com.malliina.boat.{Language, UserInfo, UserToken}
 import com.malliina.values.{Email, UserId, Username}
 
+import java.time.Instant
 import scala.concurrent.Future
 
 trait PassThroughUserManager extends UserManager {
@@ -25,7 +23,8 @@ trait PassThroughUserManager extends UserManager {
     Language.default,
     Nil,
     enabled = true,
-    addedMillis = Instant.now().toEpochMilli
+    addedMillis = Instant.now().toEpochMilli,
+    Nil
   )
 
 //  override def initUser(user: Username): Future[NewUser] =

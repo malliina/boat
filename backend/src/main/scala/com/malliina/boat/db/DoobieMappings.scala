@@ -1,9 +1,8 @@
 package com.malliina.boat.db
 
 import java.time.{Instant, LocalDate}
-
 import com.malliina.boat.parsing.GPSFix
-import com.malliina.boat.{BoatName, BoatToken, Coord, CoordHash, DateVal, DeviceId, FairwayLighting, GPSPointId, Language, Latitude, Longitude, MobileDevice, MonthVal, PushId, PushToken, RawSentence, SeaArea, TrackCanonical, TrackId, TrackName, TrackPointId, TrackTitle, YearVal}
+import com.malliina.boat.{BoatName, BoatToken, Coord, CoordHash, DateVal, DeviceId, FairwayLighting, GPSPointId, InviteState, Language, Latitude, Longitude, MobileDevice, MonthVal, PushId, PushToken, RawSentence, SeaArea, TrackCanonical, TrackId, TrackName, TrackPointId, TrackTitle, YearVal}
 import com.malliina.measure.{DistanceM, SpeedDoubleM, SpeedM, Temperature}
 import com.malliina.values._
 import com.vividsolutions.jts.geom.Point
@@ -54,6 +53,8 @@ trait DoobieMappings {
   implicit val dateMapping: Meta[DateVal] = Meta[LocalDate].timap(d => DateVal(d))(_.toLocalDate)
   implicit val year: Meta[YearVal] = Meta[Int].timap(y => YearVal(y))(_.year)
   implicit val month: Meta[MonthVal] = Meta[Int].timap(m => MonthVal(m))(_.month)
+  implicit val isMapping: Meta[InviteState] =
+    Meta[String].timap(s => InviteState.orOther(s))(_.name)
 
   def wrapped[T <: WrappedString: TypeTag](build: String => T): Meta[T] =
     Meta[String].timap(build)(_.value)

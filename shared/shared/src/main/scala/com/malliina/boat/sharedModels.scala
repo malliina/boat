@@ -7,6 +7,7 @@ import com.malliina.values._
 import play.api.libs.json._
 import scalatags.generic.Bundle
 
+import java.time.Instant
 import scala.concurrent.duration.Duration
 import scala.math.Ordering.Double.TotalOrdering
 
@@ -415,6 +416,12 @@ trait EmailUser extends MinimalUserInfo {
 
 case class SimpleEmailUser(username: Username, email: Email, language: Language) extends EmailUser
 
+case class Invite(boat: DeviceId, state: InviteState, addedMillis: Long)
+
+object Invite {
+  implicit val json = Json.format[Invite]
+}
+
 case class UserInfo(
   id: UserId,
   username: Username,
@@ -422,7 +429,8 @@ case class UserInfo(
   language: Language,
   boats: Seq[Boat],
   enabled: Boolean,
-  addedMillis: Long
+  addedMillis: Long,
+  invites: Seq[Invite]
 ) extends EmailUser
 
 object UserInfo {

@@ -144,6 +144,8 @@ case class TopTrack(track: TrackRow, times: TrackTimes, coord: CombinedCoord)
 case class TrackTime(track: TrackRow, times: TrackTimes)
 case class TrackTop(track: TrackId, top: Option[TrackPointId])
 
-case class JoinedUser(user: UserRow, boat: Option[BoatRow])
+case class InviteRow(boat: DeviceId, state: InviteState, added: Instant)
+
+case class JoinedUser(user: UserRow, boat: Option[BoatRow], invite: Option[InviteRow])
 
 case class JoinedGPS(point: GPSPointRow, device: JoinedBoat)

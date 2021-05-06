@@ -98,6 +98,16 @@ class Service(comps: BoatComps) extends BasicService[IO] {
           ok(SimpleMessage(msg))
         }
       }
+    case req @ POST -> Root / "invites" =>
+      jsonAction[InvitePayload](req) { (inviteInfo, user) =>
+        userMgmt.invite(inviteInfo.byUser(user.id)).flatMap { res =>
+          val describe = if (res.existed) "Already invited." else "Not invited before."
+          log.info(
+            s"User ${user.email} invited ${inviteInfo.email} to boat ${inviteInfo.boat}. $describe"
+          )
+          ok(SimpleMessage("Thank you."))
+        }
+      }
     case GET -> Root / "conf" => ok(ClientConf.default)
     case req @ GET -> Root / "boats" =>
       auth.profile(req).flatMap { user =>

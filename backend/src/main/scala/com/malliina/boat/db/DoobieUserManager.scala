@@ -4,7 +4,7 @@ import cats.effect.IO
 import com.malliina.boat.db.DoobieMappings._
 import com.malliina.boat.db.DoobieUserManager.log
 import com.malliina.boat.http.{AccessResult, InviteInfo}
-import com.malliina.boat.{Boat, BoatInfo, BoatNames, BoatToken, BoatTokens, DeviceId, InviteState, JoinedBoat, JoinedTrack, Language, TimeFormatter, UserBoats, UserInfo, UserToken, Usernames}
+import com.malliina.boat.{Boat, BoatInfo, BoatNames, BoatToken, BoatTokens, DeviceId, Invite, InviteState, JoinedBoat, JoinedTrack, Language, TimeFormatter, UserBoats, UserInfo, UserToken, Usernames}
 import com.malliina.util.AppLogger
 import com.malliina.values.{Email, UserId, Username}
 import doobie._
@@ -22,9 +22,20 @@ object DoobieUserManager {
         val idx = acc.indexWhere(_.id == user.id)
         val newBoats =
           ub.boat.toSeq.map(b => Boat(b.id, b.name, b.token, b.added.toEpochMilli))
+        val newInvites =
+          ub.invite.toList.map(row => Invite(row.boat, row.state, row.added.toEpochMilli))
         if (idx >= 0) {
           val old = acc(idx)
-          acc.updated(idx, old.copy(boats = old.boats ++ newBoats))
+          val unseenBoats =
+            if (old.boats.exists(b => newBoats.exists(nb => nb.id == b.id))) Nil
+            else newBoats
+          val unseenInvites =
+            if (old.invites.exists(i => newInvites.exists(ni => ni.boat == i.boat))) Nil
+            else newInvites
+          acc.updated(
+            idx,
+            old.copy(boats = old.boats ++ unseenBoats, invites = old.invites ++ unseenInvites)
+          )
         } else {
           user.email.fold(acc) { email =>
             acc :+ UserInfo(
@@ -34,7 +45,8 @@ object DoobieUserManager {
               user.language,
               newBoats,
               user.enabled,
-              user.added.toEpochMilli
+              user.added.toEpochMilli,
+              newInvites
             )
           }
         }
@@ -80,9 +92,10 @@ class DoobieUserManager(db: DoobieDatabase) extends UserManager with DoobieSQL {
 
   def userInfo(email: Email): IO[UserInfo] = run {
     def by(id: UserId) =
-      sql"""select $userColumns, b.id boatId, b.name boatName, b.token boatToken, b.owner boatOwner, b.added boatAdded
+      sql"""select $userColumns, b.id boatId, b.name boatName, b.token boatToken, b.owner boatOwner, b.added boatAdded, ub.boat as ubBoat, ub.state as ubState, ub.added as ubAdded
             from users u
             left join boats b on b.owner = u.id
+            left join users_boats ub on u.id = ub.user
             where u.id = $id""".query[JoinedUser].to[List]
     val task = for {
       userId <- getOrCreate(email)
@@ -179,8 +192,8 @@ class DoobieUserManager(db: DoobieDatabase) extends UserManager with DoobieSQL {
 
   def userBoat(boat: DeviceId, user: UserId) =
     sql"""select user, boat, state, added
-         from users_boats 
-         where user = $user and boat = $boat"""
+          from users_boats 
+          where user = $user and boat = $boat"""
 
   def invite(i: InviteInfo): IO[AccessResult] = run {
     userByEmail(i.email).query[UserRow].option.flatMap { invitee =>
@@ -203,7 +216,7 @@ class DoobieUserManager(db: DoobieDatabase) extends UserManager with DoobieSQL {
   private def addUserWithBoat(email: Email) = {
     def boatInsertion(owner: UserId) =
       sql"""insert into boats(name, token, owner)
-           values(${BoatNames.random()}, ${BoatTokens.random()}, $owner)""".update.run
+            values(${BoatNames.random()}, ${BoatTokens.random()}, $owner)""".update.run
     for {
       userId <- userInsertion(NewUser.email(email))
       _ <- boatInsertion(userId)
