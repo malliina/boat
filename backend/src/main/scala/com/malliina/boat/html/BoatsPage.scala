@@ -109,34 +109,65 @@ object BoatsPage extends BoatImplicits with CSRFConf {
             button(`type` := "submit", `class` := "btn btn-sm btn-primary")(webLang.save)
           )
         )
-      )
-    )
-  }
-
-  def invite(user: UserInfo, boat: DeviceId) = {
-    val langs = BoatLang(user.language)
-    val settingsLang = langs.lang.settings
-    val webLang = langs.web
-    div(`class` := "container")(
+      ),
       div(`class` := "row")(
         div(`class` := "col-md-12")(
-          h1(settingsLang.invite)
+          h2("Invites")
         )
       ),
-      form(method := "POST", action := reverse.invites)(
-        div(`class` := "form-group row")(
-          labeledInput(
-            settingsLang.invite,
-            "boat-name-label",
-            Emails.Key,
-            "col-form-label col-form-label-sm col-sm-2",
-            "form-control form-control-sm",
-            settingsLang.invitePlaceholder
-          ),
-          input(`type` := "hidden", name := BoatNames.BoatKey, value := s"${boat.id}"),
-          div(`class` := "col-sm-3 pl-sm-0 pt-2 pt-sm-0")(
-            button(`type` := "submit", `class` := "btn btn-sm btn-primary")(webLang.save)
+      table(`class` := "table table-hover")(
+        thead(
+          tr(
+            th(boatLang.boat),
+            th("State"),
+            th(settings.actions)
           )
+        ),
+        tbody(
+          user.invites.map { i =>
+            tr(
+              td(i.boat.name),
+              td(i.state.name),
+              td("todo")
+            )
+          }
+        )
+      ),
+      div(`class` := "row")(
+        div(`class` := "col-md-12")(
+          h2("Friends")
+        )
+      ),
+      table(`class` := "table table-hover")(
+        thead(
+          tr(
+            th(boatLang.boat),
+            th("User"),
+            th("State"),
+            th("Actions")
+          )
+        ),
+        tbody(
+          user.friends.map { f =>
+            val confirmRevokeText = s"Revoke access to ${f.boat.name} from ${f.friend.email}?"
+            tr(
+              td(f.boat.name),
+              td(f.friend.email),
+              td(f.state.name),
+              td(
+                form(
+                  method := "POST",
+                  action := reverse.revoke,
+                  onsubmit := s"return confirm('$confirmRevokeText');",
+                  `class` := DeleteForm
+                )(
+                  button(`type` := "submit", `class` := "btn btn-sm btn-danger")(
+                    settings.delete
+                  )
+                )
+              )
+            )
+          }
         )
       )
     )

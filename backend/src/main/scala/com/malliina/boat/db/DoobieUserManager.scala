@@ -5,7 +5,7 @@ import com.malliina.boat.db.DoobieMappings._
 import com.malliina.boat.db.DoobieUserManager.log
 import com.malliina.boat.http.InviteResult.{AlreadyInvited, Invited, UnknownEmail}
 import com.malliina.boat.http.{AccessResult, InviteInfo, InviteResult}
-import com.malliina.boat.{Boat, BoatInfo, BoatNames, BoatToken, BoatTokens, DeviceId, Invite, InviteState, JoinedBoat, JoinedTrack, Language, TimeFormatter, UserBoats, UserInfo, UserToken, Usernames}
+import com.malliina.boat.{Boat, BoatInfo, BoatNames, BoatToken, BoatTokens, DeviceId, FriendInvite, Invite, InviteState, JoinedBoat, JoinedTrack, Language, TimeFormatter, UserBoats, UserInfo, UserToken, Usernames}
 import com.malliina.util.AppLogger
 import com.malliina.values.{Email, UserId, Username}
 import doobie._
@@ -21,10 +21,13 @@ object DoobieUserManager {
       case (acc, ub) =>
         val user = ub.user
         val idx = acc.indexWhere(_.id == user.id)
-        val newBoats =
-          ub.boat.toSeq.map(b => Boat(b.id, b.name, b.token, b.added.toEpochMilli))
-        val newInvites =
-          ub.invite.toList.map(row => Invite(row.boat, row.state, row.added.toEpochMilli))
+        val newBoats = ub.boat.toSeq.map { b => Boat(b.id, b.name, b.token, b.added.toEpochMilli) }
+        val newInvites = ub.invite.toList.map { row =>
+          Invite(row.boat, row.state, row.added.toEpochMilli)
+        }
+        val newFriends = ub.friend.toList.map { f =>
+          FriendInvite(f.boat, f.friend, f.state, f.added.toEpochMilli)
+        }
         if (idx >= 0) {
           val old = acc(idx)
           val unseenBoats =
@@ -33,9 +36,19 @@ object DoobieUserManager {
           val unseenInvites =
             if (old.invites.exists(i => newInvites.exists(ni => ni.boat == i.boat))) Nil
             else newInvites
+          val unseenFriends =
+            if (
+              old.friends
+                .exists(f => newFriends.exists(fi => fi.friend == f.friend && fi.boat == f.boat))
+            ) Nil
+            else newFriends
           acc.updated(
             idx,
-            old.copy(boats = old.boats ++ unseenBoats, invites = old.invites ++ unseenInvites)
+            old.copy(
+              boats = old.boats ++ unseenBoats,
+              invites = old.invites ++ unseenInvites,
+              friends = old.friends ++ unseenFriends
+            )
           )
         } else {
           user.email.fold(acc) { email =>
@@ -47,7 +60,8 @@ object DoobieUserManager {
               newBoats,
               user.enabled,
               user.added.toEpochMilli,
-              newInvites
+              newInvites,
+              newFriends
             )
           }
         }
@@ -93,10 +107,35 @@ class DoobieUserManager(db: DoobieDatabase) extends UserManager with DoobieSQL {
 
   def userInfo(email: Email): IO[UserInfo] = run {
     def by(id: UserId) =
-      sql"""select $userColumns, b.id boatId, b.name boatName, b.token boatToken, b.owner boatOwner, b.added boatAdded, ub.boat as ubBoat, ub.state as ubState, ub.added as ubAdded
+      sql"""select u.id, 
+                   u.user, 
+                   u.email, 
+                   u.token, 
+                   u.language, 
+                   u.enabled, 
+                   u.added, 
+                   b.id boatId,
+                   b.name boatName, 
+                   b.token boatToken, 
+                   b.owner boatOwner, 
+                   b.added boatAdded, 
+                   ub.boat as ubBoat, 
+                   ubb.name as ubbName, 
+                   ub.state as ubState,
+                   ub.added as ubAdded,
+                   fubb.id as fubbBoat,
+                   fubb.name as fubbName, 
+                   fu.id as fuId, 
+                   fu.email as fuEmail, 
+                   fub.state as fubState, 
+                   fub.added as fubAdded
             from users u
             left join boats b on b.owner = u.id
             left join users_boats ub on u.id = ub.user
+            left join boats ubb on ub.boat = ubb.id
+            left join users_boats fub on fub.boat = b.id
+            left join boats fubb on fub.boat = fubb.id
+            left join users fu on fub.user = fu.id
             where u.id = $id""".query[JoinedUser].to[List]
     val task = for {
       userId <- getOrCreate(email)
@@ -129,7 +168,7 @@ class DoobieUserManager(db: DoobieDatabase) extends UserManager with DoobieSQL {
   }
 
   def boats(email: Email) = run {
-    def boatRowsIO(id: UserId) = sql"""${sql.nonEmptyTracks} and b.uid = $id and t.points > 100"""
+    def boatRowsIO(id: UserId) = sql"""${sql.nonEmptyTracks} and b.uid = $id and t.points > 10"""
       .query[JoinedTrack]
       .to[List]
     def deviceRowsIO(email: Email) =

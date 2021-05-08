@@ -28,8 +28,11 @@ class AuthService(val users: UserManager, comps: AuthComps) {
     users.userInfo(email)
   }
 
-  def optionalWebAuth(req: Request[IO]) = optionalUserInfo(req).map { e =>
-    e.map { opt => UserRequest(opt, req) }
+  def optionalWebAuth(
+    req: Request[IO]
+  ): IO[Either[MissingCredentials, UserRequest[Option[UserBoats]]]] = optionalUserInfo(req).map {
+    e =>
+      e.map { opt => UserRequest(opt, req) }
   }
 
   def authOrAnon(headers: Headers) = minimal(headers, _ => IO.pure(MinimalUserInfo.anon))

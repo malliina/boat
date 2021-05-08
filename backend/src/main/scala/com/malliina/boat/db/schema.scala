@@ -1,8 +1,7 @@
 package com.malliina.boat.db
 
 import java.time.Instant
-
-import com.malliina.boat.{Boat, BoatName, BoatPrimitives, BoatToken, CombinedCoord, DateVal, DeviceId, FormattedDateTime, GPSPointRow, InviteState, JoinedBoat, JoinedTrack, Language, MonthVal, TimeFormatter, TimedCoord, TrackCanonical, TrackId, TrackName, TrackPointId, TrackPointRow, TrackTitle, UserToken, YearVal}
+import com.malliina.boat.{Boat, BoatName, BoatPrimitives, BoatRef, BoatToken, CombinedCoord, DateVal, DeviceId, FormattedDateTime, FriendInvite, FriendRef, GPSPointRow, InviteState, JoinedBoat, JoinedTrack, Language, MonthVal, TimeFormatter, TimedCoord, TrackCanonical, TrackId, TrackName, TrackPointId, TrackPointRow, TrackTitle, UserToken, YearVal}
 import com.malliina.measure.{DistanceM, SpeedM, Temperature}
 import com.malliina.values.{Email, UserId, Username}
 import play.api.libs.json.Json
@@ -144,8 +143,14 @@ case class TopTrack(track: TrackRow, times: TrackTimes, coord: CombinedCoord)
 case class TrackTime(track: TrackRow, times: TrackTimes)
 case class TrackTop(track: TrackId, top: Option[TrackPointId])
 
-case class InviteRow(boat: DeviceId, state: InviteState, added: Instant)
+case class InviteRow(boat: BoatRef, state: InviteState, added: Instant)
+case class FriendRow(boat: BoatRef, friend: FriendRef, state: InviteState, added: Instant)
 
-case class JoinedUser(user: UserRow, boat: Option[BoatRow], invite: Option[InviteRow])
+case class JoinedUser(
+  user: UserRow,
+  boat: Option[BoatRow],
+  invite: Option[InviteRow],
+  friend: Option[FriendRow]
+)
 
 case class JoinedGPS(point: GPSPointRow, device: JoinedBoat)

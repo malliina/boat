@@ -103,7 +103,8 @@ class Service(comps: BoatComps) extends BasicService[IO] {
       jsonAction[InvitePayload](req) { (inviteInfo, user) =>
         userMgmt.invite(inviteInfo.byUser(user.id)).flatMap { res =>
           val message = res match {
-            case UnknownEmail(email) => s"Unknown email: '$email'."
+            case UnknownEmail(email) =>
+              s"Unknown email: '$email'."
             case Invited(uid, to) =>
               s"User ${user.email} invited ${inviteInfo.email} to boat ${inviteInfo.boat}."
             case AlreadyInvited(uid, to) =>
@@ -111,6 +112,12 @@ class Service(comps: BoatComps) extends BasicService[IO] {
           }
           log.info(message)
           ok(SimpleMessage("Thank you."))
+        }
+      }
+    case req @ POST -> Root / "invites" / "revoke" =>
+      jsonAction[RevokeAccess](req) { (revokeInfo, user) =>
+        userMgmt.revokeAccess(revokeInfo.to, revokeInfo.from, user.id).flatMap { res =>
+          ok(res)
         }
       }
     case GET -> Root / "conf" => ok(ClientConf.default)
@@ -348,6 +355,7 @@ class Service(comps: BoatComps) extends BasicService[IO] {
           secure = isSecure,
           httpOnly = false
         )
+        log.info(s"Got $maybeBoat")
         val languageCookie = ResponseCookie(
           LanguageName,
           maybeBoat.map(_.language).getOrElse(Language.default).code,

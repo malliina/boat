@@ -416,7 +416,30 @@ trait EmailUser extends MinimalUserInfo {
 
 case class SimpleEmailUser(username: Username, email: Email, language: Language) extends EmailUser
 
-case class Invite(boat: DeviceId, state: InviteState, addedMillis: Long)
+case class BoatRef(id: DeviceId, name: BoatName)
+
+object BoatRef {
+  implicit val json = Json.format[BoatRef]
+}
+
+case class Invite(boat: BoatRef, state: InviteState, addedMillis: Long)
+
+case class FriendRef(id: UserId, email: Email)
+
+object FriendRef {
+  implicit val json = Json.format[FriendRef]
+}
+
+case class FriendInvite(
+  boat: BoatRef,
+  friend: FriendRef,
+  state: InviteState,
+  addedMillis: Long
+)
+
+object FriendInvite {
+  implicit val json = Json.format[FriendInvite]
+}
 
 object Invite {
   implicit val json = Json.format[Invite]
@@ -430,7 +453,8 @@ case class UserInfo(
   boats: Seq[Boat],
   enabled: Boolean,
   addedMillis: Long,
-  invites: Seq[Invite]
+  invites: Seq[Invite],
+  friends: Seq[FriendInvite]
 ) extends EmailUser
 
 object UserInfo {
