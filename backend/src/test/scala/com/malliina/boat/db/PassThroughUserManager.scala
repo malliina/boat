@@ -24,6 +24,7 @@ trait PassThroughUserManager extends UserManager {
     Nil,
     enabled = true,
     addedMillis = Instant.now().toEpochMilli,
+    Nil,
     Nil
   )
 
@@ -48,6 +49,7 @@ trait PassThroughUserManager extends UserManager {
 //    fut(AccessResult(false))
 //  def updateInvite(boat: DeviceId, user: UserId, state: InviteState): Future[Long] =
 //    fut(0L)
+
   def users: Future[Seq[UserInfo]] = fut(Seq(god))
 
   def fut[T](t: T) = Future.successful(t)
