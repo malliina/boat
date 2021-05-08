@@ -320,10 +320,6 @@ object BoatNames {
   def random() = BoatName(Utils.randomString(6))
 }
 
-object Emails {
-  val Key = "email"
-}
-
 case class SingleToken(token: PushToken)
 
 object SingleToken {

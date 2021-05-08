@@ -17,6 +17,9 @@ class HttpClient extends CSRFConf {
       validate[R](uri, xhr)
     }
 
+  def post[W: Writes, R: Reads](uri: String, data: W): Future[R] =
+    makeAjax("POST", uri, data)
+
   def patch[W: Writes, R: Reads](uri: String, data: W): Future[R] =
     makeAjax("PATCH", uri, data)
 

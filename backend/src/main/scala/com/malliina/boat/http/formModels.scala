@@ -47,3 +47,13 @@ case class AccessResult(existed: Boolean)
 object AccessResult {
   implicit val json = Json.format[AccessResult]
 }
+
+case class EmailUser(user: UserId, email: Email)
+
+sealed trait InviteResult
+
+object InviteResult {
+  case class UnknownEmail(email: Email) extends InviteResult
+  case class Invited(user: UserId, to: DeviceId) extends InviteResult
+  case class AlreadyInvited(user: UserId, to: DeviceId) extends InviteResult
+}

@@ -27,7 +27,7 @@ object BoatMqttClient {
 
   def apply(mode: AppMode)(implicit c: Concurrent[IO], t: Timer[IO]): AISSource = mode match {
     case AppMode.Prod => prod()
-    case AppMode.Dev  => prod()
+    case AppMode.Dev  => silent()
   }
 
   def prod()(implicit c: Concurrent[IO], t: Timer[IO]): BoatMqttClient =
@@ -35,6 +35,8 @@ object BoatMqttClient {
 
   def test()(implicit c: Concurrent[IO], t: Timer[IO]): BoatMqttClient =
     apply(TestUrl, AllDataTopic)
+
+  def silent() = SilentAISSource
 
   def apply(url: FullUrl, topic: String)(implicit
     c: Concurrent[IO],

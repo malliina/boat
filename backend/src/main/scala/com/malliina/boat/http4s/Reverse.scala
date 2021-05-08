@@ -14,7 +14,8 @@ object Reverse {
   val usersBoats = uri"/users/boats"
   val usersBoatsAnswers = uri"/users/boats/answers"
   def usersBoat(id: DeviceId) = Uri.unsafeFromString(s"/users/boats/$id")
-  def inviteByEmail(id: DeviceId) = usersBoat(id)
+//  def inviteByEmail(id: DeviceId) = usersBoat(id)
+  def invites = uri"/invites"
   val notifications = uri"/users/notifications"
   val notificationsDisable = uri"/users/notifications/disable"
   val boats = uri"/boats"

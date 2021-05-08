@@ -3,7 +3,8 @@ package com.malliina.boat.db
 import cats.effect.IO
 import com.malliina.boat.db.DoobieMappings._
 import com.malliina.boat.db.DoobieUserManager.log
-import com.malliina.boat.http.{AccessResult, InviteInfo}
+import com.malliina.boat.http.InviteResult.{AlreadyInvited, Invited, UnknownEmail}
+import com.malliina.boat.http.{AccessResult, InviteInfo, InviteResult}
 import com.malliina.boat.{Boat, BoatInfo, BoatNames, BoatToken, BoatTokens, DeviceId, Invite, InviteState, JoinedBoat, JoinedTrack, Language, TimeFormatter, UserBoats, UserInfo, UserToken, Usernames}
 import com.malliina.util.AppLogger
 import com.malliina.values.{Email, UserId, Username}
@@ -190,23 +191,40 @@ class DoobieUserManager(db: DoobieDatabase) extends UserManager with DoobieSQL {
     }
   }
 
-  def userBoat(boat: DeviceId, user: UserId) =
-    sql"""select user, boat, state, added
-          from users_boats 
-          where user = $user and boat = $boat"""
-
-  def invite(i: InviteInfo): IO[AccessResult] = run {
+  def invite(i: InviteInfo): IO[InviteResult] = run {
     userByEmail(i.email).query[UserRow].option.flatMap { invitee =>
       invitee.map { user =>
         addInviteIO(i.boat, user.id, i.principal)
       }.getOrElse {
-        pure(AccessResult(false))
+        pure(UnknownEmail(i.email): InviteResult)
       }
     }
   }
 
+  def grantAccess(boat: DeviceId, to: UserId, principal: UserId): IO[InviteResult] = run {
+    addInviteIO(boat, to, principal)
+  }
+
+  def revokeAccess(boat: DeviceId, from: UserId, principal: UserId): IO[AccessResult] = run {
+    manageGroups(boat, from, principal) { existed =>
+      if (existed) {
+        sql"delete from users_boats where boat = $boat and user = $from".update.run.map(changed =>
+          if (changed == 1) AccessResult(existed)
+          else AccessResult(false)
+        )
+      } else {
+        pure(AccessResult(existed))
+      }
+    }
+  }
+
+  def updateInvite(boat: DeviceId, user: UserId, state: InviteState): IO[Long] = run {
+    sql"update users_boats set state = ${state.name} where boat = $boat and user = $user".update.run
+      .map(_.toLong)
+  }
+
   private def linkInvite(boat: DeviceId, to: UserId) =
-    sql"""insert into users_boats(user, boat, state) values($to, $boat, ${InviteState.Awaiting.name})"""
+    sql"""insert into users_boats(user, boat, state) values($to, $boat, ${InviteState.awaiting})"""
 
   private def getOrCreate(email: Email) = for {
     existing <- userByEmail(email).query[UserRow].option
@@ -223,34 +241,29 @@ class DoobieUserManager(db: DoobieDatabase) extends UserManager with DoobieSQL {
     } yield userId
   }
 
-  def grantAccess(boat: DeviceId, to: UserId, principal: UserId): IO[AccessResult] = run {
-    addInviteIO(boat, to, principal)
-  }
+  private def userBoat(boat: DeviceId, user: UserId) =
+    sql"""select user, boat, state, added
+          from users_boats 
+          where user = $user and boat = $boat"""
 
-  def revokeAccess(boat: DeviceId, from: UserId, principal: UserId): IO[AccessResult] = run {
-    manageGroups(boat, from, principal) { existed =>
-      if (existed) sql"delete from users_boats where boat = $boat and user = $from".update.run
-      else pure(0)
-    }
-  }
-
-  def updateInvite(boat: DeviceId, user: UserId, state: InviteState): IO[Long] = run {
-    sql"update users_boats set state = ${state.name} where boat = $boat and user = $user".update.run
-      .map(_.toLong)
-  }
-
-  private def addInviteIO(boat: DeviceId, to: UserId, principal: UserId) =
+  private def addInviteIO(
+    boat: DeviceId,
+    to: UserId,
+    principal: UserId
+  ): ConnectionIO[InviteResult] =
     manageGroups(boat, to, principal) { existed =>
       if (existed) {
-        pure(0)
+        pure(AlreadyInvited(to, boat))
       } else {
-        linkInvite(boat, to).update.run
+        linkInvite(boat, to).update.run.map { _ =>
+          Invited(to, boat)
+        }
       }
     }
 
   private def manageGroups[T](boat: DeviceId, from: UserId, principal: UserId)(
     run: Boolean => ConnectionIO[T]
-  ): ConnectionIO[AccessResult] = {
+  ): ConnectionIO[T] = {
     for {
       owns <-
         sql"""select b.id from boats b where b.id = $boat and b.owner = $principal"""
@@ -265,10 +278,10 @@ class DoobieUserManager(db: DoobieDatabase) extends UserManager with DoobieSQL {
             )
           )
       link <-
-        sql"select ub.user from users_boats ub where ub.boat = $boat and ub.user = $from"
+        sql"select ub.user, u.email from users_boats ub, users u where ub.user = u.id and ub.boat = $boat and ub.user = $from"
           .query[UserId]
           .option
-      res <- run(link.isDefined).map(t => AccessResult(link.isDefined))
+      res <- run(link.isDefined)
     } yield res
   }
 }

@@ -742,6 +742,7 @@ class ModelHtml[Builder, Output <: FragT, FragT](val bundle: Bundle[Builder, Out
 sealed abstract class InviteState(val name: String)
 
 object InviteState extends StringEnumCompanion[InviteState] {
+  val awaiting: InviteState = Awaiting
   case object Awaiting extends InviteState("awaiting")
   case object Accepted extends InviteState("accepted")
   case object Rejected extends InviteState("rejected")
@@ -751,4 +752,12 @@ object InviteState extends StringEnumCompanion[InviteState] {
 
   override def all = Seq(Accepted, Rejected)
   override def write(t: InviteState) = t.name
+}
+
+object Emails {
+  val Key = "email"
+}
+
+object BoatIds {
+  val Key = "boat"
 }

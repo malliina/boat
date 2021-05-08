@@ -10,6 +10,7 @@ import com.malliina.boat.auth.{AuthProvider, SettingsPayload, UserPayload}
 import com.malliina.boat.db.{BoatRow, IdentityError, PushInput, StatsSource, TrackInsertsDatabase, TracksSource}
 import com.malliina.boat.graph._
 import com.malliina.boat.html.{BoatHtml, BoatLang}
+import com.malliina.boat.http.InviteResult.{AlreadyInvited, Invited, UnknownEmail}
 import com.malliina.boat.http._
 import com.malliina.boat.http4s.BasicService.{cached, noCache, ranges}
 import com.malliina.boat.http4s.Service.{BoatComps, log}
@@ -101,10 +102,14 @@ class Service(comps: BoatComps) extends BasicService[IO] {
     case req @ POST -> Root / "invites" =>
       jsonAction[InvitePayload](req) { (inviteInfo, user) =>
         userMgmt.invite(inviteInfo.byUser(user.id)).flatMap { res =>
-          val describe = if (res.existed) "Already invited." else "Not invited before."
-          log.info(
-            s"User ${user.email} invited ${inviteInfo.email} to boat ${inviteInfo.boat}. $describe"
-          )
+          val message = res match {
+            case UnknownEmail(email) => s"Unknown email: '$email'."
+            case Invited(uid, to) =>
+              s"User ${user.email} invited ${inviteInfo.email} to boat ${inviteInfo.boat}."
+            case AlreadyInvited(uid, to) =>
+              s"User ${inviteInfo.email} already invited to ${inviteInfo.boat}."
+          }
+          log.info(message)
           ok(SimpleMessage("Thank you."))
         }
       }

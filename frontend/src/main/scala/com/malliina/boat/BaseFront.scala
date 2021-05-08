@@ -54,6 +54,9 @@ trait BaseFront extends FrontKeys {
 
   def elem(id: String): Either[NotFound, Element] =
     Option(document.getElementById(id)).toRight(NotFound(id))
+
+  def elemsByClass[T](cls: String): List[T] =
+    document.getElementsByClassName(cls).toList.map(_.asInstanceOf[T])
 }
 
 sealed trait PathState {

@@ -37,7 +37,7 @@ class BoatHtml(jsFiles: ScriptAssets, assets: AssetsSource = HashedAssetsSource)
   implicit def wrapAttr[T <: WrappedString]: AttrValue[T] = BoatImplicits.boatStringAttr(_.value)
 
   def devices(user: UserInfo) =
-    page(PageConf(DevicesPage(user), bodyClasses = Seq(BoatsClass)))
+    page(PageConf(BoatsPage(user), bodyClasses = Seq(BoatsClass)))
 
   def tracks(data: TracksBundle, query: TrackQuery, lang: Lang) =
     page(PageConf(TracksPage(data, query, lang), bodyClasses = Seq(StatsClass)))

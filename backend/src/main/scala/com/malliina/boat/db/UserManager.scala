@@ -1,7 +1,7 @@
 package com.malliina.boat.db
 
 import cats.effect.IO
-import com.malliina.boat.http.{AccessResult, InviteInfo}
+import com.malliina.boat.http.{AccessResult, InviteInfo, InviteResult}
 import com.malliina.boat.{BoatToken, DeviceId, InviteState, JoinedBoat, Language, UserBoats, UserInfo, Usernames}
 import com.malliina.values._
 import org.apache.commons.codec.digest.DigestUtils
@@ -26,8 +26,8 @@ trait UserManager {
   def deleteUser(user: Username): IO[Either[UserDoesNotExist, Unit]]
   def initUser(user: Username = Usernames.anon): IO[NewUser]
   def changeLanguage(user: UserId, to: Language): IO[Boolean]
-  def invite(i: InviteInfo): IO[AccessResult]
-  def grantAccess(boat: DeviceId, to: UserId, principal: UserId): IO[AccessResult]
+  def invite(i: InviteInfo): IO[InviteResult]
+  def grantAccess(boat: DeviceId, to: UserId, principal: UserId): IO[InviteResult]
   def revokeAccess(boat: DeviceId, from: UserId, principal: UserId): IO[AccessResult]
   def updateInvite(boat: DeviceId, user: UserId, state: InviteState): IO[Long]
 
