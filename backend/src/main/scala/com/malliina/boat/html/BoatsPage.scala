@@ -6,7 +6,7 @@ import com.malliina.boat.http.CSRFConf
 import com.malliina.boat.http4s.Reverse
 import com.malliina.boat.{BoatIds, BoatNames, BoatRef, Emails, Forms, InviteState, UserInfo}
 import com.malliina.values.WrappedId
-import scalatags.{Text, generic}
+import scalatags.Text
 import scalatags.Text.all._
 import scalatags.text.Builder
 

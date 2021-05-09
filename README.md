@@ -28,7 +28,7 @@ Create and configure `~/.boat/boat.conf`.
 
     sbt
     project boat
-    ~reStart
+    ~start
 
 Navigate to http://localhost:9000.
 

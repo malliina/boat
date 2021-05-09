@@ -10,7 +10,6 @@ variables:
   DockerNamespace: malliinacr.azurecr.io
   DockerRepository: boat
   WebAppName: malliinaboat
-  SbtVersion: 1.4.6
   ContainerRegistry: malliinacr
 
 steps:
