@@ -28,6 +28,7 @@ object BasicService extends BasicService[IO] {
 }
 
 class BasicService[F[_]: Applicative: Sync] extends Implicits[F] {
+  def temporaryRedirect(uri: Uri) = TemporaryRedirect(Location(uri), noCache)
   def seeOther(uri: Uri) = SeeOther(Location(uri), noCache)
   def ok[A](a: A)(implicit w: EntityEncoder[F, A]) = Ok(a, noCache)
   def badRequest[A](a: A)(implicit w: EntityEncoder[F, A]) = BadRequest(a, noCache)

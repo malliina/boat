@@ -5,7 +5,7 @@ import cats.effect.{Blocker, ContextShift, IO}
 import cats.implicits.catsSyntaxFlatten
 import com.malliina.boat.Constants.{LanguageName, TokenCookieName}
 import com.malliina.boat.{Utils => BoatUtils, _}
-import com.malliina.boat.auth.AuthProvider.{PromptKey, SelectAccount}
+import com.malliina.boat.auth.AuthProvider.{Google, Microsoft, PromptKey, SelectAccount}
 import com.malliina.boat.auth.{AuthProvider, SettingsPayload, UserPayload}
 import com.malliina.boat.db.{BoatRow, IdentityError, PushInput, StatsSource, TrackInsertsDatabase, TracksSource}
 import com.malliina.boat.graph._
@@ -301,8 +301,18 @@ class Service(comps: BoatComps) extends BasicService[IO] {
           )
         }
       }
-    case GET -> Root / "sign-in" =>
-      ok(html.signIn(Lang.default))
+    case req @ GET -> Root / "sign-in" =>
+      req.cookies
+        .find(_.name == cookieNames.provider)
+        .flatMap { cookie =>
+          AuthProvider.forString(cookie.content).toOption
+        }
+        .map { provider =>
+          temporaryRedirect(reverse.signInFlow(provider))
+        }
+        .getOrElse {
+          ok(html.signIn(Lang.default))
+        }
     case req @ GET -> Root / "sign-in" / "google" =>
       startHinted(AuthProvider.Google, auth.googleFlow, req)
     case req @ GET -> Root / "sign-in" / "microsoft" =>

@@ -1,6 +1,7 @@
 package com.malliina.boat.http4s
 
 import cats.effect.IO
+import com.malliina.boat.auth.AuthProvider.SelectAccount
 import com.malliina.boat.auth.{AuthProvider, CookieConf, JWT, UserPayload}
 import com.malliina.boat.db.{IdentityError, JWTError, MissingCredentials}
 import com.malliina.values.{IdToken, Username}
@@ -44,6 +45,7 @@ class Http4sAuth(
       .removeCookie(cookieNames.lastId)
       .removeCookie(ResponseCookie(cookieNames.authState, "", path = cookiePath))
       .removeCookie(ResponseCookie(cookieNames.user, "", path = cookiePath))
+      .addCookie(cookieNames.prompt, SelectAccount)
 
   def withAppUser(
     user: UserPayload,
