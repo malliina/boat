@@ -42,6 +42,8 @@ class BoatHtml(jsFiles: ScriptAssets, assets: AssetsSource = HashedAssetsSource)
   def tracks(data: TracksBundle, query: TrackQuery, lang: Lang) =
     page(PageConf(TracksPage(data, query, lang), bodyClasses = Seq(StatsClass)))
 
+  def signIn(lang: Lang) = page(PageConf(SignInPage(lang)))
+
   def list(track: FullTrack, current: Limits, lang: BoatLang) =
     page(PageConf(SentencesPage(track, current, lang), bodyClasses = Seq(FormsClass)))
 
@@ -136,7 +138,7 @@ class BoatHtml(jsFiles: ScriptAssets, assets: AssetsSource = HashedAssetsSource)
     fontAwesomeLink(span, Question, "question", cls, "About")
 
   def personIcon(cls: String) =
-    fontAwesomeLink(a, PersonLink, "user", cls, "Sign in", href := reverse.google)
+    fontAwesomeLink(a, PersonLink, "user", cls, "Sign in", href := reverse.signIn)
 
   def fontAwesomeLink(
     tag: ConcreteHtmlTag[String],

@@ -301,14 +301,16 @@ class Service(comps: BoatComps) extends BasicService[IO] {
           )
         }
       }
+    case GET -> Root / "sign-in" =>
+      ok(html.signIn(Lang.default))
     case req @ GET -> Root / "sign-in" / "google" =>
-      startHinted(AuthProvider.Google, auth.flow, req)
+      startHinted(AuthProvider.Google, auth.googleFlow, req)
+    case req @ GET -> Root / "sign-in" / "microsoft" =>
+      startHinted(AuthProvider.Microsoft, auth.microsoftFlow, req)
     case req @ GET -> Root / "sign-in" / "callbacks" / "google" =>
-      handleCallback(
-        req,
-        AuthProvider.Google,
-        cb => auth.flow.validateCallback(cb).map(e => e.flatMap(auth.flow.parse))
-      )
+      handleAuthCallback(auth.googleFlow, AuthProvider.Google, req)
+    case req @ GET -> Root / "sign-in" / "callbacks" / "microsoft" =>
+      handleAuthCallback(auth.microsoftFlow, AuthProvider.Microsoft, req)
     case GET -> Root / "sign-out" =>
       SeeOther(Location(reverse.index)).map { res =>
         auth.web.clearSession(res)
@@ -505,7 +507,7 @@ class Service(comps: BoatComps) extends BasicService[IO] {
     validator: LoginHint[IO],
     req: Request[IO]
   ): IO[Response[IO]] = IO {
-    val redirectUrl = Urls.hostOnly(req) / reverse.googleCallback.renderString
+    val redirectUrl = Urls.hostOnly(req) / reverse.signInCallback(provider).renderString
     val lastIdCookie = req.cookies.find(_.name == cookieNames.lastId)
     val promptValue = req.cookies
       .find(_.name == cookieNames.prompt)
@@ -549,6 +551,16 @@ class Service(comps: BoatComps) extends BasicService[IO] {
       }
   }
 
+  private def handleAuthCallback(
+    flow: DiscoveringAuthFlow[Email],
+    provider: AuthProvider,
+    req: Request[IO]
+  ) = handleCallback(
+    req,
+    provider,
+    cb => flow.validateCallback(cb).map(e => e.flatMap(flow.parse))
+  )
+
   private def handleCallback(
     req: Request[IO],
     provider: AuthProvider,
@@ -561,7 +573,7 @@ class Service(comps: BoatComps) extends BasicService[IO] {
       session.get(State),
       params.get(OAuthKeys.CodeKey),
       session.get(Nonce),
-      Urls.hostOnly(req) / reverse.googleCallback.renderString
+      Urls.hostOnly(req) / reverse.signInCallback(provider).renderString
     )
     validate(cb).flatMap { e =>
       e.fold(
@@ -597,7 +609,7 @@ class Service(comps: BoatComps) extends BasicService[IO] {
   }
 
   def unauthorized(errors: Errors) = redirectToLogin
-  def redirectToLogin = SeeOther(Location(reverse.google))
+  def redirectToLogin = SeeOther(Location(reverse.signIn))
 
   def unauthorizedEnd(errors: Errors) =
     Unauthorized(

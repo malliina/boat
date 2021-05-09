@@ -3,7 +3,7 @@ package com.malliina.boat.http4s
 import com.malliina.boat.auth.{BasicCredentials, EmailAuth}
 import com.malliina.boat.db.MissingCredentials
 import com.malliina.values.{IdToken, Password, Username}
-import com.malliina.web.GoogleAuthFlow
+import com.malliina.web.{EmailAuthFlow, GoogleAuthFlow}
 import org.http4s.Credentials.Token
 import org.http4s.headers.Authorization
 import org.http4s.{Credentials, Headers}
@@ -31,4 +31,9 @@ object Auth {
     .toRight(MissingCredentials("No credentials.", hs))
 }
 
-case class AuthComps(google: EmailAuth, web: Http4sAuth, flow: GoogleAuthFlow)
+case class AuthComps(
+  google: EmailAuth,
+  web: Http4sAuth,
+  googleFlow: GoogleAuthFlow,
+  microsoftFlow: EmailAuthFlow
+)

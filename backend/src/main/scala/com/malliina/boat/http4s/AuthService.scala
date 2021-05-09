@@ -20,7 +20,8 @@ object AuthService {
 class AuthService(val users: UserManager, comps: AuthComps) {
   val google = comps.google
   val web = comps.web
-  val flow = comps.flow
+  val googleFlow = comps.googleFlow
+  val microsoftFlow = comps.microsoftFlow
 
   def profile(req: Request[IO]): IO[UserInfo] = profile(req.headers)
 

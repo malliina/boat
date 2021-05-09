@@ -52,7 +52,9 @@ object LocalConf {
 case class MapboxConf(token: AccessToken)
 
 case class AppleConf(id: ClientId)
-case class WebConf(id: ClientId, secret: ClientSecret)
+case class WebConf(id: ClientId, secret: ClientSecret) {
+  def webAuthConf = AuthConf(id, secret)
+}
 case class GoogleConf(ios: AppleConf, web: WebConf) {
   def webAuthConf = AuthConf(web.id, web.secret)
 }
@@ -65,6 +67,7 @@ case class BoatConf(
   secret: SecretKey,
   db: Conf,
   google: GoogleConf,
+  microsoft: WebConf,
   push: PushConf
 )
 

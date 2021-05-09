@@ -1,5 +1,6 @@
 package com.malliina.boat.http4s
 
+import com.malliina.boat.auth.AuthProvider
 import com.malliina.boat.{DeviceId, TrackCanonical, TrackId, TrackName}
 import com.malliina.values.UserId
 import org.http4s.Uri
@@ -40,8 +41,9 @@ object Reverse {
     val boats = uri"/ws/boats"
     val devices = uri"/ws/devices"
   }
-  val google = uri"/sign-in/google"
-  val googleCallback = uri"/sign-in/callbacks/google"
+  val signIn = uri"/sign-in"
+  def signInFlow(provider: AuthProvider) = signIn / provider.name
+  def signInCallback(provider: AuthProvider) = signIn / "callbacks" / provider.name
   val signOut = uri"/sign-out"
   val docsAgent = uri"/docs/agent"
   val docsSupport = uri"/docs/support"

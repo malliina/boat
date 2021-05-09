@@ -50,9 +50,10 @@ sealed abstract class AuthProvider(val name: String)
 object AuthProvider {
   val PromptKey = "prompt"
   val SelectAccount = "select_account"
+  val all = Seq(Google, Microsoft)
 
   def forString(s: String): Either[SingleError, AuthProvider] =
-    Seq(Google)
+    all
       .find(_.name == s)
       .toRight(SingleError.input(s"Unknown auth provider: '$s'."))
 
@@ -60,4 +61,5 @@ object AuthProvider {
     forString(str).toOption
 
   case object Google extends AuthProvider("google")
+  case object Microsoft extends AuthProvider("microsoft")
 }

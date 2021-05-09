@@ -12,7 +12,7 @@ import com.malliina.boat.{AppMeta, AppMode, BoatConf, S3Client}
 import com.malliina.http.HttpClient
 import com.malliina.http.io.HttpClientIO
 import com.malliina.util.AppLogger
-import com.malliina.web.GoogleAuthFlow
+import com.malliina.web.{EmailAuthFlow, GoogleAuthFlow, MicrosoftAuthFlow}
 import org.http4s.server.blaze.BlazeServerBuilder
 import org.http4s.server.middleware.{GZip, HSTS}
 import org.http4s.server.{Router, Server}
@@ -80,7 +80,12 @@ object Server extends IOApp {
     val appComps = builder(conf, http, contextShift)
     val auth = Http4sAuth(JWT(conf.secret))
     val googleAuth = appComps.emailAuth
-    val authComps = AuthComps(googleAuth, auth, GoogleAuthFlow(conf.google.webAuthConf, http))
+    val authComps = AuthComps(
+      googleAuth,
+      auth,
+      GoogleAuthFlow(conf.google.webAuthConf, http),
+      MicrosoftAuthFlow(conf.microsoft.webAuthConf, http)
+    )
     val auths = new AuthService(users, authComps)
     val tracksDatabase = DoobieTracksDatabase(db)
     val push = DoobiePushDatabase(db, appComps.pushService)
