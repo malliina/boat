@@ -774,7 +774,7 @@ object InviteState extends StringEnumCompanion[InviteState] {
 
   def orOther(in: String): InviteState = build(in).getOrElse(Other(in))
 
-  override def all = Seq(Accepted, Rejected)
+  override def all = Seq(Awaiting, Accepted, Rejected)
   override def write(t: InviteState) = t.name
 }
 
@@ -784,4 +784,11 @@ object Emails {
 
 object BoatIds {
   val Key = "boat"
+}
+
+object Forms {
+  val Accept = "accept"
+  val Boat = BoatIds.Key
+  val Email = Emails.Key
+  val User = "user"
 }

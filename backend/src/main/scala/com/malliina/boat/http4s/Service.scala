@@ -16,7 +16,7 @@ import com.malliina.boat.http4s.BasicService.{cached, noCache, ranges}
 import com.malliina.boat.http4s.Service.{BoatComps, log}
 import com.malliina.boat.push.{BoatState, PushService}
 import com.malliina.util.AppLogger
-import com.malliina.values.{Email, Username}
+import com.malliina.values.{Email, UserId, Username}
 import com.malliina.web.OAuthKeys.{Nonce, State}
 import com.malliina.web.Utils.randomString
 import com.malliina.web._
@@ -100,7 +100,7 @@ class Service(comps: BoatComps) extends BasicService[IO] {
         }
       }
     case req @ POST -> Root / "invites" =>
-      jsonAction[InvitePayload](req) { (inviteInfo, user) =>
+      formAction[InvitePayload](req, forms.invite) { (inviteInfo, user) =>
         userMgmt.invite(inviteInfo.byUser(user.id)).flatMap { res =>
           val message = res match {
             case UnknownEmail(email) =>
@@ -111,14 +111,26 @@ class Service(comps: BoatComps) extends BasicService[IO] {
               s"User ${inviteInfo.email} already invited to ${inviteInfo.boat}."
           }
           log.info(message)
-          ok(SimpleMessage("Thank you."))
+          seeOther(reverse.boats)
         }
       }
     case req @ POST -> Root / "invites" / "revoke" =>
-      jsonAction[RevokeAccess](req) { (revokeInfo, user) =>
+      formAction[RevokeAccess](req, forms.revokeInvite) { (revokeInfo, user) =>
         userMgmt.revokeAccess(revokeInfo.to, revokeInfo.from, user.id).flatMap { res =>
-          ok(res)
+          seeOther(reverse.boats)
         }
+      }
+    case req @ POST -> Root / "invites" / "respond" =>
+      formAction[InviteResponse](req, forms.respondInvite) { (response, user) =>
+        userMgmt
+          .updateInvite(
+            response.to,
+            user.id,
+            if (response.accept) InviteState.Accepted else InviteState.Rejected
+          )
+          .flatMap { res =>
+            seeOther(reverse.boats)
+          }
       }
     case GET -> Root / "conf" => ok(ClientConf.default)
     case req @ GET -> Root / "boats" =>
@@ -328,6 +340,23 @@ class Service(comps: BoatComps) extends BasicService[IO] {
       )
   }
 
+  object forms {
+    def invite(form: FormReader) = for {
+      boat <- form.readLong[DeviceId](Forms.Boat, DeviceId.build)
+      email <- form.readOne[Email](Forms.Email, Email.build)
+    } yield InvitePayload(boat, email)
+
+    def respondInvite(form: FormReader) = for {
+      boat <- form.readLong[DeviceId](Forms.Boat, DeviceId.build)
+      accept <- form.readBool(Forms.Accept)
+    } yield InviteResponse(boat, accept)
+
+    def revokeInvite(form: FormReader) = for {
+      boat <- form.readLong[DeviceId](Forms.Boat, DeviceId.build)
+      user <- form.readLong[UserId](Forms.User, UserId.build)
+    } yield RevokeAccess(boat, user)
+  }
+
   private def webSocket[T](
     toClient: fs2.Stream[IO, WebSocketFrame],
     onMessage: String => IO[Unit],
@@ -355,7 +384,6 @@ class Service(comps: BoatComps) extends BasicService[IO] {
           secure = isSecure,
           httpOnly = false
         )
-        log.info(s"Got $maybeBoat")
         val languageCookie = ResponseCookie(
           LanguageName,
           maybeBoat.map(_.language).getOrElse(Language.default).code,

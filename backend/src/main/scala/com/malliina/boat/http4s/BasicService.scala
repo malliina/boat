@@ -9,7 +9,7 @@ import com.malliina.boat.http4s.BasicService.{log, noCache}
 import com.malliina.util.AppLogger
 import org.http4s.CacheDirective._
 import org.http4s._
-import org.http4s.headers.{Accept, `Cache-Control`}
+import org.http4s.headers.{Accept, Location, `Cache-Control`}
 
 import scala.concurrent.duration.FiniteDuration
 
@@ -28,6 +28,7 @@ object BasicService extends BasicService[IO] {
 }
 
 class BasicService[F[_]: Applicative: Sync] extends Implicits[F] {
+  def seeOther(uri: Uri) = SeeOther(Location(uri), noCache)
   def ok[A](a: A)(implicit w: EntityEncoder[F, A]) = Ok(a, noCache)
   def badRequest[A](a: A)(implicit w: EntityEncoder[F, A]) = BadRequest(a, noCache)
   def notFoundReq(req: Request[F]): F[Response[F]] =

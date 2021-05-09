@@ -27,7 +27,7 @@ object Frontend extends BodyClasses {
       Right(StatsPage())
     }
     init(BoatsClass) {
-      Right(FormHandlers.invites())
+      Right(FormHandlers.inviteOthers())
     }
   }
 }

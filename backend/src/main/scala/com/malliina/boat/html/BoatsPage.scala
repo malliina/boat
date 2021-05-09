@@ -1,14 +1,20 @@
 package com.malliina.boat.html
 
-import com.malliina.boat.FrontKeys.{DeleteForm, FormCancel, FormParent, Hidden, InviteFormBoatClass, InviteFormClass, InviteFormInputClass, InviteFormOpen}
+import com.malliina.boat.FrontKeys._
+import com.malliina.boat.InviteState.{Accepted, Awaiting, Other, Rejected}
 import com.malliina.boat.http.CSRFConf
 import com.malliina.boat.http4s.Reverse
-import com.malliina.boat.{BoatIds, BoatNames, DeviceId, Emails, UserInfo}
-import scalatags.Text
+import com.malliina.boat.{BoatIds, BoatNames, BoatRef, Emails, Forms, InviteState, UserInfo}
+import com.malliina.values.WrappedId
+import scalatags.{Text, generic}
 import scalatags.Text.all._
+import scalatags.text.Builder
+
+import scala.language.implicitConversions
 
 object BoatsPage extends BoatImplicits with CSRFConf {
   val reverse = Reverse
+  val empty: Modifier = modifier()
 
   def apply(user: UserInfo): Text.TypedTag[String] = {
     val langs = BoatLang(user.language)
@@ -16,6 +22,13 @@ object BoatsPage extends BoatImplicits with CSRFConf {
     val webLang = langs.web
     val settings = lang.settings
     val boatLang = settings.boatLang
+    val inviteLang = settings.invite
+    implicit def stateToHtml(s: InviteState): Modifier = s match {
+      case Awaiting => inviteLang.awaiting
+      case Accepted => inviteLang.accepted
+      case Rejected => inviteLang.rejected
+      case Other(_) => ""
+    }
     div(`class` := "container")(
       div(`class` := "row")(
         div(`class` := "col-md-12")(
@@ -37,24 +50,22 @@ object BoatsPage extends BoatImplicits with CSRFConf {
               td(boat.name),
               td(boat.token),
               td(`class` := s"table-button $FormParent")(
-                div(
-                  div(`class` := "row")(
-                    div(`class` := "col")(
-                      form(
-                        method := "POST",
-                        action := reverse.boatDelete(boat.id),
-                        onsubmit := s"return confirm('$confirmDeletionText');",
-                        `class` := DeleteForm
-                      )(
-                        button(`type` := "submit", `class` := "btn btn-sm btn-danger")(
-                          settings.delete
-                        )
+                div(`class` := "row")(
+                  div(`class` := "col")(
+                    form(
+                      method := "POST",
+                      action := reverse.boatDelete(boat.id),
+                      onsubmit := s"return confirm('$confirmDeletionText');",
+                      `class` := DeleteForm
+                    )(
+                      button(`type` := "submit", `class` := "btn btn-sm btn-danger")(
+                        settings.delete
                       )
-                    ),
-                    div(`class` := "col")(
-                      button(`type` := "button", `class` := s"btn btn-sm btn-info $InviteFormOpen")(
-                        settings.invite
-                      )
+                    )
+                  ),
+                  div(`class` := "col")(
+                    button(`type` := "button", `class` := s"btn btn-sm btn-info $InviteFormOpen")(
+                      settings.invite.invite
                     )
                   )
                 ),
@@ -64,12 +75,7 @@ object BoatsPage extends BoatImplicits with CSRFConf {
                   `class` := s"$InviteFormClass $Hidden"
                 )(
                   div(`class` := "form-group row")(
-                    input(
-                      `type` := "hidden",
-                      name := BoatIds.Key,
-                      `class` := InviteFormBoatClass,
-                      value := s"${boat.id}"
-                    ),
+                    hiddenInput(BoatIds.Key, boat.id),
                     labeledInput(
                       "Email",
                       "email-label",
@@ -80,7 +86,7 @@ object BoatsPage extends BoatImplicits with CSRFConf {
                     ),
                     div(`class` := "col-sm-3 pl-sm-0 pt-2 pt-sm-0")(
                       button(`type` := "submit", `class` := "btn btn-sm btn-primary")(
-                        settings.invite
+                        settings.invite.invite
                       ),
                       button(
                         `type` := "button",
@@ -95,7 +101,7 @@ object BoatsPage extends BoatImplicits with CSRFConf {
           }
         )
       ),
-      form(method := "POST", action := reverse.createBoat)(
+      form(method := "POST", action := reverse.createBoat, `class` := "pb-5")(
         div(`class` := "form-group row")(
           labeledInput(
             boatLang.addBoat,
@@ -112,66 +118,112 @@ object BoatsPage extends BoatImplicits with CSRFConf {
       ),
       div(`class` := "row")(
         div(`class` := "col-md-12")(
-          h2("Invites")
+          h2(inviteLang.invites)
         )
       ),
-      table(`class` := "table table-hover")(
-        thead(
-          tr(
-            th(boatLang.boat),
-            th("State"),
-            th(settings.actions)
-          )
-        ),
-        tbody(
-          user.invites.map { i =>
+      if (user.invites.isEmpty) {
+        p(`class` := "mb-5")(inviteLang.noInvites)
+      } else {
+        table(`class` := "table table-hover mb-5")(
+          thead(
             tr(
-              td(i.boat.name),
-              td(i.state.name),
-              td("todo")
+              th(boatLang.boat),
+              th(inviteLang.state),
+              th(settings.actions)
             )
-          }
-        )
-      ),
-      div(`class` := "row")(
-        div(`class` := "col-md-12")(
-          h2("Friends")
-        )
-      ),
-      table(`class` := "table table-hover")(
-        thead(
-          tr(
-            th(boatLang.boat),
-            th("User"),
-            th("State"),
-            th("Actions")
-          )
-        ),
-        tbody(
-          user.friends.map { f =>
-            val confirmRevokeText = s"Revoke access to ${f.boat.name} from ${f.friend.email}?"
-            tr(
-              td(f.boat.name),
-              td(f.friend.email),
-              td(f.state.name),
-              td(
-                form(
-                  method := "POST",
-                  action := reverse.revoke,
-                  onsubmit := s"return confirm('$confirmRevokeText');",
-                  `class` := DeleteForm
-                )(
-                  button(`type` := "submit", `class` := "btn btn-sm btn-danger")(
-                    settings.delete
+          ),
+          tbody(
+            user.invites.map { i =>
+              tr(
+                td(i.boat.name),
+                td(i.state),
+                td(`class` := "table-button")(
+                  div(`class` := "row")(
+                    if (i.state != Accepted) {
+                      respondForm(i.boat, inviteLang.accept, accept = true)
+                    } else {
+                      empty
+                    },
+                    if (i.state != Rejected) {
+                      respondForm(i.boat, inviteLang.reject, accept = false)
+                    } else {
+                      empty
+                    }
                   )
                 )
               )
+            }
+          )
+        )
+      },
+      div(`class` := "row")(
+        div(`class` := "col-md-12")(
+          h2(inviteLang.friends)
+        )
+      ),
+      if (user.friends.isEmpty) {
+        p(`class` := "mb-5")(inviteLang.noFriends)
+      } else {
+        table(`class` := "table table-hover")(
+          thead(
+            tr(
+              th(boatLang.boat),
+              th(inviteLang.email),
+              th(inviteLang.state),
+              th(settings.actions)
             )
-          }
+          ),
+          tbody(
+            user.friends.map { f =>
+              val confirmRevokeText = inviteLang.confirmRevoke(f.boat.name, f.friend.email)
+              tr(
+                td(f.boat.name),
+                td(f.friend.email),
+                td(f.state),
+                td(`class` := "table-button")(
+                  form(
+                    method := "POST",
+                    action := reverse.revoke,
+                    onsubmit := s"return confirm('$confirmRevokeText');",
+                    `class` := FriendsForm
+                  )(
+                    hiddenInput(Forms.Boat, f.boat.id),
+                    hiddenInput(Forms.User, f.friend.id),
+                    button(`type` := "submit", `class` := "btn btn-sm btn-danger")(
+                      settings.delete
+                    )
+                  )
+                )
+              )
+            }
+          )
+        )
+      }
+    )
+  }
+
+  private def respondForm(boat: BoatRef, buttonText: String, accept: Boolean) =
+    div(`class` := "col")(
+      form(
+        method := "POST",
+        action := reverse.invitesRespond
+      )(
+        hiddenInput(Forms.Boat, boat.id),
+        hiddenInput(Forms.Accept, s"$accept"),
+        button(`type` := "submit", `class` := "btn btn-sm btn-info")(
+          buttonText
         )
       )
     )
-  }
+
+  implicit def attrId[T <: WrappedId]: AttrValue[T] = (t: Builder, a: Attr, v: T) =>
+    t.setAttr(a.name, Builder.GenericAttrValueSource(s"$v"))
+
+  def hiddenInput[T: AttrValue](inputName: String, inputValue: T) = input(
+    `type` := "hidden",
+    name := inputName,
+    value := inputValue
+  )
 
   def labeledInput(
     labelText: String,

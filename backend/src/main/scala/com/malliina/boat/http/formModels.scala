@@ -26,6 +26,12 @@ object RevokeAccess {
   implicit val json = Json.format[RevokeAccess]
 }
 
+case class InviteResponse(to: DeviceId, accept: Boolean)
+
+object InviteResponse {
+  implicit val json = Json.format[InviteResponse]
+}
+
 case class InvitePayload(boat: DeviceId, email: Email) {
   def byUser(user: UserId) = InviteInfo(boat, email, user)
 }

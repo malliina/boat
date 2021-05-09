@@ -1,6 +1,7 @@
 package com.malliina.boat
 
 import com.malliina.http.FullUrl
+import com.malliina.values.Email
 import play.api.libs.json.{Format, Json, Writes}
 
 case class TrafficSignTypeLang(
@@ -673,6 +674,31 @@ object BoatLang {
   implicit val json = Json.format[BoatLang]
 }
 
+case class InviteLang(
+  invites: String,
+  noInvites: String,
+  invite: String,
+  placeholder: String,
+  friends: String,
+  noFriends: String,
+  state: String,
+  email: String,
+  revoke: String,
+  accept: String,
+  accepted: String,
+  reject: String,
+  rejected: String,
+  awaiting: String,
+  from: String
+) {
+  def confirmRevoke(boat: BoatName, fromEmail: Email) =
+    s"$revoke $boat $from $fromEmail?"
+}
+
+object InviteLang {
+  implicit val json = Json.format[InviteLang]
+}
+
 case class SettingsLang(
   welcome: String,
   welcomeText: String,
@@ -692,8 +718,7 @@ case class SettingsLang(
   boatLang: BoatLang,
   actions: String,
   delete: String,
-  invite: String,
-  invitePlaceholder: String
+  invite: InviteLang
 )
 
 object SettingsLang {
@@ -1198,8 +1223,23 @@ object Lang {
       ),
       "Actions",
       "Delete",
-      "Invite",
-      "Email"
+      InviteLang(
+        "Invites",
+        "No invites.",
+        "Invite",
+        "Email",
+        "Friends",
+        "No friends.",
+        "State",
+        "Email",
+        "Revoke",
+        "Accept",
+        "Accepted",
+        "Reject",
+        "Rejected",
+        "Awaiting",
+        "from"
+      )
     ),
     LimitLang.en,
     LabelsLang("Statistics", "Monthly", "Yearly", "All time"),
@@ -1341,8 +1381,23 @@ object Lang {
       ),
       "Toimenpiteet",
       "Poista",
-      "Kutsu",
-      "Sähköposti"
+      InviteLang(
+        "Kutsutut",
+        "Ei kutsuttuja.",
+        "Kutsu",
+        "Sähköposti",
+        "Ystävät",
+        "Ei ystäviä.",
+        "Tila",
+        "Sähköposti",
+        "Poista",
+        "Hyväksy",
+        "Hyväksytty",
+        "Kiellä",
+        "Kielletty",
+        "Odottaa",
+        "käyttäjältä"
+      )
     ),
     LimitLang.fi,
     LabelsLang("Tilastot", "Kuukausittain", "Vuosittain", "Kaikki"),
@@ -1479,8 +1534,23 @@ object Lang {
       ),
       "Ändringar",
       "Radera",
-      "Bjud in",
-      "E-post"
+      InviteLang(
+        "Inbjudningar",
+        "Inga inbjudningar.",
+        "Bjud in",
+        "E-post",
+        "Vänner",
+        "Inga vänner.",
+        "Status",
+        "E-post",
+        "Ta bort",
+        "Acceptera",
+        "Accepterad",
+        "Tacka nej",
+        "Tackade nej",
+        "Väntar",
+        "från"
+      )
     ),
     LimitLang.se,
     LabelsLang("Statistik", "Per månad", "Per år", "Alla tider"),

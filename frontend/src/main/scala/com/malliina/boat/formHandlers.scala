@@ -3,12 +3,10 @@ package com.malliina.boat
 import com.malliina.boat.FrontKeys.{CommentsRow, TrackRow}
 import com.malliina.boat.http.CSRFConf
 import com.malliina.http.HttpClient
-import com.malliina.values.ErrorMessage
 import org.scalajs.dom.raw._
 import play.api.libs.json.{JsObject, Json}
 
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
-import scala.util.Try
 
 object FormHandlers extends BaseFront {
   def titles(): Either[NotFound, TitleHandler] = {
@@ -26,35 +24,22 @@ object FormHandlers extends BaseFront {
       cancelButton <- elemAs[HTMLButtonElement](CancelEditCommentsId)
     } yield new CommentsHandler(form, editIcon, cancelButton)
 
-  def invites() = for {
+  def inviteOthers() = for {
     parent <- elemsByClass[Element](FormParent)
     form <- parent.getElementsByClassName(InviteFormClass).map(_.asInstanceOf[HTMLFormElement])
     open <- parent.getElementsByClassName(InviteFormOpen).headOption
     cancel <- parent.getElementsByClassName(FormCancel).headOption
     delete <- parent.getElementsByClassName(DeleteForm).headOption
-  } yield new InviteHandler(parent, form, open, cancel, delete)
+  } yield new InviteHandler(form, open, cancel, delete)
 }
 
 class InviteHandler(
-  parent: Element,
   form: HTMLFormElement,
   open: Element,
   cancel: Element,
   delete: Element,
   log: BaseLogger = BaseLogger.console
 ) extends BaseFront {
-  form.onsubmit = (e: Event) => {
-    for {
-      email <- descendantValue(InviteFormInputClass)
-      boat <- descendantValue(InviteFormBoatClass)
-      boatNum <- Try(boat.toInt).toEither.left.map(t => ErrorMessage(t.getMessage))
-    } yield HttpClient.post[JsObject, SimpleMessage](
-      form.action,
-      Json.obj(Emails.Key -> email, BoatIds.Key -> boatNum)
-    )
-    e.preventDefault()
-  }
-
   open.addOnClick { e =>
     form.show()
     open.hide()
@@ -66,14 +51,6 @@ class InviteHandler(
     open.show()
     delete.show()
   }
-
-  def descendantValue(cls: String) =
-    form
-      .getElementsByClassName(cls)
-      .headOption
-      .map(_.asInstanceOf[HTMLInputElement])
-      .map(_.value)
-      .toRight(ErrorMessage(s"No element found with class '$cls'."))
 }
 
 class TitleHandler(

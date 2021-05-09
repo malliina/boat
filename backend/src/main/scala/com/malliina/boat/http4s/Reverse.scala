@@ -18,6 +18,7 @@ object Reverse {
 //  def inviteByEmail(id: DeviceId) = usersBoat(id)
   def invites = uri"/invites"
   def revoke = uri"/invites/revoke"
+  def invitesRespond = uri"/invites/respond"
   val notifications = uri"/users/notifications"
   val notificationsDisable = uri"/users/notifications/disable"
   val boats = uri"/boats"
