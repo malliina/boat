@@ -121,16 +121,16 @@ val frontend = project
     fullOptJS / webpackConfigFile := Some(
       baseDirectory.value / "webpack.prod.config.js"
     ),
-    Compile / fullOptJS / scalaJSLinkerConfig ~= { _.withSourceMap(false) },
-    Compile / fastOptJS / hashAssets += {
-      // TODO hack; fix properly later in sbt-bundler plugin
-      // For some reason task webpack does not emit .map file for frontend-fastopt.js even though it is generated
-      val filename = "frontend-fastopt.js.map"
-      val path = (Compile / npmUpdate / crossTarget).value / filename
-      val dest = assetsDir.value.resolve("public").resolve(filename)
-      Files.copy(path.toPath, dest, StandardCopyOption.REPLACE_EXISTING)
-      HashedFile(filename, filename, dest, dest)
-    }
+    Compile / fullOptJS / scalaJSLinkerConfig ~= { _.withSourceMap(false) }
+//    Compile / fastOptJS / hashAssets += {
+//      // TODO hack; fix properly later in sbt-bundler plugin
+//      // For some reason task webpack does not emit .map file for frontend-fastopt.js even though it is generated
+//      val filename = "frontend-fastopt.js.map"
+//      val path = (Compile / npmUpdate / crossTarget).value / filename
+//      val dest = assetsDir.value.resolve("public").resolve(filename)
+//      Files.copy(path.toPath, dest, StandardCopyOption.REPLACE_EXISTING)
+//      HashedFile(filename, filename, dest, dest)
+//    }
   )
 
 val http4sModules = Seq("blaze-server", "blaze-client", "dsl", "scalatags", "play-json")
