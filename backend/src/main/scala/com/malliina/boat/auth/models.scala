@@ -1,6 +1,6 @@
 package com.malliina.boat.auth
 
-import com.malliina.boat.{Language, MinimalUserInfo, SingleError}
+import com.malliina.boat.{BoatName, Language, MinimalUserInfo, SingleError}
 import com.malliina.values.{Email, Password, Username}
 import play.api.libs.json.Json
 
@@ -30,7 +30,8 @@ object CookieConf {
   )
 }
 
-case class SettingsPayload(username: Username, language: Language) extends MinimalUserInfo
+case class SettingsPayload(username: Username, language: Language, authorized: Seq[BoatName])
+  extends MinimalUserInfo
 
 object SettingsPayload {
   val cookieName = "boat-settings"

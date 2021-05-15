@@ -30,7 +30,7 @@ class DoobieTests extends MUnitSuite {
     val doobie = dbr.resource
     val db = DoobieTracksDatabase(doobie)
     val task = db.tracksBundle(
-      SimpleUserInfo(Username("mle"), Language.english),
+      SimpleUserInfo(Username("mle"), Language.english, Nil),
       TrackQuery(TrackSort.TopSpeed, SortOrder.Desc, Limits(10, 0)),
       Lang.default
     )

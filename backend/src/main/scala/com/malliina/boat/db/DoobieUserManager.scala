@@ -1,6 +1,7 @@
 package com.malliina.boat.db
 
 import cats.effect.IO
+import com.malliina.boat.InviteState.accepted
 import com.malliina.boat.db.DoobieMappings._
 import com.malliina.boat.db.DoobieUserManager.log
 import com.malliina.boat.http.InviteResult.{AlreadyInvited, Invited, UnknownEmail}
@@ -168,9 +169,10 @@ class DoobieUserManager(db: DoobieDatabase) extends UserManager with DoobieSQL {
   }
 
   def boats(email: Email) = run {
-    def boatRowsIO(id: UserId) = sql"""${sql.nonEmptyTracks} and b.uid = $id and t.points > 10"""
-      .query[JoinedTrack]
-      .to[List]
+    def boatRowsIO(id: UserId) =
+      sql"""${sql.nonEmptyTracks} and (b.uid = $id or b.id in (select ub.boat from users_boats ub where ub.user = $id and ub.state = $accepted)) and t.points > 10"""
+        .query[JoinedTrack]
+        .to[List]
     def deviceRowsIO(email: Email) =
       sql"""${sql.boats} and u.email = $email and b.id not in (select boat from tracks)"""
         .query[JoinedBoat]

@@ -36,7 +36,8 @@ class AuthService(val users: UserManager, comps: AuthComps) {
       e.map { opt => UserRequest(opt, req) }
   }
 
-  def authOrAnon(headers: Headers) = minimal(headers, _ => IO.pure(MinimalUserInfo.anon))
+  def authOrAnon(headers: Headers): IO[MinimalUserInfo] =
+    minimal(headers, _ => IO.pure(MinimalUserInfo.anon))
 
   def typical(headers: Headers) = minimal(headers, mce => IO.raiseError(mce))
 

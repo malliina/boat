@@ -2,6 +2,8 @@ package com.malliina.boat.http
 
 import cats.data.NonEmptyList
 import cats.effect.IO
+import cats.implicits._
+
 import com.malliina.boat.http4s.QueryParsers
 import com.malliina.boat.{Constants, Coord, Errors, Latitude, Longitude, RouteRequest, SingleError, TrackCanonical, TrackName, UserInfo}
 import com.malliina.values.{Email, ErrorMessage}
@@ -111,8 +113,8 @@ case class BoatQuery(
   sample: Option[Int],
   newest: Boolean
 ) {
-  def neTracks = BoatQuery.toNonEmpty(tracks.toList)
-  def neCanonicals = BoatQuery.toNonEmpty(canonicals.toList)
+  def neTracks = tracks.toList.toNel
+  def neCanonicals = canonicals.toList.toNel
   def limit = limits.limit
   def offset = limits.offset
   def from = timeRange.from
@@ -161,7 +163,7 @@ object BoatQuery {
       newest <- bindNewest(q, default = true)
     } yield BoatQuery(limits, timeRange, tracks, canonicals, route, sample, newest)
 
-  def bindSeq[T](key: String, q: Query)(implicit dec: QueryParamDecoder[T]) =
+  def bindSeq[T: QueryParamDecoder](key: String, q: Query) =
     QueryParsers.list[T](key, q)
 
   def bindNewest(q: Query, default: Boolean) =
@@ -208,10 +210,7 @@ object BoatQuery {
   def readDouble(key: String, q: Query): Option[Either[Errors, Double]] =
     QueryParsers.parseOpt[Double](q, key)
 
-  def toNonEmpty[T](ts: List[T]): Option[NonEmptyList[T]] = ts match {
-    case t :: head => Option(NonEmptyList(t, head))
-    case Nil       => None
-  }
+  def toNonEmpty[T](ts: List[T]): Option[NonEmptyList[T]] = ts.toNel
 }
 
 trait LimitLike {

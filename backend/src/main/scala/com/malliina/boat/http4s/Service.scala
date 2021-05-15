@@ -4,10 +4,10 @@ import cats.data.NonEmptyList
 import cats.effect.{Blocker, ContextShift, IO}
 import cats.implicits.catsSyntaxFlatten
 import com.malliina.boat.Constants.{LanguageName, TokenCookieName}
-import com.malliina.boat.{Utils => BoatUtils, _}
-import com.malliina.boat.auth.AuthProvider.{Google, Microsoft, PromptKey, SelectAccount}
+import com.malliina.boat._
+import com.malliina.boat.auth.AuthProvider.{PromptKey, SelectAccount}
 import com.malliina.boat.auth.{AuthProvider, SettingsPayload, UserPayload}
-import com.malliina.boat.db.{BoatRow, IdentityError, PushInput, StatsSource, TrackInsertsDatabase, TracksSource}
+import com.malliina.boat.db._
 import com.malliina.boat.graph._
 import com.malliina.boat.html.{BoatHtml, BoatLang}
 import com.malliina.boat.http.InviteResult.{AlreadyInvited, Invited, UnknownEmail}
@@ -257,7 +257,7 @@ class Service(comps: BoatComps) extends BasicService[IO] {
           val deviceUpdates = deviceStreams.clientEvents(formatter)
           val eventSource =
             ((deviceHistory ++ gpsHistory) ++ updates.mergeHaltBoth(deviceUpdates))
-              .filter(_.isIntendedFor(username))
+              .filter(_.isIntendedFor(user.authorized))
               .map(message => Text(Json.stringify(Json.toJson(message))))
           webSocket(
             eventSource,
@@ -389,6 +389,7 @@ class Service(comps: BoatComps) extends BasicService[IO] {
         val maybeBoat = userRequest.user
         val u: Username = maybeBoat.map(_.user).getOrElse(Usernames.anon)
         val lang = maybeBoat.map(_.language).getOrElse(Language.default)
+        val authorizedBoats = maybeBoat.map(_.boats.map(_.boat)).getOrElse(Nil)
         val isSecure = Urls.isSecure(req)
         val tokenCookie = ResponseCookie(
           TokenCookieName,
@@ -404,7 +405,7 @@ class Service(comps: BoatComps) extends BasicService[IO] {
         )
         ok(html.map(maybeBoat.getOrElse(UserBoats.anon))).map { res =>
           val cookied = res.addCookie(tokenCookie).addCookie(languageCookie)
-          auth.saveSettings(SettingsPayload(u, lang), cookied, isSecure)
+          auth.saveSettings(SettingsPayload(u, lang, authorizedBoats), cookied, isSecure)
         }
       }.recover { mc =>
         redirectToLogin
@@ -543,7 +544,7 @@ class Service(comps: BoatComps) extends BasicService[IO] {
     val state = randomString()
     val encodedParams = (s.params ++ Map(OAuthKeys.State -> state)).map {
       case (k, v) =>
-        k -> Utils.urlEncode(v)
+        k -> com.malliina.web.Utils.urlEncode(v)
     }
     val url = s.authorizationEndpoint.append(s"?${stringify(encodedParams)}")
     log.info(s"Redirecting to '$url' with state '$state'...")

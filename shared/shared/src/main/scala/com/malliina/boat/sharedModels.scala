@@ -7,7 +7,6 @@ import com.malliina.values._
 import play.api.libs.json._
 import scalatags.generic.Bundle
 
-import java.time.Instant
 import scala.concurrent.duration.Duration
 import scala.math.Ordering.Double.TotalOrdering
 
@@ -402,19 +401,26 @@ object Boat {
 trait MinimalUserInfo {
   def username: Username
   def language: Language
+  def authorized: Seq[BoatName]
 }
 
 object MinimalUserInfo {
-  def anon: MinimalUserInfo = SimpleUserInfo(Usernames.anon, Language.default)
+  def anon: MinimalUserInfo = SimpleUserInfo(Usernames.anon, Language.default, Nil)
 }
 
-case class SimpleUserInfo(username: Username, language: Language) extends MinimalUserInfo
+case class SimpleUserInfo(username: Username, language: Language, authorized: Seq[BoatName])
+  extends MinimalUserInfo
 
 trait EmailUser extends MinimalUserInfo {
   def email: Email
 }
 
-case class SimpleEmailUser(username: Username, email: Email, language: Language) extends EmailUser
+case class SimpleEmailUser(
+  username: Username,
+  email: Email,
+  language: Language,
+  authorized: Seq[BoatName]
+) extends EmailUser
 
 case class BoatRef(id: DeviceId, name: BoatName)
 
@@ -455,7 +461,9 @@ case class UserInfo(
   addedMillis: Long,
   invites: Seq[Invite],
   friends: Seq[FriendInvite]
-) extends EmailUser
+) extends EmailUser {
+  override val authorized: Seq[BoatName] = boats.map(_.name) ++ invites.map(_.boat.name)
+}
 
 object UserInfo {
   implicit val json = Json.format[UserInfo]
@@ -611,8 +619,8 @@ object CoordsEvent {
 }
 
 case class CoordsBatch(events: Seq[CoordsEvent]) extends FrontEvent {
-  override def isIntendedFor(user: Username): Boolean =
-    events.forall(_.isIntendedFor(user))
+  override def isIntendedFor(authorized: Seq[BoatName]): Boolean =
+    events.forall(_.isIntendedFor(authorized))
 }
 
 object CoordsBatch {
@@ -631,7 +639,7 @@ object SentencesEvent {
 }
 
 case class PingEvent(sent: Long) extends FrontEvent {
-  override def isIntendedFor(user: Username) = true
+  override def isIntendedFor(authorized: Seq[BoatName]) = true
 }
 
 object PingEvent {
@@ -640,7 +648,7 @@ object PingEvent {
 }
 
 case class VesselMessages(vessels: Seq[VesselInfo]) extends FrontEvent {
-  override def isIntendedFor(user: Username): Boolean = true
+  override def isIntendedFor(authorized: Seq[BoatName]): Boolean = true
 }
 
 object VesselMessages {
@@ -650,21 +658,21 @@ object VesselMessages {
 }
 
 sealed trait FrontEvent {
-  def isIntendedFor(user: Username): Boolean
+  def isIntendedFor(authorized: Seq[BoatName]): Boolean
 }
 
 sealed trait DeviceFrontEvent extends FrontEvent {
   def from: DeviceRef
 
-  override def isIntendedFor(user: Username): Boolean =
-    from.username == user
+  override def isIntendedFor(authorized: Seq[BoatName]): Boolean =
+    authorized.contains(from.deviceName)
 }
 
 sealed trait BoatFrontEvent extends FrontEvent {
   def from: TrackMetaLike
 
-  override def isIntendedFor(user: Username): Boolean =
-    from.username == user
+  override def isIntendedFor(authorized: Seq[BoatName]): Boolean =
+    authorized.contains(from.boatName)
 }
 
 object FrontEvent {
@@ -767,6 +775,7 @@ sealed abstract class InviteState(val name: String)
 
 object InviteState extends StringEnumCompanion[InviteState] {
   val awaiting: InviteState = Awaiting
+  val accepted: InviteState = Accepted
   case object Awaiting extends InviteState("awaiting")
   case object Accepted extends InviteState("accepted")
   case object Rejected extends InviteState("rejected")

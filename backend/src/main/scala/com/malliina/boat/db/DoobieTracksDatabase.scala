@@ -2,15 +2,16 @@ package com.malliina.boat.db
 
 import cats.data.NonEmptyList
 import cats.effect.IO
+import cats.implicits._
+import com.malliina.boat.InviteState.accepted
 import com.malliina.boat.http.{BoatQuery, SortOrder, TrackQuery}
-import com.malliina.boat.{CombinedCoord, CombinedFullCoord, CoordsEvent, DateVal, FullTrack, JoinedBoat, JoinedTrack, Lang, Language, MinimalUserInfo, MonthlyStats, SentenceCoord2, SentenceRow, Stats, StatsResponse, TimeFormatter, TimedCoord, TrackCanonical, TrackId, TrackInfo, TrackName, TrackPointRow, TrackRef, Tracks, TracksBundle, YearlyStats}
+import com.malliina.boat._
 import com.malliina.measure.DistanceM
 import com.malliina.util.AppLogger
 import com.malliina.values.Username
 import doobie._
 import doobie.implicits._
-import DoobieTracksDatabase.log
-import scala.concurrent.Future
+
 import scala.concurrent.duration.{DurationInt, DurationLong, FiniteDuration}
 
 object DoobieTracksDatabase {
@@ -79,8 +80,8 @@ class DoobieTracksDatabase(val db: DoobieDatabase) extends TracksSource with Sta
   object sql extends CommonSql {
     def pointsByTrack(name: TrackName) =
       sql"""select $pointColumns
-           from points p, tracks t 
-           where p.track = t.id and t.name = $name"""
+            from points p, tracks t 
+            where p.track = t.id and t.name = $name"""
 
     def pointsByTrackId(id: TrackId) =
       sql"""select $pointColumns
@@ -94,21 +95,17 @@ class DoobieTracksDatabase(val db: DoobieDatabase) extends TracksSource with Sta
       val selectPoints = pointsByTrack(name)
       sql"$selectPoints order by p.boat_speed desc limit 1"
     }
-    def tracksByUser(user: Username) = sql"$nonEmptyTracks and user = $user"
+    def tracksByUser(user: Username) =
+      sql"$nonEmptyTracks and (b.user = $user or b.id in (select ub2.boat from users u2, users_boats ub2 where u2.id = ub2.user and u2.user = $user and ub2.state = $accepted))"
     def trackByName(name: TrackName) = sql"$nonEmptyTracks and t.name = $name"
     def tracksByNames(names: NonEmptyList[TrackName]) =
       sql"$nonEmptyTracks and " ++ Fragments.in(fr"t.name", names)
     def tracksByCanonicals(names: NonEmptyList[TrackCanonical]) =
       sql"$nonEmptyTracks and " ++ Fragments.in(fr"t.canonical", names)
-    def tracksByCanonical(canonical: TrackCanonical) =
-      sql"$nonEmptyTracks and canonical = $canonical"
-    def latestTrack(name: Username) = {
+    def latestTracks(name: Username, limit: Option[Int]) = {
       val userTracks = tracksByUser(name)
-      sql"$userTracks order by t.added desc limit 1"
-    }
-    def latestTracks(name: Username) = {
-      val userTracks = tracksByUser(name)
-      sql"$userTracks order by t.added desc"
+      val limitClause = limit.fold(Fragment.empty)(l => fr"limit $l")
+      sql"$userTracks order by t.added desc $limitClause"
     }
     import com.malliina.boat.http.TrackSort._
 
@@ -167,16 +164,16 @@ class DoobieTracksDatabase(val db: DoobieDatabase) extends TracksSource with Sta
         .to[List]
     val monthlyIO =
       sql"""select t.startYear, t.startMonth, $aggregates
-          from ($tracks) t 
-          group by t.startYear, t.startMonth
-          order by t.startYear $ord, t.startMonth $ord"""
+            from ($tracks) t 
+            group by t.startYear, t.startMonth
+            order by t.startYear $ord, t.startMonth $ord"""
         .query[MonthlyAggregates]
         .to[List]
     val yearlyIO =
       sql"""select t.startYear, $aggregates
-          from ($tracks) t
-          group by t.startYear
-          order by t.startYear $ord"""
+            from ($tracks) t
+            group by t.startYear
+            order by t.startYear $ord"""
         .query[YearlyAggregates]
         .to[List]
     val allTimeIO = sql"""select min(t.startDate), max(t.startDate), $aggregates
@@ -241,7 +238,7 @@ class DoobieTracksDatabase(val db: DoobieDatabase) extends TracksSource with Sta
     single(sql.trackByName(track), language)
 
   def canonical(trackCanonical: TrackCanonical, language: Language): IO[TrackRef] =
-    single(sql.tracksByCanonical(trackCanonical), language)
+    single(sql.tracksByCanonicals(NonEmptyList.of(trackCanonical)), language)
 
   def track(track: TrackName, user: Username, query: TrackQuery): IO[TrackInfo] = run {
     for {
@@ -254,12 +251,13 @@ class DoobieTracksDatabase(val db: DoobieDatabase) extends TracksSource with Sta
     val rows = sql.pointsByTrack(track)
     val limited =
       sql"""$rows order by p.boat_time asc, p.id asc, p.added asc limit ${query.limit} offset ${query.offset}"""
-    val coordsIO = sql"""select ${sql.pointColumns}, s.id, s.sentence, s.added sentenceAdded
-         from ($limited) p, sentence_points sp, sentences s 
-         where p.id = sp.point and sp.sentence = s.id
-         order by p.boat_time, p.id, sentenceAdded"""
-      .query[SentenceCoord2]
-      .to[List]
+    val coordsIO =
+      sql"""select ${sql.pointColumns}, s.id, s.sentence, s.added sentenceAdded
+            from ($limited) p, sentence_points sp, sentences s 
+            where p.id = sp.point and sp.sentence = s.id
+            order by p.boat_time, p.id, sentenceAdded"""
+        .query[SentenceCoord2]
+        .to[List]
     val trackIO = sql.trackByName(track).query[JoinedTrack].unique
     val formatter = TimeFormatter(language)
     for {
@@ -272,15 +270,15 @@ class DoobieTracksDatabase(val db: DoobieDatabase) extends TracksSource with Sta
     val eligible = limits.neTracks
       .map(names => sql.tracksByNames(names))
       .orElse(limits.neCanonicals.map(cs => sql.tracksByCanonicals(cs)))
-      .getOrElse(
-        if (limits.newest) sql.latestTrack(user.username)
-        else sql.latestTracks(user.username)
-      )
+      .getOrElse {
+        val limit = Option.when(limits.newest)(1)
+        sql.latestTracks(user.username, limit)
+      }
       .query[JoinedTrack]
       .to[List]
     eligible.flatMap { ts =>
       val conditions = Fragments.whereAndOpt(
-        BoatQuery.toNonEmpty(ts.map(_.track).distinct).map(ids => Fragments.in(fr"p.track", ids)),
+        ts.map(_.track).distinct.toNel.map(ids => Fragments.in(fr"p.track", ids)),
         limits.from.map(f => fr"p.added >= $f"),
         limits.to.map(t => fr"p.added <= $t")
       )

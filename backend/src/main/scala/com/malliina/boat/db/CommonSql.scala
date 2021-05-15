@@ -8,7 +8,7 @@ object CommonSql extends CommonSql
 trait CommonSql {
   val boats =
     sql"""select b.id, b.name, b.token, u.id uid, u.user, u.email, u.language
-          from boats b, users u 
+          from boats b, users u
           where b.owner = u.id"""
   val topPoints =
     sql"""select winners.track track, min(winners.id) point
