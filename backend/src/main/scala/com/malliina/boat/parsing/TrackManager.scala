@@ -8,15 +8,13 @@ object TrackManager {
   def apply(): TrackManager = new TrackManager
 }
 
-class TrackManager {
+class TrackManager extends SentenceAggregator[TrackId, ParsedCoord, FullCoord] {
   private var latestDepth: Map[TrackId, WaterDepth] = Map.empty
   private var latestWaterTemp: Map[TrackId, WaterTemperature] = Map.empty
   private var latestWaterSpeed: Map[TrackId, ParsedWaterSpeed] = Map.empty
   private var latestBoatSpeed: Map[TrackId, ParsedBoatSpeed] = Map.empty
   // latest suitable date, if any
   private var latestDateTime: Map[TrackId, ParsedDateTime] = Map.empty
-  // buffer for coords without a suitable date
-  private var coords: Map[TrackId, List[ParsedCoord]] = Map.empty
 
   def update(event: ParsedSentence): List[FullCoord] = event match {
     case pd @ ParsedDateTime(_, _, _) =>
@@ -48,18 +46,10 @@ class TrackManager {
       emittable
   }
 
-  private def completed(track: TrackId): List[FullCoord] = {
-    val emittable = complete(track, coords.getOrElse(track, Nil))
-    if (emittable.nonEmpty) {
-      coords = coords.updated(track, Nil)
-    }
-    emittable
-  }
-
   /**
     * @return true if complete, false otherwise
     */
-  private def complete(track: TrackId, buffer: List[ParsedCoord]): List[FullCoord] =
+  override def complete(track: TrackId, buffer: List[ParsedCoord]): List[FullCoord] =
     (for {
       dateTime <- latestDateTime.get(track)
       speed <- latestBoatSpeed.get(track)

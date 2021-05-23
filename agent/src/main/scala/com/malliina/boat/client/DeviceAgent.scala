@@ -1,6 +1,6 @@
 package com.malliina.boat.client
 
-import akka.Done
+import akka.{Done, NotUsed}
 import akka.actor.ActorSystem
 import akka.stream.Materializer
 import akka.stream.scaladsl.Source
@@ -42,11 +42,12 @@ class DeviceAgent(conf: BoatConf, url: FullUrl)(implicit as: ActorSystem, mat: M
     as,
     mat
   )
-  val toTcp =
+
+  val toTcp: Source[ByteString, NotUsed] =
     if (isGps)
       Source.single(TcpSource.watchMessage).concat(Source.maybe[ByteString])
     else
-      Source.maybe[ByteString]
+      Source.maybe[ByteString].mapMaterializedValue(_ => NotUsed)
 
   /** Opens a TCP connection to the plotter and a WebSocket to the server. Reconnects on failures.
     *

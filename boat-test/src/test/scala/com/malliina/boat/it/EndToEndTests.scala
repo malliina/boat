@@ -45,19 +45,20 @@ class EndToEndTests extends BoatTests {
     val serverUrl = s.baseWsUrl.append(reverse.ws.boats.renderString)
     val agent = DeviceAgent(BoatConf.anon(tcpHost, tcpPort), serverUrl)
     try {
-      val p = Promise[JsValue]()
-      val p3 = Promise[CoordsEvent]()
+      val firstMessage = Promise[JsValue]()
+      val coordsPromise = Promise[CoordsEvent]()
 
       val sink = Sink.foreach[JsValue] { json =>
-        p.trySuccess(json)
+        firstMessage.trySuccess(json)
         json.asOpt[CoordsEvent].foreach { ce =>
-          p3.trySuccess(ce)
+          coordsPromise.trySuccess(ce)
         }
       }
+
       openViewerSocket(sink, None) { _ =>
         agent.connect()
-        await(p.future, 10.seconds)
-        await(p3.future).coords
+        await(firstMessage.future, 10.seconds)
+        await(coordsPromise.future).coords
       }
     } finally {
       agent.close()

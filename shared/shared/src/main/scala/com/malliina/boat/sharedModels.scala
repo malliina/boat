@@ -619,8 +619,8 @@ object CoordsEvent {
 }
 
 case class CoordsBatch(events: Seq[CoordsEvent]) extends FrontEvent {
-  override def isIntendedFor(authorized: Seq[BoatName]): Boolean =
-    events.forall(_.isIntendedFor(authorized))
+  override def isIntendedFor(user: MinimalUserInfo): Boolean =
+    events.forall(_.isIntendedFor(user))
 }
 
 object CoordsBatch {
@@ -639,7 +639,7 @@ object SentencesEvent {
 }
 
 case class PingEvent(sent: Long) extends FrontEvent {
-  override def isIntendedFor(authorized: Seq[BoatName]) = true
+  override def isIntendedFor(user: MinimalUserInfo) = true
 }
 
 object PingEvent {
@@ -648,7 +648,7 @@ object PingEvent {
 }
 
 case class VesselMessages(vessels: Seq[VesselInfo]) extends FrontEvent {
-  override def isIntendedFor(authorized: Seq[BoatName]): Boolean = true
+  override def isIntendedFor(user: MinimalUserInfo): Boolean = true
 }
 
 object VesselMessages {
@@ -658,21 +658,21 @@ object VesselMessages {
 }
 
 sealed trait FrontEvent {
-  def isIntendedFor(authorized: Seq[BoatName]): Boolean
+  def isIntendedFor(user: MinimalUserInfo): Boolean
 }
 
 sealed trait DeviceFrontEvent extends FrontEvent {
   def from: DeviceRef
 
-  override def isIntendedFor(authorized: Seq[BoatName]): Boolean =
-    authorized.contains(from.deviceName)
+  override def isIntendedFor(user: MinimalUserInfo): Boolean =
+    user.username == from.username || user.authorized.contains(from.deviceName)
 }
 
 sealed trait BoatFrontEvent extends FrontEvent {
   def from: TrackMetaLike
 
-  override def isIntendedFor(authorized: Seq[BoatName]): Boolean =
-    authorized.contains(from.boatName)
+  override def isIntendedFor(user: MinimalUserInfo): Boolean =
+    user.username == from.username || user.authorized.contains(from.boatName)
 }
 
 object FrontEvent {

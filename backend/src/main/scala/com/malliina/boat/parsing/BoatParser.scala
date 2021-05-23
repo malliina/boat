@@ -1,21 +1,11 @@
 package com.malliina.boat.parsing
 
-import akka.NotUsed
-import akka.actor.ActorSystem
-import akka.stream.Materializer
-import akka.stream.scaladsl.{Flow, Source}
 import com.malliina.boat._
 import com.malliina.util.AppLogger
 import play.api.libs.json.{JsError, JsValue, Reads}
 
 object BoatParser {
   private val log = AppLogger(getClass)
-
-  def gpsFlow()(implicit
-    as: ActorSystem,
-    mat: Materializer
-  ): Flow[ParsedGPSSentence, GPSCoord, NotUsed] =
-    Streams.connected[ParsedGPSSentence, GPSCoord](dest => GPSProcessorActor.props(dest), as)
 
   def read[T: Reads](json: JsValue): Either[JsError, T] =
     json.validate[T].asEither.left.map(JsError.apply)

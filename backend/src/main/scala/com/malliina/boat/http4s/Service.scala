@@ -257,7 +257,7 @@ class Service(comps: BoatComps) extends BasicService[IO] {
           val deviceUpdates = deviceStreams.clientEvents(formatter)
           val eventSource =
             ((deviceHistory ++ gpsHistory) ++ updates.mergeHaltBoth(deviceUpdates))
-              .filter(_.isIntendedFor(user.authorized))
+              .filter(_.isIntendedFor(user))
               .map(message => Text(Json.stringify(Json.toJson(message))))
           webSocket(
             eventSource,

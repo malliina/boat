@@ -75,6 +75,7 @@ class TcpSource(host: String, port: Int, delimiter: String)(implicit
     * @return a Future that completes when the client is disabled and the remaining connection completes
     */
   def connect(toSource: Source[ByteString, _] = Source.maybe[ByteString]): Future[Done] = {
+    log.info(s"Connecting to $host:$port...")
     val (connected, disconnected) = setupTcp(toSource).to(sink).run()
     connected.foreach { conn =>
       log.info(s"Connected to ${toHostPort(conn.remoteAddress)}.")

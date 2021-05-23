@@ -6,8 +6,7 @@ object GPSManager {
   def apply(): GPSManager = new GPSManager()
 }
 
-class GPSManager {
-  private var coords: Map[DeviceId, List[ParsedGPSCoord]] = Map.empty
+class GPSManager extends SentenceAggregator[DeviceId, ParsedGPSCoord, GPSCoord] {
   private var latestDateTime: Map[DeviceId, ParsedGPSDateTime] = Map.empty
   private var latestSatellites: Map[DeviceId, SatellitesInView] = Map.empty
   private var latestFix: Map[DeviceId, GPSInfo] = Map.empty
@@ -34,18 +33,10 @@ class GPSManager {
       emittable
   }
 
-  def completed(boat: DeviceId): List[GPSCoord] = {
-    val emittable = complete(boat, coords.getOrElse(boat, Nil))
-    if (emittable.nonEmpty) {
-      coords = coords.updated(boat, Nil)
-    }
-    emittable
-  }
-
   /**
     * @return true if complete, false otherwise
     */
-  def complete(boat: DeviceId, buffer: List[ParsedGPSCoord]): List[GPSCoord] =
+  override def complete(boat: DeviceId, buffer: List[ParsedGPSCoord]): List[GPSCoord] =
     (for {
       dateTime <- latestDateTime.get(boat)
       gps <- latestFix.get(boat)
