@@ -8,7 +8,9 @@ import com.malliina.values.{Email, ErrorMessage, IdToken}
 import com.malliina.web._
 import org.http4s.Headers
 
-object GoogleTokenAuth {
+import java.time.Instant
+
+object TokenEmailAuth {
 
   /** The Android app uses the web client ID while the iOS app uses the iOS client ID.
     *
@@ -18,14 +20,18 @@ object GoogleTokenAuth {
   def apply(
     webClientId: ClientId,
     iosClientId: ClientId,
+    microsoftClientId: ClientId,
     http: HttpClient[IO]
-  ): GoogleTokenAuth =
-    new GoogleTokenAuth(GoogleAuthFlow.keyClient(Seq(webClientId, iosClientId), http))
+  ): TokenEmailAuth = {
+    val google = GoogleAuthFlow.keyClient(Seq(webClientId, iosClientId), http)
+    val microsoft = MicrosoftAuthFlow.keyClient(Seq(microsoftClientId), http)
+    new TokenEmailAuth(google, microsoft)
+  }
 }
 
 /** Validates Google ID tokens and extracts the email address.
   */
-class GoogleTokenAuth(validator: KeyClient) extends EmailAuth {
+class TokenEmailAuth(google: KeyClient, microsoft: KeyClient) extends EmailAuth {
   val EmailKey = "email"
   val EmailVerified = "email_verified"
 
@@ -33,7 +39,7 @@ class GoogleTokenAuth(validator: KeyClient) extends EmailAuth {
     Auth
       .token(headers)
       .map { token =>
-        validate(token).flatMap { e =>
+        validateAny(token, Instant.now()).flatMap { e =>
           e.fold(
             err => IO.raiseError(IdentityException(JWTError(err, headers))),
             email => IO.pure(email)
@@ -44,8 +50,16 @@ class GoogleTokenAuth(validator: KeyClient) extends EmailAuth {
         IO.raiseError(IdentityException(MissingCredentials(headers)))
       }
 
-  private def validate(token: IdToken): IO[Either[AuthError, Email]] =
-    validator.validate(token).map { outcome =>
+  private def validateAny(token: IdToken, now: Instant) =
+    validateGoogle(token, now).flatMap { e =>
+      e.fold(
+        err => validateMicrosoft(token, now),
+        ok => IO.pure(Right(ok))
+      )
+    }
+
+  private def validateGoogle(token: IdToken, now: Instant): IO[Either[AuthError, Email]] =
+    google.validate(token, now).map { outcome =>
       outcome.flatMap { v =>
         val parsed = v.parsed
         parsed.read(parsed.claims.getBooleanClaim(EmailVerified), EmailVerified).flatMap {
@@ -53,6 +67,13 @@ class GoogleTokenAuth(validator: KeyClient) extends EmailAuth {
             if (isVerified) parsed.readString(EmailKey).map(Email.apply)
             else Left(InvalidClaims(token, ErrorMessage("Email not verified.")))
         }
+      }
+    }
+
+  private def validateMicrosoft(token: IdToken, now: Instant) =
+    microsoft.validate(token, now).map { outcome =>
+      outcome.flatMap { v =>
+        v.readString(EmailKey).map(Email.apply)
       }
     }
 }

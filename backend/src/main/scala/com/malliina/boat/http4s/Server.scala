@@ -3,7 +3,7 @@ package com.malliina.boat.http4s
 import cats.data.Kleisli
 import cats.effect.{Blocker, ContextShift, ExitCode, IO, IOApp, Resource}
 import com.malliina.boat.ais.BoatMqttClient
-import com.malliina.boat.auth.{EmailAuth, GoogleTokenAuth, JWT}
+import com.malliina.boat.auth.{EmailAuth, TokenEmailAuth, JWT}
 import com.malliina.boat.db.{DoobieDatabase, DoobieGPSDatabase, DoobiePushDatabase, DoobieTrackInserts, DoobieTracksDatabase, DoobieUserManager}
 import com.malliina.boat.html.BoatHtml
 import com.malliina.boat.http4s.Service.BoatComps
@@ -41,7 +41,8 @@ trait AppComps {
 
 class ProdAppComps(conf: BoatConf, http: HttpClient[IO], cs: ContextShift[IO]) extends AppComps {
   override val pushService: PushEndpoint = BoatPushService(conf.push, http)
-  override val emailAuth: EmailAuth = GoogleTokenAuth(conf.google.web.id, conf.google.ios.id, http)
+  override val emailAuth: EmailAuth =
+    TokenEmailAuth(conf.google.web.id, conf.google.ios.id, conf.microsoft.id, http)
 }
 
 object Server extends IOApp {

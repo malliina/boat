@@ -1,7 +1,7 @@
 package com.malliina.boat
 
 import cats.effect.{ContextShift, IO}
-import com.malliina.boat.auth.{EmailAuth, GoogleTokenAuth}
+import com.malliina.boat.auth.{EmailAuth, TokenEmailAuth}
 import com.malliina.boat.db.Conf
 import com.malliina.boat.push.{BoatPushService, PushEndpoint}
 import com.malliina.http.HttpClient

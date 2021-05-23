@@ -569,7 +569,12 @@ class Service(comps: BoatComps) extends BasicService[IO] {
   ) = handleCallback(
     req,
     provider,
-    cb => flow.validateCallback(cb).map(e => e.flatMap(flow.parse))
+    cb =>
+      flow.validateCallback(cb).map { e =>
+        e.flatMap { v =>
+          flow.parse(v)
+        }
+      }
   )
 
   private def handleCallback(

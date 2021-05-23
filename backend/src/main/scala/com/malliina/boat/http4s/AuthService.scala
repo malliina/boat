@@ -18,7 +18,7 @@ object AuthService {
 }
 
 class AuthService(val users: UserManager, comps: AuthComps) {
-  val google = comps.google
+  val emailAuth = comps.google
   val web = comps.web
   val googleFlow = comps.googleFlow
   val microsoftFlow = comps.microsoftFlow
@@ -76,8 +76,8 @@ class AuthService(val users: UserManager, comps: AuthComps) {
       users.authBoat(BoatToken(h.value))
     }
 
-  private def emailOnly(headers: Headers) =
-    google.authEmail(headers).handleErrorWith {
+  private def emailOnly(headers: Headers): IO[Email] =
+    emailAuth.authEmail(headers).handleErrorWith {
       case mce: MissingCredentialsException =>
         authSession(headers).map(email => IO.pure(email)).getOrElse(IO.raiseError(mce))
       case t =>
