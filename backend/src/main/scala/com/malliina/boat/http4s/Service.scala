@@ -3,6 +3,7 @@ package com.malliina.boat.http4s
 import cats.data.NonEmptyList
 import cats.effect.{Blocker, ContextShift, IO}
 import cats.implicits.catsSyntaxFlatten
+import com.malliina.assets.HashedAssets
 import com.malliina.boat.Constants.{LanguageName, TokenCookieName}
 import com.malliina.boat._
 import com.malliina.boat.auth.AuthProvider.{PromptKey, SelectAccount}
@@ -337,10 +338,10 @@ class Service(comps: BoatComps) extends BasicService[IO] {
       val obj = comps.s3.download(file)
       val stream = fs2.io.readInputStream[IO](IO.pure(obj.getObjectContent), 8192, comps.blocker)
       Ok(stream)
-    case req @ GET -> Root / ".well-known" / "apple-developer-domain-association.txt" =>
-      fileFromResources("apple-developer-domain-association.txt", req)
+    case req @ GET -> Root / ".well-known" / "apple-app-site-association" =>
+      fileFromPublicResources("apple-app-site-association.json", req)
     case req @ GET -> Root / ".well-known" / "assetlinks.json" =>
-      fileFromResources("assetlinks.json", req)
+      fileFromPublicResources("android-assetlinks.json", req)
     case req @ GET -> Root / TrackCanonicalVar(canonical) =>
       respond(req)(
         json = authedTrackQuery(req).flatMap { authed =>
@@ -474,10 +475,10 @@ class Service(comps: BoatComps) extends BasicService[IO] {
     else json(rs)
   }
 
-  def fileFromResources(file: String, req: Request[IO]): IO[Response[IO]] =
+  def fileFromPublicResources(file: String, req: Request[IO]): IO[Response[IO]] =
     StaticFile
       .fromResource(
-        file,
+        s"${HashedAssets.prefix}/$file",
         comps.blocker,
         Option(req),
         preferGzipped = true

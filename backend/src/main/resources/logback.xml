@@ -5,6 +5,7 @@
             <pattern>%d{HH:mm:ss.SSS} %-5level %logger{72} - %msg%n</pattern>
         </encoder>
     </appender>
+    <logger name="org.http4s.blaze.channel.nio1.NIO1SocketServerGroup" level="WARN"/>
     <root level="INFO">
         <appender-ref ref="STDOUT"/>
     </root>

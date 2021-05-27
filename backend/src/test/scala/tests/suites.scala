@@ -3,8 +3,8 @@ package tests
 import cats.effect.{Blocker, ContextShift, IO, Resource, Timer}
 import com.dimafeng.testcontainers.MySQLContainer
 import com.malliina.boat.db.{Conf, DoobieDatabase}
-import com.malliina.boat.http4s.{Server, ServerComponents, Service}
-import com.malliina.boat.{BoatConf, LocalConf}
+import com.malliina.boat.http4s.{JsonInstances, Server, ServerComponents, Service}
+import com.malliina.boat.{BoatConf, Errors, LocalConf}
 import com.malliina.http.FullUrl
 import com.malliina.util.AppLogger
 import munit.FunSuite
@@ -134,7 +134,9 @@ case class ServerTools(server: ServerComponents, client: Client[IO]) {
   def baseWsUrl = FullUrl("ws", s"localhost:$port", "")
 }
 
-trait ServerSuite extends MUnitDatabaseSuite { self: MUnitSuite =>
+trait ServerSuite extends MUnitDatabaseSuite with JsonInstances { self: MUnitSuite =>
+  implicit val tsBody = jsonBody[IO, Errors]
+
   val server: Fixture[ServerTools] = new Fixture[ServerTools]("server") {
     private var tools: Option[ServerTools] = None
     val finalizer = new AtomicReference[IO[Unit]](IO.pure(()))

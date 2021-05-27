@@ -2,13 +2,15 @@ package com.malliina.boat.http4s
 
 import com.malliina.boat.auth.{BasicCredentials, EmailAuth}
 import com.malliina.boat.db.MissingCredentials
-import com.malliina.values.{IdToken, Password, Username}
+import com.malliina.values.{ErrorMessage, IdToken, Password, Username}
 import com.malliina.web.{EmailAuthFlow, GoogleAuthFlow}
 import org.http4s.Credentials.Token
 import org.http4s.headers.Authorization
 import org.http4s.{Credentials, Headers}
 
 object Auth {
+  val noCredentials = ErrorMessage("No credentials.")
+
   def basic(hs: Headers): Either[MissingCredentials, BasicCredentials] =
     headerCredentials(hs).flatMap {
       case org.http4s.BasicCredentials(user, pass) =>
@@ -28,7 +30,7 @@ object Auth {
   def headerCredentials(hs: Headers): Either[MissingCredentials, Credentials] = hs
     .get(Authorization)
     .map(h => h.credentials)
-    .toRight(MissingCredentials("No credentials.", hs))
+    .toRight(MissingCredentials(noCredentials, hs))
 }
 
 case class AuthComps(

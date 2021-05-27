@@ -5,6 +5,7 @@ import cats.data.NonEmptyList
 import cats.effect.{IO, Sync}
 import cats.implicits._
 import com.malliina.boat.Errors
+import com.malliina.boat.db.MissingCredentialsException
 import com.malliina.boat.http4s.BasicService.{log, noCache}
 import com.malliina.util.AppLogger
 import org.http4s.CacheDirective._
@@ -44,6 +45,8 @@ class BasicService[F[_]: Applicative: Sync] extends Implicits[F] {
       Sync[F].delay(log.warn(ir.message, ir)).flatMap { _ =>
         badRequest(ir.errors)
       }
+    case mce: MissingCredentialsException =>
+      notFound(Errors(mce.error.message))
     case other =>
       Sync[F].delay(log.error("Server error.", other)).flatMap { _ =>
         serverError(Errors("Server error."))
