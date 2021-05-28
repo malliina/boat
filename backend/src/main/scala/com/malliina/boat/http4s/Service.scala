@@ -188,12 +188,12 @@ class Service(comps: BoatComps) extends BasicService[IO] {
         html = index(req)
       )
     case req @ PUT -> Root / "tracks" / TrackNameVar(trackName) =>
-      def readTitle(form: FormReader) = form.readOne(TrackTitle.Key, s => TrackTitle.build(s))
+      def readTitle(form: FormReader) = form.readT[TrackTitle](TrackTitle.Key)
       trackAction(req, readTitle) { (title, user) =>
         inserts.updateTitle(trackName, title, user.id)
       }
     case req @ PATCH -> Root / "tracks" / TrackIdVar(trackId) =>
-      def readComments(form: FormReader) = form.readOne(TrackComments.Key, s => Right(s))
+      def readComments(form: FormReader) = form.readT[String](TrackComments.Key)
       trackAction(req, readComments) { (comments, user) =>
         inserts.updateComments(trackId, comments, user.id)
       }
@@ -355,18 +355,18 @@ class Service(comps: BoatComps) extends BasicService[IO] {
 
   object forms {
     def invite(form: FormReader) = for {
-      boat <- form.readLong[DeviceId](Forms.Boat, DeviceId.build)
-      email <- form.readOne[Email](Forms.Email, Email.build)
+      boat <- form.readT[DeviceId](Forms.Boat)
+      email <- form.readT[Email](Forms.Email)
     } yield InvitePayload(boat, email)
 
     def respondInvite(form: FormReader) = for {
-      boat <- form.readLong[DeviceId](Forms.Boat, DeviceId.build)
-      accept <- form.readBool(Forms.Accept)
+      boat <- form.readT[DeviceId](Forms.Boat)
+      accept <- form.readT[Boolean](Forms.Accept)
     } yield InviteResponse(boat, accept)
 
     def revokeInvite(form: FormReader) = for {
-      boat <- form.readLong[DeviceId](Forms.Boat, DeviceId.build)
-      user <- form.readLong[UserId](Forms.User, UserId.build)
+      boat <- form.readT[DeviceId](Forms.Boat)
+      user <- form.readT[UserId](Forms.User)
     } yield RevokeAccess(boat, user)
   }
 
