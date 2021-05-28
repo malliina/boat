@@ -1,7 +1,7 @@
 package com.malliina.boat.ais
 
 import cats.effect.{Concurrent, IO, Timer}
-import com.malliina.boat.ais.BoatMqttClient.{AisPair, pass, user}
+import com.malliina.boat.ais.BoatMqttClient.{AisPair, log, pass, user}
 import com.malliina.boat.{AISMessage, AppMode, Locations, Metadata, Mmsi, StatusTopic, TimeFormatter, VesselLocation, VesselMetadata, VesselStatus}
 import com.malliina.http.FullUrl
 import com.malliina.util.AppLogger
@@ -71,16 +71,17 @@ class BoatMqttClient(url: FullUrl, topic: String)(implicit c: Concurrent[IO], t:
 
   private val maxBatchSize = 300
   private val sendTimeWindow = 5.seconds
-  private val connection = IO(
-    MqttStream.unsafe(
-      MqttSettings(url, newClientId(), topic, user, pass),
-      SignallingRef[IO, Boolean](false).unsafeRunSync()
-    )
+  def newStream = MqttStream.unsafe(
+    MqttSettings(url, newClientId(), topic, user, pass),
+    SignallingRef[IO, Boolean](false).unsafeRunSync()
   )
-  private val restartingConnection =
-    Stream.retry(connection, 5.seconds, d => d * 2, maxAttempts = 1000).interruptWhen(interrupter)
+  val oneConnection = newStream.events.handleErrorWith[IO, MqttStream.MqttPayload] { e =>
+    Stream.eval(IO(log.warn(s"MQTT connection to '$url' failed. Reconnecting...", e))).flatMap {
+      _ => Stream.empty
+    }
+  }
   val parsed: Stream[IO, JsResult[AISMessage]] =
-    restartingConnection.flatMap(_.events).map { msg =>
+    oneConnection.repeat.interruptWhen(interrupter).map { msg =>
       val json = Json.parse(msg.payloadString)
       msg.topic match {
         case Locations()   => VesselLocation.readerGeoJson.reads(json)
