@@ -15,9 +15,8 @@ Seq(
   "com.typesafe.sbt" % "sbt-native-packager" % "1.7.6",
   "ch.epfl.scala" % "sbt-scalajs-bundler" % "0.20.0",
   "org.portable-scala" % "sbt-scalajs-crossproject" % "1.0.0",
-  "org.scala-js" % "sbt-scalajs" % "1.5.0",
+  "org.scala-js" % "sbt-scalajs" % "1.5.1",
   "io.spray" % "sbt-revolver" % "0.9.1",
-  "ch.epfl.scala" % "sbt-bloop" % "1.4.8",
   "org.scalameta" % "sbt-scalafmt" % "2.4.2",
   "com.eed3si9n" % "sbt-buildinfo" % "0.10.0"
 ).map(addSbtPlugin)

@@ -11,8 +11,8 @@ import scala.util.Try
 
 val mapboxVersion = "2.2.0"
 val webAuthVersion = "6.0.1"
-val munitVersion = "0.7.23"
-val testContainersScalaVersion = "0.39.3"
+val munitVersion = "0.7.26"
+val testContainersScalaVersion = "0.39.5"
 val scalaTagsVersion = "0.9.4"
 val primitiveVersion = "1.19.0"
 val akkaVersion = "2.6.5"
@@ -34,7 +34,7 @@ Global / concurrentRestrictions += Tags.limit(Tags.Test, 1)
 
 val basicSettings = Seq(
   organization := "com.malliina",
-  scalaVersion := "2.13.5",
+  scalaVersion := "2.13.6",
   scalacOptions := Seq("-unchecked", "-deprecation")
 )
 
@@ -142,9 +142,9 @@ val backend = Project("boat", file("backend"))
       baseDirectory.value / "docs"
     ),
     libraryDependencies ++= http4sModules.map { m =>
-      "org.http4s" %% s"http4s-$m" % "0.21.22"
+      "org.http4s" %% s"http4s-$m" % "0.21.24"
     } ++ Seq("doobie-core", "doobie-hikari").map { d =>
-      "org.tpolecat" %% d % "0.13.1"
+      "org.tpolecat" %% d % "0.13.4"
     } ++ Seq(
       "com.github.pureconfig" %% "pureconfig" % "0.14.1",
       "com.vividsolutions" % "jts" % "1.13",
@@ -233,7 +233,7 @@ val agent = project
     libraryDependencies ++= Seq(
       "com.malliina" %% "primitives" % primitiveVersion,
       "com.malliina" %% "logback-streams" % "1.8.0",
-      "com.neovisionaries" % "nv-websocket-client" % "2.11",
+      "com.neovisionaries" % "nv-websocket-client" % "2.14",
       "org.slf4j" % "slf4j-api" % "1.7.30",
       "com.typesafe.akka" %% "akka-stream" % akkaVersion,
       "com.typesafe.akka" %% "akka-http" % akkaHttpVersion,

@@ -81,9 +81,38 @@ Returns user information including any boats:
                     "token": "abc123"
                 }
             ],
-            "enabled": true
+            "enabled": true,
+            "invites": [
+                {
+                    "boat": {
+                        "id": 15,
+                        "name": "HMS Royal"
+                    },
+                    "state": "awaiting"
+                }
+            ],
+            "friends": [
+                {
+                    "boat": {
+                        "id": 14,
+                        "name": "Titanic"
+                    },
+                    "friend": {
+                        "id": 123,
+                        "email": "baby@example.com"
+                    },
+                    "state": "accepted"
+                }
+            ]
         }
     }
+
+Key `invites` contains any boats you have been granted access. Key `friends` contains any boat permissions you have 
+granted to other users. Key `state` is any of the following:
+
+- awaiting
+- accepted
+- rejected
 
 ## PUT /users/me
 
@@ -201,32 +230,27 @@ Boat owners may invite other users to access the data of their boat:
 To invite user 123 to access boat 14:
 
     {
-        "operation": "grant",
-        "boat": "14",
-        "user": "123"
+        "boat": 14,
+        "email": "friend@example.com"
     }
 
-To revoke access:
+## POST /invites/respond
+
+Respond to an invite using the following JSON payload:
 
     {
-        "operation": "revoke",
-        "boat": "14",
-        "user": "123"
+        "boat": 14,
+        "accept": true
     }
 
-## POST /users/boats/answers
+## POST /invites/revoke
 
-Invitees may accept or reject invites to the data of a given boat:
+To revoke access from `user` to `boat`:
 
     {
-        "boat": "14",
-        "state": "accepted"
+        "boat": 14,
+        "user": 12
     }
-
-Key `state` must be one of:
-
-- accepted
-- rejected
 
 ## WebSocket /ws/updates
 
