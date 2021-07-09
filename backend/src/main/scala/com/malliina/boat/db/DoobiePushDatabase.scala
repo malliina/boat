@@ -22,6 +22,7 @@ object DoobiePushDatabase {
 class DoobiePushDatabase(db: DoobieDatabase, push: PushEndpoint)
   extends PushService
   with DoobieSQL {
+  implicit val logger = db.logHandler
 
   def enable(input: PushInput): IO[PushId] = db.run {
     val existing = sql"""select id 
