@@ -39,7 +39,7 @@ class StaticService[F[_]](blocker: Blocker)(implicit cs: ContextShift[F], s: Syn
         if (isCacheable) NonEmptyList.of(`max-age`(365.days), `public`)
         else NonEmptyList.of(`no-cache`())
       val res = s"/$prefix/$file"
-      log.info(s"Searching for '$file' at resource '$res'...")
+      log.debug(s"Searching for '$file' at resource '$res'...")
       StaticFile
         .fromResource(res, blocker, Option(req))
         .map(_.putHeaders(`Cache-Control`(cacheHeaders)))
