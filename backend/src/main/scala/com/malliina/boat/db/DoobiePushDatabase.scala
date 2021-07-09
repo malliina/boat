@@ -2,16 +2,15 @@ package com.malliina.boat.db
 
 import cats.effect.IO
 import cats.implicits._
+import com.malliina.boat.db.DoobieMappings._
 import com.malliina.boat.db.DoobiePushDatabase.log
 import com.malliina.boat.http.BoatQuery
-import com.malliina.boat.push.{BoatNotification, BoatState, PushEndpoint, PushService, PushSummary}
+import com.malliina.boat.push._
 import com.malliina.boat.{PushId, PushToken, UserDevice}
 import com.malliina.util.AppLogger
 import com.malliina.values.UserId
 import doobie.Fragments
 import doobie.implicits._
-
-import scala.concurrent.{ExecutionContext, Future}
 
 object DoobiePushDatabase {
   private val log = AppLogger(getClass)
@@ -23,16 +22,27 @@ object DoobiePushDatabase {
 class DoobiePushDatabase(db: DoobieDatabase, push: PushEndpoint)
   extends PushService
   with DoobieSQL {
-  import DoobieMappings._
 
   def enable(input: PushInput): IO[PushId] = db.run {
-    sql"""insert into push_clients(token, device, user) 
-          values(${input.token}, ${input.device}, ${input.user})""".update
-      .withUniqueGeneratedKeys[PushId]("id")
-      .map { id =>
-        log.info(s"Enabled notifications for ${input.device} token '${input.token}'.")
-        id
+    val existing = sql"""select id 
+                         from push_clients 
+                         where token = ${input.token} and device = ${input.device}"""
+      .query[PushId]
+      .option
+    existing.flatMap { idOpt =>
+      idOpt.map { id =>
+        log.info(s"${input.device} token ${input.token} already registered for push notifications.")
+        AsyncConnectionIO.pure(id)
+      }.getOrElse {
+        sql"""insert into push_clients(token, device, user) 
+              values(${input.token}, ${input.device}, ${input.user})""".update
+          .withUniqueGeneratedKeys[PushId]("id")
+          .map { id =>
+            log.info(s"Enabled notifications for ${input.device} token '${input.token}'.")
+            id
+          }
       }
+    }
   }
 
   def disable(token: PushToken, user: UserId): IO[Boolean] = db.run {
