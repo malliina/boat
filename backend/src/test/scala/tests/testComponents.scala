@@ -34,8 +34,5 @@ class TestComps extends AppComps {
 }
 
 object TestComps {
-  val builder = new AppCompsBuilder {
-    override def apply(conf: BoatConf, http: HttpClient[IO], cs: ContextShift[IO]): AppComps =
-      new TestComps
-  }
+  val builder: AppCompsBuilder = (conf: BoatConf, http: HttpClient[IO]) => new TestComps
 }

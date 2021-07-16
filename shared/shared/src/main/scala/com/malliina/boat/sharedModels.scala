@@ -258,8 +258,20 @@ object TrackTitle extends StringCompanion[TrackTitle] {
   val MaxLength = 191
 }
 
+case class ChangeTrackTitle(title: TrackTitle)
+
+object ChangeTrackTitle {
+  implicit val json = Json.format[ChangeTrackTitle]
+}
+
 object TrackComments {
   val Key = "comments"
+}
+
+case class ChangeComments(comments: String)
+
+object ChangeComments {
+  implicit val json = Json.format[ChangeComments]
 }
 
 case class TrackCanonical(name: String) extends AnyVal with WrappedString {

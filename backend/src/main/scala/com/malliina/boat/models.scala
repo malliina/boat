@@ -281,6 +281,7 @@ object SingleError {
 
 case class Errors(errors: NonEmptyList[SingleError]) {
   def message = errors.head.message
+  def asException = new ErrorsException(this)
 }
 
 object Errors {
@@ -311,6 +312,10 @@ object Errors {
     }.toList.toNel.map(es => Errors(es)).getOrElse {
       Errors(SingleError.input("JSON error."))
     }
+}
+
+class ErrorsException(val errors: Errors) extends Exception(errors.message.message) {
+  def message = errors.message
 }
 
 object BoatNames {

@@ -54,9 +54,11 @@ object DoobieDatabase {
 
 class DoobieDatabase(tx: HikariTransactor[IO]) {
   private val log = AppLogger(getClass)
+
   implicit val logHandler: LogHandler = LogHandler {
     case Success(sql, args, exec, processing) =>
-      log.info(s"OK '$sql' exec ${exec.toMillis} ms processing ${processing.toMillis} ms.")
+      val msg = s"OK '$sql' exec ${exec.toMillis} ms processing ${processing.toMillis} ms."
+      if (exec > 1.second) log.info(msg) else log.debug(msg)
     case ProcessingFailure(sql, args, exec, processing, failure) =>
       log.error(s"Failed '$sql' in ${exec + processing}.", failure)
     case ExecFailure(sql, args, exec, failure) =>

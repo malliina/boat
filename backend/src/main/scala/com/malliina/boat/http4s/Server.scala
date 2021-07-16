@@ -3,34 +3,33 @@ package com.malliina.boat.http4s
 import cats.data.Kleisli
 import cats.effect.{Blocker, ContextShift, ExitCode, IO, IOApp, Resource}
 import com.malliina.boat.ais.BoatMqttClient
-import com.malliina.boat.auth.{EmailAuth, TokenEmailAuth, JWT}
+import com.malliina.boat.auth.{EmailAuth, JWT, TokenEmailAuth}
 import com.malliina.boat.db.{DoobieDatabase, DoobieGPSDatabase, DoobiePushDatabase, DoobieTrackInserts, DoobieTracksDatabase, DoobieUserManager}
 import com.malliina.boat.html.BoatHtml
+import com.malliina.boat.http4s.Implicits.playJsonEncoder
 import com.malliina.boat.http4s.Service.BoatComps
 import com.malliina.boat.push.{BoatPushService, PushEndpoint}
-import com.malliina.boat.{AppMeta, AppMode, BoatConf, S3Client}
+import com.malliina.boat.{AppMeta, AppMode, BoatConf, Errors, S3Client, SingleError}
 import com.malliina.http.HttpClient
 import com.malliina.http.io.HttpClientIO
 import com.malliina.util.AppLogger
 import com.malliina.web.{EmailAuthFlow, GoogleAuthFlow, MicrosoftAuthFlow}
 import org.http4s.server.blaze.BlazeServerBuilder
 import org.http4s.server.middleware.{GZip, HSTS}
-import org.http4s.server.{Router, Server}
+import org.http4s.server.{Router, Server, ServiceErrorHandler}
 import org.http4s.{HttpApp, HttpRoutes, Request, Response}
 
 import scala.concurrent.ExecutionContext
+import scala.util.control.NonFatal
 
 case class ServerComponents(app: Service, handler: HttpApp[IO], server: Server[IO])
 
 trait AppCompsBuilder {
-  def apply(conf: BoatConf, http: HttpClient[IO], cs: ContextShift[IO]): AppComps
+  def apply(conf: BoatConf, http: HttpClient[IO]): AppComps
 }
 
 object AppCompsBuilder {
-  val prod = new AppCompsBuilder {
-    override def apply(conf: BoatConf, http: HttpClient[IO], cs: ContextShift[IO]): AppComps =
-      new ProdAppComps(conf, http, cs)
-  }
+  val prod: AppCompsBuilder = (conf: BoatConf, http: HttpClient[IO]) => new ProdAppComps(conf, http)
 }
 
 // Put modules that have different implementations in dev, prod or tests here.
@@ -39,7 +38,7 @@ trait AppComps {
   def emailAuth: EmailAuth
 }
 
-class ProdAppComps(conf: BoatConf, http: HttpClient[IO], cs: ContextShift[IO]) extends AppComps {
+class ProdAppComps(conf: BoatConf, http: HttpClient[IO]) extends AppComps {
   override val pushService: PushEndpoint = BoatPushService(conf.push, http)
   override val emailAuth: EmailAuth =
     TokenEmailAuth(conf.google.web.id, conf.google.ios.id, conf.microsoft.id, http)
@@ -63,6 +62,7 @@ object Server extends IOApp {
     server <- BlazeServerBuilder[IO](ExecutionContext.global)
       .bindHttp(port = port, "0.0.0.0")
       .withHttpApp(handler)
+      .withServiceErrorHandler(errorHandler)
       .resource
   } yield ServerComponents(service, handler, server)
 
@@ -78,7 +78,7 @@ object Server extends IOApp {
     deviceStreams <- Resource.eval(GPSStreams(gps))
   } yield {
     val http = HttpClientIO()
-    val appComps = builder(conf, http, contextShift)
+    val appComps = builder(conf, http)
     val auth = Http4sAuth(JWT(conf.secret))
     val googleAuth = appComps.emailAuth
     val authComps = AuthComps(
@@ -119,11 +119,17 @@ object Server extends IOApp {
   }
 
   def orNotFound(rs: HttpRoutes[IO]): Kleisli[IO, Request[IO], Response[IO]] =
-    Kleisli(req =>
+    Kleisli { req =>
       rs.run(req)
         .getOrElseF(BasicService.notFoundReq(req))
         .handleErrorWith(BasicService.errorHandler)
-    )
+    }
+
+  private def errorHandler: ServiceErrorHandler[IO] = req => {
+    case NonFatal(t) =>
+      log.error(s"Server error for ${req.method} '${req.uri.renderString}'.", t)
+      BasicService.serverError(Errors(SingleError("Server error.", "server")))
+  }
 
   override def run(args: List[String]): IO[ExitCode] =
     server(BoatConf.load, AppCompsBuilder.prod).use(_ => IO.never).as(ExitCode.Success)

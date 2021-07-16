@@ -188,14 +188,16 @@ class Service(comps: BoatComps) extends BasicService[IO] {
         html = index(req)
       )
     case req @ PUT -> Root / "tracks" / TrackNameVar(trackName) =>
-      def readTitle(form: FormReader) = form.readT[TrackTitle](TrackTitle.Key)
-      trackAction(req, readTitle) { (title, user) =>
-        inserts.updateTitle(trackName, title, user.id)
+      def readTitle(form: FormReader) =
+        form.readT[TrackTitle](TrackTitle.Key).map(ChangeTrackTitle.apply)
+      trackAction[ChangeTrackTitle](req, readTitle) { (title, user) =>
+        inserts.updateTitle(trackName, title.title, user.id)
       }
     case req @ PATCH -> Root / "tracks" / TrackIdVar(trackId) =>
-      def readComments(form: FormReader) = form.readT[String](TrackComments.Key)
-      trackAction(req, readComments) { (comments, user) =>
-        inserts.updateComments(trackId, comments, user.id)
+      def readComments(form: FormReader) =
+        form.readT[String](TrackComments.Key).map(ChangeComments.apply)
+      trackAction[ChangeComments](req, readComments) { (comments, user) =>
+        inserts.updateComments(trackId, comments.comments, user.id)
       }
     case req @ GET -> Root / "tracks" / TrackNameVar(trackName) / "full" =>
       authedLimited(req).flatMap { authed =>
@@ -413,7 +415,7 @@ class Service(comps: BoatComps) extends BasicService[IO] {
       }
     }
 
-  private def trackAction[T](req: Request[IO], readForm: FormReader => Either[Errors, T])(
+  private def trackAction[T: Reads](req: Request[IO], readForm: FormReader => Either[Errors, T])(
     code: (T, UserInfo) => IO[JoinedTrack]
   ) =
     formAction[T](req, readForm) { (t, user) =>
@@ -437,17 +439,33 @@ class Service(comps: BoatComps) extends BasicService[IO] {
       }
     }
 
-  private def formAction[T](req: Request[IO], readForm: FormReader => Either[Errors, T])(
+  private def formAction[T: Reads](req: Request[IO], readForm: FormReader => Either[Errors, T])(
     code: (T, UserInfo) => IO[Response[IO]]
-  ) =
+  )(implicit decoder: EntityDecoder[IO, UrlForm]): IO[Response[IO]] =
     auth.profile(req).flatMap { user =>
-      req.decode[UrlForm] { form =>
-        readForm(new FormReader(form)).map { t =>
-          code(t, user)
-        }.recover { err =>
-          log.error(s"Form failure. $err")
-          badRequest(Errors(SingleError.input("Invalid form input.")))
-        }
+      val decoded = req.decodeJson[T].handleErrorWith { t =>
+        decoder
+          .decode(req, strict = false)
+          .foldF(
+            fail => {
+              log.warn(
+                s"Both JSON and form decode failed for ${req.method} '${req.uri.renderString}'. $fail",
+                t
+              )
+              IO.raiseError(fail)
+            },
+            form =>
+              readForm(new FormReader(form)).fold(
+                err => IO.raiseError(err.asException),
+                IO.pure
+              )
+          )
+      }
+      decoded.flatMap { t =>
+        code(t, user)
+      }.handleErrorWith { err =>
+        log.error(s"Form failure. $err")
+        badRequest(Errors(SingleError.input("Invalid form input.")))
       }
     }
 

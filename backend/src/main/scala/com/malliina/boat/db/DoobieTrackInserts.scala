@@ -32,6 +32,7 @@ class DoobieTrackInserts(val db: DoobieDatabase) extends TrackInsertsDatabase wi
           where t.boat = b.id and b.owner = u.id"""
 
   def updateTitle(track: TrackName, title: TrackTitle, user: UserId): IO[JoinedTrack] = {
+    log.info(s"Updating title of '$track' by user ID $user to '$title'...")
     val trackIO =
       sql"""$trackIds and t.name = $track and b.uid = $user"""
         .query[TrackId]
@@ -45,6 +46,7 @@ class DoobieTrackInserts(val db: DoobieDatabase) extends TrackInsertsDatabase wi
   }
 
   def updateComments(track: TrackId, comments: String, user: UserId): IO[JoinedTrack] = {
+    log.info(s"Updating comments of '$track' by user ID $user to '$comments'...")
     val trackIO =
       sql"""$trackIds and t.id = $track and b.uid = $user"""
         .query[TrackId]
@@ -254,6 +256,11 @@ class DoobieTrackInserts(val db: DoobieDatabase) extends TrackInsertsDatabase wi
       id <- tid
       _ <- update(id)
       updated <- trackById(id)
-    } yield updated
+    } yield {
+      log.info(
+        s"Updated track ${updated.track} ('${updated.trackName}') of '${updated.boatName}' by '${updated.user}'."
+      )
+      updated
+    }
   }
 }
