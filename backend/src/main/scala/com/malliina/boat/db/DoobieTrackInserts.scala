@@ -60,7 +60,6 @@ class DoobieTrackInserts(val db: DoobieDatabase) extends TrackInsertsDatabase wi
 
   def addBoat(boat: BoatName, user: UserId): IO[BoatRow] = run {
     saveNewBoat(boat, user, BoatTokens.random()).flatMap { id =>
-      log.info(s"Registered boat '$boat' with ID '$id' owned by '$user'.")
       boatById(id)
     }
   }
@@ -135,7 +134,7 @@ class DoobieTrackInserts(val db: DoobieDatabase) extends TrackInsertsDatabase wi
                           s"Boat name '$boat' is already taken and therefore not available for '$user'."
                         )
                       } else {
-                        insertBoat(boat, id)
+                        insertBoat(boat, id, BoatTokens.random())
                       }
                     }
                 }
@@ -170,13 +169,17 @@ class DoobieTrackInserts(val db: DoobieDatabase) extends TrackInsertsDatabase wi
       avgSpeed <-
         sql"select avg(boat_speed) from points p where p.track = $track and p.boat_speed >= $minSpeed"
           .query[SpeedM]
-          .unique
+          .option
       info <-
         sql"select avg(water_temp), sum(diff), count(*) from points p where p.track = $track"
           .query[DbTrackInfo]
-          .unique
-      rows <-
-        sql"update tracks set avg_water_temp = ${info.avgTemp}, avg_speed = $avgSpeed, points = ${info.points}, distance = ${info.distance} where id = $track".update.run
+          .option
+      rows <- {
+        val avgTemp = info.map(_.avgTemp)
+        val points = info.map(_.points).getOrElse(0)
+        val distance = info.map(_.distance).getOrElse(DistanceM.zero)
+        sql"update tracks set avg_water_temp = $avgTemp, avg_speed = $avgSpeed, points = $points, distance = $distance where id = $track".update.run
+      }
       parts <- coord.parts.toList.traverse { part =>
         sql"""insert into sentence_points(sentence, point) values($part, $point)""".update.run
       }
@@ -207,12 +210,14 @@ class DoobieTrackInserts(val db: DoobieDatabase) extends TrackInsertsDatabase wi
         sql"$trackMetas and t.id = $id".query[TrackMeta].unique
       }
 
-  private def insertBoat(boatName: BoatName, owner: UserId): ConnectionIO[JoinedBoat] =
-    sql"""insert into boats(name, owner) values($boatName, $owner)""".update
-      .withUniqueGeneratedKeys[DeviceId]("id")
-      .flatMap { id =>
-        sql"${CommonSql.boats} and b.id = $id".query[JoinedBoat].unique
-      }
+  private def insertBoat(
+    boatName: BoatName,
+    owner: UserId,
+    withToken: BoatToken
+  ): ConnectionIO[JoinedBoat] =
+    saveNewBoat(boatName, owner, withToken).flatMap { id =>
+      sql"${CommonSql.boats} and b.id = $id".query[JoinedBoat].unique
+    }
 
   private def joinBoat(meta: BoatTrackMeta): ConnectionIO[BoatRow] = {
     val user = sql"select id from users u where u.user = ${meta.user}".query[UserId].unique
@@ -247,6 +252,10 @@ class DoobieTrackInserts(val db: DoobieDatabase) extends TrackInsertsDatabase wi
   ): ConnectionIO[DeviceId] =
     sql"""insert into boats(name, owner, token) values($name, $user, $token)""".update
       .withUniqueGeneratedKeys[DeviceId]("id")
+      .map { id =>
+        log.info(s"Registered boat '$name' with ID '$id' owned by '$user'.")
+        id
+      }
 
   private def updateTrack(
     tid: ConnectionIO[TrackId],
