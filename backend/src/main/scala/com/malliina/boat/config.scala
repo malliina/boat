@@ -77,6 +77,7 @@ object BoatConf {
   import pureconfig.generic.auto.exportReader
   implicit def hint[A] = ProductHint[A](ConfigFieldMapping(CamelCase, CamelCase))
   private val attempt: Either[ConfigReaderFailures, BoatConf] =
-    LocalConf().load[WrappedConf].map(_.boat)
+    loadAs[WrappedConf].map(_.boat)
+  def loadAs[T: ConfigReader] = LocalConf().load[T]
   def load = attempt.fold(err => throw ConfigReaderException(err), identity)
 }

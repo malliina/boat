@@ -11,7 +11,7 @@ class DoobieTracksDatabaseTests extends MUnitSuite with MUnitDatabaseSuite {
   doobieDb.test("run doobie query") { doobie =>
     val service = DoobieTracksDatabase(doobie.resource)
     val res = service.hm.unsafeRunSync()
-    assertEquals(res, 42)
+    assertEquals(res, None)
   }
 }
 

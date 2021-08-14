@@ -6,7 +6,6 @@ import com.malliina.mapbox._
 import com.malliina.measure.SpeedM
 import com.malliina.turf.nearestPointOnLine
 import com.malliina.values.ErrorMessage
-import play.api.libs.json._
 
 import scala.concurrent.Future
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
@@ -54,7 +53,8 @@ class MapSocket(
     * @param id layer ID
     */
   def lineLayer(id: String) =
-    trackLineLayer(id, LinePaint(PropertyValue.Custom(Styles.colorBySpeed), 1, 1))
+    trackLineLayer(id, LinePaint(LinePaint.blackColor, 1, 1))
+//  trackLineLayer(id, LinePaint(PropertyValue.Custom(Styles.colorBySpeed), 1, 1))
 
   def trackLineLayer(id: String, paint: LinePaint): Layer = Layer.line(id, emptyTrack, paint, None)
 

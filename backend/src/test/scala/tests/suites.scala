@@ -18,6 +18,7 @@ import pureconfig.generic.ProductHint
 
 import java.nio.file.Paths
 import java.util.concurrent.atomic.AtomicReference
+import scala.concurrent.ExecutionContext
 
 case class TestBoatConf(testdb: Conf)
 case class WrappedTestConf(boat: TestBoatConf)
@@ -27,11 +28,12 @@ trait MUnitSuite extends FunSuite {
   val userHome = Paths.get(sys.props("user.home"))
   val blocker = Blocker[IO]
 
+  implicit val ec: ExecutionContext = munitExecutionContext
   implicit def munitContextShift: ContextShift[IO] =
     IO.contextShift(munitExecutionContext)
   implicit def munitTimer: Timer[IO] =
     IO.timer(munitExecutionContext)
-
+  implicit def conc = IO.ioConcurrentEffect(munitContextShift)
   def databaseFixture(conf: => Conf) = resourceFixture {
     blocker.flatMap { b =>
       DoobieDatabase(conf, b)

@@ -39,17 +39,11 @@ trait BaseFront extends FrontKeys {
   }
 
   def toDouble(s: String) = Try(s.toDouble).toOption
-
   def queryDouble(key: String) = query(key).flatMap(s => Try(s.toDouble).toOption)
-
   def queryInt(key: String) = query(key).flatMap(s => Try(s.toInt).toOption)
-
   def query(key: String) = queryParams.get(key).flatMap(_.headOption)
-
   def anchor(id: String) = elemAs[HTMLAnchorElement](id)
-
   def elemGet[T](id: String) = elemAs[T](id).toOption.get
-
   def elemAs[T](id: String) = elem(id).map(_.asInstanceOf[T])
 
   def elem(id: String): Either[NotFound, Element] =
@@ -71,6 +65,6 @@ case class Name(track: TrackName) extends PathState
 case class Route(req: RouteRequest) extends PathState
 case object NoTrack extends PathState
 
-case class NotFound(id: String) {
+case class NotFound(id: String) extends AnyVal {
   override def toString: String = id
 }

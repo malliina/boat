@@ -1,11 +1,28 @@
 package com.malliina.boat.db
 
+import cats.effect.IO
 import cats.implicits._
-import com.malliina.boat.{BoatConf, DateVal, DeviceId, TrackId, TrackInput, TrackNames}
+import com.malliina.boat.{BoatConf, BoatName, BoatUser, DateVal, DeviceId, TrackId, TrackInput, TrackNames}
+import com.malliina.values.Email
+import pureconfig.error.ConfigReaderException
+import pureconfig.generic.ProductHint
+import pureconfig.{CamelCase, ConfigFieldMapping}
 import tests.MUnitSuite
 
+case class TestDatabaseConf(testdb: Conf)
+
+case class WrappedTestConf(boat: TestDatabaseConf)
+
 class TracksImporter extends MUnitSuite {
-  val dbResource = databaseFixture(BoatConf.load.db)
+  import pureconfig.generic.auto.exportReader
+  implicit def hint[A] = ProductHint[A](ConfigFieldMapping(CamelCase, CamelCase))
+
+  def testConf = BoatConf
+    .loadAs[WrappedTestConf]
+    .map(_.boat.testdb)
+    .fold(err => throw ConfigReaderException(err), identity)
+  val dbResource = databaseFixture(testConf)
+  val file = userHome.resolve(".boat/LogNYY.txt")
 
   dbResource.test("import tracks from plotter log file".ignore) { db =>
 ////    importSlice(".boat/Log20200513.txt", 1273831, 1320488)
@@ -14,17 +31,35 @@ class TracksImporter extends MUnitSuite {
 
   dbResource.test("modify tracks".ignore) { db =>
     val oldTrack = TrackId(175)
-    splitTracksByDate(oldTrack, DoobieTrackInserts(db.resource))
+    splitTracksByDate(oldTrack, TrackInserter(db.resource))
+  }
+
+  dbResource.test("read file".ignore) { db =>
+    val database = db.resource
+    val users = DoobieUserManager(database)
+    val rows = blocker.use[IO, Long] { b =>
+      val inserter = TrackInserter(database)
+      val i = TrackImporter(inserter, munitContextShift, b)
+      val user = users.userInfo(Email("mleski123@gmail.com")).unsafeRunSync()
+      val track = inserter
+        .joinAsBoat(BoatUser(TrackNames.random(), BoatName("Amina"), user.username))
+        .unsafeRunSync()
+      i.saveFile(file, track.short)
+    }
+//    println("test")
+    println(rows.unsafeRunSync())
+  }
+
+  test("split by date".ignore) {
+//    TrackImporter.byDate()
   }
 
 //  private def importSlice(file: String, drop: Int, last: Int, db: DoobieDatabase) = {
-//    val inserts = DoobieTrackInserts(db)
+//    val inserts = TrackInserter(db)
 //    val importer = new TrackImporter(inserts)
 //    val trackName = TrackNames.random()
-//    val track = await(
-//      inserts.joinAsBoat(BoatUser(trackName, BoatName("Amina"), Username("mle"))),
-//      10.seconds
-//    )
+//    val track =
+//      inserts.joinAsBoat(BoatUser(trackName, BoatName("Amina"), Username("mle"))).unsafeRunSync()
 //    val s: Source[RawSentence, Future[IOResult]] =
 //      importer
 //        .fileSource(FileUtils.userHome.resolve(file))
@@ -34,7 +69,7 @@ class TracksImporter extends MUnitSuite {
 //    await(task, 300000.seconds)
 //  }
 //
-  def splitTracksByDate(oldTrack: TrackId, db: DoobieTrackInserts) = {
+  def splitTracksByDate(oldTrack: TrackId, db: TrackInserter) = {
     def createAndUpdateTrack(date: DateVal) = {
       val in = TrackInput.empty(TrackNames.random(), DeviceId(14))
       for {

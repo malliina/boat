@@ -1,33 +1,32 @@
 package com.malliina.boat.db
 
-import akka.actor.ActorSystem
-import akka.stream.IOResult
-import akka.stream.scaladsl.{FileIO, Framing, Source}
-import akka.util.ByteString
-import cats.effect.{ContextShift, IO}
-import com.malliina.boat.{RawSentence, TrackMetaShort}
+import cats.effect.{Blocker, ContextShift, IO}
+import cats.kernel.Eq
+import com.malliina.boat.db.TrackImporter.log
+import com.malliina.boat.parsing._
+import com.malliina.boat.{InsertedPoint, KeyedSentence, RawSentence, SentencesEvent, TrackMetaShort}
 import com.malliina.util.AppLogger
-
+import fs2.{Pipe, Stream, text}
+import TrackImporter.dateEq
 import java.nio.file.Path
-import scala.concurrent.{ExecutionContext, Future}
+import java.time.LocalDate
 
 object TrackImporter {
   private val log = AppLogger(getClass)
 
+  implicit val dateEq: Eq[LocalDate] =
+    Eq.by[LocalDate, (Int, Int, Int)](d => (d.getYear, d.getMonthValue, d.getDayOfMonth))
+
   def apply(
     inserts: TrackInsertsDatabase,
-    as: ActorSystem,
-    ec: ExecutionContext,
-    cs: ContextShift[IO]
+    cs: ContextShift[IO],
+    b: Blocker
   ): TrackImporter =
-    new TrackImporter(inserts)(as, ec, cs)
+    new TrackImporter(inserts, b)(cs)
 }
 
-class TrackImporter(inserts: TrackInsertsDatabase)(implicit
-  as: ActorSystem,
-  ec: ExecutionContext,
-  cs: ContextShift[IO]
-) {
+class TrackImporter(inserts: TrackInsertsDatabase, blocker: Blocker)(implicit cs: ContextShift[IO])
+  extends TrackStreams(blocker)(cs) {
 
   /** Saves sentences in `file` to the database `track`.
     *
@@ -35,60 +34,61 @@ class TrackImporter(inserts: TrackInsertsDatabase)(implicit
     * @param track target track
     * @return number of points saved
     */
-  def save(file: Path, track: TrackMetaShort): IO[Long] = saveSource(fileSource(file), track)
+  def saveFile(file: Path, track: TrackMetaShort): IO[Long] = save(sentences(file), track)
 
-  def fileSource(file: Path) = FileIO
-    .fromPath(file)
-    .via(Framing.delimiter(ByteString("\r\n"), 128))
-    .map(bs => RawSentence(bs.utf8String))
+  def save(source: Stream[IO, RawSentence], track: TrackMetaShort): IO[Long] = {
+    val describe = s"track ${track.trackName} with boat ${track.boatName} by ${track.username}"
+    val task = source
+      .filter(_ != RawSentence.initialZda)
+      .map(s => SentencesEvent(Seq(s), track))
+      .through(processor)
+      .fold(0) { (acc, point) =>
+        if (acc == 0) {
+          log.info(s"Saving points to $describe...")
+        }
+        if (acc % 100 == 0 && acc > 0) {
+          log.info(s"Inserted $acc points to $describe...")
+        }
+        acc + 1
+      }
 
-  def saveSource(
-    source: Source[RawSentence, Future[IOResult]],
-    track: TrackMetaShort
-  ): IO[Long] = {
-    IO.pure(0)
-//    val describe = s"track ${track.trackName} with boat ${track.boatName} by ${track.username}"
-//    log.info(s"Saving sentences to $describe...")
-//    val events: Source[SentencesEvent, Future[IOResult]] =
-//      source
-//        .filter(_ != RawSentence.initialZda)
-//        .map(s => SentencesEvent(Seq(s), track))
-//        .watchTermination() {
-//          case (io, _) =>
-//            io.map { res =>
-//              log.info(s"Read ${res.count} bytes using $describe.")
-//              res
-//            }.recoverWith {
-//              case e =>
-//                log.error(s"Failed to read sentences using $describe.", e)
-//                Future.failed(e)
-//            }
-//        }
-//    val logger = Sink.fold[Long, InsertedPoint](0L) { (acc, _) =>
-//      if (acc % 100 == 0) {
-//        log.info(s"Inserted $acc items to $describe...")
-//      }
-//      acc + 1
-//    }
-//    IO.fromFuture(
-//      IO(
-//        events
-//          .via(processSentences)
-//          .runWith(logger)
-//      )
-//    )
+    task.compile.toList.map(_.head)
   }
 
-//  def processSentences =
-//    Flow[SentencesEvent]
-//      .via(Flow[SentencesEvent].mapAsync(1)(e => inserts.saveSentences(e).unsafeToFuture()))
-//      .mapConcat(saved => saved.toList)
-//      .via(insertPointsFlow)
+  def processor: Pipe[IO, SentencesEvent, InsertedPoint] =
+    _.through(sentenceInserter).through(sentenceCompiler).through(pointInserter)
 
-//  def insertPointsFlow: Flow[KeyedSentence, InsertedPoint, NotUsed] = {
-//    Flow[KeyedSentence]
-//      .mapConcat(raw => BoatParser.parse(raw).toOption.toList)
-//      .via(BoatParser.multiFlow())
-//      .via(Flow[FullCoord].mapAsync(1)(c => inserts.saveCoords(c).unsafeToFuture()))
-//  }
+  def sentenceInserter: Pipe[IO, SentencesEvent, KeyedSentence] =
+    _.evalMap(e => inserts.saveSentences(e)).flatMap(kss => Stream.emits(kss))
+
+  def sentenceCompiler: Pipe[IO, KeyedSentence, FullCoord] = {
+    val state = TrackManager()
+    _.flatMap(sentence =>
+      Stream.emits(BoatParser.parseMulti(Seq(sentence)).flatMap(parsed => state.update(parsed)))
+    )
+  }
+
+  def pointInserter: Pipe[IO, FullCoord, InsertedPoint] =
+    _.mapAsync(1)(coord => inserts.saveCoords(coord))
+}
+
+class TrackStreams(blocker: Blocker)(implicit val cs: ContextShift[IO]) {
+  def fileByDate(file: Path) = byDate(sentences(file))
+
+  def byDate(source: Stream[IO, RawSentence]) =
+    source
+      .zipWithScan1(LocalDate.of(1980, 1, 1)) { (date, sentence) =>
+        zdaDate(sentence).getOrElse(date)
+      }
+      .groupAdjacentBy(_._2)
+      .map(_._2.map(_._1))
+
+  def zdaDate(s: RawSentence): Option[LocalDate] = SentenceParser.parse(s).toOption.flatMap {
+    case zda @ ZDAMessage(_, _, _, _, _, _, _) => Option(zda.date)
+    case _                                     => None
+  }
+  def sentences(file: Path) = lines(file).map(RawSentence.apply)
+
+  def lines(file: Path) =
+    fs2.io.file.readAll[IO](file, blocker, 8192).through(text.utf8Decode).through(text.lines)
 }

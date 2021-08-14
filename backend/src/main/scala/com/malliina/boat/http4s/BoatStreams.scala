@@ -8,6 +8,7 @@ import com.malliina.boat.parsing._
 import com.malliina.boat.{BoatEvent, BoatJsonError, CoordsEvent, EmptyEvent, FrontEvent, InputEvent, PingEvent, SentencesMessage, TimeFormatter, VesselMessages}
 import com.malliina.util.AppLogger
 import fs2.concurrent.Topic
+import fs2.Stream
 
 object BoatStreams {
   private val log = AppLogger(getClass)
@@ -17,7 +18,6 @@ object BoatStreams {
     c: Concurrent[IO]
   ) = for {
     in <- Topic[IO, InputEvent](EmptyEvent)
-//    out <- Topic[IO, FrontEvent](PingEvent(System.currentTimeMillis()))
     saved <- Topic[IO, SavedEvent](EmptySavedEvent)
   } yield new BoatStreams(db, ais, in, saved)
 
@@ -30,7 +30,6 @@ class BoatStreams(
   db: TrackInsertsDatabase,
   ais: AISSource,
   val boatIn: Topic[IO, InputEvent],
-//  viewerOut: Topic[IO, FrontEvent],
   saved: Topic[IO, SavedEvent]
 )(implicit cs: ContextShift[IO]) {
   private val trackState = TrackManager()
@@ -57,17 +56,17 @@ class BoatStreams(
         }
       }
     }
-    .flatMap { list => fs2.Stream(list: _*) }
+    .flatMap { list => Stream.emits(list) }
   val inserted = emittable
     .mapAsync(1) { coord =>
       saveRecovered(coord)
     }
-    .flatMap { list => fs2.Stream(list: _*) }
+    .flatMap { list => Stream.emits(list) }
   inserted.evalMap { i =>
     saved.publish1(i)
   }.compile.drain.unsafeRunAsyncAndForget()
 
-  def clientEvents(formatter: TimeFormatter): fs2.Stream[IO, FrontEvent] = {
+  def clientEvents(formatter: TimeFormatter): Stream[IO, FrontEvent] = {
     val boatEvents = saved
       .subscribe(100)
       .drop(1)

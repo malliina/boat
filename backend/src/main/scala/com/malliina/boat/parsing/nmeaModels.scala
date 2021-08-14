@@ -146,7 +146,7 @@ case class Azimuth(degrees: Int) extends AnyVal {
 
 object Azimuth extends PrimitiveParsing {
   def apply(s: String): Either[SingleError, Azimuth] =
-    limitedInt(s, i => i >= 0 && i <= 359, apply)
+    limitedInt(s, i => i >= 0 && i <= 360, apply)
 }
 
 case class GSVMessage(talker: String, satellites: Int, elevation: Elevation, azimuth: Azimuth)

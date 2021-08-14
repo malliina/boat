@@ -4,7 +4,7 @@ import cats.data.Kleisli
 import cats.effect.{Blocker, ContextShift, ExitCode, IO, IOApp, Resource}
 import com.malliina.boat.ais.BoatMqttClient
 import com.malliina.boat.auth.{EmailAuth, JWT, TokenEmailAuth}
-import com.malliina.boat.db.{DoobieDatabase, DoobieGPSDatabase, DoobiePushDatabase, DoobieTrackInserts, DoobieTracksDatabase, DoobieUserManager}
+import com.malliina.boat.db.{DoobieDatabase, DoobieGPSDatabase, DoobiePushDatabase, TrackInserter, DoobieTracksDatabase, DoobieUserManager}
 import com.malliina.boat.html.BoatHtml
 import com.malliina.boat.http4s.Implicits.playJsonEncoder
 import com.malliina.boat.http4s.Service.BoatComps
@@ -71,7 +71,7 @@ object Server extends IOApp {
     db <- DoobieDatabase.withMigrations(conf.db, blocker)
     users = DoobieUserManager(db)
     _ <- Resource.eval(users.initUser())
-    trackInserts = DoobieTrackInserts(db)
+    trackInserts = TrackInserter(db)
     gps = DoobieGPSDatabase(db)
     ais = BoatMqttClient(AppMode.fromBuild)
     streams <- Resource.eval(BoatStreams(trackInserts, ais))

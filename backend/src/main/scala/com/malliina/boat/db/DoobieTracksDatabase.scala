@@ -6,7 +6,7 @@ import cats.implicits._
 import com.malliina.boat.InviteState.accepted
 import com.malliina.boat.http.{BoatQuery, SortOrder, TrackQuery}
 import com.malliina.boat._
-import com.malliina.measure.DistanceM
+import com.malliina.measure.{DistanceM, SpeedM}
 import com.malliina.util.AppLogger
 import com.malliina.values.Username
 import doobie._
@@ -128,8 +128,10 @@ class DoobieTracksDatabase(val db: DoobieDatabase) extends TracksSource with Sta
   val boatsView = sql.boats.query[JoinedBoat].to[List]
   val topView = sql.topRows.query[TrackPointRow].to[List]
 
-  def hm: IO[Int] = run {
-    sql"select 42".query[Int].unique
+  def hm: IO[Option[SpeedM]] = run {
+    sql"select avg(boat_speed) from points p where p.boat_speed >= 100 having avg(boat_speed) is not null"
+      .query[SpeedM]
+      .option
   }
 
   def boats = run { boatsView }
@@ -157,9 +159,9 @@ class DoobieTracksDatabase(val db: DoobieDatabase) extends TracksSource with Sta
       fr"sum(t.distance), sum(t.duration), count(t.track), count(distinct(t.startDate))"
     val dailyIO =
       sql"""select t.startDate, $aggregates
-          from ($tracks) t 
-          group by t.startDate
-          order by t.startDate $ord"""
+            from ($tracks) t 
+            group by t.startDate
+            order by t.startDate $ord"""
         .query[DailyAggregates]
         .to[List]
     val monthlyIO =
@@ -283,10 +285,10 @@ class DoobieTracksDatabase(val db: DoobieDatabase) extends TracksSource with Sta
         limits.to.map(t => fr"p.added <= $t")
       )
       sql"""${sql.selectAllPoints} 
-         $conditions 
-         order by p.track_index desc 
-         limit ${limits.limit} 
-         offset ${limits.offset}"""
+             $conditions 
+             order by p.track_index desc 
+             limit ${limits.limit} 
+             offset ${limits.offset}"""
         .query[TrackPointRow]
         .to[List]
         .map { ps =>

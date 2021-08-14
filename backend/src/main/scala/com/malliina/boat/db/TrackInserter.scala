@@ -1,7 +1,7 @@
 package com.malliina.boat.db
 
 import cats.implicits._
-import com.malliina.boat.db.DoobieTrackInserts.log
+import com.malliina.boat.db.TrackInserter.log
 import com.malliina.boat.parsing.FullCoord
 import com.malliina.boat._
 import com.malliina.measure.{DistanceM, SpeedIntM, SpeedM}
@@ -11,13 +11,13 @@ import doobie.implicits._
 import cats.effect.IO
 import com.malliina.util.AppLogger
 
-object DoobieTrackInserts {
+object TrackInserter {
   private val log = AppLogger(getClass)
 
-  def apply(db: DoobieDatabase): DoobieTrackInserts = new DoobieTrackInserts(db)
+  def apply(db: DoobieDatabase): TrackInserter = new TrackInserter(db)
 }
 
-class DoobieTrackInserts(val db: DoobieDatabase) extends TrackInsertsDatabase with DoobieSQL {
+class TrackInserter(val db: DoobieDatabase) extends TrackInsertsDatabase with DoobieSQL {
   import DoobieMappings._
   import db.{run, logHandler}
   val minSpeed: SpeedM = 1.kmh
@@ -26,10 +26,10 @@ class DoobieTrackInserts(val db: DoobieDatabase) extends TrackInsertsDatabase wi
   private def trackById(id: TrackId) =
     sql"${CommonSql.nonEmptyTracks} and t.id = $id".query[JoinedTrack].unique
 
-  private val trackMetas =
+  private def trackMetas(more: Fragment) =
     sql"""select t.id, t.name, t.title, t.canonical, t.comments, t.added, t.avg_speed, t.avg_water_temp, t.points, t.distance, b.id boatId, b.name boatName, b.token boatToken, u.id userId, u.user, u.email
           from tracks t, boats b, users u
-          where t.boat = b.id and b.owner = u.id"""
+          where t.boat = b.id and b.owner = u.id $more""".query[TrackMeta]
 
   def updateTitle(track: TrackName, title: TrackTitle, user: UserId): IO[JoinedTrack] = {
     log.info(s"Updating title of '$track' by user ID $user to '$title'...")
@@ -89,25 +89,21 @@ class DoobieTrackInserts(val db: DoobieDatabase) extends TrackInsertsDatabase wi
   }
 
   def joinAsBoat(meta: BoatTrackMeta): IO[TrackMeta] = run {
-    val existing =
-      sql"""$trackMetas and u.user = ${meta.user} and b.name = ${meta.boat} and t.name = ${meta.track}"""
-        .query[TrackMeta]
-        .option
+    val existing = trackMetas(
+      fr"and u.user = ${meta.user} and b.name = ${meta.boat} and t.name = ${meta.track}"
+    ).option
     existing.flatMap { opt =>
       opt.map(pure).getOrElse {
         joinBoat(meta).flatMap { boat =>
           // Is this necessary?
-          sql"$trackMetas and t.name = ${meta.track} and b.id = ${boat.id}"
-            .query[TrackMeta]
-            .option
-            .flatMap { opt =>
-              opt.map(pure).getOrElse {
-                insertTrack(TrackInput.empty(meta.track, boat.id)).map { meta =>
-                  log.info(s"Registered track with ID '${meta.track}' for boat '${boat.id}'.")
-                  meta
-                }
+          trackMetas(fr"and t.name = ${meta.track} and b.id = ${boat.id}").option.flatMap { opt =>
+            opt.map(pure).getOrElse {
+              insertTrack(TrackInput.empty(meta.track, boat.id)).map { meta =>
+                log.info(s"Registered track with ID '${meta.track}' for boat '${boat.id}'.")
+                meta
               }
             }
+          }
         }
       }
     }
@@ -167,18 +163,26 @@ class DoobieTrackInserts(val db: DoobieDatabase) extends TrackInsertsDatabase wi
       diff <- prev.map(p => computeDistance(p.coord, coord.coord)).getOrElse(pure(DistanceM.zero))
       point <- insertPoint(coord, prev.map(_.trackIndex).getOrElse(0) + 1, diff)
       avgSpeed <-
-        sql"select avg(boat_speed) from points p where p.track = $track and p.boat_speed >= $minSpeed"
+        sql"""select avg(boat_speed) 
+              from points p 
+              where p.track = $track and p.boat_speed >= $minSpeed 
+              having avg(boat_speed) is not null"""
           .query[SpeedM]
           .option
       info <-
-        sql"select avg(water_temp), sum(diff), count(*) from points p where p.track = $track"
+        sql"""select avg(water_temp), sum(diff), count(*) 
+              from points p 
+              where p.track = $track 
+              having avg(water_temp) is not null"""
           .query[DbTrackInfo]
           .option
       rows <- {
         val avgTemp = info.map(_.avgTemp)
         val points = info.map(_.points).getOrElse(0)
         val distance = info.map(_.distance).getOrElse(DistanceM.zero)
-        sql"update tracks set avg_water_temp = $avgTemp, avg_speed = $avgSpeed, points = $points, distance = $distance where id = $track".update.run
+        sql"""update tracks 
+              set avg_water_temp = $avgTemp, avg_speed = $avgSpeed, points = $points, distance = $distance 
+              where id = $track""".update.run
       }
       parts <- coord.parts.toList.traverse { part =>
         sql"""insert into sentence_points(sentence, point) values($part, $point)""".update.run
@@ -207,7 +211,7 @@ class DoobieTrackInserts(val db: DoobieDatabase) extends TrackInsertsDatabase wi
           values(${in.name}, ${in.boat}, ${in.avgSpeed}, ${in.avgWaterTemp}, ${in.points}, ${in.distance}, ${in.canonical})""".update
       .withUniqueGeneratedKeys[TrackId]("id")
       .flatMap { id =>
-        sql"$trackMetas and t.id = $id".query[TrackMeta].unique
+        trackMetas(fr"and t.id = $id").unique
       }
 
   private def insertBoat(

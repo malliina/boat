@@ -75,15 +75,15 @@ object BoatParser {
 
   def handleError(err: SentenceError): Unit =
     err match {
-      case is @ IgnoredSentence(_) =>
-        log.debug(is.messageString)
+      case IgnoredSentence(_) =>
+        log.debug(err.messageString)
       case UnknownSentence(_, message) =>
         log.debug(message)
-      case st @ SuspectTime(_) =>
-        log.warn(st.messageString)
+      case SuspectTime(_) =>
+        log.warn(err.messageString)
       case SentenceFailure(_, ex) =>
         log.error(err.messageString, ex)
-      case _ =>
-        log.error(err.messageString)
+      case InvalidSentence(sentence, message) =>
+        log.warn(s"Invalid sentence '$sentence'. $message")
     }
 }

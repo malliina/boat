@@ -19,7 +19,7 @@ class TracksDatabaseTests extends MUnitSuite with MUnitDatabaseSuite {
   doobieDb.test("inserts update track aggregates") { resource =>
     val newDb = resource.resource
     val tdb = DoobieTracksDatabase(newDb)
-    val inserts = DoobieTrackInserts(newDb)
+    val inserts = TrackInserter(newDb)
     val users = DoobieUserManager(newDb)
     val user = users.userInfo(Email("aggregate@example.com")).unsafeRunSync()
     val boat = user.boats.head
@@ -39,7 +39,7 @@ class TracksDatabaseTests extends MUnitSuite with MUnitDatabaseSuite {
 
   doobieDb.test("add comments to track") { resource =>
     val newDb = resource.resource
-    val tdb = DoobieTrackInserts(newDb)
+    val tdb = TrackInserter(newDb)
     val udb = DoobieUserManager(newDb)
     val testComment = "test"
     Usernames
