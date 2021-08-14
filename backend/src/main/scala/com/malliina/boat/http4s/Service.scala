@@ -347,9 +347,15 @@ class Service(comps: BoatComps) extends BasicService[IO] {
     case req @ GET -> Root / TrackCanonicalVar(canonical) =>
       respond(req)(
         json = authedTrackQuery(req).flatMap { authed =>
-          db.canonical(canonical, authed.user.language).flatMap { ref =>
-            ok(TrackResponse(ref))
-          }
+          db.canonical(canonical, authed.user.language)
+            .flatMap { ref =>
+              ok(TrackResponse(ref))
+            }
+            .handleErrorWith { t =>
+              val errors = Errors(s"Not found: '$canonical'.")
+              log.info(s"${errors.message}", t)
+              notFound(errors)
+            }
         },
         html = index(req)
       )
