@@ -2,7 +2,7 @@ package com.malliina.boat.db
 
 import cats.effect.IO
 import com.malliina.boat.http.{AccessResult, InviteInfo, InviteResult}
-import com.malliina.boat.{BoatToken, DeviceId, InviteState, JoinedBoat, Language, UserBoats, UserInfo, Usernames}
+import com.malliina.boat.{BoatToken, DeviceId, InviteState, JoinedBoat, Language, UserBoats, UserInfo}
 import com.malliina.values._
 import org.apache.commons.codec.digest.DigestUtils
 
@@ -24,7 +24,6 @@ trait UserManager {
   def boats(user: Email): IO[UserBoats]
   def addUser(user: NewUser): IO[Either[AlreadyExists, UserRow]]
   def deleteUser(user: Username): IO[Either[UserDoesNotExist, Unit]]
-  def initUser(user: Username = Usernames.anon): IO[NewUser]
   def changeLanguage(user: UserId, to: Language): IO[Boolean]
   def invite(i: InviteInfo): IO[InviteResult]
   def grantAccess(boat: DeviceId, to: UserId, principal: UserId): IO[InviteResult]
@@ -32,5 +31,5 @@ trait UserManager {
   def updateInvite(boat: DeviceId, user: UserId, state: InviteState): IO[Long]
 
   protected def hash(user: Username, pass: Password): String =
-    DigestUtils.md5Hex(user.name + ":" + pass.pass)
+    DigestUtils.md5Hex(s"$user:${pass.pass}")
 }

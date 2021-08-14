@@ -41,25 +41,22 @@ class DoobieFairwayService(db: DoobieDatabase) extends FairwaySource {
   }
 
   def fairwaysAt(route: Seq[CoordHash]): IO[Seq[CoordFairways]] = db.run {
-    BoatQuery
-      .toNonEmpty(route.toList)
-      .map { routes =>
-        byCoords(routes).map { cs => collect(cs) }
-      }
-      .getOrElse {
-        AsyncConnectionIO.pure(Nil)
-      }
+    route.toList.toNel.map { routes =>
+      byCoords(routes).map { cs => collect(cs) }
+    }.getOrElse {
+      AsyncConnectionIO.pure(Nil)
+    }
   }
 
   def insert(in: FairwayInfo): ConnectionIO[FairwayId] =
     sql"""insert into fairways(name_fi, name_se, start, end, depth, depth2, depth3, lighting, class_text, sea_area, state) 
-         values (${in.nameFi}, ${in.nameSe}, ${in.start}, ${in.end}, ${in.depth}, ${in.depth2}, ${in.depth3}, ${in.lighting}, ${in.classText}, ${in.seaArea}, ${in.state})""".update
+          values (${in.nameFi}, ${in.nameSe}, ${in.start}, ${in.end}, ${in.depth}, ${in.depth2}, ${in.depth3}, ${in.lighting}, ${in.classText}, ${in.seaArea}, ${in.state})""".update
       .withUniqueGeneratedKeys[FairwayId]("id")
 
   def insertCoords(ins: List[FairwayCoordInput]): ConnectionIO[List[FairwayCoordId]] =
     ins.traverse { in =>
       sql"""insert into fairway_coords(coord, latitude, longitude, coord_hash, fairway)
-         values(${in.coord}, ${in.latitude}, ${in.longitude}, ${in.coordHash}, ${in.fairway})""".update
+            values(${in.coord}, ${in.latitude}, ${in.longitude}, ${in.coordHash}, ${in.fairway})""".update
         .withUniqueGeneratedKeys[FairwayCoordId]("id")
     }
 

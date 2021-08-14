@@ -78,20 +78,17 @@ class DoobiePushDatabase(db: DoobieDatabase, push: PushEndpoint)
       IO.pure(0)
     } else {
       db.run {
-        val deleteIO = BoatQuery
-          .toNonEmpty(summary.badTokens.toList)
-          .map { bad =>
-            val inClause = Fragments.in(fr"token", bad)
-            sql"delete from push_clients where $inClause".update.run.map { deleted =>
-              if (deleted > 0) {
-                log.info(s"Removed $deleted bad tokens: ${summary.badTokens.mkString(", ")}")
-              }
-              deleted
+        val deleteIO = summary.badTokens.toList.toNel.map { bad =>
+          val inClause = Fragments.in(fr"token", bad)
+          sql"delete from push_clients where $inClause".update.run.map { deleted =>
+            if (deleted > 0) {
+              log.info(s"Removed $deleted bad tokens: ${summary.badTokens.mkString(", ")}")
             }
+            deleted
           }
-          .getOrElse {
-            pure(0)
-          }
+        }.getOrElse {
+          pure(0)
+        }
         val updateIO = summary.replacements.toList.traverse { repl =>
           sql"update push_clients set token = ${repl.newToken} where token = ${repl.oldToken} and device = ${repl.device}".update.run.map {
             updated =>

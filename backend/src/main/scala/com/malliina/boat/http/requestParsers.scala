@@ -1,11 +1,9 @@
 package com.malliina.boat.http
 
-import cats.data.NonEmptyList
 import cats.effect.IO
 import cats.implicits._
-
 import com.malliina.boat.http4s.QueryParsers
-import com.malliina.boat.{Constants, Coord, Errors, Latitude, Longitude, RouteRequest, SingleError, TrackCanonical, TrackName, UserInfo}
+import com.malliina.boat.{Constants, Coord, Errors, Latitude, Longitude, RouteRequest, SingleError, TrackCanonical, TrackName}
 import com.malliina.values.{Email, ErrorMessage}
 import org.http4s.{Headers, Query, QueryParamDecoder, Request}
 
@@ -209,8 +207,6 @@ object BoatQuery {
 
   def readDouble(key: String, q: Query): Option[Either[Errors, Double]] =
     QueryParsers.parseOpt[Double](q, key)
-
-  def toNonEmpty[T](ts: List[T]): Option[NonEmptyList[T]] = ts.toNel
 }
 
 trait LimitLike {

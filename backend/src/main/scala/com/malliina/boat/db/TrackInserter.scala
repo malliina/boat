@@ -220,7 +220,7 @@ class TrackInserter(val db: DoobieDatabase) extends TrackInsertsDatabase with Do
     withToken: BoatToken
   ): ConnectionIO[JoinedBoat] =
     saveNewBoat(boatName, owner, withToken).flatMap { id =>
-      sql"${CommonSql.boats} and b.id = $id".query[JoinedBoat].unique
+      CommonSql.boatsById(id)
     }
 
   private def joinBoat(meta: BoatTrackMeta): ConnectionIO[BoatRow] = {

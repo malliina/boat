@@ -2,12 +2,12 @@ package com.malliina.boat.db
 
 import cats.effect.{Blocker, ContextShift, IO}
 import cats.kernel.Eq
-import com.malliina.boat.db.TrackImporter.log
+import com.malliina.boat.db.TrackImporter.{dateEq, log}
 import com.malliina.boat.parsing._
 import com.malliina.boat.{InsertedPoint, KeyedSentence, RawSentence, SentencesEvent, TrackMetaShort}
 import com.malliina.util.AppLogger
 import fs2.{Pipe, Stream, text}
-import TrackImporter.dateEq
+
 import java.nio.file.Path
 import java.time.LocalDate
 

@@ -19,7 +19,7 @@ object DoobieTracksDatabase {
 
   def apply(db: DoobieDatabase): DoobieTracksDatabase = new DoobieTracksDatabase(db)
 
-  def collectRows(
+  private def collectRows(
     rows: Seq[SentenceCoord2],
     formatter: TimeFormatter
   ): Seq[CombinedFullCoord] =

@@ -69,7 +69,7 @@ class DoobieGPSDatabase(db: DoobieDatabase) extends GPSSource with DoobieSQL {
       ids <- coord.parts.toList.traverse { p =>
         sql"insert into gps_sentence_points(sentence, point) values($p, $pointId)".update.run
       }
-      d <- sql"${CommonSql.boats} and b.id = $device".query[JoinedBoat].unique
+      d <- CommonSql.boatsById(device)
     } yield GPSInsertedPoint(pointId, d)
   }
 
