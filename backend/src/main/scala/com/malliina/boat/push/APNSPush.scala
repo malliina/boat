@@ -29,7 +29,7 @@ object APNSPush {
     if (conf.enabled) {
       val confModel = APNSTokenConf(Paths.get(conf.privateKey), conf.keyId, conf.teamId)
       log.info(
-        s"Initializing APNS with team ID ${confModel.teamId.team} and private key at ${confModel.privateKey}..."
+        s"Initializing APNS with team ID ${confModel.teamId} and private key at ${conf.privateKey}..."
       )
       val prep = RequestPreparer.token(confModel)
       val sandbox = new APNSHttpClientF(http, prep, isSandbox = true)
