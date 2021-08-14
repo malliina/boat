@@ -9,7 +9,7 @@ Raspbian.
 
 Have a Raspberry Pi available in your boat, power it up and make sure you can connect to it.
 
-1. Download the [latest version](https://www.boat-tracker.com/files/boat-agent_0.1.2_all.deb) of the agent from [www.boat-tracker.com/files](https://www.boat-tracker.com/files)
+1. Download the [latest version](https://www.boat-tracker.com/files/boat-agent_0.4.0_all.deb) of the agent from [www.boat-tracker.com/files](https://www.boat-tracker.com/files)
 1. SSH to your Raspberry Pi
 1. Install the downloaded package: `dpkg -i <boat-agent_x.x.x_all.deb>`
 1. Open a web browser and connect to the started HTTP server on port 8080
