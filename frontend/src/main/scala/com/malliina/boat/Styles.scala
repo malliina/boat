@@ -1,12 +1,23 @@
 package com.malliina.boat
 
-import play.api.libs.json.Json.arr
+import io.circe._
+import io.circe.syntax.EncoderOps
 
 object Styles {
-  val colorBySpeed = arr(
+//  trait Convertible[T] {
+//    def toJson(t: T): Json
+//  }
+//  object Convertible {
+//    implicit val int: Convertible[Int] = i => i.asJson
+//    implicit val string: Convertible[String] = s => i.asJson
+//  }
+  implicit def string(s: String): Json = s.asJson
+  implicit def int(i: Int): Json = i.asJson
+
+  val colorBySpeed = Json.arr(
     "interpolate",
-    arr("linear"),
-    arr("get", TimedCoord.SpeedKey),
+    Json.arr("linear"),
+    Json.arr("get", TimedCoord.SpeedKey),
     5,
     "rgb(0,255,150)",
     10,

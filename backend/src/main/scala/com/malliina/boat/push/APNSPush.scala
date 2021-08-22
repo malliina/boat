@@ -6,7 +6,7 @@ import com.malliina.boat.{APNSConf, PushToken}
 import com.malliina.http.HttpClient
 import com.malliina.push.apns._
 import com.malliina.util.AppLogger
-import play.api.libs.json.Json
+import io.circe.syntax.EncoderOps
 
 import java.nio.file.Paths
 
@@ -48,7 +48,7 @@ class APNSPush(sandbox: APNSHttpClientF[IO], prod: APNSHttpClientF[IO])
   def push(notification: BoatNotification, to: APNSToken): IO[PushSummary] = {
     val message = APNSMessage
       .simple(notification.message)
-      .copy(data = Map("meta" -> Json.toJson(notification)))
+      .copy(data = Map("meta" -> notification.asJson))
     val request = APNSRequest.withTopic(topic, message)
     def pushSandbox = push(to, request, isProd = false)
     def pushProd = push(to, request, isProd = true)

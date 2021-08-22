@@ -1,6 +1,6 @@
 package com.malliina.boat
 
-import play.api.libs.json.JsValue
+import io.circe._
 
 object BoatSocket {
   def query(track: PathState, sample: Option[Int]): String = {
@@ -21,8 +21,8 @@ abstract class BoatSocket(path: String) extends BaseSocket(path) with BaseFront 
   def this(track: PathState, sample: Option[Int]) =
     this(s"/ws/updates${BoatSocket.query(track, sample)}")
 
-  override def handlePayload(payload: JsValue): Unit =
-    payload.validate[FrontEvent].map(consume).recover { case err => onJsonFailure(err, payload) }
+  override def handlePayload(payload: Json): Unit =
+    payload.as[FrontEvent].fold(err => onJsonFailure(err, payload), consume)
 
   def consume(event: FrontEvent): Unit = event match {
     case ce @ CoordsEvent(coords, _) if coords.nonEmpty     => onCoords(ce)

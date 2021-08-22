@@ -68,15 +68,21 @@ class MapMouseListener(
     }.orElse {
       if (!isTrackHover) {
         val limitInfo =
-          features.flatMap(_.props.asOpt[LimitArea]).headOption.map(LimitClick(_, e.lngLat))
+          features.flatMap(_.props.as[LimitArea].toOption).headOption.map(LimitClick(_, e.lngLat))
         val fairwayInfo =
-          features.flatMap(_.props.asOpt[FairwayInfo]).headOption.map(FairwayInfoClick(_, e.lngLat))
+          features
+            .flatMap(_.props.as[FairwayInfo].toOption)
+            .headOption
+            .map(FairwayInfoClick(_, e.lngLat))
         val fairway = features
-          .flatMap(f => f.props.asOpt[FairwayArea])
+          .flatMap(f => f.props.as[FairwayArea].toOption)
           .headOption
           .map(FairwayClick(_, e.lngLat))
         val depth =
-          features.flatMap(f => f.props.asOpt[DepthArea]).headOption.map(DepthClick(_, e.lngLat))
+          features
+            .flatMap(f => f.props.as[DepthArea].toOption)
+            .headOption
+            .map(DepthClick(_, e.lngLat))
         val combined = limitInfo.flatMap { l =>
           fairway.map(fc => LimitedFairwayClick(l.limit, fc.area, l.target))
         }

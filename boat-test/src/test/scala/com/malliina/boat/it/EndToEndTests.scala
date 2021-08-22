@@ -7,7 +7,7 @@ import akka.util.ByteString
 import com.malliina.boat.client.server.BoatConf
 import com.malliina.boat.client.{DeviceAgent, TcpSource}
 import com.malliina.boat.{CoordsEvent, SentencesMessage}
-import play.api.libs.json.JsValue
+import io.circe.Json
 
 import java.nio.charset.StandardCharsets
 import scala.concurrent.Promise
@@ -45,12 +45,12 @@ class EndToEndTests extends BoatTests {
     val serverUrl = s.baseWsUrl.append(reverse.ws.boats.renderString)
     val agent = DeviceAgent(BoatConf.anon(tcpHost, tcpPort), serverUrl)
     try {
-      val firstMessage = Promise[JsValue]()
+      val firstMessage = Promise[Json]()
       val coordsPromise = Promise[CoordsEvent]()
 
-      val sink = Sink.foreach[JsValue] { json =>
+      val sink = Sink.foreach[Json] { json =>
         firstMessage.trySuccess(json)
-        json.asOpt[CoordsEvent].foreach { ce =>
+        json.as[CoordsEvent].toOption.foreach { ce =>
           coordsPromise.trySuccess(ce)
         }
       }
@@ -98,12 +98,12 @@ class EndToEndTests extends BoatTests {
     val serverUrl = s.baseWsUrl.append(reverse.ws.boats.renderString)
     //    val serverUrl = FullUrl.wss("boat.malliina.com", reverse.boats().toString)
     val agent = DeviceAgent(BoatConf.anon(tcpHost, tcpPort), serverUrl)
-    val p = Promise[JsValue]()
+    val p = Promise[Json]()
     val p2 = Promise[SentencesMessage]()
     val p3 = Promise[SentencesMessage]()
-    val sink = Sink.foreach[JsValue] { json =>
+    val sink = Sink.foreach[Json] { json =>
       p.trySuccess(json)
-      json.asOpt[SentencesMessage].foreach { sm =>
+      json.as[SentencesMessage].toOption.foreach { sm =>
         if (!p2.trySuccess(sm)) p3.trySuccess(sm)
       }
     }

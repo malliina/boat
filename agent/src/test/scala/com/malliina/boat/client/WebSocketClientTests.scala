@@ -4,13 +4,14 @@ import akka.NotUsed
 import akka.stream.scaladsl.{Sink, Source}
 import com.malliina.boat.{Constants, RawSentence, SentencesMessage}
 import com.malliina.http.FullUrl
-import play.api.libs.json.{JsValue, Json}
+import io.circe._
+import io.circe.syntax.EncoderOps
 
 class WebSocketClientTests extends BasicSuite {
   test("can connect to api.boat-tracker.com".ignore) {
 //    val client = WebSocketClient(DeviceAgent.BoatUrl, List(KeyValue(Constants.BoatTokenHeader, token)), as, mat)
     val client = WebSocketClient(DeviceAgent.BoatUrl, Nil, as, mat)
-    val hm = client.connect(Source.maybe[JsValue].mapMaterializedValue(_ => NotUsed))
+    val hm = client.connect(Source.maybe[Json].mapMaterializedValue(_ => NotUsed))
     await(hm, 10.seconds)
     println("Done.")
   }
@@ -28,13 +29,13 @@ class WebSocketClientTests extends BasicSuite {
       "$GPTXT,01,01,02,ANTSTATUS=OPEN*2B",
       "$GPGSV,4,1,13,22,78,221,14,01,64,183,22,03,58,257,34,14,51,074,35*71"
     ).map(RawSentence.apply)
-    val msg = Json.toJson(SentencesMessage(samples))
-    val src = Source(List(msg)).concat(Source.maybe[JsValue])
+    val msg = SentencesMessage(samples).asJson
+    val src = Source(List(msg)).concat(Source.maybe[Json])
     val token = "todo"
     val client = WebSocketClient(url, List(KeyValue(Constants.BoatTokenHeader, token)), as, mat)
     try {
       val conn =
-        client.connectJson(Sink.foreach[JsValue](println), src.mapMaterializedValue(_ => NotUsed))
+        client.connectJson(Sink.foreach[Json](println), src.mapMaterializedValue(_ => NotUsed))
       await(conn)
     } finally client.close()
 

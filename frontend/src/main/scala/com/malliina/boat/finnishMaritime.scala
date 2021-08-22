@@ -1,9 +1,10 @@
 package com.malliina.boat
 
-import com.malliina.boat.JsonUtils.JsLookupResultOps
-import com.malliina.boat.MaritimeJson.{intReader, partialReader}
+import com.malliina.boat.MaritimeJson.partialReader
 import com.malliina.measure.{DistanceM, SpeedM}
-import play.api.libs.json._
+import io.circe._
+import io.circe.generic.semiauto._
+import MaritimeJson.nonEmptyOpt
 
 /** Navigointilaji (NAVL_TYYP)
   */
@@ -37,7 +38,7 @@ object NavMark {
   case object Special extends NavMark
   case object NotApplicable extends NavMark
 
-  implicit val reader: Reads[NavMark] = intReader(json => s"Unknown mark type: '$json'.") {
+  val fromInt: PartialFunction[Int, NavMark] = {
     case 0  => Unknown
     case 1  => Left
     case 2  => Right
@@ -49,6 +50,9 @@ object NavMark {
     case 8  => SafeWaters
     case 9  => Special
     case 99 => NotApplicable
+  }
+  implicit val decoder: Decoder[NavMark] = Decoder.decodeInt.emap { int =>
+    fromInt.lift(int).toRight(s"Unknown mark type: '$int'.")
   }
 }
 
@@ -103,28 +107,30 @@ object ConstructionInfo {
   case object ChannelEdgeLight extends ConstructionInfo
   case object Tower extends ConstructionInfo
 
-  implicit val reader: Reads[ConstructionInfo] =
-    intReader(json => s"Unknown construction type: '$json'.") {
-      case 1  => BuoyBeacon
-      case 2  => IceBuoy
-      case 4  => BeaconBuoy
-      case 5  => SuperBeacon
-      case 6  => ExteriorLight
-      case 7  => DayBoard
-      case 8  => HelicopterPlatform
-      case 9  => RadioMast
-      case 10 => WaterTower
-      case 11 => SmokePipe
-      case 12 => RadarTower
-      case 13 => ChurchTower
-      case 14 => SuperBuoy
-      case 15 => EdgeCairn
-      case 16 => CompassCheck
-      case 17 => BorderMark
-      case 18 => BorderLineMark
-      case 19 => ChannelEdgeLight
-      case 20 => Tower
-    }
+  val fromInt: PartialFunction[Int, ConstructionInfo] = {
+    case 1  => BuoyBeacon
+    case 2  => IceBuoy
+    case 4  => BeaconBuoy
+    case 5  => SuperBeacon
+    case 6  => ExteriorLight
+    case 7  => DayBoard
+    case 8  => HelicopterPlatform
+    case 9  => RadioMast
+    case 10 => WaterTower
+    case 11 => SmokePipe
+    case 12 => RadarTower
+    case 13 => ChurchTower
+    case 14 => SuperBuoy
+    case 15 => EdgeCairn
+    case 16 => CompassCheck
+    case 17 => BorderMark
+    case 18 => BorderLineMark
+    case 19 => ChannelEdgeLight
+    case 20 => Tower
+  }
+  implicit val decoder: Decoder[ConstructionInfo] = Decoder.decodeInt.emap { int =>
+    fromInt.lift(int).toRight(s"Unknown construction type: '$int'.")
+  }
 }
 
 /**
@@ -164,7 +170,7 @@ object AidType {
   case object SignatureLighthouse extends AidType
   case object Cairn extends AidType
 
-  implicit val reads: Reads[AidType] = intReader[AidType](json => s"Unknown aid type: '$json'.") {
+  val fromInt: PartialFunction[Int, AidType] = {
     case 0  => Unknown
     case 1  => Lighthouse
     case 2  => SectorLight
@@ -179,7 +185,9 @@ object AidType {
     case 11 => SignatureLighthouse
     case 13 => Cairn
   }
-
+  implicit val decoder: Decoder[AidType] = Decoder.decodeInt.emap { int =>
+    fromInt.lift(int).toRight(s"Unknown aid type: '$int'.")
+  }
 }
 
 sealed trait Flotation {
@@ -195,13 +203,11 @@ object Flotation {
   case object Solid extends Flotation
   case class Other(name: String) extends Flotation
 
-  implicit val reader: Reads[Flotation] = Reads[Flotation] { json =>
-    json.validate[String].map {
-      case "KELLUVA" => Floating
-      // not a typo
-      case "KIINTE" => Solid
-      case other    => Other(other)
-    }
+  implicit val reader: Decoder[Flotation] = Decoder.decodeString.map {
+    case "KELLUVA" => Floating
+    // not a typo
+    case "KIINTE" => Solid
+    case other    => Other(other)
   }
 }
 
@@ -255,38 +261,36 @@ case class MarineSymbol(
   * @see https://vayla.fi/documents/20473/38174/Vesiv%C3%A4yl%C3%A4aineistojen+tietosis%C3%A4ll%C3%B6n+kuvaus/68b5f496-19a3-4b3d-887c-971e3366f01e
   */
 object MarineSymbol {
-  val boolNum = Reads[Boolean] { json =>
-    json.validate[Int].flatMap {
-      case 0     => JsSuccess(false)
-      case 1     => JsSuccess(true)
-      case other => JsError(s"Unexpected integer, must be 1 or 0: '$other'.")
-    }
+  val boolNum: Decoder[Boolean] = Decoder.decodeInt.emap {
+    case 0     => Right(false)
+    case 1     => Right(true)
+    case other => Left(s"Unexpected integer, must be 1 or 0: '$other'.")
   }
-  val boolString = Reads[Boolean] { json =>
-    json.validate[String].flatMap {
-      case "K"   => JsSuccess(true)
-      case "E"   => JsSuccess(false)
-      case other => JsError(s"Unexpected string, must be K or E: '$other'.")
-    }
+  val boolString: Decoder[Boolean] = Decoder.decodeString.emap {
+    case "K"   => Right(true)
+    case "E"   => Right(false)
+    case other => Left(s"Unexpected string, must be K or E: '$other'.")
   }
 
-  implicit val reader = Reads[MarineSymbol] { json =>
-    for {
-      owner <- (json \ "OMISTAJA").validate[String]
-      topSign <- (json \ "HUIPPUMERK").validate[Boolean](boolNum)
-      fasadi <- (json \ "FASADIVALO").validate[Boolean](boolNum)
-      nameFi <- (json \ "NIMIS").nonEmptyOpt
-      nameSe <- (json \ "NIMIR").nonEmptyOpt
-      locationFi <- (json \ "SIJAINTIS").nonEmptyOpt
-      locationSe <- (json \ "SIJAINTIR").nonEmptyOpt
-      flotation <- (json \ "SUBTYPE").validate[Flotation]
-      state <- (json \ "TILA").validate[String]
-      lit <- (json \ "VALAISTU").validate[Boolean](boolString)
-      aidType <- (json \ "TY_JNR").validate[AidType]
-      navMark <- (json \ "NAVL_TYYP").validate[NavMark]
-      construction <- (json \ "RAKT_TYYP").validateOpt[ConstructionInfo]
-    } yield {
-      MarineSymbol(
+  val nonEmpty: Decoder[String] = MaritimeJson.nonEmpty
+
+  implicit val decoder: Decoder[MarineSymbol] = new Decoder[MarineSymbol] {
+    final def apply(c: HCursor): Decoder.Result[MarineSymbol] =
+      for {
+        owner <- c.downField("OMISTAJA").as[String]
+        topSign <- c.downField("HUIPPUMERK").as[Boolean](boolNum)
+        fasadi <- c.downField("FASADIVALO").as[Boolean](boolNum)
+        nameFi <- c.downField("NIMIS").as[Option[String]](nonEmptyOpt)
+        nameSe <- c.downField("NIMIR").as[Option[String]](nonEmptyOpt)
+        locationFi <- c.downField("SIJAINTIS").as[Option[String]](nonEmptyOpt)
+        locationSe <- c.downField("SIJAINTIR").as[Option[String]](nonEmptyOpt)
+        flotation <- c.downField("SUBTYPE").as[Flotation]
+        state <- c.downField("TILA").as[String]
+        lit <- c.downField("VALAISTU").as[Boolean](boolString)
+        aidType <- c.downField("TY_JNR").as[AidType]
+        navMark <- c.downField("NAVL_TYYP").as[NavMark]
+        construction <- c.downField("RAKT_TYYP").as[Option[ConstructionInfo]]
+      } yield MarineSymbol(
         owner,
         fasadi,
         topSign,
@@ -301,7 +305,6 @@ object MarineSymbol {
         navMark,
         construction
       )
-    }
   }
 }
 
@@ -316,29 +319,29 @@ case class MinimalMarineSymbol(
   with Owned
 
 object MinimalMarineSymbol {
-  implicit val reader: Reads[MinimalMarineSymbol] = Reads[MinimalMarineSymbol] { json =>
-    for {
-      owner <- (json \ "OMISTAJA").validate[String]
-      nameFi <- (json \ "NIMIR").nonEmptyOpt
-      nameSe <- (json \ "NIMIS").nonEmptyOpt
-      locationFi <- (json \ "SIJAINTIS").nonEmptyOpt
-      locationSe <- (json \ "SIJAINTIR").nonEmptyOpt
-      influence <- (json \ "VAIKUTUSAL").validate[ZoneOfInfluence]
-    } yield {
-      MinimalMarineSymbol(owner, nameFi, nameSe, locationFi, locationSe, influence)
-    }
+  implicit val decoder: Decoder[MinimalMarineSymbol] = new Decoder[MinimalMarineSymbol] {
+    final def apply(c: HCursor): Decoder.Result[MinimalMarineSymbol] =
+      for {
+        owner <- c.downField("OMISTAJA").as[String]
+        nameFi <- c.downField("NIMIS").as[Option[String]](nonEmptyOpt)
+        nameSe <- c.downField("NIMIR").as[Option[String]](nonEmptyOpt)
+        locationFi <- c.downField("SIJAINTIS").as[Option[String]](nonEmptyOpt)
+        locationSe <- c.downField("SIJAINTIR").as[Option[String]](nonEmptyOpt)
+        influence <- c.downField("VAIKUTUSAL").as[ZoneOfInfluence]
+      } yield MinimalMarineSymbol(owner, nameFi, nameSe, locationFi, locationSe, influence)
   }
 }
 
 case class DepthArea(minDepth: DistanceM, maxDepth: DistanceM, when: String)
 
 object DepthArea {
-  implicit val reader = Reads[DepthArea] { json =>
-    for {
-      min <- (json \ "MINDEPTH").validate[DistanceM]
-      max <- (json \ "MAXDEPTH").validate[DistanceM]
-      when <- (json \ "IRROTUS_PV").validate[String]
-    } yield DepthArea(min, max, when)
+  implicit val decoder: Decoder[DepthArea] = new Decoder[DepthArea] {
+    final def apply(c: HCursor): Decoder.Result[DepthArea] =
+      for {
+        min <- c.downField("MINDEPTH").as[DistanceM]
+        max <- c.downField("MAXDEPTH").as[DistanceM]
+        when <- c.downField("IRROTUS_PV").as[String]
+      } yield DepthArea(min, max, when)
   }
 }
 
@@ -347,13 +350,11 @@ sealed abstract class QualityClass(val value: Int)
 object QualityClass {
   val all = Seq(Unknown, One, Two, Three)
 
-  implicit val reader = Reads[QualityClass] { json =>
-    json.validate[Int].flatMap { i =>
-      all
-        .find(_.value == i)
-        .map(JsSuccess(_))
-        .getOrElse(JsError(s"Invalid quality class: '$i'."))
-    }
+  implicit val reader: Decoder[QualityClass] = Decoder.decodeInt.emap { i =>
+    all
+      .find(_.value == i)
+      .map(Right(_))
+      .getOrElse(Left(s"Invalid quality class: '$i'."))
   }
 
   case object Unknown extends QualityClass(0)
@@ -382,23 +383,25 @@ sealed trait FairwayType {
 }
 
 object FairwayType {
-  implicit val reader: Reads[FairwayType] =
-    intReader[FairwayType](json => s"Unknown fairway type: '$json'.") {
-      case 1  => Navigation
-      case 2  => Anchoring
-      case 3  => Meetup
-      case 4  => HarborPool
-      case 5  => Turn
-      case 6  => Channel
-      case 7  => CoastTraffic
-      case 8  => Core
-      case 9  => Special
-      case 10 => Lock
-      case 11 => ConfirmedExtra
-      case 12 => Helcom
-      case 13 => Pilot
-    }
+  val fromInt: PartialFunction[Int, FairwayType] = {
+    case 1  => Navigation
+    case 2  => Anchoring
+    case 3  => Meetup
+    case 4  => HarborPool
+    case 5  => Turn
+    case 6  => Channel
+    case 7  => CoastTraffic
+    case 8  => Core
+    case 9  => Special
+    case 10 => Lock
+    case 11 => ConfirmedExtra
+    case 12 => Helcom
+    case 13 => Pilot
+  }
 
+  implicit val decoder: Decoder[FairwayType] = Decoder.decodeInt.emap { int =>
+    fromInt.lift(int).toRight(s"Unknown fairway type: '$int'.")
+  }
   case object Navigation extends FairwayType
   case object Anchoring extends FairwayType
   case object Meetup extends FairwayType
@@ -417,15 +420,17 @@ object FairwayType {
 sealed trait FairwayState
 
 object FairwayState {
-  implicit val reader: Reads[FairwayState] =
-    intReader[FairwayState](json => s"Unknown fairway state: '$json'.") {
-      case 1 => Confirmed
-      case 2 => Aihio
-      case 3 => MayChange
-      case 4 => ChangeAihio
-      case 5 => MayBeRemoved
-      case 6 => Removed
-    }
+  val fromInt: PartialFunction[Int, FairwayState] = {
+    case 1 => Confirmed
+    case 2 => Aihio
+    case 3 => MayChange
+    case 4 => ChangeAihio
+    case 5 => MayBeRemoved
+    case 6 => Removed
+  }
+  implicit val reader: Decoder[FairwayState] = Decoder.decodeInt.emap { int =>
+    fromInt.lift(int).toRight(s"Unknown fairway state: '$int'.")
+  }
 
   case object Confirmed extends FairwayState
   case object Aihio extends FairwayState
@@ -445,12 +450,14 @@ sealed trait MarkType {
 }
 
 object MarkType {
-  implicit val reader: Reads[MarkType] =
-    intReader[MarkType](json => s"Unknown mark type: '$json'.") {
-      case 0 => Unknown
-      case 1 => Lateral
-      case 2 => Cardinal
-    }
+  val fromInt: PartialFunction[Int, MarkType] = {
+    case 0 => Unknown
+    case 1 => Lateral
+    case 2 => Cardinal
+  }
+  implicit val reader: Decoder[MarkType] = Decoder.decodeInt.emap { int =>
+    fromInt.lift(int).toRight(s"Unknown mark type: '$int'.")
+  }
 
   case object Unknown extends MarkType
   case object Lateral extends MarkType
@@ -477,26 +484,27 @@ case class FairwayArea(
 ) extends Owned
 
 object FairwayArea {
-  implicit val reader: Reads[FairwayArea] = Reads[FairwayArea] { json =>
-    for {
-      owner <- (json \ "OMISTAJA").validate[String]
-      quality <- (json \ "LAATULK").validate[QualityClass]
-      fairwayType <- (json \ "VAYALUE_TY").validate[FairwayType]
-      fairwayDepth <- (json \ "VAYALUE_SY").validate[DistanceM]
-      harrowDepth <- (json \ "HARAUS_SYV").validate[DistanceM]
-      comparison <- (json \ "VERT_TASO").validate[String]
-      state <- (json \ "TILA").validate[FairwayState]
-      mark <- (json \ "MERK_LAJI").validateOpt[MarkType]
-    } yield FairwayArea(
-      owner,
-      quality,
-      fairwayType,
-      fairwayDepth,
-      harrowDepth,
-      comparison,
-      state,
-      mark
-    )
+  implicit val decoder: Decoder[FairwayArea] = new Decoder[FairwayArea] {
+    final def apply(c: HCursor): Decoder.Result[FairwayArea] =
+      for {
+        owner <- c.downField("OMISTAJA").as[String]
+        quality <- c.downField("LAATULK").as[QualityClass]
+        fairwayType <- c.downField("VAYALUE_TY").as[FairwayType]
+        fairwayDepth <- c.downField("VAYALUE_SY").as[DistanceM]
+        harrowDepth <- c.downField("HARAUS_SYV").as[DistanceM]
+        comparison <- c.downField("VERT_TASO").as[String]
+        state <- c.downField("TILA").as[FairwayState]
+        mark <- c.downField("MERK_LAJI").as[Option[MarkType]]
+      } yield FairwayArea(
+        owner,
+        quality,
+        fairwayType,
+        fairwayDepth,
+        harrowDepth,
+        comparison,
+        state,
+        mark
+      )
   }
 }
 
@@ -510,8 +518,8 @@ sealed trait ZoneOfInfluence {
 }
 
 object ZoneOfInfluence {
-  implicit val reader: Reads[ZoneOfInfluence] =
-    partialReader[String, ZoneOfInfluence](json => s"Unexpected zone of influence: '$json'.") {
+  implicit val reader: Decoder[ZoneOfInfluence] =
+    partialReader[String, ZoneOfInfluence](str => s"Unexpected zone of influence: '$str'.") {
       case "A"  => Area
       case "V"  => Fairway
       case "AV" => AreaAndFairway
@@ -555,8 +563,8 @@ object LimitType {
   case object NoRendezVous extends LimitType
   case object SpeedRecommendation extends LimitType
 
-  implicit val reader: Reads[LimitType] =
-    partialReader[String, LimitType](json => s"Unknown limit type: '$json'.")(parse)
+  implicit val reader: Decoder[LimitType] =
+    partialReader[String, LimitType](str => s"Unknown limit type: '$str'.")(parse)
 
   def parse: PartialFunction[String, LimitType] = {
     case "01" => SpeedLimit
@@ -572,19 +580,19 @@ object LimitType {
     case "11" => SpeedRecommendation
   }
 
-  def fromString(s: String): JsResult[Seq[LimitType]] = {
+  def fromString(s: String): Either[String, Seq[LimitType]] = {
     val results = s.split(", ").toList.map { limit =>
       LimitType.parse
         .lift(limit)
-        .fold[JsResult[LimitType]](JsError(s"Unknown limit type: '$limit'."))(JsSuccess(_))
+        .toRight(s"Unknown limit type: '$limit'.")
     }
     jsonSeq(results)
   }
 
-  def jsonSeq[T](results: Seq[JsResult[T]]): JsResult[Seq[T]] =
-    results.foldLeft[JsResult[Seq[T]]](JsSuccess(Nil)) { (acc, t) =>
+  def jsonSeq[T](results: Seq[Either[String, T]]): Either[String, Seq[T]] =
+    results.foldLeft[Either[String, Seq[T]]](Right(Nil)) { (acc, t) =>
       t.fold(
-        err => JsError(err),
+        err => Left(err),
         ok => acc.map(ts => Seq(ok) ++ ts)
       )
     }
@@ -610,15 +618,19 @@ case class LimitArea(
 object LimitArea {
   import com.malliina.measure.{DistanceDoubleM, SpeedDoubleM}
 
-  implicit val reader = Reads[LimitArea] { json =>
-    for {
-      types <- (json \ "RAJOITUSTY").validate[String].flatMap(LimitType.fromString)
-      limit <- (json \ "SUURUUS").validateOpt[Double].map(_.map(_.kmh))
-      length <- (json \ "PITUUS").validateOpt[Double].map(_.map(_.meters))
-      responsible <- (json \ "MERK_VAST").nonEmptyOpt
-      location <- (json \ "NIMI_SIJAI").nonEmptyOpt
-      fairwayName <- (json \ "VAY_NIMISU").nonEmptyOpt
-      publishDate <- (json \ "IRROTUS_PV").validate[String]
-    } yield LimitArea(types, limit, length, responsible, location, fairwayName, publishDate)
+  implicit val decoder: Decoder[LimitArea] = new Decoder[LimitArea] {
+    final def apply(c: HCursor): Decoder.Result[LimitArea] =
+      for {
+        types <-
+          c.downField("RAJOITUSTY")
+            .as[String]
+            .flatMap(s => LimitType.fromString(s).left.map(e => DecodingFailure(e, Nil)))
+        limit <- c.downField("SUURUUS").as[Option[Double]].map(_.map(_.kmh))
+        length <- c.downField("PITUUS").as[Option[Double]].map(_.map(_.meters))
+        responsible <- c.downField("MERK_VAST").as[Option[String]](nonEmptyOpt)
+        location <- c.downField("NIMI_SIJAI").as[Option[String]](nonEmptyOpt)
+        fairwayName <- c.downField("VAY_NIMISU").as[Option[String]](nonEmptyOpt)
+        publishDate <- c.downField("IRROTUS_PV").as[String]
+      } yield LimitArea(types, limit, length, responsible, location, fairwayName, publishDate)
   }
 }

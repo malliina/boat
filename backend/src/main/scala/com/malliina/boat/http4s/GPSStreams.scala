@@ -2,12 +2,12 @@ package com.malliina.boat.http4s
 
 import cats.effect.{Concurrent, IO}
 import com.malliina.boat.db.GPSSource
-import com.malliina.boat.http4s.BoatStreams.{log, rights}
-import com.malliina.boat.parsing.{BoatParser, EmptySavedEvent, FullCoord, GPSCoord, GPSInserted, GPSManager, Inserted, SavedEvent}
-import com.malliina.boat.{DeviceEvent, DeviceJsonError, EmptyEvent, FrontEvent, GPSCoordsEvent, GPSInsertedPoint, InputEvent, SentencesMessage, TimeFormatter}
+import com.malliina.boat.http4s.BoatStreams.rights
+import com.malliina.boat.http4s.GPSStreams.log
+import com.malliina.boat.parsing._
+import com.malliina.boat.{DeviceEvent, DeviceJsonError, EmptyEvent, FrontEvent, GPSCoordsEvent, InputEvent, SentencesMessage, TimeFormatter}
 import com.malliina.util.AppLogger
 import fs2.concurrent.Topic
-import GPSStreams.log
 
 object GPSStreams {
   private val log = AppLogger(getClass)

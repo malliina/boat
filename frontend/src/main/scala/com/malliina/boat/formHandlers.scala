@@ -4,7 +4,8 @@ import com.malliina.boat.FrontKeys.{CommentsRow, TrackRow}
 import com.malliina.boat.http.CSRFConf
 import com.malliina.http.HttpClient
 import org.scalajs.dom.raw._
-import play.api.libs.json.{JsObject, Json}
+import io.circe._
+import io.circe.syntax.EncoderOps
 
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 
@@ -63,7 +64,7 @@ class TitleHandler(
   form.onsubmit = (e: Event) => {
     elemAs[HTMLInputElement](TitleInputId).map { in =>
       HttpClient
-        .put[JsObject, TrackResponse](form.action, Json.obj(TrackTitle.Key -> in.value))
+        .put[Json, TrackResponse](form.action, Json.obj(TrackTitle.Key -> in.value.asJson))
         .map { res =>
           elemAs[HTMLSpanElement](TrackTitleId).map { span =>
             span.textContent = res.track.describe
@@ -86,7 +87,7 @@ class CommentsHandler(
   form.onsubmit = (e: Event) => {
     elemAs[HTMLInputElement](CommentsInputId).map { in =>
       HttpClient
-        .patch[JsObject, TrackResponse](form.action, Json.obj(TrackComments.Key -> in.value))
+        .patch[Json, TrackResponse](form.action, Json.obj(TrackComments.Key -> in.value.asJson))
         .map { res =>
           elemAs[HTMLSpanElement](CommentsTitleId).map { span =>
             val textContent = res.track.comments.getOrElse("")

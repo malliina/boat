@@ -1,7 +1,8 @@
 package com.malliina.boat
 
 import com.malliina.measure.{DistanceM, SpeedM, Temperature}
-import play.api.libs.json.Json
+import io.circe._
+import io.circe.generic.semiauto._
 
 /** JSON model for GeoJSON properties of each AIS vessel.
   *
@@ -10,7 +11,7 @@ import play.api.libs.json.Json
 case class VesselProps(mmsi: Mmsi, name: VesselName, heading: Int)
 
 object VesselProps {
-  implicit val json = Json.format[VesselProps]
+  implicit val json: Codec[VesselProps] = deriveCodec[VesselProps]
 }
 
 case class PointProps(
@@ -23,7 +24,7 @@ case class PointProps(
 )
 
 object PointProps {
-  implicit val json = Json.format[PointProps]
+  implicit val json: Codec[PointProps] = deriveCodec[PointProps]
 
   def apply(c: TimedCoord, ref: TrackRef): PointProps =
     PointProps(ref.boatName, ref.trackName, c.speed, c.waterTemp, c.depthMeters, c.time.dateTime)
@@ -39,7 +40,7 @@ case class DeviceProps(
 }
 
 object DeviceProps {
-  implicit val json = Json.format[DeviceProps]
+  implicit val json: Codec[DeviceProps] = deriveCodec[DeviceProps]
 
   def apply(c: GPSTimedCoord, ref: DeviceRef): DeviceProps =
     DeviceProps(ref.deviceName, c.coord.lng, c.coord.lat, c.time.dateTime)

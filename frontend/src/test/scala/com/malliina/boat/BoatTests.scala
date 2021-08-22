@@ -1,6 +1,8 @@
 package com.malliina.boat
 
-import play.api.libs.json.Json
+import io.circe._
+import io.circe.syntax.EncoderOps
+import io.circe.parser.{decode, parse}
 
 class BoatTests extends munit.FunSuite with DemoJson {
   test("serialize GeoJSON") {
@@ -9,16 +11,15 @@ class BoatTests extends munit.FunSuite with DemoJson {
   }
 
   test("parse mark") {
-    val json = Json.parse(markJson)
-    val mark = MarineSymbol.reader.reads(json)
-    assert(mark.isSuccess)
-    assert(mark.get.nameFi.contains("Saukonlaituri 2"))
+    val mark = decode[MarineSymbol](markJson)
+    assert(mark.isRight)
+    assert(mark.toOption.get.nameFi.contains("Saukonlaituri 2"))
   }
 
   test("parse limit") {
-    val limit = LimitArea.reader.reads(Json.parse(limitAreaJson))
-    assert(limit.isSuccess)
-    val l = limit.get
+    val limit = decode[LimitArea](limitAreaJson)
+    assert(limit.isRight)
+    val l = limit.toOption.get
     assert(l.limit.exists(s => s.toKmh > 9 && s.toKmh < 11))
     assert(l.length.exists(len => len.meters > 675 && len.meters < 677))
   }

@@ -4,8 +4,8 @@ import java.time.Instant
 import com.malliina.boat.{Boat, BoatName, BoatPrimitives, BoatRef, BoatToken, CombinedCoord, DateVal, DeviceId, FormattedDateTime, FriendInvite, FriendRef, GPSPointRow, InviteState, JoinedBoat, JoinedTrack, Language, MonthVal, TimeFormatter, TimedCoord, TrackCanonical, TrackId, TrackName, TrackPointId, TrackPointRow, TrackTitle, UserToken, YearVal}
 import com.malliina.measure.{DistanceM, SpeedM, Temperature}
 import com.malliina.values.{Email, UserId, Username}
-import play.api.libs.json.Json
-
+import io.circe._
+import io.circe.generic.semiauto._
 import scala.concurrent.duration.FiniteDuration
 
 case class BoatRow(id: DeviceId, name: BoatName, token: BoatToken, owner: UserId, added: Instant) {
@@ -49,7 +49,7 @@ case class TrackOut(
 )
 
 object TrackOut {
-  implicit val json = Json.format[TrackOut]
+  implicit val json: Codec[TrackOut] = deriveCodec[TrackOut]
 }
 
 case class Partial(
@@ -80,7 +80,7 @@ case class StrippedPartial(
 )
 
 object StrippedPartial {
-  implicit val json = Json.format[StrippedPartial]
+  implicit val json: Codec[StrippedPartial] = deriveCodec[StrippedPartial]
 }
 
 case class TrackTimes(
@@ -95,7 +95,7 @@ case class TrackTimes(
 
 object TrackTimes {
   implicit val dur = BoatPrimitives.durationFormat
-  implicit val json = Json.format[TrackTimes]
+  implicit val json: Codec[TrackTimes] = deriveCodec[TrackTimes]
 }
 
 case class DailyAggregates(
@@ -108,7 +108,7 @@ case class DailyAggregates(
 
 object DailyAggregates {
   implicit val dur = BoatPrimitives.durationFormat
-  implicit val json = Json.format[DailyAggregates]
+  implicit val json = deriveCodec[DailyAggregates]
 }
 
 case class MonthlyAggregates(

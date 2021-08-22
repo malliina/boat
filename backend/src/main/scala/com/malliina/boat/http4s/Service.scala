@@ -22,11 +22,13 @@ import com.malliina.web.OAuthKeys.{Nonce, State}
 import com.malliina.web.Utils.randomString
 import com.malliina.web._
 import fs2.Pipe
+import io.circe.parser.parse
+import io.circe.syntax.EncoderOps
+import io.circe.{Decoder, Json}
 import org.http4s.headers.{Location, `WWW-Authenticate`}
 import org.http4s.server.websocket.WebSocketBuilder
 import org.http4s.websocket.WebSocketFrame
 import org.http4s.websocket.WebSocketFrame.Text
-import play.api.libs.json.{Json, Reads}
 import org.http4s.{Callback => _, _}
 
 import scala.concurrent.duration.DurationInt
@@ -70,7 +72,7 @@ class Service(comps: BoatComps) extends BasicService[IO] {
   val NoChange = "No change."
 
   val toClients: fs2.Stream[IO, WebSocketFrame] = fs2.Stream.never[IO].map { _ =>
-    Text(Json.stringify(Json.toJson(PingEvent(System.currentTimeMillis()))))
+    Text(PingEvent(System.currentTimeMillis()).asJson.noSpaces)
   }
 
   val routes: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -261,7 +263,7 @@ class Service(comps: BoatComps) extends BasicService[IO] {
           val eventSource =
             ((deviceHistory ++ gpsHistory) ++ updates.mergeHaltBoth(deviceUpdates))
               .filter(_.isIntendedFor(user))
-              .map(message => Text(Json.stringify(Json.toJson(message))))
+              .map(message => Text(message.asJson.noSpaces))
           webSocket(
             eventSource,
             message => IO(log.info(message)),
@@ -285,7 +287,7 @@ class Service(comps: BoatComps) extends BasicService[IO] {
               .flatMap { _ =>
                 webSocket(
                   toClients,
-                  message => streams.boatIn.publish1(BoatEvent(Json.parse(message), meta)),
+                  message => streams.boatIn.publish1(BoatEvent(parseUnsafe(message), meta)),
                   onClose = IO(log.info(s"Boat '${boat.boat}' by '${boat.user}' left.")).flatMap {
                     _ =>
                       push.push(meta, BoatState.Disconnected).map(_ => ())
@@ -299,7 +301,7 @@ class Service(comps: BoatComps) extends BasicService[IO] {
         inserts.joinAsDevice(meta).flatMap { boat =>
           webSocket(
             toClients,
-            message => deviceStreams.in.publish1(DeviceEvent(Json.parse(message), boat)),
+            message => deviceStreams.in.publish1(DeviceEvent(parseUnsafe(message), boat)),
             onClose = IO(log.info(s"Device '${boat.boatName}' by '${boat.username}' left."))
           )
         }
@@ -335,7 +337,7 @@ class Service(comps: BoatComps) extends BasicService[IO] {
       val urls = comps.s3.files().map { summary =>
         Urls.hostOnly(req) / "files" / summary.getKey
       }
-      ok(Json.toJson("files" -> urls))(jsonEncoder[IO])
+      ok(Json.obj("files" -> urls.asJson))(jsonEncoder[IO])
     case GET -> Root / "files" / file =>
       val obj = comps.s3.download(file)
       val stream = fs2.io.readInputStream[IO](IO.pure(obj.getObjectContent), 8192, comps.blocker)
@@ -360,6 +362,9 @@ class Service(comps: BoatComps) extends BasicService[IO] {
         html = index(req)
       )
   }
+
+  def parseUnsafe(message: String) =
+    parse(message).fold(err => throw new Exception(s"Not JSON: '$message'."), identity)
 
   object forms {
     def invite(form: FormReader) = for {
@@ -421,7 +426,7 @@ class Service(comps: BoatComps) extends BasicService[IO] {
       }
     }
 
-  private def trackAction[T: Reads](req: Request[IO], readForm: FormReader => Either[Errors, T])(
+  private def trackAction[T: Decoder](req: Request[IO], readForm: FormReader => Either[Errors, T])(
     code: (T, UserInfo) => IO[JoinedTrack]
   ) =
     formAction[T](req, readForm) { (t, user) =>
@@ -445,7 +450,7 @@ class Service(comps: BoatComps) extends BasicService[IO] {
       }
     }
 
-  private def formAction[T: Reads](req: Request[IO], readForm: FormReader => Either[Errors, T])(
+  private def formAction[T: Decoder](req: Request[IO], readForm: FormReader => Either[Errors, T])(
     code: (T, UserInfo) => IO[Response[IO]]
   )(implicit decoder: EntityDecoder[IO, UrlForm]): IO[Response[IO]] =
     auth.profile(req).flatMap { user =>
@@ -475,7 +480,7 @@ class Service(comps: BoatComps) extends BasicService[IO] {
       }
     }
 
-  private def jsonAction[T: Reads](req: Request[IO])(
+  private def jsonAction[T: Decoder](req: Request[IO])(
     code: (T, UserInfo) => IO[Response[IO]]
   ) =
     auth.profile(req).flatMap { user =>
@@ -580,7 +585,7 @@ class Service(comps: BoatComps) extends BasicService[IO] {
   }.flatMap {
     case (url, sessionParams) =>
       SeeOther(Location(Uri.unsafeFromString(url.url))).map { res =>
-        val session = Json.toJsObject(sessionParams.toMap)
+        val session = sessionParams.toMap.asJson
         auth.web
           .withSession(session, isSecure, res)
           .putHeaders(noCache)

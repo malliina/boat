@@ -2,10 +2,13 @@ package com.malliina.boat.ais
 
 import com.malliina.boat._
 import com.malliina.boat.ais.BoatMqttClient._
+import com.nimbusds.jose.util.StandardCharset
+import io.circe.{Decoder, DecodingFailure}
 import org.eclipse.paho.client.mqttv3._
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence
 import play.api.libs.json.{JsError, Json}
 import tests.MUnitSuite
+import io.circe.parser.{decode, parse}
 
 import java.time.Instant
 
@@ -31,14 +34,15 @@ class AISTests extends MUnitSuite {
         println("Connection lost")
 
       override def messageArrived(topic: String, message: MqttMessage): Unit = {
-        val json = Json.parse(message.getPayload)
-        val result = topic match {
-          case Locations()   => VesselLocation.readerGeoJson.reads(json)
-          case Metadata()    => VesselMetadata.readerGeoJson.reads(json)
-          case StatusTopic() => VesselStatus.reader.reads(json)
-          case other         => JsError(s"Unknown topic: '$other'. JSON: '$json'.")
+        val string = new String(message.getPayload, StandardCharset.UTF_8)
+        val json = parse(string).toOption.get
+        val result: Decoder.Result[AISMessage] = topic match {
+          case Locations()   => json.as[VesselLocation](VesselLocation.readerGeoJson)
+          case Metadata()    => json.as[VesselMetadata](VesselMetadata.readerGeoJson)
+          case StatusTopic() => json.as[VesselStatus]
+          case other         => Left(DecodingFailure(s"Unknown topic: '$other'. JSON: '$json'.", Nil))
         }
-        if (result.isError)
+        if (result.isRight)
           println(result)
       }
 

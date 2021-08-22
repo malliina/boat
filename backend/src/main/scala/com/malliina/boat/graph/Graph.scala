@@ -5,7 +5,10 @@ import com.malliina.boat.graph.Graph.{intersection, log}
 import com.malliina.measure.DistanceM
 import com.malliina.storage.StorageLong
 import org.slf4j.LoggerFactory
-import play.api.libs.json.{Format, Json, Reads, Writes}
+import io.circe._
+import io.circe.generic.semiauto._
+import io.circe.syntax.EncoderOps
+import io.circe.parser.{decode, parse}
 
 import java.io.{Closeable, FileOutputStream, InputStream}
 import java.nio.file.{Files, Path}
@@ -15,12 +18,12 @@ import scala.concurrent.duration.DurationLong
 object Graph {
   val log = LoggerFactory.getLogger(getClass)
 
-  implicit val writer: Format[Graph] = Format[Graph](
-    Reads[Graph](json => json.validate[List[ValueNode]].map(fromNodes)),
-    Writes[Graph](g => Json.toJson(g.toList))
+  implicit val writer: Codec[Graph] = Codec.from(
+    Decoder[List[ValueNode]].map(fromNodes),
+    Encoder[List[ValueNode]].contramap(g => g.toList.toList)
   )
   val graphFile = file("vaylat-all.json")
-  lazy val all = Json.parse(Files.readAllBytes(graphFile)).as[Graph]
+  lazy val all = decode[Graph](Files.readString(graphFile)).toOption.get
 
   def file(name: String) = {
     val resourcePath = s"com/malliina/boat/graph/$name"

@@ -4,7 +4,7 @@ import akka.stream.scaladsl.Sink
 import com.malliina.boat._
 import com.malliina.boat.db.NewUser
 import com.malliina.values.{Password, Username}
-import play.api.libs.json.JsValue
+import io.circe.Json
 
 import scala.concurrent.{Await, Promise, TimeoutException}
 
@@ -18,11 +18,11 @@ class SentenceTests extends BoatTests {
         Seq(RawSentence("$GPGGA,154106,6008.0079,N,02452.0497,E,1,12,0.60,0,M,19.5,M,,*68"))
       )
 
-      val in = Sink.foreach[JsValue] { json =>
-        json.validate[SentencesEvent].foreach { ss =>
+      val in = Sink.foreach[Json] { json =>
+        json.as[SentencesEvent].foreach { ss =>
           sentencePromise.trySuccess(ss)
         }
-        json.validate[CoordsEvent].foreach { c =>
+        json.as[CoordsEvent].foreach { c =>
           coordPromise.trySuccess(c)
         }
       }
@@ -52,13 +52,13 @@ class SentenceTests extends BoatTests {
       val testMessage = SentencesMessage(
         Seq(RawSentence("$GPGGA,154106,6008.0079,N,02452.0497,E,1,12,0.60,0,M,19.5,M,,*68"))
       )
-      val anonSink = Sink.foreach[JsValue] { json =>
-        json.validate[CoordsEvent].filter(_.from.username == testUser).foreach { c =>
+      val anonSink = Sink.foreach[Json] { json =>
+        json.as[CoordsEvent].toOption.filter(_.from.username == testUser).foreach { c =>
           anonPromise.trySuccess(c)
         }
       }
-      val authSink = Sink.foreach[JsValue] { json =>
-        json.validate[CoordsEvent].filter(_.from.username == testUser).foreach { se =>
+      val authSink = Sink.foreach[Json] { json =>
+        json.as[CoordsEvent].toOption.filter(_.from.username == testUser).foreach { se =>
           authPromise.trySuccess(se)
         }
       }

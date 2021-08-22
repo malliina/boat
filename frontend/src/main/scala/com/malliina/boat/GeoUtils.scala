@@ -1,7 +1,8 @@
 package com.malliina.boat
 
 import com.malliina.mapbox.MapboxMap
-import play.api.libs.json.{JsNumber, JsValue, Json, OWrites}
+import io.circe._
+import io.circe.syntax.EncoderOps
 
 trait GeoUtils {
   val boatIconId = "boat-icon"
@@ -40,7 +41,7 @@ trait GeoUtils {
       val knots = coords.map(_.speed.toKnots).sum / coords.size
       val feature = Feature(
         LineGeometry(coords.map(_.coord)),
-        Map(TimedCoord.SpeedKey -> JsNumber(knots))
+        Map(TimedCoord.SpeedKey -> knots.asJson)
       )
       Seq(feature)
     case _ =>
@@ -49,7 +50,7 @@ trait GeoUtils {
           val avgSpeed: Double = (start.speed + end.speed).toKnots / 2
           Feature(
             LineGeometry(Seq(start, end).map(_.coord)),
-            Map(TimedCoord.SpeedKey -> JsNumber(avgSpeed))
+            Map(TimedCoord.SpeedKey -> avgSpeed.asJson)
           )
       }
   }
@@ -57,12 +58,12 @@ trait GeoUtils {
   def lineFor(coords: Seq[Coord]): FeatureCollection =
     collectionFor(LineGeometry(coords), Map.empty)
 
-  def pointFor(coord: Coord, props: Map[String, JsValue] = Map.empty) =
+  def pointFor(coord: Coord, props: Map[String, Json] = Map.empty) =
     collectionFor(PointGeometry(coord), props)
 
-  def pointForProps[T: OWrites](coord: Coord, props: T) =
-    pointFor(coord, Json.toJsObject(props).value.toMap)
+  def pointForProps[T: Encoder](coord: Coord, props: T) =
+    pointFor(coord, props.asJson.asObject.map(_.toMap).getOrElse(Map.empty))
 
-  def collectionFor(geo: Geometry, props: Map[String, JsValue]): FeatureCollection =
+  def collectionFor(geo: Geometry, props: Map[String, Json]): FeatureCollection =
     FeatureCollection(Seq(Feature(geo, props)))
 }

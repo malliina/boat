@@ -5,9 +5,9 @@ import com.malliina.boat.PathFinder._
 import com.malliina.http.HttpClient
 import com.malliina.mapbox.{MapMouseEvent, MapboxMap, MapboxMarker}
 import org.scalajs.dom.raw.{HTMLDivElement, HTMLSpanElement}
-import play.api.libs.json.Json
 import scalatags.JsDom.all._
-
+import io.circe._
+import io.circe.syntax.EncoderOps
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 
 object PathFinder {
@@ -69,7 +69,7 @@ class PathFinder(val map: MapboxMap) extends GeoUtils with BaseFront {
       val route = res.route
       val coords = route.coords
       val coll = FeatureCollection(
-        Seq(Feature(LineGeometry(coords), Map(RouteSpec.Cost -> Json.toJson(route.cost))))
+        Seq(Feature(LineGeometry(coords), Map(RouteSpec.Cost -> route.cost.asJson)))
       )
       elemGet[HTMLSpanElement](RouteLength).innerHTML = s"${formatDistance(route.cost)} km"
       drawLine(routeLayer, coll)

@@ -8,7 +8,10 @@ import com.malliina.values.{IdToken, Username}
 import org.http4s.Credentials.Token
 import org.http4s.headers.{Authorization, Cookie}
 import org.http4s.{Headers, HttpDate, Response, ResponseCookie}
-import play.api.libs.json.{OWrites, Reads, Writes}
+import io.circe._
+import io.circe.generic.semiauto._
+import io.circe.syntax.EncoderOps
+import io.circe.parser.{decode, parse}
 
 import scala.concurrent.duration.DurationInt
 
@@ -25,7 +28,7 @@ class Http4sAuth(
   def authenticate(headers: Headers): Either[IdentityError, Username] =
     readUser(cookieNames.user, headers)
 
-  def authState[T: Reads](from: Headers): Either[IdentityError, T] =
+  def authState[T: Decoder](from: Headers): Either[IdentityError, T] =
     read[T](cookieNames.authState, from)
 
   def token(headers: Headers) = headers
@@ -36,7 +39,7 @@ class Http4sAuth(
       case _               => Left(MissingCredentials("Missing token.", headers))
     })
 
-  def withSession[T: OWrites](t: T, isSecure: Boolean, res: Response[IO]): res.Self =
+  def withSession[T: Encoder](t: T, isSecure: Boolean, res: Response[IO]): res.Self =
     withJwt(cookieNames.authState, t, isSecure, res)
 
   def clearSession(res: Response[IO]): res.Self =
@@ -57,10 +60,10 @@ class Http4sAuth(
     .addCookie(responseCookie(cookieNames.lastId, user.username.name))
     .addCookie(responseCookie(cookieNames.provider, provider.name))
 
-  def withUser[T: Writes](t: T, isSecure: Boolean, res: Response[IO]): res.Self =
+  def withUser[T: Encoder](t: T, isSecure: Boolean, res: Response[IO]): res.Self =
     withJwt(cookieNames.user, t, isSecure, res)
 
-  def withJwt[T: Writes](
+  def withJwt[T: Encoder](
     cookieName: String,
     t: T,
     isSecure: Boolean,
@@ -90,7 +93,7 @@ class Http4sAuth(
   private def readUser(cookieName: String, headers: Headers): Either[IdentityError, Username] =
     read[UserPayload](cookieName, headers).map(_.username)
 
-  def read[T: Reads](cookieName: String, headers: Headers): Either[IdentityError, T] =
+  def read[T: Decoder](cookieName: String, headers: Headers): Either[IdentityError, T] =
     for {
       header <- Cookie.from(headers).toRight(MissingCredentials("Cookie parsing error.", headers))
       cookie <-

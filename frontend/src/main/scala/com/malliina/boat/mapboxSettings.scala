@@ -1,7 +1,10 @@
 package com.malliina.boat
 
 import org.scalajs.dom.window.localStorage
-import play.api.libs.json.Json
+import io.circe._
+import io.circe.generic.semiauto._
+import io.circe.syntax.EncoderOps
+import io.circe.parser.{decode, parse}
 
 import scala.scalajs.js.Date
 import scala.util.Try
@@ -9,7 +12,7 @@ import scala.util.Try
 case class MapCamera(center: Coord, zoom: Double, timestampMs: Double = Date.now())
 
 object MapCamera {
-  implicit val json = Json.format[MapCamera]
+  implicit val json: Codec[MapCamera] = deriveCodec[MapCamera]
 
   def default: MapCamera = MapCamera(Coord(lng = Longitude(24.9), lat = Latitude(60.14)), 13)
 
@@ -21,11 +24,11 @@ object MapSettings {
 
   def load(): Either[Object, MapCamera] = for {
     str <- Option(localStorage.getItem(settingsKey)).toRight(s"Item not found: '$settingsKey'.")
-    json <- Try(Json.parse(str)).toEither
-    settings <- json.validate[MapCamera].asEither
+    json <- parse(str)
+    settings <- json.as[MapCamera]
   } yield settings
 
   def save(settings: MapCamera): Unit = {
-    localStorage.setItem(settingsKey, Json.stringify(Json.toJson(settings)))
+    localStorage.setItem(settingsKey, settings.asJson.noSpaces)
   }
 }

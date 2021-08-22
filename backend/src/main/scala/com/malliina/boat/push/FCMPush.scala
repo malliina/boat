@@ -4,14 +4,14 @@ import cats.effect.IO
 import com.malliina.boat.push.FCMPush.log
 import com.malliina.boat.{BoatName, FCMConf, PushToken}
 import com.malliina.http.HttpClient
-import com.malliina.push.gcm.{GCMClientF, GCMMessage, GCMToken, GoogleClientF}
+import com.malliina.push.fcm.FCMClientF
+import com.malliina.push.gcm.{GCMMessage, GCMToken, GoogleClientF}
 import com.malliina.util.AppLogger
 
 object FCMPush {
   private val log = AppLogger(getClass)
 
-  def apply(conf: FCMConf, http: HttpClient[IO]): FCMPush =
-    apply(GCMClientF.legacy(conf.apiKey, http))
+  def apply(conf: FCMConf, http: HttpClient[IO]): FCMPush = apply(FCMClientF(conf.apiKey, http))
 
   def apply(fcm: GoogleClientF[IO]): FCMPush = new FCMPush(fcm)
 }

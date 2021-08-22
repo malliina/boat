@@ -2,10 +2,10 @@ package com.malliina.boat.http4s
 
 import cats.effect.IO
 import com.malliina.boat.Errors
+import io.circe.{DecodingFailure, Json}
 import org.http4s._
-import _root_.play.api.libs.json.{JsError, JsValue}
 
-class JsonException(val error: JsError, val json: JsValue) extends DecodeFailure {
+class JsonException(val error: DecodingFailure, val json: Json) extends DecodeFailure {
   val errors = Errors.fromJson(error)
   val detailed = errors.errors
     .filter(_.message.message.nonEmpty)

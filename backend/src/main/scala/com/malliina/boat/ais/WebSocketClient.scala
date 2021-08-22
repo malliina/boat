@@ -1,6 +1,5 @@
 package com.malliina.boat.ais
 
-import java.util.concurrent.atomic.AtomicBoolean
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.model.HttpHeader.ParsingResult.Ok
@@ -13,9 +12,12 @@ import akka.{Done, NotUsed}
 import com.malliina.boat.ais.WebSocketClient.log
 import com.malliina.http.FullUrl
 import com.malliina.util.AppLogger
-import play.api.libs.json.{JsValue, Json, Writes}
+import io.circe.{Encoder, Json}
+import io.circe.syntax.EncoderOps
+import io.circe.parser.{decode, parse}
 
-import concurrent.duration.DurationInt
+import java.util.concurrent.atomic.AtomicBoolean
+import scala.concurrent.duration.DurationInt
 import scala.concurrent.{Future, Promise}
 
 // https://www.digitraffic.fi/meriliikenne/#websocket-rajapinnat
@@ -51,21 +53,24 @@ class WebSocketClient(url: FullUrl, headers: List[KeyValue])(implicit
   val initialConnection = initialConnectionPromise.future
   val switch = KillSwitches.shared(s"WebSocket-$url")
 
-  def connect[T: Writes](out: Source[T, NotUsed]): Future[Done] =
+  def connect[T: Encoder](out: Source[T, NotUsed]): Future[Done] =
     connectInOut(Sink.ignore, out)
 
-  def connectJson[T: Writes](in: Sink[JsValue, Future[Done]], out: Source[T, _]): Future[Done] = {
+  def connectJson[T: Encoder](in: Sink[Json, Future[Done]], out: Source[T, _]): Future[Done] = {
     val incomingSink = in.contramap[Message] {
-      case BinaryMessage.Strict(data) => Json.parse(data.iterator.asInputStream)
-      case TextMessage.Strict(text)   => Json.parse(text)
-      case other                      => throw new Exception(s"Unsupported message: '$other'.")
+      case BinaryMessage.Strict(data) =>
+        throw new Exception(s"Unsupported binary message: '$data'.")
+      case TextMessage.Strict(text) =>
+        parse(text).fold(err => throw new Exception(s"Not JSON: '$err'."), identity)
+      case other =>
+        throw new Exception(s"Unsupported message: '$other'.")
     }
     connectInOut(incomingSink, out)
   }
 
-  def connectInOut[T: Writes](in: Sink[Message, Future[Done]], out: Source[T, _]): Future[Done] = {
+  def connectInOut[T: Encoder](in: Sink[Message, Future[Done]], out: Source[T, _]): Future[Done] = {
     log.info(s"Connecting to '$url'...")
-    val messageSource = out.map(t => TextMessage(Json.stringify(Json.toJson(t))))
+    val messageSource = out.map(t => TextMessage(t.asJson.noSpaces))
     val flow = Flow.fromSinkAndSourceMat(in, messageSource)(Keep.left).via(switch.flow)
     val (upgrade, closed) =
       Http().singleWebSocketRequest(WebSocketRequest(Uri(url.url), validHeaders), flow)

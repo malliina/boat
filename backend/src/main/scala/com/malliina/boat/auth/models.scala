@@ -2,7 +2,8 @@ package com.malliina.boat.auth
 
 import com.malliina.boat.{BoatName, Language, MinimalUserInfo, SingleError}
 import com.malliina.values.{Email, Password, Username}
-import play.api.libs.json.Json
+import io.circe._
+import io.circe.generic.semiauto._
 
 case class SecretKey(value: String) extends AnyVal {
   override def toString = "****"
@@ -35,13 +36,13 @@ case class SettingsPayload(username: Username, language: Language, authorized: S
 
 object SettingsPayload {
   val cookieName = "boat-settings"
-  implicit val json = Json.format[SettingsPayload]
+  implicit val json: Codec[SettingsPayload] = deriveCodec[SettingsPayload]
 }
 
 case class UserPayload(username: Username)
 
 object UserPayload {
-  implicit val json = Json.format[UserPayload]
+  implicit val json: Codec[UserPayload] = deriveCodec[UserPayload]
 
   def email(email: Email): UserPayload = apply(Username(email.value))
 }

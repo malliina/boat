@@ -73,7 +73,7 @@ class MapSocket(
       latestFeature <- oldTrack.features.lastOption
       latestCoord <- latestFeature.geometry.coords.headOption
       speedProp <- latestFeature.properties.get(TimedCoord.SpeedKey)
-      speed <- speedProp.validate[SpeedM].asOpt
+      speed <- speedProp.as[SpeedM].toOption
     } yield SimpleCoord(latestCoord, speed)
     val newTrack: FeatureCollection =
       oldTrack
@@ -251,7 +251,7 @@ class MapSocket(
           map.onHover(name)(
             in =>
               map.queryRendered(in.point, QueryOptions.layer(name)).map { fs =>
-                fs.flatMap(_.props.asOpt[DeviceProps]).headOption.foreach { device =>
+                fs.flatMap(_.props.as[DeviceProps].toOption).headOption.foreach { device =>
                   map.getCanvas().style.cursor = "pointer"
                   if (!popups.markPopup.isOpen())
                     devicePopup.showText(device.deviceName.name, in.lngLat, map)

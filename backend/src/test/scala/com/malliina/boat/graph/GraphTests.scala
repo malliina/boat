@@ -1,13 +1,13 @@
 package com.malliina.boat.graph
 
-import java.io.FileInputStream
-import java.nio.file.{Files, Paths}
-import java.util.concurrent.{Executors, TimeUnit}
-
 import com.malliina.boat._
 import com.malliina.measure.{DistanceDoubleM, DistanceIntM}
-import play.api.libs.json.Json
+import com.nimbusds.jose.util.StandardCharset
+import io.circe.parser.decode
+import io.circe.syntax.EncoderOps
 
+import java.nio.file.{Files, Paths}
+import java.util.concurrent.{Executors, TimeUnit}
 import scala.annotation.tailrec
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.{Await, ExecutionContext, Future}
@@ -36,8 +36,8 @@ class GraphTests extends munit.FunSuite {
     val graph = fromResource("vaylat-crossing.json")
     assert(!graph.isEmpty)
     val route = graph.shortest(from, to)
-    val json = Json.toJson(graph.toList)
-    val route2 = Graph.fromNodes(json.as[List[ValueNode]]).shortest(from, to)
+    val json = graph.toList.asJson
+    val route2 = Graph.fromNodes(json.as[List[ValueNode]].toOption.get).shortest(from, to)
     assert(route.isRight)
     assert(route2.isRight)
     val r1 = route.toOption.get
@@ -81,7 +81,7 @@ class GraphTests extends munit.FunSuite {
 
   test("read and write graph".ignore) {
     val g = fromResource("vaylat-geo.json")
-    Files.write(Paths.get("vaylat-all2.json"), Json.toBytes(Json.toJson(g)))
+    Files.write(Paths.get("vaylat-all2.json"), g.asJson.noSpaces.getBytes(StandardCharset.UTF_8))
   }
 
   test("create graph from geojson".ignore) {
@@ -113,8 +113,8 @@ class GraphTests extends munit.FunSuite {
 
   def fromResource(filename: String) = {
     val file = Graph.file(filename)
-    val json = Json.parse(new FileInputStream(file.toFile))
-    val es = json.as[FeatureCollection].features.flatMap { f =>
+    val result = decode[FeatureCollection](Files.readString(file))
+    val es = result.toOption.get.features.flatMap { f =>
       f.geometry match {
         case MultiLineGeometry(_, coordinates) => coordinates.flatMap(edges)
         case LineGeometry(_, coordinates)      => edges(coordinates)

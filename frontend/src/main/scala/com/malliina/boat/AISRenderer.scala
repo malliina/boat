@@ -69,7 +69,7 @@ class AISRenderer(val map: MapboxMap, val log: BaseLogger = BaseLogger.console)
       map
         .queryRendered(in.point, QueryOptions.layer(id))
         .map { fs =>
-          fs.flatMap(_.props.asOpt[VesselProps]).headOption.foreach { vessel =>
+          fs.flatMap(_.props.as[VesselProps].toOption).headOption.foreach { vessel =>
             boatPopup.showText(vessel.name.name, in.lngLat, map)
           }
         }

@@ -3,7 +3,8 @@ package com.malliina.boat
 import com.malliina.mapbox.{LngLat, MapOptions, MapboxGeocoder, MapboxMap, mapboxGl}
 import org.scalajs.dom.raw._
 import org.scalajs.dom.{document, window}
-import play.api.libs.json.{Json, Writes}
+import io.circe._
+import io.circe.syntax.EncoderOps
 
 import scala.scalajs.js.{JSON, URIUtils}
 
@@ -167,5 +168,5 @@ class MapView(
 
   def htmlElem(id: String) = elemAs[HTMLElement](id)
 
-  def parse[T: Writes](t: T) = JSON.parse(Json.stringify(Json.toJson(t)))
+  def parse[T: Encoder](t: T) = JSON.parse(t.asJson.noSpaces)
 }

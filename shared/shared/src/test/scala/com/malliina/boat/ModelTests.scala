@@ -1,11 +1,22 @@
 package com.malliina.boat
 
-import play.api.libs.json.Json
+import io.circe.Printer
+import io.circe.generic.semiauto.deriveCodec
+import io.circe.parser.{decode, parse}
+import io.circe.syntax.EncoderOps
 
 class ModelTests extends munit.FunSuite {
   test("coord cheap hash") {
     val c = Coord(Longitude(12.1), Latitude(13.412456789))
-    assert(c.approx == "12.10000,13.41245")
+    assertEquals(c.approx, "12.10000,13.41245")
+  }
+
+  test("do not serialize None as null") {
+    case class MyClass(name: String, age: Option[Int])
+    implicit val codec = deriveCodec[MyClass]
+    val printer = Printer.noSpaces.copy(dropNullValues = true)
+    val str = MyClass("Santa", None).asJson.printWith(printer)
+    assertEquals(str, """{"name":"Santa"}""")
   }
 
   test("parse vessel location") {
@@ -31,9 +42,9 @@ class ModelTests extends munit.FunSuite {
         |  }
         |}
       """.stripMargin
-    val result = VesselLocation.readerGeoJson.reads(Json.parse(in))
+    val result = decode[VesselLocation](in)(VesselLocation.readerGeoJson)
     //println(result)
-    assert(result.isSuccess)
+    assert(result.isRight)
   }
 
   test("parse vessel metadata") {
@@ -56,13 +67,14 @@ class ModelTests extends munit.FunSuite {
         |  "name" : "KLARA"
         |}
       """.stripMargin
-    val result = VesselMetadata.readerGeoJson.reads(Json.parse(in))
+
+    val result = decode[VesselMetadata](in)(VesselMetadata.readerGeoJson)
     //println(result)
-    assert(result.isSuccess)
+    assert(result.isRight)
   }
 
   test("PingEvent JSON") {
-    val json = Json.toJson(PingEvent(123))
-    assert(Json.stringify(json) == """{"event":"ping","body":{"sent":123}}""")
+    val string = PingEvent(123).asJson.noSpaces
+    assertEquals(string, """{"event":"ping","body":{"sent":123}}""")
   }
 }

@@ -1,12 +1,14 @@
 package com.malliina.boat
 
+import cats.syntax.functor._
 import com.malliina.boat.BoatJson.keyValued
 import com.malliina.json.PrimitiveFormats
 import com.malliina.measure.{DistanceM, SpeedM, Temperature}
 import com.malliina.values._
-import play.api.libs.json._
 import scalatags.generic.Bundle
-
+import io.circe._
+import io.circe.generic.semiauto._
+import io.circe.syntax.EncoderOps
 import scala.concurrent.duration.Duration
 import scala.math.Ordering.Double.TotalOrdering
 
@@ -74,13 +76,13 @@ case class Timing(
 )
 
 object Timing {
-  implicit val json = Json.format[Timing]
+  implicit val json: Codec[Timing] = deriveCodec[Timing]
 }
 
 case class Times(start: Timing, end: Timing, range: String)
 
 object Times {
-  implicit val json = Json.format[Times]
+  implicit val json: Codec[Times] = deriveCodec[Times]
 }
 
 trait Degree
@@ -138,22 +140,18 @@ case class Coord(lng: Longitude, lat: Latitude) {
 object Coord {
   val Key = "coord"
 
-  implicit val json: OFormat[Coord] = Json.format[Coord]
+  implicit val json: Codec[Coord] = deriveCodec[Coord]
   // GeoJSON format
-  val jsonArray = Format(
-    Reads[Coord] { json =>
-      json.validate[List[Double]].flatMap {
-        case lng :: lat :: _ =>
-          build(lng, lat).fold(err => JsError(err.message), c => JsSuccess(c))
-        case _ =>
-          JsError(
-            s"Expected a JSON array of at least two numbers for coordinates [lng, lat]. Got: '$json'."
-          )
-      }
+  val jsonArray: Codec[Coord] = Codec.from(
+    Decoder[List[Double]].emap {
+      case lng :: lat :: _ =>
+        build(lng, lat).left.map(_.message)
+      case other =>
+        Left(
+          s"Expected a JSON array of at least two numbers for coordinates [lng, lat]. Got: '$other'."
+        )
     },
-    Writes[Coord] { c =>
-      Json.toJson(c.toArray)
-    }
+    (c: Coord) => c.toArray.toList.asJson
   )
 
   def buildOrFail(lng: Double, lat: Double): Coord =
@@ -167,14 +165,14 @@ object Coord {
 
   def format(d: Double): String = {
     val trunc = (d * 100000).toInt.toDouble / 100000
-    "%1.5f".format(trunc)
+    "%1.5f".format(trunc).replace(',', '.')
   }
 }
 
 case class RouteRequest(from: Coord, to: Coord)
 
 object RouteRequest {
-  implicit val json = Json.format[RouteRequest]
+  implicit val json: Codec[RouteRequest] = deriveCodec[RouteRequest]
 
   def apply(
     srcLat: Double,
@@ -213,18 +211,19 @@ case class TimedCoord(
 object TimedCoord {
   val SpeedKey = "speed"
   val DepthKey = "depth"
-  val modern = Json.format[TimedCoord]
+  val modern: Codec[TimedCoord] = deriveCodec[TimedCoord]
   // For backwards compat
-  implicit val json = Format[TimedCoord](
+  implicit val json: Codec[TimedCoord] = Codec.from(
     modern,
-    Writes(tc => modern.writes(tc) ++ Json.obj("depth" -> tc.depthMeters.toMillis.toLong))
+    (tc: TimedCoord) =>
+      modern(tc).deepMerge(Json.obj("depth" -> tc.depthMeters.toMillis.toLong.asJson))
   )
 }
 
 case class GPSTimedCoord(id: GPSPointId, coord: Coord, time: Timing)
 
 object GPSTimedCoord {
-  implicit val json = Json.format[GPSTimedCoord]
+  implicit val json = deriveCodec[GPSTimedCoord]
 }
 
 case class AccessToken(token: String) extends AnyVal with WrappedString {
@@ -261,7 +260,7 @@ object TrackTitle extends StringCompanion[TrackTitle] {
 case class ChangeTrackTitle(title: TrackTitle)
 
 object ChangeTrackTitle {
-  implicit val json = Json.format[ChangeTrackTitle]
+  implicit val json: Codec[ChangeTrackTitle] = deriveCodec[ChangeTrackTitle]
 }
 
 object TrackComments {
@@ -271,7 +270,7 @@ object TrackComments {
 case class ChangeComments(comments: String)
 
 object ChangeComments {
-  implicit val json = Json.format[ChangeComments]
+  implicit val json: Codec[ChangeComments] = deriveCodec[ChangeComments]
 }
 
 case class TrackCanonical(name: String) extends AnyVal with WrappedString {
@@ -331,13 +330,13 @@ object Language extends StringCompanion[Language] {
 case class ChangeLanguage(language: Language)
 
 object ChangeLanguage {
-  implicit val json = Json.format[ChangeLanguage]
+  implicit val json: Codec[ChangeLanguage] = deriveCodec[ChangeLanguage]
 }
 
 case class SimpleMessage(message: String) extends AnyVal
 
 object SimpleMessage {
-  implicit val json = Json.format[SimpleMessage]
+  implicit val json: Codec[SimpleMessage] = deriveCodec[SimpleMessage]
 }
 
 trait BoatTrackMeta extends DeviceMeta {
@@ -407,7 +406,7 @@ object MobileDevice extends ValidatingCompanion[String, MobileDevice] {
 case class Boat(id: DeviceId, name: BoatName, token: BoatToken, addedMillis: Long)
 
 object Boat {
-  implicit val json = Json.format[Boat]
+  implicit val json: Codec[Boat] = deriveCodec[Boat]
 }
 
 trait MinimalUserInfo {
@@ -437,7 +436,7 @@ case class SimpleEmailUser(
 case class BoatRef(id: DeviceId, name: BoatName)
 
 object BoatRef {
-  implicit val json = Json.format[BoatRef]
+  implicit val json: Codec[BoatRef] = deriveCodec[BoatRef]
 }
 
 case class Invite(boat: BoatRef, state: InviteState, addedMillis: Long)
@@ -445,7 +444,7 @@ case class Invite(boat: BoatRef, state: InviteState, addedMillis: Long)
 case class FriendRef(id: UserId, email: Email)
 
 object FriendRef {
-  implicit val json = Json.format[FriendRef]
+  implicit val json: Codec[FriendRef] = deriveCodec[FriendRef]
 }
 
 case class FriendInvite(
@@ -456,11 +455,11 @@ case class FriendInvite(
 )
 
 object FriendInvite {
-  implicit val json = Json.format[FriendInvite]
+  implicit val json: Codec[FriendInvite] = deriveCodec[FriendInvite]
 }
 
 object Invite {
-  implicit val json = Json.format[Invite]
+  implicit val json: Codec[Invite] = deriveCodec[Invite]
 }
 
 case class UserInfo(
@@ -478,13 +477,13 @@ case class UserInfo(
 }
 
 object UserInfo {
-  implicit val json = Json.format[UserInfo]
+  implicit val json: Codec[UserInfo] = deriveCodec[UserInfo]
 }
 
 case class UserContainer(user: UserInfo)
 
 object UserContainer {
-  implicit val json = Json.format[UserContainer]
+  implicit val json: Codec[UserContainer] = deriveCodec[UserContainer]
 }
 
 trait TrackMetaLike {
@@ -506,13 +505,13 @@ case class TrackMetaShort(
 ) extends TrackMetaLike
 
 object TrackMetaShort {
-  implicit val json = Json.format[TrackMetaShort]
+  implicit val json: Codec[TrackMetaShort] = deriveCodec[TrackMetaShort]
 }
 
 case class DeviceRef(device: DeviceId, deviceName: BoatName, username: Username)
 
 object DeviceRef {
-  implicit val json = Json.format[DeviceRef]
+  implicit val json: Codec[DeviceRef] = deriveCodec[DeviceRef]
 }
 
 case class TrackRef(
@@ -537,18 +536,21 @@ case class TrackRef(
 }
 
 object TrackRef {
-  implicit val durationFormat = PrimitiveFormats.durationFormat
-  val modern = Json.format[TrackRef]
-  implicit val json = Format[TrackRef](
+  implicit val durationFormat = PrimitiveFormats.durationCodec
+  val modern: Codec[TrackRef] = deriveCodec[TrackRef]
+  implicit val json: Codec[TrackRef] = Codec.from(
     modern,
-    Writes(tr => modern.writes(tr) ++ Json.obj("distance" -> tr.distanceMeters.toMillis.toLong))
+    new Encoder[TrackRef] {
+      final def apply(tr: TrackRef): Json =
+        modern(tr).deepMerge(Json.obj("distance" -> tr.distanceMeters.toMillis.toLong.asJson))
+    }
   )
 }
 
 case class TrackResponse(track: TrackRef)
 
 object TrackResponse {
-  implicit val json = Json.format[TrackResponse]
+  implicit val json: Codec[TrackResponse] = deriveCodec[TrackResponse]
 }
 
 case class InsertedTrackPoint(point: TrackPointId, track: TrackRef)
@@ -572,7 +574,7 @@ case class BoatInfo(
 )
 
 object BoatInfo {
-  implicit val json = Json.format[BoatInfo]
+  implicit val json: Codec[BoatInfo] = deriveCodec[BoatInfo]
 }
 
 case class UserBoats(user: Username, language: Language, boats: Seq[BoatInfo])
@@ -584,32 +586,32 @@ object UserBoats {
 case class TrackBrief(trackName: TrackName, added: String, addedMillis: Long)
 
 object TrackBrief {
-  implicit val json = Json.format[TrackBrief]
+  implicit val json: Codec[TrackBrief] = deriveCodec[TrackBrief]
 }
 
 case class TrackSummary(track: TrackRef)
 
 object TrackSummary {
-  implicit val json = Json.format[TrackSummary]
+  implicit val json: Codec[TrackSummary] = deriveCodec[TrackSummary]
 }
 
 case class TrackSummaries(tracks: Seq[TrackSummary])
 
 object TrackSummaries {
-  implicit val json = Json.format[TrackSummaries]
+  implicit val json: Codec[TrackSummaries] = deriveCodec[TrackSummaries]
 }
 
 case class Tracks(tracks: Seq[TrackRef])
 
 object Tracks {
-  implicit val json = Json.format[Tracks]
+  implicit val json: Codec[Tracks] = deriveCodec[Tracks]
 }
 
 case class GPSCoordsEvent(coords: List[GPSTimedCoord], from: DeviceRef) extends DeviceFrontEvent
 
 object GPSCoordsEvent {
   val Key = "gps-coords"
-  implicit val json = keyValued(Key, Json.format[GPSCoordsEvent])
+  implicit val json: Codec[GPSCoordsEvent] = keyValued(Key, deriveCodec[GPSCoordsEvent])
 }
 
 case class CoordsEvent(coords: List[TimedCoord], from: TrackRef) extends BoatFrontEvent {
@@ -621,13 +623,13 @@ case class CoordsEvent(coords: List[TimedCoord], from: TrackRef) extends BoatFro
 
   def addCoords(newCoords: Seq[TimedCoord]) = copy(coords = coords ++ newCoords)
 
-  def toMap: Map[String, JsValue] = coords.map(tc => tc.id.toString -> Json.toJson(tc)).toMap
+  def toMap: Map[String, Json] = coords.map(tc => tc.id.toString -> tc.asJson).toMap
 }
 
 object CoordsEvent {
   val Key = "coords"
   implicit val coordJson = Coord.json
-  implicit val json: OFormat[CoordsEvent] = keyValued(Key, Json.format[CoordsEvent])
+  implicit val json: Codec[CoordsEvent] = keyValued(Key, deriveCodec[CoordsEvent])
 }
 
 case class CoordsBatch(events: Seq[CoordsEvent]) extends FrontEvent {
@@ -636,7 +638,7 @@ case class CoordsBatch(events: Seq[CoordsEvent]) extends FrontEvent {
 }
 
 object CoordsBatch {
-  implicit val json = Json.format[CoordsBatch]
+  implicit val json: Codec[CoordsBatch] = deriveCodec[CoordsBatch]
 }
 
 case class GPSSentencesEvent(sentences: Seq[RawSentence], from: IdentifiedDeviceMeta) {
@@ -647,7 +649,7 @@ case class SentencesEvent(sentences: Seq[RawSentence], from: TrackMetaShort) ext
 
 object SentencesEvent {
   val Key = "sentences"
-  implicit val json = keyValued(Key, Json.format[SentencesEvent])
+  implicit val json: Codec[SentencesEvent] = keyValued(Key, deriveCodec[SentencesEvent])
 }
 
 case class PingEvent(sent: Long) extends FrontEvent {
@@ -656,7 +658,7 @@ case class PingEvent(sent: Long) extends FrontEvent {
 
 object PingEvent {
   val Key = "ping"
-  implicit val json = keyValued(Key, Json.format[PingEvent])
+  implicit val json: Codec[PingEvent] = keyValued(Key, deriveCodec[PingEvent])
 }
 
 case class VesselMessages(vessels: Seq[VesselInfo]) extends FrontEvent {
@@ -665,7 +667,7 @@ case class VesselMessages(vessels: Seq[VesselInfo]) extends FrontEvent {
 
 object VesselMessages {
   val Key = "vessels"
-  implicit val json = keyValued(Key, Json.format[VesselMessages])
+  implicit val json = keyValued(Key, deriveCodec[VesselMessages])
   val empty = VesselMessages(Nil)
 }
 
@@ -688,22 +690,23 @@ sealed trait BoatFrontEvent extends FrontEvent {
 }
 
 object FrontEvent {
-  implicit val reader = Reads[FrontEvent] { json =>
-    VesselMessages.json
-      .reads(json)
-      .orElse(CoordsEvent.json.reads(json))
-      .orElse(CoordsBatch.json.reads(json))
-      .orElse(SentencesEvent.json.reads(json))
-      .orElse(PingEvent.json.reads(json))
-      .orElse(GPSCoordsEvent.json.reads(json))
-  }
-  implicit val writer = Writes[FrontEvent] {
-    case se @ SentencesEvent(_, _)  => SentencesEvent.json.writes(se)
-    case ce @ CoordsEvent(_, _)     => CoordsEvent.json.writes(ce)
-    case cb @ CoordsBatch(_)        => CoordsBatch.json.writes(cb)
-    case pe @ PingEvent(_)          => PingEvent.json.writes(pe)
-    case vs @ VesselMessages(_)     => VesselMessages.json.writes(vs)
-    case gce @ GPSCoordsEvent(_, _) => GPSCoordsEvent.json.writes(gce)
+  implicit val decoder: Decoder[FrontEvent] = List[Decoder[FrontEvent]](
+    Decoder[VesselMessages].widen,
+    Decoder[CoordsEvent].widen,
+    Decoder[CoordsBatch].widen,
+    Decoder[SentencesEvent].widen,
+    Decoder[PingEvent].widen,
+    Decoder[GPSCoordsEvent].widen
+  ).reduceLeft(_ or _)
+  implicit val encoder: Encoder[FrontEvent] = new Encoder[FrontEvent] {
+    final def apply(fe: FrontEvent): Json = fe match {
+      case se @ SentencesEvent(_, _)  => se.asJson
+      case ce @ CoordsEvent(_, _)     => ce.asJson
+      case cb @ CoordsBatch(_)        => cb.asJson
+      case pe @ PingEvent(_)          => pe.asJson
+      case vs @ VesselMessages(_)     => vs.asJson
+      case gce @ GPSCoordsEvent(_, _) => gce.asJson
+    }
   }
 }
 
@@ -714,43 +717,47 @@ case class SentencesMessage(sentences: Seq[RawSentence]) {
 
 object SentencesMessage {
   val Key = "sentences"
-  implicit val json = keyValued(Key, Json.format[SentencesMessage])
+  implicit val json: Codec[SentencesMessage] = keyValued(Key, deriveCodec[SentencesMessage])
 }
 
 object BoatJson {
   val EventKey = "event"
   val BodyKey = "body"
 
-  def empty[T](build: => T): OFormat[T] =
-    OFormat[T](Reads(_ => JsSuccess(build)), OWrites[T](_ => Json.obj()))
+  def empty[T](build: => T): Codec[T] = Codec.from(
+    Decoder.const(42).map(_ => build),
+    Encoder.encodeJson.contramap(t => Json.fromJsonObject(JsonObject.empty))
+  )
+
+  val eventDecoder = Decoder.decodeString.at(EventKey)
 
   /** A JSON format for objects of type T that contains a top-level "event" key and further data in "body".
     */
-  def keyValued[T](value: String, payload: OFormat[T]): OFormat[T] = {
-    val reader: Reads[T] = Reads { json =>
-      for {
-        event <- (json \ EventKey).validate[String]
-        if event == value
-        body <- (json \ BodyKey).validate[T](payload)
-      } yield body
+  def keyValued[T](value: String, payload: Codec[T]): Codec[T] = {
+    val decoder = eventDecoder.flatMap[T] { event =>
+      if (event == value) payload.at(BodyKey)
+      else Decoder.failed(DecodingFailure(s"Event is '$event', required '$value'.", Nil))
     }
-    val writer = OWrites[T] { t =>
-      Json.obj(EventKey -> value, BodyKey -> payload.writes(t))
+    val encoder = new Encoder[T] {
+      final def apply(a: T): Json = Json.obj(
+        (EventKey, Json.fromString(value)),
+        (BodyKey, payload(a))
+      )
     }
-    OFormat(reader, writer)
+    Codec.from(decoder, encoder)
   }
 }
 
 case class IconsConf(boat: String, trophy: String)
 
 object IconsConf {
-  implicit val json = Json.format[IconsConf]
+  implicit val json: Codec[IconsConf] = deriveCodec[IconsConf]
 }
 
 case class MapConf(styleId: String, styleUrl: String, icons: IconsConf)
 
 object MapConf {
-  implicit val json = Json.format[MapConf]
+  implicit val json: Codec[MapConf] = deriveCodec[MapConf]
   val active = apply(Constants.StyleId)
 
   def apply(styleId: String): MapConf = MapConf(
@@ -760,21 +767,21 @@ object MapConf {
   )
 }
 
-abstract class Companion[Raw, T](implicit jsonFormat: Format[Raw], o: Ordering[Raw]) {
+abstract class Companion[Raw, T](implicit jsonFormat: Codec[Raw], o: Ordering[Raw]) {
   def apply(raw: Raw): T
 
   def raw(t: T): Raw
 
-  implicit val format: Format[T] = Format(
-    Reads[T](in => in.validate[Raw].map(apply)),
-    Writes[T](t => Json.toJson(raw(t)))
+  implicit val format: Codec[T] = Codec.from(
+    Decoder[Raw].map(apply),
+    (t: T) => raw(t).asJson
   )
 
   implicit val ordering: Ordering[T] = o.on(raw)
 }
 
-abstract class ValidatedDouble[T](implicit f: Format[Double])
-  extends ValidatingCompanion[Double, T]()(f, TotalOrdering)
+abstract class ValidatedDouble[T](implicit d: Decoder[Double], e: Encoder[Double])
+  extends ValidatingCompanion[Double, T]()(d, e, TotalOrdering)
 
 class ModelHtml[Builder, Output <: FragT, FragT](val bundle: Bundle[Builder, Output, FragT]) {
 

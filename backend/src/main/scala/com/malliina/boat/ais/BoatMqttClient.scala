@@ -7,7 +7,8 @@ import com.malliina.http.FullUrl
 import com.malliina.util.AppLogger
 import fs2.Stream
 import fs2.concurrent.{SignallingRef, Topic}
-import play.api.libs.json.{JsError, JsResult, JsSuccess, Json}
+import io.circe._
+import io.circe.parser.{decode, parse}
 
 import java.time.Instant
 import scala.collection.concurrent.TrieMap
@@ -80,18 +81,18 @@ class BoatMqttClient(url: FullUrl, topic: String)(implicit c: Concurrent[IO], t:
       _ => Stream.empty
     }
   }
-  val parsed: Stream[IO, JsResult[AISMessage]] =
+  val parsed: Stream[IO, Either[io.circe.Error, AISMessage]] =
     oneConnection.repeat.interruptWhen(interrupter).map { msg =>
-      val json = Json.parse(msg.payloadString)
+      val str = msg.payloadString
       msg.topic match {
-        case Locations()   => VesselLocation.readerGeoJson.reads(json)
-        case Metadata()    => VesselMetadata.readerGeoJson.reads(json)
-        case StatusTopic() => VesselStatus.reader.reads(json)
-        case other         => JsError(s"Unknown topic: '$other'. JSON: '$json'.")
+        case Locations()   => decode[VesselLocation](str)(VesselLocation.readerGeoJson)
+        case Metadata()    => decode[VesselMetadata](str)(VesselMetadata.readerGeoJson)
+        case StatusTopic() => decode[VesselStatus](str)
+        case other         => Left(DecodingFailure(s"Unknown topic: '$other'. Payload: '$str'.", Nil))
       }
     }
   val vesselMessages = parsed.flatMap {
-    case JsSuccess(msg, _) =>
+    case Right(msg) =>
       msg match {
         case loc: VesselLocation =>
           metadata
@@ -107,7 +108,7 @@ class BoatMqttClient(url: FullUrl, topic: String)(implicit c: Concurrent[IO], t:
         case _ =>
           Stream.empty
       }
-    case JsError(_) => Stream.empty
+    case Left(_) => Stream.empty
   }
   private val internalMessages =
     vesselMessages.groupWithin(maxBatchSize, sendTimeWindow).map(_.toList)

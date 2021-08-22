@@ -4,7 +4,8 @@ import com.malliina.boat.BoatName
 import com.malliina.boat.http.Named
 import com.malliina.push.apns.{APNSError, APNSIdentifier, APNSToken}
 import com.malliina.values.{ErrorMessage, ValidatingCompanion}
-import play.api.libs.json.Json
+import io.circe._
+import io.circe.generic.semiauto._
 
 sealed abstract class BoatState(val name: String) extends Named
 
@@ -27,7 +28,7 @@ case class BoatNotification(boatName: BoatName, state: BoatState) {
 }
 
 object BoatNotification {
-  implicit val json = Json.format[BoatNotification]
+  implicit val json: Codec[BoatNotification] = deriveCodec[BoatNotification]
   val Message = "message"
   val Title = "title"
 }
@@ -35,5 +36,5 @@ object BoatNotification {
 case class APNSHttpResult(token: APNSToken, id: Option[APNSIdentifier], error: Option[APNSError])
 
 object APNSHttpResult {
-  implicit val json = Json.format[APNSHttpResult]
+  implicit val json: Codec[APNSHttpResult] = deriveCodec[APNSHttpResult]
 }

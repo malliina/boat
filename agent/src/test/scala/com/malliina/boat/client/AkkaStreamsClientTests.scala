@@ -8,7 +8,8 @@ import akka.stream.scaladsl.Tcp.IncomingConnection
 import akka.stream.scaladsl.{Flow, Keep, Sink, Source, Tcp}
 import akka.util.ByteString
 import com.malliina.boat.{RawSentence, SentencesMessage}
-import play.api.libs.json.Json
+import io.circe.syntax.EncoderOps
+import io.circe.parser.{decode, parse}
 
 import scala.collection.immutable.Iterable
 import scala.collection.mutable
@@ -68,13 +69,16 @@ class AkkaStreamsClientTests extends BasicSuite {
     try {
       val _ = client.sentencesSource.runWith(out)
       Thread.sleep(20000)
-      Files.write(Paths.get("demouiva.json"), Json.toBytes(Json.toJson(jsons)))
+      Files.write(
+        Paths.get("demouiva.json"),
+        jsons.toList.asJson.noSpaces.getBytes(StandardCharsets.UTF_8)
+      )
     } finally client.close()
   }
 
   test("count".ignore) {
     val msgs =
-      Json.parse(new FileInputStream(Paths.get("demo2.json").toFile)).as[Seq[SentencesMessage]]
+      decode[List[SentencesMessage]](Files.readString(Paths.get("demo2.json"))).toOption.get
     println(msgs.flatMap(_.sentences).length)
   }
 

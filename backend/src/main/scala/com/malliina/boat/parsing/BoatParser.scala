@@ -2,13 +2,13 @@ package com.malliina.boat.parsing
 
 import com.malliina.boat._
 import com.malliina.util.AppLogger
-import play.api.libs.json.{JsError, JsValue, Reads}
+import io.circe.{Decoder, DecodingFailure, Json}
 
 object BoatParser {
   private val log = AppLogger(getClass)
 
-  def read[T: Reads](json: JsValue): Either[JsError, T] =
-    json.validate[T].asEither.left.map(JsError.apply)
+  def read[T: Decoder](json: Json): Either[DecodingFailure, T] =
+    json.as[T]
 
   def parseMulti(sentences: Seq[KeyedSentence]): Seq[ParsedSentence] =
     sentences.map(parse).flatMap(e => e.asOption(handleError))
@@ -16,7 +16,7 @@ object BoatParser {
   def parseMultiGps(sentences: Seq[GPSKeyedSentence]): Seq[ParsedGPSSentence] =
     sentences.map(parseGps).flatMap(e => e.asOption(handleError))
 
-  def readSentences(event: BoatEvent): Either[JsError, SentencesEvent] =
+  def readSentences(event: BoatEvent): Either[DecodingFailure, SentencesEvent] =
     read[SentencesEvent](event.message)
 
   /** Parses the following values from NNEA 0183 sentences:

@@ -2,7 +2,8 @@ package com.malliina.boat.graph
 
 import com.malliina.boat.{Coord, Earth, Link, RouteSpec}
 import com.malliina.measure.DistanceM
-import play.api.libs.json.Json
+import io.circe._
+import io.circe.generic.semiauto._
 
 case class Line(from: Coord, to: Coord) {
   def x1 = from.lng.lng
@@ -47,7 +48,7 @@ case class ValueEdge(from: Coord, to: Coord, cost: DistanceM) extends EdgeLike {
 }
 
 object ValueEdge {
-  implicit val json = Json.format[ValueEdge]
+  implicit val json = deriveCodec[ValueEdge]
 }
 
 case class ValueRoute(head: Link, tail: List[Link]) {
@@ -75,5 +76,5 @@ case class ValueNode(from: Coord, links: List[Link]) {
 }
 
 object ValueNode {
-  implicit val json = Json.format[ValueNode]
+  implicit val json = deriveCodec[ValueNode]
 }

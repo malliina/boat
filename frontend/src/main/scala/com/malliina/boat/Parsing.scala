@@ -1,6 +1,8 @@
 package com.malliina.boat
 
-import play.api.libs.json._
+import io.circe._
+import io.circe.parser.decode
+import io.circe.syntax.EncoderOps
 
 import scala.scalajs.js
 import scala.scalajs.js.JSON
@@ -8,20 +10,27 @@ import scala.scalajs.js.JSON
 object Parsing extends Parsing
 
 trait Parsing {
-  def toJson[T: Writes](t: T): js.Dynamic =
-    JSON.parse(Json.stringify(Json.toJson(t)))
+  val printer = Printer.noSpaces.copy(dropNullValues = true)
 
-  def asJson[T: Reads](in: js.Any): Either[JsonError, T] =
-    validate[T](Json.parse(stringifyAny(in)))
+  def toJson[T: Encoder](t: T): js.Dynamic =
+    JSON.parse(t.asJson.printWith(printer))
+
+  def asJson[T: Decoder](in: js.Any): Either[JsonError, T] =
+    decode[T](stringifyAny(in)).left.map(err => JsonError(err))
 
   def stringifyAny(any: js.Any) = JSON.stringify(any)
 
-  def stringify[T: Writes](t: T) = Json.stringify(Json.toJson(t))
+  def stringify[T: Encoder](t: T) = t.asJson.printWith(printer)
 
-  def validate[T: Reads](json: JsValue): Either[JsonError, T] =
-    json.validate[T].asEither.left.map(err => JsonError(JsError(err), json))
+  def validate[T: Decoder](json: Json): Either[JsonError, T] =
+    json.as[T].left.map(err => JsonError(DecodingFailure(err.message, Nil), json))
 }
 
-case class JsonError(error: JsError, json: JsValue) {
-  def describe = s"JSON error $error for JSON '$json'."
+case class JsonError(error: io.circe.Error, json: Option[Json]) {
+  def describe = json.fold(s"JSON error $error")(body => s"JSON error $error for JSON '$body'.")
+}
+
+object JsonError {
+  def apply(e: io.circe.Error): JsonError = JsonError(e, None)
+  def apply(e: io.circe.Error, body: Json): JsonError = JsonError(e, Option(body))
 }

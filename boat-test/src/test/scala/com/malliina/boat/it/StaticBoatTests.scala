@@ -2,7 +2,7 @@ package com.malliina.boat.it
 
 import akka.stream.scaladsl.Sink
 import com.malliina.boat._
-import play.api.libs.json.JsValue
+import io.circe.Json
 
 import scala.concurrent.Promise
 
@@ -25,8 +25,8 @@ class StaticBoatTests extends BoatTests {
       val testMessage = SentencesMessage(testTrack.take(6))
       val testCoord = Coord.buildOrFail(24.89171, 60.1532)
 
-      val sink = Sink.foreach[JsValue] { json =>
-        json.validate[CoordsEvent].filter(_.from.boatName == boatName).foreach { c =>
+      val sink = Sink.foreach[Json] { json =>
+        json.as[CoordsEvent].toOption.filter(_.from.boatName == boatName).foreach { c =>
           coordPromise.trySuccess(c)
         }
       }

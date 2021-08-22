@@ -4,7 +4,10 @@ import com.malliina.boat.ShipType._
 import com.malliina.json.PrimitiveFormats
 import com.malliina.measure.{DistanceM, SpeedM}
 import com.malliina.values.{IdCompanion, StringCompanion, WrappedId, WrappedString}
-import play.api.libs.json._
+
+import io.circe._
+import io.circe.generic.semiauto._
+import scala.concurrent.duration.{Duration, FiniteDuration}
 
 /**
   * @see https://help.marinetraffic.com/hc/en-us/articles/205579997-What-is-the-significance-of-the-AIS-Shiptype-number-
@@ -43,9 +46,9 @@ sealed abstract class ShipType(val code: Int) {
 object ShipType {
   val MaxKnown = 89
 
-  implicit val json = Format[ShipType](
-    Reads[ShipType](json => json.validate[Int].map(apply)),
-    Writes[ShipType](st => Json.toJson(st.code))
+  implicit val json: Codec[ShipType] = Codec.from(
+    Decoder.decodeInt.map(int => apply(int)),
+    Encoder.encodeInt.contramap(st => st.code)
   )
 
   case class WingInGround(n: Int) extends ShipType(n)
@@ -154,8 +157,8 @@ case class VesselInfo(
 
 object VesselInfo {
   val HeadingKey = "heading"
-  implicit val df = PrimitiveFormats.durationFormat
-  implicit val json = Json.format[VesselInfo]
+  implicit val df: Codec[Duration] = PrimitiveFormats.durationCodec
+  implicit val json: Codec[VesselInfo] = deriveCodec[VesselInfo]
 }
 
 sealed trait AISMessage
@@ -193,24 +196,22 @@ case class VesselLocation(
 
 object VesselLocation {
 
-  import com.malliina.measure.SpeedDoubleM
-
-  implicit val json = Json.format[VesselLocation]
-  val readerGeoJson = Reads[VesselLocation] { json =>
-    for {
-      mmsi <- (json \ "mmsi").validate[Mmsi]
-      coordJson <- (json \ "geometry" \ "coordinates").validate[JsValue]
-      coord <- Coord.jsonArray.reads(coordJson)
-      props <- (json \ "properties").validate[JsObject]
-      sog <- (props \ "sog").validate[Double].map { sog =>
-        sog.knots
-      }
-      cog <- (props \ "cog").validate[Double]
-      heading <- (props \ "heading").validate[Int].map { h =>
-        if (h == 511) None else Option(h)
-      }
-      timestamp <- (props \ "timestampExternal").validate[Long]
-    } yield VesselLocation(mmsi, coord, sog, cog, heading, timestamp)
+  import com.malliina.measure.{SpeedDoubleM, DistanceDoubleM}
+  import MaritimeJson.nonEmptyOpt
+  implicit val json: Codec[VesselLocation] = deriveCodec[VesselLocation]
+  val readerGeoJson: Decoder[VesselLocation] = new Decoder[VesselLocation] {
+    final def apply(c: HCursor): Decoder.Result[VesselLocation] =
+      for {
+        mmsi <- c.downField("mmsi").as[Mmsi]
+        coord <- c.downField("geometry").downField("coordinates").as[Coord](Coord.jsonArray)
+        props <- c.downField("properties").as[Json]
+        propsCursor = props.hcursor
+        sog <- propsCursor.downField("sog").as[Double].map(_.knots)
+        cog <- propsCursor.downField("cog").as[Double]
+        heading <-
+          propsCursor.downField("heading").as[Int].map { h => if (h == 511) None else Option(h) }
+        timestamp <- propsCursor.downField("timestampExternal").as[Long]
+      } yield VesselLocation(mmsi, coord, sog, cog, heading, timestamp)
   }
 }
 
@@ -235,34 +236,43 @@ case class VesselMetadata(
 ) extends VesselMessage
 
 object VesselMetadata {
-  implicit val df = PrimitiveFormats.durationFormat
-  implicit val json = Json.format[VesselMetadata]
-  val readerGeoJson = Reads[VesselMetadata] { json =>
-    for {
-      name <- (json \ "name").validate[VesselName]
-      mmsi <- (json \ "mmsi").validate[Mmsi]
-      timestamp <- (json \ "timestamp").validate[Long]
-      imo <- (json \ "imo").validate[Long]
-      eta <- (json \ "eta").validate[Long]
-      draft <- (json \ "draught").validate[Int].map { i =>
-        DistanceM(i.toDouble / 10)
-      }
-      destination <- (json \ "destination").validate[String].map { s =>
-        if (s.trim.nonEmpty) Option(s.trim) else None
-      }
-      shipType <- (json \ "shipType").validate[Int].map { i =>
-        ShipType(i)
-      }
-      callSign <- (json \ "callSign").validate[String]
-    } yield VesselMetadata(name, mmsi, timestamp, imo, eta, draft, destination, shipType, callSign)
+  implicit val df: Codec[Duration] = PrimitiveFormats.durationCodec
+  implicit val json: Codec[VesselMetadata] = deriveCodec[VesselMetadata]
+  val readerGeoJson: Decoder[VesselMetadata] = new Decoder[VesselMetadata] {
+    final def apply(c: HCursor): Decoder.Result[VesselMetadata] =
+      for {
+        name <- c.downField("name").as[VesselName]
+        mmsi <- c.downField("mmsi").as[Mmsi]
+        timestamp <- c.downField("timestamp").as[Long]
+        imo <- c.downField("imo").as[Long]
+        eta <- c.downField("eta").as[Long]
+        draft <- c.downField("draught").as[Int].map { int =>
+          DistanceM(int.toDouble / 10)
+        }
+        destination <- c.downField("destination").as[String].map { s =>
+          if (s.trim.nonEmpty) Option(s.trim) else None
+        }
+        shipType <- c.downField("shipType").as[Int].map { int => ShipType(int) }
+        callSign <- c.downField("callSign").as[String]
+      } yield VesselMetadata(
+        name,
+        mmsi,
+        timestamp,
+        imo,
+        eta,
+        draft,
+        destination,
+        shipType,
+        callSign
+      )
   }
 }
 
-case class VesselStatus(json: JsValue) extends AISMessage
+case class VesselStatus(json: Json) extends AISMessage
 
 object VesselStatus {
-  implicit val reader = Reads[VesselStatus] { json =>
-    JsSuccess(VesselStatus(json))
+  implicit val decoder: Decoder[VesselStatus] = Decoder.decodeJson.map { json =>
+    VesselStatus(json)
   }
 }
 

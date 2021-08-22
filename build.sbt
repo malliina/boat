@@ -10,11 +10,11 @@ import scala.sys.process.Process
 import scala.util.Try
 
 val mapboxVersion = "2.2.0"
-val webAuthVersion = "6.0.1"
-val munitVersion = "0.7.26"
+val webAuthVersion = "6.0.2"
+val munitVersion = "0.7.28"
 val testContainersScalaVersion = "0.39.5"
 val scalaTagsVersion = "0.9.4"
-val primitiveVersion = "1.19.0"
+val primitiveVersion = "2.0.2"
 val akkaVersion = "2.6.5"
 val akkaHttpVersion = "10.1.12"
 val playJsonVersion = "2.9.2"
@@ -24,6 +24,8 @@ val webAuthDep = "com.malliina" %% "web-auth" % webAuthVersion
 val utilHtmlDep = "com.malliina" %% "util-html" % webAuthVersion
 val webAuthTestDep = webAuthDep % Test classifier "tests"
 val munitDep = "org.scalameta" %% "munit" % munitVersion % Test
+val circeModules = Seq("generic", "parser")
+
 val buildAndUpload = taskKey[FullUrl]("Uploads to S3")
 val upFiles = taskKey[Seq[String]]("lists")
 val deployDocs = taskKey[Unit]("Deploys documentation")
@@ -62,7 +64,7 @@ val cross = portableProject(JSPlatform, JVMPlatform)
   .disablePlugins(RevolverPlugin)
   .settings(commonSettings ++ boatSettings)
   .settings(
-    libraryDependencies ++= Seq(
+    libraryDependencies ++= circeModules.map(m => "io.circe" %%% s"circe-$m" % "0.14.1") ++ Seq(
       "com.malliina" %%% "primitives" % primitiveVersion,
       "com.lihaoyi" %%% "scalatags" % scalaTagsVersion,
       "org.scalameta" %%% "munit" % munitVersion % Test
@@ -81,7 +83,6 @@ val frontend = project
   .settings(commonSettings ++ boatSettings)
   .settings(
     libraryDependencies ++= Seq(
-      "com.typesafe.play" %%% "play-json" % playJsonVersion,
       "org.scala-js" %%% "scalajs-dom" % "1.1.0",
       "org.scalameta" %%% "munit" % munitVersion % Test
     ),
@@ -124,7 +125,7 @@ val frontend = project
     Compile / fullOptJS / scalaJSLinkerConfig ~= { _.withSourceMap(false) }
   )
 
-val http4sModules = Seq("blaze-server", "blaze-client", "dsl", "scalatags", "play-json")
+val http4sModules = Seq("blaze-server", "blaze-client", "dsl", "scalatags", "play-json", "circe")
 
 val backend = Project("boat", file("backend"))
   .enablePlugins(
@@ -146,17 +147,17 @@ val backend = Project("boat", file("backend"))
     } ++ Seq("doobie-core", "doobie-hikari").map { d =>
       "org.tpolecat" %% d % "0.13.4"
     } ++ Seq(
-      "com.github.pureconfig" %% "pureconfig" % "0.14.1",
+      "com.github.pureconfig" %% "pureconfig" % "0.16.0",
       "com.vividsolutions" % "jts" % "1.13",
       "mysql" % "mysql-connector-java" % "5.1.49",
-      "org.flywaydb" % "flyway-core" % "7.8.1",
+      "org.flywaydb" % "flyway-core" % "7.14.0",
       "org.apache.commons" % "commons-text" % "1.9",
       "com.amazonaws" % "aws-java-sdk-s3" % "1.11.856",
       "com.malliina" %% "logstreams-client" % "1.11.3",
-      "com.malliina" %% "mobile-push-io" % "2.1.3",
+      "com.malliina" %% "mobile-push-io" % "3.0.1",
       "org.slf4j" % "slf4j-api" % "1.7.30",
-      "ch.qos.logback" % "logback-classic" % "1.2.3",
-      "ch.qos.logback" % "logback-core" % "1.2.3",
+      "ch.qos.logback" % "logback-classic" % "1.2.5",
+      "ch.qos.logback" % "logback-core" % "1.2.5",
       "com.typesafe.akka" %% "akka-slf4j" % akkaVersion,
       "com.typesafe.akka" %% "akka-stream" % akkaVersion,
       "com.typesafe.akka" %% "akka-http" % akkaHttpVersion,

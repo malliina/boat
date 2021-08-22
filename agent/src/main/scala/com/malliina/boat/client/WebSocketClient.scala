@@ -13,7 +13,9 @@ import akka.stream.{KillSwitches, Materializer}
 import akka.{Done, NotUsed}
 import com.malliina.boat.client.WebSocketClient.log
 import com.malliina.http.FullUrl
-import play.api.libs.json.{JsValue, Json, Writes}
+import io.circe.{Encoder, Json}
+import io.circe.parser.{decode, parse}
+import io.circe.syntax.EncoderOps
 
 import scala.concurrent.{Future, Promise}
 
@@ -44,7 +46,7 @@ class WebSocketClient(url: FullUrl, headers: List[KeyValue])(implicit
   val initialConnection = initialConnectionPromise.future
   val switch = KillSwitches.shared(s"WebSocket-$url")
 
-  def connect[T: Writes](out: Source[T, NotUsed]): Future[Done] =
+  def connect[T: Encoder](out: Source[T, NotUsed]): Future[Done] =
     connectInOut(Sink.ignore, out)
 
   /** Connects to WebSocket server.
@@ -54,25 +56,29 @@ class WebSocketClient(url: FullUrl, headers: List[KeyValue])(implicit
     * @tparam T type of message (JsValue works)
     * @return a Future that completes when the connection is terminated
     */
-  def connectJson[T: Writes](
-    in: Sink[JsValue, Future[Done]],
+  def connectJson[T: Encoder](
+    in: Sink[Json, Future[Done]],
     out: Source[T, NotUsed]
   ): Future[Done] = {
     val incomingSink = in.contramap[Message] {
-      case BinaryMessage.Strict(data) => Json.parse(data.iterator.asInputStream)
-      case TextMessage.Strict(text)   => Json.parse(text)
-      case other                      => throw new Exception(s"Unsupported message: '$other'.")
+      case BinaryMessage.Strict(data) =>
+        // Json.parse(data.iterator.asInputStream)
+        throw new Exception(s"Unsupported binary: '$data'.")
+      case TextMessage.Strict(text) =>
+        parse(text).fold(e => throw new Exception(s"Failed to parse as JSON: '$text'."), identity)
+      case other =>
+        throw new Exception(s"Unsupported message: '$other'.")
     }
     connectInOut(incomingSink, out)
   }
 
-  def connectInOut[T: Writes](
+  def connectInOut[T: Encoder](
     in: Sink[Message, Future[Done]],
     out: Source[T, NotUsed]
   ): Future[Done] = {
     log.info(s"Connecting to '$url'...")
     val messageSource = out.map { t =>
-      TextMessage(Json.stringify(Json.toJson(t)))
+      TextMessage(t.asJson.noSpaces)
     }
     val flow = Flow.fromSinkAndSourceMat(in, messageSource)(Keep.left).via(switch.flow)
     val (upgrade, closed) =

@@ -4,11 +4,12 @@ import cats.effect.{IO, Sync}
 import com.malliina.boat.{DeviceId, TrackCanonical, TrackId, TrackName}
 import com.malliina.html.TagPage
 import com.malliina.values.Username
+import io.circe.{Decoder, Encoder}
+import io.circe.syntax.EncoderOps
+import org.http4s.circe.CirceInstances
 import org.http4s.dsl.Http4sDsl
-import org.http4s.play.PlayInstances
 import org.http4s.scalatags.ScalatagsInstances
 import org.http4s.{DecodeResult, EntityDecoder, EntityEncoder, syntax}
-import play.api.libs.json.{JsError, Json, Reads, Writes}
 import scalatags.Text
 
 trait Extractors {
@@ -40,16 +41,16 @@ trait HtmlInstances extends ScalatagsInstances {
 
 object JsonInstances extends JsonInstances
 
-trait JsonInstances extends PlayInstances {
-  implicit def playJsonEncoder[F[_], T: Writes]: EntityEncoder[F, T] =
-    jsonEncoder[F].contramap[T](t => Json.toJson(t))
+trait JsonInstances extends CirceInstances {
+  implicit def playJsonEncoder[F[_], T: Encoder]: EntityEncoder[F, T] =
+    jsonEncoder[F].contramap[T](t => t.asJson)
 
-  def jsonBody[F[_]: Sync, A](implicit decoder: Reads[A]): EntityDecoder[F, A] =
+  def jsonBody[F[_]: Sync, A](implicit decoder: Decoder[A]): EntityDecoder[F, A] =
     jsonDecoder[F].flatMapR { json =>
-      decoder
-        .reads(json)
+      json
+        .as[A]
         .fold(
-          errors => DecodeResult.failureT(new JsonException(JsError(errors), json)),
+          errors => DecodeResult.failureT(new JsonException(errors, json)),
           ok => DecodeResult.successT(ok)
         )
     }
@@ -60,6 +61,7 @@ abstract class Implicits[F[_]]
   with Http4sDsl[F]
   with HtmlInstances
   with JsonInstances
+  with CirceInstances
   with Extractors
 
 object Implicits extends Implicits[IO]
