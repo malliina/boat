@@ -4,7 +4,7 @@ import cats.effect.{IO, Sync}
 import com.malliina.boat.{DeviceId, TrackCanonical, TrackId, TrackName}
 import com.malliina.html.TagPage
 import com.malliina.values.Username
-import io.circe.{Decoder, Encoder}
+import io.circe.{Decoder, Encoder, Printer}
 import io.circe.syntax.EncoderOps
 import org.http4s.circe.CirceInstances
 import org.http4s.dsl.Http4sDsl
@@ -42,6 +42,8 @@ trait HtmlInstances extends ScalatagsInstances {
 object JsonInstances extends JsonInstances
 
 trait JsonInstances extends CirceInstances {
+  override protected val defaultPrinter: Printer = Printer.noSpaces.copy(dropNullValues = true)
+
   implicit def playJsonEncoder[F[_], T: Encoder]: EntityEncoder[F, T] =
     jsonEncoder[F].contramap[T](t => t.asJson)
 
