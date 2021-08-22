@@ -156,7 +156,7 @@ val backend = Project("boat", file("backend"))
       "org.flywaydb" % "flyway-core" % "7.14.0",
       "org.apache.commons" % "commons-text" % "1.9",
       "com.amazonaws" % "aws-java-sdk-s3" % "1.11.856",
-      "com.malliina" %% "logstreams-client" % "1.11.3",
+      "com.malliina" %% "logstreams-client" % "1.11.6-SNAPSHOT",
 //      ("com.malliina" %% "logstreams-client" % "1.11.3").cross(CrossVersion.for3Use2_13),
       "com.malliina" %% "mobile-push-io" % "3.0.1",
       "org.slf4j" % "slf4j-api" % "1.7.30",
@@ -212,6 +212,12 @@ val backend = Project("boat", file("backend"))
     Compile / doc / sources := Seq.empty
   )
 
+val akkaDeps = Seq(
+  "com.typesafe.akka" %% "akka-stream" % akkaVersion,
+  "com.typesafe.akka" %% "akka-http" % akkaHttpVersion,
+  "com.typesafe.akka" %% "akka-http-spray-json" % akkaHttpVersion
+)
+
 val agent = project
   .in(file("agent"))
   .enablePlugins(JavaServerAppPackaging, DebianPlugin, SystemdPlugin)
@@ -235,14 +241,11 @@ val agent = project
         .withUser(daemonUser.value)
         .withGroup(daemonUser.value)
     },
-    libraryDependencies ++= Seq(
+    libraryDependencies ++= akkaDeps ++ Seq(
       "com.malliina" %% "primitives" % primitiveVersion,
       "com.malliina" %% "logback-streams" % "1.8.0",
       "com.neovisionaries" % "nv-websocket-client" % "2.14",
       "org.slf4j" % "slf4j-api" % "1.7.30",
-      "com.typesafe.akka" %% "akka-stream" % akkaVersion,
-      "com.typesafe.akka" %% "akka-http" % akkaHttpVersion,
-      "com.typesafe.akka" %% "akka-http-spray-json" % akkaHttpVersion,
       "com.lihaoyi" %% "scalatags" % scalaTagsVersion,
 //      ("com.lihaoyi" %% "scalatags" % scalaTagsVersion).cross(CrossVersion.for3Use2_13),
       "commons-codec" % "commons-codec" % "1.15"
@@ -274,7 +277,10 @@ val it = Project("integration-tests", file("boat-test"))
   .dependsOn(backend, backend % "test->test", agent)
   .disablePlugins(RevolverPlugin)
   .settings(jvmSettings ++ boatSettings)
-  .settings(libraryDependencies ++= Seq(webAuthTestDep))
+  .settings(
+    libraryDependencies ++= Seq(webAuthTestDep) ++ akkaDeps
+  )
+  .settings(scalaVersion := "2.13.6")
 
 val utils = project
   .in(file("utils"))

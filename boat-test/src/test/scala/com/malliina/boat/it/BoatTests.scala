@@ -4,12 +4,13 @@ import akka.stream.scaladsl.{Sink, Source, SourceQueue}
 import akka.{Done, NotUsed}
 import com.malliina.boat._
 import com.malliina.boat.client.{HttpUtil, KeyValue, WebSocketClient}
+import com.malliina.boat.http4s.Reverse
 import com.malliina.http.FullUrl
 import com.malliina.values.{Password, Username}
 import io.circe.syntax.EncoderOps
 import io.circe.{Encoder, Json}
 import org.http4s.Uri
-import tests.{AkkaStreamsSuite, ServerSuite}
+import tests.{MUnitSuite, ServerSuite}
 
 import scala.concurrent.Future
 

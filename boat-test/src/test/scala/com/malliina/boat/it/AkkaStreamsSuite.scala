@@ -1,7 +1,8 @@
-package tests
+package com.malliina.boat.it
 
 import akka.actor.ActorSystem
 import akka.stream.Materializer
+import tests.AsyncSuite
 
 class AkkaStreamsSuite extends AsyncSuite {
   implicit val as: ActorSystem = ActorSystem()
