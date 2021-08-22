@@ -28,7 +28,7 @@ object Auth {
     }
 
   def headerCredentials(hs: Headers): Either[MissingCredentials, Credentials] = hs
-    .get(Authorization)
+    .get[Authorization]
     .map(h => h.credentials)
     .toRight(MissingCredentials(noCredentials, hs))
 }

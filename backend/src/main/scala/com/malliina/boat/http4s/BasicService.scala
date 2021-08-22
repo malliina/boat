@@ -23,14 +23,14 @@ object BasicService extends BasicService[IO] {
   )
 
   def ranges(headers: Headers) = headers
-    .get(Accept)
+    .get[Accept]
     .map(_.values.map(_.mediaRange))
     .getOrElse(NonEmptyList.of(MediaRange.`*/*`))
 }
 
 class BasicService[F[_]: Applicative: Sync] extends Implicits[F] {
-  def temporaryRedirect(uri: Uri) = TemporaryRedirect(Location(uri), noCache)
-  def seeOther(uri: Uri) = SeeOther(Location(uri), noCache)
+  def temporaryRedirect(uri: Uri) = TemporaryRedirect(Location(uri)) //, noCache)
+  def seeOther(uri: Uri) = SeeOther(Location(uri)) // , noCache)
   def ok[A](a: A)(implicit w: EntityEncoder[F, A]) = Ok(a, noCache)
   def badRequest[A](a: A)(implicit w: EntityEncoder[F, A]) = BadRequest(a, noCache)
   def notFoundReq(req: Request[F]): F[Response[F]] =

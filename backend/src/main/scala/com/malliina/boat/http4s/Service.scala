@@ -394,7 +394,7 @@ class Service(comps: BoatComps) extends BasicService[IO] {
       case f =>
         IO(log.debug(s"Unknown WebSocket frame: $f"))
     }
-    WebSocketBuilder[IO].build(toClient, fromClient, onClose = onClose)
+    WebSocketBuilder[IO].copy(onClose = onClose).build(toClient, fromClient)
   }
 
   private def index(req: Request[IO]) =

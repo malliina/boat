@@ -1,20 +1,20 @@
 package com.malliina.boat.http4s
 
 import cats.data.Kleisli
-import cats.effect.{Blocker, ContextShift, ExitCode, IO, IOApp, Resource}
+import cats.effect.{Blocker, ExitCode, IO, IOApp, Resource}
 import com.malliina.boat.ais.BoatMqttClient
 import com.malliina.boat.auth.{EmailAuth, JWT, TokenEmailAuth}
-import com.malliina.boat.db.{DoobieDatabase, DoobieGPSDatabase, DoobiePushDatabase, TrackInserter, DoobieTracksDatabase, DoobieUserManager}
+import com.malliina.boat.db._
 import com.malliina.boat.html.BoatHtml
-import com.malliina.boat.http4s.Implicits.playJsonEncoder
+import com.malliina.boat.http4s.Implicits.circeJsonEncoder
 import com.malliina.boat.http4s.Service.BoatComps
 import com.malliina.boat.push.{BoatPushService, PushEndpoint}
 import com.malliina.boat.{AppMeta, AppMode, BoatConf, Errors, S3Client, SingleError}
 import com.malliina.http.HttpClient
 import com.malliina.http.io.HttpClientIO
 import com.malliina.util.AppLogger
-import com.malliina.web.{EmailAuthFlow, GoogleAuthFlow, MicrosoftAuthFlow}
-import org.http4s.server.blaze.BlazeServerBuilder
+import com.malliina.web.{GoogleAuthFlow, MicrosoftAuthFlow}
+import org.http4s.blaze.server.BlazeServerBuilder
 import org.http4s.server.middleware.{GZip, HSTS}
 import org.http4s.server.{Router, Server, ServiceErrorHandler}
 import org.http4s.{HttpApp, HttpRoutes, Request, Response}
@@ -22,7 +22,7 @@ import org.http4s.{HttpApp, HttpRoutes, Request, Response}
 import scala.concurrent.ExecutionContext
 import scala.util.control.NonFatal
 
-case class ServerComponents(app: Service, handler: HttpApp[IO], server: Server[IO])
+case class ServerComponents(app: Service, handler: HttpApp[IO], server: Server)
 
 trait AppCompsBuilder {
   def apply(conf: BoatConf, http: HttpClient[IO]): AppComps

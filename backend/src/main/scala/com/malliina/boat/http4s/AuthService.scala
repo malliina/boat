@@ -3,18 +3,18 @@ package com.malliina.boat.http4s
 import cats.effect.IO
 import com.malliina.boat.Constants.{BoatNameHeader, BoatTokenHeader}
 import com.malliina.boat.auth.SettingsPayload
-import com.malliina.boat.db.{IdentityException, MissingCredentials, MissingCredentialsException, UserManager}
+import com.malliina.boat.db.{MissingCredentials, MissingCredentialsException, UserManager}
 import com.malliina.boat.http.UserRequest
-import com.malliina.boat.http4s.AuthService.{GoogleCookie, ProviderCookieName}
+import com.malliina.boat.http4s.AuthService.GoogleCookie
 import com.malliina.boat.{BoatName, BoatNames, BoatToken, DeviceMeta, JoinedBoat, MinimalUserInfo, SimpleBoatMeta, UserBoats, UserInfo, Usernames}
 import com.malliina.values.Email
 import org.http4s.headers.Cookie
-import org.http4s.util.CaseInsensitiveString
 import org.http4s.{Headers, Request, Response}
+import org.typelevel.ci.{CIString, CIStringSyntax}
 
 object AuthService {
-  val GoogleCookie = CaseInsensitiveString("google")
-  val ProviderCookieName = CaseInsensitiveString("boatProvider")
+  val GoogleCookie = ci"google"
+  val ProviderCookieName = ci"boatProvider"
 }
 
 class AuthService(val users: UserManager, comps: AuthComps) {
@@ -65,15 +65,15 @@ class AuthService(val users: UserManager, comps: AuthComps) {
   def authDevice(headers: Headers): IO[DeviceMeta] =
     boatToken(headers).getOrElse {
       val boatName = headers
-        .get(CaseInsensitiveString(BoatNameHeader))
-        .map(h => BoatName(h.value))
+        .get(CIString(BoatNameHeader))
+        .map(h => BoatName(h.head.value))
         .getOrElse(BoatNames.random())
       IO.pure(SimpleBoatMeta(Usernames.anon, boatName))
     }
 
   def boatToken(headers: Headers): Option[IO[JoinedBoat]] =
-    headers.get(CaseInsensitiveString(BoatTokenHeader)).map { h =>
-      users.authBoat(BoatToken(h.value))
+    headers.get(CIString(BoatTokenHeader)).map { h =>
+      users.authBoat(BoatToken(h.head.value))
     }
 
   private def emailOnly(headers: Headers): IO[Email] =
@@ -92,11 +92,11 @@ class AuthService(val users: UserManager, comps: AuthComps) {
       users.boats(email).map { boats => Right(Option(boats)) }
     }.getOrElse {
       val providerCookieName = comps.web.cookieNames.provider
-      val hasGoogleCookie = Cookie
-        .from(headers)
-        .exists { header =>
-          header.values.exists(r => r.name == providerCookieName && r.content == GoogleCookie.value)
-        }
+      val hasGoogleCookie = headers.get[Cookie].exists { header =>
+        header.values.exists(r =>
+          r.name == providerCookieName && r.content == GoogleCookie.toString
+        )
+      }
       if (hasGoogleCookie) IO.pure(Left(MissingCredentials(headers)))
       else IO.pure(Right(None))
     }

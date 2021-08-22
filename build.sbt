@@ -67,6 +67,7 @@ val cross = portableProject(JSPlatform, JVMPlatform)
     libraryDependencies ++= circeModules.map(m => "io.circe" %%% s"circe-$m" % "0.14.1") ++ Seq(
       "com.malliina" %%% "primitives" % primitiveVersion,
       "com.lihaoyi" %%% "scalatags" % scalaTagsVersion,
+//      ("com.lihaoyi" %%% "scalatags" % scalaTagsVersion).cross(CrossVersion.for3Use2_13),
       "org.scalameta" %%% "munit" % munitVersion % Test
     ),
     testFrameworks += new TestFramework("munit.Framework")
@@ -84,6 +85,7 @@ val frontend = project
   .settings(
     libraryDependencies ++= Seq(
       "org.scala-js" %%% "scalajs-dom" % "1.1.0",
+//      ("org.scala-js" %%% "scalajs-dom" % "1.1.0").cross(CrossVersion.for3Use2_13),
       "org.scalameta" %%% "munit" % munitVersion % Test
     ),
     Compile / npmDependencies ++= Seq(
@@ -125,7 +127,7 @@ val frontend = project
     Compile / fullOptJS / scalaJSLinkerConfig ~= { _.withSourceMap(false) }
   )
 
-val http4sModules = Seq("blaze-server", "blaze-client", "dsl", "scalatags", "play-json", "circe")
+val http4sModules = Seq("blaze-server", "blaze-client", "dsl", "scalatags", "circe")
 
 val backend = Project("boat", file("backend"))
   .enablePlugins(
@@ -143,25 +145,27 @@ val backend = Project("boat", file("backend"))
       baseDirectory.value / "docs"
     ),
     libraryDependencies ++= http4sModules.map { m =>
-      "org.http4s" %% s"http4s-$m" % "0.21.24"
+      "org.http4s" %% s"http4s-$m" % "0.22.0"
     } ++ Seq("doobie-core", "doobie-hikari").map { d =>
       "org.tpolecat" %% d % "0.13.4"
     } ++ Seq(
       "com.github.pureconfig" %% "pureconfig" % "0.16.0",
+//      ("com.github.pureconfig" %% "pureconfig" % "0.16.0").cross(CrossVersion.for3Use2_13),
       "com.vividsolutions" % "jts" % "1.13",
       "mysql" % "mysql-connector-java" % "5.1.49",
       "org.flywaydb" % "flyway-core" % "7.14.0",
       "org.apache.commons" % "commons-text" % "1.9",
       "com.amazonaws" % "aws-java-sdk-s3" % "1.11.856",
       "com.malliina" %% "logstreams-client" % "1.11.3",
+//      ("com.malliina" %% "logstreams-client" % "1.11.3").cross(CrossVersion.for3Use2_13),
       "com.malliina" %% "mobile-push-io" % "3.0.1",
       "org.slf4j" % "slf4j-api" % "1.7.30",
       "ch.qos.logback" % "logback-classic" % "1.2.5",
       "ch.qos.logback" % "logback-core" % "1.2.5",
-      "com.typesafe.akka" %% "akka-slf4j" % akkaVersion,
-      "com.typesafe.akka" %% "akka-stream" % akkaVersion,
-      "com.typesafe.akka" %% "akka-http" % akkaHttpVersion,
-      "com.typesafe.akka" %% "akka-http-spray-json" % akkaHttpVersion,
+//      "com.typesafe.akka" %% "akka-slf4j" % akkaVersion,
+//      "com.typesafe.akka" %% "akka-stream" % akkaVersion,
+//      "com.typesafe.akka" %% "akka-http" % akkaHttpVersion,
+//      "com.typesafe.akka" %% "akka-http-spray-json" % akkaHttpVersion,
       "org.eclipse.paho" % "org.eclipse.paho.client.mqttv3" % "1.2.5",
       "org.eclipse.jetty" % "jetty-alpn-java-server" % alpnVersion,
       "org.eclipse.jetty" % "jetty-alpn-java-client" % alpnVersion,
@@ -240,6 +244,7 @@ val agent = project
       "com.typesafe.akka" %% "akka-http" % akkaHttpVersion,
       "com.typesafe.akka" %% "akka-http-spray-json" % akkaHttpVersion,
       "com.lihaoyi" %% "scalatags" % scalaTagsVersion,
+//      ("com.lihaoyi" %% "scalatags" % scalaTagsVersion).cross(CrossVersion.for3Use2_13),
       "commons-codec" % "commons-codec" % "1.15"
     ),
     releaseUseGlobalVersion := false,

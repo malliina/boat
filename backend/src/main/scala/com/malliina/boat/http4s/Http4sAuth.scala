@@ -32,7 +32,7 @@ class Http4sAuth(
     read[T](cookieNames.authState, from)
 
   def token(headers: Headers) = headers
-    .get(Authorization)
+    .get[Authorization]
     .toRight(MissingCredentials("Missing Authorization header", headers))
     .flatMap(_.credentials match {
       case Token(_, token) => Right(IdToken(token))
@@ -95,7 +95,7 @@ class Http4sAuth(
 
   def read[T: Decoder](cookieName: String, headers: Headers): Either[IdentityError, T] =
     for {
-      header <- Cookie.from(headers).toRight(MissingCredentials("Cookie parsing error.", headers))
+      header <- headers.get[Cookie].toRight(MissingCredentials("Cookie parsing error.", headers))
       cookie <-
         header.values
           .find(_.name == cookieName)

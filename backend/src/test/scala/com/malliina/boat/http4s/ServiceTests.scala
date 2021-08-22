@@ -55,7 +55,7 @@ class ServiceTests extends MUnitSuite with Http4sSuite {
     routes.run(
       Request(
         uri = uri"/tracks",
-        headers = Headers.of(
+        headers = Headers(
           Authorization(Credentials.Token(AuthScheme.Basic, TestEmailAuth.testToken)),
           Accept(accept)
         )

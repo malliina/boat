@@ -10,7 +10,7 @@ import com.malliina.util.AppLogger
 import munit.FunSuite
 import org.http4s.{HttpApp, Uri}
 import org.http4s.client.Client
-import org.http4s.client.blaze.BlazeClientBuilder
+import org.http4s.blaze.client.BlazeClientBuilder
 import org.testcontainers.utility.DockerImageName
 import pureconfig.{CamelCase, ConfigFieldMapping}
 import pureconfig.error.ConfigReaderFailures
@@ -147,7 +147,7 @@ trait ServerSuite extends MUnitDatabaseSuite with JsonInstances { self: MUnitSui
 
     override def beforeAll(): Unit = {
       val testServer = Server.server(BoatConf.load.copy(db = db()), TestComps.builder, port = 12345)
-      val testClient = BlazeClientBuilder[IO](munitExecutionContext, None).resource
+      val testClient = BlazeClientBuilder[IO](munitExecutionContext).resource
       val (instance, closable) = testServer.flatMap { s =>
         testClient.map { c => ServerTools(s, c) }
       }.allocated.unsafeRunSync()

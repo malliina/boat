@@ -44,7 +44,7 @@ object JsonInstances extends JsonInstances
 trait JsonInstances extends CirceInstances {
   override protected val defaultPrinter: Printer = Printer.noSpaces.copy(dropNullValues = true)
 
-  implicit def playJsonEncoder[F[_], T: Encoder]: EntityEncoder[F, T] =
+  implicit def circeJsonEncoder[F[_], T: Encoder]: EntityEncoder[F, T] =
     jsonEncoder[F].contramap[T](t => t.asJson)
 
   def jsonBody[F[_]: Sync, A](implicit decoder: Decoder[A]): EntityDecoder[F, A] =
@@ -63,7 +63,6 @@ abstract class Implicits[F[_]]
   with Http4sDsl[F]
   with HtmlInstances
   with JsonInstances
-  with CirceInstances
   with Extractors
 
 object Implicits extends Implicits[IO]
