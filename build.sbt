@@ -12,7 +12,7 @@ import scala.util.Try
 val mapboxVersion = "2.2.0"
 val webAuthVersion = "6.0.2"
 val munitVersion = "0.7.28"
-val testContainersScalaVersion = "0.39.5"
+val testContainersScalaVersion = "0.39.6"
 val scalaTagsVersion = "0.9.4"
 val primitiveVersion = "2.0.2"
 val akkaVersion = "2.6.5"
@@ -145,9 +145,11 @@ val backend = Project("boat", file("backend"))
       baseDirectory.value / "docs"
     ),
     libraryDependencies ++= http4sModules.map { m =>
-      "org.http4s" %% s"http4s-$m" % "0.22.0"
+      "org.http4s" %% s"http4s-$m" % "0.22.2"
     } ++ Seq("doobie-core", "doobie-hikari").map { d =>
       "org.tpolecat" %% d % "0.13.4"
+    } ++ Seq("classic", "core").map { m =>
+      "ch.qos.logback" % s"logback-$m" % "1.2.5"
     } ++ Seq(
       "com.github.pureconfig" %% "pureconfig" % "0.16.0",
 //      ("com.github.pureconfig" %% "pureconfig" % "0.16.0").cross(CrossVersion.for3Use2_13),
@@ -156,12 +158,10 @@ val backend = Project("boat", file("backend"))
       "org.flywaydb" % "flyway-core" % "7.14.0",
       "org.apache.commons" % "commons-text" % "1.9",
       "com.amazonaws" % "aws-java-sdk-s3" % "1.11.856",
-      "com.malliina" %% "logstreams-client" % "1.11.6-SNAPSHOT",
+      "com.malliina" %% "logstreams-client" % "1.11.10",
 //      ("com.malliina" %% "logstreams-client" % "1.11.3").cross(CrossVersion.for3Use2_13),
       "com.malliina" %% "mobile-push-io" % "3.0.1",
-      "org.slf4j" % "slf4j-api" % "1.7.30",
-      "ch.qos.logback" % "logback-classic" % "1.2.5",
-      "ch.qos.logback" % "logback-core" % "1.2.5",
+      "org.slf4j" % "slf4j-api" % "1.7.32",
 //      "com.typesafe.akka" %% "akka-slf4j" % akkaVersion,
 //      "com.typesafe.akka" %% "akka-stream" % akkaVersion,
 //      "com.typesafe.akka" %% "akka-http" % akkaHttpVersion,
