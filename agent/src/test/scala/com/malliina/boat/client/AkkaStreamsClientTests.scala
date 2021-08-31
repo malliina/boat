@@ -22,7 +22,7 @@ class AkkaStreamsClientTests extends BasicSuite {
     // TODO devise a fix
     val tcpHost = "127.0.0.1"
     val tcpPort = 10108
-    val client = TcpSource(tcpHost, tcpPort, TcpSource.crlf)
+    val client = TcpSource(tcpHost, tcpPort, TcpClient.crlf)
 
     val tcpOut = Source.maybe[ByteString]
     val established = Promise[IncomingConnection]()
@@ -54,7 +54,7 @@ class AkkaStreamsClientTests extends BasicSuite {
   test("TCP client".ignore) {
     val tcpHost = "127.0.0.1"
     val tcpPort = 10110
-    val client = TcpSource(tcpHost, tcpPort, TcpSource.crlf)
+    val client = TcpSource(tcpHost, tcpPort, TcpClient.crlf)
     try {
       await(client.connect(), 30.seconds)
       client.sentencesHub.runForeach(println)

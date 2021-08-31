@@ -1,79 +1,75 @@
 package com.malliina.boat.it
 
-import akka.stream.scaladsl.{Sink, Source, SourceQueue}
-import akka.{Done, NotUsed}
 import com.malliina.boat._
-import com.malliina.boat.client.{HttpUtil, KeyValue, WebSocketClient}
-import com.malliina.boat.http4s.Reverse
+import com.malliina.boat.client.{HttpUtil, KeyValue}
 import com.malliina.http.FullUrl
+import com.malliina.http.io.HttpClientIO
+import com.malliina.logstreams.client.SocketEvent.Open
+import com.malliina.logstreams.client.WebSocketIO
 import com.malliina.values.{Password, Username}
+import io.circe.Encoder
 import io.circe.syntax.EncoderOps
-import io.circe.{Encoder, Json}
 import org.http4s.Uri
-import tests.{MUnitSuite, ServerSuite}
-
-import scala.concurrent.Future
+import tests.ServerSuite
 
 abstract class BoatTests extends AkkaStreamsSuite with ServerSuite with BoatSockets {
-  def openTestBoat[T](boat: BoatName)(code: TestBoat => T): T =
-    openBoat(urlFor(reverse.ws.boats), Left(boat))(code)
+  def openTestBoat[T](boat: BoatName, httpClient: HttpClientIO)(code: TestBoat => T): T =
+    openBoat(urlFor(reverse.ws.boats), Left(boat), httpClient)(code)
 
-  def openViewerSocket[T](in: Sink[Json, Future[Done]], creds: Option[Creds] = None)(
-    code: WebSocketClient => T
+  def openViewerSocket[T](httpClient: HttpClientIO, creds: Option[Creds] = None)(
+    code: WebSocketIO => T
   ): T = {
-    val out = Source.maybe[Json].mapMaterializedValue(_ => NotUsed)
     val headers = creds.map { c =>
       KeyValue(HttpUtil.Authorization, HttpUtil.authorizationValue(c.user, c.pass.pass))
     }.toList
-    openWebSocket(reverse.ws.updates, in, out, headers)(code)
+    openWebSocket(reverse.ws.updates, headers, httpClient)(code)
   }
 
-  def openWebSocket[T](
+  private def openWebSocket[T](
     path: Uri,
-    in: Sink[Json, Future[Done]],
-    out: Source[Json, NotUsed],
-    headers: List[KeyValue]
-  )(code: WebSocketClient => T): T = {
-    openSocket(urlFor(path), in, out, headers)(code)
-  }
+    headers: List[KeyValue],
+    httpClient: HttpClientIO
+  )(code: WebSocketIO => T): T =
+    openSocket(urlFor(path), headers, httpClient)(code)
 
-  def urlFor(call: Uri): FullUrl = server().baseWsUrl.append(call.renderString)
+  private def urlFor(call: Uri): FullUrl = server().baseWsUrl.append(call.renderString)
 }
 
 trait BoatSockets { self: AkkaStreamsSuite =>
-  def openRandomBoat[T](url: FullUrl)(code: TestBoat => T): T =
-    openBoat(url, Left(BoatNames.random()))(code)
+  def openRandomBoat[T](url: FullUrl, httpClient: HttpClientIO)(code: TestBoat => T): T =
+    openBoat(url, Left(BoatNames.random()), httpClient)(code)
 
-  def openBoat[T](url: FullUrl, boat: Either[BoatName, BoatToken])(code: TestBoat => T): T = {
+  def openBoat[T](url: FullUrl, boat: Either[BoatName, BoatToken], httpClient: HttpClientIO)(
+    code: TestBoat => T
+  ): T = {
     val headers = boat.fold(
       name => KeyValue(Constants.BoatNameHeader, name.name),
       t => KeyValue(Constants.BoatTokenHeader, t.token)
     )
-    val (queue, src) = Streaming.sourceQueue[Json](mat)
-    openSocket(url, Sink.ignore, src, List(headers)) { client =>
-      code(new TestBoat(queue, client))
+    openSocket(url, List(headers), httpClient) { socket =>
+      code(new TestBoat(socket))
     }
   }
 
-  def openSocket[T](
-    url: FullUrl,
-    in: Sink[Json, Future[Done]],
-    out: Source[Json, NotUsed],
-    headers: List[KeyValue]
-  )(code: WebSocketClient => T): T = {
-    val client = WebSocketClient(url, headers, as, mat)
+  def openSocket[T](url: FullUrl, headers: List[KeyValue], httpClient: HttpClientIO)(
+    code: WebSocketIO => T
+  ): T = {
+    val socket = WebSocketIO(url, headers.map(kv => kv.key -> kv.value).toMap, httpClient.client)
+      .unsafeRunSync()
     try {
-      client.connectJson(in, out)
-      await(client.initialConnection)
-      code(client)
+      val opens = socket.events.collect {
+        case o @ Open(_, _) => o
+      }
+      opens.take(1).compile.toList.unsafeRunSync()
+      code(socket)
     } finally {
-      client.close()
+      socket.close()
     }
   }
 
-  class TestBoat(val queue: SourceQueue[Option[Json]], val socket: WebSocketClient) {
-    def send[T: Encoder](t: T) = await(queue.offer(Option(t.asJson)), 30.seconds)
-    def close(): Unit = queue.offer(None)
+  class TestBoat(val socket: WebSocketIO) {
+    def send[T: Encoder](t: T) = socket.send(t.asJson.noSpaces)
+    def close(): Unit = socket.close()
   }
 }
 

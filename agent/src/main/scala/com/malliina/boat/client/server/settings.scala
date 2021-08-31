@@ -1,20 +1,26 @@
 package com.malliina.boat.client.server
 
-import java.nio.charset.StandardCharsets
-import java.nio.file.{Files, Path, Paths}
-
-import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import com.malliina.boat.BoatToken
 import com.malliina.boat.client.server.Device.BoatDevice
 import com.malliina.boat.client.server.WebServer.{boatCharset, defaultHash, hash, log}
-import spray.json.{DefaultJsonProtocol, JsString, JsValue, JsonFormat}
+import io.circe.generic.semiauto.deriveCodec
+import io.circe.syntax.EncoderOps
+import io.circe.{Codec, Decoder, Encoder, parser}
 
+import java.nio.charset.StandardCharsets
+import java.nio.file.{Files, Path, Paths}
 import scala.jdk.CollectionConverters.CollectionHasAsScala
 import scala.util.Try
 
-sealed abstract class Device(val name: String)
+sealed abstract class Device(val name: String) {
+  override def toString = name
+}
 
-object Device extends DefaultJsonProtocol {
+object Device {
+  implicit val codec: Codec[Device] = Codec.from(
+    Decoder.decodeString.map(apply),
+    Encoder.encodeString.contramap(_.name)
+  )
   val all = Seq(BoatDevice, GpsDevice)
   val default = BoatDevice
 
@@ -25,15 +31,14 @@ object Device extends DefaultJsonProtocol {
   case object BoatDevice extends Device("boat")
 
   def apply(s: String): Device = all.find(_.name == s.toLowerCase).getOrElse(default)
-
-  implicit object json extends JsonFormat[Device] {
-    override def read(json: JsValue) = apply(json.convertTo[String])
-    override def write(obj: Device) = JsString(obj.name)
-  }
 }
 
 case class BoatConfOld(host: String, port: Int, token: Option[BoatToken], enabled: Boolean) {
   def toConf = BoatConf(host, port, BoatDevice, token, enabled)
+}
+
+object BoatConfOld {
+  implicit val codec: Codec[BoatConfOld] = deriveCodec[BoatConfOld]
 }
 
 case class BoatConf(
@@ -47,27 +52,13 @@ case class BoatConf(
 }
 
 object BoatConf {
+  implicit val json: Codec[BoatConf] = deriveCodec[BoatConf]
   val empty = BoatConf("", 0, Device.default, None, enabled = false)
 
   def anon(host: String, port: Int) = BoatConf(host, port, Device.default, None, enabled = true)
 }
 
-trait JsonSupport extends SprayJsonSupport with DefaultJsonProtocol {
-
-  implicit object tokenFormat extends JsonFormat[BoatToken] {
-    override def write(obj: BoatToken): JsValue = JsString(obj.token)
-
-    override def read(json: JsValue): BoatToken = BoatToken(StringJsonFormat.read(json))
-  }
-
-  implicit val oldConfFormat = jsonFormat4(BoatConfOld.apply)
-  implicit val confFormat = jsonFormat5(BoatConf.apply)
-}
-
-object AgentSettings extends JsonSupport {
-
-  import spray.json.enrichString
-
+object AgentSettings {
   val passFile = file("pass.md5")
   val confFile = file("boat.conf")
 
@@ -87,21 +78,24 @@ object AgentSettings extends JsonSupport {
   def readConf(): BoatConf =
     if (Files.exists(confFile)) {
       // If reading the conf fails, attempts to read the old format and then save it as new
-      Try(new String(Files.readAllBytes(confFile), StandardCharsets.UTF_8).parseJson).flatMap {
-        json =>
-          Try(json.convertTo[BoatConf]).orElse {
-            Try {
-              val converted = json.convertTo[BoatConfOld].toConf
+      Try(
+        parser.parse(new String(Files.readAllBytes(confFile), StandardCharsets.UTF_8))
+      ).toEither.flatMap { jsonResult =>
+        jsonResult.flatMap { json =>
+          json.as[BoatConf].left.flatMap { err =>
+            json.as[BoatConfOld].map { old =>
+              val converted = old.toConf
               saveConf(converted)
               converted
             }
           }
+        }
       }.getOrElse(BoatConf.empty)
     } else {
       BoatConf.empty
     }
 
-  def saveConf(conf: BoatConf): Unit = save(confFormat.write(conf).prettyPrint, confFile)
+  def saveConf(conf: BoatConf): Unit = save(conf.asJson.spaces2, confFile)
 
   def saveAndReload(conf: BoatConf, instance: AgentInstance): Boolean = {
     saveConf(conf)

@@ -39,7 +39,7 @@ class BoatHtml(jsFiles: ScriptAssets, assets: AssetsSource = HashedAssetsSource)
   def devices(user: UserInfo) =
     page(PageConf(BoatsPage(user), bodyClasses = Seq(BoatsClass)))
 
-  def tracks(data: TracksBundle, query: TrackQuery, lang: Lang) =
+  def tracks(data: TracksBundle, query: TrackQuery, lang: Lang): TagPage =
     page(PageConf(TracksPage(data, query, lang), bodyClasses = Seq(StatsClass)))
 
   def signIn(lang: Lang) = page(PageConf(SignInPage(lang.settings)))

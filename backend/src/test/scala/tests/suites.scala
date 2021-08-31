@@ -34,21 +34,26 @@ trait MUnitSuite extends FunSuite {
   implicit def munitTimer: Timer[IO] =
     IO.timer(munitExecutionContext)
   implicit def conc = IO.ioConcurrentEffect(munitContextShift)
-  def databaseFixture(conf: => Conf) = resourceFixture {
+
+  def databaseFixture(conf: => Conf) = resource {
     blocker.flatMap { b =>
       DoobieDatabase(conf, b)
     }
   }
 
-  def resourceFixture[T](res: Resource[IO, T]) = FunFixture[TestResource[T]](
-    setup = { options =>
-      val (t, finalizer) = res.allocated.unsafeRunSync()
-      TestResource(t, finalizer)
-    },
-    teardown = { tr =>
-      tr.close.unsafeRunSync()
-    }
-  )
+  def resource[T](res: Resource[IO, T]): FunFixture[T] = {
+    var finalizer: Option[IO[Unit]] = None
+    FunFixture(
+      setup = { opts =>
+        val (t, f) = res.allocated.unsafeRunSync()
+        finalizer = Option(f)
+        t
+      },
+      teardown = { t =>
+        finalizer.foreach(_.unsafeRunSync())
+      }
+    )
+  }
 }
 
 object TestConf {
@@ -67,7 +72,7 @@ object MUnitDatabaseSuite {
 
 trait MUnitDatabaseSuite { self: MUnitSuite =>
   import MUnitDatabaseSuite.log
-  val doobieDb = resourceFixture(blocker.flatMap { b =>
+  val doobieDb = resource(blocker.flatMap { b =>
     DoobieDatabase.withMigrations(db(), b)
   })
 

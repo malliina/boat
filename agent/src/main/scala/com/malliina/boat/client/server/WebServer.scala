@@ -1,20 +1,27 @@
 package com.malliina.boat.client.server
 
+import cats.effect.{Blocker, ContextShift, IO}
+import com.malliina.boat.client.Logging
+import com.malliina.boat.client.server.AgentHtml.{asHtml, boatForm}
+import com.malliina.boat.client.server.AgentSettings.{readConf, saveAndReload}
+import com.malliina.boat.client.server.WebServer.settingsUri
+import com.malliina.boat.{BoatToken, Errors, Readable}
+import io.circe.syntax.EncoderOps
+import org.apache.commons.codec.digest.DigestUtils
+import org.http4s.circe.CirceInstances
+import org.http4s.dsl.Http4sDsl
+import org.http4s.headers.Location
+import org.http4s.implicits.http4sLiteralsSyntax
+import org.http4s.server.Router
+import org.http4s._
+
 import java.nio.charset.StandardCharsets
 
-import akka.Done
-import akka.actor.ActorSystem
-import akka.http.scaladsl.Http
-import akka.http.scaladsl.model.{StatusCodes, Uri}
-import akka.http.scaladsl.server.Directives._
-import akka.http.scaladsl.unmarshalling.Unmarshaller
-import akka.stream.Materializer
-import com.malliina.boat.BoatToken
-import com.malliina.boat.client.Logging
-import org.apache.commons.codec.digest.DigestUtils
-
-import scala.concurrent.Await
-import scala.concurrent.duration.DurationInt
+trait AppImplicits
+  extends syntax.AllSyntaxBinCompat
+  with Http4sDsl[IO]
+  with CirceInstances
+  with ScalatagsEncoder
 
 object WebServer {
   val log = Logging(getClass)
@@ -23,72 +30,71 @@ object WebServer {
   val defaultHash = "dd8fc45d87f91c6f9a9f43a3f355a94a"
 
   val changePassRoute = "init"
-  val changePassUri = s"/$changePassRoute"
+  val changePassUri = uri"/$changePassRoute"
   val settingsPath = "settings"
-  val settingsUri = s"/$settingsPath"
+  val settingsUri = uri"/$settingsPath"
 
-  def apply(host: String, port: Int, agentInstance: AgentInstance)(implicit
-    as: ActorSystem,
-    mat: Materializer
-  ): WebServer =
-    new WebServer(host, port, agentInstance)
+  def apply(agentInstance: AgentInstance, blocker: Blocker, cs: ContextShift[IO]): WebServer =
+    new WebServer(agentInstance, blocker)(cs)
 
   def hash(pass: String): String = DigestUtils.md5Hex(pass)
 }
 
-class WebServer(host: String, port: Int, agentInstance: AgentInstance)(implicit
-  as: ActorSystem,
-  mat: Materializer
-) extends JsonSupport {
-  implicit val ec = as.dispatcher
-
-  implicit val tokenUn = Unmarshaller.strict[String, BoatToken](BoatToken.apply)
-  implicit val deviceUn = Unmarshaller.strict[String, Device](Device.apply)
-
-  import AgentHtml._
-  import AgentSettings._
-  import WebServer._
+class WebServer(agentInstance: AgentInstance, blocker: Blocker)(implicit cs: ContextShift[IO])
+  extends AppImplicits {
 
   val boatUser = "boat"
   val tempUser = "temp"
 
-  val routes = concat(
-    path("") {
-      get {
-        redirect(Uri(settingsUri), StatusCodes.SeeOther)
+  val routes = HttpRoutes.of[IO] {
+    case GET -> Root =>
+      SeeOther(Location(settingsUri))
+    case GET -> Root / "settings" =>
+      Ok(asHtml(boatForm(readConf())))
+    case req @ GET -> Root / "settings" =>
+      parseForm(req, readForm).flatMap { boatConf =>
+        saveAndReload(boatConf, agentInstance)
+        SeeOther(Location(settingsUri))
       }
-    },
-    path(settingsPath) {
-      concat(
-        get {
-          complete(asHtml(boatForm(readConf())))
-        },
-        post {
-          formFields(
-            "host",
-            "port".as[Int],
-            "device".as[Device],
-            "token".as[BoatToken].?,
-            "enabled".as[Boolean] ? false
-          ) { (host, port, device, token, enabled) =>
-            val conf = BoatConf(host, port, device, token.filter(_.token.nonEmpty), enabled)
-            saveAndReload(conf, agentInstance)
-            redirect(Uri(settingsUri), StatusCodes.SeeOther)
-          }
-        }
+    case req @ GET -> Root / path =>
+      static(path, req)
+  }
+
+  def static(file: String, request: Request[IO]) =
+    StaticFile
+      .fromResource("/" + file, blocker, Some(request))
+      .getOrElseF(NotFound(Errors(s"Not found: '$file'.").asJson))
+
+  implicit val deviceReadable: Readable[Device] = Readable.string.map(s => Device(s))
+  implicit val tokenReadable: Readable[BoatToken] = Readable.string.map(s => BoatToken(s))
+
+  val service = Router("/" -> routes).orNotFound
+
+  def readForm(form: FormReader): Either[Errors, BoatConf] = for {
+    host <- form.readT[String]("host")
+    port <- form.readT[Int]("port")
+    device <- form.readT[Device]("device")
+    token <- form.readT[Option[BoatToken]]("token")
+    enabled <- form.readT[Boolean]("enabled")
+  } yield BoatConf(host, port, device, token, enabled)
+
+  def parseForm[T](req: Request[IO], read: FormReader => Either[Errors, T])(implicit
+    decoder: EntityDecoder[IO, UrlForm]
+  ) = {
+    decoder
+      .decode(req, strict = false)
+      .foldF(
+        err => IO.raiseError(err),
+        form =>
+          read(new FormReader(form)).fold(err => IO.raiseError(err.asException), ok => IO.pure(ok))
       )
-    },
-    getFromResourceDirectory("assets")
-  )
-
-//  val binding = Http().newServerAt(host, port).bindFlow(routes)
-  val binding = Http().bindAndHandle(routes, host, port)
-
-  binding.foreach { _ =>
-    log.info(s"Listening on $host:$port")
   }
+}
 
-  def stop(): Unit = {
-    Await.result(binding.flatMap(_.unbind()).recover { case _ => Done }, 5.seconds)
-  }
+class FormReader(form: UrlForm) {
+  def read[T](key: String, build: Option[String] => Either[Errors, T]): Either[Errors, T] =
+    build(form.getFirst(key))
+
+  def readT[T](key: String)(implicit r: Readable[T]): Either[Errors, T] =
+    read[T](key, s => r(s))
 }

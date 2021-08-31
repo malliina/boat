@@ -268,48 +268,9 @@ case class DeviceEvent(message: Json, from: IdentifiedDeviceMeta) extends InputE
 case class BoatJsonError(error: DecodingFailure, boat: BoatEvent)
 case class DeviceJsonError(error: DecodingFailure, boat: DeviceEvent)
 
-case class SingleError(message: ErrorMessage, key: String)
-
-object SingleError {
-  implicit val json = deriveCodec[SingleError]
-
-  def apply(message: String, key: String): SingleError = SingleError(ErrorMessage(message), key)
-
-  def input(message: String) = apply(ErrorMessage(message), "input")
-
+object SingleErrors {
   def forJWT(error: JWTError): SingleError =
     SingleError(error.message, error.key)
-}
-
-case class Errors(errors: NonEmptyList[SingleError]) {
-  def message = errors.head.message
-  def asException = new ErrorsException(this)
-}
-
-object Errors {
-  implicit val json = deriveCodec[Errors]
-
-  def apply(error: SingleError): Errors = Errors(NonEmptyList.of(error))
-  def apply(message: String): Errors = apply(message, "generic")
-  def apply(e: ErrorMessage): Errors = apply(e.message)
-  def apply(message: String, key: String): Errors = apply(SingleError(message, key))
-  import cats.implicits._
-
-  // TODO improve
-  def fromJson(error: DecodingFailure): Errors =
-    Errors(SingleError.input(s"JSON error. $error"))
-//    json.errors.flatMap {
-//      case (path, errors) =>
-//        errors.map { error =>
-//          SingleError.input(s"${error.message} at $path.")
-//        }
-//    }.toList.toNel.map(es => Errors(es)).getOrElse {
-//      Errors(SingleError.input("JSON error."))
-//    }
-}
-
-class ErrorsException(val errors: Errors) extends Exception(errors.message.message) {
-  def message = errors.message
 }
 
 object BoatNames {
