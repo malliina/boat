@@ -22,7 +22,7 @@ class TcpClientTests extends AsyncSuite {
     )
     // the client validates maximum frame length, so we must not concatenate multiple sentences
     val plotterOutput: Stream[IO, Array[Byte]] = Stream.emits(
-      sentences.map(s => s"$s${TcpClient.crlf}".getBytes(StandardCharsets.US_ASCII)).toList
+      sentences.map(s => s"$s${TcpClient.linefeed}".getBytes(TcpClient.charset)).toList
     ) ++ Stream.empty
 
     // starts pretend-plotter
@@ -46,7 +46,7 @@ class TcpClientTests extends AsyncSuite {
 
     // client connects to pretend-plotter
     val p = Promise[RawSentence]()
-    val client = TcpClient(tcpHost, tcpPort, sockets, TcpClient.crlf).unsafeRunSync()
+    val client = TcpClient(tcpHost, tcpPort, sockets, TcpClient.linefeed).unsafeRunSync()
     client.unsafeConnect()
     client.sentencesHub
       .take(1)
