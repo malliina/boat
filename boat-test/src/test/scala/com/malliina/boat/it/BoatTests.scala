@@ -9,7 +9,6 @@ import com.malliina.logstreams.client.WebSocketIO
 import com.malliina.util.AppLogger
 import com.malliina.values.{Password, Username}
 import io.circe.Encoder
-import io.circe.syntax.EncoderOps
 import org.http4s.Uri
 import tests.{AsyncSuite, ServerSuite}
 

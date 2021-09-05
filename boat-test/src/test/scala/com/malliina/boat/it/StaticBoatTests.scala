@@ -34,12 +34,11 @@ class StaticBoatTests extends BoatTests {
         }.compile.drain.unsafeRunAsyncAndForget()
         val sent = boat.send(testMessage)
         assert(sent)
-        //        assert(received.from.boatName === boatName)
         val coordsEvent = await(coordPromise.future, 3.seconds)
-        assert(coordsEvent.from.boatName == boatName)
-        assert(coordsEvent.coords.map(_.coord) == Seq(testCoord))
+        assertEquals(coordsEvent.from.boatName, boatName)
+        assertEquals(coordsEvent.coords.map(_.coord), List(testCoord))
         val first = coordsEvent.coords.head
-        assert(first.boatTimeMillis == 1525443455000L)
+        assertEquals(first.boatTimeMillis, 1525443455000L)
       }
     }
   }
