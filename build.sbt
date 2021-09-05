@@ -1,10 +1,8 @@
 import com.malliina.http.FullUrl
-import com.malliina.bundler.HashedFile
 import sbtcrossproject.CrossPlugin.autoImport.{CrossType => PortableType, crossProject => portableProject}
 import sbtrelease.ReleasePlugin.autoImport.{ReleaseStep, releaseProcess}
 import sbtrelease.ReleaseStateTransformations._
 import com.typesafe.sbt.packager.docker.DockerVersion
-import java.nio.file.{Files, Path, StandardCopyOption}
 
 import scala.sys.process.Process
 import scala.util.Try
@@ -18,7 +16,7 @@ val primitiveVersion = "2.0.2"
 val akkaVersion = "2.6.5"
 val akkaHttpVersion = "10.1.12"
 val playJsonVersion = "2.9.2"
-val logstreamsVersion = "1.11.13-SNAPSHOT"
+val logstreamsVersion = "1.11.13"
 // Do not upgrade to 11.0.2 because it depends on slf4j-api alpha versions, breaking logging
 val alpnVersion = "9.4.40.v20210413"
 val webAuthDep = "com.malliina" %% "web-auth" % webAuthVersion
