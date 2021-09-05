@@ -8,7 +8,7 @@ import com.malliina.util.AppLogger
 import fs2.Stream
 import fs2.concurrent.{SignallingRef, Topic}
 import io.circe._
-import io.circe.parser.{decode, parse}
+import io.circe.parser.decode
 
 import java.time.Instant
 import scala.collection.concurrent.TrieMap
@@ -81,7 +81,7 @@ class BoatMqttClient(url: FullUrl, topic: String)(implicit c: Concurrent[IO], t:
       _ => Stream.empty
     }
   }
-  val parsed: Stream[IO, Either[io.circe.Error, AISMessage]] =
+  val parsed: Stream[IO, Either[Error, AISMessage]] =
     oneConnection.repeat.interruptWhen(interrupter).map { msg =>
       val str = msg.payloadString
       msg.topic match {

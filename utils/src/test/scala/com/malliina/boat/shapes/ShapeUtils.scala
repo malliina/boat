@@ -1,10 +1,11 @@
 package com.malliina.boat.shapes
 
+import munit.FunSuite
+
 import java.io.FileInputStream
 import java.nio.channels.FileChannel
 import java.nio.charset.{Charset, StandardCharsets}
 import java.nio.file.{Files, Path, Paths, StandardOpenOption}
-
 import org.geotools.data.DataStoreFinder
 import org.geotools.data.shapefile.dbf.{DbaseFileReader, DbaseFileWriter}
 import org.geotools.data.simple.SimpleFeatureCollection
@@ -18,7 +19,7 @@ import org.locationtech.jts.geom.Geometry
 
 import scala.jdk.CollectionConverters.{CollectionHasAsScala, MapHasAsJava}
 
-class ShapeUtils extends munit.FunSuite {
+class ShapeUtils extends FunSuite {
   val userHome = Paths.get(sys.props("user.home"))
 
   test("write shapefile to geojson with geographic WGS84".ignore) {

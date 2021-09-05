@@ -31,11 +31,10 @@ class TracksImporter extends MUnitSuite {
 
   dbResource.test("modify tracks".ignore) { db =>
     val oldTrack = TrackId(175)
-    splitTracksByDate(oldTrack, TrackInserter(db.resource))
+    splitTracksByDate(oldTrack, TrackInserter(db))
   }
 
-  dbResource.test("read file".ignore) { db =>
-    val database = db.resource
+  dbResource.test("read file".ignore) { database =>
     val users = DoobieUserManager(database)
     val rows = blocker.use[IO, Long] { b =>
       val inserter = TrackInserter(database)

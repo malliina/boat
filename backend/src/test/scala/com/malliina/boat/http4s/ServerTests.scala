@@ -7,13 +7,14 @@ import tests.{MUnitSuite, ServerSuite}
 
 class ServerTests extends MUnitSuite with ServerSuite {
   test("can call server") {
-    val status = client.statusFromUri(baseUrl.addPath("/health")).unsafeRunSync()
+    val uri = baseUrl.addPath("health")
+    val status = client.statusFromUri(uri).unsafeRunSync()
     assertEquals(status, Status.Ok)
   }
 
   test("call with no creds") {
     val res = client
-      .run(Request[IO](uri = baseUrl.addPath("/my-track")))
+      .run(Request[IO](uri = baseUrl.addPath("my-track")))
       .use(res => IO.pure(res))
       .unsafeRunSync()
     assertEquals(res.status, Status.NotFound)
@@ -22,8 +23,8 @@ class ServerTests extends MUnitSuite with ServerSuite {
   }
 
   test("apple app association") {
-    assertEquals(status("/.well-known/apple-app-site-association"), Status.Ok)
-    assertEquals(status("/.well-known/assetlinks.json"), Status.Ok)
+    assertEquals(status(".well-known/apple-app-site-association"), Status.Ok)
+    assertEquals(status(".well-known/assetlinks.json"), Status.Ok)
   }
 
   private def status(path: String) = {

@@ -9,8 +9,7 @@ import tests.{MUnitDatabaseSuite, MUnitSuite}
 import java.nio.file.Files
 
 class FairwayDatabaseTests extends MUnitSuite with MUnitDatabaseSuite {
-  doobieDb.test("import fairways to database".ignore) { resource =>
-    val database = resource.resource
+  dbFixture.test("import fairways to database".ignore) { database =>
     val fileIn = userHome.resolve(".boat/vaylat/vaylat-geo.json")
     val strIn = Files.readString(fileIn)
     val coll = decode[FeatureCollection](strIn).toOption.get

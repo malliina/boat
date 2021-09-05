@@ -6,6 +6,7 @@
         </encoder>
     </appender>
     <logger name="org.http4s.blaze.channel.nio1.NIO1SocketServerGroup" level="WARN"/>
+    <logger name="org.http4s.blaze.channel.nio1.NIO1HeadStage" level="ERROR"/>
     <root level="INFO">
         <appender-ref ref="STDOUT"/>
     </root>

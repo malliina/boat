@@ -44,7 +44,10 @@ class BoatStreams(
         .read[SentencesMessage](boatEvent.message)
         .map(_.toTrackEvent(boatEvent.from.short))
         .left
-        .map(err => BoatJsonError(err, boatEvent))
+        .map { err =>
+          log.warn(s"Parse error $err for $boatEvent")
+          BoatJsonError(err, boatEvent)
+        }
     }
   val sentences = rights(sentencesSource)
   val emittable = sentences

@@ -2,9 +2,9 @@ package com.malliina.boat.it
 
 import com.malliina.boat.{RawSentence, SentencesMessage}
 import com.malliina.http.FullUrl
-import tests.AkkaStreamsSuite
+import tests.AsyncSuite
 
-class MultiTrackTests extends AkkaStreamsSuite with BoatSockets {
+class MultiTrackTests extends AsyncSuite with BoatSockets {
   //  def url = FullUrl.ws("localhost:9000", reverse.boats().toString)
   def url = FullUrl.wss("www.boat-tracker.com", reverse.ws.boats.renderString)
 
@@ -30,10 +30,10 @@ class MultiTrackTests extends AkkaStreamsSuite with BoatSockets {
 
   def msg(ts: Seq[String]) = SentencesMessage(ts.map(RawSentence.apply))
 
-  test("two tracks".ignore) {
-    openRandomBoat(url) { boat1 =>
+  http.test("two tracks".ignore) { httpClient =>
+    openRandomBoat(url, httpClient) { boat1 =>
       boat1.send(msg(track1))
-      openRandomBoat(url) { boat2 =>
+      openRandomBoat(url, httpClient) { boat2 =>
         boat2.send(msg(track2))
       }
     }

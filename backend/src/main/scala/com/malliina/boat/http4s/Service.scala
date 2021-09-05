@@ -5,7 +5,7 @@ import cats.effect.{Blocker, ContextShift, IO}
 import cats.implicits.catsSyntaxFlatten
 import com.malliina.assets.HashedAssets
 import com.malliina.boat.Constants.{LanguageName, TokenCookieName}
-import com.malliina.boat._
+import com.malliina.boat.{Readable => BoatReadable, _}
 import com.malliina.boat.auth.AuthProvider.{PromptKey, SelectAccount}
 import com.malliina.boat.auth.{AuthProvider, SettingsPayload, UserPayload}
 import com.malliina.boat.db._
@@ -21,7 +21,7 @@ import com.malliina.values.{Email, UserId, Username}
 import com.malliina.web.OAuthKeys.{Nonce, State}
 import com.malliina.web.Utils.randomString
 import com.malliina.web._
-import fs2.Pipe
+import fs2.{Pipe, Stream}
 import io.circe.parser.parse
 import io.circe.syntax.EncoderOps
 import io.circe.{Decoder, Json}
@@ -71,7 +71,7 @@ class Service(comps: BoatComps) extends BasicService[IO] {
   val g = Graph.all
   val NoChange = "No change."
 
-  val toClients: fs2.Stream[IO, WebSocketFrame] = fs2.Stream.never[IO].map { _ =>
+  val toClients: Stream[IO, WebSocketFrame] = Stream.never[IO].map { _ =>
     Text(PingEvent(System.currentTimeMillis()).asJson.noSpaces)
   }
 
@@ -255,8 +255,8 @@ class Service(comps: BoatComps) extends BasicService[IO] {
             )
             IO.pure(es.toList.map(_.sample(actualSample)))
           }
-          val deviceHistory = fs2.Stream.evalSeq(historyIO)
-          val gpsHistory = fs2.Stream.evalSeq(deviceStreams.db.history(user))
+          val deviceHistory = Stream.evalSeq(historyIO)
+          val gpsHistory = Stream.evalSeq(deviceStreams.db.history(user))
           val formatter = TimeFormatter(user.language)
           val updates = streams.clientEvents(formatter)
           val deviceUpdates = deviceStreams.clientEvents(formatter)
@@ -287,7 +287,11 @@ class Service(comps: BoatComps) extends BasicService[IO] {
               .flatMap { _ =>
                 webSocket(
                   toClients,
-                  message => streams.boatIn.publish1(BoatEvent(parseUnsafe(message), meta)),
+                  message => {
+                    log.debug(s"Boat ${boat.boat} says '$message'.")
+                    val parsed = parseUnsafe(message)
+                    streams.boatIn.publish1(BoatEvent(parsed, meta))
+                  },
                   onClose = IO(log.info(s"Boat '${boat.boat}' by '${boat.user}' left.")).flatMap {
                     _ =>
                       push.push(meta, BoatState.Disconnected).map(_ => ())
@@ -384,7 +388,7 @@ class Service(comps: BoatComps) extends BasicService[IO] {
   }
 
   private def webSocket[T](
-    toClient: fs2.Stream[IO, WebSocketFrame],
+    toClient: Stream[IO, WebSocketFrame],
     onMessage: String => IO[Unit],
     onClose: IO[Unit]
   ) = {
@@ -436,11 +440,13 @@ class Service(comps: BoatComps) extends BasicService[IO] {
       }
     }
 
+  implicit val boatNameReader: BoatReadable[BoatName] =
+    BoatReadable.string.flatMap(s => BoatName.build(s.trim).left.map(e => Errors(e)))
+
   private def boatFormAction(req: Request[IO])(code: (BoatName, UserInfo) => IO[BoatRow]) =
     formAction(
       req,
-      form =>
-        form.read[BoatName](BoatNames.Key, s => BoatName.build(s.trim).left.map(e => Errors(e)))
+      form => form.readT[BoatName](BoatNames.Key)
     ) { (boatName, user) =>
       code(boatName, user).flatMap { row =>
         respond(req)(

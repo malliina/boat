@@ -3,12 +3,11 @@ package com.malliina.boat.ais
 import com.malliina.boat._
 import com.malliina.boat.ais.BoatMqttClient._
 import com.nimbusds.jose.util.StandardCharset
+import io.circe.parser.parse
 import io.circe.{Decoder, DecodingFailure}
 import org.eclipse.paho.client.mqttv3._
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence
-import play.api.libs.json.{JsError, Json}
 import tests.MUnitSuite
-import io.circe.parser.{decode, parse}
 
 import java.time.Instant
 

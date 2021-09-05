@@ -1,11 +1,8 @@
 package com.malliina.boat.ais
 
-import akka.util.ByteString
 import com.malliina.http.FullUrl
 import org.eclipse.paho.client.mqttv3._
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence
-
-case class MqMessage(topic: String, payload: ByteString)
 
 case class MqttSettings(
   broker: FullUrl,

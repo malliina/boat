@@ -3,7 +3,7 @@ package com.malliina.boat.db
 import cats.effect.IO
 import com.malliina.boat.db.TestData.{london, sanfran}
 import com.malliina.boat.parsing.FullCoord
-import com.malliina.boat.{BoatNames, BoatUser, Coord, DeviceId, Language, TrackId, TrackMetaShort, TrackNames, TrackRef, UserToken, UserUtils, Usernames}
+import com.malliina.boat.{BoatNames, BoatUser, Coord, DeviceId, Language, TrackId, TrackMetaShort, TrackNames, TrackRef, UserToken, UserUtils}
 import com.malliina.measure.{DistanceIntM, SpeedIntM, SpeedM, Temperature}
 import com.malliina.values.{Email, Username}
 import tests.{MUnitDatabaseSuite, MUnitSuite}
@@ -16,11 +16,10 @@ object TestData {
 }
 
 class TracksDatabaseTests extends MUnitSuite with MUnitDatabaseSuite {
-  doobieDb.test("inserts update track aggregates") { resource =>
-    val newDb = resource.resource
-    val tdb = DoobieTracksDatabase(newDb)
-    val inserts = TrackInserter(newDb)
-    val users = DoobieUserManager(newDb)
+  dbFixture.test("inserts update track aggregates") { db =>
+    val tdb = DoobieTracksDatabase(db)
+    val inserts = TrackInserter(db)
+    val users = DoobieUserManager(db)
     val user = users.userInfo(Email("aggregate@example.com")).unsafeRunSync()
     val boat = user.boats.head
     val bid = boat.id
@@ -37,12 +36,10 @@ class TracksDatabaseTests extends MUnitSuite with MUnitDatabaseSuite {
     assert(t.avgSpeed.exists(s => s > 14.kmh && s < 16.kmh))
   }
 
-  doobieDb.test("add comments to track") { resource =>
-    val newDb = resource.resource
-    val tdb = TrackInserter(newDb)
-    val udb = DoobieUserManager(newDb)
+  dbFixture.test("add comments to track") { db =>
+    val tdb = TrackInserter(db)
+    val udb = DoobieUserManager(db)
     val testComment = "test"
-    Usernames
     val userInput =
       NewUser(
         UserUtils.random(),

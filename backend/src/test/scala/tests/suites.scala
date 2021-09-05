@@ -34,21 +34,26 @@ trait MUnitSuite extends FunSuite {
   implicit def munitTimer: Timer[IO] =
     IO.timer(munitExecutionContext)
   implicit def conc = IO.ioConcurrentEffect(munitContextShift)
-  def databaseFixture(conf: => Conf) = resourceFixture {
+
+  def databaseFixture(conf: => Conf) = resource {
     blocker.flatMap { b =>
       DoobieDatabase(conf, b)
     }
   }
 
-  def resourceFixture[T](res: Resource[IO, T]) = FunFixture[TestResource[T]](
-    setup = { options =>
-      val (t, finalizer) = res.allocated.unsafeRunSync()
-      TestResource(t, finalizer)
-    },
-    teardown = { tr =>
-      tr.close.unsafeRunSync()
-    }
-  )
+  def resource[T](res: Resource[IO, T]): FunFixture[T] = {
+    var finalizer: Option[IO[Unit]] = None
+    FunFixture(
+      setup = { opts =>
+        val (t, f) = res.allocated.unsafeRunSync()
+        finalizer = Option(f)
+        t
+      },
+      teardown = { t =>
+        finalizer.foreach(_.unsafeRunSync())
+      }
+    )
+  }
 }
 
 object TestConf {
@@ -67,11 +72,11 @@ object MUnitDatabaseSuite {
 
 trait MUnitDatabaseSuite { self: MUnitSuite =>
   import MUnitDatabaseSuite.log
-  val doobieDb = resourceFixture(blocker.flatMap { b =>
-    DoobieDatabase.withMigrations(db(), b)
+  val dbFixture = resource(blocker.flatMap { b =>
+    DoobieDatabase.withMigrations(confFixture(), b)
   })
 
-  val db: Fixture[Conf] = new Fixture[Conf]("database") {
+  val confFixture: Fixture[Conf] = new Fixture[Conf]("database") {
     var container: Option[MySQLContainer] = None
     var conf: Option[Conf] = None
     def apply() = conf.get
@@ -100,7 +105,7 @@ trait MUnitDatabaseSuite { self: MUnitSuite =>
     }
   }
 
-  override def munitFixtures: Seq[Fixture[_]] = Seq(db)
+  override def munitFixtures: Seq[Fixture[_]] = Seq(confFixture)
 }
 
 case class AppComponents(service: Service, routes: HttpApp[IO])
@@ -114,7 +119,7 @@ trait Http4sSuite extends MUnitDatabaseSuite { self: MUnitSuite =>
     override def apply(): AppComponents = service.get
 
     override def beforeAll(): Unit = {
-      val resource = Server.appService(BoatConf.load.copy(db = db()), TestComps.builder)
+      val resource = Server.appService(BoatConf.load.copy(db = confFixture()), TestComps.builder)
       val (t, release) = resource.allocated[IO, Service].unsafeRunSync()
       finalizer.set(release)
       service = Option(AppComponents(t, Server.makeHandler(t, t.blocker)))
@@ -125,7 +130,7 @@ trait Http4sSuite extends MUnitDatabaseSuite { self: MUnitSuite =>
     }
   }
 
-  override def munitFixtures: Seq[Fixture[_]] = Seq(db, app)
+  override def munitFixtures: Seq[Fixture[_]] = Seq(confFixture, app)
 }
 
 case class ServerTools(server: ServerComponents, client: Client[IO]) {
@@ -136,7 +141,12 @@ case class ServerTools(server: ServerComponents, client: Client[IO]) {
   def baseWsUrl = FullUrl("ws", s"localhost:$port", "")
 }
 
+object ServerSuite {
+  private val log = AppLogger(getClass)
+}
+
 trait ServerSuite extends MUnitDatabaseSuite with JsonInstances { self: MUnitSuite =>
+  import ServerSuite.log
   implicit val tsBody = jsonBody[IO, Errors]
 
   val server: Fixture[ServerTools] = new Fixture[ServerTools]("server") {
@@ -146,7 +156,8 @@ trait ServerSuite extends MUnitDatabaseSuite with JsonInstances { self: MUnitSui
     override def apply(): ServerTools = tools.get
 
     override def beforeAll(): Unit = {
-      val testServer = Server.server(BoatConf.load.copy(db = db()), TestComps.builder, port = 12345)
+      val testServer =
+        Server.server(BoatConf.load.copy(db = confFixture()), TestComps.builder, port = 12345)
       val testClient = BlazeClientBuilder[IO](munitExecutionContext).resource
       val (instance, closable) = testServer.flatMap { s =>
         testClient.map { c => ServerTools(s, c) }
@@ -160,5 +171,5 @@ trait ServerSuite extends MUnitDatabaseSuite with JsonInstances { self: MUnitSui
     }
   }
 
-  override def munitFixtures: Seq[Fixture[_]] = Seq(db, server)
+  override def munitFixtures: Seq[Fixture[_]] = Seq(confFixture, server)
 }

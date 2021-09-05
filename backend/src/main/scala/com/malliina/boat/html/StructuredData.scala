@@ -1,15 +1,19 @@
 package com.malliina.boat.html
 
 import com.malliina.boat.AppConf
-import play.api.libs.json.{JsValue, Json}
+import io.circe.Json
+import io.circe.syntax.EncoderOps
 import scalatags.Text.all._
+
+import scala.language.implicitConversions
 
 object StructuredData {
   val property = attr("property")
   val typeof = attr("typeof")
   val vocab = attr("vocab")
 
-  implicit def jsonFrag(json: JsValue): Frag = raw(Json.stringify(json))
+  implicit def jsonFrag(json: Json): Frag = raw(json.noSpaces)
+  implicit def stringJson(s: String): Json = s.asJson
 
   val appStructuredData = script(`type` := "application/ld+json")(
     Json.obj(

@@ -1,12 +1,17 @@
 package com.malliina.boat.client.server
 
-import akka.http.scaladsl.model.{ContentTypes, HttpEntity}
 import com.malliina.boat.client.server.Device.{BoatDevice, GpsDevice}
+import org.http4s.Uri
 import scalatags.Text
 import scalatags.Text.all._
+import scalatags.text.Builder
 
 object AgentHtml {
   val empty = stringFrag("")
+  implicit val uriAttrValue: AttrValue[Uri] = attrValue[Uri](_.renderString)
+
+  def attrValue[T](f: T => String): AttrValue[T] =
+    (t: Builder, a: Text.Attr, v: T) => t.setAttr(a.name, Builder.GenericAttrValueSource(f(v)))
 
   def boatForm(conf: BoatConf) = form(action := WebServer.settingsUri, method := "post")(
     h2("Settings"),
@@ -74,11 +79,9 @@ object AgentHtml {
     )
   )
 
-  def asHtml(content: Text.TypedTag[String]): HttpEntity.Strict = {
-    val payload = html(
+  def asHtml(content: Text.TypedTag[String]): Text.TypedTag[String] =
+    html(
       head(link(rel := "stylesheet", href := "/css/boat.css")),
       body(content)
     )
-    HttpEntity(ContentTypes.`text/html(UTF-8)`, payload.render)
-  }
 }
