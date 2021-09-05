@@ -1,7 +1,7 @@
 package com.malliina.boat.client
 
 import cats.effect.{Blocker, Concurrent, ContextShift, IO, Resource, Timer}
-import com.malliina.boat.client.TcpClient.log
+import com.malliina.boat.client.TcpClient.{charset, log}
 import com.malliina.boat.client.server.Device.GpsDevice
 import com.malliina.boat.{RawSentence, SentencesMessage}
 import fs2.concurrent.Topic
@@ -11,26 +11,36 @@ import fs2.{Chunk, Pipe, Pull, Stream, text}
 import java.net.InetSocketAddress
 import java.nio.charset.{Charset, StandardCharsets}
 import java.nio.{ByteBuffer, CharBuffer}
-import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.{AtomicBoolean, AtomicReference}
 
 object TcpClient {
   private val log = Logging(getClass)
 
-  val crlf = "\r\n"
-  val lf = "\n"
+  private val crlf = "\r\n"
+  private val lf = "\n"
+  val linefeed = crlf
+  val charset = StandardCharsets.US_ASCII
 
   // Subscribes to NMEA messages. Depending on device, by default, nothing happens.
   val watchMessage =
-    s"${GpsDevice.watchCommand}${TcpClient.crlf}".getBytes(StandardCharsets.US_ASCII)
+    s"${GpsDevice.watchCommand}$linefeed".getBytes(charset)
 
-  def apply(host: String, port: Int, blocker: Blocker, delimiter: String = crlf)(implicit
+  def apply(host: String, port: Int, blocker: Blocker, delimiter: String = linefeed)(implicit
     c: Concurrent[IO],
     cs: ContextShift[IO],
     t: Timer[IO]
   ): Resource[IO, TcpClient] = for {
-    topic <- Resource.eval(Topic[IO, SentencesMessage](SentencesMessage(Nil)))
     group <- SocketGroup[IO](blocker)
-  } yield new TcpClient(host, port, delimiter, topic, group)
+    client <- Resource.eval(apply(host, port, group, delimiter))
+  } yield client
+
+  def apply(host: String, port: Int, sockets: SocketGroup, delimiter: String)(implicit
+    c: Concurrent[IO],
+    cs: ContextShift[IO],
+    t: Timer[IO]
+  ): IO[TcpClient] = for {
+    topic <- Topic[IO, SentencesMessage](SentencesMessage(Nil))
+  } yield new TcpClient(host, port, delimiter, topic, sockets)
 }
 
 class TcpClient(
@@ -42,6 +52,7 @@ class TcpClient(
 )(implicit c: Concurrent[IO], cs: ContextShift[IO], t: Timer[IO]) {
   val hostPort = s"tcp://$host:$port"
 //  implicit val ec = mat.executionContext
+  private val active = new AtomicReference[Option[Socket[IO]]](None)
   private val enabled = new AtomicBoolean(true)
   // Sends after maxBatchSize sentences have been collected or every sendTimeWindow, whichever comes first
   val maxBatchSize = 100
@@ -51,20 +62,22 @@ class TcpClient(
 
   val sentencesHub = topic.subscribe(10).drop(1)
 
-  def unsafeConnect(): Unit = connect().compile.drain.unsafeRunAsyncAndForget()
+  def unsafeConnect(toServer: Stream[IO, Byte] = Stream.empty): Unit =
+    connect(toServer).compile.drain.unsafeRunAsyncAndForget()
 
   /** Connects to `host:port`. Reconnects on failure.
     *
-    * Makes received sentences available in `sentencesHub`. Sends nothing to the server.
+    * Makes received sentences available in `sentencesHub`. Sends `toServer` to the server.
     */
   def connect(toServer: Stream[IO, Byte] = Stream.empty): Stream[IO, Unit] = connections.flatMap {
     socket =>
-      val outMessages = toServer.through(socket.writes(None))
+      active.set(Option(socket))
+      val outMessages = toServer.through(socket.writes())
       val inMessages = socket
-        .reads(Int.MaxValue)
-        .through(decode[IO](StandardCharsets.US_ASCII))
-        .filter(_.startsWith("$"))
+        .reads(8192)
+        .through(decode[IO](charset))
         .through(text.lines)
+        .filter(_.startsWith("$"))
         .map(s => RawSentence(s.trim))
         .groupWithin(maxBatchSize, sendTimeWindow)
         .map(chunk => SentencesMessage(chunk.toList))
@@ -74,41 +87,18 @@ class TcpClient(
   private def connections: Stream[IO, Socket[IO]] =
     Stream
       .resource(group.client(new InetSocketAddress(host, port)))
-      .evalTap { _ =>
+      .evalTap { socket =>
         IO(log.info(s"Connected to $hostPort."))
       }
       .handleErrorWith { e =>
-        log.warn(s"Lost connection to $hostPort. Reconneting in $reconnectInterval...", e)
-        if (enabled.get()) connections.delayBy(reconnectInterval)
-        else Stream.empty
+        if (enabled.get()) {
+          log.warn(s"Lost connection to $hostPort. Reconnecting in $reconnectInterval...", e)
+          connections.delayBy(reconnectInterval)
+        } else {
+          log.info(s"Disconnected from $hostPort.")
+          Stream.empty
+        }
       }
-
-  /** Makes received sentences available in `sentencesHub`
-    *
-    * @return a Future that completes when the client is disabled and the remaining connection completes
-    */
-//  def connect(toSource: Source[ByteString, _] = Source.maybe[ByteString]): IO[Unit] = {
-//    log.info(s"Connecting to $host:$port...")
-//    val (connected, disconnected) = connect(toSource).to(sink).run()
-//    connected.foreach { conn =>
-//      log.info(s"Connected to ${toHostPort(conn.remoteAddress)}.")
-//    }
-//    disconnected.map { d =>
-//      log.info(s"Disconnected from $host:$port.")
-//      d
-//    }.recover {
-//      case t =>
-//        log.warn("TCP connection failed.", t)
-//        Done
-//    }.flatMap { done =>
-//      if (enabled.get()) {
-//        log.info(s"Reconnecting in $reconnectInterval...")
-//        after(reconnectInterval, as.scheduler)(connect(toSource))
-//      } else {
-//        Future.successful(done)
-//      }
-//    }
-//  }
 
   private def toHostPort(addr: InetSocketAddress) =
     s"${addr.getHostString}:${addr.getPort}"
@@ -159,5 +149,6 @@ class TcpClient(
 
   def close(): Unit = {
     enabled.set(false)
+    active.get().foreach(_.close.unsafeRunSync())
   }
 }

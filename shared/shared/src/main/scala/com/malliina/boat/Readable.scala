@@ -2,7 +2,7 @@ package com.malliina.boat
 
 import cats.data.NonEmptyList
 import com.malliina.values.{Email, ErrorMessage, UserId}
-import io.circe.{DecodingFailure, Errors}
+import io.circe.DecodingFailure
 import io.circe.generic.semiauto.deriveCodec
 
 import scala.util.Try
@@ -33,7 +33,6 @@ object Errors {
   def apply(message: String): Errors = apply(message, "generic")
   def apply(e: ErrorMessage): Errors = apply(e.message)
   def apply(message: String, key: String): Errors = apply(SingleError(message, key))
-  import cats.implicits._
 
   // TODO improve
   def fromJson(error: DecodingFailure): Errors =

@@ -18,7 +18,7 @@ val primitiveVersion = "2.0.2"
 val akkaVersion = "2.6.5"
 val akkaHttpVersion = "10.1.12"
 val playJsonVersion = "2.9.2"
-val logstreamsVersion = "1.11.12-SNAPSHOT"
+val logstreamsVersion = "1.11.13-SNAPSHOT"
 // Do not upgrade to 11.0.2 because it depends on slf4j-api alpha versions, breaking logging
 val alpnVersion = "9.4.40.v20210413"
 val webAuthDep = "com.malliina" %% "web-auth" % webAuthVersion
@@ -42,7 +42,11 @@ inThisBuild(
   Seq(
     organization := "com.malliina",
     scalaVersion := scala213,
-    scalacOptions := Seq("-unchecked", "-deprecation")
+    scalacOptions := Seq("-unchecked", "-deprecation"),
+    deployDocs := Process("mkdocs gh-deploy").run(streams.value.log).exitValue(),
+    Compile / packageDoc / publishArtifact := false,
+    packageDoc / publishArtifact := false,
+    Compile / doc / sources := Seq.empty
   )
 )
 
@@ -50,14 +54,7 @@ val boatSettings = Seq(
   version := "1.2.0"
 )
 
-val commonSettings = Seq(
-  deployDocs := Process("mkdocs gh-deploy").run(streams.value.log).exitValue(),
-  Compile / packageDoc / publishArtifact := false,
-  packageDoc / publishArtifact := false,
-  Compile / doc / sources := Seq.empty
-)
-
-val jvmSettings = commonSettings ++ Seq(
+val jvmSettings = Seq(
   libraryDependencies ++= Seq(
     munitDep
   ),
@@ -68,7 +65,7 @@ val cross = portableProject(JSPlatform, JVMPlatform)
   .crossType(PortableType.Full)
   .in(file("shared"))
   .disablePlugins(RevolverPlugin)
-  .settings(commonSettings ++ boatSettings)
+  .settings(boatSettings)
   .settings(
     libraryDependencies ++= circeModules.map(m => "io.circe" %%% s"circe-$m" % "0.14.1") ++ Seq(
       "com.malliina" %%% "primitives" % primitiveVersion,
@@ -87,7 +84,7 @@ val frontend = project
   .enablePlugins(NodeJsPlugin, ClientPlugin)
   .disablePlugins(RevolverPlugin)
   .dependsOn(crossJs)
-  .settings(commonSettings ++ boatSettings)
+  .settings(boatSettings)
   .settings(
     libraryDependencies ++= Seq(
       "org.scala-js" %%% "scalajs-dom" % "1.1.0",
@@ -213,12 +210,6 @@ val backend = Project("boat", file("backend"))
     Compile / doc / sources := Seq.empty
   )
 
-val akkaDeps =
-  Seq("com.typesafe.akka" %% s"akka-stream" % akkaVersion) ++
-    Seq("http", "http-spray-json").map { m =>
-      "com.typesafe.akka" %% s"akka-$m" % akkaHttpVersion
-    }
-
 val agent = project
   .in(file("agent"))
   .enablePlugins(JavaServerAppPackaging, DebianPlugin, SystemdPlugin)
@@ -242,22 +233,22 @@ val agent = project
         .withUser(daemonUser.value)
         .withGroup(daemonUser.value)
     },
-    libraryDependencies ++= akkaDeps ++
+    libraryDependencies ++=
       Seq("blaze-server", "blaze-client", "dsl", "circe").map { m =>
         "org.http4s" %% s"http4s-$m" % "0.22.2"
       } ++ Seq("generic", "parser").map { m =>
-      "io.circe" %% s"circe-$m" % "0.14.1"
-    } ++ Seq(
-      "co.fs2" %% "fs2-io" % "2.5.9",
-      "com.malliina" %% "primitives" % primitiveVersion,
+        "io.circe" %% s"circe-$m" % "0.14.1"
+      } ++ Seq(
+        "co.fs2" %% "fs2-io" % "2.5.9",
+        "com.malliina" %% "primitives" % primitiveVersion,
 //      "com.malliina" %% "logback-fs2" % logstreamsVersion,
-      "com.malliina" %% "logstreams-client" % logstreamsVersion, // temporary until websocket client is available in okclient
-      "com.neovisionaries" % "nv-websocket-client" % "2.14",
-      "org.slf4j" % "slf4j-api" % "1.7.32",
-//      "com.lihaoyi" %% "scalatags" % scalaTagsVersion,
-      ("com.lihaoyi" %% "scalatags" % scalaTagsVersion).cross(CrossVersion.for3Use2_13),
-      "commons-codec" % "commons-codec" % "1.15"
-    ),
+        "com.malliina" %% "logstreams-client" % logstreamsVersion, // temporary until websocket client is available in okclient
+        "com.neovisionaries" % "nv-websocket-client" % "2.14",
+        "org.slf4j" % "slf4j-api" % "1.7.32",
+        "com.lihaoyi" %% "scalatags" % scalaTagsVersion,
+        //      ("com.lihaoyi" %% "scalatags" % scalaTagsVersion).cross(CrossVersion.for3Use2_13),
+        "commons-codec" % "commons-codec" % "1.15"
+      ),
     releaseUseGlobalVersion := false,
     buildAndUpload := {
       val debFile = (Debian / packageBin).value
@@ -286,14 +277,14 @@ val it = Project("integration-tests", file("boat-test"))
   .disablePlugins(RevolverPlugin)
   .settings(jvmSettings ++ boatSettings)
   .settings(
-    libraryDependencies ++= Seq(webAuthTestDep) // ++ akkaDeps
+    libraryDependencies ++= Seq(webAuthTestDep)
   )
 
 val utils = project
   .in(file("utils"))
   .dependsOn(crossJvm)
   .disablePlugins(RevolverPlugin)
-  .settings(basicSettings ++ boatSettings)
+  .settings(boatSettings)
   .settings(
     resolvers ++= Seq(
       "OSGeo Release Repository" at "https://repo.osgeo.org/repository/release/"
@@ -312,7 +303,7 @@ val utils = project
 val boatRoot = project
   .in(file("."))
   .aggregate(backend, frontend, agent, it, utils)
-  .settings(commonSettings ++ boatSettings)
+  .settings(boatSettings)
 
 def gitHash: String =
   sys.env

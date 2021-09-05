@@ -11,6 +11,7 @@ import scala.concurrent.Promise
 
 class TcpClientTests extends AsyncSuite {
   val socketsFixture = resource(Blocker[IO].flatMap { b => SocketGroup[IO](b) })
+  val log = Logging(getClass)
 
   socketsFixture.test("client receives sentences over TCP socket") { sockets =>
     val sentences = Seq(
@@ -22,42 +23,47 @@ class TcpClientTests extends AsyncSuite {
     // the client validates maximum frame length, so we must not concatenate multiple sentences
     val plotterOutput: Stream[IO, Array[Byte]] = Stream.emits(
       sentences.map(s => s"$s${TcpClient.crlf}".getBytes(StandardCharsets.US_ASCII)).toList
-    ) ++ Stream.never
+    ) ++ Stream.empty
 
     // starts pretend-plotter
     val tcpHost = "127.0.0.1"
     val tcpPort = 10103
     val server = sockets.serverResource[IO](new InetSocketAddress(tcpHost, tcpPort)).use[IO, Unit] {
       case (_, clients) =>
-        clients.evalMap { client =>
+        clients.head.evalMap { client =>
           client.use[IO, Unit] { clientSocket =>
             val byteStream =
               plotterOutput.map(Chunk.bytes).flatMap(c => Stream.emits(c.toList))
-            clientSocket.writes()(byteStream).compile.drain
+            byteStream.through(clientSocket.writes()).compile.drain.guarantee {
+              IO(log.info(s"Sent message to client"))
+            }
           }
-        }.compile.drain
+        }.compile.drain.guarantee {
+          IO(log.info("Client complete."))
+        }
     }
-    server.unsafeRunAsyncAndForget()
+    server.guarantee(IO(log.info("Server closed."))).unsafeRunAsyncAndForget()
 
     // client connects to pretend-plotter
     val p = Promise[RawSentence]()
-    Blocker[IO].use { b =>
-      TcpClient(tcpHost, tcpPort, b).use { client =>
-        client.unsafeConnect()
-        client.sentencesHub.map { msg =>
-          msg.sentences.headOption.foreach { raw => p.trySuccess(raw) }
-        }.compile.drain
+    val client = TcpClient(tcpHost, tcpPort, sockets, TcpClient.crlf).unsafeRunSync()
+    client.unsafeConnect()
+    client.sentencesHub
+      .take(1)
+      .map { msg =>
+        msg.sentences.headOption.foreach { raw => p.trySuccess(raw) }
       }
-    }.unsafeRunSync()
+      .compile
+      .drain
+      .unsafeRunSync()
     val received = await(p.future)
+    client.close()
     assertEquals(received, sentences.map(RawSentence.apply).head)
   }
 
   tcpFixture("127.0.0.1", 10109).test("connection to unavailable server fails stream") { tcp =>
-    tcp.unsafeConnect()
-    intercept[Exception] {
-      tcp.sentencesHub.take(1).compile.drain.unsafeRunSync()
-    }
+    tcp.close()
+    assertEquals(List.empty[Unit], tcp.connect().compile.toList.unsafeRunSync())
   }
 
   def tcpFixture(host: String, port: Int) = resource(tcpResource(host, port))

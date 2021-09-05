@@ -1,12 +1,13 @@
 package com.malliina.boat.it
 
-import akka.stream.scaladsl.Sink
 import com.malliina.boat._
-import io.circe.Json
+import com.malliina.util.AppLogger
 
 import scala.concurrent.Promise
 
 class StaticBoatTests extends BoatTests {
+  val log = AppLogger(getClass)
+
   val testTrack = Seq(
     "$SDDPT,23.9,0.0,*43",
     "$GPVTG,51.0,T,42.2,M,2.4,N,4.4,K,A*25",
@@ -18,23 +19,23 @@ class StaticBoatTests extends BoatTests {
     "$GPGGA,141209,6009.3630,N,02453.7997,E,1,12,0.60,-3,M,19.6,M,,*4F"
   ).map(RawSentence.apply)
 
-  test("GPS reporting") {
+  http.test("GPS reporting") { client =>
     val boatName = BoatNames.random()
-    openTestBoat(boatName) { boat =>
+    openTestBoat(boatName, client) { boat =>
       val coordPromise = Promise[CoordsEvent]()
       val testMessage = SentencesMessage(testTrack.take(6))
       val testCoord = Coord.buildOrFail(24.89171, 60.1532)
 
-      val sink = Sink.foreach[Json] { json =>
-        json.as[CoordsEvent].toOption.filter(_.from.boatName == boatName).foreach { c =>
-          coordPromise.trySuccess(c)
-        }
-      }
-
-      openViewerSocket(sink, None) { _ =>
-        boat.send(testMessage)
+      openViewerSocket(client, None) { socket =>
+        socket.jsonMessages.map { json =>
+          json.as[CoordsEvent].toOption.filter(_.from.boatName == boatName).foreach { c =>
+            coordPromise.trySuccess(c)
+          }
+        }.compile.drain.unsafeRunAsyncAndForget()
+        val sent = boat.send(testMessage)
+        assert(sent)
         //        assert(received.from.boatName === boatName)
-        val coordsEvent = await(coordPromise.future)
+        val coordsEvent = await(coordPromise.future, 3.seconds)
         assert(coordsEvent.from.boatName == boatName)
         assert(coordsEvent.coords.map(_.coord) == Seq(testCoord))
         val first = coordsEvent.coords.head

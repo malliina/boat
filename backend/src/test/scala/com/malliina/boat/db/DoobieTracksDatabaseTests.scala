@@ -8,8 +8,8 @@ import doobie.implicits.toSqlInterpolator
 import tests.{MUnitDatabaseSuite, MUnitSuite}
 
 class DoobieTracksDatabaseTests extends MUnitSuite with MUnitDatabaseSuite {
-  doobieDb.test("run doobie query") { doobie =>
-    val service = DoobieTracksDatabase(doobie.resource)
+  dbFixture.test("run doobie query") { doobie =>
+    val service = DoobieTracksDatabase(doobie)
     val res = service.hm.unsafeRunSync()
     assertEquals(res, None)
   }
@@ -26,8 +26,7 @@ class DoobieTests extends MUnitSuite {
 
   val dbResource = databaseFixture(conf)
 
-  dbResource.test("make query".ignore) { dbr =>
-    val doobie = dbr.resource
+  dbResource.test("make query".ignore) { doobie =>
     val db = DoobieTracksDatabase(doobie)
     val task = db.tracksBundle(
       SimpleUserInfo(Username("mle"), Language.english, Nil),
@@ -37,9 +36,8 @@ class DoobieTests extends MUnitSuite {
     val bundle = task.unsafeRunSync()
   }
 
-  dbResource.test("measure distance".ignore) { dbr =>
+  dbResource.test("measure distance".ignore) { doobie =>
     implicit val coordMeta = DoobieMappings.coordMeta
-    val doobie = dbr.resource
     val db = DoobieTracksDatabase(doobie)
     val c1 = Coord.buildOrFail(60, 30)
     val c2 = Coord.buildOrFail(70, 13)

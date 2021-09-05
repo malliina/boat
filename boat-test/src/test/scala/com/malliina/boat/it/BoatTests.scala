@@ -6,13 +6,14 @@ import com.malliina.http.FullUrl
 import com.malliina.http.io.HttpClientIO
 import com.malliina.logstreams.client.SocketEvent.Open
 import com.malliina.logstreams.client.WebSocketIO
+import com.malliina.util.AppLogger
 import com.malliina.values.{Password, Username}
 import io.circe.Encoder
 import io.circe.syntax.EncoderOps
 import org.http4s.Uri
-import tests.ServerSuite
+import tests.{AsyncSuite, ServerSuite}
 
-abstract class BoatTests extends AkkaStreamsSuite with ServerSuite with BoatSockets {
+abstract class BoatTests extends AsyncSuite with ServerSuite with BoatSockets {
   def openTestBoat[T](boat: BoatName, httpClient: HttpClientIO)(code: TestBoat => T): T =
     openBoat(urlFor(reverse.ws.boats), Left(boat), httpClient)(code)
 
@@ -35,7 +36,11 @@ abstract class BoatTests extends AkkaStreamsSuite with ServerSuite with BoatSock
   private def urlFor(call: Uri): FullUrl = server().baseWsUrl.append(call.renderString)
 }
 
-trait BoatSockets { self: AkkaStreamsSuite =>
+object BoatSockets {
+  private val log = AppLogger(getClass)
+}
+
+trait BoatSockets { self: AsyncSuite =>
   def openRandomBoat[T](url: FullUrl, httpClient: HttpClientIO)(code: TestBoat => T): T =
     openBoat(url, Left(BoatNames.random()), httpClient)(code)
 
@@ -57,6 +62,7 @@ trait BoatSockets { self: AkkaStreamsSuite =>
     val socket = WebSocketIO(url, headers.map(kv => kv.key -> kv.value).toMap, httpClient.client)
       .unsafeRunSync()
     try {
+      socket.allEvents.compile.drain.unsafeRunAsyncAndForget()
       val opens = socket.events.collect {
         case o @ Open(_, _) => o
       }
@@ -68,7 +74,7 @@ trait BoatSockets { self: AkkaStreamsSuite =>
   }
 
   class TestBoat(val socket: WebSocketIO) {
-    def send[T: Encoder](t: T) = socket.send(t.asJson.noSpaces)
+    def send[T: Encoder](t: T) = socket.send(t)
     def close(): Unit = socket.close()
   }
 }

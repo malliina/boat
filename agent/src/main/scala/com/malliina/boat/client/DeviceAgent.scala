@@ -22,7 +22,7 @@ object DeviceAgent {
     val headers = conf.token.toList.map(t => BoatTokenHeader -> t.token).toMap
     val isGps = conf.device == GpsDevice
     for {
-      tcp <- TcpClient(conf.host, conf.port, blocker, TcpClient.crlf)
+      tcp <- TcpClient(conf.host, conf.port, blocker, TcpClient.linefeed)
       ws <- Resource.eval(WebSocketIO(url, headers, http))
     } yield new DeviceAgent(tcp, ws, isGps)
   }
@@ -46,10 +46,15 @@ class DeviceAgent(tcp: TcpClient, ws: WebSocketIO, isGps: Boolean)(implicit
   /** Opens a TCP connection to the plotter and a WebSocket to the server. Reconnects on failures.
     */
   def connect(): IO[Unit] = {
-    tcp.connect(toServer.flatMap(arr => Stream.emits(arr))).compile.drain.unsafeRunAsyncAndForget()
+    tcp.unsafeConnect(toServer.flatMap(arr => Stream.emits(arr)))
     ws.open()
-    tcp.sentencesHub.evalMap(s => IO.pure(ws.send(s))).compile.drain
+    tcp.sentencesHub
+      .evalMap(s => IO.pure(ws.send(s)))
+      .compile
+      .drain
   }
+
+  def unsafeConnect(): Unit = connect().unsafeRunAsyncAndForget()
 
   def close(): Unit = {
     tcp.close()

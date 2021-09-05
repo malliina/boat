@@ -1,16 +1,21 @@
 package com.malliina.boat.it
 
-import cats.effect.IO
+import cats.effect.{IO, Resource}
 import com.malliina.boat.CoordsEvent
 import com.malliina.boat.client.server.BoatConf
 import com.malliina.boat.client.{DeviceAgent, TcpClient}
-import fs2.io.tcp.SocketGroup
-import fs2.{Chunk, Stream}
+import com.malliina.boat.it.EndToEndTests.log
+import com.malliina.util.AppLogger
+import fs2.Stream
+import fs2.io.tcp.{Socket, SocketGroup}
 import io.circe.Json
 
 import java.net.InetSocketAddress
-import java.nio.charset.StandardCharsets
 import scala.concurrent.Promise
+
+object EndToEndTests {
+  private val log = AppLogger(getClass)
+}
 
 class EndToEndTests extends BoatTests {
   val sentences = Seq(
@@ -30,47 +35,44 @@ class EndToEndTests extends BoatTests {
     case (httpClient, b) =>
       val s = server()
       // the client validates maximum frame length, so we must not concatenate multiple sentences
-
-      val plotterOutput: Stream[IO, Array[Byte]] = Stream.emits(
-        sentences.map(s => s"$s${TcpClient.crlf}".getBytes(StandardCharsets.US_ASCII)).toList
-      ) ++ Stream.never
+      val plotterOutput: Stream[IO, Byte] = Stream.emits(
+        sentences.mkString(TcpClient.linefeed).getBytes(TcpClient.charset)
+      ) ++ Stream.empty
 
       val tcpHost = "127.0.0.1"
       val tcpPort = 10104
-      val tcpServer = for {
+      val tcpServer: Resource[IO, Stream[IO, Resource[IO, Socket[IO]]]] = for {
         sockets <- SocketGroup[IO](b)
         server <- sockets.serverResource(new InetSocketAddress(tcpHost, tcpPort))
       } yield server._2
+      val firstMessage = Promise[Json]()
+      val coordsPromise = Promise[CoordsEvent]()
       tcpServer
         .use[IO, Unit] { clients =>
           val serverUrl = s.baseWsUrl.append(reverse.ws.boats.renderString)
           DeviceAgent(BoatConf.anon(tcpHost, tcpPort), serverUrl, b, httpClient.client).use {
             agent =>
-              try {
-                val firstMessage = Promise[Json]()
-                val coordsPromise = Promise[CoordsEvent]()
-                openViewerSocket(httpClient, None) { socket =>
-                  socket.jsonMessages.map { json =>
-                    firstMessage.trySuccess(json)
-                    json.as[CoordsEvent].toOption.foreach { ce =>
-                      coordsPromise.trySuccess(ce)
-                    }
-                  }.compile.drain.unsafeRunAsyncAndForget()
-                  await(firstMessage.future, 10.seconds)
-                  await(coordsPromise.future).coords
+              agent.unsafeConnect()
+              clients.head.evalMap { client =>
+                client.use[IO, Unit] { clientSocket =>
+                  clientSocket.writes()(plotterOutput).compile.drain
                 }
-              } finally {
+              }.compile.drain.map { _ =>
+                await(firstMessage.future, 5.seconds)
                 agent.close()
               }
-              clients.evalMap { client =>
-                client.use[IO, Unit] { clientSocket =>
-                  val byteStream =
-                    plotterOutput.map(Chunk.bytes).flatMap(c => Stream.emits(c.toList))
-                  clientSocket.writes()(byteStream).compile.drain
-                }
-              }.compile.drain
           }
         }
-        .unsafeRunSync()
+        .unsafeRunAsyncAndForget()
+      openViewerSocket(httpClient, None) { socket =>
+        socket.jsonMessages.map { json =>
+          firstMessage.trySuccess(json)
+          json.as[CoordsEvent].toOption.foreach { ce =>
+            coordsPromise.trySuccess(ce)
+          }
+        }.compile.drain.unsafeRunAsyncAndForget()
+        await(firstMessage.future, 5.seconds)
+        await(coordsPromise.future, 5.seconds).coords
+      }
   }
 }

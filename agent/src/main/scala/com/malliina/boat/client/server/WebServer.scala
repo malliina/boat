@@ -30,9 +30,9 @@ object WebServer {
   val defaultHash = "dd8fc45d87f91c6f9a9f43a3f355a94a"
 
   val changePassRoute = "init"
-  val changePassUri = uri"/$changePassRoute"
+  val changePassUri = uri"/init"
   val settingsPath = "settings"
-  val settingsUri = uri"/$settingsPath"
+  val settingsUri = uri"/settings"
 
   def apply(agentInstance: AgentInstance, blocker: Blocker, cs: ContextShift[IO]): WebServer =
     new WebServer(agentInstance, blocker)(cs)
@@ -60,7 +60,7 @@ class WebServer(agentInstance: AgentInstance, blocker: Blocker)(implicit cs: Con
       static(path, req)
   }
 
-  def static(file: String, request: Request[IO]) =
+  def static(file: String, request: Request[IO]): IO[Response[IO]] =
     StaticFile
       .fromResource("/" + file, blocker, Some(request))
       .getOrElseF(NotFound(Errors(s"Not found: '$file'.").asJson))

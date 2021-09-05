@@ -23,10 +23,10 @@ class ManualBoatTests extends BoatTests {
 //  def url = FullUrl.ws("localhost:9000", reverse.boats().toString)
   def url = FullUrl.wss("www.boat-tracker.com", reverse.ws.boats.renderString)
 
-  test("local GPS reporting".ignore) {
+  http.test("local GPS reporting".ignore) { httpClient =>
     //    println("Lines " + gpsSentences.toList.length)
     val testMessages = relevantSentences.toList.grouped(1000).map(SentencesMessage.apply).toList
-    openRandomBoat(url) { boat =>
+    openRandomBoat(url, httpClient) { boat =>
       testMessages.zipWithIndex.map {
         case (msg, idx) =>
           println(s"Sending batch $idx/${testMessages.length}...")
@@ -36,10 +36,10 @@ class ManualBoatTests extends BoatTests {
     }
   }
 
-  test("slow anon GPS reporting".ignore) {
+  http.test("slow anon GPS reporting".ignore) { httpClient =>
     val testMessages =
       relevantSentences.toList.grouped(30).map(SentencesMessage.apply).slice(50, 100).toList
-    openRandomBoat(url) { boat =>
+    openRandomBoat(url, httpClient) { boat =>
       testMessages.foreach { msg =>
         boat.send(msg)
         Thread.sleep(500)
@@ -47,11 +47,11 @@ class ManualBoatTests extends BoatTests {
     }
   }
 
-  test("slow GPS reporting".ignore) {
+  http.test("slow GPS reporting".ignore) { httpClient =>
     val token = BoatToken("todo")
     val testMessages =
       relevantSentences.toList.grouped(30).map(SentencesMessage.apply).slice(50, 100).toList
-    openBoat(url, Right(token)) { boat =>
+    openBoat(url, Right(token), httpClient) { boat =>
       testMessages.foreach { msg =>
         boat.send(msg)
         Thread.sleep(500)
@@ -66,9 +66,9 @@ class ManualBoatTests extends BoatTests {
     println(token)
   }
 
-  test("boat can connect".ignore) {
+  http.test("boat can connect".ignore) { httpClient =>
     val token = BoatToken("todo")
-    openBoat(url, Right(token)) { boat =>
+    openBoat(url, Right(token), httpClient) { boat =>
       Thread.sleep(10000)
     }
   }

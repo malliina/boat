@@ -1,6 +1,5 @@
 package com.malliina.boat.client.server
 
-import akka.http.scaladsl.model.{ContentTypes, HttpEntity}
 import com.malliina.boat.client.server.Device.{BoatDevice, GpsDevice}
 import org.http4s.Uri
 import scalatags.Text

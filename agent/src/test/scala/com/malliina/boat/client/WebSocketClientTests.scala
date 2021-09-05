@@ -1,14 +1,10 @@
 package com.malliina.boat.client
 
-import akka.NotUsed
-import akka.stream.scaladsl.{Sink, Source}
 import com.malliina.boat.{Constants, RawSentence, SentencesMessage}
 import com.malliina.http.FullUrl
 import com.malliina.http.io.HttpClientIO
 import com.malliina.logstreams.client.SocketEvent.Open
 import com.malliina.logstreams.client.WebSocketIO
-import io.circe._
-import io.circe.syntax.EncoderOps
 
 class WebSocketClientTests extends AsyncSuite {
   test("can connect to api.boat-tracker.com".ignore) {
@@ -31,15 +27,14 @@ class WebSocketClientTests extends AsyncSuite {
       "$GPTXT,01,01,02,ANTSTATUS=OPEN*2B",
       "$GPGSV,4,1,13,22,78,221,14,01,64,183,22,03,58,257,34,14,51,074,35*71"
     ).map(RawSentence.apply)
-    val msg = SentencesMessage(samples).asJson
-    val src = Source(List(msg)).concat(Source.maybe[Json])
+    val msg = SentencesMessage(samples)
     val token = "todo"
     val client = WebSocketIO(url, Map(Constants.BoatTokenHeader -> token), HttpClientIO().client)
       .unsafeRunSync()
     try {
       client.open()
+      client.send(msg)
       client.messages.map(msg => println(msg)).compile.drain.unsafeRunSync()
     } finally client.close()
-
   }
 }
