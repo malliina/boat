@@ -3,6 +3,8 @@ package com.malliina.boat
 import io.circe._
 import io.circe.syntax.EncoderOps
 
+import scala.language.implicitConversions
+
 object Styles {
 //  trait Convertible[T] {
 //    def toJson(t: T): Json

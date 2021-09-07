@@ -15,7 +15,7 @@ class DoobieTracksDatabaseTests extends MUnitSuite with MUnitDatabaseSuite {
   }
 }
 
-class DoobieTests extends MUnitSuite {
+class DoobieTests extends MUnitSuite with DoobieMappings {
   val conf = Conf(
     "jdbc:mysql://localhost:3306/boat?useSSL=false",
     "changeme",

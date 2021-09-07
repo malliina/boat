@@ -2,14 +2,13 @@ package com.malliina.boat.db
 
 import java.time.{Instant, LocalDate}
 import com.malliina.boat.parsing.GPSFix
-import com.malliina.boat.{BoatName, BoatToken, Coord, CoordHash, DateVal, DeviceId, FairwayLighting, GPSPointId, InviteState, Language, Latitude, Longitude, MobileDevice, MonthVal, PushId, PushToken, RawSentence, SeaArea, TrackCanonical, TrackId, TrackName, TrackPointId, TrackTitle, YearVal}
+import com.malliina.boat.{BoatName, BoatToken, Coord, CoordHash, DateVal, DeviceId, FairwayLighting, GPSPointId, GPSSentenceKey, InviteState, Language, Latitude, Longitude, MobileDevice, MonthVal, PushId, PushToken, RawSentence, SeaArea, SentenceKey, TrackCanonical, TrackId, TrackName, TrackPointId, TrackTitle, UserToken, YearVal}
 import com.malliina.measure.{DistanceM, SpeedDoubleM, SpeedM, Temperature}
 import com.malliina.values._
 import com.vividsolutions.jts.geom.Point
 import doobie._
 
 import scala.concurrent.duration.{DurationDouble, FiniteDuration}
-import scala.reflect.runtime.universe.TypeTag
 
 object DoobieMappings extends DoobieMappings
 
@@ -30,11 +29,14 @@ trait DoobieMappings {
     Meta[Int].timap(FairwayLighting.fromInt)(FairwayLighting.toInt)
   implicit val rs: Meta[RawSentence] = wrapped(RawSentence.apply)
   implicit val ti: Meta[TrackId] = wrappedId(TrackId.apply)
+  implicit val fi: Meta[FairwayId] = wrappedId(FairwayId.apply)
+  implicit val fci: Meta[FairwayCoordId] = wrappedId(FairwayCoordId.apply)
   implicit val tn: Meta[TrackName] = wrapped(TrackName.apply)
   implicit val tt: Meta[TrackTitle] = wrapped(TrackTitle.apply)
   implicit val tc: Meta[TrackCanonical] = wrapped(TrackCanonical.apply)
   implicit val bn: Meta[BoatName] = wrapped(BoatName.apply)
   implicit val bt: Meta[BoatToken] = wrapped(BoatToken.apply)
+  implicit val ut: Meta[UserToken] = wrapped(UserToken.apply)
   implicit val lon: Meta[Longitude] = Meta[Double].timap(Longitude.apply)(_.lng)
   implicit val lat: Meta[Latitude] = Meta[Double].timap(Latitude.apply)(_.lat)
   implicit val speed: Meta[SpeedM] = Meta[Double].timap(_.kmh)(_.toKmh)
@@ -55,11 +57,13 @@ trait DoobieMappings {
   implicit val month: Meta[MonthVal] = Meta[Int].timap(m => MonthVal(m))(_.month)
   implicit val isMapping: Meta[InviteState] =
     Meta[String].timap(s => InviteState.orOther(s))(_.name)
+  implicit val sk: Meta[SentenceKey] = wrappedId(SentenceKey.apply)
+  implicit val gsk: Meta[GPSSentenceKey] = wrappedId(GPSSentenceKey.apply)
 
-  def wrapped[T <: WrappedString: TypeTag](build: String => T): Meta[T] =
+  def wrapped[T <: WrappedString](build: String => T): Meta[T] =
     Meta[String].timap(build)(_.value)
 
-  def wrappedId[T <: WrappedId: TypeTag](build: Long => T): Meta[T] =
+  def wrappedId[T <: WrappedId](build: Long => T): Meta[T] =
     Meta[Long].timap(build)(_.id)
 
   private def toCoord(point: Point): Coord = {

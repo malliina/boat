@@ -35,13 +35,8 @@ object JWT {
       if (now.isBefore(e)) None else Option(Expired(token, e, now))
     }
 
-    def verify(secret: SecretKey, now: Instant): Either[JWTError, Verified] = {
-      val verifier = new MACVerifier(secret.value)
-      for {
-        _ <- if (jwt.verify(verifier)) Right(()) else Left(InvalidSignature(token))
-        _ <- checkExpiration(now).toLeft(())
-      } yield Verified(this)
-    }
+    def verify(secret: SecretKey, now: Instant): Either[JWTError, Verified] =
+      Verified.verify(this, secret, now)
 
     def readString(key: String): Either[JWTError, String] =
       read(token, claims.getStringClaim(key), s"Claim missing: '$key'.")
@@ -72,6 +67,16 @@ object JWT {
       readString(key).flatMap { s =>
         r.read(s).left.map(err => InvalidClaims(token, err))
       }
+  }
+
+  object Verified {
+    def verify(parsed: Parsed, secret: SecretKey, now: Instant): Either[JWTError, Verified] = {
+      val verifier = new MACVerifier(secret.value)
+      for {
+        _ <- if (parsed.jwt.verify(verifier)) Right(()) else Left(InvalidSignature(parsed.token))
+        _ <- parsed.checkExpiration(now).toLeft(())
+      } yield Verified(parsed)
+    }
   }
 
   private def read[T](token: TokenValue, f: => T, onMissing: => String): Either[JWTError, T] =

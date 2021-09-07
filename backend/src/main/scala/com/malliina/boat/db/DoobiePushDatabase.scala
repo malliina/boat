@@ -2,14 +2,12 @@ package com.malliina.boat.db
 
 import cats.effect.IO
 import cats.implicits._
-import com.malliina.boat.db.DoobieMappings._
 import com.malliina.boat.db.DoobiePushDatabase.log
-import com.malliina.boat.http.BoatQuery
 import com.malliina.boat.push._
 import com.malliina.boat.{PushId, PushToken, UserDevice}
 import com.malliina.util.AppLogger
 import com.malliina.values.UserId
-import doobie.Fragments
+import doobie.{Fragments, LogHandler}
 import doobie.implicits._
 
 object DoobiePushDatabase {
@@ -22,7 +20,7 @@ object DoobiePushDatabase {
 class DoobiePushDatabase(db: DoobieDatabase, push: PushEndpoint)
   extends PushService
   with DoobieSQL {
-  implicit val logger = db.logHandler
+  implicit val logger: LogHandler = db.logHandler
 
   def enable(input: PushInput): IO[PushId] = db.run {
     val existing = sql"""select id 

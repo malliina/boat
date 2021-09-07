@@ -94,7 +94,7 @@ case class TrackTimes(
 )
 
 object TrackTimes {
-  implicit val dur = BoatPrimitives.durationFormat
+  implicit val dur: Codec[FiniteDuration] = BoatPrimitives.durationFormat
   implicit val json: Codec[TrackTimes] = deriveCodec[TrackTimes]
 }
 
@@ -107,8 +107,8 @@ case class DailyAggregates(
 )
 
 object DailyAggregates {
-  implicit val dur = BoatPrimitives.durationFormat
-  implicit val json = deriveCodec[DailyAggregates]
+  implicit val dur: Codec[FiniteDuration] = BoatPrimitives.durationFormat
+  implicit val json: Codec[DailyAggregates] = deriveCodec[DailyAggregates]
 }
 
 case class MonthlyAggregates(

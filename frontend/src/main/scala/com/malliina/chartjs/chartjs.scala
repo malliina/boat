@@ -79,16 +79,19 @@ object DataSet {
     borderWidth: Int = 1,
     pointRadius: Int = 3,
     lineTension: Double = 0.4
-  ): DataSet = literal(
-    label = label,
-    data = data.toJSArray,
-    fill = fill.orUndefined,
-    backgroundColor = backgroundColor.toJSArray,
-    borderColor = borderColor.toJSArray,
-    borderWidth = borderWidth,
-    pointRadius = pointRadius,
-    lineTension = lineTension
-  ).asInstanceOf[DataSet]
+  ): DataSet = {
+    val fillValue: js.Any = fill.map(b => b: js.Any).getOrElse(js.undefined)
+    literal(
+      label = label,
+      data = data.toJSArray,
+      fill = fillValue,
+      backgroundColor = backgroundColor.toJSArray,
+      borderColor = borderColor.toJSArray,
+      borderWidth = borderWidth,
+      pointRadius = pointRadius,
+      lineTension = lineTension
+    ).asInstanceOf[DataSet]
+  }
 }
 
 @js.native

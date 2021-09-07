@@ -75,7 +75,7 @@ case class MultiPolygon(`type`: String, coordinates: Seq[Seq[Seq[Coord]]])
 
 object MultiPolygon {
   val Key = "MultiPolygon"
-  implicit val coord = Coord.jsonArray
+  implicit val coord: Codec[Coord] = Coord.jsonArray
   implicit val json: Codec[MultiPolygon] = deriveCodec[MultiPolygon]
 }
 
@@ -89,7 +89,7 @@ case class Polygon(`type`: String, coordinates: Seq[Seq[Coord]]) extends Geometr
 
 object Polygon {
   val Key = "Polygon"
-  implicit val coord = Coord.jsonArray
+  implicit val coord: Codec[Coord] = Coord.jsonArray
   implicit val json: Codec[Polygon] = deriveCodec[Polygon]
 }
 

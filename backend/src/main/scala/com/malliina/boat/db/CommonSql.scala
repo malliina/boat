@@ -1,8 +1,9 @@
 package com.malliina.boat.db
 
 import com.malliina.boat.{BoatToken, DeviceId, JoinedBoat}
-import doobie.Fragment
+import doobie._
 import doobie.implicits._
+import com.malliina.boat.db.DoobieMappings._
 
 object CommonSql extends CommonSql
 

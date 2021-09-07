@@ -42,11 +42,11 @@ class ServiceTests extends MUnitSuite with Http4sSuite {
     init.unsafeRunSync()
     val response1 = tracksRequest(ContentVersions.Version1, comps.routes)
     import com.malliina.boat.http4s.Implicits._
-    implicit val tsBody = jsonBody[IO, TrackSummaries]
+    implicit val tsBody: EntityDecoder[IO, TrackSummaries] = jsonBody[IO, TrackSummaries]
     val summaries = response1.flatMap(_.as[TrackSummaries]).unsafeRunSync()
     assertEquals(summaries.tracks.length, 1)
     val response2 = tracksRequest(ContentVersions.Version2, comps.routes)
-    implicit val tBody = jsonBody[IO, Tracks]
+    implicit val tBody: EntityDecoder[IO, Tracks] = jsonBody[IO, Tracks]
     val tracks = response2.flatMap(_.as[Tracks]).unsafeRunSync()
     assertEquals(tracks.tracks.length, 1)
   }

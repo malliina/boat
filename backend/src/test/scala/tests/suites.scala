@@ -1,27 +1,35 @@
 package tests
 
-import cats.effect.{Blocker, ContextShift, IO, Resource, Timer}
+import cats.effect.*
 import com.dimafeng.testcontainers.MySQLContainer
-import com.malliina.boat.db.{Conf, DoobieDatabase}
+import com.malliina.boat.db.{Conf, DoobieDatabase, DoobieSQL}
 import com.malliina.boat.http4s.{JsonInstances, Server, ServerComponents, Service}
 import com.malliina.boat.{BoatConf, Errors, LocalConf}
 import com.malliina.http.FullUrl
 import com.malliina.util.AppLogger
+import com.typesafe.config.Config
 import munit.FunSuite
-import org.http4s.{HttpApp, Uri}
-import org.http4s.client.Client
 import org.http4s.blaze.client.BlazeClientBuilder
+import org.http4s.client.Client
+import org.http4s.{EntityDecoder, EntityEncoder, HttpApp, Uri}
 import org.testcontainers.utility.DockerImageName
-import pureconfig.{CamelCase, ConfigFieldMapping}
-import pureconfig.error.ConfigReaderFailures
-import pureconfig.generic.ProductHint
 
 import java.nio.file.Paths
 import java.util.concurrent.atomic.AtomicReference
 import scala.concurrent.ExecutionContext
+import scala.util.Try
 
 case class TestBoatConf(testdb: Conf)
 case class WrappedTestConf(boat: TestBoatConf)
+
+object WrappedTestConf {
+  def parse(c: Config = LocalConf.localConf.resolve()) = Try(
+    WrappedTestConf(
+      TestBoatConf(BoatConf.parseDatabase(c.getConfig("boat").getConfig("testdb")))
+    )
+  )
+}
+
 case class TestResource[T](resource: T, close: IO[Unit])
 
 trait MUnitSuite extends FunSuite {
@@ -29,11 +37,11 @@ trait MUnitSuite extends FunSuite {
   val blocker = Blocker[IO]
 
   implicit val ec: ExecutionContext = munitExecutionContext
-  implicit def munitContextShift: ContextShift[IO] =
+  implicit val munitContextShift: ContextShift[IO] =
     IO.contextShift(munitExecutionContext)
-  implicit def munitTimer: Timer[IO] =
+  implicit val munitTimer: Timer[IO] =
     IO.timer(munitExecutionContext)
-  implicit def conc = IO.ioConcurrentEffect(munitContextShift)
+  implicit val conc: ConcurrentEffect[IO] = IO.ioConcurrentEffect(munitContextShift)
 
   def databaseFixture(conf: => Conf) = resource {
     blocker.flatMap { b =>
@@ -70,7 +78,7 @@ object MUnitDatabaseSuite {
   private val log = AppLogger(getClass)
 }
 
-trait MUnitDatabaseSuite { self: MUnitSuite =>
+trait MUnitDatabaseSuite extends DoobieSQL { self: MUnitSuite =>
   import MUnitDatabaseSuite.log
   val dbFixture = resource(blocker.flatMap { b =>
     DoobieDatabase.withMigrations(confFixture(), b)
@@ -82,8 +90,8 @@ trait MUnitDatabaseSuite { self: MUnitSuite =>
     def apply() = conf.get
     override def beforeAll(): Unit = {
       val testDb = readTestConf().fold(
-        err => {
-          log.warn(s"Failed to read test conf. ${err.head.description}. Falling back to Docker...")
+        e => {
+          log.warn(s"Failed to read test conf. Falling back to Docker...", e)
           val c = MySQLContainer(mysqlImageVersion = DockerImageName.parse("mysql:5.7.29"))
           c.start()
           container = Option(c)
@@ -97,12 +105,7 @@ trait MUnitDatabaseSuite { self: MUnitSuite =>
       container.foreach(_.stop())
     }
 
-    def readTestConf(): Either[ConfigReaderFailures, Conf] = {
-      import pureconfig.generic.auto._
-      implicit def hint[A] = ProductHint[A](ConfigFieldMapping(CamelCase, CamelCase))
-
-      LocalConf().load[WrappedTestConf].fold(f => Left(f), c => Right(c.boat.testdb))
-    }
+    def readTestConf(): Try[Conf] = WrappedTestConf.parse().map(_.boat.testdb)
   }
 
   override def munitFixtures: Seq[Fixture[_]] = Seq(confFixture)
@@ -119,7 +122,7 @@ trait Http4sSuite extends MUnitDatabaseSuite { self: MUnitSuite =>
     override def apply(): AppComponents = service.get
 
     override def beforeAll(): Unit = {
-      val resource = Server.appService(BoatConf.load.copy(db = confFixture()), TestComps.builder)
+      val resource = Server.appService(BoatConf.parse().copy(db = confFixture()), TestComps.builder)
       val (t, release) = resource.allocated[IO, Service].unsafeRunSync()
       finalizer.set(release)
       service = Option(AppComponents(t, Server.makeHandler(t, t.blocker)))
@@ -147,7 +150,7 @@ object ServerSuite {
 
 trait ServerSuite extends MUnitDatabaseSuite with JsonInstances { self: MUnitSuite =>
   import ServerSuite.log
-  implicit val tsBody = jsonBody[IO, Errors]
+  implicit val tsBody: EntityDecoder[IO, Errors] = jsonBody[IO, Errors]
 
   val server: Fixture[ServerTools] = new Fixture[ServerTools]("server") {
     private var tools: Option[ServerTools] = None
@@ -157,7 +160,7 @@ trait ServerSuite extends MUnitDatabaseSuite with JsonInstances { self: MUnitSui
 
     override def beforeAll(): Unit = {
       val testServer =
-        Server.server(BoatConf.load.copy(db = confFixture()), TestComps.builder, port = 12345)
+        Server.server(BoatConf.parse().copy(db = confFixture()), TestComps.builder, port = 12345)
       val testClient = BlazeClientBuilder[IO](munitExecutionContext).resource
       val (instance, closable) = testServer.flatMap { s =>
         testClient.map { c => ServerTools(s, c) }

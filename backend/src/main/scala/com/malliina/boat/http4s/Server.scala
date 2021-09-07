@@ -132,5 +132,5 @@ object Server extends IOApp {
   }
 
   override def run(args: List[String]): IO[ExitCode] =
-    server(BoatConf.load, AppCompsBuilder.prod).use(_ => IO.never).as(ExitCode.Success)
+    server(BoatConf.parse(), AppCompsBuilder.prod).use(_ => IO.never).as(ExitCode.Success)
 }

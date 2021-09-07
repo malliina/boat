@@ -1,12 +1,11 @@
 package com.malliina.boat.db
 
-import com.malliina.boat.db.DoobieMappings._
 import com.malliina.boat.{Coord, DeviceId}
 import com.malliina.measure.DistanceM
 import doobie.ConnectionIO
 import doobie.implicits._
 
-trait DoobieSQL {
+trait DoobieSQL extends DoobieMappings {
   def boatById(id: DeviceId): ConnectionIO[BoatRow] =
     sql"select id, name, token, owner, added from boats b where b.id = $id".query[BoatRow].unique
   def computeDistance(from: Coord, to: Coord): ConnectionIO[DistanceM] =

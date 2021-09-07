@@ -4,7 +4,6 @@ import cats.data.NonEmptyList
 import cats.effect.IO
 import cats.implicits._
 import com.malliina.boat.db.DoobieFairwayService.collect
-import com.malliina.boat.http.BoatQuery
 import com.malliina.boat.{CoordHash, FairwayInfo}
 import doobie._
 import doobie.implicits._

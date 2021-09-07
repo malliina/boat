@@ -5,6 +5,7 @@ import org.scalajs.dom
 import org.scalajs.dom.html
 import org.scalajs.dom.raw.{Event, HTMLCanvasElement}
 import scalatags.JsDom.TypedTag
+import com.malliina.{OptionOps, OptionStringOps, OptionDoubleOps}
 
 import scala.concurrent.{Future, Promise}
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
@@ -36,7 +37,7 @@ object GeocoderOptions {
     literal(
       accessToken = accessToken,
       countries = countries.mkString(","),
-      mapboxgl = mapboxgl.orUndefined
+      mapboxgl = mapboxgl.any
     ).asInstanceOf[GeocoderOptions]
 }
 
@@ -114,8 +115,8 @@ object PopupOptions {
     closeButton: Boolean = false
   ): PopupOptions =
     literal(
-      className = className.orUndefined,
-      offset = offset.orUndefined,
+      className = className.any,
+      offset = offset.any,
       closeButton = closeButton
     ).asInstanceOf[PopupOptions]
 }
@@ -313,7 +314,7 @@ trait FitOptions extends js.Object {
 
 object FitOptions {
   def apply(padding: Int, linear: Boolean = false, maxZoom: Option[Double] = None): FitOptions =
-    literal(padding = PaddingOptions(padding), linear = linear, maxZoom = maxZoom.orUndefined)
+    literal(padding = PaddingOptions(padding), linear = linear, maxZoom = maxZoom.any)
       .asInstanceOf[FitOptions]
 }
 

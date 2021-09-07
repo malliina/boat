@@ -9,7 +9,9 @@ import scalatags.generic.Bundle
 import io.circe._
 import io.circe.generic.semiauto._
 import io.circe.syntax.EncoderOps
+
 import scala.concurrent.duration.Duration
+import scala.language.implicitConversions
 import scala.math.Ordering.Double.TotalOrdering
 
 case class DayVal(day: Int) extends AnyVal with WrappedInt {
@@ -223,7 +225,7 @@ object TimedCoord {
 case class GPSTimedCoord(id: GPSPointId, coord: Coord, time: Timing)
 
 object GPSTimedCoord {
-  implicit val json = deriveCodec[GPSTimedCoord]
+  implicit val json: Codec[GPSTimedCoord] = deriveCodec[GPSTimedCoord]
 }
 
 case class AccessToken(token: String) extends AnyVal with WrappedString {
@@ -336,7 +338,8 @@ object ChangeLanguage {
 case class SimpleMessage(message: String) extends AnyVal
 
 object SimpleMessage {
-  implicit val json: Codec[SimpleMessage] = deriveCodec[SimpleMessage]
+  implicit val json: Codec[SimpleMessage] =
+    Codec.from(Decoder.decodeString.map(apply), Encoder.encodeString.contramap(_.message))
 }
 
 trait BoatTrackMeta extends DeviceMeta {
@@ -536,14 +539,12 @@ case class TrackRef(
 }
 
 object TrackRef {
-  implicit val durationFormat = PrimitiveFormats.durationCodec
+  implicit val durationFormat: Codec[Duration] = PrimitiveFormats.durationCodec
   val modern: Codec[TrackRef] = deriveCodec[TrackRef]
   implicit val json: Codec[TrackRef] = Codec.from(
     modern,
-    new Encoder[TrackRef] {
-      final def apply(tr: TrackRef): Json =
-        modern(tr).deepMerge(Json.obj("distance" -> tr.distanceMeters.toMillis.toLong.asJson))
-    }
+    (tr: TrackRef) =>
+      modern(tr).deepMerge(Json.obj("distance" -> tr.distanceMeters.toMillis.toLong.asJson))
   )
 }
 
@@ -628,7 +629,7 @@ case class CoordsEvent(coords: List[TimedCoord], from: TrackRef) extends BoatFro
 
 object CoordsEvent {
   val Key = "coords"
-  implicit val coordJson = Coord.json
+  implicit val coordJson: Codec[Coord] = Coord.json
   implicit val json: Codec[CoordsEvent] = keyValued(Key, deriveCodec[CoordsEvent])
 }
 
@@ -667,7 +668,7 @@ case class VesselMessages(vessels: Seq[VesselInfo]) extends FrontEvent {
 
 object VesselMessages {
   val Key = "vessels"
-  implicit val json = keyValued(Key, deriveCodec[VesselMessages])
+  implicit val json: Codec[VesselMessages] = keyValued(Key, deriveCodec[VesselMessages])
   val empty = VesselMessages(Nil)
 }
 
