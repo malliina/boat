@@ -124,11 +124,4 @@ object BoatConf {
     c.unsafe[String]("driver"),
     c.unsafe[Int]("maxPoolSize")
   )
-
-//  import pureconfig.generic.auto.exportReader
-//  implicit def hint[A]: ProductHint[A] = ProductHint[A](ConfigFieldMapping(CamelCase, CamelCase))
-//  private val attempt: Either[ConfigReaderFailures, BoatConf] =
-//    loadAs[WrappedConf].map(_.boat)
-//  def loadAs[T: ConfigReader] = LocalConf().load[T]
-//  def load = attempt.fold(err => throw ConfigReaderException(err), identity)
 }
