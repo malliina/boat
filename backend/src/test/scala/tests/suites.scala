@@ -34,7 +34,8 @@ case class TestResource[T](resource: T, close: IO[Unit])
 
 trait MUnitSuite extends FunSuite {
   val userHome = Paths.get(sys.props("user.home"))
-  val blocker = Blocker[IO]
+  // NPE if not lazy
+  lazy val blocker = Blocker[IO]
 
   implicit val ec: ExecutionContext = munitExecutionContext
   implicit val munitContextShift: ContextShift[IO] =
