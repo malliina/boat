@@ -37,7 +37,7 @@ object LocalConf {
   val homeDir = Paths.get(sys.props("user.home"))
   val appDir = homeDir.resolve(".boat")
   val localConfFile = appDir.resolve("boat.conf")
-  val localConf = ConfigFactory.parseFile(localConfFile.toFile)
+  val localConf = ConfigFactory.parseFile(localConfFile.toFile).withFallback(ConfigFactory.load())
 
 //  def apply(): ConfigObjectSource = {
 //    implicit def hint[A]: ProductHint[A] = ProductHint[A](ConfigFieldMapping(CamelCase, CamelCase))
@@ -92,7 +92,7 @@ object BoatConf {
     val google = c.getConfig("google")
     val ios = google.getConfig("ios")
     val web = google.getConfig("web")
-    val microsoft = google.getConfig("microsoft")
+    val microsoft = c.getConfig("microsoft")
     val push = c.getConfig("push")
     val apns = push.getConfig("apns")
     val fcm = push.getConfig("fcm")
@@ -109,7 +109,7 @@ object BoatConf {
         APNSConf(
           apns.unsafe[Boolean]("enabled"),
           apns.unsafe[String]("privateKey"),
-          apns.unsafe[KeyId]("keyID"),
+          apns.unsafe[KeyId]("keyId"),
           apns.unsafe[TeamId]("teamId")
         ),
         FCMConf(fcm.unsafe[String]("apiKey"))
