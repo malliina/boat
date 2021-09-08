@@ -2,14 +2,12 @@ package com.malliina.boat.db
 
 import cats.effect.IO
 import com.malliina.boat.InviteState.accepted
-import com.malliina.boat.db.DoobieMappings._
 import com.malliina.boat.db.DoobieUserManager.log
 import com.malliina.boat.http.InviteResult.{AlreadyInvited, Invited, UnknownEmail}
 import com.malliina.boat.http.{AccessResult, InviteInfo, InviteResult}
 import com.malliina.boat.{Boat, BoatInfo, BoatNames, BoatToken, BoatTokens, DeviceId, FriendInvite, Invite, InviteState, JoinedBoat, JoinedTrack, Language, TimeFormatter, UserBoats, UserInfo, UserToken, Usernames}
 import com.malliina.util.AppLogger
 import com.malliina.values.{Email, UserId, Username}
-import com.mysql.jdbc.exceptions.jdbc4.MySQLIntegrityConstraintViolationException
 import doobie._
 import doobie.implicits._
 

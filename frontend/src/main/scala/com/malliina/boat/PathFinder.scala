@@ -42,7 +42,7 @@ class PathFinder(val map: MapboxMap) extends GeoUtils with BaseFront {
     }
   }
 
-  def updatePath(e: MapMouseEvent) = {
+  def updatePath(e: MapMouseEvent): Unit = {
     if (isEnabled) {
       val c = Coord.buildOrFail(e.lngLat.lng, e.lngLat.lat)
       def endMarker = MapboxMarker(finishMark(c), c, map)

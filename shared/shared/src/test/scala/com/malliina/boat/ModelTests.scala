@@ -1,6 +1,6 @@
 package com.malliina.boat
 
-import io.circe.Printer
+import io.circe.{Codec, Printer}
 import io.circe.generic.semiauto.deriveCodec
 import io.circe.parser.{decode, parse}
 import io.circe.syntax.EncoderOps
@@ -13,7 +13,7 @@ class ModelTests extends munit.FunSuite {
 
   test("do not serialize None as null") {
     case class MyClass(name: String, age: Option[Int])
-    implicit val codec = deriveCodec[MyClass]
+    implicit val codec: Codec[MyClass] = deriveCodec[MyClass]
     val printer = Printer.noSpaces.copy(dropNullValues = true)
     val str = MyClass("Santa", None).asJson.printWith(printer)
     assertEquals(str, """{"name":"Santa"}""")

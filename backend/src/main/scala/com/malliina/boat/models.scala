@@ -14,20 +14,19 @@ import io.circe.generic.semiauto._
 import io.circe.syntax.EncoderOps
 
 import scala.concurrent.duration.FiniteDuration
-import scala.reflect.runtime.universe.TypeTag
 
 case class CSRFToken(token: String) extends AnyVal
 
 case class Languages(finnish: Lang, swedish: Lang, english: Lang)
 
 object Languages {
-  implicit val json = deriveCodec[Languages]
+  implicit val json: Codec[Languages] = deriveCodec[Languages]
 }
 
 case class AisConf(vessel: String, trail: String, vesselIcon: String)
 
 object AisConf {
-  implicit val json = deriveCodec[AisConf]
+  implicit val json: Codec[AisConf] = deriveCodec[AisConf]
 }
 
 case class Layers(
@@ -39,7 +38,7 @@ case class Layers(
 )
 
 object Layers {
-  implicit val json = deriveCodec[Layers]
+  implicit val json: Codec[Layers] = deriveCodec[Layers]
   import MapboxStyles._
 
   val default = Layers(
@@ -54,7 +53,7 @@ object Layers {
 case class ClientConf(map: MapConf, languages: Languages, layers: Layers)
 
 object ClientConf {
-  implicit val json = deriveCodec[ClientConf]
+  implicit val json: Codec[ClientConf] = deriveCodec[ClientConf]
   val default =
     ClientConf(MapConf.active, Languages(Lang.fi, Lang.se, Lang.en), Layers.default)
 }
@@ -108,7 +107,7 @@ object UserToken extends BoatStringCompanion[UserToken] {
 case class AppMeta(name: String, version: String, gitHash: String, mapboxVersion: String)
 
 object AppMeta {
-  implicit val json = deriveCodec[AppMeta]
+  implicit val json: Codec[AppMeta] = deriveCodec[AppMeta]
   val default =
     AppMeta(BuildInfo.name, BuildInfo.version, BuildInfo.gitHash, BuildInfo.mapboxVersion)
 }
@@ -177,7 +176,7 @@ case class Stats(
 )
 
 object Stats {
-  implicit val json = deriveCodec[Stats]
+  implicit val json: Codec[Stats] = deriveCodec[Stats]
 }
 
 case class MonthlyStats(
@@ -191,7 +190,7 @@ case class MonthlyStats(
 )
 
 object MonthlyStats {
-  implicit val json = deriveCodec[MonthlyStats]
+  implicit val json: Codec[MonthlyStats] = deriveCodec[MonthlyStats]
 }
 
 case class YearlyStats(
@@ -205,19 +204,19 @@ case class YearlyStats(
 )
 
 object YearlyStats {
-  implicit val json = deriveCodec[YearlyStats]
+  implicit val json: Codec[YearlyStats] = deriveCodec[YearlyStats]
 }
 
 case class StatsResponse(daily: Seq[Stats], yearly: Seq[YearlyStats], allTime: Stats)
 
 object StatsResponse {
-  implicit val json = deriveCodec[StatsResponse]
+  implicit val json: Codec[StatsResponse] = deriveCodec[StatsResponse]
 }
 
 case class TracksBundle(tracks: Seq[TrackRef], stats: StatsResponse)
 
 object TracksBundle {
-  implicit val json = deriveCodec[TracksBundle]
+  implicit val json: Codec[TracksBundle] = deriveCodec[TracksBundle]
 }
 
 case class InsertedPoint(point: TrackPointId, track: JoinedTrack) {
@@ -283,13 +282,13 @@ object BoatNames {
 case class SingleToken(token: PushToken)
 
 object SingleToken {
-  implicit val json = deriveCodec[SingleToken]
+  implicit val json: Codec[SingleToken] = deriveCodec[SingleToken]
 }
 
 case class PushPayload(token: PushToken, device: MobileDevice)
 
 object PushPayload {
-  implicit val json = deriveCodec[PushPayload]
+  implicit val json: Codec[PushPayload] = deriveCodec[PushPayload]
 }
 
 object TrackNames {
@@ -316,7 +315,7 @@ case class BoatInput(name: BoatName, token: BoatToken, owner: UserId)
 case class BoatResponse(boat: Boat)
 
 object BoatResponse {
-  implicit val json = deriveCodec[BoatResponse]
+  implicit val json: Codec[BoatResponse] = deriveCodec[BoatResponse]
 }
 
 case class JoinedBoat(
@@ -380,7 +379,7 @@ case class SentenceRow(id: SentenceKey, sentence: RawSentence, track: TrackId, a
 }
 
 object SentenceRow {
-  implicit val json = deriveCodec[SentenceRow]
+  implicit val json: Codec[SentenceRow] = deriveCodec[SentenceRow]
 }
 
 case class GPSSentenceRow(
@@ -391,7 +390,7 @@ case class GPSSentenceRow(
 )
 
 object GPSSentenceRow {
-  implicit val json = deriveCodec[GPSSentenceRow]
+  implicit val json: Codec[GPSSentenceRow] = deriveCodec[GPSSentenceRow]
 }
 
 case class GPSPointInput(
@@ -444,14 +443,14 @@ case class TimedSentence(
 )
 
 object TimedSentence {
-  implicit val json = deriveCodec[TimedSentence]
+  implicit val json: Codec[TimedSentence] = deriveCodec[TimedSentence]
 }
 
 case class Sentences(sentences: Seq[RawSentence])
 
 object Sentences {
   val Key = SentencesEvent.Key
-  implicit val json = deriveCodec[Sentences]
+  implicit val json: Codec[Sentences] = deriveCodec[Sentences]
 }
 
 case class TrackPointInput(
@@ -588,18 +587,16 @@ case class CombinedFullCoord(
 )
 
 object CombinedFullCoord {
-  val modern = deriveCodec[CombinedFullCoord]
+  val modern: Codec[CombinedFullCoord] = deriveCodec[CombinedFullCoord]
   implicit val json: Codec[CombinedFullCoord] = Codec.from(
     modern,
-    new Encoder[CombinedFullCoord] {
-      final def apply(c: CombinedFullCoord): Json =
-        modern(c).deepMerge(
-          Json.obj(
-            "depth" -> c.depthMeters.toMillis.toLong.asJson,
-            "depthOffset" -> c.depthOffsetMeters.toMillis.toLong.asJson
-          )
+    (c: CombinedFullCoord) =>
+      modern(c).deepMerge(
+        Json.obj(
+          "depth" -> c.depthMeters.toMillis.toLong.asJson,
+          "depthOffset" -> c.depthOffsetMeters.toMillis.toLong.asJson
         )
-    }
+      )
   )
 }
 
@@ -608,7 +605,7 @@ case class FullTrack(track: TrackRef, coords: Seq[CombinedFullCoord]) {
 }
 
 object FullTrack {
-  implicit val json = deriveCodec[FullTrack]
+  implicit val json: Codec[FullTrack] = deriveCodec[FullTrack]
 }
 
 case class TrackPointRow(
@@ -656,13 +653,13 @@ case class GPSSentencePointLink(sentence: GPSSentenceKey, point: GPSPointId)
 case class TrackPoint(coord: Coord, time: Instant, waterTemp: Temperature, wind: Double)
 
 object TrackPoint {
-  implicit val json = deriveCodec[TrackPoint]
+  implicit val json: Codec[TrackPoint] = deriveCodec[TrackPoint]
 }
 
 case class Track(id: TrackId, name: TrackName, points: Seq[TrackPoint])
 
 object Track {
-  implicit val json = deriveCodec[Track]
+  implicit val json: Codec[Track] = deriveCodec[Track]
 }
 
 case class RouteId(id: Long) extends WrappedId
@@ -672,13 +669,13 @@ object RouteId extends IdCompanion[RouteId]
 case class Route(id: RouteId, name: String, points: Seq[Coord])
 
 object Route {
-  implicit val json = deriveCodec[Route]
+  implicit val json: Codec[Route] = deriveCodec[Route]
 }
 
-abstract class BoatStringCompanion[T <: WrappedString: TypeTag] extends StringCompanion[T] {
+abstract class BoatStringCompanion[T <: WrappedString] extends StringCompanion[T] {
   val db: Meta[T] = Meta[String].timap[T](apply)(_.value)
 }
 
-abstract class BoatIdCompanion[T <: WrappedId: TypeTag] extends IdCompanion[T] {
+abstract class BoatIdCompanion[T <: WrappedId] extends IdCompanion[T] {
   val db: Meta[T] = Meta[Long].timap[T](apply)(_.id)
 }

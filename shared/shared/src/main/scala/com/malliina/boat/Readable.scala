@@ -2,7 +2,7 @@ package com.malliina.boat
 
 import cats.data.NonEmptyList
 import com.malliina.values.{Email, ErrorMessage, UserId}
-import io.circe.DecodingFailure
+import io.circe.{Codec, DecodingFailure}
 import io.circe.generic.semiauto.deriveCodec
 
 import scala.util.Try
@@ -10,7 +10,7 @@ import scala.util.Try
 case class SingleError(message: ErrorMessage, key: String)
 
 object SingleError {
-  implicit val json = deriveCodec[SingleError]
+  implicit val json: Codec[SingleError] = deriveCodec[SingleError]
 
   def apply(message: String, key: String): SingleError = SingleError(ErrorMessage(message), key)
 
@@ -27,7 +27,7 @@ class ErrorsException(val errors: Errors) extends Exception(errors.message.messa
 }
 
 object Errors {
-  implicit val json = deriveCodec[Errors]
+  implicit val json: Codec[Errors] = deriveCodec[Errors]
 
   def apply(error: SingleError): Errors = Errors(NonEmptyList.of(error))
   def apply(message: String): Errors = apply(message, "generic")

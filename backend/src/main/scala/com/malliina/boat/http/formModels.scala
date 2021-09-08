@@ -18,19 +18,19 @@ object AccessOperation extends StringEnumCompanion[AccessOperation] {
 case class BoatInvite(email: Email)
 
 object BoatInvite {
-  implicit val json = deriveCodec[BoatInvite]
+  implicit val json: Codec[BoatInvite] = deriveCodec[BoatInvite]
 }
 
 case class RevokeAccess(to: DeviceId, from: UserId)
 
 object RevokeAccess {
-  implicit val json = deriveCodec[RevokeAccess]
+  implicit val json: Codec[RevokeAccess] = deriveCodec[RevokeAccess]
 }
 
 case class InviteResponse(to: DeviceId, accept: Boolean)
 
 object InviteResponse {
-  implicit val json = deriveCodec[InviteResponse]
+  implicit val json: Codec[InviteResponse] = deriveCodec[InviteResponse]
 }
 
 case class InvitePayload(boat: DeviceId, email: Email) {
@@ -38,7 +38,7 @@ case class InvitePayload(boat: DeviceId, email: Email) {
 }
 
 object InvitePayload {
-  implicit val json = deriveCodec[InvitePayload]
+  implicit val json: Codec[InvitePayload] = deriveCodec[InvitePayload]
 }
 
 case class InviteInfo(boat: DeviceId, email: Email, principal: UserId)
@@ -46,19 +46,19 @@ case class InviteInfo(boat: DeviceId, email: Email, principal: UserId)
 case class BoatAccess(boat: DeviceId, user: UserId, operation: AccessOperation)
 
 object BoatAccess {
-  implicit val json = deriveCodec[BoatAccess]
+  implicit val json: Codec[BoatAccess] = deriveCodec[BoatAccess]
 }
 
 case class InviteAnswer(boat: DeviceId, state: InviteState)
 
 object InviteAnswer {
-  implicit val json = deriveCodec[InviteAnswer]
+  implicit val json: Codec[InviteAnswer] = deriveCodec[InviteAnswer]
 }
 
 case class AccessResult(existed: Boolean)
 
 object AccessResult {
-  implicit val json = deriveCodec[AccessResult]
+  implicit val json: Codec[AccessResult] = deriveCodec[AccessResult]
 }
 
 case class EmailUser(user: UserId, email: Email)

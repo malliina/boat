@@ -39,7 +39,7 @@ val scala3 = "3.0.1"
 inThisBuild(
   Seq(
     organization := "com.malliina",
-    scalaVersion := scala213,
+    scalaVersion := scala3,
     scalacOptions := Seq("-unchecked", "-deprecation"),
     deployDocs := Process("mkdocs gh-deploy").run(streams.value.log).exitValue(),
     Compile / packageDoc / publishArtifact := false,
@@ -67,8 +67,8 @@ val cross = portableProject(JSPlatform, JVMPlatform)
   .settings(
     libraryDependencies ++= circeModules.map(m => "io.circe" %%% s"circe-$m" % "0.14.1") ++ Seq(
       "com.malliina" %%% "primitives" % primitiveVersion,
-      "com.lihaoyi" %%% "scalatags" % scalaTagsVersion,
-      //("com.lihaoyi" %%% "scalatags" % scalaTagsVersion).cross(CrossVersion.for3Use2_13),
+//      "com.lihaoyi" %%% "scalatags" % scalaTagsVersion,
+      ("com.lihaoyi" %%% "scalatags" % scalaTagsVersion).cross(CrossVersion.for3Use2_13),
       "org.scalameta" %%% "munit" % munitVersion % Test
     ),
     testFrameworks += new TestFramework("munit.Framework")
@@ -85,8 +85,8 @@ val frontend = project
   .settings(boatSettings)
   .settings(
     libraryDependencies ++= Seq(
-      "org.scala-js" %%% "scalajs-dom" % "1.1.0",
-//      ("org.scala-js" %%% "scalajs-dom" % "1.1.0").cross(CrossVersion.for3Use2_13),
+//      "org.scala-js" %%% "scalajs-dom" % "1.1.0",
+      ("org.scala-js" %%% "scalajs-dom" % "1.1.0").cross(CrossVersion.for3Use2_13),
       "org.scalameta" %%% "munit" % munitVersion % Test
     ),
     Compile / npmDependencies ++= Seq(
@@ -128,7 +128,17 @@ val frontend = project
     Compile / fullOptJS / scalaJSLinkerConfig ~= { _.withSourceMap(false) }
   )
 
-val http4sModules = Seq("blaze-server", "blaze-client", "dsl", "scalatags", "circe")
+val config = project
+  .in(file("config"))
+  .settings(jvmSettings)
+  .settings(
+    libraryDependencies ++= Seq(
+      "com.typesafe" % "config" % "1.4.1",
+      "com.malliina" %% "primitives" % primitiveVersion
+    )
+  )
+
+val http4sModules = Seq("blaze-server", "blaze-client", "dsl", "circe")
 
 val backend = Project("boat", file("backend"))
   .enablePlugins(
@@ -139,7 +149,7 @@ val backend = Project("boat", file("backend"))
     SystemdPlugin,
     BuildInfoPlugin
   )
-  .dependsOn(crossJvm)
+  .dependsOn(crossJvm, config)
   .settings(jvmSettings ++ boatSettings)
   .settings(
     Compile / unmanagedResourceDirectories ++= Seq(
@@ -154,8 +164,7 @@ val backend = Project("boat", file("backend"))
     } ++ Seq("server", "client").map { m =>
       "org.eclipse.jetty" % s"jetty-alpn-java-$m" % alpnVersion
     } ++ Seq(
-      "com.github.pureconfig" %% "pureconfig" % "0.16.0",
-      //("com.github.pureconfig" %% "pureconfig" % "0.16.0").cross(CrossVersion.for3Use2_13),
+      "com.typesafe" % "config" % "1.4.1",
       "com.vividsolutions" % "jts" % "1.13",
       "mysql" % "mysql-connector-java" % "5.1.49",
       "org.flywaydb" % "flyway-core" % "7.14.0",
@@ -243,8 +252,8 @@ val agent = project
         "com.malliina" %% "logstreams-client" % logstreamsVersion, // temporary until websocket client is available in okclient
         "com.neovisionaries" % "nv-websocket-client" % "2.14",
         "org.slf4j" % "slf4j-api" % "1.7.32",
-        "com.lihaoyi" %% "scalatags" % scalaTagsVersion,
-        //      ("com.lihaoyi" %% "scalatags" % scalaTagsVersion).cross(CrossVersion.for3Use2_13),
+//        "com.lihaoyi" %% "scalatags" % scalaTagsVersion,
+        ("com.lihaoyi" %% "scalatags" % scalaTagsVersion).cross(CrossVersion.for3Use2_13),
         "commons-codec" % "commons-codec" % "1.15"
       ),
     releaseUseGlobalVersion := false,

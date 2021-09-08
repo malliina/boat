@@ -104,7 +104,7 @@ class MapMouseListener(
       if (pathFinder.isEnabled) {
         pathFinder.updatePath(e)
       } else {
-        parseClick(e).map { result =>
+        parseClick(e).foreach { result =>
           result.map {
             case DeviceClick(props, target) =>
               markPopup.show(html.device(props), target, map)

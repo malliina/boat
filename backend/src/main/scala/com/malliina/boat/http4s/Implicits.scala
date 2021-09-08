@@ -8,9 +8,10 @@ import io.circe.{Decoder, Encoder, Printer}
 import io.circe.syntax.EncoderOps
 import org.http4s.circe.CirceInstances
 import org.http4s.dsl.Http4sDsl
-import org.http4s.scalatags.ScalatagsInstances
-import org.http4s.{DecodeResult, EntityDecoder, EntityEncoder, syntax}
+import org.http4s.headers.`Content-Type`
+import org.http4s.{Charset, DecodeResult, DefaultCharset, EntityDecoder, EntityEncoder, MediaType, syntax}
 import scalatags.Text
+import scalatags.generic.Frag
 
 trait Extractors {
   object UsernameVar extends NonEmpty(Username.apply)
@@ -34,7 +35,22 @@ trait Extractors {
   }
 }
 
-trait HtmlInstances extends ScalatagsInstances {
+trait MyScalatagsInstances {
+  implicit def scalatagsEncoder[F[_], C <: Frag[_, String]](implicit
+    charset: Charset = DefaultCharset
+  ): EntityEncoder[F, C] =
+    contentEncoder(MediaType.text.html)
+
+  private def contentEncoder[F[_], C <: Frag[_, String]](
+    mediaType: MediaType
+  )(implicit charset: Charset): EntityEncoder[F, C] =
+    EntityEncoder
+      .stringEncoder[F]
+      .contramap[C](content => content.render)
+      .withContentType(`Content-Type`(mediaType, charset))
+}
+
+trait HtmlInstances extends MyScalatagsInstances {
   implicit def htmlEncoder[F[_]]: EntityEncoder[F, TagPage] =
     scalatagsEncoder[F, Text.TypedTag[String]].contramap(_.tags)
 }

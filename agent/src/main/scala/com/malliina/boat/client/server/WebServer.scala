@@ -11,7 +11,7 @@ import org.apache.commons.codec.digest.DigestUtils
 import org.http4s.circe.CirceInstances
 import org.http4s.dsl.Http4sDsl
 import org.http4s.headers.Location
-import org.http4s.implicits.http4sLiteralsSyntax
+import org.http4s.implicits._
 import org.http4s.server.Router
 import org.http4s._
 

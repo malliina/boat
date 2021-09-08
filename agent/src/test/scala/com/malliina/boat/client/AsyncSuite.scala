@@ -1,6 +1,6 @@
 package com.malliina.boat.client
 
-import cats.effect.{ContextShift, IO, Resource}
+import cats.effect.{ContextShift, IO, Resource, Timer}
 import munit.FunSuite
 
 import java.util.concurrent.{Executors, TimeUnit}
@@ -8,9 +8,9 @@ import scala.concurrent.{Await, ExecutionContext, Future}
 
 abstract class AsyncSuite extends FunSuite {
   val executor = Executors.newCachedThreadPool()
-  implicit val textExecutor = ExecutionContext.fromExecutor(executor)
+  implicit val textExecutor: ExecutionContext = ExecutionContext.fromExecutor(executor)
   implicit val contextShift: ContextShift[IO] = IO.contextShift(textExecutor)
-  implicit val timer = IO.timer(textExecutor)
+  implicit val timer: Timer[IO] = IO.timer(textExecutor)
 
   def resource[T](res: Resource[IO, T]): FunFixture[T] = {
     var finalizer: Option[IO[Unit]] = None

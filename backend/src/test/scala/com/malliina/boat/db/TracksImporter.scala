@@ -1,26 +1,13 @@
 package com.malliina.boat.db
 
 import cats.effect.IO
-import cats.implicits._
-import com.malliina.boat.{BoatConf, BoatName, BoatUser, DateVal, DeviceId, TrackId, TrackInput, TrackNames}
+import cats.implicits.*
+import com.malliina.boat.{BoatConf, BoatName, BoatUser, DateVal, DeviceId, LocalConf, TrackId, TrackInput, TrackNames}
 import com.malliina.values.Email
-import pureconfig.error.ConfigReaderException
-import pureconfig.generic.ProductHint
-import pureconfig.{CamelCase, ConfigFieldMapping}
-import tests.MUnitSuite
-
-case class TestDatabaseConf(testdb: Conf)
-
-case class WrappedTestConf(boat: TestDatabaseConf)
+import tests.{MUnitSuite, WrappedTestConf}
 
 class TracksImporter extends MUnitSuite {
-  import pureconfig.generic.auto.exportReader
-  implicit def hint[A] = ProductHint[A](ConfigFieldMapping(CamelCase, CamelCase))
-
-  def testConf = BoatConf
-    .loadAs[WrappedTestConf]
-    .map(_.boat.testdb)
-    .fold(err => throw ConfigReaderException(err), identity)
+  def testConf = WrappedTestConf.parse().map(_.boat.testdb).fold(e => throw e, identity)
   val dbResource = databaseFixture(testConf)
   val file = userHome.resolve(".boat/LogNYY.txt")
 

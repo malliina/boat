@@ -123,8 +123,9 @@ object BoatQuery {
   val NewestKey = "newest"
   val SampleKey = "sample"
   val DefaultSample = Constants.DefaultSample
-  implicit val bindTrack = QueryParamDecoder.stringQueryParamDecoder.map(s => TrackName(s))
-  implicit val bindCanonical =
+  implicit val bindTrack: QueryParamDecoder[TrackName] =
+    QueryParamDecoder.stringQueryParamDecoder.map(s => TrackName(s))
+  implicit val bindCanonical: QueryParamDecoder[TrackCanonical] =
     QueryParamDecoder.stringQueryParamDecoder.map(s => TrackCanonical(s))
   val empty = BoatQuery(Limits(0, 0), TimeRange(None, None), Nil, Nil, None, None, newest = true)
 

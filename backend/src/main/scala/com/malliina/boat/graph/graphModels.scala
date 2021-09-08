@@ -48,7 +48,7 @@ case class ValueEdge(from: Coord, to: Coord, cost: DistanceM) extends EdgeLike {
 }
 
 object ValueEdge {
-  implicit val json = deriveCodec[ValueEdge]
+  implicit val json: Codec[ValueEdge] = deriveCodec[ValueEdge]
 }
 
 case class ValueRoute(head: Link, tail: List[Link]) {
@@ -76,5 +76,5 @@ case class ValueNode(from: Coord, links: List[Link]) {
 }
 
 object ValueNode {
-  implicit val json = deriveCodec[ValueNode]
+  implicit val json: Codec[ValueNode] = deriveCodec[ValueNode]
 }
