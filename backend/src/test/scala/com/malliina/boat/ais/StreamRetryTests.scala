@@ -5,7 +5,7 @@ import munit.FunSuite
 
 import scala.concurrent.duration.DurationInt
 
-class StreamRetryTests extends FunSuite {
+class StreamRetryTests extends FunSuite:
   implicit def munitTimer: Timer[IO] =
     IO.timer(munitExecutionContext)
 
@@ -14,12 +14,12 @@ class StreamRetryTests extends FunSuite {
   def printer(since: Long) = IO(println(s"Time ${System.currentTimeMillis() - since}"))
   val failer = IO.raiseError(new Exception("Boom"))
 
-  def unstable(start: Long) = for {
+  def unstable(start: Long) = for
     _ <- starter(start)
     _ <- sleeper
     _ <- printer(start)
     _ <- failer
-  } yield 42
+  yield 42
 
   test("retry failing stream".ignore) {
     val start = System.currentTimeMillis()
@@ -31,4 +31,3 @@ class StreamRetryTests extends FunSuite {
       .drain
       .unsafeRunSync()
   }
-}

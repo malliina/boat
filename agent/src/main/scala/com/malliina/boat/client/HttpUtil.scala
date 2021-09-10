@@ -5,7 +5,7 @@ import java.util.Base64
 
 import com.malliina.values.Username
 
-object HttpUtil {
+object HttpUtil:
   val Authorization = "Authorization"
 
   def basicAuth(username: Username, password: String): KeyValue =
@@ -15,4 +15,3 @@ object HttpUtil {
     "Basic " + Base64.getEncoder.encodeToString(
       s"$username:$password".getBytes(StandardCharsets.UTF_8)
     )
-}

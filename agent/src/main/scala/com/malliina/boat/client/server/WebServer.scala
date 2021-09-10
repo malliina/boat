@@ -11,9 +11,9 @@ import org.apache.commons.codec.digest.DigestUtils
 import org.http4s.circe.CirceInstances
 import org.http4s.dsl.Http4sDsl
 import org.http4s.headers.Location
-import org.http4s.implicits._
+import org.http4s.implicits.*
 import org.http4s.server.Router
-import org.http4s._
+import org.http4s.*
 
 import java.nio.charset.StandardCharsets
 
@@ -23,7 +23,7 @@ trait AppImplicits
   with CirceInstances
   with ScalatagsEncoder
 
-object WebServer {
+object WebServer:
   val log = Logging(getClass)
   val boatCharset = StandardCharsets.UTF_8
   // MD5 hash of the default password "boat"
@@ -38,10 +38,9 @@ object WebServer {
     new WebServer(agentInstance, blocker)(cs)
 
   def hash(pass: String): String = DigestUtils.md5Hex(pass)
-}
 
 class WebServer(agentInstance: AgentInstance, blocker: Blocker)(implicit cs: ContextShift[IO])
-  extends AppImplicits {
+  extends AppImplicits:
 
   val boatUser = "boat"
   val tempUser = "temp"
@@ -70,17 +69,17 @@ class WebServer(agentInstance: AgentInstance, blocker: Blocker)(implicit cs: Con
 
   val service = Router("/" -> routes).orNotFound
 
-  def readForm(form: FormReader): Either[Errors, BoatConf] = for {
+  def readForm(form: FormReader): Either[Errors, BoatConf] = for
     host <- form.readT[String]("host")
     port <- form.readT[Int]("port")
     device <- form.readT[Device]("device")
     token <- form.readT[Option[BoatToken]]("token")
     enabled <- form.readT[Boolean]("enabled")
-  } yield BoatConf(host, port, device, token, enabled)
+  yield BoatConf(host, port, device, token, enabled)
 
   def parseForm[T](req: Request[IO], read: FormReader => Either[Errors, T])(implicit
     decoder: EntityDecoder[IO, UrlForm]
-  ) = {
+  ) =
     decoder
       .decode(req, strict = false)
       .foldF(
@@ -88,13 +87,10 @@ class WebServer(agentInstance: AgentInstance, blocker: Blocker)(implicit cs: Con
         form =>
           read(new FormReader(form)).fold(err => IO.raiseError(err.asException), ok => IO.pure(ok))
       )
-  }
-}
 
-class FormReader(form: UrlForm) {
+class FormReader(form: UrlForm):
   def read[T](key: String, build: Option[String] => Either[Errors, T]): Either[Errors, T] =
     build(form.getFirst(key))
 
   def readT[T](key: String)(implicit r: Readable[T]): Either[Errors, T] =
     read[T](key, s => r(s))
-}

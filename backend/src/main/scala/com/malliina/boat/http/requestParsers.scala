@@ -1,7 +1,7 @@
 package com.malliina.boat.http
 
 import cats.effect.IO
-import cats.implicits._
+import cats.implicits.*
 import com.malliina.boat.http4s.QueryParsers
 import com.malliina.boat.{Constants, Coord, Errors, Latitude, Longitude, RouteRequest, SingleError, TrackCanonical, TrackName}
 import com.malliina.values.{Email, ErrorMessage}
@@ -17,20 +17,18 @@ case class BoatEmailRequest[T](user: Email, query: T, headers: Headers)
 
 case class AnyBoatRequest[T, U](user: U, query: T, headers: Headers) extends BoatRequest[T, U]
 
-trait BoatRequest[T, U] {
+trait BoatRequest[T, U]:
   def user: U
   def query: T
   def headers: Headers
-}
 
-case class UserRequest[U](user: U, req: Request[IO]) {
+case class UserRequest[U](user: U, req: Request[IO]):
 //  def body: B = req.body
   def headers = req.headers
-}
 
 sealed abstract class TrackSort(val name: String) extends Named
 
-object TrackSort extends EnumLike[TrackSort] {
+object TrackSort extends EnumLike[TrackSort]:
   val key = "sort"
   val default = Recent
   val all: Seq[TrackSort] = Seq(Recent, Points, TopSpeed, Length, Name)
@@ -41,44 +39,39 @@ object TrackSort extends EnumLike[TrackSort] {
   case object Length extends TrackSort("length")
   case object Name extends TrackSort("name")
   case object Time extends TrackSort("duration")
-}
 
 sealed abstract class SortOrder(val name: String) extends Named
 
-object SortOrder extends EnumLike[SortOrder] {
+object SortOrder extends EnumLike[SortOrder]:
   val key = "order"
   val default = Desc
   val all: Seq[SortOrder] = Seq(Asc, Desc)
 
   case object Asc extends SortOrder("asc")
   case object Desc extends SortOrder("desc")
-}
 
-case class TrackQuery(sort: TrackSort, order: SortOrder, limits: Limits) extends LimitLike {
+case class TrackQuery(sort: TrackSort, order: SortOrder, limits: Limits) extends LimitLike:
   override def limit = limits.limit
   override def offset = limits.offset
-}
 
-object TrackQuery {
+object TrackQuery:
   def apply(q: Query): Either[Errors, TrackQuery] = withDefault(q)
 
   def withDefault(
     q: Query,
     defaultLimit: Int = Limits.DefaultLimit
   ): Either[Errors, TrackQuery] =
-    for {
+    for
       sort <- TrackSort(q)
       order <- SortOrder(q)
       limits <- Limits(q, defaultLimit)
-    } yield TrackQuery(sort, order, limits)
-}
+    yield TrackQuery(sort, order, limits)
 
-trait Named {
+trait Named:
   def name: String
   override def toString: String = name
-}
 
-abstract class EnumLike[T <: Named] {
+abstract class EnumLike[T <: Named]:
   def key: String
   def default: T
   def all: Seq[T]
@@ -96,11 +89,12 @@ abstract class EnumLike[T <: Named] {
           all.find(_.name == s).toRight(Errors(SingleError.input(s"Unknown $key value: '$s'.")))
         )
       }
-}
 
-/**
-  * @param tracks tracks to return
-  * @param newest true to return the newest track if no tracks are specified, false means all tracks are returned
+/** @param tracks
+  *   tracks to return
+  * @param newest
+  *   true to return the newest track if no tracks are specified, false means all tracks are
+  *   returned
   */
 case class BoatQuery(
   limits: Limits,
@@ -110,16 +104,15 @@ case class BoatQuery(
   route: Option[RouteRequest],
   sample: Option[Int],
   newest: Boolean
-) {
+):
   def neTracks = tracks.toList.toNel
   def neCanonicals = canonicals.toList.toNel
   def limit = limits.limit
   def offset = limits.offset
   def from = timeRange.from
   def to = timeRange.to
-}
 
-object BoatQuery {
+object BoatQuery:
   val NewestKey = "newest"
   val SampleKey = "sample"
   val DefaultSample = Constants.DefaultSample
@@ -152,7 +145,7 @@ object BoatQuery {
     )
 
   def apply(q: Query): Either[Errors, BoatQuery] =
-    for {
+    for
       limits <- Limits(q)
       timeRange <- TimeRange(q)
       tracks <- bindSeq[TrackName](TrackName.Key, q)
@@ -160,7 +153,7 @@ object BoatQuery {
       route <- bindRouteRequest(q)
       sample <- Limits.readInt(SampleKey, q)
       newest <- bindNewest(q, default = true)
-    } yield BoatQuery(limits, timeRange, tracks, canonicals, route, sample, newest)
+    yield BoatQuery(limits, timeRange, tracks, canonicals, route, sample, newest)
 
   def bindSeq[T: QueryParamDecoder](key: String, q: Query) =
     QueryParsers.list[T](key, q)
@@ -168,26 +161,23 @@ object BoatQuery {
   def bindNewest(q: Query, default: Boolean) =
     QueryParsers.parseOrDefault[Boolean](q, NewestKey, default)
 
-  def bindRouteRequest(q: Query): Either[Errors, Option[RouteRequest]] = {
-    val optEither = for {
+  def bindRouteRequest(q: Query): Either[Errors, Option[RouteRequest]] =
+    val optEither = for
       lng1 <- readLongitude("lng1", q)
       lat1 <- readLatitude("lat1", q)
       lng2 <- readLongitude("lng2", q)
       lat2 <- readLatitude("lat2", q)
-    } yield {
-      for {
-        ln1 <- lng1
-        la1 <- lat1
-        ln2 <- lng2
-        la2 <- lat2
-      } yield RouteRequest(Coord(ln1, la1), Coord(ln2, la2))
-    }
+    yield for
+      ln1 <- lng1
+      la1 <- lat1
+      ln2 <- lng2
+      la2 <- lat2
+    yield RouteRequest(Coord(ln1, la1), Coord(ln2, la2))
     optEither.map { e =>
       e.map(req => Option(req))
     }.getOrElse {
       Right(None)
     }
-  }
 
   def readLongitude(key: String, q: Query) =
     transformDouble(key, q)(Longitude.build)
@@ -208,17 +198,15 @@ object BoatQuery {
 
   def readDouble(key: String, q: Query): Option[Either[Errors, Double]] =
     QueryParsers.parseOpt[Double](q, key)
-}
 
-trait LimitLike {
+trait LimitLike:
   def limit: Int
   def offset: Int
   def page = offset / limit + 1
-}
 
 case class Limits(limit: Int, offset: Int) extends LimitLike
 
-object Limits {
+object Limits:
   val Limit = "limit"
   val Offset = "offset"
 
@@ -231,15 +219,14 @@ object Limits {
     QueryParsers.parseOptE[Int](q, key)
 
   def apply(q: Query, defaultLimit: Int = DefaultLimit): Either[Errors, Limits] =
-    for {
+    for
       limit <- QueryParsers.parseOrDefault(q, Limit, defaultLimit)
       offset <- QueryParsers.parseOrDefault(q, Offset, DefaultOffset)
-    } yield Limits(limit, offset)
-}
+    yield Limits(limit, offset)
 
 case class TimeRange(from: Option[Instant], to: Option[Instant])
 
-object TimeRange {
+object TimeRange:
   val From = "from"
   val To = "to"
 
@@ -252,10 +239,10 @@ object TimeRange {
     TimeRange(Option(from), None)
 
   def apply(q: Query): Either[Errors, TimeRange] =
-    for {
+    for
       from <- bindInstant(From, q)
       to <- bindInstant(To, q)
-    } yield TimeRange(from, to)
+    yield TimeRange(from, to)
 
   val instantDecoder = QueryParamDecoder.instantQueryParamDecoder(DateTimeFormatter.ISO_INSTANT)
 
@@ -263,10 +250,7 @@ object TimeRange {
     QueryParsers.parseOptE[Instant](q, key)(instantDecoder)
 
   def parseInstant(in: String): Either[SingleError, Instant] =
-    try {
-      Right(Instant.parse(in))
-    } catch {
+    try Right(Instant.parse(in))
+    catch
       case dte: DateTimeParseException =>
         Left(SingleError.input(s"Invalid instant: '$in'. ${dte.getMessage}"))
-    }
-}

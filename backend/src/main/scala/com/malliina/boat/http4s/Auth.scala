@@ -8,7 +8,7 @@ import org.http4s.Credentials.Token
 import org.http4s.headers.Authorization
 import org.http4s.{Credentials, Headers}
 
-object Auth {
+object Auth:
   val noCredentials = ErrorMessage("No credentials.")
 
   def basic(hs: Headers): Either[MissingCredentials, BasicCredentials] =
@@ -31,7 +31,6 @@ object Auth {
     .get[Authorization]
     .map(h => h.credentials)
     .toRight(MissingCredentials(noCredentials, hs))
-}
 
 case class AuthComps(
   google: EmailAuth,

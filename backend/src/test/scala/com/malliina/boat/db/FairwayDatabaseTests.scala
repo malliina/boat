@@ -1,14 +1,14 @@
 package com.malliina.boat.db
 
-import cats.implicits._
+import cats.implicits.*
 import com.malliina.boat.{FairwayInfo, FeatureCollection}
-import doobie.implicits._
+import doobie.implicits.*
 import io.circe.parser.decode
 import tests.{MUnitDatabaseSuite, MUnitSuite}
 
 import java.nio.file.Files
 
-class FairwayDatabaseTests extends MUnitSuite with MUnitDatabaseSuite {
+class FairwayDatabaseTests extends MUnitSuite with MUnitDatabaseSuite:
   dbFixture.test("import fairways to database".ignore) { database =>
     val fileIn = userHome.resolve(".boat/vaylat/vaylat-geo.json")
     val strIn = Files.readString(fileIn)
@@ -21,15 +21,14 @@ class FairwayDatabaseTests extends MUnitSuite with MUnitDatabaseSuite {
         FairwayCoordInput(coord, coord.lat, coord.lng, coord.hash, id)
       }.toList
       val in = f.props.as[FairwayInfo].toOption.get
-      for {
+      for
         id <- svc.insert(in)
         cids <- svc.insertCoords(coords(id))
-      } yield cids
+      yield cids
     }
-    val inserts = for {
+    val inserts = for
       _ <- svc.delete
       cids <- insertTask
-    } yield cids
+    yield cids
     database.run(inserts).unsafeRunSync()
   }
-}

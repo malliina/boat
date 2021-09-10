@@ -6,7 +6,7 @@ import com.malliina.values.{Email, UserId, Username}
 import java.time.Instant
 import scala.concurrent.Future
 
-trait PassThroughUserManager extends UserManager {
+trait PassThroughUserManager extends UserManager:
   val godUser = UserRow(
     UserId(1L),
     Username("test"),
@@ -53,4 +53,3 @@ trait PassThroughUserManager extends UserManager {
   def users: Future[Seq[UserInfo]] = fut(Seq(god))
 
   def fut[T](t: T) = Future.successful(t)
-}

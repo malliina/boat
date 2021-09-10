@@ -4,15 +4,15 @@ import java.time.{Instant, LocalDate}
 import com.malliina.boat.parsing.GPSFix
 import com.malliina.boat.{BoatName, BoatToken, Coord, CoordHash, DateVal, DeviceId, FairwayLighting, GPSPointId, GPSSentenceKey, InviteState, Language, Latitude, Longitude, MobileDevice, MonthVal, PushId, PushToken, RawSentence, SeaArea, SentenceKey, TrackCanonical, TrackId, TrackName, TrackPointId, TrackTitle, UserToken, YearVal}
 import com.malliina.measure.{DistanceM, SpeedDoubleM, SpeedM, Temperature}
-import com.malliina.values._
+import com.malliina.values.*
 import com.vividsolutions.jts.geom.Point
-import doobie._
+import doobie.*
 
 import scala.concurrent.duration.{DurationDouble, FiniteDuration}
 
 object DoobieMappings extends DoobieMappings
 
-trait DoobieMappings {
+trait DoobieMappings:
   implicit val instantMeta: Meta[Instant] = doobie.implicits.legacy.instant.JavaTimeInstantMeta
   implicit val localDateMeta: Meta[LocalDate] =
     doobie.implicits.legacy.localdate.JavaTimeLocalDateMeta
@@ -66,8 +66,6 @@ trait DoobieMappings {
   def wrappedId[T <: WrappedId](build: Long => T): Meta[T] =
     Meta[Long].timap(build)(_.id)
 
-  private def toCoord(point: Point): Coord = {
+  private def toCoord(point: Point): Coord =
     val c = point.getCoordinate
     Coord(Longitude(c.x), Latitude(c.y))
-  }
-}

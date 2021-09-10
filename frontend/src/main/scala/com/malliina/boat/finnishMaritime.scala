@@ -2,15 +2,15 @@ package com.malliina.boat
 
 import com.malliina.boat.MaritimeJson.partialReader
 import com.malliina.measure.{DistanceM, SpeedM}
-import io.circe._
-import io.circe.generic.semiauto._
+import io.circe.*
+import io.circe.generic.semiauto.*
 import MaritimeJson.nonEmptyOpt
 
 /** Navigointilaji (NAVL_TYYP)
   */
-sealed trait NavMark {
-  import NavMark._
-  def translate(in: NavMarkLang) = this match {
+sealed trait NavMark:
+  import NavMark.*
+  def translate(in: NavMarkLang) = this match
     case Unknown       => in.unknown
     case Left          => in.left
     case Right         => in.right
@@ -22,10 +22,8 @@ sealed trait NavMark {
     case SafeWaters    => in.safeWaters
     case Special       => in.special
     case NotApplicable => in.notApplicable
-  }
-}
 
-object NavMark {
+object NavMark:
   case object Unknown extends NavMark
   case object Left extends NavMark
   case object Right extends NavMark
@@ -54,14 +52,12 @@ object NavMark {
   implicit val decoder: Decoder[NavMark] = Decoder.decodeInt.emap { int =>
     fromInt.lift(int).toRight(s"Unknown mark type: '$int'.")
   }
-}
 
-/**
-  * Rakennetieto (RAKT_TYYP)
+/** Rakennetieto (RAKT_TYYP)
   */
-sealed trait ConstructionInfo {
-  import ConstructionInfo._
-  def translate(in: ConstructionLang) = this match {
+sealed trait ConstructionInfo:
+  import ConstructionInfo.*
+  def translate(in: ConstructionLang) = this match
     case BuoyBeacon         => in.buoyBeacon
     case IceBuoy            => in.iceBuoy
     case BeaconBuoy         => in.beaconBuoy
@@ -81,10 +77,8 @@ sealed trait ConstructionInfo {
     case BorderLineMark     => in.borderLineMark
     case ChannelEdgeLight   => in.channelEdgeLight
     case Tower              => in.tower
-  }
-}
 
-object ConstructionInfo {
+object ConstructionInfo:
   case object BuoyBeacon extends ConstructionInfo
   case object IceBuoy extends ConstructionInfo
   case object BeaconBuoy extends ConstructionInfo
@@ -131,14 +125,12 @@ object ConstructionInfo {
   implicit val decoder: Decoder[ConstructionInfo] = Decoder.decodeInt.emap { int =>
     fromInt.lift(int).toRight(s"Unknown construction type: '$int'.")
   }
-}
 
-/**
-  * Turvalaitteen tyyppi (TY_JNR)
+/** Turvalaitteen tyyppi (TY_JNR)
   */
-sealed trait AidType {
-  import AidType._
-  def translate(in: AidTypeLang): String = this match {
+sealed trait AidType:
+  import AidType.*
+  def translate(in: AidTypeLang): String = this match
     case Unknown             => in.unknown
     case Lighthouse          => in.lighthouse
     case SectorLight         => in.sectorLight
@@ -152,10 +144,8 @@ sealed trait AidType {
     case Beacon              => in.beacon
     case SignatureLighthouse => in.signatureLighthouse
     case Cairn               => in.cairn
-  }
-}
 
-object AidType {
+object AidType:
   case object Unknown extends AidType
   case object Lighthouse extends AidType
   case object SectorLight extends AidType
@@ -188,17 +178,14 @@ object AidType {
   implicit val decoder: Decoder[AidType] = Decoder.decodeInt.emap { int =>
     fromInt.lift(int).toRight(s"Unknown aid type: '$int'.")
   }
-}
 
-sealed trait Flotation {
-  def translate(in: FlotationLang) = this match {
+sealed trait Flotation:
+  def translate(in: FlotationLang) = this match
     case Flotation.Floating => in.floating
     case Flotation.Solid    => in.solid
     case Flotation.Other(_) => in.other
-  }
-}
 
-object Flotation {
+object Flotation:
   case object Floating extends Flotation
   case object Solid extends Flotation
   case class Other(name: String) extends Flotation
@@ -209,35 +196,30 @@ object Flotation {
     case "KIINTE" => Solid
     case other    => Other(other)
   }
-}
 
-trait Owned {
+trait Owned:
   def owner: String
 
-  /**
-    * @return a translated name of the owner, best effort
+  /** @return
+    *   a translated name of the owner, best effort
     */
-  def ownerName(lang: SpecialWords): String = {
+  def ownerName(lang: SpecialWords): String =
     val finnishSpecial = Lang.fi.specialWords
-    owner match {
+    owner match
       case finnishSpecial.transportAgency => lang.transportAgency
       case finnishSpecial.defenceForces   => lang.defenceForces
       case finnishSpecial.portOfHelsinki  => lang.portOfHelsinki
       case finnishSpecial.cityOfHelsinki  => lang.cityOfHelsinki
       case finnishSpecial.cityOfEspoo     => lang.cityOfEspoo
       case _                              => owner
-    }
-  }
-}
 
-trait SymbolLike extends NameLike {
+trait SymbolLike extends NameLike:
   def locationFi: Option[String]
 
   def locationSe: Option[String]
 
   def location(lang: Lang): Option[String] =
-    if (lang == Lang.se) locationSe.orElse(locationFi) else locationFi.orElse(locationSe)
-}
+    if lang == Lang.se then locationSe.orElse(locationFi) else locationFi.orElse(locationSe)
 
 case class MarineSymbol(
   owner: String,
@@ -256,11 +238,12 @@ case class MarineSymbol(
 ) extends SymbolLike
   with Owned
 
-/**
-  * @see Vesiväyläaineistojen tietosisällön kuvaus
-  * @see https://vayla.fi/documents/20473/38174/Vesiv%C3%A4yl%C3%A4aineistojen+tietosis%C3%A4ll%C3%B6n+kuvaus/68b5f496-19a3-4b3d-887c-971e3366f01e
+/** @see
+  *   Vesiväyläaineistojen tietosisällön kuvaus
+  * @see
+  *   https://vayla.fi/documents/20473/38174/Vesiv%C3%A4yl%C3%A4aineistojen+tietosis%C3%A4ll%C3%B6n+kuvaus/68b5f496-19a3-4b3d-887c-971e3366f01e
   */
-object MarineSymbol {
+object MarineSymbol:
   val boolNum: Decoder[Boolean] = Decoder.decodeInt.emap {
     case 0     => Right(false)
     case 1     => Right(true)
@@ -274,9 +257,9 @@ object MarineSymbol {
 
   val nonEmpty: Decoder[String] = MaritimeJson.nonEmpty
 
-  implicit val decoder: Decoder[MarineSymbol] = new Decoder[MarineSymbol] {
+  implicit val decoder: Decoder[MarineSymbol] = new Decoder[MarineSymbol]:
     final def apply(c: HCursor): Decoder.Result[MarineSymbol] =
-      for {
+      for
         owner <- c.downField("OMISTAJA").as[String]
         topSign <- c.downField("HUIPPUMERK").as[Boolean](boolNum)
         fasadi <- c.downField("FASADIVALO").as[Boolean](boolNum)
@@ -290,7 +273,7 @@ object MarineSymbol {
         aidType <- c.downField("TY_JNR").as[AidType]
         navMark <- c.downField("NAVL_TYYP").as[NavMark]
         construction <- c.downField("RAKT_TYYP").as[Option[ConstructionInfo]]
-      } yield MarineSymbol(
+      yield MarineSymbol(
         owner,
         fasadi,
         topSign,
@@ -305,8 +288,6 @@ object MarineSymbol {
         navMark,
         construction
       )
-  }
-}
 
 case class MinimalMarineSymbol(
   owner: String,
@@ -318,36 +299,32 @@ case class MinimalMarineSymbol(
 ) extends SymbolLike
   with Owned
 
-object MinimalMarineSymbol {
-  implicit val decoder: Decoder[MinimalMarineSymbol] = new Decoder[MinimalMarineSymbol] {
+object MinimalMarineSymbol:
+  implicit val decoder: Decoder[MinimalMarineSymbol] = new Decoder[MinimalMarineSymbol]:
     final def apply(c: HCursor): Decoder.Result[MinimalMarineSymbol] =
-      for {
+      for
         owner <- c.downField("OMISTAJA").as[String]
         nameFi <- c.downField("NIMIS").as[Option[String]](nonEmptyOpt)
         nameSe <- c.downField("NIMIR").as[Option[String]](nonEmptyOpt)
         locationFi <- c.downField("SIJAINTIS").as[Option[String]](nonEmptyOpt)
         locationSe <- c.downField("SIJAINTIR").as[Option[String]](nonEmptyOpt)
         influence <- c.downField("VAIKUTUSAL").as[ZoneOfInfluence]
-      } yield MinimalMarineSymbol(owner, nameFi, nameSe, locationFi, locationSe, influence)
-  }
-}
+      yield MinimalMarineSymbol(owner, nameFi, nameSe, locationFi, locationSe, influence)
 
 case class DepthArea(minDepth: DistanceM, maxDepth: DistanceM, when: String)
 
-object DepthArea {
-  implicit val decoder: Decoder[DepthArea] = new Decoder[DepthArea] {
+object DepthArea:
+  implicit val decoder: Decoder[DepthArea] = new Decoder[DepthArea]:
     final def apply(c: HCursor): Decoder.Result[DepthArea] =
-      for {
+      for
         min <- c.downField("MINDEPTH").as[DistanceM]
         max <- c.downField("MAXDEPTH").as[DistanceM]
         when <- c.downField("IRROTUS_PV").as[String]
-      } yield DepthArea(min, max, when)
-  }
-}
+      yield DepthArea(min, max, when)
 
 sealed abstract class QualityClass(val value: Int)
 
-object QualityClass {
+object QualityClass:
   val all = Seq(Unknown, One, Two, Three)
 
   implicit val reader: Decoder[QualityClass] = Decoder.decodeInt.emap { i =>
@@ -361,11 +338,10 @@ object QualityClass {
   case object One extends QualityClass(1)
   case object Two extends QualityClass(2)
   case object Three extends QualityClass(3)
-}
 
-sealed trait FairwayType {
-  import FairwayType._
-  def translate(in: FairwayTypeLang): String = this match {
+sealed trait FairwayType:
+  import FairwayType.*
+  def translate(in: FairwayTypeLang): String = this match
     case Navigation     => in.navigation
     case Anchoring      => in.anchoring
     case Meetup         => in.meetup
@@ -379,10 +355,8 @@ sealed trait FairwayType {
     case ConfirmedExtra => in.confirmedExtra
     case Helcom         => in.helcom
     case Pilot          => in.pilot
-  }
-}
 
-object FairwayType {
+object FairwayType:
   val fromInt: PartialFunction[Int, FairwayType] = {
     case 1  => Navigation
     case 2  => Anchoring
@@ -415,11 +389,10 @@ object FairwayType {
   case object ConfirmedExtra extends FairwayType
   case object Helcom extends FairwayType
   case object Pilot extends FairwayType
-}
 
 sealed trait FairwayState
 
-object FairwayState {
+object FairwayState:
   val fromInt: PartialFunction[Int, FairwayState] = {
     case 1 => Confirmed
     case 2 => Aihio
@@ -438,18 +411,15 @@ object FairwayState {
   case object ChangeAihio extends FairwayState
   case object MayBeRemoved extends FairwayState
   case object Removed extends FairwayState
-}
 
-sealed trait MarkType {
-  import MarkType._
-  def translate(in: MarkTypeLang): String = this match {
+sealed trait MarkType:
+  import MarkType.*
+  def translate(in: MarkTypeLang): String = this match
     case Unknown  => in.unknown
     case Lateral  => in.lateral
     case Cardinal => in.cardinal
-  }
-}
 
-object MarkType {
+object MarkType:
   val fromInt: PartialFunction[Int, MarkType] = {
     case 0 => Unknown
     case 1 => Lateral
@@ -462,15 +432,17 @@ object MarkType {
   case object Unknown extends MarkType
   case object Lateral extends MarkType
   case object Cardinal extends MarkType
-}
 
 /** <p>Väyläalue, farledsområde.
   *
   * <p>harrow depth = haraussyvyys
   *
-  * @see Vesiväyläaineistojen tietosisällön kuvaus
-  * @see https://vayla.fi/documents/20473/38174/Vesiv%C3%A4yl%C3%A4aineistojen+tietosis%C3%A4ll%C3%B6n+kuvaus/68b5f496-19a3-4b3d-887c-971e3366f01e
-  * @see http://merisanasto.kyamk.fi/aakkos.php
+  * @see
+  *   Vesiväyläaineistojen tietosisällön kuvaus
+  * @see
+  *   https://vayla.fi/documents/20473/38174/Vesiv%C3%A4yl%C3%A4aineistojen+tietosis%C3%A4ll%C3%B6n+kuvaus/68b5f496-19a3-4b3d-887c-971e3366f01e
+  * @see
+  *   http://merisanasto.kyamk.fi/aakkos.php
   */
 case class FairwayArea(
   owner: String,
@@ -483,10 +455,10 @@ case class FairwayArea(
   markType: Option[MarkType]
 ) extends Owned
 
-object FairwayArea {
-  implicit val decoder: Decoder[FairwayArea] = new Decoder[FairwayArea] {
+object FairwayArea:
+  implicit val decoder: Decoder[FairwayArea] = new Decoder[FairwayArea]:
     final def apply(c: HCursor): Decoder.Result[FairwayArea] =
-      for {
+      for
         owner <- c.downField("OMISTAJA").as[String]
         quality <- c.downField("LAATULK").as[QualityClass]
         fairwayType <- c.downField("VAYALUE_TY").as[FairwayType]
@@ -495,7 +467,7 @@ object FairwayArea {
         comparison <- c.downField("VERT_TASO").as[String]
         state <- c.downField("TILA").as[FairwayState]
         mark <- c.downField("MERK_LAJI").as[Option[MarkType]]
-      } yield FairwayArea(
+      yield FairwayArea(
         owner,
         quality,
         fairwayType,
@@ -505,19 +477,15 @@ object FairwayArea {
         state,
         mark
       )
-  }
-}
 
-sealed trait ZoneOfInfluence {
-  import ZoneOfInfluence._
-  def translate(in: ZonesLang): String = this match {
+sealed trait ZoneOfInfluence:
+  import ZoneOfInfluence.*
+  def translate(in: ZonesLang): String = this match
     case Area                    => in.area
     case ZoneOfInfluence.Fairway => in.fairway
     case AreaAndFairway          => in.areaAndFairway
-  }
-}
 
-object ZoneOfInfluence {
+object ZoneOfInfluence:
   implicit val reader: Decoder[ZoneOfInfluence] =
     partialReader[String, ZoneOfInfluence](str => s"Unexpected zone of influence: '$str'.") {
       case "A"  => Area
@@ -528,12 +496,11 @@ object ZoneOfInfluence {
   case object Area extends ZoneOfInfluence
   case object Fairway extends ZoneOfInfluence
   case object AreaAndFairway extends ZoneOfInfluence
-}
 
-sealed trait LimitType {
-  import LimitType._
+sealed trait LimitType:
+  import LimitType.*
 
-  def describe(lang: LimitTypes): String = this match {
+  def describe(lang: LimitTypes): String = this match
     case SpeedLimit          => lang.speedLimit
     case NoWaves             => lang.noWaves
     case NoWindSurfing       => lang.noWindSurfing
@@ -545,10 +512,8 @@ sealed trait LimitType {
     case NoOvertaking        => lang.noOvertaking
     case NoRendezVous        => lang.noRendezVous
     case SpeedRecommendation => lang.speedRecommendation
-  }
-}
 
-object LimitType {
+object LimitType:
   case object SpeedLimit extends LimitType
   case object NoWaves extends LimitType
   case object NoWindSurfing extends LimitType
@@ -580,14 +545,13 @@ object LimitType {
     case "11" => SpeedRecommendation
   }
 
-  def fromString(s: String): Either[String, Seq[LimitType]] = {
+  def fromString(s: String): Either[String, Seq[LimitType]] =
     val results = s.split(", ").toList.map { limit =>
       LimitType.parse
         .lift(limit)
         .toRight(s"Unknown limit type: '$limit'.")
     }
     jsonSeq(results)
-  }
 
   def jsonSeq[T](results: Seq[Either[String, T]]): Either[String, Seq[T]] =
     results.foldLeft[Either[String, Seq[T]]](Right(Nil)) { (acc, t) =>
@@ -596,11 +560,11 @@ object LimitType {
         ok => acc.map(ts => Seq(ok) ++ ts)
       )
     }
-}
 
-/**
-  * @param responsible merkinnästä vastaava
-  * @param publishDate kohteen julkaisupäivämäärä
+/** @param responsible
+  *   merkinnästä vastaava
+  * @param publishDate
+  *   kohteen julkaisupäivämäärä
   */
 case class LimitArea(
   types: Seq[LimitType],
@@ -610,17 +574,16 @@ case class LimitArea(
   location: Option[String],
   fairwayName: Option[String],
   publishDate: String
-) {
+):
   def describeTypes(lang: LimitTypes) = types.map(lt => lt.describe(lang))
   def describe(lang: LimitTypes): String = describeTypes(lang).mkString(", ")
-}
 
-object LimitArea {
+object LimitArea:
   import com.malliina.measure.{DistanceDoubleM, SpeedDoubleM}
 
-  implicit val decoder: Decoder[LimitArea] = new Decoder[LimitArea] {
+  implicit val decoder: Decoder[LimitArea] = new Decoder[LimitArea]:
     final def apply(c: HCursor): Decoder.Result[LimitArea] =
-      for {
+      for
         types <-
           c.downField("RAJOITUSTY")
             .as[String]
@@ -631,6 +594,4 @@ object LimitArea {
         location <- c.downField("NIMI_SIJAI").as[Option[String]](nonEmptyOpt)
         fairwayName <- c.downField("VAY_NIMISU").as[Option[String]](nonEmptyOpt)
         publishDate <- c.downField("IRROTUS_PV").as[String]
-      } yield LimitArea(types, limit, length, responsible, location, fairwayName, publishDate)
-  }
-}
+      yield LimitArea(types, limit, length, responsible, location, fairwayName, publishDate)

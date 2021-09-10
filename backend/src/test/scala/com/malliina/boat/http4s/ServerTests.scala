@@ -5,7 +5,7 @@ import com.malliina.boat.Errors
 import org.http4s.{Request, Status}
 import tests.{MUnitSuite, ServerSuite}
 
-class ServerTests extends MUnitSuite with ServerSuite {
+class ServerTests extends MUnitSuite with ServerSuite:
   test("can call server") {
     val uri = baseUrl.addPath("health")
     val status = client.statusFromUri(uri).unsafeRunSync()
@@ -27,11 +27,9 @@ class ServerTests extends MUnitSuite with ServerSuite {
     assertEquals(status(".well-known/assetlinks.json"), Status.Ok)
   }
 
-  private def status(path: String) = {
+  private def status(path: String) =
     val url = baseUrl.addPath(path)
     client.statusFromUri(url).unsafeRunSync()
-  }
 
   def baseUrl = server().baseHttpUri
   def client = server().client
-}

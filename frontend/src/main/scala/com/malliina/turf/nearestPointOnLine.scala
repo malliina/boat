@@ -12,7 +12,7 @@ import scala.scalajs.js.annotation.JSImport
   */
 @js.native
 @JSImport("@turf/nearest-point-on-line", JSImport.Default)
-object nearestPointOnLine extends js.Object {
+object nearestPointOnLine extends js.Object:
 //  def center(geoJson: js.Any): js.Any = js.native
 //  def point(coord: js.Array[Double]): GeoPoint = js.native
 //  def lineString(coords: js.Array[js.Array[Double]]): GeoLineString = js.native
@@ -20,22 +20,18 @@ object nearestPointOnLine extends js.Object {
 
   /** Returns Feature <Point> - closest point on the line to point.
     *
-    * The properties object will contain three values:
-    * index : closest point was found on nth line part,
-    * dist : distance between pt and the closest point,
-    * location : distance along the line between start and the closest point.
+    * The properties object will contain three values: index : closest point was found on nth line
+    * part, dist : distance between pt and the closest point, location : distance along the line
+    * between start and the closest point.
     */
   def apply(line: GeoLineString, point: GeoPoint): NearestResult = js.native
-}
 
 @js.native
-trait NearestResult extends js.Object {
+trait NearestResult extends js.Object:
   def properties: TurfPointResult = js.native
-}
 
 @js.native
-trait TurfPointResult extends js.Object {
+trait TurfPointResult extends js.Object:
   def index: Int = js.native
   def dist: Double = js.native
   def location: Double = js.native
-}

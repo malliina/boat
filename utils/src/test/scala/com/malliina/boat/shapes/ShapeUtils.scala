@@ -19,7 +19,7 @@ import org.locationtech.jts.geom.Geometry
 
 import scala.jdk.CollectionConverters.{CollectionHasAsScala, MapHasAsJava}
 
-class ShapeUtils extends FunSuite {
+class ShapeUtils extends FunSuite:
   val userHome = Paths.get(sys.props("user.home"))
 
   test("write shapefile to geojson with geographic WGS84".ignore) {
@@ -37,7 +37,7 @@ class ShapeUtils extends FunSuite {
       val targetCrs = DefaultGeographicCRS.WGS84
       val transformation = CRS.findMathTransform(srcCrs, targetCrs, true)
       val srcFeatures = coll.features()
-      while (srcFeatures.hasNext) {
+      while srcFeatures.hasNext do
         val srcFeature = srcFeatures.next()
         val geo: Geometry = srcFeature.getDefaultGeometry.asInstanceOf[Geometry]
         val transformed = JTS.transform(geo, transformation)
@@ -46,7 +46,6 @@ class ShapeUtils extends FunSuite {
         feature.setAttributes(srcFeature.getAttributes)
         feature.setDefaultGeometry(transformed)
         outCollection.add(feature)
-      }
       srcFeatures.close()
       outCollection
     }
@@ -86,14 +85,13 @@ class ShapeUtils extends FunSuite {
     val store = DataStoreFinder.getDataStore(Map("url" -> inFile.toUri.toString).asJava)
     val sources = store.getTypeNames.map(store.getFeatureSource).map(_.getFeatures.features())
     sources.foreach { src =>
-      while (src.hasNext) {
+      while src.hasNext do
         val feature = src.next()
         feature.getProperties.asScala
           .filter(prop => Option(prop.getValue).exists(_.toString.contains("LU-rannalla")))
           .foreach { prop =>
             println(s"${prop.getName} = ${prop.getValue}")
           }
-      }
     }
   }
 
@@ -115,17 +113,21 @@ class ShapeUtils extends FunSuite {
     *
     * Converts dbf files from ISO-8859-1 to UTF-8.
     *
-    * @param in in file
-    * @param out out file
-    * @param from in encoding
-    * @param to out encoding
+    * @param in
+    *   in file
+    * @param out
+    *   out file
+    * @param from
+    *   in encoding
+    * @param to
+    *   out encoding
     */
   def changeEncoding(
     in: Path,
     out: Path,
     from: Charset = StandardCharsets.ISO_8859_1,
     to: Charset = StandardCharsets.UTF_8
-  ) = {
+  ) =
     Files.createFile(out)
     val inChannel = new FileInputStream(in.toFile).getChannel
     val reader = new DbaseFileReader(inChannel, true, from)
@@ -133,11 +135,8 @@ class ShapeUtils extends FunSuite {
     val outChannel = FileChannel.open(out, StandardOpenOption.WRITE)
     val writer = new DbaseFileWriter(reader.getHeader, outChannel, to)
 
-    while (reader.hasNext) {
+    while reader.hasNext do
       val entry = reader.readEntry()
       writer.write(entry)
-    }
     reader.close()
     writer.close()
-  }
-}

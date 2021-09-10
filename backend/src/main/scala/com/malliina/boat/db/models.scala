@@ -23,9 +23,8 @@ case class CoordFairways(coord: CoordHash, fairways: Seq[FairwayRow])
 
 case class NewUser(user: Username, email: Option[Email], token: UserToken, enabled: Boolean)
 
-object NewUser {
+object NewUser:
   def email(email: Email): NewUser =
     NewUser(Username(email.email), Option(email), UserToken.random(), enabled = true)
-}
 
 class NotFoundException(val message: String) extends Exception

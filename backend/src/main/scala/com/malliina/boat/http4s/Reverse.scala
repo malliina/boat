@@ -4,9 +4,9 @@ import com.malliina.boat.auth.AuthProvider
 import com.malliina.boat.{DeviceId, TrackCanonical, TrackId, TrackName}
 import com.malliina.values.UserId
 import org.http4s.Uri
-import org.http4s.implicits._
+import org.http4s.implicits.*
 
-object Reverse {
+object Reverse:
   val root = uri"/"
   val index = root
   val pingAuth = uri"/pingAuth"
@@ -36,11 +36,10 @@ object Reverse {
   val stats = uri"/stats"
   def shortest(srclat: Double, srclng: Double, destlat: Double, destlng: Double) =
     Uri.unsafeFromString(s"/routes/$srclat/$srclng/$destlat/$destlng")
-  object ws {
+  object ws:
     val updates = uri"/ws/updates"
     val boats = uri"/ws/boats"
     val devices = uri"/ws/devices"
-  }
   val signIn = uri"/sign-in"
   def signInFlow(provider: AuthProvider) = signIn / provider.name
   def signInCallback(provider: AuthProvider) = signIn / "callbacks" / provider.name
@@ -51,4 +50,3 @@ object Reverse {
   val files = uri"/files"
   def file(id: String) = Uri.unsafeFromString(s"/files/$id")
   def canonical(id: TrackCanonical) = Uri.unsafeFromString(s"/$id")
-}

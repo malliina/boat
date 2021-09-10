@@ -1,13 +1,13 @@
 package tests
 
 import cats.effect.IO
-import com.malliina.boat.parsing._
+import com.malliina.boat.parsing.*
 import com.malliina.boat.{Coord, KeyedSentence, RawSentence, SentenceKey}
 import com.malliina.measure.{DistanceIntM, SpeedIntM, TemperatureInt}
 
 import java.time.{LocalDate, LocalTime}
 
-class SentenceParsingTests extends BaseSuite {
+class SentenceParsingTests extends BaseSuite:
   test("stateful sentence parsing") {
     val from = MultiParsingTests.testFrom
 
@@ -73,4 +73,3 @@ class SentenceParsingTests extends BaseSuite {
     val actual = processed.compile.toList.unsafeRunSync()
     assert(actual == expected)
   }
-}

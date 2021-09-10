@@ -1,8 +1,8 @@
 package com.malliina.boat
 
-import com.malliina.boat.BoatFormats._
+import com.malliina.boat.BoatFormats.*
 import com.malliina.geojson.{GeoLineString, GeoPoint}
-import com.malliina.mapbox._
+import com.malliina.mapbox.*
 import com.malliina.measure.SpeedM
 import com.malliina.turf.nearestPointOnLine
 import com.malliina.values.ErrorMessage
@@ -18,7 +18,7 @@ class MapSocket(
   mode: MapMode,
   language: Language
 ) extends BoatSocket(track, sample)
-  with GeoUtils {
+  with GeoUtils:
 
   val lang = Lang(language)
   val trackLang = lang.track
@@ -43,14 +43,16 @@ class MapSocket(
   )
 
   def initImage(file: String, iconId: String): Future[Unit] =
-    map.initImage(s"/assets/img/$file", iconId).recover {
-      case t => log.error("Unable to initialize image.", t)
+    map.initImage(s"/assets/img/$file", iconId).recover { case t =>
+      log.error("Unable to initialize image.", t)
     }
 
   /** Colors the track by speed.
     *
-    * @see https://docs.mapbox.com/mapbox-gl-js/example/heatmap-layer/
-    * @param id layer ID
+    * @see
+    *   https://docs.mapbox.com/mapbox-gl-js/example/heatmap-layer/
+    * @param id
+    *   layer ID
     */
   def lineLayer(id: String) =
     trackLineLayer(id, LinePaint(LinePaint.blackColor, 1, 1))
@@ -58,7 +60,7 @@ class MapSocket(
 
   def trackLineLayer(id: String, paint: LinePaint): Layer = Layer.line(id, emptyTrack, paint, None)
 
-  override def onCoords(event: CoordsEvent): Unit = {
+  override def onCoords(event: CoordsEvent): Unit =
     val from = event.from
     val trackId = from.track
     val coordsInfo = event.coords
@@ -69,19 +71,19 @@ class MapSocket(
     val hoverableTrack = s"$track-thick"
     val point = pointName(boat)
     val oldTrack: FeatureCollection = boats.getOrElse(track, emptyTrack)
-    val latestMeasurement = for {
+    val latestMeasurement = for
       latestFeature <- oldTrack.features.lastOption
       latestCoord <- latestFeature.geometry.coords.headOption
       speedProp <- latestFeature.properties.get(TimedCoord.SpeedKey)
       speed <- speedProp.as[SpeedM].toOption
-    } yield SimpleCoord(latestCoord, speed)
+    yield SimpleCoord(latestCoord, speed)
     val newTrack: FeatureCollection =
       oldTrack
         .copy(features = oldTrack.features ++ speedFeatures(latestMeasurement.toSeq ++ coordsInfo))
     boats = boats.updated(track, newTrack)
     trails = trails.updated(trackId, trails.getOrElse(trackId, Nil) ++ coordsInfo)
     // adds layer if not already added
-    if (map.findSource(track).isEmpty) {
+    if map.findSource(track).isEmpty then
       log.debug(s"Crafting new track for boat '$boat'...")
       map.putLayer(lineLayer(track))
       // adds a thicker, transparent trail on top of the visible one, which represents the mouse-hoverable area
@@ -90,35 +92,29 @@ class MapSocket(
         // adds boat icon
         map.putLayer(boatSymbolLayer(point, coord))
         map.onHover(point)(
-          in => {
+          in =>
             map.getCanvas().style.cursor = "pointer"
             trackPopup.remove()
-            boatPopup.showText(from.boatName.name, in.lngLat, map)
-          },
-          _ => {
+            boatPopup.showText(from.boatName.name, in.lngLat, map),
+          _ =>
             map.getCanvas().style.cursor = ""
             boatPopup.remove()
-          }
         )
       }
       // adds trophy icon
       map.putLayer(trophySymbolLayer(trophyLayerId, from.topPoint.coord))
       map.onHover(trophyLayerId)(
-        in => {
-          map.getCanvas().style.cursor = "pointer"
-        },
-        _ => {
-          map.getCanvas().style.cursor = ""
-        }
+        in => map.getCanvas().style.cursor = "pointer",
+        _ => map.getCanvas().style.cursor = ""
       )
 
       map.onHover(hoverableTrack)(
-        in => {
+        in =>
           val isOnBoatSymbol = map
             .queryRendered(in.point, QueryOptions.all)
             .getOrElse(Nil)
             .exists(_.layer.exists(_.id == point))
-          if (!isOnBoatSymbol) {
+          if !isOnBoatSymbol then
             val lngLat = in.lngLat
             val op = Coord.build(lngLat.lng, lngLat.lat).flatMap { coord =>
               nearest(coord, trails.getOrElse(trackId, Nil))(_.coord).map { near =>
@@ -128,27 +124,23 @@ class MapSocket(
               }
             }
             op.fold(err => log.info(err.message), identity)
-          }
-        },
-        _ => {
+        ,
+        _ =>
           map.getCanvas().style.cursor = ""
           popups.isTrackHover = false
           trackPopup.remove()
-        }
       )
-    }
     // updates the boat icon
     map.findSource(point).foreach { geoJson =>
       coords.lastOption.foreach { coord =>
         // updates placement
         geoJson.updateData(pointFor(coord))
         // updates bearing
-        newTrack.features.flatMap(_.geometry.coords).takeRight(2).toList match {
+        newTrack.features.flatMap(_.geometry.coords).takeRight(2).toList match
           case prev :: last :: _ =>
             map.setLayoutProperty(point, ImageLayout.IconRotate, bearing(prev, last).toInt)
           case _ =>
             ()
-        }
       }
     }
     // updates the trail
@@ -194,48 +186,42 @@ class MapSocket(
     elem(EditTitleId).foreach { e =>
       e.show()
     }
-    if (boats.keySet.size == 1) {
+    if boats.keySet.size == 1 then
       elem(DurationId).foreach { e =>
         e.innerHTML = s"${trackLang.duration} ${formatDuration(from.duration)}"
       }
-    }
     // updates the map position, zoom to reflect the updated track(s)
-    mapMode match {
+    mapMode match
       case MapMode.Fit =>
         trail.headOption.foreach { head =>
           val init = LngLatBounds(head)
           val bs: LngLatBounds = trail.drop(1).foldLeft(init) { (bounds, c) =>
             bounds.extend(LngLat(c))
           }
-          try {
-            map.fitBounds(bs, SimplePaddingOptions(20))
-          } catch {
+          try map.fitBounds(bs, SimplePaddingOptions(20))
+          catch
             case e: Exception =>
               log.error(
                 s"Unable to fit using ${bs.getSouthWest()} ${bs.getNorthWest()} ${bs
                   .getNorthEast()} ${bs.getSouthEast()}",
                 e
               )
-          }
         }
         mapMode = MapMode.Follow
       case MapMode.Follow =>
-        if (boats.keySet.size == 1) {
+        if boats.keySet.size == 1 then
           coords.lastOption.foreach { coord =>
             map.easeTo(EaseOptions(coord))
           }
-        } else {
+        else
           // does not follow if more than one boats are online, since it's not clear what to follow
           mapMode = MapMode.Stay
-        }
       case MapMode.Stay =>
         ()
-    }
-  }
 
   val devicePopup = MapboxPopup(PopupOptions(className = Option("popup-device")))
 
-  override def onGps(event: GPSCoordsEvent): Unit = {
+  override def onGps(event: GPSCoordsEvent): Unit =
     val from = event.from
     val name = deviceName(from.deviceName)
     event.coords.lastOption.foreach { coord =>
@@ -253,18 +239,16 @@ class MapSocket(
               map.queryRendered(in.point, QueryOptions.layer(name)).map { fs =>
                 fs.flatMap(_.props.as[DeviceProps].toOption).headOption.foreach { device =>
                   map.getCanvas().style.cursor = "pointer"
-                  if (!popups.markPopup.isOpen())
+                  if !popups.markPopup.isOpen() then
                     devicePopup.showText(device.deviceName.name, in.lngLat, map)
                 }
               },
-            _ => {
+            _ =>
               map.getCanvas().style.cursor = ""
               devicePopup.remove()
-            }
           )
         }
     }
-  }
 
   def fly(to: BoatName): Unit =
     devices
@@ -276,21 +260,19 @@ class MapSocket(
         log.info(s"Device not found on map: '$to'.")
       }
 
-  override def onAIS(messages: Seq[VesselInfo]): Unit = {
+  override def onAIS(messages: Seq[VesselInfo]): Unit =
     ais.onAIS(messages)
-  }
 
-  def nearest[T](fromCoord: Coord, on: Seq[T])(c: T => Coord): Either[ErrorMessage, T] = {
+  def nearest[T](fromCoord: Coord, on: Seq[T])(c: T => Coord): Either[ErrorMessage, T] =
     val all = GeoLineString(on.map(c))
     val turfPoint = GeoPoint(fromCoord)
     val nearestResult = nearestPointOnLine(all, turfPoint)
     val idx = nearestResult.properties.index
-    if (on.length > idx) Right(on(idx))
+    if on.length > idx then Right(on(idx))
     else Left(ErrorMessage(s"No trail at $fromCoord."))
-  }
 
   // https://www.movable-type.co.uk/scripts/latlong.html
-  def bearing(from: Coord, to: Coord): Double = {
+  def bearing(from: Coord, to: Coord): Double =
     val dLon = to.lng.lng - from.lng.lng
     val y = Math.sin(dLon) * Math.cos(to.lat.lat)
     val x = Math.cos(from.lat.lat) * Math.sin(to.lat.lat) - Math.sin(from.lat.lat) * Math.cos(
@@ -298,7 +280,6 @@ class MapSocket(
     ) * Math.cos(dLon)
     val brng = toDeg(Math.atan2(y, x))
     360 - ((brng + 360) % 360)
-  }
 
   def toRad(deg: Double) = deg * Math.PI / 180
   def toDeg(rad: Double) = rad * 180 / Math.PI
@@ -316,4 +297,3 @@ class MapSocket(
 
   def trophySymbolLayer(id: String, coord: Coord) =
     Layer.symbol(id, pointFor(coord), ImageLayout(trophyIconId, `icon-size` = 1))
-}

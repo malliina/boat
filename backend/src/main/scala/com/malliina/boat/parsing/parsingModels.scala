@@ -5,14 +5,13 @@ import com.malliina.boat.{Coord, DeviceId, GPSInsertedPoint, GPSKeyedSentence, G
 import com.malliina.measure.{DistanceM, SpeedM, Temperature}
 import com.malliina.values.ErrorMessage
 
-trait ParsedGPSSentence {
+trait ParsedGPSSentence:
   def sentence: GPSKeyedSentence
   def boat = sentence.from
   def key = sentence.key
-}
 
 case class ParsedGPSCoord(coord: Coord, ggaTime: LocalTime, sentence: GPSKeyedSentence)
-  extends ParsedGPSSentence {
+  extends ParsedGPSSentence:
   def complete(
     date: LocalDate,
     time: LocalTime,
@@ -21,7 +20,6 @@ case class ParsedGPSCoord(coord: Coord, ggaTime: LocalTime, sentence: GPSKeyedSe
     parts: Seq[GPSSentenceKey]
   ) =
     GPSCoord(coord, date, time, satellites, fix, boat, parts)
-}
 
 case class ParsedGPSDateTime(date: LocalDate, time: LocalTime, sentence: GPSKeyedSentence)
   extends ParsedGPSSentence
@@ -30,15 +28,14 @@ case class SatellitesInView(satellites: Int, sentence: GPSKeyedSentence) extends
 
 case class GPSInfo(mode: GPSMode, fix: GPSFix, sentence: GPSKeyedSentence) extends ParsedGPSSentence
 
-sealed trait ParsedSentence {
+sealed trait ParsedSentence:
   def sentence: KeyedSentence
   def from: TrackMetaShort = sentence.from
   def track: TrackId = from.track
   def key: SentenceKey = sentence.key
-}
 
 case class ParsedCoord(coord: Coord, ggaTime: LocalTime, sentence: KeyedSentence)
-  extends ParsedSentence {
+  extends ParsedSentence:
   def lng = coord.lng
   def lat = coord.lat
 
@@ -52,7 +49,6 @@ case class ParsedCoord(coord: Coord, ggaTime: LocalTime, sentence: KeyedSentence
     parts: Seq[SentenceKey]
   ): FullCoord =
     FullCoord(coord, time, date, boatSpeed, waterTemp, depth, depthOffset, from, parts)
-}
 
 case class ParsedDateTime(date: LocalDate, time: LocalTime, sentence: KeyedSentence)
   extends ParsedSentence
@@ -74,7 +70,7 @@ case class GPSCoord(
   fix: GPSFix,
   device: DeviceId,
   parts: Seq[GPSSentenceKey] = Nil
-) {
+):
   val dateTime = date.atTime(time)
   val gpsTime = dateTime.toInstant(ZoneOffset.UTC)
 
@@ -86,7 +82,6 @@ case class GPSCoord(
     coord,
     formatter.timing(gpsTime)
   )
-}
 
 case class FullCoord(
   coord: Coord,
@@ -98,7 +93,7 @@ case class FullCoord(
   depthOffset: DistanceM,
   from: TrackMetaShort,
   parts: Seq[SentenceKey] = Nil
-) {
+):
   val dateTime = date.atTime(time)
   val boatTime = dateTime.toInstant(ZoneOffset.UTC)
 
@@ -117,36 +112,30 @@ case class FullCoord(
     depth,
     formatter.timing(boatTime)
   )
-}
 
-sealed trait SentenceError {
+sealed trait SentenceError:
   def sentence: RawSentence
   def message: ErrorMessage
   def messageString = message.message
-}
 
 case class InvalidSentence(sentence: RawSentence, message: ErrorMessage) extends SentenceError
 
-case class UnknownSentence(sentence: RawSentence, detailedMessage: String) extends SentenceError {
+case class UnknownSentence(sentence: RawSentence, detailedMessage: String) extends SentenceError:
   override def message: ErrorMessage = ErrorMessage(
     s"Unknown sentence: '$sentence'. $detailedMessage"
   )
-}
 
-case class SuspectTime(sentence: RawSentence) extends SentenceError {
+case class SuspectTime(sentence: RawSentence) extends SentenceError:
   override def message: ErrorMessage =
     ErrorMessage(s"Suspect time in '$sentence'. This might mean the plotter is still initializing.")
-}
 
-case class SentenceFailure(sentence: RawSentence, e: Exception) extends SentenceError {
+case class SentenceFailure(sentence: RawSentence, e: Exception) extends SentenceError:
   override def message: ErrorMessage = ErrorMessage(
     s"Error for sentence: '$sentence'. ${e.getMessage}"
   )
-}
 
-case class IgnoredSentence(sentence: RawSentence) extends SentenceError {
+case class IgnoredSentence(sentence: RawSentence) extends SentenceError:
   override def message = ErrorMessage(s"Ignoring sentence '$sentence'.")
-}
 
 sealed trait SavedEvent
 case object EmptySavedEvent extends SavedEvent

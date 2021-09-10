@@ -3,11 +3,11 @@ package com.malliina.boat.html
 import com.malliina.boat.AppConf
 import io.circe.Json
 import io.circe.syntax.EncoderOps
-import scalatags.Text.all._
+import scalatags.Text.all.*
 
 import scala.language.implicitConversions
 
-object StructuredData {
+object StructuredData:
   val property = attr("property")
   val typeof = attr("typeof")
   val vocab = attr("vocab")
@@ -30,4 +30,3 @@ object StructuredData {
     meta(property := "al:ios:app_store_id", content := "1434203398"),
     meta(property := "al:ios:app_name", content := AppConf.Name)
   )
-}

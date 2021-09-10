@@ -4,11 +4,10 @@ import com.malliina.boat.TrackId
 
 /** Combines various NMEA0183 events, returning any complete events of type `FullCoord`.
   */
-object TrackManager {
+object TrackManager:
   def apply(): TrackManager = new TrackManager
-}
 
-class TrackManager extends SentenceAggregator[TrackId, ParsedCoord, FullCoord] {
+class TrackManager extends SentenceAggregator[TrackId, ParsedCoord, FullCoord]:
   private var latestDepth: Map[TrackId, WaterDepth] = Map.empty
   private var latestWaterTemp: Map[TrackId, WaterTemperature] = Map.empty
   private var latestWaterSpeed: Map[TrackId, ParsedWaterSpeed] = Map.empty
@@ -16,7 +15,7 @@ class TrackManager extends SentenceAggregator[TrackId, ParsedCoord, FullCoord] {
   // latest suitable date, if any
   private var latestDateTime: Map[TrackId, ParsedDateTime] = Map.empty
 
-  def update(event: ParsedSentence): List[FullCoord] = event match {
+  def update(event: ParsedSentence): List[FullCoord] = event match
     case pd @ ParsedDateTime(_, _, _) =>
       val track = pd.track
       latestDateTime = latestDateTime.updated(track, pd)
@@ -40,33 +39,28 @@ class TrackManager extends SentenceAggregator[TrackId, ParsedCoord, FullCoord] {
     case coord @ ParsedCoord(_, _, _) =>
       val track = coord.track
       val emittable = complete(track, List(coord))
-      if (emittable.isEmpty) {
+      if emittable.isEmpty then
         coords = coords.updated(track, coords.getOrElse(track, Nil) :+ coord)
-      }
       emittable
-  }
 
-  /**
-    * @return true if complete, false otherwise
+  /** @return
+    *   true if complete, false otherwise
     */
   override def complete(track: TrackId, buffer: List[ParsedCoord]): List[FullCoord] =
-    (for {
+    (for
       dateTime <- latestDateTime.get(track)
       speed <- latestBoatSpeed.get(track)
       temp <- latestWaterTemp.get(track)
       depth <- latestDepth.get(track)
-    } yield {
-      buffer.map { coord =>
-        val sentenceKeys = List(coord.key, dateTime.key, speed.key, temp.key, depth.key)
-        coord.complete(
-          dateTime.date,
-          dateTime.time,
-          speed.speed,
-          temp.temp,
-          depth.depth,
-          depth.offset,
-          sentenceKeys
-        )
-      }
+    yield buffer.map { coord =>
+      val sentenceKeys = List(coord.key, dateTime.key, speed.key, temp.key, depth.key)
+      coord.complete(
+        dateTime.date,
+        dateTime.time,
+        speed.speed,
+        temp.temp,
+        depth.depth,
+        depth.offset,
+        sentenceKeys
+      )
     }).getOrElse { Nil }
-}

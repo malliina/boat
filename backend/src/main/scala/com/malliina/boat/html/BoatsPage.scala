@@ -1,34 +1,33 @@
 package com.malliina.boat.html
 
-import com.malliina.boat.FrontKeys._
+import com.malliina.boat.FrontKeys.*
 import com.malliina.boat.InviteState.{Accepted, Awaiting, Other, Rejected}
 import com.malliina.boat.http.CSRFConf
 import com.malliina.boat.http4s.Reverse
 import com.malliina.boat.{BoatIds, BoatNames, BoatRef, Emails, Forms, InviteState, UserInfo}
 import com.malliina.values.WrappedId
 import scalatags.Text
-import scalatags.Text.all._
+import scalatags.Text.all.*
 import scalatags.text.Builder
 
 import scala.language.implicitConversions
 
-object BoatsPage extends BoatImplicits with CSRFConf {
+object BoatsPage extends BoatImplicits with CSRFConf:
   val reverse = Reverse
   val empty: Modifier = modifier()
 
-  def apply(user: UserInfo): Text.TypedTag[String] = {
+  def apply(user: UserInfo): Text.TypedTag[String] =
     val langs = BoatLang(user.language)
     val lang = langs.lang
     val webLang = langs.web
     val settings = lang.settings
     val boatLang = settings.boatLang
     val inviteLang = settings.invite
-    implicit def stateToHtml(s: InviteState): Modifier = s match {
+    implicit def stateToHtml(s: InviteState): Modifier = s match
       case Awaiting => inviteLang.awaiting
       case Accepted => inviteLang.accepted
       case Rejected => inviteLang.rejected
       case Other(_) => ""
-    }
     div(`class` := "container")(
       div(`class` := "row")(
         div(`class` := "col-md-12")(
@@ -121,9 +120,8 @@ object BoatsPage extends BoatImplicits with CSRFConf {
           h2(inviteLang.invites)
         )
       ),
-      if (user.invites.isEmpty) {
-        p(`class` := "mb-5")(inviteLang.noInvites)
-      } else {
+      if user.invites.isEmpty then p(`class` := "mb-5")(inviteLang.noInvites)
+      else
         table(`class` := "table table-hover mb-5")(
           thead(
             tr(
@@ -139,31 +137,26 @@ object BoatsPage extends BoatImplicits with CSRFConf {
                 td(i.state),
                 td(`class` := "table-button")(
                   div(`class` := "row")(
-                    if (i.state != Accepted) {
+                    if i.state != Accepted then
                       respondForm(i.boat, inviteLang.accept, accept = true)
-                    } else {
-                      empty
-                    },
-                    if (i.state != Rejected) {
+                    else empty,
+                    if i.state != Rejected then
                       respondForm(i.boat, inviteLang.reject, accept = false)
-                    } else {
-                      empty
-                    }
+                    else empty
                   )
                 )
               )
             }
           )
         )
-      },
+      ,
       div(`class` := "row")(
         div(`class` := "col-md-12")(
           h2(inviteLang.friends)
         )
       ),
-      if (user.friends.isEmpty) {
-        p(`class` := "mb-5")(inviteLang.noFriends)
-      } else {
+      if user.friends.isEmpty then p(`class` := "mb-5")(inviteLang.noFriends)
+      else
         table(`class` := "table table-hover")(
           thead(
             tr(
@@ -198,9 +191,7 @@ object BoatsPage extends BoatImplicits with CSRFConf {
             }
           )
         )
-      }
     )
-  }
 
   private def respondForm(boat: BoatRef, buttonText: String, accept: Boolean) =
     div(`class` := "col")(
@@ -247,4 +238,3 @@ object BoatsPage extends BoatImplicits with CSRFConf {
 
 //  def csrfInput(token: CSRF.Token) =
 //    input(`type` := "hidden", name := token.name, value := token.value)
-}

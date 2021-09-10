@@ -8,30 +8,25 @@ import com.malliina.push.gcm.MappedGCMResponse.TokenReplacement
 
 case class PushTokenReplacement(oldToken: PushToken, newToken: PushToken, device: MobileDevice)
 
-object PushTokenReplacement {
+object PushTokenReplacement:
   def apply(gcm: TokenReplacement): PushTokenReplacement =
     PushTokenReplacement(
       PushToken(gcm.oldToken.token),
       PushToken(gcm.newToken.token),
       MobileDevice.Android
     )
-}
 
-case class PushSummary(badTokens: Seq[PushToken], replacements: Seq[PushTokenReplacement]) {
+case class PushSummary(badTokens: Seq[PushToken], replacements: Seq[PushTokenReplacement]):
   def isEmpty = badTokens.isEmpty && replacements.isEmpty
 
   def ++(other: PushSummary): PushSummary =
     PushSummary(badTokens ++ other.badTokens, replacements ++ other.replacements)
-}
 
-object PushSummary {
+object PushSummary:
   val empty = PushSummary(Nil, Nil)
-}
 
-trait PushClient[T <: Token] {
+trait PushClient[T <: Token]:
   def push(notification: BoatNotification, to: T): IO[PushSummary]
-}
 
-trait PushEndpoint {
+trait PushEndpoint:
   def push(notification: BoatNotification, to: PushDevice): IO[PushSummary]
-}

@@ -1,6 +1,6 @@
 package com.malliina.boat
 
-import io.circe._
+import io.circe.*
 import io.circe.parser.decode
 import io.circe.syntax.EncoderOps
 
@@ -9,7 +9,7 @@ import scala.scalajs.js.JSON
 
 object Parsing extends Parsing
 
-trait Parsing {
+trait Parsing:
   val printer = Printer.noSpaces.copy(dropNullValues = true)
 
   def toJson[T: Encoder](t: T): js.Dynamic =
@@ -24,13 +24,10 @@ trait Parsing {
 
   def validate[T: Decoder](json: Json): Either[JsonError, T] =
     json.as[T].left.map(err => JsonError(DecodingFailure(err.message, Nil), json))
-}
 
-case class JsonError(error: io.circe.Error, json: Option[Json]) {
+case class JsonError(error: io.circe.Error, json: Option[Json]):
   def describe = json.fold(s"JSON error $error")(body => s"JSON error $error for JSON '$body'.")
-}
 
-object JsonError {
+object JsonError:
   def apply(e: io.circe.Error): JsonError = JsonError(e, None)
   def apply(e: io.circe.Error, body: Json): JsonError = JsonError(e, Option(body))
-}

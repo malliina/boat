@@ -5,17 +5,16 @@ import com.malliina.http.FullUrl
 import org.scalajs.dom
 import org.scalajs.dom.CloseEvent
 import org.scalajs.dom.raw.{Event, MessageEvent}
-import io.circe._
+import io.circe.*
 import io.circe.syntax.EncoderOps
 import io.circe.parser.{decode, parse}
 import scala.util.Try
 
-object BaseSocket {
+object BaseSocket:
   val EventKey = "event"
   val Ping = "ping"
-}
 
-class BaseSocket(wsPath: String, val log: BaseLogger = BaseLogger.console) {
+class BaseSocket(wsPath: String, val log: BaseLogger = BaseLogger.console):
   val socket: dom.WebSocket = openSocket(wsPath)
   val EventKey = BaseSocket.EventKey
   val BodyKey = "body"
@@ -25,32 +24,25 @@ class BaseSocket(wsPath: String, val log: BaseLogger = BaseLogger.console) {
   def handleValidated[T: Decoder](json: Json)(process: T => Unit): Unit =
     json.as[T].fold(err => onJsonFailure(DecodingFailure(err.message, Nil), json), process)
 
-  def showConnected(): Unit = {
+  def showConnected(): Unit =
     setFeedback("Connected to socket.")
-  }
 
-  def showDisconnected(): Unit = {
+  def showDisconnected(): Unit =
     setFeedback("Connection closed.")
-  }
 
-  def send[T: Encoder](payload: T): Unit = {
+  def send[T: Encoder](payload: T): Unit =
     val asString = payload.asJson.noSpaces
     socket.send(asString)
-  }
 
-  def onMessage(msg: MessageEvent): Unit = {
+  def onMessage(msg: MessageEvent): Unit =
     val asString = msg.data.toString
     log.debug(s"Got message: $asString")
     parse(asString).fold(
       err => onJsonException(asString, err),
-      json => {
+      json =>
         val isPing = json.hcursor.downField("EventKey").as[String].contains(Ping)
-        if (!isPing) {
-          handlePayload(json)
-        }
-      }
+        if !isPing then handlePayload(json)
     )
-  }
 
   def onConnected(e: Event): Unit = showConnected()
 
@@ -58,7 +50,7 @@ class BaseSocket(wsPath: String, val log: BaseLogger = BaseLogger.console) {
 
   def onError(e: Event): Unit = showDisconnected()
 
-  def openSocket(pathAndQuery: String) = {
+  def openSocket(pathAndQuery: String) =
     val url = wsBaseUrl.append(pathAndQuery)
     val socket = new dom.WebSocket(url.url)
     socket.onopen = (e: Event) => onConnected(e)
@@ -66,23 +58,17 @@ class BaseSocket(wsPath: String, val log: BaseLogger = BaseLogger.console) {
     socket.onclose = (e: CloseEvent) => onClosed(e)
     socket.onerror = (e: Event) => onError(e)
     socket
-  }
 
-  def wsBaseUrl: FullUrl = {
+  def wsBaseUrl: FullUrl =
     val location = dom.window.location
-    val wsProto = if (location.protocol == "http:") "ws" else "wss"
+    val wsProto = if location.protocol == "http:" then "ws" else "wss"
     FullUrl(wsProto, location.host, "")
-  }
 
-  def setFeedback(feedback: String): Unit = {
+  def setFeedback(feedback: String): Unit =
     log.debug(feedback)
-  }
 
-  def onJsonException(asString: String, e: io.circe.Error): Unit = {
+  def onJsonException(asString: String, e: io.circe.Error): Unit =
     log.info(s"JSON error for '$asString'. $e")
-  }
 
-  protected def onJsonFailure(result: DecodingFailure, value: Json): Unit = {
+  protected def onJsonFailure(result: DecodingFailure, value: Json): Unit =
     log.info(s"JSON error $result")
-  }
-}

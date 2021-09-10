@@ -9,7 +9,7 @@ import java.net.InetSocketAddress
 import java.nio.charset.StandardCharsets
 import scala.concurrent.Promise
 
-class TcpClientTests extends AsyncSuite {
+class TcpClientTests extends AsyncSuite:
   val socketsFixture = resource(Blocker[IO].flatMap { b => SocketGroup[IO](b) })
   val log = Logging(getClass)
 
@@ -68,8 +68,7 @@ class TcpClientTests extends AsyncSuite {
 
   def tcpFixture(host: String, port: Int) = resource(tcpResource(host, port))
 
-  def tcpResource(host: String, port: Int) = for {
+  def tcpResource(host: String, port: Int) = for
     blocker <- Blocker[IO]
     tcp <- TcpClient(host, port, blocker)
-  } yield tcp
-}
+  yield tcp

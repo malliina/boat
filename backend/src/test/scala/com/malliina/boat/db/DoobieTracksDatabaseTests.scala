@@ -7,15 +7,14 @@ import com.malliina.values.Username
 import doobie.implicits.toSqlInterpolator
 import tests.{MUnitDatabaseSuite, MUnitSuite}
 
-class DoobieTracksDatabaseTests extends MUnitSuite with MUnitDatabaseSuite {
+class DoobieTracksDatabaseTests extends MUnitSuite with MUnitDatabaseSuite:
   dbFixture.test("run doobie query") { doobie =>
     val service = DoobieTracksDatabase(doobie)
     val res = service.hm.unsafeRunSync()
     assertEquals(res, None)
   }
-}
 
-class DoobieTests extends MUnitSuite with DoobieMappings {
+class DoobieTests extends MUnitSuite with DoobieMappings:
   val conf = Conf(
     "jdbc:mysql://localhost:3306/boat?useSSL=false",
     "changeme",
@@ -48,4 +47,3 @@ class DoobieTests extends MUnitSuite with DoobieMappings {
     assert(distance > 2100.km)
     assert(distance < 2200.km)
   }
-}

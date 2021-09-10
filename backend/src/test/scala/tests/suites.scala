@@ -22,17 +22,16 @@ import scala.util.Try
 case class TestBoatConf(testdb: Conf)
 case class WrappedTestConf(boat: TestBoatConf)
 
-object WrappedTestConf {
+object WrappedTestConf:
   def parse(c: Config = LocalConf.localConf.resolve()) = Try(
     WrappedTestConf(
       TestBoatConf(BoatConf.parseDatabase(c.getConfig("boat").getConfig("testdb")))
     )
   )
-}
 
 case class TestResource[T](resource: T, close: IO[Unit])
 
-trait MUnitSuite extends FunSuite {
+trait MUnitSuite extends FunSuite:
   val userHome = Paths.get(sys.props("user.home"))
   // NPE if not lazy
   lazy val blocker = Blocker[IO]
@@ -50,22 +49,18 @@ trait MUnitSuite extends FunSuite {
     }
   }
 
-  def resource[T](res: Resource[IO, T]): FunFixture[T] = {
+  def resource[T](res: Resource[IO, T]): FunFixture[T] =
     var finalizer: Option[IO[Unit]] = None
     FunFixture(
-      setup = { opts =>
+      setup = opts =>
         val (t, f) = res.allocated.unsafeRunSync()
         finalizer = Option(f)
-        t
-      },
-      teardown = { t =>
+        t,
+      teardown = t =>
         finalizer.foreach(_.unsafeRunSync())
-      }
     )
-  }
-}
 
-object TestConf {
+object TestConf:
   def apply(container: MySQLContainer) = Conf(
     s"${container.jdbcUrl}?useSSL=false",
     container.username,
@@ -73,93 +68,83 @@ object TestConf {
     container.driverClassName,
     maxPoolSize = 5
   )
-}
 
-object MUnitDatabaseSuite {
+object MUnitDatabaseSuite:
   private val log = AppLogger(getClass)
-}
 
-trait MUnitDatabaseSuite extends DoobieSQL { self: MUnitSuite =>
+trait MUnitDatabaseSuite extends DoobieSQL:
+  self: MUnitSuite =>
   import MUnitDatabaseSuite.log
   val dbFixture = resource(blocker.flatMap { b =>
     DoobieDatabase.withMigrations(confFixture(), b)
   })
 
-  val confFixture: Fixture[Conf] = new Fixture[Conf]("database") {
+  val confFixture: Fixture[Conf] = new Fixture[Conf]("database"):
     var container: Option[MySQLContainer] = None
     var conf: Option[Conf] = None
     def apply() = conf.get
-    override def beforeAll(): Unit = {
+    override def beforeAll(): Unit =
       val testDb = readTestConf().fold(
-        e => {
+        e =>
           log.warn(s"Failed to read test conf. Falling back to Docker...", e)
           val c = MySQLContainer(mysqlImageVersion = DockerImageName.parse("mysql:5.7.29"))
           c.start()
           container = Option(c)
-          TestConf(c)
-        },
+          TestConf(c),
         ok => ok
       )
       conf = Option(testDb)
-    }
-    override def afterAll(): Unit = {
+    override def afterAll(): Unit =
       container.foreach(_.stop())
-    }
 
     def readTestConf(): Try[Conf] = WrappedTestConf.parse().map(_.boat.testdb)
-  }
 
-  override def munitFixtures: Seq[Fixture[_]] = Seq(confFixture)
-}
+  override def munitFixtures: Seq[Fixture[?]] = Seq(confFixture)
 
 case class AppComponents(service: Service, routes: HttpApp[IO])
 
 // https://github.com/typelevel/munit-cats-effect
-trait Http4sSuite extends MUnitDatabaseSuite { self: MUnitSuite =>
-  val app: Fixture[AppComponents] = new Fixture[AppComponents]("boat-app") {
+trait Http4sSuite extends MUnitDatabaseSuite:
+  self: MUnitSuite =>
+  val app: Fixture[AppComponents] = new Fixture[AppComponents]("boat-app"):
     private var service: Option[AppComponents] = None
     val finalizer = new AtomicReference[IO[Unit]](IO.pure(()))
 
     override def apply(): AppComponents = service.get
 
-    override def beforeAll(): Unit = {
+    override def beforeAll(): Unit =
       val resource = Server.appService(BoatConf.parse().copy(db = confFixture()), TestComps.builder)
       val (t, release) = resource.allocated[IO, Service].unsafeRunSync()
       finalizer.set(release)
       service = Option(AppComponents(t, Server.makeHandler(t, t.blocker)))
-    }
 
-    override def afterAll(): Unit = {
+    override def afterAll(): Unit =
       finalizer.get().unsafeRunSync()
-    }
-  }
 
-  override def munitFixtures: Seq[Fixture[_]] = Seq(confFixture, app)
-}
+  override def munitFixtures: Seq[Fixture[?]] = Seq(confFixture, app)
 
-case class ServerTools(server: ServerComponents, client: Client[IO]) {
+case class ServerTools(server: ServerComponents, client: Client[IO]):
   def port = server.server.address.getPort
   def baseHttpUri = Uri.unsafeFromString(s"http://localhost:$port")
   def baseWsUri = Uri.unsafeFromString(s"ws://localhost:$port")
   def baseHttpUrl = FullUrl("http", s"localhost:$port", "")
   def baseWsUrl = FullUrl("ws", s"localhost:$port", "")
-}
 
-object ServerSuite {
+object ServerSuite:
   private val log = AppLogger(getClass)
-}
 
-trait ServerSuite extends MUnitDatabaseSuite with JsonInstances { self: MUnitSuite =>
+trait ServerSuite extends MUnitDatabaseSuite with JsonInstances:
+  self: MUnitSuite =>
   import ServerSuite.log
   implicit val tsBody: EntityDecoder[IO, Errors] = jsonBody[IO, Errors]
 
-  val server: Fixture[ServerTools] = new Fixture[ServerTools]("server") {
+  val server: Fixture[ServerTools] = new Fixture[ServerTools]("server"):
     private var tools: Option[ServerTools] = None
     val finalizer = new AtomicReference[IO[Unit]](IO.pure(()))
 
     override def apply(): ServerTools = tools.get
 
-    override def beforeAll(): Unit = {
+    override def beforeAll(): Unit =
       val testServer =
         Server.server(BoatConf.parse().copy(db = confFixture()), TestComps.builder, port = 12345)
       val testClient = BlazeClientBuilder[IO](munitExecutionContext).resource
@@ -168,12 +153,8 @@ trait ServerSuite extends MUnitDatabaseSuite with JsonInstances { self: MUnitSui
       }.allocated.unsafeRunSync()
       tools = Option(instance)
       finalizer.set(closable)
-    }
 
-    override def afterAll(): Unit = {
+    override def afterAll(): Unit =
       finalizer.get().unsafeRunSync()
-    }
-  }
 
-  override def munitFixtures: Seq[Fixture[_]] = Seq(confFixture, server)
-}
+  override def munitFixtures: Seq[Fixture[?]] = Seq(confFixture, server)

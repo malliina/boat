@@ -6,9 +6,8 @@ import java.time.{LocalDate, LocalTime, OffsetDateTime, ZoneOffset}
 import com.malliina.boat.SingleError
 import com.malliina.measure.{DistanceM, Inputs, LatitudeDM, LongitudeDM, SpeedM, Temperature}
 
-sealed trait TalkedSentence {
+sealed trait TalkedSentence:
   def talker: String
-}
 
 case class VTGMessage(
   talker: String,
@@ -27,7 +26,7 @@ case class ZDAMessage(
   year: Int,
   timeZoneOffsetHours: Option[Int],
   timeZoneOffsetMinutes: Option[Int]
-) extends TalkedSentence {
+) extends TalkedSentence:
   val date = LocalDate.of(year, month, day)
   val dateTimeUtc = OffsetDateTime.of(date, timeUtc, ZoneOffset.UTC)
   def time: LocalTime = timeUtc
@@ -37,9 +36,8 @@ case class ZDAMessage(
   // (actual +03 reported -03), so we read all times as UTC
 //  val localZone = ZoneOffset.ofHoursMinutes(timeZoneOffsetHours, timeZoneOffsetMinutes)
 //  val dateTime = dateTimeUtc.withOffsetSameInstant(localZone)
-}
 
-object ZDAMessage {
+object ZDAMessage:
   val timeFormatterSimrad = DateTimeFormatter.ofPattern("HHmmss")
   val timeFormatterGps = DateTimeFormatter.ofPattern("HHmmss.SSS")
 
@@ -48,13 +46,10 @@ object ZDAMessage {
       .orElse(parseFormattedTime(s, timeFormatterGps))
 
   def parseFormattedTime(s: String, formatter: DateTimeFormatter): Either[SingleError, LocalTime] =
-    try {
-      Right(LocalTime.parse(s, formatter))
-    } catch {
+    try Right(LocalTime.parse(s, formatter))
+    catch
       case _: DateTimeParseException =>
         Left(SingleError.input(s"Invalid time: '$s', expected format '$formatter'."))
-    }
-}
 
 case class GGAMessage(
   talker: String,
@@ -69,19 +64,18 @@ case class GGAMessage(
   diffAge: Option[Double]
 ) extends TalkedSentence
 
-trait PrimitiveParsing {
+trait PrimitiveParsing:
   def attempt[In, Out](in: In, onFail: In => String)(pf: PartialFunction[In, Out]) =
     pf.lift(in).toRight(SingleError.input(onFail(in)))
 
   def limitedInt[T](s: String, p: Int => Boolean, build: Int => T): Either[SingleError, T] =
     Inputs.toInt(s).flatMap { i =>
-      if (p(i)) Right(build(i))
+      if p(i) then Right(build(i))
       else Left(SingleError.input(s"Invalid input: '$s'."))
     }
-}
 
 sealed trait GPSMode
-object GPSMode extends PrimitiveParsing {
+object GPSMode extends PrimitiveParsing:
   case object Automatic extends GPSMode
   case object Manual extends GPSMode
 
@@ -90,10 +84,9 @@ object GPSMode extends PrimitiveParsing {
       case "A" => Automatic
       case "M" => Manual
     }
-}
 
 sealed abstract class GPSFix(val value: String)
-object GPSFix extends PrimitiveParsing {
+object GPSFix extends PrimitiveParsing:
   case object NoFix extends GPSFix("1")
   case object Fix2D extends GPSFix("2")
   case object Fix3D extends GPSFix("3")
@@ -105,7 +98,6 @@ object GPSFix extends PrimitiveParsing {
 
   def apply(s: String): Either[SingleError, GPSFix] =
     all.find(_.value == s).toRight(SingleError.input(s"Invalid GPS fix: '$s'."))
-}
 
 case class GSAMessage(talker: String, mode: GPSMode, fix: GPSFix) extends TalkedSentence
 
@@ -115,39 +107,31 @@ case class RMCMessage(
   date: LocalDate,
   speed: SpeedM,
   course: Double
-) extends TalkedSentence {
+) extends TalkedSentence:
   val dateTimeUtc = OffsetDateTime.of(date, timeUtc, ZoneOffset.UTC)
-}
 
-object RMCMessage {
+object RMCMessage:
   val dateFormatter = DateTimeFormatter.ofPattern("ddMMyy")
 
   def parseDate(s: String) =
-    try {
-      Right(LocalDate.parse(s, dateFormatter))
-    } catch {
+    try Right(LocalDate.parse(s, dateFormatter))
+    catch
       case _: DateTimeParseException =>
         Left(SingleError.input(s"Invalid date: '$s', expected format '$dateFormatter'."))
-    }
-}
 
-case class Elevation(degrees: Int) extends AnyVal {
+case class Elevation(degrees: Int) extends AnyVal:
   override def toString = s"$degrees"
-}
 
-object Elevation extends PrimitiveParsing {
+object Elevation extends PrimitiveParsing:
   def apply(s: String): Either[SingleError, Elevation] =
     limitedInt(s, i => i >= 0 && i <= 90, apply)
-}
 
-case class Azimuth(degrees: Int) extends AnyVal {
+case class Azimuth(degrees: Int) extends AnyVal:
   override def toString = s"$degrees"
-}
 
-object Azimuth extends PrimitiveParsing {
+object Azimuth extends PrimitiveParsing:
   def apply(s: String): Either[SingleError, Azimuth] =
     limitedInt(s, i => i >= 0 && i <= 360, apply)
-}
 
 case class GSVMessage(talker: String, satellites: Int, elevation: Elevation, azimuth: Azimuth)
   extends TalkedSentence

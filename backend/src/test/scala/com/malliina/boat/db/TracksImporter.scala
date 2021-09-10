@@ -6,7 +6,7 @@ import com.malliina.boat.{BoatConf, BoatName, BoatUser, DateVal, DeviceId, Local
 import com.malliina.values.Email
 import tests.{MUnitSuite, WrappedTestConf}
 
-class TracksImporter extends MUnitSuite {
+class TracksImporter extends MUnitSuite:
   def testConf = WrappedTestConf.parse().map(_.boat.testdb).fold(e => throw e, identity)
   val dbResource = databaseFixture(testConf)
   val file = userHome.resolve(".boat/LogNYY.txt")
@@ -55,19 +55,16 @@ class TracksImporter extends MUnitSuite {
 //    await(task, 300000.seconds)
 //  }
 //
-  def splitTracksByDate(oldTrack: TrackId, db: TrackInserter) = {
-    def createAndUpdateTrack(date: DateVal) = {
+  def splitTracksByDate(oldTrack: TrackId, db: TrackInserter) =
+    def createAndUpdateTrack(date: DateVal) =
       val in = TrackInput.empty(TrackNames.random(), DeviceId(14))
-      for {
+      for
         newTrack <- db.insertTrack(in)
         updated <- db.changeTrack(oldTrack, date, newTrack.track)
-      } yield updated
-    }
+      yield updated
 
-    val action = for {
+    val action = for
       dates <- db.dates(oldTrack)
       updates <- dates.traverse(date => createAndUpdateTrack(date))
-    } yield updates
+    yield updates
     db.db.run(action)
-  }
-}

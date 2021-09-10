@@ -1,25 +1,24 @@
 package com.malliina.boat
 
 import com.malliina.boat.BoatFormats.formatDistance
-import com.malliina.boat.PathFinder._
+import com.malliina.boat.PathFinder.*
 import com.malliina.http.HttpClient
 import com.malliina.mapbox.{MapMouseEvent, MapboxMap, MapboxMarker}
 import org.scalajs.dom.raw.{HTMLDivElement, HTMLSpanElement}
-import scalatags.JsDom.all._
-import io.circe._
+import scalatags.JsDom.all.*
+import io.circe.*
 import io.circe.syntax.EncoderOps
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 
-object PathFinder {
+object PathFinder:
   val routeLayer = "route"
   val routeFirstLayer = "route-first"
   val routeLastLayer = "route-last"
   val layerIds = Seq(routeLayer, routeFirstLayer, routeLastLayer)
 
   def apply(map: MapboxMap): PathFinder = new PathFinder(map)
-}
 
-class PathFinder(val map: MapboxMap) extends GeoUtils with BaseFront {
+class PathFinder(val map: MapboxMap) extends GeoUtils with BaseFront:
   val mapContainer = elemGet[HTMLDivElement](MapId)
   val routesContainer = elemGet[HTMLDivElement](RoutesContainer)
   var isEnabled: Boolean = false
@@ -28,25 +27,24 @@ class PathFinder(val map: MapboxMap) extends GeoUtils with BaseFront {
 
   def toggleState(): Unit = state(!isEnabled)
 
-  def state(enabled: Boolean): Unit = {
-    if (enabled) {
+  def state(enabled: Boolean): Unit =
+    if enabled then
       isEnabled = true
       mapContainer.classList.add(Routes)
       routesContainer.classList.add(Enabled)
       elemAs[HTMLSpanElement](Question).foreach(_.classList.add(Invisible))
-    } else {
+    else {
       isEnabled = false
       mapContainer.classList.remove(Routes)
       routesContainer.classList.remove(Enabled)
       clear()
     }
-  }
 
-  def updatePath(e: MapMouseEvent): Unit = {
-    if (isEnabled) {
+  def updatePath(e: MapMouseEvent): Unit =
+    if isEnabled then
       val c = Coord.buildOrFail(e.lngLat.lng, e.lngLat.lat)
       def endMarker = MapboxMarker(finishMark(c), c, map)
-      (start, end) match {
+      (start, end) match
         case (Some(_), Some(oldFinish)) =>
           val newStart = MapboxMarker(startMark(oldFinish.coord), oldFinish.coord, map)
           clear()
@@ -60,9 +58,6 @@ class PathFinder(val map: MapboxMap) extends GeoUtils with BaseFront {
           findRoute(startMarker.coord, newEnd.coord)
         case _ =>
           start = Option(MapboxMarker(startMark(c), c, map))
-      }
-    }
-  }
 
   def findRoute(from: Coord, to: Coord) =
     HttpClient.get[RouteResult](s"/routes/${from.lat}/${from.lng}/${to.lat}/${to.lng}").map { res =>
@@ -83,7 +78,7 @@ class PathFinder(val map: MapboxMap) extends GeoUtils with BaseFront {
       }
     }
 
-  def clear(): Unit = {
+  def clear(): Unit =
     start.foreach(_.remove())
     start = None
     end.foreach(_.remove())
@@ -91,9 +86,7 @@ class PathFinder(val map: MapboxMap) extends GeoUtils with BaseFront {
     layerIds.foreach { id =>
       map.removeLayerAndSourceIfExists(id)
     }
-  }
 
   def startMark(c: Coord) = span(`class` := "marker start")
 
   def finishMark(c: Coord) = span(`class` := "marker finish")
-}

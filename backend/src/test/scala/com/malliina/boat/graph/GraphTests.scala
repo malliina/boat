@@ -1,6 +1,6 @@
 package com.malliina.boat.graph
 
-import com.malliina.boat._
+import com.malliina.boat.*
 import com.malliina.measure.{DistanceDoubleM, DistanceIntM}
 import com.nimbusds.jose.util.StandardCharset
 import io.circe.parser.decode
@@ -12,7 +12,7 @@ import scala.annotation.tailrec
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.{Await, ExecutionContext, Future}
 
-class GraphTests extends munit.FunSuite {
+class GraphTests extends munit.FunSuite:
   test("find route") {
     val from = 19.97655 lngLat 60.27473
     val to = 20.01310 lngLat 60.24488
@@ -95,41 +95,34 @@ class GraphTests extends munit.FunSuite {
     println(n)
   }
 
-  private def findRoute(from: Coord, to: Coord) = {
+  private def findRoute(from: Coord, to: Coord) =
     val graph = Graph.all
     val exec = Executors.newCachedThreadPool()
     val ec = ExecutionContext.fromExecutor(exec)
-    try {
-      Await.result(Future(graph.shortest(from, to))(ec), 30.seconds)
-    } finally {
+    try Await.result(Future(graph.shortest(from, to))(ec), 30.seconds)
+    finally
       exec.shutdownNow()
       exec.awaitTermination(10, TimeUnit.SECONDS)
-    }
-  }
 
   def toGeo(r: RouteResult) = FeatureCollection(
     List(Feature.line(r.route.coords), Feature.point(r.from), Feature.point(r.to))
   )
 
-  def fromResource(filename: String) = {
+  def fromResource(filename: String) =
     val file = Graph.file(filename)
     val result = decode[FeatureCollection](Files.readString(file))
     val es = result.toOption.get.features.flatMap { f =>
-      f.geometry match {
+      f.geometry match
         case MultiLineGeometry(_, coordinates) => coordinates.flatMap(edges)
         case LineGeometry(_, coordinates)      => edges(coordinates)
         case _                                 => Nil
-      }
     }
     Graph(es.toList)
-  }
 
   def edges(coords: Seq[Coord]) = edgesAcc(coords.reverse.toList, Nil)
 
   @tailrec
   private def edgesAcc(coords: List[Coord], acc: List[Edge]): List[Edge] =
-    coords match {
+    coords match
       case f :: s :: tail => edgesAcc(s :: tail, Edge(f, s) :: acc)
       case _              => acc
-    }
-}

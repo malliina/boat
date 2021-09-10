@@ -6,7 +6,7 @@ import com.malliina.http.io.HttpClientIO
 import scala.concurrent.duration.{Duration, DurationInt}
 import scala.concurrent.{Await, Future}
 
-abstract class BaseSuite extends MUnitSuite {
+abstract class BaseSuite extends MUnitSuite:
   val reverse = Reverse
 
   val http = FunFixture[HttpClientIO](
@@ -15,4 +15,3 @@ abstract class BaseSuite extends MUnitSuite {
   )
 
   def await[T](f: Future[T], duration: Duration = 40.seconds): T = Await.result(f, duration)
-}

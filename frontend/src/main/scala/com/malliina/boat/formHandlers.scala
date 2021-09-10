@@ -3,36 +3,34 @@ package com.malliina.boat
 import com.malliina.boat.FrontKeys.{CommentsRow, TrackRow}
 import com.malliina.boat.http.CSRFConf
 import com.malliina.http.HttpClient
-import org.scalajs.dom.raw._
-import io.circe._
+import org.scalajs.dom.raw.*
+import io.circe.*
 import io.circe.syntax.EncoderOps
 
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 
-object FormHandlers extends BaseFront {
-  def titles(): Either[NotFound, TitleHandler] = {
-    for {
+object FormHandlers extends BaseFront:
+  def titles(): Either[NotFound, TitleHandler] =
+    for
       form <- elemAs[HTMLFormElement](EditTitleFormId)
       editIcon <- elem(EditTitleId)
       cancelButton <- elemAs[HTMLButtonElement](CancelEditTrackId)
-    } yield new TitleHandler(form, editIcon, cancelButton)
-  }
+    yield new TitleHandler(form, editIcon, cancelButton)
 
   def comments(): Either[NotFound, CommentsHandler] =
-    for {
+    for
       form <- elemAs[HTMLFormElement](EditCommentsFormId)
       editIcon <- elem(EditCommentsId)
       cancelButton <- elemAs[HTMLButtonElement](CancelEditCommentsId)
-    } yield new CommentsHandler(form, editIcon, cancelButton)
+    yield new CommentsHandler(form, editIcon, cancelButton)
 
-  def inviteOthers() = for {
+  def inviteOthers() = for
     parent <- elemsByClass[Element](FormParent)
     form <- parent.getElementsByClassName(InviteFormClass).map(_.asInstanceOf[HTMLFormElement])
     open <- parent.getElementsByClassName(InviteFormOpen).headOption
     cancel <- parent.getElementsByClassName(FormCancel).headOption
     delete <- parent.getElementsByClassName(DeleteForm).headOption
-  } yield new InviteHandler(form, open, cancel, delete)
-}
+  yield new InviteHandler(form, open, cancel, delete)
 
 class InviteHandler(
   form: HTMLFormElement,
@@ -40,7 +38,7 @@ class InviteHandler(
   cancel: Element,
   delete: Element,
   log: BaseLogger = BaseLogger.console
-) extends BaseFront {
+) extends BaseFront:
   open.addOnClick { e =>
     form.show()
     open.hide()
@@ -52,7 +50,6 @@ class InviteHandler(
     open.show()
     delete.show()
   }
-}
 
 class TitleHandler(
   form: HTMLFormElement,
@@ -60,8 +57,8 @@ class TitleHandler(
   cancel: HTMLButtonElement,
   log: BaseLogger = BaseLogger.console
 ) extends AjaxForm(form, editIcon, TrackRow, cancel)
-  with CSRFConf {
-  form.onsubmit = (e: Event) => {
+  with CSRFConf:
+  form.onsubmit = (e: Event) =>
     elemAs[HTMLInputElement](TitleInputId).map { in =>
       HttpClient
         .put[Json, TrackResponse](form.action, Json.obj(TrackTitle.Key -> in.value.asJson))
@@ -74,8 +71,6 @@ class TitleHandler(
         }
     }
     e.preventDefault()
-  }
-}
 
 class CommentsHandler(
   form: HTMLFormElement,
@@ -83,8 +78,8 @@ class CommentsHandler(
   cancel: HTMLButtonElement,
   log: BaseLogger = BaseLogger.console
 ) extends AjaxForm(form, editIcon, CommentsRow, cancel)
-  with CSRFConf {
-  form.onsubmit = (e: Event) => {
+  with CSRFConf:
+  form.onsubmit = (e: Event) =>
     elemAs[HTMLInputElement](CommentsInputId).map { in =>
       HttpClient
         .patch[Json, TrackResponse](form.action, Json.obj(TrackComments.Key -> in.value.asJson))
@@ -92,34 +87,28 @@ class CommentsHandler(
           elemAs[HTMLSpanElement](CommentsTitleId).map { span =>
             val textContent = res.track.comments.getOrElse("")
             span.textContent = textContent
-            if (textContent.nonEmpty)
-              span.classList.remove(Hidden)
+            if textContent.nonEmpty then span.classList.remove(Hidden)
           }
           form.hide()
           editable.foreach(_.show())
         }
     }
     e.preventDefault()
-  }
-}
 
 abstract class AjaxForm(
   form: HTMLFormElement,
   editIcon: Element,
   editableClass: String,
   cancel: HTMLButtonElement
-) extends BaseFront {
+) extends BaseFront:
   val editable = document.getElementsByClassName(editableClass)
   editIcon.addEventListener(
     "click",
-    (_: Event) => {
+    (_: Event) =>
       editable.foreach(_.hide())
       form.show()
-    }
   )
 
-  cancel.onclick = (_: MouseEvent) => {
+  cancel.onclick = (_: MouseEvent) =>
     editable.foreach(_.show())
     form.hide()
-  }
-}

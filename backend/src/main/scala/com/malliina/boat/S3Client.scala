@@ -5,18 +5,17 @@ import java.nio.file.Path
 import com.amazonaws.auth.profile.ProfileCredentialsProvider
 import com.amazonaws.auth.{AWSCredentialsProviderChain, DefaultAWSCredentialsProviderChain}
 import com.amazonaws.regions.Regions
-import com.amazonaws.services.s3.model._
+import com.amazonaws.services.s3.model.*
 import com.amazonaws.services.s3.{AmazonS3, AmazonS3ClientBuilder}
 
 import scala.jdk.CollectionConverters.CollectionHasAsScala
 
-trait FileStore {
+trait FileStore:
   def upload(file: Path): PutObjectResult
   def files(): Seq[S3ObjectSummary]
-}
 
-object S3Client {
-  def apply(): S3Client = {
+object S3Client:
+  def apply(): S3Client =
     val builder = AmazonS3ClientBuilder
       .standard()
       .withCredentials(
@@ -26,10 +25,8 @@ object S3Client {
         )
       )
     new S3Client(builder.withRegion(Regions.EU_WEST_1).build(), "agent.boat-tracker.com")
-  }
-}
 
-class S3Client(aws: AmazonS3, bucketName: String) extends FileStore {
+class S3Client(aws: AmazonS3, bucketName: String) extends FileStore:
   def download(key: String): S3Object =
     aws.getObject(new GetObjectRequest(bucketName, key))
 
@@ -38,4 +35,3 @@ class S3Client(aws: AmazonS3, bucketName: String) extends FileStore {
 
   def files(): Seq[S3ObjectSummary] =
     aws.listObjects(bucketName).getObjectSummaries.asScala.toList
-}

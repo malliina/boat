@@ -4,18 +4,17 @@ import com.malliina.boat.AISRenderer.{AisTrailLayer, AisVesselLayer, MaxTrailLen
 import com.malliina.mapbox.{MapboxMap, MapboxPopup, PopupOptions, QueryOptions}
 import com.malliina.values.ErrorMessage
 
-object AISRenderer {
+object AISRenderer:
   val AisTrailLayer = MapboxStyles.AisTrailLayer
   val AisVesselLayer = MapboxStyles.AisVesselLayer
 
   val MaxTrailLength = 100
 
   def apply(map: MapboxMap): AISRenderer = new AISRenderer(map)
-}
 
 class AISRenderer(val map: MapboxMap, val log: BaseLogger = BaseLogger.console)
   extends GeoUtils
-  with Parsing {
+  with Parsing:
   // How much memory does this consume, assume 5000 Mmsis?
   private var vessels = Map.empty[Mmsi, List[VesselInfo]]
 
@@ -44,7 +43,7 @@ class AISRenderer(val map: MapboxMap, val log: BaseLogger = BaseLogger.console)
       .toList
   )
 
-  def onAIS(messages: Seq[VesselInfo]): Unit = {
+  def onAIS(messages: Seq[VesselInfo]): Unit =
     val updated = messages.map { msg =>
       msg.mmsi -> (msg :: vessels.getOrElse(msg.mmsi, Nil)).take(MaxTrailLength)
     }.toMap
@@ -56,16 +55,13 @@ class AISRenderer(val map: MapboxMap, val log: BaseLogger = BaseLogger.console)
         ImageLayout(boatIconId, `icon-size` = 1, Option(Seq("get", VesselInfo.HeadingKey)))
       )
     )
-    if (iconUpdateOutcome == Outcome.Added) {
-      initHover(AisVesselLayer)
-    }
+    if iconUpdateOutcome == Outcome.Added then initHover(AisVesselLayer)
     updateOrSet(
       Layer.line(AisTrailLayer, trailData, minzoom = Option(10))
     )
-  }
 
   def initHover(id: String): Unit = map.onHover(id)(
-    in => {
+    in =>
       map
         .queryRendered(in.point, QueryOptions.layer(id))
         .map { fs =>
@@ -76,8 +72,6 @@ class AISRenderer(val map: MapboxMap, val log: BaseLogger = BaseLogger.console)
         .left
         .map { err =>
           log.info(s"JSON error '$err'.")
-        }
-    },
+        },
     _ => boatPopup.remove()
   )
-}

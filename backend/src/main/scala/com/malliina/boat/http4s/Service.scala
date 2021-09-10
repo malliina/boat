@@ -5,14 +5,14 @@ import cats.effect.{Blocker, ContextShift, IO}
 import cats.implicits.catsSyntaxFlatten
 import com.malliina.assets.HashedAssets
 import com.malliina.boat.Constants.{LanguageName, TokenCookieName}
-import com.malliina.boat.{Readable => BoatReadable, _}
+import com.malliina.boat.{Readable as BoatReadable, *}
 import com.malliina.boat.auth.AuthProvider.{PromptKey, SelectAccount}
 import com.malliina.boat.auth.{AuthProvider, SettingsPayload, UserPayload}
-import com.malliina.boat.db._
-import com.malliina.boat.graph._
+import com.malliina.boat.db.*
+import com.malliina.boat.graph.*
 import com.malliina.boat.html.{BoatHtml, BoatLang}
 import com.malliina.boat.http.InviteResult.{AlreadyInvited, Invited, UnknownEmail}
-import com.malliina.boat.http._
+import com.malliina.boat.http.*
 import com.malliina.boat.http4s.BasicService.{cached, noCache, ranges}
 import com.malliina.boat.http4s.Service.{BoatComps, log}
 import com.malliina.boat.push.{BoatState, PushService}
@@ -20,7 +20,7 @@ import com.malliina.util.AppLogger
 import com.malliina.values.{Email, UserId, Username}
 import com.malliina.web.OAuthKeys.{Nonce, State}
 import com.malliina.web.Utils.randomString
-import com.malliina.web._
+import com.malliina.web.*
 import fs2.{Pipe, Stream}
 import io.circe.parser.parse
 import io.circe.syntax.EncoderOps
@@ -29,11 +29,11 @@ import org.http4s.headers.{Location, `WWW-Authenticate`}
 import org.http4s.server.websocket.WebSocketBuilder
 import org.http4s.websocket.WebSocketFrame
 import org.http4s.websocket.WebSocketFrame.Text
-import org.http4s.{Callback => _, _}
+import org.http4s.{Callback as _, *}
 
 import scala.concurrent.duration.DurationInt
 
-object Service {
+object Service:
   private val log = AppLogger(getClass)
 
   case class BoatComps(
@@ -52,9 +52,8 @@ object Service {
   )
 
   def apply(comps: BoatComps): Service = new Service(comps)
-}
 
-class Service(comps: BoatComps) extends BasicService[IO] {
+class Service(comps: BoatComps) extends BasicService[IO]:
   implicit val cs: ContextShift[IO] = comps.cs
   val blocker = comps.blocker
   val auth = comps.auth
@@ -85,7 +84,7 @@ class Service(comps: BoatComps) extends BasicService[IO] {
     case req @ PUT -> Root / "users" / "me" =>
       jsonAction[ChangeLanguage](req) { (newLanguage, user) =>
         userMgmt.changeLanguage(user.id, newLanguage.language).flatMap { changed =>
-          val msg = if (changed) s"Changed language to $newLanguage." else NoChange
+          val msg = if changed then s"Changed language to $newLanguage." else NoChange
           ok(SimpleMessage(msg))
         }
       }
@@ -98,21 +97,20 @@ class Service(comps: BoatComps) extends BasicService[IO] {
     case req @ PUT -> Root / "users" / "notifications" / "disable" =>
       jsonAction[PushPayload](req) { (payload, user) =>
         push.disable(payload.token, user.id).flatMap { disabled =>
-          val msg = if (disabled) "Disabled." else NoChange
+          val msg = if disabled then "Disabled." else NoChange
           ok(SimpleMessage(msg))
         }
       }
     case req @ POST -> Root / "invites" =>
       formAction[InvitePayload](req, forms.invite) { (inviteInfo, user) =>
         userMgmt.invite(inviteInfo.byUser(user.id)).flatMap { res =>
-          val message = res match {
+          val message = res match
             case UnknownEmail(email) =>
               s"Unknown email: '$email'."
             case Invited(uid, to) =>
               s"User ${user.email} invited ${inviteInfo.email} to boat ${inviteInfo.boat}."
             case AlreadyInvited(uid, to) =>
               s"User ${inviteInfo.email} already invited to ${inviteInfo.boat}."
-          }
           log.info(message)
           seeOther(reverse.boats)
         }
@@ -129,7 +127,7 @@ class Service(comps: BoatComps) extends BasicService[IO] {
           .updateInvite(
             response.to,
             user.id,
-            if (response.accept) InviteState.Accepted else InviteState.Rejected
+            if response.accept then InviteState.Accepted else InviteState.Rejected
           )
           .flatMap { res =>
             seeOther(reverse.boats)
@@ -160,22 +158,18 @@ class Service(comps: BoatComps) extends BasicService[IO] {
     case req @ GET -> Root / "tracks" =>
       authedQuery(req, TrackQuery.apply).flatMap { authed =>
         respondCustom(req)(
-          json = rs => {
+          json = rs =>
             db.tracksFor(authed.user, authed.query).flatMap { ts =>
-              if (rs.exists(_.satisfies(ContentVersions.Version2)))
-                ok(ts)
-              else if (rs.exists(_.satisfies(ContentVersions.Version1)))
+              if rs.exists(_.satisfies(ContentVersions.Version2)) then ok(ts)
+              else if rs.exists(_.satisfies(ContentVersions.Version1)) then
                 ok(TrackSummaries(ts.tracks.map(t => TrackSummary(t))))
-              else
-                ok(ts)
-            }
-          },
-          html = {
+              else ok(ts)
+            },
+          html =
             val lang = BoatLang(authed.user.language).lang
             db.tracksBundle(authed.user, authed.query, lang).flatMap { ts =>
               ok(html.tracks(ts, authed.query, lang))
             }
-          }
         )
       }
     case req @ GET -> Root / "history" =>
@@ -242,9 +236,9 @@ class Service(comps: BoatComps) extends BasicService[IO] {
         val username = user.username
         BoatQuery(req.uri.query).map { limits =>
           val historicalLimits =
-            if (limits.tracks.nonEmpty && username == Usernames.anon)
+            if limits.tracks.nonEmpty && username == Usernames.anon then
               BoatQuery.tracks(limits.tracks)
-            else if (username == Usernames.anon) BoatQuery.empty
+            else if username == Usernames.anon then BoatQuery.empty
             else limits
           val historyIO = db.history(user, historicalLimits).flatMap { es =>
             // unless a sample is specified, return about 300 historical points - this optimization is for charts
@@ -287,15 +281,14 @@ class Service(comps: BoatComps) extends BasicService[IO] {
               .flatMap { _ =>
                 webSocket(
                   toClients,
-                  message => {
+                  message =>
                     log.debug(s"Boat ${boat.boat} says '$message'.")
                     val parsed = parseUnsafe(message)
-                    streams.boatIn.publish1(BoatEvent(parsed, meta))
-                  },
-                  onClose = IO(log.info(s"Boat '${boat.boat}' by '${boat.user}' left.")).flatMap {
-                    _ =>
+                    streams.boatIn.publish1(BoatEvent(parsed, meta)),
+                  onClose =
+                    IO(log.info(s"Boat '${boat.boat}' by '${boat.user}' left.")).flatMap { _ =>
                       push.push(meta, BoatState.Disconnected).map(_ => ())
-                  }
+                    }
                 )
               }
           }
@@ -370,28 +363,27 @@ class Service(comps: BoatComps) extends BasicService[IO] {
   def parseUnsafe(message: String) =
     parse(message).fold(err => throw new Exception(s"Not JSON: '$message'."), identity)
 
-  object forms {
-    def invite(form: FormReader) = for {
+  object forms:
+    def invite(form: FormReader) = for
       boat <- form.readT[DeviceId](Forms.Boat)
       email <- form.readT[Email](Forms.Email)
-    } yield InvitePayload(boat, email)
+    yield InvitePayload(boat, email)
 
-    def respondInvite(form: FormReader) = for {
+    def respondInvite(form: FormReader) = for
       boat <- form.readT[DeviceId](Forms.Boat)
       accept <- form.readT[Boolean](Forms.Accept)
-    } yield InviteResponse(boat, accept)
+    yield InviteResponse(boat, accept)
 
-    def revokeInvite(form: FormReader) = for {
+    def revokeInvite(form: FormReader) = for
       boat <- form.readT[DeviceId](Forms.Boat)
       user <- form.readT[UserId](Forms.User)
-    } yield RevokeAccess(boat, user)
-  }
+    yield RevokeAccess(boat, user)
 
   private def webSocket[T](
     toClient: Stream[IO, WebSocketFrame],
     onMessage: String => IO[Unit],
     onClose: IO[Unit]
-  ) = {
+  ) =
     val fromClient: Pipe[IO, WebSocketFrame, Unit] = _.evalMap {
       case Text(message, _) =>
         onMessage(message)
@@ -399,7 +391,6 @@ class Service(comps: BoatComps) extends BasicService[IO] {
         IO(log.debug(s"Unknown WebSocket frame: $f"))
     }
     WebSocketBuilder[IO].copy(onClose = onClose).build(toClient, fromClient)
-  }
 
   private def index(req: Request[IO]) =
     auth.optionalWebAuth(req).flatMap { result =>
@@ -464,13 +455,12 @@ class Service(comps: BoatComps) extends BasicService[IO] {
         decoder
           .decode(req, strict = false)
           .foldF(
-            fail => {
+            fail =>
               log.warn(
                 s"Both JSON and form decode failed for ${req.method} '${req.uri.renderString}'. $fail",
                 t
               )
-              IO.raiseError(fail)
-            },
+              IO.raiseError(fail),
             form =>
               readForm(new FormReader(form)).fold(
                 err => IO.raiseError(err.asException),
@@ -503,12 +493,11 @@ class Service(comps: BoatComps) extends BasicService[IO] {
   private def respondCustom(req: Request[IO])(
     json: NonEmptyList[MediaRange] => IO[Response[IO]],
     html: IO[Response[IO]]
-  ): IO[Response[IO]] = {
+  ): IO[Response[IO]] =
     val rs = ranges(req.headers)
     val qp = req.uri.query.params
-    if (rs.exists(_.satisfies(MediaType.text.html)) && !qp.contains("json")) html
+    if rs.exists(_.satisfies(MediaType.text.html)) && !qp.contains("json") then html
     else json(rs)
-  }
 
   def fileFromPublicResources(file: String, req: Request[IO]): IO[Response[IO]] =
     StaticFile
@@ -569,18 +558,16 @@ class Service(comps: BoatComps) extends BasicService[IO] {
       log.info(s"Starting OAuth flow with $provider using prompt '$prompt'...")
     }
     (redirectUrl, maybeEmail, extra)
-  }.flatMap {
-    case (redirectUrl, maybeEmail, extra) =>
-      validator.startHinted(redirectUrl, maybeEmail, extra).flatMap { s =>
-        startLoginFlow(s, Urls.isSecure(req))
-      }
+  }.flatMap { case (redirectUrl, maybeEmail, extra) =>
+    validator.startHinted(redirectUrl, maybeEmail, extra).flatMap { s =>
+      startLoginFlow(s, Urls.isSecure(req))
+    }
   }
 
   private def startLoginFlow(s: Start, isSecure: Boolean): IO[Response[IO]] = IO {
     val state = randomString()
-    val encodedParams = (s.params ++ Map(OAuthKeys.State -> state)).map {
-      case (k, v) =>
-        k -> com.malliina.web.Utils.urlEncode(v)
+    val encodedParams = (s.params ++ Map(OAuthKeys.State -> state)).map { case (k, v) =>
+      k -> com.malliina.web.Utils.urlEncode(v)
     }
     val url = s.authorizationEndpoint.append(s"?${stringify(encodedParams)}")
     log.info(s"Redirecting to '$url' with state '$state'...")
@@ -588,14 +575,13 @@ class Service(comps: BoatComps) extends BasicService[IO] {
       .map(n => Seq(Nonce -> n))
       .getOrElse(Nil)
     (url, sessionParams)
-  }.flatMap {
-    case (url, sessionParams) =>
-      SeeOther(Location(Uri.unsafeFromString(url.url))).map { res =>
-        val session = sessionParams.toMap.asJson
-        auth.web
-          .withSession(session, isSecure, res)
-          .putHeaders(noCache)
-      }
+  }.flatMap { case (url, sessionParams) =>
+    SeeOther(Location(Uri.unsafeFromString(url.url))).map { res =>
+      val session = sessionParams.toMap.asJson
+      auth.web
+        .withSession(session, isSecure, res)
+        .putHeaders(noCache)
+    }
   }
 
   private def handleAuthCallback(
@@ -617,7 +603,7 @@ class Service(comps: BoatComps) extends BasicService[IO] {
     req: Request[IO],
     provider: AuthProvider,
     validate: Callback => IO[Either[AuthError, Email]]
-  ): IO[Response[IO]] = {
+  ): IO[Response[IO]] =
     val params = req.uri.query.params
     val session = web.authState[Map[String, String]](req.headers).toOption.getOrElse(Map.empty)
     val cb = Callback(
@@ -633,13 +619,12 @@ class Service(comps: BoatComps) extends BasicService[IO] {
         email => userResult(email, provider, req)
       )
     }
-  }
 
   private def userResult(
     email: Email,
     provider: AuthProvider,
     req: Request[IO]
-  ): IO[Response[IO]] = {
+  ): IO[Response[IO]] =
     val returnUri: Uri = req.cookies
       .find(_.name == cookieNames.returnUri)
       .flatMap(c => Uri.fromString(c.content).toOption)
@@ -647,18 +632,16 @@ class Service(comps: BoatComps) extends BasicService[IO] {
     SeeOther(Location(returnUri)).map { r =>
       web.withAppUser(UserPayload.email(email), Urls.isSecure(req), provider, r)
     }
-  }
 
   def stringify(map: Map[String, String]): String =
     map.map { case (key, value) => s"$key=$value" }.mkString("&")
 
-  def buildMessage(req: UserRequest[_], message: String) =
+  def buildMessage(req: UserRequest[?], message: String) =
     s"User '${req.user}' from '${req.req.remoteAddr.getOrElse("unknown")}' $message."
 
-  def onUnauthorized(error: IdentityError): IO[Response[IO]] = {
+  def onUnauthorized(error: IdentityError): IO[Response[IO]] =
     log.warn(error.message.message)
     unauthorized(Errors(s"Unauthorized."))
-  }
 
   def unauthorized(errors: Errors) = redirectToLogin
   def redirectToLogin = SeeOther(Location(reverse.signIn))
@@ -668,4 +651,3 @@ class Service(comps: BoatComps) extends BasicService[IO] {
       `WWW-Authenticate`(NonEmptyList.of(Challenge("myscheme", "myrealm"))),
       errors
     ).map(r => web.clearSession(r))
-}

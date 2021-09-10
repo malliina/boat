@@ -7,14 +7,14 @@ import com.malliina.http.FullUrl
 import com.malliina.util.AppLogger
 import fs2.Stream
 import fs2.concurrent.{SignallingRef, Topic}
-import io.circe._
+import io.circe.*
 import io.circe.parser.decode
 
 import java.time.Instant
 import scala.collection.concurrent.TrieMap
 import scala.concurrent.duration.DurationInt
 
-object BoatMqttClient {
+object BoatMqttClient:
   private val log = AppLogger(getClass)
 
   val user = "digitraffic"
@@ -26,10 +26,9 @@ object BoatMqttClient {
   val TestUrl = FullUrl.wss("meri-test.digitraffic.fi:61619", "/mqtt")
   val ProdUrl = FullUrl.wss("meri.digitraffic.fi:61619", "/mqtt")
 
-  def apply(mode: AppMode)(implicit c: Concurrent[IO], t: Timer[IO]): AISSource = mode match {
+  def apply(mode: AppMode)(implicit c: Concurrent[IO], t: Timer[IO]): AISSource = mode match
     case AppMode.Prod => prod()
     case AppMode.Dev  => silent()
-  }
 
   def prod()(implicit c: Concurrent[IO], t: Timer[IO]): BoatMqttClient =
     apply(ProdUrl, AllDataTopic)
@@ -44,29 +43,27 @@ object BoatMqttClient {
     t: Timer[IO]
   ): BoatMqttClient = new BoatMqttClient(url, topic)
 
-  case class AisPair(location: VesselLocation, meta: VesselMetadata) {
+  case class AisPair(location: VesselLocation, meta: VesselMetadata):
     def when = Instant.ofEpochMilli(location.timestamp)
     def toInfo(formatter: TimeFormatter) = location.toInfo(meta, formatter.timing(when))
-  }
-}
 
-trait AISSource {
+trait AISSource:
   def slow: fs2.Stream[IO, Seq[AisPair]]
   def close(): Unit
-}
 
-object SilentAISSource extends AISSource {
+object SilentAISSource extends AISSource:
   override val slow: Stream[IO, Seq[AisPair]] = fs2.Stream.never[IO]
   override def close(): Unit = ()
-}
 
 /** Locally caches vessel metadata, then merges it with location data as it is received.
   *
-  * @param url   WebSocket URL
-  * @param topic MQTT topic
+  * @param url
+  *   WebSocket URL
+  * @param topic
+  *   MQTT topic
   */
 class BoatMqttClient(url: FullUrl, topic: String)(implicit c: Concurrent[IO], t: Timer[IO])
-  extends AISSource {
+  extends AISSource:
   val interrupter = SignallingRef[IO, Boolean](false).unsafeRunSync()
   private val metadata = TrieMap.empty[Mmsi, VesselMetadata]
 
@@ -84,16 +81,15 @@ class BoatMqttClient(url: FullUrl, topic: String)(implicit c: Concurrent[IO], t:
   val parsed: Stream[IO, Either[Error, AISMessage]] =
     oneConnection.repeat.interruptWhen(interrupter).map { msg =>
       val str = msg.payloadString
-      msg.topic match {
+      msg.topic match
         case Locations()   => decode[VesselLocation](str)(VesselLocation.readerGeoJson)
         case Metadata()    => decode[VesselMetadata](str)(VesselMetadata.readerGeoJson)
         case StatusTopic() => decode[VesselStatus](str)
-        case other         => Left(DecodingFailure(s"Unknown topic: '$other'. Payload: '$str'.", Nil))
-      }
+        case other => Left(DecodingFailure(s"Unknown topic: '$other'. Payload: '$str'.", Nil))
     }
   val vesselMessages = parsed.flatMap {
     case Right(msg) =>
-      msg match {
+      msg match
         case loc: VesselLocation =>
           metadata
             .get(loc.mmsi)
@@ -107,7 +103,6 @@ class BoatMqttClient(url: FullUrl, topic: String)(implicit c: Concurrent[IO], t:
           Stream.empty
         case _ =>
           Stream.empty
-      }
     case Left(_) => Stream.empty
   }
   private val internalMessages =
@@ -126,4 +121,3 @@ class BoatMqttClient(url: FullUrl, topic: String)(implicit c: Concurrent[IO], t:
   private def newClientId() = s"boattracker-${date()}"
   private def date() = Instant.now().toEpochMilli
   override def close(): Unit = interrupter.set(true).unsafeRunSync()
-}

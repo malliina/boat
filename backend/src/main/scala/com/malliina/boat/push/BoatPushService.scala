@@ -10,7 +10,7 @@ import com.malliina.push.apns.APNSToken
 import com.malliina.push.gcm.GCMToken
 import com.malliina.util.AppLogger
 
-object BoatPushService {
+object BoatPushService:
   private val log = AppLogger(getClass)
 
   def apply(ios: APNS, android: PushClient[GCMToken]): BoatPushService =
@@ -18,11 +18,10 @@ object BoatPushService {
 
   def apply(c: PushConf, http: HttpClient[IO]): BoatPushService =
     apply(APNSPush(c.apns, http), FCMPush(c.fcm, http))
-}
 
-class BoatPushService(ios: APNS, android: PushClient[GCMToken]) extends PushEndpoint {
+class BoatPushService(ios: APNS, android: PushClient[GCMToken]) extends PushEndpoint:
   override def push(notification: BoatNotification, to: PushDevice): IO[PushSummary] =
-    to.device match {
+    to.device match
       case IOS =>
         ios.push(notification, APNSToken(to.token.token))
       case Android =>
@@ -30,5 +29,3 @@ class BoatPushService(ios: APNS, android: PushClient[GCMToken]) extends PushEndp
       case Unknown(name) =>
         log.error(s"Unsupported device: '$name'. Ignoring push request.")
         IO.pure(PushSummary.empty)
-    }
-}

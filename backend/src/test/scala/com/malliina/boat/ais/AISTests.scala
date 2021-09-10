@@ -1,17 +1,17 @@
 package com.malliina.boat.ais
 
-import com.malliina.boat._
-import com.malliina.boat.ais.BoatMqttClient._
+import com.malliina.boat.*
+import com.malliina.boat.ais.BoatMqttClient.*
 import com.nimbusds.jose.util.StandardCharset
 import io.circe.parser.parse
 import io.circe.{Decoder, DecodingFailure}
-import org.eclipse.paho.client.mqttv3._
+import org.eclipse.paho.client.mqttv3.*
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence
 import tests.MUnitSuite
 
 import java.time.Instant
 
-class AISTests extends MUnitSuite {
+class AISTests extends MUnitSuite:
   test("MqttSource".ignore) {
     val client = BoatMqttClient.prod()
     val events = client.slow.take(3).compile.toList.unsafeRunSync()
@@ -28,25 +28,22 @@ class AISTests extends MUnitSuite {
     val p = new MemoryPersistence
     val date = Instant.now().toEpochMilli
     val client = new MqttClient(ProdUrl.url, s"testclient_$date", p)
-    client.setCallback(new MqttCallback {
+    client.setCallback(new MqttCallback:
       override def connectionLost(cause: Throwable): Unit =
         println("Connection lost")
 
-      override def messageArrived(topic: String, message: MqttMessage): Unit = {
+      override def messageArrived(topic: String, message: MqttMessage): Unit =
         val string = new String(message.getPayload, StandardCharset.UTF_8)
         val json = parse(string).toOption.get
-        val result: Decoder.Result[AISMessage] = topic match {
+        val result: Decoder.Result[AISMessage] = topic match
           case Locations()   => json.as[VesselLocation](VesselLocation.readerGeoJson)
           case Metadata()    => json.as[VesselMetadata](VesselMetadata.readerGeoJson)
           case StatusTopic() => json.as[VesselStatus]
-          case other         => Left(DecodingFailure(s"Unknown topic: '$other'. JSON: '$json'.", Nil))
-        }
-        if (result.isRight)
-          println(result)
-      }
+          case other => Left(DecodingFailure(s"Unknown topic: '$other'. JSON: '$json'.", Nil))
+        if result.isRight then println(result)
 
       override def deliveryComplete(token: IMqttDeliveryToken): Unit = ()
-    })
+    )
     val opts = new MqttConnectOptions
     opts.setCleanSession(true)
     opts.setUserName(user)
@@ -58,4 +55,3 @@ class AISTests extends MUnitSuite {
     println("Subscribed")
     Thread.sleep(10000)
   }
-}

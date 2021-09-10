@@ -6,11 +6,11 @@ import com.malliina.http.io.HttpClientIO
 import com.malliina.logstreams.client.SocketEvent.Open
 import com.malliina.logstreams.client.WebSocketIO
 
-class WebSocketClientTests extends AsyncSuite {
+class WebSocketClientTests extends AsyncSuite:
   test("can connect to api.boat-tracker.com".ignore) {
     val socket = WebSocketIO(DeviceAgent.BoatUrl, Map.empty, HttpClientIO().client).unsafeRunSync()
-    socket.events.collect {
-      case o @ Open(_, _) => o
+    socket.events.collect { case o @ Open(_, _) =>
+      o
     }.take(1).compile.toList.unsafeRunSync().take(1)
   }
 
@@ -31,10 +31,9 @@ class WebSocketClientTests extends AsyncSuite {
     val token = "todo"
     val client = WebSocketIO(url, Map(Constants.BoatTokenHeader -> token), HttpClientIO().client)
       .unsafeRunSync()
-    try {
+    try
       client.open()
       client.send(msg)
       client.messages.map(msg => println(msg)).compile.drain.unsafeRunSync()
-    } finally client.close()
+    finally client.close()
   }
-}

@@ -8,62 +8,59 @@ import com.malliina.boat.http.{AccessResult, InviteInfo, InviteResult}
 import com.malliina.boat.{Boat, BoatInfo, BoatNames, BoatToken, BoatTokens, DeviceId, FriendInvite, Invite, InviteState, JoinedBoat, JoinedTrack, Language, TimeFormatter, UserBoats, UserInfo, UserToken, Usernames}
 import com.malliina.util.AppLogger
 import com.malliina.values.{Email, UserId, Username}
-import doobie._
-import doobie.implicits._
+import doobie.*
+import doobie.implicits.*
 
-object DoobieUserManager {
+object DoobieUserManager:
   private val log = AppLogger(getClass)
 
   def apply(db: DoobieDatabase): DoobieUserManager = new DoobieUserManager(db)
 
   def collectUsers(rows: Seq[JoinedUser]): Vector[UserInfo] =
-    rows.foldLeft(Vector.empty[UserInfo]) {
-      case (acc, ub) =>
-        val user = ub.user
-        val idx = acc.indexWhere(_.id == user.id)
-        val newBoats = ub.boat.toSeq.map { b => Boat(b.id, b.name, b.token, b.added.toEpochMilli) }
-        val newInvites = ub.invite.toList.map { row =>
-          Invite(row.boat, row.state, row.added.toEpochMilli)
-        }
-        val newFriends = ub.friend.toList.map { f =>
-          FriendInvite(f.boat, f.friend, f.state, f.added.toEpochMilli)
-        }
-        if (idx >= 0) {
-          val old = acc(idx)
-          val unseenBoats =
-            if (old.boats.exists(b => newBoats.exists(nb => nb.id == b.id))) Nil
-            else newBoats
-          val unseenInvites =
-            if (old.invites.exists(i => newInvites.exists(ni => ni.boat == i.boat))) Nil
-            else newInvites
-          val unseenFriends =
-            if (
-              old.friends
-                .exists(f => newFriends.exists(fi => fi.friend == f.friend && fi.boat == f.boat))
-            ) Nil
-            else newFriends
-          acc.updated(
-            idx,
-            old.copy(
-              boats = old.boats ++ unseenBoats,
-              invites = old.invites ++ unseenInvites,
-              friends = old.friends ++ unseenFriends
-            )
+    rows.foldLeft(Vector.empty[UserInfo]) { case (acc, ub) =>
+      val user = ub.user
+      val idx = acc.indexWhere(_.id == user.id)
+      val newBoats = ub.boat.toSeq.map { b => Boat(b.id, b.name, b.token, b.added.toEpochMilli) }
+      val newInvites = ub.invite.toList.map { row =>
+        Invite(row.boat, row.state, row.added.toEpochMilli)
+      }
+      val newFriends = ub.friend.toList.map { f =>
+        FriendInvite(f.boat, f.friend, f.state, f.added.toEpochMilli)
+      }
+      if idx >= 0 then
+        val old = acc(idx)
+        val unseenBoats =
+          if old.boats.exists(b => newBoats.exists(nb => nb.id == b.id)) then Nil
+          else newBoats
+        val unseenInvites =
+          if old.invites.exists(i => newInvites.exists(ni => ni.boat == i.boat)) then Nil
+          else newInvites
+        val unseenFriends =
+          if old.friends
+              .exists(f => newFriends.exists(fi => fi.friend == f.friend && fi.boat == f.boat))
+          then Nil
+          else newFriends
+        acc.updated(
+          idx,
+          old.copy(
+            boats = old.boats ++ unseenBoats,
+            invites = old.invites ++ unseenInvites,
+            friends = old.friends ++ unseenFriends
           )
-        } else {
-          user.email.fold(acc) { email =>
-            acc :+ UserInfo(
-              user.id,
-              user.user,
-              email,
-              user.language,
-              newBoats,
-              user.enabled,
-              user.added.toEpochMilli,
-              newInvites,
-              newFriends
-            )
-          }
+        )
+      else
+        user.email.fold(acc) { email =>
+          acc :+ UserInfo(
+            user.id,
+            user.user,
+            email,
+            user.language,
+            newBoats,
+            user.enabled,
+            user.added.toEpochMilli,
+            newInvites,
+            newFriends
+          )
         }
     }
 
@@ -72,10 +69,10 @@ object DoobieUserManager {
       val boatIdx =
         acc.indexWhere(b => b.user == row.username && b.boatId == row.boatId)
       val newRow = row.strip(formatter)
-      if (boatIdx >= 0) {
+      if boatIdx >= 0 then
         val old = acc(boatIdx)
         acc.updated(boatIdx, old.copy(tracks = old.tracks :+ newRow))
-      } else {
+      else
         acc :+ BoatInfo(
           row.boatId,
           row.boatName,
@@ -83,11 +80,9 @@ object DoobieUserManager {
           row.language,
           Seq(newRow)
         )
-      }
     }
-}
 
-class DoobieUserManager(db: DoobieDatabase) extends UserManager with DoobieSQL {
+class DoobieUserManager(db: DoobieDatabase) extends UserManager with DoobieSQL:
   object sql extends CommonSql
   import db.run
   implicit val logger: LogHandler = db.logHandler
@@ -138,15 +133,15 @@ class DoobieUserManager(db: DoobieDatabase) extends UserManager with DoobieSQL {
             left join boats fubb on fub.boat = fubb.id
             left join users fu on fub.user = fu.id
             where u.id = $id""".query[JoinedUser].to[List]
-    val task = for {
+    val task = for
       userId <- getOrCreate(email)
       info <- by(userId).map(DoobieUserManager.collectUsers)
-    } yield info
+    yield info
     task.flatMap[UserInfo] { infos =>
       infos.headOption.map { profile =>
         // Type annotation helps here for some reason
         val checked: ConnectionIO[UserInfo] =
-          if (profile.enabled) pure(profile)
+          if profile.enabled then pure(profile)
           else fail(IdentityException(UserDisabled(profile.username)))
         checked
       }.getOrElse {
@@ -176,24 +171,23 @@ class DoobieUserManager(db: DoobieDatabase) extends UserManager with DoobieSQL {
       sql"""${sql.boats} and u.email = $email and b.id not in (select boat from tracks)"""
         .query[JoinedBoat]
         .to[List]
-    for {
+    for
       id <- getOrCreate(email)
       user <- userById(id).query[UserRow].unique
       userTracks <- boatRowsIO(id)
       devices <- deviceRowsIO(email)
-    } yield {
+    yield
       val bs = DoobieUserManager.collectBoats(userTracks, TimeFormatter(user.language))
       val gpsDevices = devices.map(d => BoatInfo(d.device, d.boatName, d.username, d.language, Nil))
       UserBoats(user.user, user.language, bs ++ gpsDevices)
-    }
   }
 
   def initUser(user: Username = Usernames.anon): IO[NewUser] = run {
     val anon = NewUser(user, None, UserToken.random(), enabled = true)
-    for {
+    for
       exists <- userByName(user).query[UserRow].option
       ok <- exists.map(u => pure(u.user)).getOrElse(userInsertion(anon))
-    } yield anon
+    yield anon
   }
 
   def addUser(user: NewUser): IO[Either[AlreadyExists, UserRow]] = run {
@@ -206,30 +200,24 @@ class DoobieUserManager(db: DoobieDatabase) extends UserManager with DoobieSQL {
     }.map[Either[AlreadyExists, UserRow]] { u =>
       Right(u)
     }.exceptSql { sqle =>
-      if (sqle.getMessage.contains("primary key violation"))
-        pure(Left(AlreadyExists(user.user)))
-      else
-        fail(sqle)
+      if sqle.getMessage.contains("primary key violation") then pure(Left(AlreadyExists(user.user)))
+      else fail(sqle)
     }
   }
 
   def deleteUser(user: Username): IO[Either[UserDoesNotExist, Unit]] = run {
     sql"""delete from users where user = $user""".update.run.map { changed =>
-      if (changed > 0) {
+      if changed > 0 then
         log.info(s"Deleted user '$user'.")
         Right(())
-      } else {
-        Left(UserDoesNotExist(user))
-      }
+      else Left(UserDoesNotExist(user))
     }
   }
 
   def changeLanguage(user: UserId, to: Language): IO[Boolean] = run {
     sql"""update users set language = $to where id = $user""".update.run.map { changed =>
       val wasChanged = changed > 0
-      if (wasChanged) {
-        log.info(s"Changed language of user ID '$user' to '$to'.")
-      }
+      if wasChanged then log.info(s"Changed language of user ID '$user' to '$to'.")
       wasChanged
     }
   }
@@ -250,14 +238,12 @@ class DoobieUserManager(db: DoobieDatabase) extends UserManager with DoobieSQL {
 
   def revokeAccess(boat: DeviceId, from: UserId, principal: UserId): IO[AccessResult] = run {
     manageGroups(boat, from, principal) { existed =>
-      if (existed) {
+      if existed then
         sql"delete from users_boats where boat = $boat and user = $from".update.run.map(changed =>
-          if (changed == 1) AccessResult(existed)
+          if changed == 1 then AccessResult(existed)
           else AccessResult(false)
         )
-      } else {
-        pure(AccessResult(existed))
-      }
+      else pure(AccessResult(existed))
     }
   }
 
@@ -270,19 +256,18 @@ class DoobieUserManager(db: DoobieDatabase) extends UserManager with DoobieSQL {
     sql"""insert into users_boats(user, boat, state) 
           values($to, $boat, ${InviteState.awaiting})""".update.run
 
-  private def getOrCreate(email: Email): ConnectionIO[UserId] = for {
+  private def getOrCreate(email: Email): ConnectionIO[UserId] = for
     existing <- userByEmail(email).option
     userId <- existing.map(u => pure(u.id)).getOrElse(addUserWithBoat(email))
-  } yield userId
+  yield userId
 
-  private def addUserWithBoat(email: Email) = {
+  private def addUserWithBoat(email: Email) =
     log.info(s"Adding user '$email' with a randomly generated boat...")
-    for {
+    for
       userId <- userInsertion(NewUser.email(email))
       _ = log.info(s"Added user '$email'.")
       _ <- boatInsertion(userId)
-    } yield userId
-  }
+    yield userId
 
   private def boatInsertion(owner: UserId) =
     sql"""insert into boats(name, token, owner)
@@ -294,19 +279,17 @@ class DoobieUserManager(db: DoobieDatabase) extends UserManager with DoobieSQL {
     principal: UserId
   ): ConnectionIO[InviteResult] =
     manageGroups(boat, to, principal) { existed =>
-      if (existed) {
-        pure(AlreadyInvited(to, boat))
-      } else {
+      if existed then pure(AlreadyInvited(to, boat))
+      else
         linkInvite(boat, to).map { _ =>
           Invited(to, boat)
         }
-      }
     }
 
   private def manageGroups[T](boat: DeviceId, from: UserId, principal: UserId)(
     run: Boolean => ConnectionIO[T]
-  ): ConnectionIO[T] = {
-    for {
+  ): ConnectionIO[T] =
+    for
       owns <-
         sql"""select b.id from boats b where b.id = $boat and b.owner = $principal"""
           .query[DeviceId]
@@ -324,6 +307,4 @@ class DoobieUserManager(db: DoobieDatabase) extends UserManager with DoobieSQL {
           .query[UserId]
           .option
       res <- run(link.isDefined)
-    } yield res
-  }
-}
+    yield res

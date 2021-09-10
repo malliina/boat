@@ -2,38 +2,33 @@ package com.malliina.boat.db
 
 import cats.data.NonEmptyList
 import cats.effect.IO
-import cats.implicits._
+import cats.implicits.*
 import com.malliina.boat.db.DoobieFairwayService.collect
 import com.malliina.boat.{CoordHash, FairwayInfo}
-import doobie._
-import doobie.implicits._
+import doobie.*
+import doobie.implicits.*
 
-object DoobieFairwayService {
+object DoobieFairwayService:
   def apply(db: DoobieDatabase): DoobieFairwayService = new DoobieFairwayService(db)
 
   def collect(rows: Seq[CoordFairway]): Seq[CoordFairways] =
-    rows.foldLeft(Vector.empty[CoordFairways]) {
-      case (acc, cf) =>
-        val idx = acc.indexWhere(_.coord == cf.coord)
-        if (idx >= 0) {
-          val old = acc(idx)
-          acc.updated(idx, old.copy(fairways = old.fairways :+ cf.fairway))
-        } else {
-          acc :+ CoordFairways(cf.coord, Seq(cf.fairway))
-        }
+    rows.foldLeft(Vector.empty[CoordFairways]) { case (acc, cf) =>
+      val idx = acc.indexWhere(_.coord == cf.coord)
+      if idx >= 0 then
+        val old = acc(idx)
+        acc.updated(idx, old.copy(fairways = old.fairways :+ cf.fairway))
+      else acc :+ CoordFairways(cf.coord, Seq(cf.fairway))
     }
-}
 
-class DoobieFairwayService(db: DoobieDatabase) extends FairwaySource {
-  import DoobieMappings._
-  def byCoords(coords: NonEmptyList[CoordHash]) = {
+class DoobieFairwayService(db: DoobieDatabase) extends FairwaySource:
+  import DoobieMappings.*
+  def byCoords(coords: NonEmptyList[CoordHash]) =
     val inClause = Fragments.in(fr"fc.coord_hash", coords)
     sql"""select fc.coord_hash, f.id, f.name_fi, f.name_se, f.start, f.end, f.depth, f.depth2, f.depth3, f.lighting, f.class_text, f.sea_area, f.state
           from fairways f, fairway_coords fc 
           where f.id = fc.fairway and $inClause"""
       .query[CoordFairway]
       .to[List]
-  }
 
   def fairways(at: CoordHash): IO[Seq[FairwayRow]] = db.run {
     byCoords(NonEmptyList(at, Nil)).map(_.map(_.fairway))
@@ -60,4 +55,3 @@ class DoobieFairwayService(db: DoobieDatabase) extends FairwaySource {
     }
 
   def delete = sql"truncate fairways".update.run
-}

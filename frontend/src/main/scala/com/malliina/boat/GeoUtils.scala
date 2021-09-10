@@ -1,10 +1,10 @@
 package com.malliina.boat
 
 import com.malliina.mapbox.MapboxMap
-import io.circe._
+import io.circe.*
 import io.circe.syntax.EncoderOps
 
-trait GeoUtils {
+trait GeoUtils:
   val boatIconId = "boat-icon"
   val trophyIconId = "trophy-icon"
   val deviceIconId = "device-icon"
@@ -15,13 +15,12 @@ trait GeoUtils {
     map
       .findSource(layer.id)
       .map { geo =>
-        layer.source match {
+        layer.source match
           case InlineLayerSource(_, data) =>
             geo.updateData(data)
             Outcome.Updated
           case StringLayerSource(_) =>
             Outcome.Noop
-        }
       }
       .getOrElse {
         map.putLayer(layer)
@@ -34,7 +33,7 @@ trait GeoUtils {
   def lineForTrack(coords: Seq[MeasuredCoord]): FeatureCollection =
     FeatureCollection(speedFeatures(coords))
 
-  def speedFeatures(coords: Seq[MeasuredCoord]): Seq[Feature] = coords.length match {
+  def speedFeatures(coords: Seq[MeasuredCoord]): Seq[Feature] = coords.length match
     case 0 =>
       Nil
     case 1 =>
@@ -45,15 +44,13 @@ trait GeoUtils {
       )
       Seq(feature)
     case _ =>
-      coords.zip(coords.drop(1)).map {
-        case (start, end) =>
-          val avgSpeed: Double = (start.speed + end.speed).toKnots / 2
-          Feature(
-            LineGeometry(Seq(start, end).map(_.coord)),
-            Map(TimedCoord.SpeedKey -> avgSpeed.asJson)
-          )
+      coords.zip(coords.drop(1)).map { case (start, end) =>
+        val avgSpeed: Double = (start.speed + end.speed).toKnots / 2
+        Feature(
+          LineGeometry(Seq(start, end).map(_.coord)),
+          Map(TimedCoord.SpeedKey -> avgSpeed.asJson)
+        )
       }
-  }
 
   def lineFor(coords: Seq[Coord]): FeatureCollection =
     collectionFor(LineGeometry(coords), Map.empty)
@@ -66,4 +63,3 @@ trait GeoUtils {
 
   def collectionFor(geo: Geometry, props: Map[String, Json]): FeatureCollection =
     FeatureCollection(Seq(Feature(geo, props)))
-}

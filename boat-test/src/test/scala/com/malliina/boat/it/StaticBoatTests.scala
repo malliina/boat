@@ -1,11 +1,11 @@
 package com.malliina.boat.it
 
-import com.malliina.boat._
+import com.malliina.boat.*
 import com.malliina.util.AppLogger
 
 import scala.concurrent.Promise
 
-class StaticBoatTests extends BoatTests {
+class StaticBoatTests extends BoatTests:
   val log = AppLogger(getClass)
 
   val testTrack = Seq(
@@ -42,4 +42,3 @@ class StaticBoatTests extends BoatTests {
       }
     }
   }
-}

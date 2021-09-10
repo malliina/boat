@@ -2,19 +2,19 @@ package com.malliina.boat.db
 
 import cats.data.NonEmptyList
 import cats.effect.IO
-import cats.implicits._
+import cats.implicits.*
 import com.malliina.boat.InviteState.accepted
 import com.malliina.boat.http.{BoatQuery, SortOrder, TrackQuery}
-import com.malliina.boat._
+import com.malliina.boat.*
 import com.malliina.measure.{DistanceM, SpeedM}
 import com.malliina.util.AppLogger
 import com.malliina.values.Username
-import doobie._
-import doobie.implicits._
+import doobie.*
+import doobie.implicits.*
 
 import scala.concurrent.duration.{DurationInt, DurationLong, FiniteDuration}
 
-object DoobieTracksDatabase {
+object DoobieTracksDatabase:
   private val log = AppLogger(getClass)
 
   def apply(db: DoobieDatabase): DoobieTracksDatabase = new DoobieTracksDatabase(db)
@@ -23,61 +23,51 @@ object DoobieTracksDatabase {
     rows: Seq[SentenceCoord2],
     formatter: TimeFormatter
   ): Seq[CombinedFullCoord] =
-    rows.foldLeft(Vector.empty[CombinedFullCoord]) {
-      case (acc, sc) =>
-        val idx = acc.indexWhere(_.id == sc.c.id)
-        if (idx >= 0) {
-          val old = acc(idx)
-          acc.updated(
-            idx,
-            old.copy(sentences = old.sentences :+ sc.s.timed(formatter))
-          )
-        } else {
-          acc :+ sc.c.toFull(Seq(sc.s), formatter)
-        }
+    rows.foldLeft(Vector.empty[CombinedFullCoord]) { case (acc, sc) =>
+      val idx = acc.indexWhere(_.id == sc.c.id)
+      if idx >= 0 then
+        val old = acc(idx)
+        acc.updated(
+          idx,
+          old.copy(sentences = old.sentences :+ sc.s.timed(formatter))
+        )
+      else acc :+ sc.c.toFull(Seq(sc.s), formatter)
     }
 
-  def collectTrackCoords(rows: Seq[TrackCoord], language: Language): Seq[CoordsEvent] = {
+  def collectTrackCoords(rows: Seq[TrackCoord], language: Language): Seq[CoordsEvent] =
     val start = System.currentTimeMillis()
     val formatter = TimeFormatter(language)
-    val result = rows.foldLeft(Vector.empty[CoordsEvent]) {
-      case (acc, tc) =>
-        val from = tc.track
-        val point = tc.row
-        val idx = acc.indexWhere(_.from.track == from.track)
-        val instant = point.boatTime
-        val coord = TimedCoord(
-          point.id,
-          point.coord,
-          formatter.formatDateTime(instant),
-          instant.toEpochMilli,
-          formatter.formatTime(instant),
-          point.boatSpeed,
-          point.waterTemp,
-          point.depth,
-          formatter.timing(instant)
-        )
-        if (idx >= 0) {
-          val old = acc(idx)
-          acc.updated(idx, old.copy(coords = coord :: old.coords))
-        } else {
-          acc :+ CoordsEvent(List(coord), from.strip(formatter))
-        }
+    val result = rows.foldLeft(Vector.empty[CoordsEvent]) { case (acc, tc) =>
+      val from = tc.track
+      val point = tc.row
+      val idx = acc.indexWhere(_.from.track == from.track)
+      val instant = point.boatTime
+      val coord = TimedCoord(
+        point.id,
+        point.coord,
+        formatter.formatDateTime(instant),
+        instant.toEpochMilli,
+        formatter.formatTime(instant),
+        point.boatSpeed,
+        point.waterTemp,
+        point.depth,
+        formatter.timing(instant)
+      )
+      if idx >= 0 then
+        val old = acc(idx)
+        acc.updated(idx, old.copy(coords = coord :: old.coords))
+      else acc :+ CoordsEvent(List(coord), from.strip(formatter))
     }
     val end = System.currentTimeMillis()
     val duration = (end - start).millis
-    if (duration > 500.millis) {
-      log.warn(s"Collected ${rows.length} in ${duration.toMillis} ms")
-    }
+    if duration > 500.millis then log.warn(s"Collected ${rows.length} in ${duration.toMillis} ms")
     result
-  }
-}
 
-class DoobieTracksDatabase(val db: DoobieDatabase) extends TracksSource with StatsSource {
-  import DoobieMappings._
+class DoobieTracksDatabase(val db: DoobieDatabase) extends TracksSource with StatsSource:
+  import DoobieMappings.*
   import db.logHandler
 
-  object sql extends CommonSql {
+  object sql extends CommonSql:
     def pointsByTrack(name: TrackName) =
       sql"""select $pointColumns
             from points p, tracks t 
@@ -87,14 +77,12 @@ class DoobieTracksDatabase(val db: DoobieDatabase) extends TracksSource with Sta
       sql"""select $pointColumns
             from points p
             where p.track = $id"""
-    def pointsByTime(name: TrackName) = {
+    def pointsByTime(name: TrackName) =
       val selectPoints = pointsByTrack(name)
       sql"""$selectPoints order by p.boat_time asc"""
-    }
-    def topPointByTrack(name: TrackName) = {
+    def topPointByTrack(name: TrackName) =
       val selectPoints = pointsByTrack(name)
       sql"$selectPoints order by p.boat_speed desc limit 1"
-    }
     def tracksByUser(user: Username) =
       sql"$nonEmptyTracks and (b.user = $user or b.id in (select ub2.boat from users u2, users_boats ub2 where u2.id = ub2.user and u2.user = $user and ub2.state = $accepted))"
     def trackByName(name: TrackName) = sql"$nonEmptyTracks and t.name = $name"
@@ -102,28 +90,24 @@ class DoobieTracksDatabase(val db: DoobieDatabase) extends TracksSource with Sta
       sql"$nonEmptyTracks and " ++ Fragments.in(fr"t.name", names)
     def tracksByCanonicals(names: NonEmptyList[TrackCanonical]) =
       sql"$nonEmptyTracks and " ++ Fragments.in(fr"t.canonical", names)
-    def latestTracks(name: Username, limit: Option[Int]) = {
+    def latestTracks(name: Username, limit: Option[Int]) =
       val userTracks = tracksByUser(name)
       val limitClause = limit.fold(Fragment.empty)(l => fr"limit $l")
       sql"$userTracks order by t.added desc $limitClause"
-    }
-    import com.malliina.boat.http.TrackSort._
+    import com.malliina.boat.http.TrackSort.*
 
-    def tracksFor(user: Username, filter: TrackQuery) = {
-      val order = if (filter.order == SortOrder.Asc) fr"asc" else fr"desc"
-      val sortColumns = filter.sort match {
+    def tracksFor(user: Username, filter: TrackQuery) =
+      val order = if filter.order == SortOrder.Asc then fr"asc" else fr"desc"
+      val sortColumns = filter.sort match
         case Name     => fr"t.title $order, t.name $order, t.id $order"
         case Recent   => fr"t.start $order, t.id $order"
         case Points   => fr"t.points $order, t.id $order"
         case TopSpeed => fr"topSpeed $order, t.id $order"
         case Length   => fr"t.distance $order, t.id $order"
         case _        => fr"t.start $order, t.id $order"
-      }
       val unsorted = tracksByUser(user)
       val limits = filter.limits
       sql"""$unsorted order by $sortColumns limit ${limits.limit} offset ${limits.offset}"""
-    }
-  }
 
   val boatsView = sql.boats.query[JoinedBoat].to[List]
   val topView = sql.topRows.query[TrackPointRow].to[List]
@@ -139,22 +123,22 @@ class DoobieTracksDatabase(val db: DoobieDatabase) extends TracksSource with Sta
 
   def tracksBundle(user: MinimalUserInfo, filter: TrackQuery, lang: Lang): IO[TracksBundle] =
     run {
-      for {
+      for
         ts <- tracksForIO(user, filter)
         ss <- statsIO(user, filter, lang)
-      } yield TracksBundle(ts.tracks, ss)
+      yield TracksBundle(ts.tracks, ss)
     }
 
   def stats(user: MinimalUserInfo, filter: TrackQuery, lang: Lang): IO[StatsResponse] = run {
     statsIO(user, filter, lang)
   }
 
-  def statsIO(user: MinimalUserInfo, filter: TrackQuery, lang: Lang) = {
+  def statsIO(user: MinimalUserInfo, filter: TrackQuery, lang: Lang) =
     val tracks = sql.tracksByUser(user.username)
     val zeroDistance = DistanceM.zero
     val zeroDuration: FiniteDuration = 0.seconds
     val now = DateVal.now()
-    val ord = if (filter.order == SortOrder.Desc) fr"desc" else fr"asc"
+    val ord = if filter.order == SortOrder.Desc then fr"desc" else fr"asc"
     val aggregates =
       fr"sum(t.distance), sum(t.duration), count(t.track), count(distinct(t.startDate))"
     val dailyIO =
@@ -182,12 +166,12 @@ class DoobieTracksDatabase(val db: DoobieDatabase) extends TracksSource with Sta
           from ($tracks) t"""
       .query[AllTimeAggregates]
       .to[List]
-    for {
+    for
       daily <- dailyIO
       monthly <- monthlyIO
       yearly <- yearlyIO
       allTime <- allTimeIO
-    } yield {
+    yield
       val all = allTime.headOption.getOrElse(AllTimeAggregates.empty)
       val months = monthly.map { ma =>
         MonthlyStats(
@@ -233,8 +217,6 @@ class DoobieTracksDatabase(val db: DoobieDatabase) extends TracksSource with Sta
           all.days
         )
       )
-    }
-  }
 
   def ref(track: TrackName, language: Language): IO[TrackRef] =
     single(sql.trackByName(track), language)
@@ -243,10 +225,10 @@ class DoobieTracksDatabase(val db: DoobieDatabase) extends TracksSource with Sta
     single(sql.tracksByCanonicals(NonEmptyList.of(trackCanonical)), language)
 
   def track(track: TrackName, user: Username, query: TrackQuery): IO[TrackInfo] = run {
-    for {
+    for
       points <- sql.pointsByTime(track).query[CombinedCoord].to[List]
       top <- sql.topPointByTrack(track).query[CombinedCoord].option
-    } yield TrackInfo(points, top)
+    yield TrackInfo(points, top)
   }
 
   def full(track: TrackName, language: Language, query: TrackQuery): IO[FullTrack] = run {
@@ -262,10 +244,10 @@ class DoobieTracksDatabase(val db: DoobieDatabase) extends TracksSource with Sta
         .to[List]
     val trackIO = sql.trackByName(track).query[JoinedTrack].unique
     val formatter = TimeFormatter(language)
-    for {
+    for
       stats <- trackIO
       coords <- coordsIO
-    } yield FullTrack(stats.strip(formatter), DoobieTracksDatabase.collectRows(coords, formatter))
+    yield FullTrack(stats.strip(formatter), DoobieTracksDatabase.collectRows(coords, formatter))
   }
 
   def history(user: MinimalUserInfo, limits: BoatQuery): IO[Seq[CoordsEvent]] = run {
@@ -311,7 +293,7 @@ class DoobieTracksDatabase(val db: DoobieDatabase) extends TracksSource with Sta
     tracksForIO(user, filter)
   }
 
-  def tracksForIO(user: MinimalUserInfo, filter: TrackQuery) = {
+  def tracksForIO(user: MinimalUserInfo, filter: TrackQuery) =
     val formatter = TimeFormatter(user.language)
     sql
       .tracksFor(user.username, filter)
@@ -320,7 +302,5 @@ class DoobieTracksDatabase(val db: DoobieDatabase) extends TracksSource with Sta
       .map { list =>
         Tracks(list.map(_.strip(formatter)))
       }
-  }
 
   def run[T](io: ConnectionIO[T]): IO[T] = db.run(io)
-}

@@ -3,21 +3,23 @@ package com.malliina.boat.db
 import cats.effect.IO
 import com.malliina.boat.http.{AccessResult, InviteInfo, InviteResult}
 import com.malliina.boat.{BoatToken, DeviceId, InviteState, JoinedBoat, Language, UserBoats, UserInfo}
-import com.malliina.values._
+import com.malliina.values.*
 import org.apache.commons.codec.digest.DigestUtils
 
-trait UserManager {
+trait UserManager:
   def userMeta(email: Email): IO[UserRow]
 
-  /** Retrieves user information for the user with the given email address. If the user does not exist, one is created
-    * with the email address as the username, and with a newly created randomly named boat. This enables user login
-    * without an explicit signup step.
+  /** Retrieves user information for the user with the given email address. If the user does not
+    * exist, one is created with the email address as the username, and with a newly created
+    * randomly named boat. This enables user login without an explicit signup step.
     *
-    * The email address is expected to be in possession of the user, meaning we have extracted it from a validated
-    * Google ID token when calling this method.
+    * The email address is expected to be in possession of the user, meaning we have extracted it
+    * from a validated Google ID token when calling this method.
     *
-    * @param email email address of the user
-    * @return user info for `email`
+    * @param email
+    *   email address of the user
+    * @return
+    *   user info for `email`
     */
   def userInfo(email: Email): IO[UserInfo]
   def authBoat(token: BoatToken): IO[JoinedBoat]
@@ -32,4 +34,3 @@ trait UserManager {
 
   protected def hash(user: Username, pass: Password): String =
     DigestUtils.md5Hex(s"$user:${pass.pass}")
-}

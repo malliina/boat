@@ -3,9 +3,9 @@ package com.malliina.boat.html
 import com.malliina.boat.FrontKeys.{ChartsClass, ChartsId, FormsClass}
 import com.malliina.boat.TrackRef
 import com.malliina.html.Tags
-import scalatags.Text.all._
+import scalatags.Text.all.*
 
-object Charts extends Tags(scalatags.Text) {
+object Charts extends Tags(scalatags.Text):
   // https://cdnjs.com/libraries/Chart.js
   def chart(track: TrackRef, lang: BoatLang) = page(
     div(`class` := "container")(
@@ -20,4 +20,3 @@ object Charts extends Tags(scalatags.Text) {
     content,
     bodyClasses = Seq(ChartsClass, FormsClass)
   )
-}

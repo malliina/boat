@@ -8,19 +8,19 @@ import com.malliina.boat.{BoatFormats, Lang, MonthVal, MonthsLang, TracksBundle}
 import com.malliina.measure.DistanceM
 import org.http4s.Uri
 import scalatags.Text
-import scalatags.Text.all._
+import scalatags.Text.all.*
 
 import scala.language.implicitConversions
 
-object TracksPage extends BoatImplicits {
+object TracksPage extends BoatImplicits:
   val reverse = Reverse
   val monthDataAttr = data("month")
   val yearDataAttr = data("year")
 
   implicit def distanceKmHtml(d: DistanceM): Frag = stringFrag(formatDistance(d) + " km")
 
-  def translate(month: MonthVal, lang: MonthsLang): String = {
-    month.month match {
+  def translate(month: MonthVal, lang: MonthsLang): String =
+    month.month match
       case 1  => lang.jan
       case 2  => lang.feb
       case 3  => lang.mar
@@ -34,10 +34,8 @@ object TracksPage extends BoatImplicits {
       case 11 => lang.nov
       case 12 => lang.dec
       case _  => ""
-    }
-  }
 
-  def apply(tracks: TracksBundle, query: TrackQuery, lang: Lang): Text.TypedTag[String] = {
+  def apply(tracks: TracksBundle, query: TrackQuery, lang: Lang): Text.TypedTag[String] =
     val sort = query.sort
     val order = query.order
     val isAsc = order == SortOrder.Asc
@@ -138,16 +136,13 @@ object TracksPage extends BoatImplicits {
         )
       )
     )
-  }
 
-  def column(name: Modifier, sort: TrackSort, activeSort: TrackSort, isAsc: Boolean) = {
+  def column(name: Modifier, sort: TrackSort, activeSort: TrackSort, isAsc: Boolean) =
     val isActive = sort == activeSort
     val mod =
-      if (isActive)
-        if (isAsc) "chevron-up" else "chevron-down"
-      else
-        "sort"
-    val inverseOrder = if (isAsc) SortOrder.Desc.name else SortOrder.Asc.name
+      if isActive then if isAsc then "chevron-up" else "chevron-down"
+      else "sort"
+    val inverseOrder = if isAsc then SortOrder.Desc.name else SortOrder.Asc.name
     th(
       a(
         href := withQuery(
@@ -156,9 +151,6 @@ object TracksPage extends BoatImplicits {
         )
       )(name, " ", i(`class` := s"fas fa-$mod"))
     )
-  }
 
-  def withQuery(call: Uri, params: Map[String, String]) = {
+  def withQuery(call: Uri, params: Map[String, String]) =
     call.withQueryParams(params)
-  }
-}

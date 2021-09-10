@@ -1,7 +1,7 @@
 package com.malliina.boat.ais
 
 import com.malliina.http.FullUrl
-import org.eclipse.paho.client.mqttv3._
+import org.eclipse.paho.client.mqttv3.*
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence
 
 case class MqttSettings(
@@ -18,8 +18,7 @@ case class MqttSettings(
 
 sealed abstract class MqttQoS(val level: Int)
 
-object MqttQoS {
+object MqttQoS:
   case object AtMostOnce extends MqttQoS(0)
   case object AtLeastOnce extends MqttQoS(1)
   case object ExactlyOnce extends MqttQoS(2)
-}

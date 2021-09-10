@@ -8,9 +8,8 @@ import com.malliina.http.HttpClient
 
 import java.nio.file.Paths
 
-object LocalConf2 {
+object LocalConf2:
   val localConfFile = Paths.get(sys.props("user.home")).resolve(".boat/boat.conf")
-}
 
 //  override lazy val csrfConfig = CSRFConfig(
 //    tokenName = CsrfTokenName,

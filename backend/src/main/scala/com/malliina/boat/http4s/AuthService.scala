@@ -12,12 +12,11 @@ import org.http4s.headers.Cookie
 import org.http4s.{Headers, Request, Response}
 import org.typelevel.ci.{CIString, CIStringSyntax}
 
-object AuthService {
+object AuthService:
   val GoogleCookie = ci"google"
   val ProviderCookieName = ci"boatProvider"
-}
 
-class AuthService(val users: UserManager, comps: AuthComps) {
+class AuthService(val users: UserManager, comps: AuthComps):
   val emailAuth = comps.google
   val web = comps.web
   val googleFlow = comps.googleFlow
@@ -86,7 +85,7 @@ class AuthService(val users: UserManager, comps: AuthComps) {
 
   private def optionalUserInfo(
     req: Request[IO]
-  ): IO[Either[MissingCredentials, Option[UserBoats]]] = {
+  ): IO[Either[MissingCredentials, Option[UserBoats]]] =
     val headers = req.headers
     authSession(headers).map { email =>
       users.boats(email).map { boats => Right(Option(boats)) }
@@ -97,13 +96,11 @@ class AuthService(val users: UserManager, comps: AuthComps) {
           r.name == providerCookieName && r.content == GoogleCookie.toString
         )
       }
-      if (hasGoogleCookie) IO.pure(Left(MissingCredentials(headers)))
+      if hasGoogleCookie then IO.pure(Left(MissingCredentials(headers)))
       else IO.pure(Right(None))
     }
-  }
 
   private def authSession(headers: Headers) =
     web
       .authenticate(headers)
       .map(user => Email(user.name))
-}

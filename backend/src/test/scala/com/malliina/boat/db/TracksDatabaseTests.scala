@@ -10,12 +10,11 @@ import tests.{MUnitDatabaseSuite, MUnitSuite}
 
 import java.time.{LocalDate, LocalTime}
 
-object TestData {
+object TestData:
   val london = Coord.build(0.13, 51.5).toOption.get
   val sanfran = Coord.build(-122.4, 37.8).toOption.get
-}
 
-class TracksDatabaseTests extends MUnitSuite with MUnitDatabaseSuite {
+class TracksDatabaseTests extends MUnitSuite with MUnitDatabaseSuite:
   dbFixture.test("inserts update track aggregates") { db =>
     val tdb = DoobieTracksDatabase(db)
     val inserts = TrackInserter(db)
@@ -23,14 +22,14 @@ class TracksDatabaseTests extends MUnitSuite with MUnitDatabaseSuite {
     val user = users.userInfo(Email("aggregate@example.com")).unsafeRunSync()
     val boat = user.boats.head
     val bid = boat.id
-    val action: IO[TrackRef] = for {
+    val action: IO[TrackRef] = for
       t <- inserts.joinAsBoat(BoatUser(TrackNames.random(), boat.name, user.username))
       tid = t.track
       _ <- inserts.saveCoords(fakeCoord(london, 10.kmh, tid, bid))
       _ <- inserts.saveCoords(fakeCoord(sanfran, 20.kmh, tid, bid))
       track <- tdb.ref(t.trackName, Language.swedish)
       _ <- users.deleteUser(user.username)
-    } yield track
+    yield track
     val t = action.unsafeRunSync()
     assertEquals(t.points, 2)
     assert(t.avgSpeed.exists(s => s > 14.kmh && s < 16.kmh))
@@ -48,7 +47,7 @@ class TracksDatabaseTests extends MUnitSuite with MUnitDatabaseSuite {
         enabled = true
       )
     val trackName = TrackNames.random()
-    val task = for {
+    val task = for
       u <- udb.addUser(userInput)
       uid = u.toOption.get.id
       t <- tdb.joinAsBoat(
@@ -56,7 +55,7 @@ class TracksDatabaseTests extends MUnitSuite with MUnitDatabaseSuite {
       )
       _ <- tdb.saveCoords(fakeCoord(london, 10.kmh, t.track, t.boat))
       t <- tdb.updateComments(t.track, testComment, uid)
-    } yield t.comments
+    yield t.comments
     val dbComment = task.unsafeRunSync()
     assert(dbComment.contains(testComment))
   }
@@ -78,4 +77,3 @@ class TracksDatabaseTests extends MUnitSuite with MUnitDatabaseSuite {
         Username("whatever")
       )
     )
-}

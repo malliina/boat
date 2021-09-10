@@ -11,7 +11,7 @@ import scala.language.implicitConversions
 
 object BoatImplicits extends BoatImplicits
 
-trait BoatImplicits {
+trait BoatImplicits:
   implicit def speedHtml(s: SpeedM): StringFrag = stringFrag(formatSpeed(s))
   implicit def distanceHtml(d: DistanceM): StringFrag = stringFrag(formatDistance(d))
   implicit def tempHtml(t: Temperature): StringFrag = stringFrag(formatTemp(t))
@@ -20,7 +20,5 @@ trait BoatImplicits {
   implicit def dateValHtml(d: DateVal): Frag = stringFrag(d.iso8601)
   implicit def wrappedIntAttr[T <: WrappedInt]: AttrValue[T] = boatStringAttr(i => s"${i.value}")
 
-  def boatStringAttr[T](stringify: T => String): AttrValue[T] = { (t: Builder, a: Attr, v: T) =>
+  def boatStringAttr[T](stringify: T => String): AttrValue[T] = (t: Builder, a: Attr, v: T) =>
     t.setAttr(a.name, Builder.GenericAttrValueSource(stringify(v)))
-  }
-}

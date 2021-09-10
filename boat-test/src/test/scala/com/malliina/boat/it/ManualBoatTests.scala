@@ -9,7 +9,7 @@ import com.malliina.util.FileUtils
 
 import scala.jdk.CollectionConverters.CollectionHasAsScala
 
-class ManualBoatTests extends BoatTests {
+class ManualBoatTests extends BoatTests:
   //  val testFile = FileUtilities.userHome.resolve(".boat/Log2.txt")
   //  val testFile = FileUtilities.userHome.resolve(".boat/nmea0183-standard.log")
   val testFile = FileUtils.userHome.resolve(".boat/Log.txt")
@@ -27,11 +27,10 @@ class ManualBoatTests extends BoatTests {
     //    println("Lines " + gpsSentences.toList.length)
     val testMessages = relevantSentences.toList.grouped(1000).map(SentencesMessage.apply).toList
     openRandomBoat(url, httpClient) { boat =>
-      testMessages.zipWithIndex.map {
-        case (msg, idx) =>
-          println(s"Sending batch $idx/${testMessages.length}...")
-          boat.send(msg)
-          Thread.sleep(5000)
+      testMessages.zipWithIndex.map { case (msg, idx) =>
+        println(s"Sending batch $idx/${testMessages.length}...")
+        boat.send(msg)
+        Thread.sleep(5000)
       }
     }
   }
@@ -72,4 +71,3 @@ class ManualBoatTests extends BoatTests {
       Thread.sleep(10000)
     }
   }
-}

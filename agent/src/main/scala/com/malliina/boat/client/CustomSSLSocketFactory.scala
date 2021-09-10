@@ -3,18 +3,17 @@ package com.malliina.boat.client
 import java.net.{InetAddress, Socket, URI}
 import java.util
 
-import javax.net.ssl._
+import javax.net.ssl.*
 
-object CustomSSLSocketFactory {
+object CustomSSLSocketFactory:
   def forUri(uri: URI) = forHost(uri.getHost)
 
-  def forHost(host: String): CustomSSLSocketFactory = {
+  def forHost(host: String): CustomSSLSocketFactory =
     val sniHost = new SNIHostName(host)
     val matcher = SNIHostName.createSNIMatcher(host.replace(".", "\\."))
     withSNI(matcher, sniHost)
-  }
 
-  def withSNI(sniMatcher: SNIMatcher, sniHost: SNIHostName): CustomSSLSocketFactory = {
+  def withSNI(sniMatcher: SNIMatcher, sniHost: SNIHostName): CustomSSLSocketFactory =
     val sslParameters = new SSLParameters()
 
     sslParameters.setSNIMatchers(util.Arrays.asList(sniMatcher))
@@ -22,16 +21,16 @@ object CustomSSLSocketFactory {
     val ctx = SSLContext.getDefault
     val inner = ctx.getSocketFactory
     new CustomSSLSocketFactory(inner, sslParameters)
-  }
-}
 
-/**
-  * @param inner         wrapped SSL socket factory
-  * @param sslParameters SSL parameters, such as SNI settings
-  * @see http://javabreaks.blogspot.fi/2015/12/java-ssl-handshake-with-server-name.html
+/** @param inner
+  *   wrapped SSL socket factory
+  * @param sslParameters
+  *   SSL parameters, such as SNI settings
+  * @see
+  *   http://javabreaks.blogspot.fi/2015/12/java-ssl-handshake-with-server-name.html
   */
 class CustomSSLSocketFactory(inner: SSLSocketFactory, sslParameters: SSLParameters)
-  extends SSLSocketFactory {
+  extends SSLSocketFactory:
   override def getDefaultCipherSuites: Array[String] = inner.getDefaultCipherSuites
 
   override def getSupportedCipherSuites: Array[String] = inner.getSupportedCipherSuites
@@ -59,9 +58,7 @@ class CustomSSLSocketFactory(inner: SSLSocketFactory, sslParameters: SSLParamete
   ): Socket =
     customized(inner.createSocket(inetAddress, i, inetAddress1, i1))
 
-  private def customized(s: Socket): Socket = {
+  private def customized(s: Socket): Socket =
     val sslSocket = s.asInstanceOf[SSLSocket]
     sslSocket.setSSLParameters(sslParameters)
     sslSocket
-  }
-}

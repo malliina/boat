@@ -1,13 +1,12 @@
 package com.malliina.boat
 
 import com.malliina.measure.{DistanceM, SpeedM}
-import scalatags.JsDom.all._
+import scalatags.JsDom.all.*
 
-object Popups {
+object Popups:
   def apply(lang: Lang) = new Popups(lang)
-}
 
-class Popups(lang: Lang) extends BoatModels {
+class Popups(lang: Lang) extends BoatModels:
   val empty = modifier()
   val trackLang = lang.track
   val markLang = lang.mark
@@ -29,37 +28,35 @@ class Popups(lang: Lang) extends BoatModels {
       tr(td(colspan := 2)(point.dateTime))
     )
 
-  def ais(vessel: VesselInfo) = {
+  def ais(vessel: VesselInfo) =
     val unknownShip = vessel.shipType.isInstanceOf[ShipType.Unknown]
     titledTable(vessel.name)(
       vessel.destination.fold(empty)(d => row(aisLang.destination, d)),
-      if (!unknownShip) row(aisLang.shipType, vessel.shipType.name(lang.shipTypes)) else empty,
+      if !unknownShip then row(aisLang.shipType, vessel.shipType.name(lang.shipTypes)) else empty,
       row(trackLang.speed, formatSpeed(vessel.sog)),
       row(aisLang.draft, formatDistance(vessel.draft)),
       row(lang.time, vessel.timestampFormatted)
       // row(lang.duration, vessel.eta)
     )
-  }
 
   def formatSpeed(s: SpeedM) = "%.2f kn".format(s.toKnots)
 
   def formatDistance(d: DistanceM) = "%.1f m".format(d.toMeters)
 
-  private def asMeters(d: DistanceM) = {
+  private def asMeters(d: DistanceM) =
     val value = "%.2f"
       .format(d.toMeters)
       .stripSuffix("0")
       .stripSuffix("0")
       .stripSuffix(".")
     s"$value m"
-  }
 
   def mark(symbol: MarineSymbol) =
     titledTable(symbol.name(lang).fold("")(identity))(
       row(markLang.aidType, symbol.aidType.translate(markLang.aidTypes)),
       symbol.construction
         .fold(empty)(c => row(markLang.construction, c.translate(markLang.structures))),
-      if (symbol.navMark == NavMark.NotApplicable) empty
+      if symbol.navMark == NavMark.NotApplicable then empty
       else row(markLang.navigation, symbol.navMark.translate(markLang.navTypes)),
       symbol.location(lang).fold(empty)(l => row(markLang.location, l)),
       row(markLang.owner, symbol.ownerName(specialWords))
@@ -133,4 +130,3 @@ class Popups(lang: Lang) extends BoatModels {
 
   def trophyMarker(speed: SpeedM) =
     i(`class` := "fas fa-trophy marker-top-speed")
-}

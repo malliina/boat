@@ -3,18 +3,18 @@ package com.malliina.boat.http4s
 import cats.Applicative
 import cats.data.NonEmptyList
 import cats.effect.{IO, Sync}
-import cats.implicits._
+import cats.implicits.*
 import com.malliina.boat.Errors
 import com.malliina.boat.db.MissingCredentialsException
 import com.malliina.boat.http4s.BasicService.{log, noCache}
 import com.malliina.util.AppLogger
-import org.http4s.CacheDirective._
-import org.http4s._
+import org.http4s.CacheDirective.*
+import org.http4s.*
 import org.http4s.headers.{Accept, Location, `Cache-Control`}
 
 import scala.concurrent.duration.FiniteDuration
 
-object BasicService extends BasicService[IO] {
+object BasicService extends BasicService[IO]:
   private val log = AppLogger(getClass)
 
   val noCache = `Cache-Control`(`no-cache`(), `no-store`, `must-revalidate`)
@@ -26,9 +26,8 @@ object BasicService extends BasicService[IO] {
     .get[Accept]
     .map(_.values.map(_.mediaRange))
     .getOrElse(NonEmptyList.of(MediaRange.`*/*`))
-}
 
-class BasicService[F[_]: Applicative: Sync] extends Implicits[F] {
+class BasicService[F[_]: Applicative: Sync] extends Implicits[F]:
   def temporaryRedirect(uri: Uri) = TemporaryRedirect(Location(uri)) //, noCache)
   def seeOther(uri: Uri) = SeeOther(Location(uri)) // , noCache)
   def ok[A](a: A)(implicit w: EntityEncoder[F, A]) = Ok(a, noCache)
@@ -40,7 +39,7 @@ class BasicService[F[_]: Applicative: Sync] extends Implicits[F] {
   def serverError[A](a: A)(implicit w: EntityEncoder[F, A]): F[Response[F]] =
     InternalServerError(a, noCache)
 
-  def errorHandler(t: Throwable): F[Response[F]] = t match {
+  def errorHandler(t: Throwable): F[Response[F]] = t match
     case ir: InvalidRequest =>
       Sync[F].delay(log.warn(ir.message, ir)).flatMap { _ =>
         badRequest(ir.errors)
@@ -51,5 +50,3 @@ class BasicService[F[_]: Applicative: Sync] extends Implicits[F] {
       Sync[F].delay(log.error("Server error.", other)).flatMap { _ =>
         serverError(Errors("Server error."))
       }
-  }
-}

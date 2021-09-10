@@ -13,7 +13,7 @@ import java.nio.charset.{Charset, StandardCharsets}
 import java.nio.{ByteBuffer, CharBuffer}
 import java.util.concurrent.atomic.{AtomicBoolean, AtomicReference}
 
-object TcpClient {
+object TcpClient:
   private val log = Logging(getClass)
 
   private val crlf = "\r\n"
@@ -29,19 +29,17 @@ object TcpClient {
     c: Concurrent[IO],
     cs: ContextShift[IO],
     t: Timer[IO]
-  ): Resource[IO, TcpClient] = for {
+  ): Resource[IO, TcpClient] = for
     group <- SocketGroup[IO](blocker)
     client <- Resource.eval(apply(host, port, group, delimiter))
-  } yield client
+  yield client
 
   def apply(host: String, port: Int, sockets: SocketGroup, delimiter: String)(implicit
     c: Concurrent[IO],
     cs: ContextShift[IO],
     t: Timer[IO]
-  ): IO[TcpClient] = for {
-    topic <- Topic[IO, SentencesMessage](SentencesMessage(Nil))
-  } yield new TcpClient(host, port, delimiter, topic, sockets)
-}
+  ): IO[TcpClient] = for topic <- Topic[IO, SentencesMessage](SentencesMessage(Nil))
+  yield new TcpClient(host, port, delimiter, topic, sockets)
 
 class TcpClient(
   host: String,
@@ -49,7 +47,7 @@ class TcpClient(
   delimiter: String,
   topic: Topic[IO, SentencesMessage],
   group: SocketGroup
-)(implicit c: Concurrent[IO], cs: ContextShift[IO], t: Timer[IO]) {
+)(implicit c: Concurrent[IO], cs: ContextShift[IO], t: Timer[IO]):
   val hostPort = s"tcp://$host:$port"
 //  implicit val ec = mat.executionContext
   private val active = new AtomicReference[Option[Socket[IO]]](None)
@@ -91,10 +89,10 @@ class TcpClient(
         IO(log.info(s"Connected to $hostPort."))
       }
       .handleErrorWith { e =>
-        if (enabled.get()) {
+        if enabled.get() then
           log.warn(s"Lost connection to $hostPort. Reconnecting in $reconnectInterval...", e)
           connections.delayBy(reconnectInterval)
-        } else {
+        else {
           log.info(s"Disconnected from $hostPort.")
           Stream.empty
         }
@@ -103,7 +101,7 @@ class TcpClient(
   private def toHostPort(addr: InetSocketAddress) =
     s"${addr.getHostString}:${addr.getPort}"
 
-  def decode[F[_]](charset: Charset): Pipe[F, Byte, String] = {
+  def decode[F[_]](charset: Charset): Pipe[F, Byte, String] =
     val decoder = charset.newDecoder
     val maxCharsPerByte = math.ceil(decoder.maxCharsPerByte().toDouble).toInt
     val avgBytesPerChar = math.ceil(1.0 / decoder.averageCharsPerByte().toDouble).toInt
@@ -116,22 +114,19 @@ class TcpClient(
           decoder.decode(ByteBuffer.allocate(0), charBuffer, true)
           decoder.flush(charBuffer)
           val outputString = charBuffer.flip().toString
-          if (outputString.isEmpty) Pull.done.as(None)
+          if outputString.isEmpty then Pull.done.as(None)
           else Pull.output1(outputString).as(None)
         case Some((chunk, stream)) =>
-          if (chunk.nonEmpty) {
+          if chunk.nonEmpty then
             val bytes = chunk.toArray
             val byteBuffer = ByteBuffer.wrap(bytes)
             val charBuffer = CharBuffer.allocate(bytes.length * maxCharsPerByte)
             decoder.decode(byteBuffer, charBuffer, false)
             val nextStream = stream.consChunk(Chunk.byteBuffer(byteBuffer.slice()))
             Pull.output1(charBuffer.flip().toString).as(Some(nextStream))
-          } else {
-            Pull.output(Chunk.empty[String]).as(Some(stream))
-          }
+          else Pull.output(Chunk.empty[String]).as(Some(stream))
       }
     }
-  }
 
   //  val (sink, sentencesHub) =
   //    MergeHub
@@ -147,8 +142,6 @@ class TcpClient(
   //    .groupedWithin(maxBatchSize, sendTimeWindow)
   //    .map(SentencesMessage.apply)
 
-  def close(): Unit = {
+  def close(): Unit =
     enabled.set(false)
     active.get().foreach(_.close.unsafeRunSync())
-  }
-}

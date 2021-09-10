@@ -1,11 +1,11 @@
 package com.malliina.boat
 
-import io.circe._
+import io.circe.*
 import io.circe.syntax.EncoderOps
 
 import scala.language.implicitConversions
 
-object Styles {
+object Styles:
 //  trait Convertible[T] {
 //    def toJson(t: T): Json
 //  }
@@ -49,4 +49,3 @@ object Styles {
     40,
     "rgb(255,0,0)"
   )
-}

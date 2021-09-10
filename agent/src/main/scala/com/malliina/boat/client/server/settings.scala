@@ -12,11 +12,10 @@ import java.nio.file.{Files, Path, Paths}
 import scala.jdk.CollectionConverters.CollectionHasAsScala
 import scala.util.Try
 
-sealed abstract class Device(val name: String) {
+sealed abstract class Device(val name: String):
   override def toString = name
-}
 
-object Device {
+object Device:
   implicit val codec: Codec[Device] = Codec.from(
     Decoder.decodeString.map(apply),
     Encoder.encodeString.contramap(_.name)
@@ -24,22 +23,18 @@ object Device {
   val all = Seq(BoatDevice, GpsDevice)
   val default = BoatDevice
 
-  case object GpsDevice extends Device("gps") {
+  case object GpsDevice extends Device("gps"):
     val watchCommand =
       """?WATCH={"enable":true,"json":false,"nmea":true,"raw":0,"scaled":false,"timing":false,"split24":false,"pps":false}"""
-  }
   case object BoatDevice extends Device("boat")
 
   def apply(s: String): Device = all.find(_.name == s.toLowerCase).getOrElse(default)
-}
 
-case class BoatConfOld(host: String, port: Int, token: Option[BoatToken], enabled: Boolean) {
+case class BoatConfOld(host: String, port: Int, token: Option[BoatToken], enabled: Boolean):
   def toConf = BoatConf(host, port, BoatDevice, token, enabled)
-}
 
-object BoatConfOld {
+object BoatConfOld:
   implicit val codec: Codec[BoatConfOld] = deriveCodec[BoatConfOld]
-}
 
 case class BoatConf(
   host: String,
@@ -47,18 +42,16 @@ case class BoatConf(
   device: Device,
   token: Option[BoatToken],
   enabled: Boolean
-) {
+):
   def describe = s"$host:$port-$enabled"
-}
 
-object BoatConf {
+object BoatConf:
   implicit val json: Codec[BoatConf] = deriveCodec[BoatConf]
   val empty = BoatConf("", 0, Device.default, None, enabled = false)
 
   def anon(host: String, port: Int) = BoatConf(host, port, Device.default, None, enabled = true)
-}
 
-object AgentSettings {
+object AgentSettings:
   val passFile = file("pass.md5")
   val confFile = file("boat.conf")
 
@@ -68,15 +61,14 @@ object AgentSettings {
     sys.props.get("conf.dir").map(s => Paths.get(s)).getOrElse(Files.createTempDirectory("boat-"))
 
   def readPass: String =
-    if (Files.exists(passFile))
+    if Files.exists(passFile) then
       Files.readAllLines(passFile).asScala.headOption.getOrElse(defaultHash)
-    else
-      defaultHash
+    else defaultHash
 
   def savePass(pass: String): Unit = save(hash(pass), passFile)
 
   def readConf(): BoatConf =
-    if (Files.exists(confFile)) {
+    if Files.exists(confFile) then
       // If reading the conf fails, attempts to read the old format and then save it as new
       Try(
         parser.parse(new String(Files.readAllBytes(confFile), StandardCharsets.UTF_8))
@@ -91,19 +83,14 @@ object AgentSettings {
           }
         }
       }.getOrElse(BoatConf.empty)
-    } else {
-      BoatConf.empty
-    }
+    else BoatConf.empty
 
   def saveConf(conf: BoatConf): Unit = save(conf.asJson.spaces2, confFile)
 
-  def saveAndReload(conf: BoatConf, instance: AgentInstance): Boolean = {
+  def saveAndReload(conf: BoatConf, instance: AgentInstance): Boolean =
     saveConf(conf)
     instance.updateIfNecessary(conf)
-  }
 
-  def save(content: String, to: Path): Unit = {
+  def save(content: String, to: Path): Unit =
     Files.write(to, content.getBytes(boatCharset))
     log.info(s"Wrote $to.")
-  }
-}

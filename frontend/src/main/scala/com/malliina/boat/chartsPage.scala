@@ -1,35 +1,35 @@
 package com.malliina.boat
 
-import com.malliina.chartjs._
+import com.malliina.chartjs.*
 import org.scalajs.dom.raw.{CanvasRenderingContext2D, HTMLCanvasElement}
 
-object ChartsView extends BaseFront {
+object ChartsView extends BaseFront:
   def apply(): Either[NotFound, ChartsView] = elem(ChartsId).map { e =>
     new ChartsView(e.asInstanceOf[HTMLCanvasElement])
   }
-}
 
-class ChartsView(canvas: HTMLCanvasElement) extends BaseFront {
+class ChartsView(canvas: HTMLCanvasElement) extends BaseFront:
   val ctx = canvas.getContext("2d").asInstanceOf[CanvasRenderingContext2D]
   readTrack.toOption.foreach { track =>
     val sample = queryInt(SampleKey)
     ChartSocket(ctx, track, sample)
   }
-}
 
-object ChartSocket {
+object ChartSocket:
   def apply(ctx: CanvasRenderingContext2D, track: TrackName, sample: Option[Int]): ChartSocket =
     new ChartSocket(ctx, track, sample)
-}
 
 /** Initializes an empty chart, then appends data in `onCoords`.
   *
-  * @param ctx    canvas
-  * @param track  track
-  * @param sample 1 = full accuracy, None = intelligent
+  * @param ctx
+  *   canvas
+  * @param track
+  *   track
+  * @param sample
+  *   1 = full accuracy, None = intelligent
   */
 class ChartSocket(ctx: CanvasRenderingContext2D, track: TrackName, sample: Option[Int])
-  extends BoatSocket(Name(track), sample) {
+  extends BoatSocket(Name(track), sample):
 
   val seaBlue = "#006994"
   val red = "red"
@@ -53,7 +53,7 @@ class ChartSocket(ctx: CanvasRenderingContext2D, track: TrackName, sample: Optio
     borderWidth = 2
   )
 
-  override def onCoords(event: CoordsEvent): Unit = {
+  override def onCoords(event: CoordsEvent): Unit =
     val coords = event.coords
     chart.data.append(
       coords.map(_.boatTimeOnly.time),
@@ -63,11 +63,9 @@ class ChartSocket(ctx: CanvasRenderingContext2D, track: TrackName, sample: Optio
       )
     )
     chart.update()
-  }
 
   override def onGps(event: GPSCoordsEvent): Unit = ()
 
   override def onAIS(messages: Seq[VesselInfo]): Unit = ()
-}
 
 case class ChartValue(label: String, value: Double)

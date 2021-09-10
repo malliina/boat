@@ -1,12 +1,11 @@
 package com.malliina.boat
 
 import com.malliina.boat.Parsing.validate
-import com.malliina.mapbox._
+import com.malliina.mapbox.*
 import com.malliina.util.EitherOps
 
-sealed trait ClickType {
+sealed trait ClickType:
   def target: LngLatLike
-}
 
 case class VesselClick(props: VesselProps, target: LngLatLike) extends ClickType
 case class TrophyClick(trophy: PointProps, target: LngLatLike) extends ClickType
@@ -20,10 +19,9 @@ case class LimitClick(limit: LimitArea, target: LngLatLike) extends ClickType
 case class LimitedFairwayClick(limit: LimitArea, area: FairwayArea, target: LngLatLike)
   extends ClickType
 
-object MapMouseListener {
+object MapMouseListener:
   def apply(map: MapboxMap, pathFinder: PathFinder, ais: AISRenderer, html: Popups) =
     new MapMouseListener(map, pathFinder, ais, html)
-}
 
 class MapMouseListener(
   map: MapboxMap,
@@ -31,11 +29,11 @@ class MapMouseListener(
   ais: AISRenderer,
   html: Popups,
   val log: BaseLogger = BaseLogger.console
-) extends FrontKeys {
+) extends FrontKeys:
   val markPopup = MapboxPopup(PopupOptions())
   var isTrackHover: Boolean = false
 
-  def parseClick(e: MapMouseEvent): Option[Either[JsonError, ClickType]] = {
+  def parseClick(e: MapMouseEvent): Option[Either[JsonError, ClickType]] =
     val features = map.queryRendered(e.point).recover { err =>
       log.info(s"Failed to parse features '${err.error}' in '${err.json}'.")
       Nil
@@ -48,25 +46,25 @@ class MapMouseListener(
       val target =
         symbolFeature.geometry.coords.headOption.map(LngLatLike.apply).getOrElse(e.lngLat)
       val props = symbolFeature.props
-      if (symbolFeature.layer.exists(_.id == AISRenderer.AisVesselLayer)) {
+      if symbolFeature.layer.exists(_.id == AISRenderer.AisVesselLayer) then
         // AIS
         validate[VesselProps](props).map(vp => VesselClick(vp, target))
-      } else if (symbolFeature.layer.exists(_.id.startsWith(TrophyPrefix))) {
+      else if symbolFeature.layer.exists(_.id.startsWith(TrophyPrefix)) then
         validate[PointProps](props).map { tp =>
           TrophyClick(tp, target)
         }
-      } else if (symbolFeature.layer.exists(_.id.startsWith(DevicePrefix))) {
+      else if symbolFeature.layer.exists(_.id.startsWith(DevicePrefix)) then
         validate[DeviceProps](props).map { tp =>
           DeviceClick(tp, target)
         }
-      } else {
+      else {
         // Markers
         val normalSymbol = validate[MarineSymbol](props).map(m => SymbolClick(m, target))
         val minimalSymbol = validate[MinimalMarineSymbol](props).map(m => MinimalClick(m, target))
         normalSymbol.left.flatMap(_ => minimalSymbol)
       }
     }.orElse {
-      if (!isTrackHover) {
+      if !isTrackHover then
         val limitInfo =
           features.flatMap(_.props.as[LimitArea].toOption).headOption.map(LimitClick(_, e.lngLat))
         val fairwayInfo =
@@ -92,18 +90,14 @@ class MapMouseListener(
           .orElse(limitInfo)
           .orElse(depth)
           .map(Right.apply)
-      } else {
-        None
-      }
+      else None
     }
-  }
 
   map.on(
     "click",
-    (e: MapMouseEvent) => {
-      if (pathFinder.isEnabled) {
-        pathFinder.updatePath(e)
-      } else {
+    (e: MapMouseEvent) =>
+      if pathFinder.isEnabled then pathFinder.updatePath(e)
+      else
         parseClick(e).foreach { result =>
           result.map {
             case DeviceClick(props, target) =>
@@ -137,9 +131,6 @@ class MapMouseListener(
             log.info(err.describe)
           }
         }
-      }
-
-    }
   )
   MapboxStyles.clickableLayers.foreach { id =>
     map.onHover(id)(
@@ -147,4 +138,3 @@ class MapMouseListener(
       out = _ => map.getCanvas().style.cursor = ""
     )
   }
-}

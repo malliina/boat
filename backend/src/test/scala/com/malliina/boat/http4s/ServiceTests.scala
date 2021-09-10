@@ -7,21 +7,21 @@ import com.malliina.boat.parsing.FullCoord
 import com.malliina.boat.{BoatNames, BoatUser, Coord, TrackNames, TrackSummaries, Tracks, UserToken}
 import com.malliina.measure.{DistanceIntM, SpeedIntM, TemperatureInt}
 import com.malliina.values.Username
-import org.http4s._
+import org.http4s.*
 import org.http4s.headers.{Accept, Authorization}
-import org.http4s.implicits._
+import org.http4s.implicits.*
 import tests.{Http4sSuite, MUnitSuite, TestEmailAuth}
 
 import java.time.{LocalDate, LocalTime}
 
-class ServiceTests extends MUnitSuite with Http4sSuite {
+class ServiceTests extends MUnitSuite with Http4sSuite:
   test("tracks endpoint supports versioning based on Accept header") {
     val comps = app()
     val service = comps.service
     val user = Username("test")
     val inserts = service.inserts
 
-    val init = for {
+    val init = for
       _ <- service.userMgmt.deleteUser(user)
       _ <- service.userMgmt.addUser(
         NewUser(user, Option(TestEmailAuth.testEmail), UserToken.random(), enabled = true)
@@ -38,10 +38,10 @@ class ServiceTests extends MUnitSuite with Http4sSuite {
         track.short
       )
       p <- inserts.saveCoords(coord)
-    } yield p
+    yield p
     init.unsafeRunSync()
     val response1 = tracksRequest(ContentVersions.Version1, comps.routes)
-    import com.malliina.boat.http4s.Implicits._
+    import com.malliina.boat.http4s.Implicits.*
     implicit val tsBody: EntityDecoder[IO, TrackSummaries] = jsonBody[IO, TrackSummaries]
     val summaries = response1.flatMap(_.as[TrackSummaries]).unsafeRunSync()
     assertEquals(summaries.tracks.length, 1)
@@ -51,7 +51,7 @@ class ServiceTests extends MUnitSuite with Http4sSuite {
     assertEquals(tracks.tracks.length, 1)
   }
 
-  def tracksRequest(accept: MediaType, routes: HttpApp[IO]) = {
+  def tracksRequest(accept: MediaType, routes: HttpApp[IO]) =
     routes.run(
       Request(
         uri = uri"/tracks",
@@ -61,5 +61,3 @@ class ServiceTests extends MUnitSuite with Http4sSuite {
         )
       )
     )
-  }
-}

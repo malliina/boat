@@ -2,16 +2,15 @@ package com.malliina.boat.parsing
 
 import com.malliina.boat.DeviceId
 
-object GPSManager {
+object GPSManager:
   def apply(): GPSManager = new GPSManager()
-}
 
-class GPSManager extends SentenceAggregator[DeviceId, ParsedGPSCoord, GPSCoord] {
+class GPSManager extends SentenceAggregator[DeviceId, ParsedGPSCoord, GPSCoord]:
   private var latestDateTime: Map[DeviceId, ParsedGPSDateTime] = Map.empty
   private var latestSatellites: Map[DeviceId, SatellitesInView] = Map.empty
   private var latestFix: Map[DeviceId, GPSInfo] = Map.empty
 
-  def update(event: ParsedGPSSentence): List[GPSCoord] = event match {
+  def update(event: ParsedGPSSentence): List[GPSCoord] = event match
     case dateTime @ ParsedGPSDateTime(_, _, _) =>
       val boat = dateTime.boat
       latestDateTime = latestDateTime.updated(boat, dateTime)
@@ -27,24 +26,18 @@ class GPSManager extends SentenceAggregator[DeviceId, ParsedGPSCoord, GPSCoord] 
     case coord @ ParsedGPSCoord(_, _, _) =>
       val boat = coord.boat
       val emittable = complete(coord.boat, List(coord))
-      if (emittable.isEmpty) {
-        coords = coords.updated(boat, coords.getOrElse(boat, Nil) :+ coord)
-      }
+      if emittable.isEmpty then coords = coords.updated(boat, coords.getOrElse(boat, Nil) :+ coord)
       emittable
-  }
 
-  /**
-    * @return true if complete, false otherwise
+  /** @return
+    *   true if complete, false otherwise
     */
   override def complete(boat: DeviceId, buffer: List[ParsedGPSCoord]): List[GPSCoord] =
-    (for {
+    (for
       dateTime <- latestDateTime.get(boat)
       gps <- latestFix.get(boat)
       satellites <- latestSatellites.get(boat)
-    } yield {
-      buffer.map { coord =>
-        val keys = Seq(coord.key, dateTime.key, gps.key, satellites.key)
-        coord.complete(dateTime.date, dateTime.time, satellites.satellites, gps.fix, keys)
-      }
+    yield buffer.map { coord =>
+      val keys = Seq(coord.key, dateTime.key, gps.key, satellites.key)
+      coord.complete(dateTime.date, dateTime.time, satellites.satellites, gps.fix, keys)
     }).getOrElse { Nil }
-}

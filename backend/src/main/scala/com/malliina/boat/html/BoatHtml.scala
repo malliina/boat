@@ -1,6 +1,6 @@
 package com.malliina.boat.html
 
-import com.malliina.boat.FrontKeys._
+import com.malliina.boat.FrontKeys.*
 import com.malliina.boat.html.BoatHtml.ScriptAssets
 import com.malliina.boat.http.{Limits, TrackQuery}
 import com.malliina.boat.http4s.Reverse
@@ -10,26 +10,24 @@ import com.malliina.html.{Bootstrap, HtmlTags, TagPage}
 import com.malliina.measure.DistanceM
 import com.malliina.values.WrappedString
 import org.http4s.Uri
-import scalatags.Text.all._
+import scalatags.Text.all.*
 
 import scala.language.implicitConversions
 
-object BoatHtml {
+object BoatHtml:
   def fromBuild = apply(AppMode.fromBuild)
 
   def apply(mode: AppMode): BoatHtml = apply(mode == AppMode.Prod)
 
-  def apply(isProd: Boolean): BoatHtml = {
+  def apply(isProd: Boolean): BoatHtml =
     val name = "frontend"
-    val opt = if (isProd) "opt" else "fastopt"
+    val opt = if isProd then "opt" else "fastopt"
     new BoatHtml(ScriptAssets(s"$name-$opt-library.js", s"$name-$opt-loader.js", s"$name-$opt.js"))
-  }
 
   case class ScriptAssets(library: String, loader: String, app: String)
-}
 
 class BoatHtml(jsFiles: ScriptAssets, assets: AssetsSource = HashedAssetsSource)
-  extends Bootstrap(HtmlTags) {
+  extends Bootstrap(HtmlTags):
   val reverse = Reverse
 //  val mapboxVersion = AppMeta.default.mapboxVersion
 
@@ -50,12 +48,12 @@ class BoatHtml(jsFiles: ScriptAssets, assets: AssetsSource = HashedAssetsSource)
   def chart(track: TrackRef, lang: BoatLang) =
     page(Charts.chart(track, lang))
 
-  def map(ub: UserBoats) = {
+  def map(ub: UserBoats) =
     val lang = BoatLang(ub.language)
     val about = About(lang.web, lang.lang.profile)
     val user = ub.user
     val isAnon = user == Usernames.anon
-    val mapClass = if (ub.boats.isEmpty) "anon" else "auth"
+    val mapClass = if ub.boats.isEmpty then "anon" else "auth"
     page(
       PageConf(
         modifier(
@@ -106,14 +104,12 @@ class BoatHtml(jsFiles: ScriptAssets, assets: AssetsSource = HashedAssetsSource)
           }.getOrElse {
             modifier(
               routeContainer,
-              if (isAnon) {
+              if isAnon then
                 modifier(
                   standaloneQuestion("boat-icon framed question"),
                   personIcon("boat-icon framed user")
                 )
-              } else {
-                standaloneQuestion("boat-icon framed question")
-              }
+              else standaloneQuestion("boat-icon framed question")
             )
           },
           div(id := MapId, `class` := s"mapbox-map $mapClass"),
@@ -122,7 +118,6 @@ class BoatHtml(jsFiles: ScriptAssets, assets: AssetsSource = HashedAssetsSource)
         bodyClasses = Seq(s"$MapClass $AboutClass")
       )
     )
-  }
 
   def routeContainer = div(id := RoutesContainer, `class` := RoutesContainer)(
     span(id := RouteLength, `class` := "nav-text route-length")(""),
@@ -130,8 +125,8 @@ class BoatHtml(jsFiles: ScriptAssets, assets: AssetsSource = HashedAssetsSource)
   )
 
   def short(d: DistanceM) =
-    if (d.toKilometers >= 10) s"${d.toKilometers.toInt} km"
-    else if (d.toMeters >= 10) s"${d.toMeters.toInt} m"
+    if d.toKilometers >= 10 then s"${d.toKilometers.toInt} km"
+    else if d.toMeters >= 10 then s"${d.toMeters.toInt} m"
     else s"${d.toMillis.toInt} mm"
 
   def standaloneQuestion(cls: String) =
@@ -187,4 +182,3 @@ class BoatHtml(jsFiles: ScriptAssets, assets: AssetsSource = HashedAssetsSource)
   )
 
   def versioned(file: String): Uri = assets.at(file)
-}

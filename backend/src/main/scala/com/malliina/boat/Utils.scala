@@ -4,7 +4,7 @@ import java.text.Normalizer
 
 import org.apache.commons.text.{CharacterPredicates, RandomStringGenerator}
 
-object Utils {
+object Utils:
   private val generator = new RandomStringGenerator.Builder()
     .withinRange('a', 'z')
     .filteredBy(CharacterPredicates.LETTERS)
@@ -19,4 +19,3 @@ object Utils {
       .toLowerCase
       .replaceAll("[^-a-zA-Z0-9]", "-")
       .trim
-}

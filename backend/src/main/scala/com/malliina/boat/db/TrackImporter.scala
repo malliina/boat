@@ -3,7 +3,7 @@ package com.malliina.boat.db
 import cats.effect.{Blocker, ContextShift, IO}
 import cats.kernel.Eq
 import com.malliina.boat.db.TrackImporter.{dateEq, log}
-import com.malliina.boat.parsing._
+import com.malliina.boat.parsing.*
 import com.malliina.boat.{InsertedPoint, KeyedSentence, RawSentence, SentencesEvent, TrackMetaShort}
 import com.malliina.util.AppLogger
 import fs2.{Pipe, Stream, text}
@@ -11,7 +11,7 @@ import fs2.{Pipe, Stream, text}
 import java.nio.file.Path
 import java.time.LocalDate
 
-object TrackImporter {
+object TrackImporter:
   private val log = AppLogger(getClass)
 
   implicit val dateEq: Eq[LocalDate] =
@@ -23,37 +23,34 @@ object TrackImporter {
     b: Blocker
   ): TrackImporter =
     new TrackImporter(inserts, b)(cs)
-}
 
 class TrackImporter(inserts: TrackInsertsDatabase, blocker: Blocker)(implicit cs: ContextShift[IO])
-  extends TrackStreams(blocker)(cs) {
+  extends TrackStreams(blocker)(cs):
 
   /** Saves sentences in `file` to the database `track`.
     *
-    * @param file NMEA sentence log
-    * @param track target track
-    * @return number of points saved
+    * @param file
+    *   NMEA sentence log
+    * @param track
+    *   target track
+    * @return
+    *   number of points saved
     */
   def saveFile(file: Path, track: TrackMetaShort): IO[Long] = save(sentences(file), track)
 
-  def save(source: Stream[IO, RawSentence], track: TrackMetaShort): IO[Long] = {
+  def save(source: Stream[IO, RawSentence], track: TrackMetaShort): IO[Long] =
     val describe = s"track ${track.trackName} with boat ${track.boatName} by ${track.username}"
     val task = source
       .filter(_ != RawSentence.initialZda)
       .map(s => SentencesEvent(Seq(s), track))
       .through(processor)
       .fold(0) { (acc, point) =>
-        if (acc == 0) {
-          log.info(s"Saving points to $describe...")
-        }
-        if (acc % 100 == 0 && acc > 0) {
-          log.info(s"Inserted $acc points to $describe...")
-        }
+        if acc == 0 then log.info(s"Saving points to $describe...")
+        if acc % 100 == 0 && acc > 0 then log.info(s"Inserted $acc points to $describe...")
         acc + 1
       }
 
     task.compile.toList.map(_.head)
-  }
 
   def processor: Pipe[IO, SentencesEvent, InsertedPoint] =
     _.through(sentenceInserter).through(sentenceCompiler).through(pointInserter)
@@ -61,18 +58,16 @@ class TrackImporter(inserts: TrackInsertsDatabase, blocker: Blocker)(implicit cs
   def sentenceInserter: Pipe[IO, SentencesEvent, KeyedSentence] =
     _.evalMap(e => inserts.saveSentences(e)).flatMap(kss => Stream.emits(kss))
 
-  def sentenceCompiler: Pipe[IO, KeyedSentence, FullCoord] = {
+  def sentenceCompiler: Pipe[IO, KeyedSentence, FullCoord] =
     val state = TrackManager()
     _.flatMap(sentence =>
       Stream.emits(BoatParser.parseMulti(Seq(sentence)).flatMap(parsed => state.update(parsed)))
     )
-  }
 
   def pointInserter: Pipe[IO, FullCoord, InsertedPoint] =
     _.mapAsync(1)(coord => inserts.saveCoords(coord))
-}
 
-class TrackStreams(blocker: Blocker)(implicit val cs: ContextShift[IO]) {
+class TrackStreams(blocker: Blocker)(implicit val cs: ContextShift[IO]):
   def fileByDate(file: Path) = byDate(sentences(file))
 
   def byDate(source: Stream[IO, RawSentence]) =
@@ -91,4 +86,3 @@ class TrackStreams(blocker: Blocker)(implicit val cs: ContextShift[IO]) {
 
   def lines(file: Path) =
     fs2.io.file.readAll[IO](file, blocker, 8192).through(text.utf8Decode).through(text.lines)
-}

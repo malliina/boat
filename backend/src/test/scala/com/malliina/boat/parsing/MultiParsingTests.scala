@@ -9,7 +9,7 @@ import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 import scala.jdk.CollectionConverters.CollectionHasAsScala
 
-object MultiParsingTests {
+object MultiParsingTests:
   def testFrom = TrackMetaShort(
     TrackId(1),
     TrackName("test"),
@@ -17,9 +17,8 @@ object MultiParsingTests {
     BoatName("boat"),
     Username("u")
   )
-}
 
-class MultiParsingTests extends BaseSuite {
+class MultiParsingTests extends BaseSuite:
   //  val testFile = FileUtilities.userHome.resolve(".boat/nmea0183-standard.log")
   val testFile = FileUtils.userHome.resolve(".boat/Log2.txt")
 
@@ -41,4 +40,3 @@ class MultiParsingTests extends BaseSuite {
 //    val end = System.currentTimeMillis()
 //    println(s"${coords.length} coords in ${end - start} ms")
 //  }
-}

@@ -3,21 +3,20 @@ package com.malliina.boat.html
 import com.malliina.boat.FrontKeys.{Hidden, ModalId}
 import com.malliina.boat.{AboutKeys, FrontKeys, Language, ProfileLang, Usernames}
 import com.malliina.values.Username
-import scalatags.Text.all._
+import scalatags.Text.all.*
 
-object About {
+object About:
   def apply(lang: WebLang, profile: ProfileLang) = new About(lang, profile)
-}
 
-class About(lang: WebLang, profile: ProfileLang) extends AboutKeys {
+class About(lang: WebLang, profile: ProfileLang) extends AboutKeys:
   val empty = modifier()
 
-  def about(user: Username, language: Language) = {
+  def about(user: Username, language: Language) =
     val isLoggedIn = user != Usernames.anon
     div(id := ModalId, `class` := s"${FrontKeys.Modal} $Hidden")(
       div(`class` := "modal-content")(
         i(`class` := "close fas fa-times"),
-        if (isLoggedIn) {
+        if isLoggedIn then
           modifier(
             h2(`class` := "text-center")(profile.username),
             p(`class` := "text-center")(s"${profile.signedInAs} $user."),
@@ -48,9 +47,7 @@ class About(lang: WebLang, profile: ProfileLang) extends AboutKeys {
             ),
             hr(`class` := "modal-divider")
           )
-        } else {
-          empty
-        },
+        else empty,
         h2(`class` := "badges-title")(lang.getTheApp),
         div(`class` := "badges")(
           div(`class` := "badge-wrapper-android")(
@@ -77,7 +74,7 @@ class About(lang: WebLang, profile: ProfileLang) extends AboutKeys {
         p(a(href := "https://fontawesome.com")("fontawesome.com")),
         h2("POIJU.IO"),
         p(a(href := "https://github.com/iaue/poiju.io")("POIJU.IO")),
-        if (isLoggedIn) {
+        if isLoggedIn then
           modifier(
             hr(`class` := "modal-divider"),
             div(`class` := "button-container")(
@@ -86,17 +83,14 @@ class About(lang: WebLang, profile: ProfileLang) extends AboutKeys {
               )
             )
           )
-        } else {
-          empty
-        }
+        else empty
       )
     )
-  }
 
   case class RadioOptions(id: String, value: String, label: String, checked: Boolean)
 
-  def radios(groupName: String, rs: Seq[RadioOptions]) = div(`class` := "language-form")(rs.map {
-    radio =>
+  def radios(groupName: String, rs: Seq[RadioOptions]) =
+    div(`class` := "language-form")(rs.map { radio =>
       div(`class` := "form-check form-check-inline")(
         input(
           `class` := "form-check-input",
@@ -104,9 +98,8 @@ class About(lang: WebLang, profile: ProfileLang) extends AboutKeys {
           name := groupName,
           id := radio.id,
           value := radio.value,
-          if (radio.checked) checked else empty
+          if radio.checked then checked else empty
         ),
         label(`class` := "form-check-label", `for` := radio.id)(radio.label)
       )
-  })
-}
+    })

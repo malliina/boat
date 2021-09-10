@@ -13,51 +13,45 @@ import org.http4s.{Charset, DecodeResult, DefaultCharset, EntityDecoder, EntityE
 import scalatags.Text
 import scalatags.generic.Frag
 
-trait Extractors {
+trait Extractors:
   object UsernameVar extends NonEmpty(Username.apply)
   object TrackNameVar extends NonEmpty(TrackName.apply)
   object TrackCanonicalVar extends NonEmpty(TrackCanonical.apply)
   object DeviceIdVar extends Id(DeviceId.apply)
   object TrackIdVar extends Id(TrackId.apply)
 
-  abstract class NonEmpty[T](build: String => T) {
+  abstract class NonEmpty[T](build: String => T):
     def unapply(str: String): Option[T] =
-      if (str.trim.nonEmpty) Option(build(str.trim)) else None
-  }
+      if str.trim.nonEmpty then Option(build(str.trim)) else None
 
-  abstract class Id[T](build: Long => T) {
+  abstract class Id[T](build: Long => T):
     def unapply(str: String): Option[T] =
       str.toLongOption.map(build)
-  }
 
-  object DoubleVar {
+  object DoubleVar:
     def unapply(str: String): Option[Double] = str.toDoubleOption
-  }
-}
 
-trait MyScalatagsInstances {
-  implicit def scalatagsEncoder[F[_], C <: Frag[_, String]](implicit
+trait MyScalatagsInstances:
+  implicit def scalatagsEncoder[F[_], C <: Frag[?, String]](implicit
     charset: Charset = DefaultCharset
   ): EntityEncoder[F, C] =
     contentEncoder(MediaType.text.html)
 
-  private def contentEncoder[F[_], C <: Frag[_, String]](
+  private def contentEncoder[F[_], C <: Frag[?, String]](
     mediaType: MediaType
   )(implicit charset: Charset): EntityEncoder[F, C] =
     EntityEncoder
       .stringEncoder[F]
       .contramap[C](content => content.render)
       .withContentType(`Content-Type`(mediaType, charset))
-}
 
-trait HtmlInstances extends MyScalatagsInstances {
+trait HtmlInstances extends MyScalatagsInstances:
   implicit def htmlEncoder[F[_]]: EntityEncoder[F, TagPage] =
     scalatagsEncoder[F, Text.TypedTag[String]].contramap(_.tags)
-}
 
 object JsonInstances extends JsonInstances
 
-trait JsonInstances extends CirceInstances {
+trait JsonInstances extends CirceInstances:
   override protected val defaultPrinter: Printer = Printer.noSpaces.copy(dropNullValues = true)
 
   implicit def circeJsonEncoder[F[_], T: Encoder]: EntityEncoder[F, T] =
@@ -72,7 +66,6 @@ trait JsonInstances extends CirceInstances {
           ok => DecodeResult.successT(ok)
         )
     }
-}
 
 abstract class Implicits[F[_]]
   extends syntax.AllSyntaxBinCompat

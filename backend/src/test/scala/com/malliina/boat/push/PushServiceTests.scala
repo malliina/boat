@@ -4,7 +4,7 @@ import com.malliina.boat.{BoatConf, BoatName}
 import com.malliina.push.apns.APNSToken
 import tests.{BaseSuite, MUnitSuite}
 
-class PushServiceTests extends BaseSuite {
+class PushServiceTests extends BaseSuite:
   http.test("push".ignore) { client =>
     val conf = BoatConf.parse().push.apns
     val push = APNSPush(conf, client)
@@ -13,4 +13,3 @@ class PushServiceTests extends BaseSuite {
       push.push(BoatNotification(BoatName("TestBoat"), BoatState.Connected), token).unsafeRunSync()
     assert(result.isEmpty)
   }
-}

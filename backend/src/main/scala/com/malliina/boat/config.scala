@@ -10,11 +10,10 @@ import com.typesafe.config.{Config, ConfigFactory}
 
 import java.nio.file.Paths
 
-sealed trait AppMode {
+sealed trait AppMode:
   def isProd = this == AppMode.Prod
-}
 
-object AppMode {
+object AppMode:
   case object Prod extends AppMode
   case object Dev extends AppMode
   val fromBuild = unsafe(BuildInfo.mode)
@@ -26,14 +25,12 @@ object AppMode {
   def unsafe(in: String): AppMode =
     fromString(in).fold(err => throw new IllegalArgumentException(err.message), identity)
 
-  def fromString(in: String): Either[ErrorMessage, AppMode] = in match {
+  def fromString(in: String): Either[ErrorMessage, AppMode] = in match
     case "prod" => Right(Prod)
     case "dev"  => Right(Dev)
     case other  => Left(ErrorMessage(s"Invalid mode: '$other'. Must be 'prod' or 'dev'."))
-  }
-}
 
-object LocalConf {
+object LocalConf:
   val homeDir = Paths.get(sys.props("user.home"))
   val appDir = homeDir.resolve(".boat")
   val localConfFile = appDir.resolve("boat.conf")
@@ -44,17 +41,14 @@ object LocalConf {
 //    ConfigObjectSource(Right(LocalConf.localConf))
 //      .withFallback(ConfigSource.default)
 //  }
-}
 
 case class MapboxConf(token: AccessToken)
 
 case class AppleConf(id: ClientId)
-case class WebConf(id: ClientId, secret: ClientSecret) {
+case class WebConf(id: ClientId, secret: ClientSecret):
   def webAuthConf = AuthConf(id, secret)
-}
-case class GoogleConf(ios: AppleConf, web: WebConf) {
+case class GoogleConf(ios: AppleConf, web: WebConf):
   def webAuthConf = AuthConf(web.id, web.secret)
-}
 case class APNSConf(enabled: Boolean, privateKey: String, keyId: KeyId, teamId: TeamId)
 case class FCMConf(apiKey: String)
 case class PushConf(apns: APNSConf, fcm: FCMConf)
@@ -70,7 +64,7 @@ case class BoatConf(
 
 case class WrappedConf(boat: BoatConf)
 
-object BoatConf {
+object BoatConf:
   implicit val token: ConfigReadable[AccessToken] = byString(s => AccessToken(s))
   implicit val secret: ConfigReadable[SecretKey] = byString(s => SecretKey(s))
   implicit val clientId: ConfigReadable[ClientId] = byString(s => ClientId(s))
@@ -79,16 +73,15 @@ object BoatConf {
   private def byString[T](s: String => T): ConfigReadable[T] = ConfigReadable.string.map(s)
   implicit val clientSecret: ConfigReadable[ClientSecret] =
     ConfigReadable.string.map(s => ClientSecret(s))
-  implicit class ConfigOps(c: Config) extends AnyVal {
+  implicit class ConfigOps(c: Config) extends AnyVal:
     def read[T](key: String)(implicit r: ConfigReadable[T]): Either[ErrorMessage, T] =
       r.read(key, c)
     def unsafe[T: ConfigReadable](key: String): T =
       c.read[T](key).fold(err => throw new IllegalArgumentException(err.message), identity)
-  }
 
   def parse(
     c: Config = ConfigFactory.load(LocalConf.localConf).resolve().getConfig("boat")
-  ): BoatConf = {
+  ): BoatConf =
     val google = c.getConfig("google")
     val ios = google.getConfig("ios")
     val web = google.getConfig("web")
@@ -115,7 +108,6 @@ object BoatConf {
         FCMConf(fcm.unsafe[String]("apiKey"))
       )
     )
-  }
 
   def parseDatabase(c: Config): Conf = Conf(
     c.unsafe[String]("url"),
@@ -124,4 +116,3 @@ object BoatConf {
     c.unsafe[String]("driver"),
     c.unsafe[Int]("maxPoolSize")
   )
-}

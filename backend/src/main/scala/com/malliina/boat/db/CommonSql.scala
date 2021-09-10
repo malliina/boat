@@ -1,13 +1,13 @@
 package com.malliina.boat.db
 
 import com.malliina.boat.{BoatToken, DeviceId, JoinedBoat}
-import doobie._
-import doobie.implicits._
-import com.malliina.boat.db.DoobieMappings._
+import doobie.*
+import doobie.implicits.*
+import com.malliina.boat.db.DoobieMappings.*
 
 object CommonSql extends CommonSql
 
-trait CommonSql {
+trait CommonSql:
   val boats =
     sql"""select b.id, b.name, b.token, u.id uid, u.user, u.email, u.language
           from boats b, users u
@@ -55,4 +55,3 @@ trait CommonSql {
 
   val pointColumns =
     fr"p.id, p.longitude, p.latitude, p.coord, p.boat_speed, p.water_temp, p.depthm, p.depth_offsetm, p.boat_time, date(p.boat_time), p.track, p.added"
-}

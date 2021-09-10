@@ -4,20 +4,18 @@ import com.malliina.boat.{Lang, Language}
 
 abstract class BoatLang(val web: WebLang, val lang: Lang)
 
-object BoatLang {
+object BoatLang:
   val default = Fi
 
-  def apply(lang: Language): BoatLang = lang match {
+  def apply(lang: Language): BoatLang = lang match
     case Language.finnish => Fi
     case Language.swedish => Se
     case Language.english => En
     case _                => default
-  }
 
   object Fi extends BoatLang(WebLang.Fi, Lang.fi)
   object Se extends BoatLang(WebLang.Se, Lang.se)
   object En extends BoatLang(WebLang.En, Lang.en)
-}
 
 case class WebLang(
   getTheApp: String,
@@ -35,7 +33,7 @@ case class WebLang(
   editComments: String
 )
 
-object WebLang {
+object WebLang:
   val Fi = WebLang(
     "Lataa sovellus",
     "Merikartta-aineistot",
@@ -82,4 +80,3 @@ object WebLang {
     "Edit comments"
   )
   val default = Fi
-}

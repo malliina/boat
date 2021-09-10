@@ -7,13 +7,13 @@ import org.scalajs.dom.raw.XMLHttpRequest
 
 import scala.concurrent.Future
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
-import io.circe._
+import io.circe.*
 import io.circe.syntax.EncoderOps
 import io.circe.parser.{decode, parse}
 
 object HttpClient extends HttpClient
 
-class HttpClient extends CSRFConf {
+class HttpClient extends CSRFConf:
   def get[R: Decoder](uri: String): Future[R] =
     Ajax.get(uri).flatMap { xhr =>
       validate[R](uri, xhr)
@@ -28,7 +28,7 @@ class HttpClient extends CSRFConf {
   def put[W: Encoder, R: Decoder](uri: String, data: W): Future[R] =
     makeAjax("PUT", uri, data)
 
-  private def makeAjax[W: Encoder, R: Decoder](method: String, uri: String, data: W): Future[R] = {
+  private def makeAjax[W: Encoder, R: Decoder](method: String, uri: String, data: W): Future[R] =
     val headers = Map(
       "Content-Type" -> "application/json",
       CsrfHeaderName -> CsrfTokenNoCheck
@@ -36,20 +36,16 @@ class HttpClient extends CSRFConf {
     ajax(method, uri, data.asJson.noSpaces, headers = headers).flatMap { xhr =>
       validate[R](uri, xhr)
     }
-  }
 
-  private def validate[R: Decoder](uri: String, xhr: XMLHttpRequest): Future[R] = {
+  private def validate[R: Decoder](uri: String, xhr: XMLHttpRequest): Future[R] =
     val status = xhr.status
-    if (status >= 200 && status <= 300) {
+    if status >= 200 && status <= 300 then
       decode[R](xhr.responseText)
         .fold(
           err => Future.failed(new JsonException(err, xhr)),
           ok => Future.successful(ok)
         )
-    } else {
-      Future.failed(new StatusException(uri, xhr))
-    }
-  }
+    else Future.failed(new StatusException(uri, xhr))
 
   // Modified from Extensions.scala
   def ajax(
@@ -60,10 +56,8 @@ class HttpClient extends CSRFConf {
     headers: Map[String, String] = Map.empty,
     withCredentials: Boolean = false,
     responseType: String = ""
-  ) = {
+  ) =
     Ajax(method, url, data, timeout, headers, withCredentials, responseType)
-  }
-}
 
 class JsonException(val error: io.circe.Error, val xhr: XMLHttpRequest) extends Exception
 class StatusException(val uri: String, val xhr: XMLHttpRequest)

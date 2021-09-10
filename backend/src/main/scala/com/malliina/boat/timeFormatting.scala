@@ -5,28 +5,25 @@ import java.time.{Instant, ZoneId}
 
 case class TimePatterns(date: String, time: String, dateTime: String)
 
-object TimePatterns {
+object TimePatterns:
   val fi = TimePatterns("dd.MM.yyyy", "HH:mm:ss", "dd.MM.yyyy HH:mm:ss")
   val se = fi
   val en = TimePatterns("dd MMM yyyy", "HH:mm:ss", "dd MMM yyyy HH:mm:ss")
-}
 
-object TimeFormatter {
+object TimeFormatter:
   def apply(patterns: TimePatterns) = new TimeFormatter(patterns)
 
-  def apply(language: Language): TimeFormatter = language match {
+  def apply(language: Language): TimeFormatter = language match
     case Language.finnish => fi
     case Language.swedish => se
     case Language.english => en
     case _                => en
-  }
 
   val fi = apply(TimePatterns.fi)
   val se = apply(TimePatterns.se)
   val en = apply(TimePatterns.en)
-}
 
-class TimeFormatter(patterns: TimePatterns) {
+class TimeFormatter(patterns: TimePatterns):
   val helsinkiZone = ZoneId.of("Europe/Helsinki")
   val dateFormatter = DateTimeFormatter
     .ofPattern(patterns.date)
@@ -57,4 +54,3 @@ class TimeFormatter(patterns: TimePatterns) {
     timing(end),
     formatRange(start, end)
   )
-}

@@ -1,10 +1,10 @@
 package com.malliina.boat
 
-import io.circe._
+import io.circe.*
 import io.circe.syntax.EncoderOps
 import io.circe.parser.{decode, parse}
 
-class BoatTests extends munit.FunSuite with DemoJson {
+class BoatTests extends munit.FunSuite with DemoJson:
   test("serialize GeoJSON") {
     val geo = LineGeometry("LineString", Seq(Coord.buildOrFail(24, 60)))
     assert(1 == 1)
@@ -23,9 +23,8 @@ class BoatTests extends munit.FunSuite with DemoJson {
     assert(l.limit.exists(s => s.toKmh > 9 && s.toKmh < 11))
     assert(l.length.exists(len => len.meters > 675 && len.meters < 677))
   }
-}
 
-trait DemoJson {
+trait DemoJson:
   val markJson =
     """{
      |    "NAVL_TYYP": 4,
@@ -61,4 +60,3 @@ trait DemoJson {
       |    "PITUUS": 676,
       |    "SUURUUS": 10
       |}""".stripMargin
-}

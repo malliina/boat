@@ -1,12 +1,12 @@
 package com.malliina.boat.db
 
-import cats.effect.IO._
+import cats.effect.IO.*
 import cats.effect.{Blocker, ContextShift, IO, Resource}
 import com.malliina.util.AppLogger
 import com.zaxxer.hikari.HikariConfig
-import doobie._
+import doobie.*
 import doobie.hikari.HikariTransactor
-import doobie.implicits._
+import doobie.implicits.*
 import doobie.util.ExecutionContexts
 import doobie.util.log.{ExecFailure, ProcessingFailure, Success}
 import org.flywaydb.core.Flyway
@@ -14,7 +14,7 @@ import org.flywaydb.core.api.output.MigrateResult
 
 import scala.concurrent.duration.DurationInt
 
-object DoobieDatabase {
+object DoobieDatabase:
   val log = AppLogger(getClass)
 
   def apply(conf: Conf, blocker: Blocker)(implicit cs: ContextShift[IO]) =
@@ -23,15 +23,14 @@ object DoobieDatabase {
   def withMigrations(conf: Conf, blocker: Blocker)(implicit cs: ContextShift[IO]) =
     Resource.pure[IO, MigrateResult](migrate(conf)).flatMap { _ => apply(conf, blocker) }
 
-  def migrate(conf: Conf): MigrateResult = {
+  def migrate(conf: Conf): MigrateResult =
     val flyway = Flyway.configure
       .dataSource(conf.url, conf.user, conf.pass)
       .table("flyway_schema_history2")
       .load()
     flyway.migrate()
-  }
 
-  private def hikariConf(conf: Conf): HikariConfig = {
+  private def hikariConf(conf: Conf): HikariConfig =
     val hikari = new HikariConfig()
     hikari.setDriverClassName(Conf.MySQLDriver)
     hikari.setJdbcUrl(conf.url)
@@ -41,24 +40,22 @@ object DoobieDatabase {
     hikari.setMaximumPoolSize(10)
     log.info(s"Connecting to '${conf.url}'...")
     hikari
-  }
 
   def transactor(conf: HikariConfig, blocker: Blocker)(implicit
     cs: ContextShift[IO]
   ): Resource[IO, HikariTransactor[IO]] =
-    for {
+    for
       ec <- ExecutionContexts.fixedThreadPool[IO](32)
       tx <- HikariTransactor.fromHikariConfig[IO](conf, ec, blocker)
-    } yield tx
-}
+    yield tx
 
-class DoobieDatabase(tx: HikariTransactor[IO]) {
+class DoobieDatabase(tx: HikariTransactor[IO]):
   private val log = AppLogger(getClass)
 
   implicit val logHandler: LogHandler = LogHandler {
     case Success(sql, args, exec, processing) =>
       val msg = s"OK '$sql' exec ${exec.toMillis} ms processing ${processing.toMillis} ms."
-      if (exec > 1.second) log.info(msg) else log.debug(msg)
+      if exec > 1.second then log.info(msg) else log.debug(msg)
     case ProcessingFailure(sql, args, exec, processing, failure) =>
       log.error(s"Failed '$sql' in ${exec + processing}.", failure)
     case ExecFailure(sql, args, exec, failure) =>
@@ -66,4 +63,3 @@ class DoobieDatabase(tx: HikariTransactor[IO]) {
   }
 
   def run[T](io: ConnectionIO[T]): IO[T] = io.transact(tx)
-}

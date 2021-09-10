@@ -6,7 +6,7 @@ import org.http4s.{ParseFailure, Query, QueryParamDecoder, QueryParameterValue}
 
 object QueryParsers extends QueryParsers
 
-trait QueryParsers {
+trait QueryParsers:
   def parseOrDefault[T: QueryParamDecoder](q: Query, key: String, default: => T) =
     parseOpt[T](q, key).getOrElse(Right(default))
 
@@ -52,4 +52,3 @@ trait QueryParsers {
     }
 
   def parseFailure(message: String) = ParseFailure(message, message)
-}

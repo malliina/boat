@@ -7,7 +7,7 @@ import java.nio.charset.StandardCharsets
 import java.nio.file.{Files, Paths}
 import scala.jdk.CollectionConverters.CollectionHasAsScala
 
-class GPSProcessorTests extends BaseSuite {
+class GPSProcessorTests extends BaseSuite:
   val testFile = Paths.get("gps.txt")
 
   def sentences: Seq[RawSentence] =
@@ -47,4 +47,3 @@ class GPSProcessorTests extends BaseSuite {
     val result = SentenceParser.parse(in)
     assert(result.isRight)
   }
-}

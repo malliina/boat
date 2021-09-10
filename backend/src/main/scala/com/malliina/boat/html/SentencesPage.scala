@@ -1,18 +1,18 @@
 package com.malliina.boat.html
 
-import com.malliina.boat.FrontKeys._
+import com.malliina.boat.FrontKeys.*
 import com.malliina.boat.http.Limits
 import com.malliina.boat.http4s.Reverse
 import com.malliina.boat.{BoatFormats, FullTrack, TrackComments, TrackName, TrackRef, TrackTitle}
 import com.malliina.measure.SpeedM
-import scalatags.Text.all._
+import scalatags.Text.all.*
 
 import scala.language.implicitConversions
 
-object SentencesPage extends BoatImplicits {
+object SentencesPage extends BoatImplicits:
   val reverse = Reverse
 
-  def apply(track: FullTrack, current: Limits, lang: BoatLang): Modifier = {
+  def apply(track: FullTrack, current: Limits, lang: BoatLang): Modifier =
     val trackLang = lang.lang.track
     div(`class` := "container")(
       namedInfoBox(track.track, lang),
@@ -35,9 +35,8 @@ object SentencesPage extends BoatImplicits {
       ),
       pagination(track.track, current)
     )
-  }
 
-  def namedInfoBox(track: TrackRef, lang: BoatLang): Modifier = {
+  def namedInfoBox(track: TrackRef, lang: BoatLang): Modifier =
     val trackLang = lang.lang.track
     val webLang = lang.web
     val topSpeed = track.topSpeed.getOrElse(SpeedM.zero)
@@ -129,7 +128,6 @@ object SentencesPage extends BoatImplicits {
         )
       )
     )
-  }
 
   def editIcon(editId: String, titleText: String) =
     span(
@@ -144,7 +142,7 @@ object SentencesPage extends BoatImplicits {
     dd(`class` := "col-sm-10")(value)
   )
 
-  private def pagination(track: TrackRef, current: Limits) = {
+  private def pagination(track: TrackRef, current: Limits) =
     val pageSize = 100
     val trackName = track.trackName
     val hasMore = current.offset + pageSize < track.points
@@ -174,7 +172,6 @@ object SentencesPage extends BoatImplicits {
         )
       )
     )
-  }
 
   private def pageLink(
     track: TrackName,
@@ -182,12 +179,10 @@ object SentencesPage extends BoatImplicits {
     text: String,
     isActive: Boolean = false,
     isDisabled: Boolean = false
-  ) = {
+  ) =
     val params = Map(Limits.Limit -> s"${to.limit}", Limits.Offset -> s"${to.offset}")
     val call = reverse.trackFull(track).withQueryParams(params)
-    val liClass = if (isDisabled) "disabled" else ""
+    val liClass = if isDisabled then "disabled" else ""
     li(`class` := classes("page-item", liClass))(a(`class` := "page-link", href := call)(text))
-  }
 
   def classes(cs: String*) = cs.filter(_.nonEmpty).mkString(" ")
-}

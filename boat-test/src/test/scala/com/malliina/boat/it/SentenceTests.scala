@@ -1,12 +1,12 @@
 package com.malliina.boat.it
 
-import com.malliina.boat._
+import com.malliina.boat.*
 import com.malliina.boat.db.NewUser
 import com.malliina.values.{Password, Username}
 
 import scala.concurrent.{Await, Promise, TimeoutException}
 
-class SentenceTests extends BoatTests {
+class SentenceTests extends BoatTests:
   // TODO Why is this test ignored?
   http.test("anonymously sent sentence is received by anonymous viewer".ignore) { client =>
     openTestBoat(BoatNames.random(), client) { boat =>
@@ -66,4 +66,3 @@ class SentenceTests extends BoatTests {
       }
     }
   }
-}

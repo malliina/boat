@@ -5,9 +5,9 @@ import org.http4s.Request
 import org.http4s.headers.Host
 import org.typelevel.ci.CIStringSyntax
 
-object Urls {
-  def hostOnly[F[_]](req: Request[F]): FullUrl = {
-    val proto = if (isSecure(req)) "https" else "http"
+object Urls:
+  def hostOnly[F[_]](req: Request[F]): FullUrl =
+    val proto = if isSecure(req) then "https" else "http"
     val uri = req.uri
     val hostAndPort =
       req.headers
@@ -15,7 +15,6 @@ object Urls {
         .map(hp => hp.port.fold(hp.host)(port => s"${hp.host}:$port"))
         .getOrElse("localhost")
     FullUrl(proto, uri.host.map(_.value).getOrElse(hostAndPort), "")
-  }
 
   def isSecure[F[_]](req: Request[F]): Boolean =
     req.isSecure.getOrElse(false) || req.headers
@@ -28,4 +27,3 @@ object Urls {
       .map(_.head.value)
       .orElse(req.remoteAddr.map(_.toUriString))
       .getOrElse("unknown")
-}

@@ -4,13 +4,12 @@ import java.time.Instant
 import com.malliina.boat.{Boat, BoatName, BoatPrimitives, BoatRef, BoatToken, CombinedCoord, DateVal, DeviceId, FormattedDateTime, FriendInvite, FriendRef, GPSPointRow, InviteState, JoinedBoat, JoinedTrack, Language, MonthVal, TimeFormatter, TimedCoord, TrackCanonical, TrackId, TrackName, TrackPointId, TrackPointRow, TrackTitle, UserToken, YearVal}
 import com.malliina.measure.{DistanceM, SpeedM, Temperature}
 import com.malliina.values.{Email, UserId, Username}
-import io.circe._
-import io.circe.generic.semiauto._
+import io.circe.*
+import io.circe.generic.semiauto.*
 import scala.concurrent.duration.FiniteDuration
 
-case class BoatRow(id: DeviceId, name: BoatName, token: BoatToken, owner: UserId, added: Instant) {
+case class BoatRow(id: DeviceId, name: BoatName, token: BoatToken, owner: UserId, added: Instant):
   def toBoat = Boat(id, name, token, added.toEpochMilli)
-}
 
 case class UserRow(
   id: UserId,
@@ -48,9 +47,8 @@ case class TrackOut(
   coord: TimedCoord
 )
 
-object TrackOut {
+object TrackOut:
   implicit val json: Codec[TrackOut] = deriveCodec[TrackOut]
-}
 
 case class Partial(
   device: DeviceId,
@@ -58,7 +56,7 @@ case class Partial(
   start: Instant,
   end: Instant,
   coord: CombinedCoord
-) {
+):
   def strip =
     StrippedPartial(
       device,
@@ -68,7 +66,6 @@ case class Partial(
       coord.timed(TimeFormatter.se),
       None
     )
-}
 
 case class StrippedPartial(
   device: DeviceId,
@@ -79,9 +76,8 @@ case class StrippedPartial(
   date: Option[DateVal]
 )
 
-object StrippedPartial {
+object StrippedPartial:
   implicit val json: Codec[StrippedPartial] = deriveCodec[StrippedPartial]
-}
 
 case class TrackTimes(
   track: TrackId,
@@ -93,10 +89,9 @@ case class TrackTimes(
   year: YearVal
 )
 
-object TrackTimes {
+object TrackTimes:
   implicit val dur: Codec[FiniteDuration] = BoatPrimitives.durationFormat
   implicit val json: Codec[TrackTimes] = deriveCodec[TrackTimes]
-}
 
 case class DailyAggregates(
   date: DateVal,
@@ -106,10 +101,9 @@ case class DailyAggregates(
   days: Long
 )
 
-object DailyAggregates {
+object DailyAggregates:
   implicit val dur: Codec[FiniteDuration] = BoatPrimitives.durationFormat
   implicit val json: Codec[DailyAggregates] = deriveCodec[DailyAggregates]
-}
 
 case class MonthlyAggregates(
   year: YearVal,
@@ -134,9 +128,8 @@ case class AllTimeAggregates(
   tracks: Long,
   days: Long
 )
-object AllTimeAggregates {
+object AllTimeAggregates:
   val empty = AllTimeAggregates(None, None, None, None, 0L, 0L)
-}
 
 case class TrackCoord(track: JoinedTrack, row: TrackPointRow)
 case class TopTrack(track: TrackRow, times: TrackTimes, coord: CombinedCoord)

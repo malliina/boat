@@ -10,12 +10,11 @@ import com.malliina.http.HttpClient
 import com.malliina.values.Email
 import org.http4s.Headers
 
-object NoopPushEndpoint extends PushEndpoint {
+object NoopPushEndpoint extends PushEndpoint:
   override def push(notification: BoatNotification, to: PushDevice): IO[PushSummary] =
     IO.pure(PushSummary.empty)
-}
 
-object TestEmailAuth extends EmailAuth {
+object TestEmailAuth extends EmailAuth:
   val testToken = "header.payload.signature"
   val testEmail = Email("test@example.com")
 
@@ -26,13 +25,10 @@ object TestEmailAuth extends EmailAuth {
         mc => IO.raiseError(IdentityException(mc)),
         ok => IO.pure(testEmail)
       )
-}
 
-class TestComps extends AppComps {
+class TestComps extends AppComps:
   override val pushService: PushEndpoint = NoopPushEndpoint
   override val emailAuth: EmailAuth = TestEmailAuth
-}
 
-object TestComps {
+object TestComps:
   val builder: AppCompsBuilder = (conf: BoatConf, http: HttpClient[IO]) => new TestComps
-}

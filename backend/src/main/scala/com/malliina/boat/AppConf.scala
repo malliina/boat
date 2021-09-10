@@ -7,11 +7,10 @@ case class AppConf(
   webClientId: ClientId,
   webClientSecret: ClientSecret,
   mapboxToken: AccessToken
-) {
+):
   def web = AuthConf(webClientId, webClientSecret)
-}
 
-object AppConf {
+object AppConf:
   val Name = "Boat-Tracker"
 
 //  def apply(conf: Configuration): AppConf = AppConf(
@@ -20,4 +19,3 @@ object AppConf {
 //    conf.get[String]("boat.google.web.secret"),
 //    AccessToken(conf.get[String]("boat.mapbox.token"))
 //  )
-}

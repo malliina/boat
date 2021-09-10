@@ -3,9 +3,9 @@ package com.malliina.boat.http4s
 import cats.effect.IO
 import com.malliina.boat.Errors
 import io.circe.{DecodingFailure, Json}
-import org.http4s._
+import org.http4s.*
 
-class JsonException(val error: DecodingFailure, val json: Json) extends DecodeFailure {
+class JsonException(val error: DecodingFailure, val json: Json) extends DecodeFailure:
   val errors = Errors.fromJson(error)
   val detailed = errors.errors
     .filter(_.message.message.nonEmpty)
@@ -17,9 +17,7 @@ class JsonException(val error: DecodingFailure, val json: Json) extends DecodeFa
     Response(Status.BadRequest, httpVersion).withEntity(Errors.fromJson(error))(
       JsonInstances.jsonEncoderOf[F, Errors]
     )
-}
 
 class InvalidRequest(val req: Request[IO], val errors: Errors)
-  extends Exception(s"Invalid request to '${req.uri}'. ${errors.message}.") {
+  extends Exception(s"Invalid request to '${req.uri}'. ${errors.message}."):
   def message = getMessage
-}

@@ -3,7 +3,7 @@ package com.malliina.boat.parsing
 import com.malliina.boat.RawSentence
 import com.malliina.measure.{LatitudeDM, LongitudeDM}
 
-class SentenceParserTests extends munit.FunSuite {
+class SentenceParserTests extends munit.FunSuite:
   val track = Seq(
     "$SDDPT,23.9,0.0,*43",
     "$GPVTG,51.0,T,42.2,M,2.4,N,4.4,K,A*25",
@@ -14,8 +14,8 @@ class SentenceParserTests extends munit.FunSuite {
   ).map(RawSentence.apply)
 
   test("parse sentences") {
-    val ok = track.map(SentenceParser.parse).collect {
-      case Right(sentence) => sentence
+    val ok = track.map(SentenceParser.parse).collect { case Right(sentence) =>
+      sentence
     }
 
     val strs = ok.map {
@@ -49,11 +49,9 @@ class SentenceParserTests extends munit.FunSuite {
     val rmc = SentenceParser
       .parse(in)
       .toSeq
-      .collectFirst {
-        case msg @ RMCMessage(_, _, _, _, _) =>
-          msg.dateTimeUtc
+      .collectFirst { case msg @ RMCMessage(_, _, _, _, _) =>
+        msg.dateTimeUtc
       }
       .get
     assert(rmc.getHour == 20)
   }
-}

@@ -3,10 +3,10 @@ package com.malliina.boat.client.server
 import com.malliina.boat.client.server.Device.{BoatDevice, GpsDevice}
 import org.http4s.Uri
 import scalatags.Text
-import scalatags.Text.all._
+import scalatags.Text.all.*
 import scalatags.text.Builder
 
-object AgentHtml {
+object AgentHtml:
   val empty = stringFrag("")
   implicit val uriAttrValue: AttrValue[Uri] = attrValue[Uri](_.renderString)
 
@@ -43,7 +43,7 @@ object AgentHtml {
         `type` := "checkbox",
         name := "enabled",
         id := "enabled",
-        if (conf.enabled) checked else empty
+        if conf.enabled then checked else empty
       )
     ),
     div(`class` := "form-field")(
@@ -63,7 +63,7 @@ object AgentHtml {
       name := group,
       id := radioId,
       value := radioValue,
-      if (isChecked) checked else empty
+      if isChecked then checked else empty
     ),
     label(`for` := radioId)(text)
   )
@@ -84,4 +84,3 @@ object AgentHtml {
       head(link(rel := "stylesheet", href := "/css/boat.css")),
       body(content)
     )
-}
