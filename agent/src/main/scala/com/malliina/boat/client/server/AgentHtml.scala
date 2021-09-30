@@ -1,5 +1,6 @@
 package com.malliina.boat.client.server
 
+import cats.Show
 import com.malliina.boat.client.server.Device.{BoatDevice, GpsDevice}
 import org.http4s.Uri
 import scalatags.Text
@@ -9,6 +10,8 @@ import scalatags.text.Builder
 object AgentHtml:
   val empty = stringFrag("")
   implicit val uriAttrValue: AttrValue[Uri] = attrValue[Uri](_.renderString)
+  implicit def showAttrValue[T](implicit s: Show[T]): AttrValue[T] =
+    (t: Builder, a: Attr, v: T) => t.setAttr(a.name, Builder.GenericAttrValueSource(s.show(v)))
 
   def attrValue[T](f: T => String): AttrValue[T] =
     (t: Builder, a: Text.Attr, v: T) => t.setAttr(a.name, Builder.GenericAttrValueSource(f(v)))

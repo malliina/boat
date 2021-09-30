@@ -6,7 +6,7 @@ import com.malliina.boat.client.server.WebServer.{boatCharset, defaultHash, hash
 import io.circe.generic.semiauto.deriveCodec
 import io.circe.syntax.EncoderOps
 import io.circe.{Codec, Decoder, Encoder, parser}
-
+import com.comcast.ip4s.*
 import java.nio.charset.StandardCharsets
 import java.nio.file.{Files, Path, Paths}
 import scala.jdk.CollectionConverters.CollectionHasAsScala
@@ -30,15 +30,15 @@ object Device:
 
   def apply(s: String): Device = all.find(_.name == s.toLowerCase).getOrElse(default)
 
-case class BoatConfOld(host: String, port: Int, token: Option[BoatToken], enabled: Boolean):
+case class BoatConfOld(host: Host, port: Port, token: Option[BoatToken], enabled: Boolean):
   def toConf = BoatConf(host, port, BoatDevice, token, enabled)
 
 object BoatConfOld:
   implicit val codec: Codec[BoatConfOld] = deriveCodec[BoatConfOld]
 
 case class BoatConf(
-  host: String,
-  port: Int,
+  host: Host,
+  port: Port,
   device: Device,
   token: Option[BoatToken],
   enabled: Boolean
@@ -47,9 +47,9 @@ case class BoatConf(
 
 object BoatConf:
   implicit val json: Codec[BoatConf] = deriveCodec[BoatConf]
-  val empty = BoatConf("", 0, Device.default, None, enabled = false)
+//  val empty = BoatConf("", 0, Device.default, None, enabled = false)
 
-  def anon(host: String, port: Int) = BoatConf(host, port, Device.default, None, enabled = true)
+  def anon(host: Host, port: Port) = BoatConf(host, port, Device.default, None, enabled = true)
 
 object AgentSettings:
   val passFile = file("pass.md5")

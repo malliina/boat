@@ -34,13 +34,12 @@ object WebServer:
   val settingsPath = "settings"
   val settingsUri = uri"/settings"
 
-  def apply(agentInstance: AgentInstance, blocker: Blocker, cs: ContextShift[IO]): WebServer =
-    new WebServer(agentInstance, blocker)(cs)
+  def apply(agentInstance: AgentInstance): WebServer =
+    new WebServer(agentInstance)
 
   def hash(pass: String): String = DigestUtils.md5Hex(pass)
 
-class WebServer(agentInstance: AgentInstance, blocker: Blocker)(implicit cs: ContextShift[IO])
-  extends AppImplicits:
+class WebServer(agentInstance: AgentInstance) extends AppImplicits:
 
   val boatUser = "boat"
   val tempUser = "temp"
@@ -61,7 +60,7 @@ class WebServer(agentInstance: AgentInstance, blocker: Blocker)(implicit cs: Con
 
   def static(file: String, request: Request[IO]): IO[Response[IO]] =
     StaticFile
-      .fromResource("/" + file, blocker, Some(request))
+      .fromResource("/" + file, Some(request))
       .getOrElseF(NotFound(Errors(s"Not found: '$file'.").asJson))
 
   implicit val deviceReadable: Readable[Device] = Readable.string.map(s => Device(s))

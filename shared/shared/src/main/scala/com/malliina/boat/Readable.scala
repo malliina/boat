@@ -4,29 +4,27 @@ import cats.data.NonEmptyList
 import com.malliina.values.{Email, ErrorMessage, UserId}
 import io.circe.{Codec, DecodingFailure}
 import io.circe.generic.semiauto.deriveCodec
+import com.comcast.ip4s.*
 
 import scala.util.Try
 
 case class SingleError(message: ErrorMessage, key: String)
 
-object SingleError {
+object SingleError:
   implicit val json: Codec[SingleError] = deriveCodec[SingleError]
 
   def apply(message: String, key: String): SingleError = SingleError(ErrorMessage(message), key)
 
   def input(message: String) = apply(ErrorMessage(message), "input")
-}
 
-case class Errors(errors: NonEmptyList[SingleError]) {
+case class Errors(errors: NonEmptyList[SingleError]):
   def message = errors.head.message
   def asException = new ErrorsException(this)
-}
 
-class ErrorsException(val errors: Errors) extends Exception(errors.message.message) {
+class ErrorsException(val errors: Errors) extends Exception(errors.message.message):
   def message = errors.message
-}
 
-object Errors {
+object Errors:
   implicit val json: Codec[Errors] = deriveCodec[Errors]
 
   def apply(error: SingleError): Errors = Errors(NonEmptyList.of(error))
@@ -37,25 +35,23 @@ object Errors {
   // TODO improve
   def fromJson(error: DecodingFailure): Errors =
     Errors(SingleError.input(s"JSON error. $error"))
-  //    json.errors.flatMap {
-  //      case (path, errors) =>
-  //        errors.map { error =>
-  //          SingleError.input(s"${error.message} at $path.")
-  //        }
-  //    }.toList.toNel.map(es => Errors(es)).getOrElse {
-  //      Errors(SingleError.input("JSON error."))
-  //    }
-}
+//    json.errors.flatMap {
+//      case (path, errors) =>
+//        errors.map { error =>
+//          SingleError.input(s"${error.message} at $path.")
+//        }
+//    }.toList.toNel.map(es => Errors(es)).getOrElse {
+//      Errors(SingleError.input("JSON error."))
+//    }
 
-trait Readable[T] {
+trait Readable[T]:
   def apply(s: Option[String]): Either[Errors, T]
   def map[U](f: T => U): Readable[U] =
     (s: Option[String]) => Readable.this.apply(s).map(f)
   def flatMap[U](f: T => Either[Errors, U]): Readable[U] =
     (s: Option[String]) => Readable.this.apply(s).flatMap(f)
-}
 
-object Readable {
+object Readable:
   implicit val string: Readable[String] = (opt: Option[String]) =>
     opt.toRight(Errors("Missing key."))
   implicit val long: Readable[Long] = string.flatMap { s =>
@@ -73,6 +69,10 @@ object Readable {
   implicit val userId: Readable[UserId] = from[Long, UserId](UserId.build)
   implicit val email: Readable[Email] = from[String, Email](Email.build)
   implicit val trackTitle: Readable[TrackTitle] = from[String, TrackTitle](TrackTitle.build)
+  implicit val host: Readable[Host] =
+    from[String, Host](s => Host.fromString(s).toRight(ErrorMessage(s"Invalid host: '$s'.")))
+  implicit val port: Readable[Port] =
+    from[Int, Port](i => Port.fromInt(i).toRight(ErrorMessage(s"Invalid port: '$i'.")))
 
   implicit def option[T: Readable]: Readable[Option[T]] = (opt: Option[String]) =>
     opt.fold[Either[Errors, Option[T]]](Right(None))(str =>
@@ -83,4 +83,3 @@ object Readable {
 
   def from[T, U](build: T => Either[ErrorMessage, U])(implicit tr: Readable[T]) =
     tr.flatMap(t => build(t).left.map(Errors(_)))
-}

@@ -8,15 +8,16 @@ import scala.sys.process.Process
 import scala.util.Try
 
 val mapboxVersion = "2.2.0"
-val webAuthVersion = "6.0.2"
-val munitVersion = "0.7.28"
-val testContainersScalaVersion = "0.39.6"
+val webAuthVersion = "6.0.3"
+val munitVersion = "0.7.29"
+val testContainersScalaVersion = "0.39.8"
 val scalaTagsVersion = "0.9.4"
-val primitiveVersion = "2.0.2"
+val primitiveVersion = "3.0.2"
 val akkaVersion = "2.6.5"
 val akkaHttpVersion = "10.1.12"
 val playJsonVersion = "2.9.2"
-val logstreamsVersion = "1.11.13"
+val logstreamsVersion = "2.0.2"
+val http4sVersion = "0.23.4"
 // Do not upgrade to 11.0.2 because it depends on slf4j-api alpha versions, breaking logging
 val alpnVersion = "9.4.40.v20210413"
 val webAuthDep = "com.malliina" %% "web-auth" % webAuthVersion
@@ -34,7 +35,7 @@ ThisBuild / parallelExecution := false
 Global / concurrentRestrictions += Tags.limit(Tags.Test, 1)
 
 val scala213 = "2.13.6"
-val scala3 = "3.0.1"
+val scala3 = "3.0.2"
 
 inThisBuild(
   Seq(
@@ -156,11 +157,11 @@ val backend = Project("boat", file("backend"))
       baseDirectory.value / "docs"
     ),
     libraryDependencies ++= http4sModules.map { m =>
-      "org.http4s" %% s"http4s-$m" % "0.22.2"
+      "org.http4s" %% s"http4s-$m" % http4sVersion
     } ++ Seq("doobie-core", "doobie-hikari").map { d =>
-      "org.tpolecat" %% d % "0.13.4"
+      "org.tpolecat" %% d % "1.0.0-RC1"
     } ++ Seq("classic", "core").map { m =>
-      "ch.qos.logback" % s"logback-$m" % "1.2.5"
+      "ch.qos.logback" % s"logback-$m" % "1.2.6"
     } ++ Seq("server", "client").map { m =>
       "org.eclipse.jetty" % s"jetty-alpn-java-$m" % alpnVersion
     } ++ Seq(
@@ -171,7 +172,7 @@ val backend = Project("boat", file("backend"))
       "org.apache.commons" % "commons-text" % "1.9",
       "com.amazonaws" % "aws-java-sdk-s3" % "1.11.856",
       "com.malliina" %% "logstreams-client" % logstreamsVersion,
-      "com.malliina" %% "mobile-push-io" % "3.0.1",
+      "com.malliina" %% "mobile-push-io" % "3.1.0",
       "org.slf4j" % "slf4j-api" % "1.7.32",
       "org.eclipse.paho" % "org.eclipse.paho.client.mqttv3" % "1.2.5",
       utilHtmlDep,
@@ -242,11 +243,11 @@ val agent = project
     },
     libraryDependencies ++=
       Seq("blaze-server", "blaze-client", "dsl", "circe").map { m =>
-        "org.http4s" %% s"http4s-$m" % "0.22.2"
+        "org.http4s" %% s"http4s-$m" % http4sVersion
       } ++ Seq("generic", "parser").map { m =>
         "io.circe" %% s"circe-$m" % "0.14.1"
       } ++ Seq(
-        "co.fs2" %% "fs2-io" % "2.5.9",
+        "co.fs2" %% "fs2-io" % "3.1.3",
         "com.malliina" %% "primitives" % primitiveVersion,
 //      "com.malliina" %% "logback-fs2" % logstreamsVersion,
         "com.malliina" %% "logstreams-client" % logstreamsVersion, // temporary until websocket client is available in okclient
