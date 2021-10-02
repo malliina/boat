@@ -1,5 +1,7 @@
 package tests
 
+import cats.effect.unsafe.IORuntime
+import cats.effect.kernel.Resource
 import cats.effect.*
 import com.dimafeng.testcontainers.MySQLContainer
 import com.malliina.boat.db.{Conf, DoobieDatabase, DoobieSQL}
@@ -33,20 +35,11 @@ case class TestResource[T](resource: T, close: IO[Unit])
 
 trait MUnitSuite extends FunSuite:
   val userHome = Paths.get(sys.props("user.home"))
-  // NPE if not lazy
-  lazy val blocker = Blocker[IO]
-
+  implicit val rt: IORuntime = cats.effect.unsafe.implicits.global
   implicit val ec: ExecutionContext = munitExecutionContext
-  implicit val munitContextShift: ContextShift[IO] =
-    IO.contextShift(munitExecutionContext)
-  implicit val munitTimer: Timer[IO] =
-    IO.timer(munitExecutionContext)
-  implicit val conc: ConcurrentEffect[IO] = IO.ioConcurrentEffect(munitContextShift)
 
-  def databaseFixture(conf: => Conf) = resource {
-    blocker.flatMap { b =>
-      DoobieDatabase(conf, b)
-    }
+  def databaseFixture(conf: => Conf): FunFixture[DoobieDatabase] = resource {
+    DoobieDatabase(conf)
   }
 
   def resource[T](res: Resource[IO, T]): FunFixture[T] =
@@ -56,8 +49,7 @@ trait MUnitSuite extends FunSuite:
         val (t, f) = res.allocated.unsafeRunSync()
         finalizer = Option(f)
         t,
-      teardown = t =>
-        finalizer.foreach(_.unsafeRunSync())
+      teardown = t => finalizer.foreach(_.unsafeRunSync())
     )
 
 object TestConf:
@@ -75,9 +67,7 @@ object MUnitDatabaseSuite:
 trait MUnitDatabaseSuite extends DoobieSQL:
   self: MUnitSuite =>
   import MUnitDatabaseSuite.log
-  val dbFixture = resource(blocker.flatMap { b =>
-    DoobieDatabase.withMigrations(confFixture(), b)
-  })
+  val dbFixture = resource(DoobieDatabase.withMigrations(confFixture()))
 
   val confFixture: Fixture[Conf] = new Fixture[Conf]("database"):
     var container: Option[MySQLContainer] = None
@@ -114,9 +104,9 @@ trait Http4sSuite extends MUnitDatabaseSuite:
 
     override def beforeAll(): Unit =
       val resource = Server.appService(BoatConf.parse().copy(db = confFixture()), TestComps.builder)
-      val (t, release) = resource.allocated[IO, Service].unsafeRunSync()
+      val (t, release) = resource.allocated.unsafeRunSync()
       finalizer.set(release)
-      service = Option(AppComponents(t, Server.makeHandler(t, t.blocker)))
+      service = Option(AppComponents(t, Server.makeHandler(t)))
 
     override def afterAll(): Unit =
       finalizer.get().unsafeRunSync()

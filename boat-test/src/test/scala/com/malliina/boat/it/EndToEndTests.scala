@@ -7,8 +7,9 @@ import com.malliina.boat.client.{DeviceAgent, TcpClient}
 import com.malliina.boat.it.EndToEndTests.log
 import com.malliina.util.AppLogger
 import fs2.Stream
-import fs2.io.tcp.{Socket, SocketGroup}
+import fs2.io.net.{Network, Socket}
 import io.circe.Json
+import com.comcast.ip4s.*
 
 import java.net.InetSocketAddress
 import scala.concurrent.Promise
@@ -28,46 +29,44 @@ class EndToEndTests extends BoatTests:
     "$GPGGA,125642,6009.2559,N,02447.5942,E,1,12,0.60,1,M,19.5,M,,*68"
   )
 
-  val sockets = resource(blocker.flatMap { b => SocketGroup[IO](b) })
-
-  FunFixture.map2(http, resource(blocker)).test("plotter to frontend") { case (httpClient, b) =>
+  http.test("plotter to frontend") { httpClient =>
     val s = server()
     // the client validates maximum frame length, so we must not concatenate multiple sentences
     val plotterOutput: Stream[IO, Byte] = Stream.emits(
       sentences.mkString(TcpClient.linefeed).getBytes(TcpClient.charset)
     ) ++ Stream.empty
 
-    val tcpHost = "127.0.0.1"
-    val tcpPort = 10104
-    val tcpServer: Resource[IO, Stream[IO, Resource[IO, Socket[IO]]]] = for
-      sockets <- SocketGroup[IO](b)
-      server <- sockets.serverResource(new InetSocketAddress(tcpHost, tcpPort))
-    yield server._2
+    val tcpHost = host"127.0.0.1"
+    val tcpPort = port"10104"
     val firstMessage = Promise[Json]()
     val coordsPromise = Promise[CoordsEvent]()
-    tcpServer
-      .use[IO, Unit] { clients =>
-        val serverUrl = s.baseWsUrl.append(reverse.ws.boats.renderString)
-        DeviceAgent(BoatConf.anon(tcpHost, tcpPort), serverUrl, b, httpClient.client).use { agent =>
-          agent.unsafeConnect()
-          clients.head.evalMap { client =>
-            client.use[IO, Unit] { clientSocket =>
-              clientSocket.writes()(plotterOutput).compile.drain
-            }
-          }.compile.drain.map { _ =>
-            await(firstMessage.future, 5.seconds)
-            agent.close()
-          }
-        }
+    Network[IO]
+      .server(port = Option(tcpPort))
+      .take(1)
+      .evalMap { client =>
+//        val c: Socket[IO] = client
+//        c.writes
+        plotterOutput.through(client.writes).compile.drain
+//        client.writes()(plotterOutput).compile.drain
       }
-      .unsafeRunAsyncAndForget()
+      .compile
+      .drain
+      .unsafeRunAndForget()
+    val serverUrl = s.baseWsUrl.append(reverse.ws.boats.renderString)
+    DeviceAgent(BoatConf.anon(tcpHost, tcpPort), serverUrl, httpClient.client).use { agent =>
+      agent.connect().map { _ =>
+        await(firstMessage.future, 5.seconds)
+        agent.close()
+      }
+    }
+
     openViewerSocket(httpClient, None) { socket =>
       socket.jsonMessages.map { json =>
         firstMessage.trySuccess(json)
         json.as[CoordsEvent].toOption.foreach { ce =>
           coordsPromise.trySuccess(ce)
         }
-      }.compile.drain.unsafeRunAsyncAndForget()
+      }.compile.drain.unsafeRunAndForget()
       await(firstMessage.future, 5.seconds)
       await(coordsPromise.future, 5.seconds).coords
     }

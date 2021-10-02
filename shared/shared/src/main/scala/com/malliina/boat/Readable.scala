@@ -4,7 +4,6 @@ import cats.data.NonEmptyList
 import com.malliina.values.{Email, ErrorMessage, UserId}
 import io.circe.{Codec, DecodingFailure}
 import io.circe.generic.semiauto.deriveCodec
-import com.comcast.ip4s.*
 
 import scala.util.Try
 
@@ -69,10 +68,6 @@ object Readable:
   implicit val userId: Readable[UserId] = from[Long, UserId](UserId.build)
   implicit val email: Readable[Email] = from[String, Email](Email.build)
   implicit val trackTitle: Readable[TrackTitle] = from[String, TrackTitle](TrackTitle.build)
-  implicit val host: Readable[Host] =
-    from[String, Host](s => Host.fromString(s).toRight(ErrorMessage(s"Invalid host: '$s'.")))
-  implicit val port: Readable[Port] =
-    from[Int, Port](i => Port.fromInt(i).toRight(ErrorMessage(s"Invalid port: '$i'.")))
 
   implicit def option[T: Readable]: Readable[Option[T]] = (opt: Option[String]) =>
     opt.fold[Either[Errors, Option[T]]](Right(None))(str =>

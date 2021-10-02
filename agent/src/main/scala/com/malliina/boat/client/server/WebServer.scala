@@ -1,7 +1,8 @@
 package com.malliina.boat.client.server
 
-import cats.effect.{Blocker, ContextShift, IO}
-import com.malliina.boat.client.Logging
+import cats.effect.IO
+import com.malliina.boat.client.{Logging, TcpClient}
+import com.malliina.boat.client.TcpClient.{port, host}
 import com.malliina.boat.client.server.AgentHtml.{asHtml, boatForm}
 import com.malliina.boat.client.server.AgentSettings.{readConf, saveAndReload}
 import com.malliina.boat.client.server.WebServer.settingsUri
@@ -14,11 +15,12 @@ import org.http4s.headers.Location
 import org.http4s.implicits.*
 import org.http4s.server.Router
 import org.http4s.*
+import com.comcast.ip4s.{Host, Port}
 
 import java.nio.charset.StandardCharsets
 
 trait AppImplicits
-  extends syntax.AllSyntaxBinCompat
+  extends syntax.AllSyntax
   with Http4sDsl[IO]
   with CirceInstances
   with ScalatagsEncoder
@@ -48,7 +50,7 @@ class WebServer(agentInstance: AgentInstance) extends AppImplicits:
     case GET -> Root =>
       SeeOther(Location(settingsUri))
     case GET -> Root / "settings" =>
-      Ok(asHtml(boatForm(readConf())))
+      Ok(asHtml(boatForm(readConf().toOption)))
     case req @ GET -> Root / "settings" =>
       parseForm(req, readForm).flatMap { boatConf =>
         saveAndReload(boatConf, agentInstance)
@@ -69,8 +71,8 @@ class WebServer(agentInstance: AgentInstance) extends AppImplicits:
   val service = Router("/" -> routes).orNotFound
 
   def readForm(form: FormReader): Either[Errors, BoatConf] = for
-    host <- form.readT[String]("host")
-    port <- form.readT[Int]("port")
+    host <- form.readT[Host]("host")
+    port <- form.readT[Port]("port")
     device <- form.readT[Device]("device")
     token <- form.readT[Option[BoatToken]]("token")
     enabled <- form.readT[Boolean]("enabled")

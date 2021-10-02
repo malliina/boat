@@ -1,9 +1,12 @@
 package com.malliina.boat.ais
 
+import cats.effect.kernel.Resource
+import cats.effect.unsafe.IORuntime
 import cats.effect.{Concurrent, IO}
 import com.malliina.boat.ais.MqttStream.{MqttPayload, log}
 import com.malliina.util.AppLogger
 import fs2.concurrent.{SignallingRef, Topic}
+import fs2.Stream
 import org.eclipse.paho.client.mqttv3.*
 
 import java.nio.charset.StandardCharsets
@@ -11,22 +14,12 @@ import java.nio.charset.StandardCharsets
 object MqttStream:
   private val log = AppLogger(getClass)
 
-  def unsafe(settings: MqttSettings, interrupter: SignallingRef[IO, Boolean])(implicit
-    c: Concurrent[IO]
-  ): MqttStream = apply(
-    settings,
-    Topic[IO, MqttPayload](MqttPayload(settings.topic, Array.empty[Byte])).unsafeRunSync(),
-    interrupter,
-    c
-  )
-
-  def apply(
-    settings: MqttSettings,
-    in: Topic[IO, MqttPayload],
-    signal: SignallingRef[IO, Boolean],
-    c: Concurrent[IO]
-  ): MqttStream =
-    new MqttStream(settings, in, signal)(c)
+  def apply(settings: MqttSettings, rt: IORuntime): Resource[IO, MqttStream] =
+    val task = for
+      in <- Topic[IO, MqttPayload]
+      signal <- SignallingRef[IO, Boolean](false)
+    yield new MqttStream(settings, in, signal)(rt)
+    Resource.make(task)(_.close)
 
   case class MqttPayload(topic: String, payload: Array[Byte]):
     lazy val payloadString = new String(payload, StandardCharsets.UTF_8)
@@ -35,15 +28,16 @@ class MqttStream(
   settings: MqttSettings,
   in: Topic[IO, MqttPayload],
   signal: SignallingRef[IO, Boolean]
-)(implicit c: Concurrent[IO]):
+)(implicit rt: IORuntime):
   val broker = settings.broker
   val client = new MqttAsyncClient(
     broker.url,
     settings.clientId,
     settings.persistence
   )
-  val events: fs2.Stream[IO, MqttPayload] =
-    in.subscribe(100).drop(1).interruptWhen(signal)
+  val events: Stream[IO, MqttPayload] =
+    in.subscribe(100).interruptWhen(signal)
+
   // TODO .attempts() or .retry()
   client.setCallback(new MqttCallback:
     def messageArrived(topic: String, message: MqttMessage): Unit =
@@ -75,5 +69,5 @@ class MqttStream(
         ()
   )
 
-  def interrupt(): Unit = signal.set(true).unsafeRunSync()
-  def close(): Unit = interrupt()
+  def interrupt(): Unit = close.unsafeRunSync()
+  def close: IO[Unit] = signal.getAndSet(true).map(_ => ())

@@ -1,5 +1,6 @@
 package com.malliina.boat.auth
 
+import cats.effect.unsafe.implicits.global
 import com.malliina.http.io.HttpClientIO
 import com.malliina.values.IdToken
 import com.malliina.web.{ClientId, GoogleAuthFlow}

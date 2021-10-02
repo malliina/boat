@@ -1,16 +1,18 @@
 package com.malliina.boat.client
 
-import cats.effect.kernel.{Resource, Temporal, Concurrent}
+import cats.effect.kernel.{Concurrent, Resource, Temporal}
 import cats.effect.{Concurrent, IO, Resource}
 import com.malliina.boat.client.TcpClient.{charset, log}
 import com.malliina.boat.client.server.Device.GpsDevice
-import com.malliina.boat.{RawSentence, SentencesMessage}
+import com.malliina.boat.{RawSentence, Readable, SentencesMessage}
 import fs2.concurrent.Topic
 import fs2.io.net.{Network, Socket}
 import fs2.{Chunk, Pipe, Pull, Stream, text}
 import cats.effect.MonadCancelThrow
 import cats.syntax.all.*
 import com.comcast.ip4s.*
+import com.malliina.boat.Readable.from
+import com.malliina.values.ErrorMessage
 import java.net.InetSocketAddress
 import java.nio.charset.{Charset, StandardCharsets}
 import java.nio.{ByteBuffer, CharBuffer}
@@ -24,18 +26,21 @@ object TcpClient:
   val linefeed = crlf
   val charset = StandardCharsets.US_ASCII
 
+  implicit val host: Readable[Host] =
+    from[String, Host](s => Host.fromString(s).toRight(ErrorMessage(s"Invalid host: '$s'.")))
+  implicit val port: Readable[Port] =
+    from[Int, Port](i => Port.fromInt(i).toRight(ErrorMessage(s"Invalid port: '$i'.")))
+
   // Subscribes to NMEA messages. Depending on device, by default, nothing happens.
   val watchMessage =
     s"${GpsDevice.watchCommand}$linefeed".getBytes(charset)
 
   def resource(host: Host, port: Port, delimiter: String = linefeed)(implicit
-    c: Concurrent[IO],
     t: Temporal[IO]
   ): Resource[IO, TcpClient] = for client <- Resource.eval(apply(host, port, delimiter))
   yield client
 
   def apply(host: Host, port: Port, delimiter: String)(implicit
-    c: Concurrent[IO],
     t: Temporal[IO]
   ): IO[TcpClient] = for topic <- Topic[IO, SentencesMessage]
   yield new TcpClient(host, port, delimiter, topic)
@@ -45,7 +50,7 @@ class TcpClient(
   port: Port,
   delimiter: String,
   topic: Topic[IO, SentencesMessage]
-)(implicit c: Concurrent[IO], t: Temporal[IO]):
+)(implicit t: Temporal[IO]):
   val hostPort = s"tcp://$host:$port"
 //  implicit val ec = mat.executionContext
   private val active = new AtomicReference[Option[Socket[IO]]]
@@ -130,4 +135,4 @@ class TcpClient(
 
   def close(): Unit =
     enabled.set(false)
-    active.get().foreach(_.close.unsafeRunSync())
+//    active.get().foreach(_.close.unsafeRunSync())

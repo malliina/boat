@@ -34,6 +34,7 @@ case class BoatConfOld(host: Host, port: Port, token: Option[BoatToken], enabled
   def toConf = BoatConf(host, port, BoatDevice, token, enabled)
 
 object BoatConfOld:
+  import BoatConf.{hostCodec, portCodec}
   implicit val codec: Codec[BoatConfOld] = deriveCodec[BoatConfOld]
 
 case class BoatConf(
@@ -46,6 +47,15 @@ case class BoatConf(
   def describe = s"$host:$port-$enabled"
 
 object BoatConf:
+  implicit val hostCodec: Codec[Host] = Codec.from(
+    Decoder.decodeString.emap(s => Host.fromString(s).toRight(s"Invalid host: '$s'.")),
+    Encoder.encodeString.contramap[Host](h => Host.show.show(h))
+  )
+  implicit val portCodec: Codec[Port] = Codec.from(
+    Decoder.decodeInt.emap(i => Port.fromInt(i).toRight(s"Invalid port: '$i'.")),
+    Encoder.encodeInt.contramap[Port](p => p.value)
+  )
+
   implicit val json: Codec[BoatConf] = deriveCodec[BoatConf]
 //  val empty = BoatConf("", 0, Device.default, None, enabled = false)
 
@@ -67,23 +77,28 @@ object AgentSettings:
 
   def savePass(pass: String): Unit = save(hash(pass), passFile)
 
-  def readConf(): BoatConf =
+  def readConf(): Either[String, BoatConf] =
     if Files.exists(confFile) then
       // If reading the conf fails, attempts to read the old format and then save it as new
-      Try(
+      val jsonContent = Try(
         parser.parse(new String(Files.readAllBytes(confFile), StandardCharsets.UTF_8))
-      ).toEither.flatMap { jsonResult =>
+      ).toEither.left.map(_ => s"Cannot read '$confFile'.")
+      jsonContent.flatMap { jsonResult =>
         jsonResult.flatMap { json =>
-          json.as[BoatConf].left.flatMap { err =>
-            json.as[BoatConfOld].map { old =>
-              val converted = old.toConf
-              saveConf(converted)
-              converted
-            }
+          json.as[BoatConf].left.map(_ => "JSON error.").left.flatMap { err =>
+            json
+              .as[BoatConfOld]
+              .left
+              .map(_ => s"Old JSON error.")
+              .map { old =>
+                val converted = old.toConf
+                saveConf(converted)
+                converted
+              }
           }
         }
-      }.getOrElse(BoatConf.empty)
-    else BoatConf.empty
+      }.left.map(_ => "Error.")
+    else Left("No conf")
 
   def saveConf(conf: BoatConf): Unit = save(conf.asJson.spaces2, confFile)
 

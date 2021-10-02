@@ -1,6 +1,8 @@
 package com.malliina.boat.ais
 
-import cats.effect.{Concurrent, IO, Timer}
+import cats.effect.unsafe.IORuntime
+import cats.effect.kernel.{Resource, Temporal}
+import cats.effect.IO
 import com.malliina.boat.ais.BoatMqttClient.{AisPair, log, pass, user}
 import com.malliina.boat.{AISMessage, AppMode, Locations, Metadata, Mmsi, StatusTopic, TimeFormatter, VesselLocation, VesselMetadata, VesselStatus}
 import com.malliina.http.FullUrl
@@ -14,6 +16,14 @@ import java.time.Instant
 import scala.collection.concurrent.TrieMap
 import scala.concurrent.duration.DurationInt
 
+trait AISSource:
+  def slow: Stream[IO, Seq[AisPair]]
+  def close: IO[Unit]
+
+object SilentAISSource extends AISSource:
+  override val slow: Stream[IO, Seq[AisPair]] = Stream.never[IO]
+  override def close: IO[Unit] = IO.pure(())
+
 object BoatMqttClient:
   private val log = AppLogger(getClass)
 
@@ -26,34 +36,35 @@ object BoatMqttClient:
   val TestUrl = FullUrl.wss("meri-test.digitraffic.fi:61619", "/mqtt")
   val ProdUrl = FullUrl.wss("meri.digitraffic.fi:61619", "/mqtt")
 
-  def apply(mode: AppMode)(implicit c: Concurrent[IO], t: Timer[IO]): AISSource = mode match
-    case AppMode.Prod => prod()
-    case AppMode.Dev  => silent()
+  def apply(mode: AppMode, rt: IORuntime)(implicit t: Temporal[IO]): Resource[IO, AISSource] =
+    mode match
+      case AppMode.Prod => prod(rt)
+      case AppMode.Dev  => Resource.pure(silent())
 
-  def prod()(implicit c: Concurrent[IO], t: Timer[IO]): BoatMqttClient =
-    apply(ProdUrl, AllDataTopic)
+  def prod(rt: IORuntime)(implicit t: Temporal[IO]): Resource[IO, BoatMqttClient] =
+    apply(ProdUrl, AllDataTopic, rt)
 
-  def test()(implicit c: Concurrent[IO], t: Timer[IO]): BoatMqttClient =
-    apply(TestUrl, AllDataTopic)
+  def test(rt: IORuntime)(implicit t: Temporal[IO]): Resource[IO, BoatMqttClient] =
+    apply(TestUrl, AllDataTopic, rt)
 
   def silent() = SilentAISSource
 
-  def apply(url: FullUrl, topic: String)(implicit
-    c: Concurrent[IO],
-    t: Timer[IO]
-  ): BoatMqttClient = new BoatMqttClient(url, topic)
+  def apply(url: FullUrl, topic: String, rt: IORuntime)(implicit
+    t: Temporal[IO]
+  ): Resource[IO, BoatMqttClient] =
+    val build = for
+      interrupter <- SignallingRef[IO, Boolean](false)
+      messagesTopic <- Topic[IO, List[AisPair]]
+    yield new BoatMqttClient(url, topic, messagesTopic, interrupter, rt)
+    for
+      client <- Resource.make(build)(_.close)
+      // Consumes any messages regardless of whether there's subscribers
+      _ <- Stream.emit(()).concurrently(client.publisher).compile.resource.lastOrError
+    yield client
 
   case class AisPair(location: VesselLocation, meta: VesselMetadata):
     def when = Instant.ofEpochMilli(location.timestamp)
     def toInfo(formatter: TimeFormatter) = location.toInfo(meta, formatter.timing(when))
-
-trait AISSource:
-  def slow: fs2.Stream[IO, Seq[AisPair]]
-  def close(): Unit
-
-object SilentAISSource extends AISSource:
-  override val slow: Stream[IO, Seq[AisPair]] = fs2.Stream.never[IO]
-  override def close(): Unit = ()
 
 /** Locally caches vessel metadata, then merges it with location data as it is received.
   *
@@ -62,22 +73,37 @@ object SilentAISSource extends AISSource:
   * @param topic
   *   MQTT topic
   */
-class BoatMqttClient(url: FullUrl, topic: String)(implicit c: Concurrent[IO], t: Timer[IO])
-  extends AISSource:
-  val interrupter = SignallingRef[IO, Boolean](false).unsafeRunSync()
+class BoatMqttClient(
+  url: FullUrl,
+  topic: String,
+  messagesTopic: Topic[IO, List[AisPair]],
+  interrupter: SignallingRef[IO, Boolean],
+  rt: IORuntime
+)(implicit
+  t: Temporal[IO]
+) extends AISSource:
+//  val interrupter = SignallingRef[IO, Boolean](false).unsafeRunSync()
   private val metadata = TrieMap.empty[Mmsi, VesselMetadata]
 
   private val maxBatchSize = 300
   private val sendTimeWindow = 5.seconds
-  def newStream = MqttStream.unsafe(
+  def newStream: Resource[IO, MqttStream] = MqttStream(
     MqttSettings(url, newClientId(), topic, user, pass),
-    SignallingRef[IO, Boolean](false).unsafeRunSync()
+    rt
   )
-  val oneConnection = newStream.events.handleErrorWith[IO, MqttStream.MqttPayload] { e =>
-    Stream.eval(IO(log.warn(s"MQTT connection to '$url' failed. Reconnecting...", e))).flatMap {
-      _ => Stream.empty
+
+  val oneConnection: Stream[IO, MqttStream.MqttPayload] =
+    Stream.resource(newStream).flatMap { s =>
+      s.events
+        .handleErrorWith[IO, MqttStream.MqttPayload] { e =>
+          Stream
+            .eval(IO(log.warn(s"MQTT connection to '$url' failed. Reconnecting...", e)))
+            .flatMap { _ =>
+              Stream.empty
+            }
+        }
     }
-  }
+
   val parsed: Stream[IO, Either[Error, AISMessage]] =
     oneConnection.repeat.interruptWhen(interrupter).map { msg =>
       val str = msg.payloadString
@@ -107,12 +133,8 @@ class BoatMqttClient(url: FullUrl, topic: String)(implicit c: Concurrent[IO], t:
   }
   private val internalMessages =
     vesselMessages.groupWithin(maxBatchSize, sendTimeWindow).map(_.toList)
-  internalMessages
+  val publisher = internalMessages
     .evalMap(list => messagesTopic.publish1(list))
-    .compile
-    .drain
-    .unsafeRunAsyncAndForget()
-  val messagesTopic = Topic[IO, List[AisPair]](Nil).unsafeRunSync()
 
   /** A Source of AIS messages. The "public API" of AIS data.
     */
@@ -120,4 +142,4 @@ class BoatMqttClient(url: FullUrl, topic: String)(implicit c: Concurrent[IO], t:
 
   private def newClientId() = s"boattracker-${date()}"
   private def date() = Instant.now().toEpochMilli
-  override def close(): Unit = interrupter.set(true).unsafeRunSync()
+  override def close: IO[Unit] = interrupter.getAndSet(true).map(_ => ())

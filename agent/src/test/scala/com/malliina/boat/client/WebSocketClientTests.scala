@@ -1,10 +1,11 @@
 package com.malliina.boat.client
 
+import cats.effect.unsafe.implicits.global
 import com.malliina.boat.{Constants, RawSentence, SentencesMessage}
 import com.malliina.http.FullUrl
 import com.malliina.http.io.HttpClientIO
-import com.malliina.logstreams.client.SocketEvent.Open
-import com.malliina.logstreams.client.WebSocketIO
+import com.malliina.http.io.WebSocketIO
+import com.malliina.http.io.SocketEvent.Open
 
 class WebSocketClientTests extends AsyncSuite:
   test("can connect to api.boat-tracker.com".ignore) {

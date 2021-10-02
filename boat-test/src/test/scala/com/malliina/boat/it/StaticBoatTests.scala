@@ -31,7 +31,7 @@ class StaticBoatTests extends BoatTests:
           json.as[CoordsEvent].toOption.filter(_.from.boatName == boatName).foreach { c =>
             coordPromise.trySuccess(c)
           }
-        }.compile.drain.unsafeRunAsyncAndForget()
+        }.compile.drain.unsafeRunAndForget()
         val sent = boat.send(testMessage)
         assert(sent)
         val coordsEvent = await(coordPromise.future, 3.seconds)

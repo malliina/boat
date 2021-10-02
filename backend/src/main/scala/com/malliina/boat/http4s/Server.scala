@@ -1,7 +1,8 @@
 package com.malliina.boat.http4s
 
 import cats.data.Kleisli
-import cats.effect.{Blocker, ExitCode, IO, IOApp, Resource}
+import cats.effect.kernel.Resource
+import cats.effect.{ExitCode, IO, IOApp}
 import com.malliina.boat.ais.BoatMqttClient
 import com.malliina.boat.auth.{EmailAuth, JWT, TokenEmailAuth}
 import com.malliina.boat.db.*
@@ -49,9 +50,8 @@ object Server extends IOApp:
     builder: AppCompsBuilder,
     port: Int = port
   ): Resource[IO, ServerComponents] = for
-    blocker <- Blocker[IO]
     service <- appService(conf, builder)
-    handler = makeHandler(service, blocker)
+    handler = makeHandler(service)
     _ <- Resource.eval(
       IO(log.info(s"Binding on port $port using app version ${AppMeta.default.gitHash}..."))
     )
@@ -63,15 +63,14 @@ object Server extends IOApp:
   yield ServerComponents(service, handler, server)
 
   def appService(conf: BoatConf, builder: AppCompsBuilder): Resource[IO, Service] = for
-    blocker <- Blocker[IO]
-    db <- DoobieDatabase.withMigrations(conf.db, blocker)
+    db <- DoobieDatabase.withMigrations(conf.db)
     users = DoobieUserManager(db)
     _ <- Resource.eval(users.initUser())
     trackInserts = TrackInserter(db)
     gps = DoobieGPSDatabase(db)
-    ais = BoatMqttClient(AppMode.fromBuild)
-    streams <- Resource.eval(BoatStreams(trackInserts, ais))
-    deviceStreams <- Resource.eval(GPSStreams(gps))
+    ais <- BoatMqttClient(AppMode.fromBuild, runtime)
+    streams <- BoatStreams(trackInserts, ais)
+    deviceStreams <- GPSStreams(gps)
   yield
     val http = HttpClientIO()
     val appComps = builder(conf, http)
@@ -96,18 +95,16 @@ object Server extends IOApp:
       S3Client(),
       push,
       streams,
-      deviceStreams,
-      blocker,
-      contextShift
+      deviceStreams
     )
     Service(comps)
 
-  def makeHandler(service: Service, blocker: Blocker) = GZip {
+  def makeHandler(service: Service) = GZip {
     HSTS {
       orNotFound {
         Router(
           "/" -> service.routes,
-          "/assets" -> StaticService(blocker, contextShift).routes
+          "/assets" -> StaticService[IO]().routes
         )
       }
     }

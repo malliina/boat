@@ -11,48 +11,69 @@ object AgentHtml:
   val empty = stringFrag("")
   implicit val uriAttrValue: AttrValue[Uri] = attrValue[Uri](_.renderString)
   implicit def showAttrValue[T](implicit s: Show[T]): AttrValue[T] =
-    (t: Builder, a: Attr, v: T) => t.setAttr(a.name, Builder.GenericAttrValueSource(s.show(v)))
+    attrValue[T](v => s.show(v))
+
+  implicit def optShowAttrValue[T](implicit s: Show[T]): AttrValue[Option[T]] =
+    attrValue[Option[T]](opt => opt.map(s.show).getOrElse(""))
 
   def attrValue[T](f: T => String): AttrValue[T] =
     (t: Builder, a: Text.Attr, v: T) => t.setAttr(a.name, Builder.GenericAttrValueSource(f(v)))
 
-  def boatForm(conf: BoatConf) = form(action := WebServer.settingsUri, method := "post")(
-    h2("Settings"),
-    div(`class` := "form-field")(
-      label(`for` := "host")("Host"),
-      input(`type` := "text", name := "host", id := "host", value := conf.host)
-    ),
-    div(`class` := "form-field")(
-      label(`for` := "port")("Port"),
-      input(`type` := "number", name := "port", id := "port", value := conf.port)
-    ),
-    div(`class` := "form-field")(
-      label(`for` := "device")("Device"),
-      radioButton("Boat", "device-boat", "device", BoatDevice.name, conf.device == BoatDevice),
-      radioButton("GPS", "device-gps", "device", GpsDevice.name, conf.device == GpsDevice)
-    ),
-    div(`class` := "form-field")(
-      label(`for` := "token")("Token"),
-      input(
-        `type` := "text",
-        name := "token",
-        id := "token",
-        conf.token.map(v => value := v.token).getOrElse(empty)
+  def boatForm(conf: Option[BoatConf]) =
+    form(action := WebServer.settingsUri, method := "post")(
+      h2("Settings"),
+      div(`class` := "form-field")(
+        label(`for` := "host")("Host"),
+        input(
+          `type` := "text",
+          name := "host",
+          id := "host",
+          value := conf.map(_.host)
+        )
+      ),
+      div(`class` := "form-field")(
+        label(`for` := "port")("Port"),
+        input(`type` := "number", name := "port", id := "port", value := conf.map(_.port))
+      ),
+      div(`class` := "form-field")(
+        label(`for` := "device")("Device"),
+        radioButton(
+          "Boat",
+          "device-boat",
+          "device",
+          BoatDevice.name,
+          conf.forall(_.device == BoatDevice)
+        ),
+        radioButton(
+          "GPS",
+          "device-gps",
+          "device",
+          GpsDevice.name,
+          conf.exists(_.device == GpsDevice)
+        )
+      ),
+      div(`class` := "form-field")(
+        label(`for` := "token")("Token"),
+        input(
+          `type` := "text",
+          name := "token",
+          id := "token",
+          conf.flatMap(_.token).map(v => value := v.token).getOrElse(empty)
+        )
+      ),
+      div(`class` := "form-field")(
+        label(`for` := "enabled")("Enabled"),
+        input(
+          `type` := "checkbox",
+          name := "enabled",
+          id := "enabled",
+          if conf.forall(_.enabled) then checked else empty
+        )
+      ),
+      div(`class` := "form-field")(
+        button(`type` := "submit")("Save")
       )
-    ),
-    div(`class` := "form-field")(
-      label(`for` := "enabled")("Enabled"),
-      input(
-        `type` := "checkbox",
-        name := "enabled",
-        id := "enabled",
-        if conf.enabled then checked else empty
-      )
-    ),
-    div(`class` := "form-field")(
-      button(`type` := "submit")("Save")
     )
-  )
 
   def radioButton(
     text: String,

@@ -1,14 +1,15 @@
 package com.malliina.boat.db
 
-import cats.effect.{Blocker, ContextShift, IO}
+import cats.effect.IO
 import cats.kernel.Eq
 import com.malliina.boat.db.TrackImporter.{dateEq, log}
 import com.malliina.boat.parsing.*
 import com.malliina.boat.{InsertedPoint, KeyedSentence, RawSentence, SentencesEvent, TrackMetaShort}
 import com.malliina.util.AppLogger
 import fs2.{Pipe, Stream, text}
+import fs2.io.file.Path
 
-import java.nio.file.Path
+import java.nio.file.{Path as JPath}
 import java.time.LocalDate
 
 object TrackImporter:
@@ -17,15 +18,10 @@ object TrackImporter:
   implicit val dateEq: Eq[LocalDate] =
     Eq.by[LocalDate, (Int, Int, Int)](d => (d.getYear, d.getMonthValue, d.getDayOfMonth))
 
-  def apply(
-    inserts: TrackInsertsDatabase,
-    cs: ContextShift[IO],
-    b: Blocker
-  ): TrackImporter =
-    new TrackImporter(inserts, b)(cs)
+  def apply(inserts: TrackInsertsDatabase): TrackImporter =
+    new TrackImporter(inserts)
 
-class TrackImporter(inserts: TrackInsertsDatabase, blocker: Blocker)(implicit cs: ContextShift[IO])
-  extends TrackStreams(blocker)(cs):
+class TrackImporter(inserts: TrackInsertsDatabase) extends TrackStreams:
 
   /** Saves sentences in `file` to the database `track`.
     *
@@ -67,7 +63,7 @@ class TrackImporter(inserts: TrackInsertsDatabase, blocker: Blocker)(implicit cs
   def pointInserter: Pipe[IO, FullCoord, InsertedPoint] =
     _.mapAsync(1)(coord => inserts.saveCoords(coord))
 
-class TrackStreams(blocker: Blocker)(implicit val cs: ContextShift[IO]):
+class TrackStreams:
   def fileByDate(file: Path) = byDate(sentences(file))
 
   def byDate(source: Stream[IO, RawSentence]) =
@@ -85,4 +81,8 @@ class TrackStreams(blocker: Blocker)(implicit val cs: ContextShift[IO]):
   def sentences(file: Path) = lines(file).map(RawSentence.apply)
 
   def lines(file: Path) =
-    fs2.io.file.readAll[IO](file, blocker, 8192).through(text.utf8Decode).through(text.lines)
+    fs2.io.file
+      .Files[IO]
+      .readAll(file)
+      .through(text.utf8.decode)
+      .through(text.lines)
