@@ -67,7 +67,10 @@ object MUnitDatabaseSuite:
 trait MUnitDatabaseSuite extends DoobieSQL:
   self: MUnitSuite =>
   import MUnitDatabaseSuite.log
-  val dbFixture = resource(DoobieDatabase.withMigrations(confFixture()))
+
+  val dbFixture = resource(
+    Resource.eval(IO(confFixture())).flatMap(c => DoobieDatabase.withMigrations(c))
+  )
 
   val confFixture: Fixture[Conf] = new Fixture[Conf]("database"):
     var container: Option[MySQLContainer] = None

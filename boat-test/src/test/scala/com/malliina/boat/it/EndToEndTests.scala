@@ -40,33 +40,35 @@ class EndToEndTests extends BoatTests:
     val tcpPort = port"10104"
     val firstMessage = Promise[Json]()
     val coordsPromise = Promise[CoordsEvent]()
+    log.info(s"Starting TCP server at $tcpHost:$tcpPort...")
     Network[IO]
       .server(port = Option(tcpPort))
       .take(1)
       .evalMap { client =>
-//        val c: Socket[IO] = client
-//        c.writes
+        log.info(s"TCP server handling client...")
         plotterOutput.through(client.writes).compile.drain
-//        client.writes()(plotterOutput).compile.drain
       }
       .compile
       .drain
       .unsafeRunAndForget()
     val serverUrl = s.baseWsUrl.append(reverse.ws.boats.renderString)
-    DeviceAgent(BoatConf.anon(tcpHost, tcpPort), serverUrl, httpClient.client).use { agent =>
-      agent.connect().map { _ =>
-        await(firstMessage.future, 5.seconds)
-        agent.close()
+    val clientIO: IO[Unit] =
+      DeviceAgent(BoatConf.anon(tcpHost, tcpPort), serverUrl, httpClient.client).use { agent =>
+        agent.connect().map { _ =>
+          await(firstMessage.future, 5.seconds)
+          agent.close()
+        }
       }
-    }
 
     openViewerSocket(httpClient, None) { socket =>
       socket.jsonMessages.map { json =>
+        log.debug(s"Viewer got JSON\\n$json...")
         firstMessage.trySuccess(json)
         json.as[CoordsEvent].toOption.foreach { ce =>
           coordsPromise.trySuccess(ce)
         }
       }.compile.drain.unsafeRunAndForget()
+      clientIO.unsafeRunAndForget()
       await(firstMessage.future, 5.seconds)
       await(coordsPromise.future, 5.seconds).coords
     }
