@@ -9,7 +9,7 @@ import fs2.io.file.Path
 
 class TracksImporter extends MUnitSuite:
   def testConf = WrappedTestConf.parse().map(_.boat.testdb).fold(e => throw e, identity)
-  val dbResource = databaseFixture(testConf)
+  def dbResource = databaseFixture(testConf)
   val file = Path.fromNioPath(userHome.resolve(".boat/LogNYY.txt"))
 
   dbResource.test("import tracks from plotter log file".ignore) { db =>
