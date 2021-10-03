@@ -52,7 +52,6 @@ class TcpClient(
   topic: Topic[IO, SentencesMessage]
 )(implicit t: Temporal[IO]):
   val hostPort = s"tcp://$host:$port"
-//  implicit val ec = mat.executionContext
   private val active = new AtomicReference[Option[Socket[IO]]]
   private val enabled = new AtomicBoolean(true)
   // Sends after maxBatchSize sentences have been collected or every sendTimeWindow, whichever comes first
@@ -62,9 +61,6 @@ class TcpClient(
   val maxLength = RawSentence.MaxLength + 10
 
   val sentencesHub = topic.subscribe(10)
-
-//  def unsafeConnect(toServer: Stream[IO, Byte] = Stream.empty): Unit =
-//    connect(toServer).compile.drain.unsafeRunAndForget()
 
   /** Connects to `host:port`. Reconnects on failure.
     *

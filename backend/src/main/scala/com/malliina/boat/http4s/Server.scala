@@ -101,11 +101,13 @@ object Server extends IOApp:
 
   def makeHandler(service: Service) = GZip {
     HSTS {
-      orNotFound {
-        Router(
-          "/" -> service.routes,
-          "/assets" -> StaticService[IO]().routes
-        )
+      CSP {
+        orNotFound {
+          Router(
+            "/" -> service.routes,
+            "/assets" -> StaticService[IO]().routes
+          )
+        }
       }
     }
   }

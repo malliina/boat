@@ -71,7 +71,8 @@ class Service(comps: BoatComps) extends BasicService[IO]:
   }
 
   val routes: HttpRoutes[IO] = HttpRoutes.of[IO] {
-    case req @ GET -> Root      => index(req)
+    case req @ GET -> Root =>
+      index(req)
     case GET -> Root / "health" => ok(AppMeta.default)
     case req @ GET -> Root / "pingAuth" =>
       auth.profile(req).flatMap { _ => ok(AppMeta.default) }

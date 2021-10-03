@@ -5,11 +5,10 @@
             <pattern>%d{HH:mm:ss.SSS} %-5level %logger{36} - %msg%n</pattern>
         </encoder>
     </appender>
-    <appender name="LOGSTREAMS" class="com.malliina.logstreams.client.AkkaHttpAppender">
+    <appender name="LOGSTREAMS" class="com.malliina.logstreams.client.FS2Appender">
         <endpoint>${LOGSTREAMS_HOST:-wss://logs.malliina.com/ws/sources}</endpoint>
-        <secure>true</secure>
         <username>${LOGSTREAMS_USER:-boat}</username>
-        <password>${LOGSTREAMS_PASS:-changeme}</password>
+        <password>${LOGSTREAMS_PASS}</password>
         <enabled>true</enabled>
     </appender>
     <logger name="org.http4s.blaze.channel.nio1.NIO1SocketServerGroup" level="WARN"/>
