@@ -1,6 +1,7 @@
 package com.malliina.boat.db
 
 import cats.effect.IO
+import cats.data.NonEmptyList
 import cats.implicits.*
 import com.malliina.boat.db.DoobiePushDatabase.log
 import com.malliina.boat.push.*
@@ -28,7 +29,7 @@ class DoobiePushDatabase(db: DoobieDatabase, push: PushEndpoint) extends PushSer
     existing.flatMap { idOpt =>
       idOpt.map { id =>
         log.info(s"${input.device} token ${input.token} already registered for push notifications.")
-        AsyncConnectionIO.pure(id)
+        pure(id)
       }.getOrElse {
         sql"""insert into push_clients(token, device, user) 
               values(${input.token}, ${input.device}, ${input.user})""".update
@@ -46,10 +47,9 @@ class DoobiePushDatabase(db: DoobieDatabase, push: PushEndpoint) extends PushSer
       if rows > 0 then
         log.info(s"Disabled notifications for token '$token'.")
         true
-      else {
+      else
         log.warn(s"Tried to disable notifications for '$token', but no changes were made.")
         false
-      }
     }
   }
 
@@ -89,5 +89,7 @@ class DoobiePushDatabase(db: DoobieDatabase, push: PushEndpoint) extends PushSer
               updated
           }
         }.map(_.sum)
-        AsyncConnectionIO.map2(deleteIO, updateIO)(_ + _)
+        deleteIO.flatMap { r1 => updateIO.map { r2 => r1 + r2 } }
+//        NonEmptyList.of(deleteIO, updateIO).map2(_ + _)
+//        ConnectionIO.map2(deleteIO, updateIO)(_ + _)
       }

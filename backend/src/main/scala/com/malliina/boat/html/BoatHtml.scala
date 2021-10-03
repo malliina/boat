@@ -22,12 +22,19 @@ object BoatHtml:
   def apply(isProd: Boolean): BoatHtml =
     val name = "frontend"
     val opt = if isProd then "opt" else "fastopt"
-    new BoatHtml(ScriptAssets(s"$name-$opt-library.js", s"$name-$opt-loader.js", s"$name-$opt.js"))
+    val assetPrefix = s"$name-$opt"
+    new BoatHtml(
+      ScriptAssets(s"$assetPrefix-library.js", s"$assetPrefix-loader.js", s"$assetPrefix.js"),
+      Seq(s"$assetPrefix.css", "fonts.css", "styles.css")
+    )
 
   case class ScriptAssets(library: String, loader: String, app: String)
 
-class BoatHtml(jsFiles: ScriptAssets, assets: AssetsSource = HashedAssetsSource)
-  extends Bootstrap(HtmlTags):
+class BoatHtml(
+  jsFiles: ScriptAssets,
+  cssFiles: Seq[String],
+  assets: AssetsSource = HashedAssetsSource
+) extends Bootstrap(HtmlTags):
   val reverse = Reverse
 //  val mapboxVersion = AppMeta.default.mapboxVersion
 
@@ -168,7 +175,7 @@ class BoatHtml(jsFiles: ScriptAssets, assets: AssetsSource = HashedAssetsSource)
         StructuredData.appStructuredData,
         StructuredData.appLinkMetadata,
         link(rel := "icon", `type` := "image/png", href := "/assets/img/favicon.png"),
-        Seq("vendors.css", "fonts.css", "styles.css").map { file =>
+        cssFiles.map { file =>
           cssLink(versioned(file))
         }
       ),

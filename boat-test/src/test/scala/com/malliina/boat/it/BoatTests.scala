@@ -4,8 +4,8 @@ import com.malliina.boat.*
 import com.malliina.boat.client.{HttpUtil, KeyValue}
 import com.malliina.http.FullUrl
 import com.malliina.http.io.HttpClientIO
-import com.malliina.logstreams.client.SocketEvent.Open
-import com.malliina.logstreams.client.WebSocketIO
+import com.malliina.http.io.WebSocketIO
+import com.malliina.http.io.SocketEvent.Open
 import com.malliina.util.AppLogger
 import com.malliina.values.{Password, Username}
 import io.circe.Encoder
@@ -58,7 +58,7 @@ trait BoatSockets:
     val socket = WebSocketIO(url, headers.map(kv => kv.key -> kv.value).toMap, httpClient.client)
       .unsafeRunSync()
     try
-      socket.allEvents.compile.drain.unsafeRunAsyncAndForget()
+      socket.allEvents.compile.drain.unsafeRunAndForget()
       val opens = socket.events.collect { case o @ Open(_, _) =>
         o
       }

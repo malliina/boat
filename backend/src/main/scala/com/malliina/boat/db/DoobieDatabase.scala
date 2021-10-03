@@ -1,7 +1,8 @@
 package com.malliina.boat.db
 
 import cats.effect.IO.*
-import cats.effect.{Blocker, ContextShift, IO, Resource}
+import cats.effect.kernel.Resource
+import cats.effect.IO
 import com.malliina.util.AppLogger
 import com.zaxxer.hikari.HikariConfig
 import doobie.*
@@ -17,18 +18,19 @@ import scala.concurrent.duration.DurationInt
 object DoobieDatabase:
   val log = AppLogger(getClass)
 
-  def apply(conf: Conf, blocker: Blocker)(implicit cs: ContextShift[IO]) =
-    transactor(hikariConf(conf), blocker).map { tx => new DoobieDatabase(tx) }
+  def apply(conf: Conf): Resource[IO, DoobieDatabase] =
+    transactor(hikariConf(conf)).map { tx => new DoobieDatabase(tx) }
 
-  def withMigrations(conf: Conf, blocker: Blocker)(implicit cs: ContextShift[IO]) =
-    Resource.pure[IO, MigrateResult](migrate(conf)).flatMap { _ => apply(conf, blocker) }
+  def withMigrations(conf: Conf) =
+    Resource.eval[IO, MigrateResult](migrate(conf)).flatMap { _ => apply(conf) }
 
-  def migrate(conf: Conf): MigrateResult =
+  def migrate(conf: Conf): IO[MigrateResult] = IO {
     val flyway = Flyway.configure
       .dataSource(conf.url, conf.user, conf.pass)
       .table("flyway_schema_history2")
       .load()
     flyway.migrate()
+  }
 
   private def hikariConf(conf: Conf): HikariConfig =
     val hikari = new HikariConfig()
@@ -41,12 +43,10 @@ object DoobieDatabase:
     log.info(s"Connecting to '${conf.url}'...")
     hikari
 
-  def transactor(conf: HikariConfig, blocker: Blocker)(implicit
-    cs: ContextShift[IO]
-  ): Resource[IO, HikariTransactor[IO]] =
+  def transactor(conf: HikariConfig): Resource[IO, HikariTransactor[IO]] =
     for
       ec <- ExecutionContexts.fixedThreadPool[IO](32)
-      tx <- HikariTransactor.fromHikariConfig[IO](conf, ec, blocker)
+      tx <- HikariTransactor.fromHikariConfig[IO](conf, ec)
     yield tx
 
 class DoobieDatabase(tx: HikariTransactor[IO]):

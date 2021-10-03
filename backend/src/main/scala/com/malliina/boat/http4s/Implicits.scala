@@ -1,6 +1,7 @@
 package com.malliina.boat.http4s
 
-import cats.effect.{IO, Sync}
+import cats.effect.kernel.{Sync, Concurrent}
+import cats.effect.IO
 import com.malliina.boat.{DeviceId, TrackCanonical, TrackId, TrackName}
 import com.malliina.html.TagPage
 import com.malliina.values.Username
@@ -57,18 +58,18 @@ trait JsonInstances extends CirceInstances:
   implicit def circeJsonEncoder[F[_], T: Encoder]: EntityEncoder[F, T] =
     jsonEncoder[F].contramap[T](t => t.asJson)
 
-  def jsonBody[F[_]: Sync, A](implicit decoder: Decoder[A]): EntityDecoder[F, A] =
+  def jsonBody[F[_]: Concurrent, A](implicit decoder: Decoder[A]): EntityDecoder[F, A] =
     jsonDecoder[F].flatMapR { json =>
       json
         .as[A]
         .fold(
-          errors => DecodeResult.failureT(new JsonException(errors, json)),
+          errors => DecodeResult.failureT[F, A](new JsonException(errors, json)),
           ok => DecodeResult.successT(ok)
         )
     }
 
 abstract class Implicits[F[_]]
-  extends syntax.AllSyntaxBinCompat
+  extends syntax.AllSyntax
   with Http4sDsl[F]
   with HtmlInstances
   with JsonInstances

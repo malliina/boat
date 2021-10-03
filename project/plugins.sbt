@@ -1,10 +1,8 @@
-scalaVersion := "2.12.13"
+scalaVersion := "2.12.15"
 
-scalacOptions ++= Seq("-unchecked", "-deprecation")
+libraryDependencies += "com.amazonaws" % "aws-java-sdk-s3" % "1.12.76"
 
-libraryDependencies += "com.amazonaws" % "aws-java-sdk-s3" % "1.11.856"
-
-val utilsVersion = "1.2.3"
+val utilsVersion = "1.2.5"
 
 Seq(
   "com.malliina" %% "sbt-utils-maven" % utilsVersion,
@@ -14,9 +12,9 @@ Seq(
   "com.malliina" % "sbt-filetree" % "0.4.1",
   "com.typesafe.sbt" % "sbt-native-packager" % "1.7.6",
   "ch.epfl.scala" % "sbt-scalajs-bundler" % "0.20.0",
-  "org.portable-scala" % "sbt-scalajs-crossproject" % "1.0.0",
-  "org.scala-js" % "sbt-scalajs" % "1.6.0",
+  "org.portable-scala" % "sbt-scalajs-crossproject" % "1.1.0",
+  "org.scala-js" % "sbt-scalajs" % "1.7.0",
   "io.spray" % "sbt-revolver" % "0.9.1",
-  "org.scalameta" % "sbt-scalafmt" % "2.4.2",
+  "org.scalameta" % "sbt-scalafmt" % "2.4.3",
   "com.eed3si9n" % "sbt-buildinfo" % "0.10.0"
 ).map(addSbtPlugin)

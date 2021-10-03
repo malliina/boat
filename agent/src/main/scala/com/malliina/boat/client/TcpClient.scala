@@ -1,13 +1,18 @@
 package com.malliina.boat.client
 
-import cats.effect.{Blocker, Concurrent, ContextShift, IO, Resource, Timer}
+import cats.effect.kernel.{Concurrent, Resource, Temporal}
+import cats.effect.{Concurrent, IO, Resource}
 import com.malliina.boat.client.TcpClient.{charset, log}
 import com.malliina.boat.client.server.Device.GpsDevice
-import com.malliina.boat.{RawSentence, SentencesMessage}
+import com.malliina.boat.{RawSentence, Readable, SentencesMessage}
 import fs2.concurrent.Topic
-import fs2.io.tcp.{Socket, SocketGroup}
+import fs2.io.net.{Network, Socket}
 import fs2.{Chunk, Pipe, Pull, Stream, text}
-
+import cats.effect.MonadCancelThrow
+import cats.syntax.all.*
+import com.comcast.ip4s.*
+import com.malliina.boat.Readable.from
+import com.malliina.values.ErrorMessage
 import java.net.InetSocketAddress
 import java.nio.charset.{Charset, StandardCharsets}
 import java.nio.{ByteBuffer, CharBuffer}
@@ -21,36 +26,34 @@ object TcpClient:
   val linefeed = crlf
   val charset = StandardCharsets.US_ASCII
 
+  implicit val host: Readable[Host] =
+    from[String, Host](s => Host.fromString(s).toRight(ErrorMessage(s"Invalid host: '$s'.")))
+  implicit val port: Readable[Port] =
+    from[Int, Port](i => Port.fromInt(i).toRight(ErrorMessage(s"Invalid port: '$i'.")))
+
   // Subscribes to NMEA messages. Depending on device, by default, nothing happens.
   val watchMessage =
     s"${GpsDevice.watchCommand}$linefeed".getBytes(charset)
 
-  def apply(host: String, port: Int, blocker: Blocker, delimiter: String = linefeed)(implicit
-    c: Concurrent[IO],
-    cs: ContextShift[IO],
-    t: Timer[IO]
-  ): Resource[IO, TcpClient] = for
-    group <- SocketGroup[IO](blocker)
-    client <- Resource.eval(apply(host, port, group, delimiter))
+  def resource(host: Host, port: Port, delimiter: String = linefeed)(implicit
+    t: Temporal[IO]
+  ): Resource[IO, TcpClient] = for client <- Resource.eval(apply(host, port, delimiter))
   yield client
 
-  def apply(host: String, port: Int, sockets: SocketGroup, delimiter: String)(implicit
-    c: Concurrent[IO],
-    cs: ContextShift[IO],
-    t: Timer[IO]
-  ): IO[TcpClient] = for topic <- Topic[IO, SentencesMessage](SentencesMessage(Nil))
-  yield new TcpClient(host, port, delimiter, topic, sockets)
+  def apply(host: Host, port: Port, delimiter: String)(implicit
+    t: Temporal[IO]
+  ): IO[TcpClient] = for topic <- Topic[IO, SentencesMessage]
+  yield new TcpClient(host, port, delimiter, topic)
 
 class TcpClient(
-  host: String,
-  port: Int,
+  host: Host,
+  port: Port,
   delimiter: String,
-  topic: Topic[IO, SentencesMessage],
-  group: SocketGroup
-)(implicit c: Concurrent[IO], cs: ContextShift[IO], t: Timer[IO]):
+  topic: Topic[IO, SentencesMessage]
+)(implicit t: Temporal[IO]):
   val hostPort = s"tcp://$host:$port"
 //  implicit val ec = mat.executionContext
-  private val active = new AtomicReference[Option[Socket[IO]]](None)
+  private val active = new AtomicReference[Option[Socket[IO]]]
   private val enabled = new AtomicBoolean(true)
   // Sends after maxBatchSize sentences have been collected or every sendTimeWindow, whichever comes first
   val maxBatchSize = 100
@@ -58,10 +61,10 @@ class TcpClient(
   val reconnectInterval = 2.second
   val maxLength = RawSentence.MaxLength + 10
 
-  val sentencesHub = topic.subscribe(10).drop(1)
+  val sentencesHub = topic.subscribe(10)
 
-  def unsafeConnect(toServer: Stream[IO, Byte] = Stream.empty): Unit =
-    connect(toServer).compile.drain.unsafeRunAsyncAndForget()
+//  def unsafeConnect(toServer: Stream[IO, Byte] = Stream.empty): Unit =
+//    connect(toServer).compile.drain.unsafeRunAndForget()
 
   /** Connects to `host:port`. Reconnects on failure.
     *
@@ -70,21 +73,27 @@ class TcpClient(
   def connect(toServer: Stream[IO, Byte] = Stream.empty): Stream[IO, Unit] = connections.flatMap {
     socket =>
       active.set(Option(socket))
-      val outMessages = toServer.through(socket.writes())
-      val inMessages = socket
-        .reads(8192)
+      val outMessages = toServer.through(socket.writes)
+      val inMessages = socket.reads
         .through(decode[IO](charset))
         .through(text.lines)
         .filter(_.startsWith("$"))
         .map(s => RawSentence(s.trim))
         .groupWithin(maxBatchSize, sendTimeWindow)
         .map(chunk => SentencesMessage(chunk.toList))
-      outMessages ++ inMessages.evalMap(m => topic.publish1(m))
+      outMessages ++ inMessages.evalMap(m =>
+        topic.publish1(m).map { e =>
+          e.fold(
+            closed => log.warn(s"Topic closed, failed to publish '$m' from $hostPort."),
+            identity
+          )
+        }
+      )
   }
 
   private def connections: Stream[IO, Socket[IO]] =
     Stream
-      .resource(group.client(new InetSocketAddress(host, port)))
+      .resource(Network[IO].client(SocketAddress(host, port)))
       .evalTap { socket =>
         IO(log.info(s"Connected to $hostPort."))
       }
@@ -92,14 +101,10 @@ class TcpClient(
         if enabled.get() then
           log.warn(s"Lost connection to $hostPort. Reconnecting in $reconnectInterval...", e)
           connections.delayBy(reconnectInterval)
-        else {
+        else
           log.info(s"Disconnected from $hostPort.")
           Stream.empty
-        }
       }
-
-  private def toHostPort(addr: InetSocketAddress) =
-    s"${addr.getHostString}:${addr.getPort}"
 
   def decode[F[_]](charset: Charset): Pipe[F, Byte, String] =
     val decoder = charset.newDecoder
@@ -128,20 +133,6 @@ class TcpClient(
       }
     }
 
-  //  val (sink, sentencesHub) =
-  //    MergeHub
-  //      .source[SentencesMessage](perProducerBufferSize = 16384)
-  //      .toMat(BroadcastHub.sink(bufferSize = 2048))(Keep.both)
-  //      .run()
-  //  sentencesHub.runWith(Sink.ignore)
-
-  //  def flow: Flow[ByteString, SentencesMessage, NotUsed] = Flow[ByteString]
-  //    .via(Framing.delimiter(ByteString(delimiter), maximumFrameLength = 1000))
-  //    .map(bs => RawSentence(bs.decodeString(StandardCharsets.US_ASCII).trim))
-  //    .filter(_.sentence.startsWith("$"))
-  //    .groupedWithin(maxBatchSize, sendTimeWindow)
-  //    .map(SentencesMessage.apply)
-
   def close(): Unit =
     enabled.set(false)
-    active.get().foreach(_.close.unsafeRunSync())
+//    active.get().foreach(_.close.unsafeRunSync())

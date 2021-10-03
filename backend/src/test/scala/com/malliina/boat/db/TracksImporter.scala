@@ -5,36 +5,35 @@ import cats.implicits.*
 import com.malliina.boat.{BoatConf, BoatName, BoatUser, DateVal, DeviceId, LocalConf, TrackId, TrackInput, TrackNames}
 import com.malliina.values.Email
 import tests.{MUnitSuite, WrappedTestConf}
+import fs2.io.file.Path
 
 class TracksImporter extends MUnitSuite:
   def testConf = WrappedTestConf.parse().map(_.boat.testdb).fold(e => throw e, identity)
-  val dbResource = databaseFixture(testConf)
-  val file = userHome.resolve(".boat/LogNYY.txt")
+  def dbResource = databaseFixture(testConf)
+  val file = Path.fromNioPath(userHome.resolve(".boat/LogNYY.txt"))
 
-  dbResource.test("import tracks from plotter log file".ignore) { db =>
-////    importSlice(".boat/Log20200513.txt", 1273831, 1320488)
-//    importSlice(".boat/latest.txt", 1233566, 1350930, db.resource)
-  }
+//  dbResource.test("import tracks from plotter log file".ignore) { db =>
+//////    importSlice(".boat/Log20200513.txt", 1273831, 1320488)
+////    importSlice(".boat/latest.txt", 1233566, 1350930, db.resource)
+//  }
 
-  dbResource.test("modify tracks".ignore) { db =>
-    val oldTrack = TrackId(175)
-    splitTracksByDate(oldTrack, TrackInserter(db))
-  }
-
-  dbResource.test("read file".ignore) { database =>
-    val users = DoobieUserManager(database)
-    val rows = blocker.use[IO, Long] { b =>
-      val inserter = TrackInserter(database)
-      val i = TrackImporter(inserter, munitContextShift, b)
-      val user = users.userInfo(Email("mleski123@gmail.com")).unsafeRunSync()
-      val track = inserter
-        .joinAsBoat(BoatUser(TrackNames.random(), BoatName("Amina"), user.username))
-        .unsafeRunSync()
-      i.saveFile(file, track.short)
-    }
-//    println("test")
-    println(rows.unsafeRunSync())
-  }
+//  dbResource.test("modify tracks".ignore) { db =>
+//    val oldTrack = TrackId(175)
+//    splitTracksByDate(oldTrack, TrackInserter(db))
+//  }
+//
+//  dbResource.test("read file".ignore) { database =>
+//    val users = DoobieUserManager(database)
+//    val inserter = TrackInserter(database)
+//    val i = TrackImporter(inserter)
+//    val user = users.userInfo(Email("mleski123@gmail.com")).unsafeRunSync()
+//    val track = inserter
+//      .joinAsBoat(BoatUser(TrackNames.random(), BoatName("Amina"), user.username))
+//      .unsafeRunSync()
+//    val rows = i.saveFile(file, track.short)
+////    println("test")
+//    println(rows.unsafeRunSync())
+//  }
 
   test("split by date".ignore) {
 //    TrackImporter.byDate()
@@ -54,7 +53,7 @@ class TracksImporter extends MUnitSuite:
 //    val task = importer.saveSource(s, track.short)
 //    await(task, 300000.seconds)
 //  }
-//
+
   def splitTracksByDate(oldTrack: TrackId, db: TrackInserter) =
     def createAndUpdateTrack(date: DateVal) =
       val in = TrackInput.empty(TrackNames.random(), DeviceId(14))

@@ -1,6 +1,7 @@
 package com.malliina.boat.http4s
 
-import cats.effect.{Concurrent, ContextShift, IO}
+import cats.effect.kernel.Resource
+import cats.effect.IO
 import com.malliina.boat.ais.AISSource
 import com.malliina.boat.db.TrackInsertsDatabase
 import com.malliina.boat.http4s.BoatStreams.{log, rights}
@@ -13,12 +14,15 @@ import fs2.Stream
 object BoatStreams:
   private val log = AppLogger(getClass)
 
-  def apply(db: TrackInsertsDatabase, ais: AISSource)(implicit
-    cs: ContextShift[IO],
-    c: Concurrent[IO]
-  ) = for
-    in <- Topic[IO, InputEvent](EmptyEvent)
-    saved <- Topic[IO, SavedEvent](EmptySavedEvent)
+  def apply(db: TrackInsertsDatabase, ais: AISSource): Resource[IO, BoatStreams] =
+    for
+      streams <- Resource.eval(build(db, ais))
+      _ <- Stream.emit(()).concurrently(streams.publisher).compile.resource.lastOrError
+    yield streams
+
+  def build(db: TrackInsertsDatabase, ais: AISSource): IO[BoatStreams] = for
+    in <- Topic[IO, InputEvent]
+    saved <- Topic[IO, SavedEvent]
   yield new BoatStreams(db, ais, in, saved)
 
   def rights[L, R](src: fs2.Stream[IO, Either[L, R]]): fs2.Stream[IO, R] = src.flatMap { e =>
@@ -30,11 +34,10 @@ class BoatStreams(
   ais: AISSource,
   val boatIn: Topic[IO, InputEvent],
   saved: Topic[IO, SavedEvent]
-)(implicit cs: ContextShift[IO]):
+):
   private val trackState = TrackManager()
   val sentencesSource = boatIn
     .subscribe(100)
-    .drop(1)
     .collect { case be @ BoatEvent(message, from) =>
       be
     }
@@ -64,14 +67,13 @@ class BoatStreams(
       saveRecovered(coord)
     }
     .flatMap { list => Stream.emits(list) }
-  inserted.evalMap { i =>
+  val publisher = inserted.evalMap { i =>
     saved.publish1(i)
-  }.compile.drain.unsafeRunAsyncAndForget()
+  }
 
   def clientEvents(formatter: TimeFormatter): Stream[IO, FrontEvent] =
     val boatEvents = saved
       .subscribe(100)
-      .drop(1)
       .collect { case i @ Inserted(_, _) =>
         i
       }

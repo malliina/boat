@@ -1,7 +1,7 @@
 package com.malliina.boat.http4s
 
 import cats.data.NonEmptyList
-import cats.effect.{Blocker, ContextShift, IO}
+import cats.effect.IO
 import cats.implicits.catsSyntaxFlatten
 import com.malliina.assets.HashedAssets
 import com.malliina.boat.Constants.{LanguageName, TokenCookieName}
@@ -46,16 +46,12 @@ object Service:
     s3: S3Client,
     push: PushService,
     streams: BoatStreams,
-    devices: GPSStreams,
-    blocker: Blocker,
-    cs: ContextShift[IO]
+    devices: GPSStreams
   )
 
   def apply(comps: BoatComps): Service = new Service(comps)
 
 class Service(comps: BoatComps) extends BasicService[IO]:
-  implicit val cs: ContextShift[IO] = comps.cs
-  val blocker = comps.blocker
   val auth = comps.auth
   val userMgmt = auth.users
   val html = comps.html
@@ -284,7 +280,16 @@ class Service(comps: BoatComps) extends BasicService[IO]:
                   message =>
                     log.debug(s"Boat ${boat.boat} says '$message'.")
                     val parsed = parseUnsafe(message)
-                    streams.boatIn.publish1(BoatEvent(parsed, meta)),
+                    streams.boatIn
+                      .publish1(BoatEvent(parsed, meta))
+                      .map(e =>
+                        e.fold(
+                          err =>
+                            log
+                              .warn(s"Failed to publish '$message' by ${boat.boat}, topic closed."),
+                          identity
+                        )
+                      ),
                   onClose =
                     IO(log.info(s"Boat '${boat.boat}' by '${boat.user}' left.")).flatMap { _ =>
                       push.push(meta, BoatState.Disconnected).map(_ => ())
@@ -298,7 +303,15 @@ class Service(comps: BoatComps) extends BasicService[IO]:
         inserts.joinAsDevice(meta).flatMap { boat =>
           webSocket(
             toClients,
-            message => deviceStreams.in.publish1(DeviceEvent(parseUnsafe(message), boat)),
+            message =>
+              deviceStreams.in
+                .publish1(DeviceEvent(parseUnsafe(message), boat))
+                .map(
+                  _.fold(
+                    err => log.warn(s"Failed to publish '$message', topic closed."),
+                    identity
+                  )
+                ),
             onClose = IO(log.info(s"Device '${boat.boatName}' by '${boat.username}' left."))
           )
         }
@@ -337,7 +350,7 @@ class Service(comps: BoatComps) extends BasicService[IO]:
       ok(Json.obj("files" -> urls.asJson))(jsonEncoder[IO])
     case GET -> Root / "files" / file =>
       val obj = comps.s3.download(file)
-      val stream = fs2.io.readInputStream[IO](IO.pure(obj.getObjectContent), 8192, comps.blocker)
+      val stream = fs2.io.readInputStream[IO](IO.pure(obj.getObjectContent), 8192)
       Ok(stream)
     case req @ GET -> Root / ".well-known" / "apple-app-site-association" =>
       fileFromPublicResources("apple-app-site-association.json", req)
@@ -503,7 +516,6 @@ class Service(comps: BoatComps) extends BasicService[IO]:
     StaticFile
       .fromResource(
         s"${HashedAssets.prefix}/$file",
-        comps.blocker,
         Option(req),
         preferGzipped = true
       )

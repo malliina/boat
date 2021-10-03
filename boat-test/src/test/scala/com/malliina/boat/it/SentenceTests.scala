@@ -19,7 +19,7 @@ class SentenceTests extends BoatTests:
         socket.jsonMessages.map { json =>
           json.as[SentencesEvent].foreach { ss => sentencePromise.trySuccess(ss) }
           json.as[CoordsEvent].foreach { c => coordPromise.trySuccess(c) }
-        }.compile.drain.unsafeRunAsyncAndForget()
+        }.compile.drain.unsafeRunAndForget()
         boat.send(testMessage)
         val received = await(sentencePromise.future)
         assertEquals(received.sentences, testMessage.sentences)
@@ -50,13 +50,13 @@ class SentenceTests extends BoatTests:
           json.as[CoordsEvent].toOption.filter(_.from.username == testUser).foreach { c =>
             anonPromise.trySuccess(c)
           }
-        }.compile.drain.unsafeRunAsyncAndForget()
+        }.compile.drain.unsafeRunAndForget()
         openViewerSocket(client, creds) { authSocket =>
           authSocket.jsonMessages.map { json =>
             json.as[CoordsEvent].toOption.filter(_.from.username == testUser).foreach { se =>
               authPromise.trySuccess(se)
             }
-          }.compile.drain.unsafeRunAsyncAndForget()
+          }.compile.drain.unsafeRunAndForget()
           boat.send(testMessage)
           await(authPromise.future)
           intercept[TimeoutException] {

@@ -38,7 +38,7 @@ class DoobieFairwayService(db: DoobieDatabase) extends FairwaySource:
     route.toList.toNel.map { routes =>
       byCoords(routes).map { cs => collect(cs) }
     }.getOrElse {
-      AsyncConnectionIO.pure(Nil)
+      pure(Nil)
     }
   }
 

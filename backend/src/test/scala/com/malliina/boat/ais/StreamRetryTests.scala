@@ -1,14 +1,12 @@
 package com.malliina.boat.ais
 
-import cats.effect.{IO, Timer}
+import cats.effect.IO
 import munit.FunSuite
+import tests.MUnitSuite
 
 import scala.concurrent.duration.DurationInt
 
-class StreamRetryTests extends FunSuite:
-  implicit def munitTimer: Timer[IO] =
-    IO.timer(munitExecutionContext)
-
+class StreamRetryTests extends MUnitSuite:
   val sleeper = IO.sleep(1.second)
   def starter(since: Long) = IO(println(s"Start ${System.currentTimeMillis() - since}"))
   def printer(since: Long) = IO(println(s"Time ${System.currentTimeMillis() - since}"))

@@ -6,7 +6,7 @@ import com.malliina.boat.client.server.WebServer.{boatCharset, defaultHash, hash
 import io.circe.generic.semiauto.deriveCodec
 import io.circe.syntax.EncoderOps
 import io.circe.{Codec, Decoder, Encoder, parser}
-
+import com.comcast.ip4s.*
 import java.nio.charset.StandardCharsets
 import java.nio.file.{Files, Path, Paths}
 import scala.jdk.CollectionConverters.CollectionHasAsScala
@@ -30,15 +30,16 @@ object Device:
 
   def apply(s: String): Device = all.find(_.name == s.toLowerCase).getOrElse(default)
 
-case class BoatConfOld(host: String, port: Int, token: Option[BoatToken], enabled: Boolean):
+case class BoatConfOld(host: Host, port: Port, token: Option[BoatToken], enabled: Boolean):
   def toConf = BoatConf(host, port, BoatDevice, token, enabled)
 
 object BoatConfOld:
+  import BoatConf.{hostCodec, portCodec}
   implicit val codec: Codec[BoatConfOld] = deriveCodec[BoatConfOld]
 
 case class BoatConf(
-  host: String,
-  port: Int,
+  host: Host,
+  port: Port,
   device: Device,
   token: Option[BoatToken],
   enabled: Boolean
@@ -46,10 +47,19 @@ case class BoatConf(
   def describe = s"$host:$port-$enabled"
 
 object BoatConf:
-  implicit val json: Codec[BoatConf] = deriveCodec[BoatConf]
-  val empty = BoatConf("", 0, Device.default, None, enabled = false)
+  implicit val hostCodec: Codec[Host] = Codec.from(
+    Decoder.decodeString.emap(s => Host.fromString(s).toRight(s"Invalid host: '$s'.")),
+    Encoder.encodeString.contramap[Host](h => Host.show.show(h))
+  )
+  implicit val portCodec: Codec[Port] = Codec.from(
+    Decoder.decodeInt.emap(i => Port.fromInt(i).toRight(s"Invalid port: '$i'.")),
+    Encoder.encodeInt.contramap[Port](p => p.value)
+  )
 
-  def anon(host: String, port: Int) = BoatConf(host, port, Device.default, None, enabled = true)
+  implicit val json: Codec[BoatConf] = deriveCodec[BoatConf]
+//  val empty = BoatConf("", 0, Device.default, None, enabled = false)
+
+  def anon(host: Host, port: Port) = BoatConf(host, port, Device.default, None, enabled = true)
 
 object AgentSettings:
   val passFile = file("pass.md5")
@@ -67,23 +77,28 @@ object AgentSettings:
 
   def savePass(pass: String): Unit = save(hash(pass), passFile)
 
-  def readConf(): BoatConf =
+  def readConf(): Either[String, BoatConf] =
     if Files.exists(confFile) then
       // If reading the conf fails, attempts to read the old format and then save it as new
-      Try(
+      val jsonContent = Try(
         parser.parse(new String(Files.readAllBytes(confFile), StandardCharsets.UTF_8))
-      ).toEither.flatMap { jsonResult =>
+      ).toEither.left.map(_ => s"Cannot read '$confFile'.")
+      jsonContent.flatMap { jsonResult =>
         jsonResult.flatMap { json =>
-          json.as[BoatConf].left.flatMap { err =>
-            json.as[BoatConfOld].map { old =>
-              val converted = old.toConf
-              saveConf(converted)
-              converted
-            }
+          json.as[BoatConf].left.map(_ => "JSON error.").left.flatMap { err =>
+            json
+              .as[BoatConfOld]
+              .left
+              .map(_ => s"Old JSON error.")
+              .map { old =>
+                val converted = old.toConf
+                saveConf(converted)
+                converted
+              }
           }
         }
-      }.getOrElse(BoatConf.empty)
-    else BoatConf.empty
+      }.left.map(_ => "Error.")
+    else Left("No conf")
 
   def saveConf(conf: BoatConf): Unit = save(conf.asJson.spaces2, confFile)
 

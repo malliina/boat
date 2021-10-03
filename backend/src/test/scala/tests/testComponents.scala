@@ -1,6 +1,6 @@
 package tests
 
-import cats.effect.{ContextShift, IO}
+import cats.effect.IO
 import com.malliina.boat.BoatConf
 import com.malliina.boat.auth.EmailAuth
 import com.malliina.boat.db.{IdentityException, PushDevice}
