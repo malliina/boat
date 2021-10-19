@@ -29,10 +29,14 @@ object BasicService extends BasicService[IO]:
     .getOrElse(NonEmptyList.of(MediaRange.`*/*`))
 
 class BasicService[F[_]: Applicative: Sync] extends Implicits[F]:
-  def temporaryRedirect(uri: Uri) = TemporaryRedirect(Location(uri)).map(_.putHeaders(noCache))
-  def seeOther(uri: Uri) = SeeOther(Location(uri)).map(_.putHeaders(noCache))
-  def ok[A](a: A)(implicit w: EntityEncoder[F, A]) = Ok(a, noCache)
-  def badRequest[A](a: A)(implicit w: EntityEncoder[F, A]) = BadRequest(a, noCache)
+  def temporaryRedirect(uri: Uri): F[Response[F]] =
+    TemporaryRedirect(Location(uri)).map(_.putHeaders(noCache))
+  def seeOther(uri: Uri): F[Response[F]] =
+    SeeOther(Location(uri)).map(_.putHeaders(noCache))
+  def ok[A](a: A)(implicit w: EntityEncoder[F, A]): F[Response[F]] =
+    Ok(a, noCache)
+  def badRequest[A](a: A)(implicit w: EntityEncoder[F, A]): F[Response[F]] =
+    BadRequest(a, noCache)
   def notFoundReq(req: Request[F]): F[Response[F]] =
     notFound(Errors(s"Not found: '${req.uri}'."))
   def notFound[A](a: A)(implicit w: EntityEncoder[F, A]): F[Response[F]] =
