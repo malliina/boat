@@ -17,7 +17,7 @@ val akkaVersion = "2.6.5"
 val akkaHttpVersion = "10.1.12"
 val playJsonVersion = "2.9.2"
 val logstreamsVersion = "2.0.2"
-val http4sVersion = "0.23.4"
+val http4sVersion = "0.23.6"
 // Do not upgrade to 11.0.2 because it depends on slf4j-api alpha versions, breaking logging
 val alpnVersion = "9.4.40.v20210413"
 val webAuthDep = "com.malliina" %% "web-auth" % webAuthVersion
@@ -35,7 +35,7 @@ ThisBuild / parallelExecution := false
 Global / concurrentRestrictions += Tags.limit(Tags.Test, 1)
 
 val scala213 = "2.13.6"
-val scala3 = "3.0.2"
+val scala3 = "3.1.0"
 
 inThisBuild(
   Seq(
@@ -87,7 +87,7 @@ val frontend = project
   .settings(
     libraryDependencies ++= Seq(
 //      "org.scala-js" %%% "scalajs-dom" % "1.1.0",
-      ("org.scala-js" %%% "scalajs-dom" % "1.1.0").cross(CrossVersion.for3Use2_13),
+      ("org.scala-js" %%% "scalajs-dom" % "1.2.0").cross(CrossVersion.for3Use2_13),
       "org.scalameta" %%% "munit" % munitVersion % Test
     ),
     Compile / npmDependencies ++= Seq(
