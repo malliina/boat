@@ -18,6 +18,7 @@ object BasicService extends BasicService[IO]:
   private val log = AppLogger(getClass)
 
   val noCache = `Cache-Control`(`no-cache`(), `no-store`, `must-revalidate`)
+
   def cached(duration: FiniteDuration) = `Cache-Control`(
     NonEmptyList.of(`max-age`(duration), `public`)
   )
@@ -28,8 +29,8 @@ object BasicService extends BasicService[IO]:
     .getOrElse(NonEmptyList.of(MediaRange.`*/*`))
 
 class BasicService[F[_]: Applicative: Sync] extends Implicits[F]:
-  def temporaryRedirect(uri: Uri) = TemporaryRedirect(Location(uri)) //, noCache)
-  def seeOther(uri: Uri) = SeeOther(Location(uri)) // , noCache)
+  def temporaryRedirect(uri: Uri) = TemporaryRedirect(Location(uri)).map(_.putHeaders(noCache))
+  def seeOther(uri: Uri) = SeeOther(Location(uri)).map(_.putHeaders(noCache))
   def ok[A](a: A)(implicit w: EntityEncoder[F, A]) = Ok(a, noCache)
   def badRequest[A](a: A)(implicit w: EntityEncoder[F, A]) = BadRequest(a, noCache)
   def notFoundReq(req: Request[F]): F[Response[F]] =
