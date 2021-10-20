@@ -7,7 +7,7 @@ import com.typesafe.sbt.packager.docker.DockerVersion
 import scala.sys.process.Process
 import scala.util.Try
 
-val mapboxVersion = "2.2.0"
+val mapboxVersion = "2.5.1"
 val webAuthVersion = "6.0.3"
 val munitVersion = "0.7.29"
 val testContainersScalaVersion = "0.39.8"
@@ -86,16 +86,16 @@ val frontend = project
   .settings(boatSettings)
   .settings(
     libraryDependencies ++= Seq(
-//      "org.scala-js" %%% "scalajs-dom" % "1.1.0",
       ("org.scala-js" %%% "scalajs-dom" % "1.2.0").cross(CrossVersion.for3Use2_13),
       "org.scalameta" %%% "munit" % munitVersion % Test
     ),
     Compile / npmDependencies ++= Seq(
-      "@fortawesome/fontawesome-free" -> "5.15.3",
-      "@mapbox/mapbox-gl-geocoder" -> "4.7.0",
-      "@turf/turf" -> "6.3.0",
-      "bootstrap" -> "4.6.0",
-      "chart.js" -> "3.0.2",
+      "@fortawesome/fontawesome-free" -> "5.15.4",
+      "@mapbox/mapbox-gl-geocoder" -> "4.7.4",
+      "@popperjs/core" -> "2.10.2",
+      "@turf/turf" -> "6.5.0",
+      "bootstrap" -> "5.1.3",
+      "chart.js" -> "3.5.1",
       "jquery" -> "3.6.0",
       "mapbox-gl" -> mapboxVersion,
       "popper.js" -> "1.16.1"
@@ -143,7 +143,7 @@ val http4sModules = Seq("blaze-server", "blaze-client", "dsl", "circe")
 
 val backend = Project("boat", file("backend"))
   .enablePlugins(
-    RevolverPlugin,
+    LiveRevolverPlugin,
     ServerPlugin,
     FileTreePlugin,
     JavaServerAppPackaging,
@@ -168,7 +168,7 @@ val backend = Project("boat", file("backend"))
       "com.typesafe" % "config" % "1.4.1",
       "com.vividsolutions" % "jts" % "1.13",
       "mysql" % "mysql-connector-java" % "5.1.49",
-      "org.flywaydb" % "flyway-core" % "7.14.0",
+      "org.flywaydb" % "flyway-core" % "7.15.0",
       "org.apache.commons" % "commons-text" % "1.9",
       "com.amazonaws" % "aws-java-sdk-s3" % "1.11.856",
       "com.malliina" %% "logstreams-client" % logstreamsVersion,

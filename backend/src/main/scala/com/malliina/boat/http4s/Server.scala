@@ -99,9 +99,11 @@ object Server extends IOApp:
     )
     Service(comps)
 
+//  val maybeCsp: Kleisli[IO, Request[IO], Response[IO]] = CSP
+
   def makeHandler(service: Service) = GZip {
     HSTS {
-      CSP {
+      CSP.when(AppMode.fromBuild.isProd) {
         orNotFound {
           Router(
             "/" -> service.routes,

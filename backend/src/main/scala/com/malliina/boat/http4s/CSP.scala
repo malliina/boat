@@ -23,3 +23,9 @@ object CSP:
     Kleisli { req =>
       http.map(_.putHeaders(header)).apply(req)
     }
+
+  def when[F[_]: Functor, A, G[_]](
+    isProd: Boolean
+  )(http: Kleisli[F, A, Response[G]]): Kleisli[F, A, Response[G]] =
+    if isProd then apply(http)
+    else http

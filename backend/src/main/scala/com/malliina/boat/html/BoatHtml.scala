@@ -5,8 +5,10 @@ import com.malliina.boat.html.BoatHtml.ScriptAssets
 import com.malliina.boat.http.{Limits, TrackQuery}
 import com.malliina.boat.http4s.Reverse
 import com.malliina.boat.{AppConf, AppMode, FullTrack, Lang, TrackRef, TracksBundle, UserBoats, UserInfo, Usernames}
-import com.malliina.html.HtmlTags.{cssLink, deviceWidthViewport, titleTag}
+import com.malliina.html.HtmlTags.{cssLink, deviceWidthViewport, titleTag, fullUrl}
 import com.malliina.html.{Bootstrap, HtmlTags, TagPage}
+import com.malliina.http.FullUrl
+import com.malliina.live.LiveReload
 import com.malliina.measure.DistanceM
 import com.malliina.values.WrappedString
 import org.http4s.Uri
@@ -23,8 +25,10 @@ object BoatHtml:
     val name = "frontend"
     val opt = if isProd then "opt" else "fastopt"
     val assetPrefix = s"$name-$opt"
+    val externalScripts = if isProd then Nil else FullUrl.build(LiveReload.script).toSeq
     new BoatHtml(
       ScriptAssets(s"$assetPrefix-library.js", s"$assetPrefix-loader.js", s"$assetPrefix.js"),
+      externalScripts,
       Seq(s"$assetPrefix.css", "fonts.css", "styles.css")
     )
 
@@ -32,6 +36,7 @@ object BoatHtml:
 
 class BoatHtml(
   jsFiles: ScriptAssets,
+  externalScripts: Seq[FullUrl],
   cssFiles: Seq[String],
   assets: AssetsSource = HashedAssetsSource
 ) extends Bootstrap(HtmlTags):
@@ -183,6 +188,9 @@ class BoatHtml(
         pageConf.content,
         Seq(jsFiles.library, jsFiles.loader, jsFiles.app).map { jsFile =>
           script(`type` := "text/javascript", src := versioned(jsFile))
+        },
+        externalScripts.map { url =>
+          script(src := url, defer)
         }
       )
     )
