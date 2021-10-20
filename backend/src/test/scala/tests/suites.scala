@@ -13,6 +13,7 @@ import com.typesafe.config.Config
 import munit.FunSuite
 import org.http4s.blaze.client.BlazeClientBuilder
 import org.http4s.client.Client
+import org.http4s.server.websocket.WebSocketBuilder2
 import org.http4s.{EntityDecoder, EntityEncoder, HttpApp, Uri}
 import org.testcontainers.utility.DockerImageName
 
@@ -94,7 +95,7 @@ trait MUnitDatabaseSuite extends DoobieSQL:
 
   override def munitFixtures: Seq[Fixture[?]] = Seq(confFixture)
 
-case class AppComponents(service: Service, routes: HttpApp[IO])
+case class AppComponents(service: Service) //, routes: HttpApp[IO])
 
 // https://github.com/typelevel/munit-cats-effect
 trait Http4sSuite extends MUnitDatabaseSuite:
@@ -109,7 +110,7 @@ trait Http4sSuite extends MUnitDatabaseSuite:
       val resource = Server.appService(BoatConf.parse().copy(db = confFixture()), TestComps.builder)
       val (t, release) = resource.allocated.unsafeRunSync()
       finalizer.set(release)
-      service = Option(AppComponents(t, Server.makeHandler(t)))
+      service = Option(AppComponents(t)) //, Server.makeHandler(t)))
 
     override def afterAll(): Unit =
       finalizer.get().unsafeRunSync()
@@ -140,7 +141,7 @@ trait ServerSuite extends MUnitDatabaseSuite with JsonInstances:
     override def beforeAll(): Unit =
       val testServer =
         Server.server(BoatConf.parse().copy(db = confFixture()), TestComps.builder, port = 12345)
-      val testClient = BlazeClientBuilder[IO](munitExecutionContext).resource
+      val testClient = BlazeClientBuilder[IO].resource
       val (instance, closable) = testServer.flatMap { s =>
         testClient.map { c => ServerTools(s, c) }
       }.allocated.unsafeRunSync()

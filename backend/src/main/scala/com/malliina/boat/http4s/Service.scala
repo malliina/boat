@@ -27,6 +27,7 @@ import io.circe.syntax.EncoderOps
 import io.circe.{Decoder, Json}
 import org.http4s.headers.{Location, `WWW-Authenticate`}
 import org.http4s.server.websocket.WebSocketBuilder
+import org.http4s.server.websocket.WebSocketBuilder2
 import org.http4s.websocket.WebSocketFrame
 import org.http4s.websocket.WebSocketFrame.Text
 import org.http4s.{Callback as _, *}
@@ -70,7 +71,7 @@ class Service(comps: BoatComps) extends BasicService[IO]:
     Text(PingEvent(System.currentTimeMillis()).asJson.noSpaces)
   }
 
-  val routes: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  def routes(sockets: WebSocketBuilder2[IO]): HttpRoutes[IO] = HttpRoutes.of[IO] {
     case req @ GET -> Root =>
       index(req)
     case GET -> Root / "health" => ok(AppMeta.default)
@@ -256,6 +257,7 @@ class Service(comps: BoatComps) extends BasicService[IO]:
               .filter(_.isIntendedFor(user))
               .map(message => Text(message.asJson.noSpaces))
           webSocket(
+            sockets,
             eventSource,
             message => IO(log.info(message)),
             onClose = IO(log.info(s"Viewer '$username' left."))
@@ -277,6 +279,7 @@ class Service(comps: BoatComps) extends BasicService[IO]:
               }
               .flatMap { _ =>
                 webSocket(
+                  sockets,
                   toClients,
                   message =>
                     log.debug(s"Boat ${boat.boat} says '$message'.")
@@ -303,6 +306,7 @@ class Service(comps: BoatComps) extends BasicService[IO]:
       auth.authDevice(req.headers).flatMap { meta =>
         inserts.joinAsDevice(meta).flatMap { boat =>
           webSocket(
+            sockets,
             toClients,
             message =>
               deviceStreams.in
@@ -394,6 +398,7 @@ class Service(comps: BoatComps) extends BasicService[IO]:
     yield RevokeAccess(boat, user)
 
   private def webSocket[T](
+    sockets: WebSocketBuilder2[IO],
     toClient: Stream[IO, WebSocketFrame],
     onMessage: String => IO[Unit],
     onClose: IO[Unit]
@@ -404,7 +409,7 @@ class Service(comps: BoatComps) extends BasicService[IO]:
       case f =>
         IO(log.debug(s"Unknown WebSocket frame: $f"))
     }
-    WebSocketBuilder[IO].copy(onClose = onClose).build(toClient, fromClient)
+    sockets.withOnClose(onClose).build(toClient, fromClient)
 
   private def index(req: Request[IO]) =
     auth.optionalWebAuth(req).flatMap { result =>

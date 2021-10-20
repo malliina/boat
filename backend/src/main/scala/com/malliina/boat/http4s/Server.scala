@@ -16,6 +16,7 @@ import com.malliina.http.io.HttpClientIO
 import com.malliina.util.AppLogger
 import com.malliina.web.{GoogleAuthFlow, MicrosoftAuthFlow}
 import org.http4s.blaze.server.BlazeServerBuilder
+import org.http4s.server.websocket.WebSocketBuilder2
 import org.http4s.server.middleware.{GZip, HSTS}
 import org.http4s.server.{Router, Server, ServiceErrorHandler}
 import org.http4s.{HttpApp, HttpRoutes, Request, Response}
@@ -23,7 +24,7 @@ import org.http4s.{HttpApp, HttpRoutes, Request, Response}
 import scala.concurrent.ExecutionContext
 import scala.util.control.NonFatal
 
-case class ServerComponents(app: Service, handler: HttpApp[IO], server: Server)
+case class ServerComponents(app: Service, server: Server)
 
 trait AppCompsBuilder:
   def apply(conf: BoatConf, http: HttpClient[IO]): AppComps
@@ -51,16 +52,15 @@ object Server extends IOApp:
     port: Int = port
   ): Resource[IO, ServerComponents] = for
     service <- appService(conf, builder)
-    handler = makeHandler(service)
     _ <- Resource.eval(
       IO(log.info(s"Binding on port $port using app version ${AppMeta.default.gitHash}..."))
     )
-    server <- BlazeServerBuilder[IO](ExecutionContext.global)
+    server <- BlazeServerBuilder[IO]
       .bindHttp(port = port, "0.0.0.0")
-      .withHttpApp(handler)
+      .withHttpWebSocketApp(sockets => makeHandler(service, sockets))
       .withServiceErrorHandler(errorHandler)
       .resource
-  yield ServerComponents(service, handler, server)
+  yield ServerComponents(service, server)
 
   def appService(conf: BoatConf, builder: AppCompsBuilder): Resource[IO, Service] = for
     db <- DoobieDatabase.withMigrations(conf.db)
@@ -99,14 +99,12 @@ object Server extends IOApp:
     )
     Service(comps)
 
-//  val maybeCsp: Kleisli[IO, Request[IO], Response[IO]] = CSP
-
-  def makeHandler(service: Service) = GZip {
+  def makeHandler(service: Service, sockets: WebSocketBuilder2[IO]) = GZip {
     HSTS {
       CSP.when(AppMode.fromBuild.isProd) {
         orNotFound {
           Router(
-            "/" -> service.routes,
+            "/" -> service.routes(sockets),
             "/assets" -> StaticService[IO]().routes
           )
         }
