@@ -17,7 +17,7 @@ val akkaVersion = "2.6.5"
 val akkaHttpVersion = "10.1.12"
 val playJsonVersion = "2.9.2"
 val logstreamsVersion = "2.0.2"
-val http4sVersion = "0.23.6"
+val http4sVersion = "0.23.4"
 // Do not upgrade to 11.0.2 because it depends on slf4j-api alpha versions, breaking logging
 val alpnVersion = "9.4.40.v20210413"
 val webAuthDep = "com.malliina" %% "web-auth" % webAuthVersion
@@ -96,7 +96,6 @@ val frontend = project
       "@turf/turf" -> "6.5.0",
       "bootstrap" -> "5.1.3",
       "chart.js" -> "3.5.1",
-      "jquery" -> "3.6.0",
       "mapbox-gl" -> mapboxVersion,
       "popper.js" -> "1.16.1"
     ),

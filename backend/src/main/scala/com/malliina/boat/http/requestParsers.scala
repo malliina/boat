@@ -31,7 +31,7 @@ sealed abstract class TrackSort(val name: String) extends Named
 object TrackSort extends EnumLike[TrackSort]:
   val key = "sort"
   val default = Recent
-  val all: Seq[TrackSort] = Seq(Recent, Points, TopSpeed, Length, Name)
+  val all: Seq[TrackSort] = Seq(Recent, Points, TopSpeed, Length, Name, Time)
 
   case object Recent extends TrackSort("recent")
   case object Points extends TrackSort("points")
