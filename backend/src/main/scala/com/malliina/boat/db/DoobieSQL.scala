@@ -13,5 +13,4 @@ trait DoobieSQL extends DoobieMappings:
   def computeDistance(from: Coord, to: Coord): ConnectionIO[DistanceM] =
     sql"select st_distance_sphere($from, $to)".query[DistanceM].unique
   protected def pure[A](a: A): ConnectionIO[A] = a.pure[ConnectionIO]
-  protected def fail[A](message: String): ConnectionIO[A] = fail(new Exception(message))
-  protected def fail[A](e: Throwable): ConnectionIO[A] = Sync[ConnectionIO].raiseError(e)
+  protected def fail[A](e: Exception): ConnectionIO[A] = Sync[ConnectionIO].raiseError(e)

@@ -1,8 +1,8 @@
 package com.malliina
 
 import com.malliina.boat.FrontKeys.Hidden
-import org.scalajs.dom.raw.{Element, Event, EventTarget, HTMLElement}
-import org.scalajs.dom.{DOMList, Node}
+import org.scalajs.dom.raw.{Element, Event}
+import org.scalajs.dom.{DOMList, EventTarget, HTMLElement, Node}
 
 package object boat:
 

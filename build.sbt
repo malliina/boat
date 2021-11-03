@@ -8,10 +8,10 @@ import scala.sys.process.Process
 import scala.util.Try
 
 val mapboxVersion = "2.5.1"
-val webAuthVersion = "6.0.3"
+val webAuthVersion = "6.0.5"
 val munitVersion = "0.7.29"
-val testContainersScalaVersion = "0.39.8"
-val scalaTagsVersion = "0.9.4"
+val testContainersScalaVersion = "0.39.11"
+val scalaTagsVersion = "0.10.0"
 val primitiveVersion = "3.0.2"
 val akkaVersion = "2.6.5"
 val akkaHttpVersion = "10.1.12"
@@ -68,7 +68,6 @@ val cross = portableProject(JSPlatform, JVMPlatform)
   .settings(
     libraryDependencies ++= circeModules.map(m => "io.circe" %%% s"circe-$m" % "0.14.1") ++ Seq(
       "com.malliina" %%% "primitives" % primitiveVersion,
-//      "com.lihaoyi" %%% "scalatags" % scalaTagsVersion,
       ("com.lihaoyi" %%% "scalatags" % scalaTagsVersion).cross(CrossVersion.for3Use2_13),
       "org.scalameta" %%% "munit" % munitVersion % Test
     ),
@@ -86,7 +85,7 @@ val frontend = project
   .settings(boatSettings)
   .settings(
     libraryDependencies ++= Seq(
-      ("org.scala-js" %%% "scalajs-dom" % "1.2.0").cross(CrossVersion.for3Use2_13),
+      ("org.scala-js" %%% "scalajs-dom" % "2.0.0").cross(CrossVersion.for3Use2_13),
       "org.scalameta" %%% "munit" % munitVersion % Test
     ),
     Compile / npmDependencies ++= Seq(
@@ -96,8 +95,7 @@ val frontend = project
       "@turf/turf" -> "6.5.0",
       "bootstrap" -> "5.1.3",
       "chart.js" -> "3.5.1",
-      "mapbox-gl" -> mapboxVersion,
-      "popper.js" -> "1.16.1"
+      "mapbox-gl" -> mapboxVersion
     ),
     Compile / npmDevDependencies ++= Seq(
       "autoprefixer" -> "10.2.5",
@@ -299,7 +297,7 @@ val utils = project
     libraryDependencies ++= Seq("shapefile", "geojson").map { m =>
       "org.geotools" % s"gt-$m" % "23.0" exclude ("javax.media", "jai_core")
     } ++ Seq(
-      "ch.qos.logback" % "logback-classic" % "1.2.5",
+      "ch.qos.logback" % "logback-classic" % "1.2.6",
       "org.slf4j" % "slf4j-api" % "1.7.32",
       "javax.media" % "jai_core" % "1.1.3",
       munitDep

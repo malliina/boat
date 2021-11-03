@@ -297,11 +297,7 @@ class DoobieUserManager(db: DoobieDatabase) extends UserManager with DoobieSQL:
       boatId <-
         owns
           .map(pure)
-          .getOrElse(
-            fail(
-              s"User $principal is not authorized to modify access to boat $boat for user $from."
-            )
-          )
+          .getOrElse(fail(new PermissionException(principal, boat, from)))
       link <-
         sql"select ub.user, u.email from users_boats ub, users u where ub.user = u.id and ub.boat = $boat and ub.user = $from"
           .query[UserId]

@@ -293,7 +293,8 @@ class Service(comps: BoatComps) extends BasicService[IO]:
                               .warn(s"Failed to publish '$message' by ${boat.boat}, topic closed."),
                           identity
                         )
-                      ),
+                      )
+                  ,
                   onClose =
                     IO(log.info(s"Boat '${boat.boat}' by '${boat.user}' left.")).flatMap { _ =>
                       push.push(meta, BoatState.Disconnected).map(_ => ())
@@ -479,7 +480,8 @@ class Service(comps: BoatComps) extends BasicService[IO]:
                 s"Both JSON and form decode failed for ${req.method} '${req.uri.renderString}'. $fail",
                 t
               )
-              IO.raiseError(fail),
+              IO.raiseError(fail)
+            ,
             form =>
               readForm(new FormReader(form)).fold(
                 err => IO.raiseError(err.asException),

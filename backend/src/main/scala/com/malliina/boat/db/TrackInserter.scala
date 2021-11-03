@@ -36,7 +36,7 @@ class TrackInserter(val db: DoobieDatabase) extends TrackInsertsDatabase with Do
       sql"""$trackIds and t.name = $track and b.uid = $user"""
         .query[TrackId]
         .option
-        .flatMap { opt => opt.map(pure).getOrElse(fail(s"Track not found: '$track'.")) }
+        .flatMap { opt => opt.map(pure).getOrElse(fail(new TrackNameNotFoundException(track))) }
     val canonical = TrackCanonical(Utils.normalize(title.title))
     def updateIO(tid: TrackId) =
       sql"""update tracks set canonical = $canonical, title = $title
@@ -49,7 +49,7 @@ class TrackInserter(val db: DoobieDatabase) extends TrackInsertsDatabase with Do
       sql"""$trackIds and t.id = $track and b.uid = $user"""
         .query[TrackId]
         .option
-        .flatMap { opt => opt.map(pure).getOrElse(fail(s"Track not found: '$track'.")) }
+        .flatMap { opt => opt.map(pure).getOrElse(fail(new TrackIdNotFoundException(track))) }
     def updateIO(tid: TrackId) =
       sql"""update tracks set comments = $comments
             where id = $tid""".update.run
@@ -76,7 +76,7 @@ class TrackInserter(val db: DoobieDatabase) extends TrackInsertsDatabase with Do
         .unique
     for
       exists <- ownershipCheck
-      _ <- if exists then pure(42) else fail(s"Boat '$boat' by '$user' not found.")
+      _ <- if exists then pure(42) else fail(new BoatNotFoundException(boat, user))
       _ <- sql"update boats set name = $newName where id = $boat".update.run
       updated <- boatById(boat)
     yield
@@ -121,10 +121,7 @@ class TrackInserter(val db: DoobieDatabase) extends TrackInsertsDatabase with Do
                     .query[Boolean]
                     .unique
                     .flatMap[JoinedBoat] { alreadyExists =>
-                      if alreadyExists then
-                        fail(
-                          s"Boat name '$boat' is already taken and therefore not available for '$user'."
-                        )
+                      if alreadyExists then fail(new BoatNameNotAvailableException(boat, user))
                       else insertBoat(boat, id, BoatTokens.random())
                     }
                 }
@@ -229,10 +226,7 @@ class TrackInserter(val db: DoobieDatabase) extends TrackInsertsDatabase with Do
             .query[Boolean]
             .unique
             .flatMap { exists =>
-              if exists then
-                fail(
-                  s"Boat name '${meta.boat}' is already taken and therefore not available for '${meta.user}'."
-                )
+              if exists then fail(new BoatNameNotAvailableException(meta.boat, meta.user))
               else saveNewBoat(meta.boat, uid, BoatTokens.random()).flatMap { id => boatById(id) }
             }
         }
