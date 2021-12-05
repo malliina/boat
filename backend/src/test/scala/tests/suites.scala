@@ -28,7 +28,7 @@ case class WrappedTestConf(boat: TestBoatConf)
 object WrappedTestConf:
   def parse(c: Config = LocalConf.localConf.resolve()) = Try(
     WrappedTestConf(
-      TestBoatConf(BoatConf.parseDatabase(c.getConfig("boat").getConfig("testdb")))
+      TestBoatConf(BoatConf.parseDatabase(c.getConfig("boat").getConfig("dbtest")))
     )
   )
 
@@ -49,7 +49,8 @@ trait MUnitSuite extends FunSuite:
       setup = opts =>
         val (t, f) = res.allocated.unsafeRunSync()
         finalizer = Option(f)
-        t,
+        t
+      ,
       teardown = t => finalizer.foreach(_.unsafeRunSync())
     )
 
@@ -84,7 +85,8 @@ trait MUnitDatabaseSuite extends DoobieSQL:
           val c = MySQLContainer(mysqlImageVersion = DockerImageName.parse("mysql:5.7.29"))
           c.start()
           container = Option(c)
-          TestConf(c),
+          TestConf(c)
+        ,
         ok => ok
       )
       conf = Option(testDb)
@@ -140,7 +142,7 @@ trait ServerSuite extends MUnitDatabaseSuite with JsonInstances:
 
     override def beforeAll(): Unit =
       val testServer =
-        Server.server(BoatConf.parse().copy(db = confFixture()), TestComps.builder, port = 12345)
+        Server.server(BoatConf.parse().copy(db = confFixture()), TestComps.builder, port = 0)
       val testClient = BlazeClientBuilder[IO].resource
       val (instance, closable) = testServer.flatMap { s =>
         testClient.map { c => ServerTools(s, c) }
