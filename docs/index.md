@@ -11,13 +11,12 @@ The Boat-Tracker solution consist of the following components:
 - a web app
 - native mobile applications (iOS and Android)
 
-The server and frontend is deployed to [www.boat-tracker.com](https://www.boat-tracker.com/).
+The [server and frontend](https://github.com/malliina/boat) is deployed to [www.boat-tracker.com](https://www.boat-tracker.com/).
 
 The [iOS app](https://itunes.apple.com/us/app/boat-tracker/id1434203398?ls=1&mt=8) codebase is in GitHub repository 
 [boattracker-ios](https://github.com/malliina/boattracker-ios).
 
-The Android app is in repo [boattracker-android](https://github.com/malliina/boattracker-android) but has not yet been
-released to the store.
+The [Android app](https://play.google.com/store/apps/details?id=com.malliina.boattracker) is in repo [boattracker-android](https://github.com/malliina/boattracker-android).
 
 ## Agent
 
