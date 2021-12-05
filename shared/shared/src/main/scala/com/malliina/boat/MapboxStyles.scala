@@ -1,7 +1,8 @@
 package com.malliina.boat
 
-object MapboxStyles {
-  val LimitLayerId = "rajoitusalue_a"
+object MapboxStyles:
+  // "rajoitusalue_a" is probably no longer used
+  val LimitLayerIds = Seq("rajoitusalue", "rajoitusalue_a")
   val FairwayAreaId = "vaylaalueet"
 
   val AisTrailLayer = "ais-vessels-trails"
@@ -30,4 +31,3 @@ object MapboxStyles {
   )
 
   val clickableLayers = marksLayers ++ Seq(AisVesselLayer) ++ fairwayLayers
-}

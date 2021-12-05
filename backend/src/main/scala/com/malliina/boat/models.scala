@@ -43,7 +43,7 @@ object Layers:
     marksLayers,
     fairwayLayers,
     Seq(FairwayAreaId),
-    Seq(LimitLayerId),
+    LimitLayerIds,
     AisConf(AisVesselLayer, AisTrailLayer, AisVesselIcon)
   )
 
