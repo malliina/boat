@@ -20,7 +20,8 @@ class DoobieTests extends MUnitSuite with DoobieMappings:
     "changeme",
     "changeme",
     Conf.MySQLDriver,
-    maxPoolSize = 5
+    maxPoolSize = 5,
+    autoMigrate = true
   )
 
   val dbResource = databaseFixture(conf)

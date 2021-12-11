@@ -60,7 +60,8 @@ object TestConf:
     container.username,
     container.password,
     container.driverClassName,
-    maxPoolSize = 5
+    maxPoolSize = 5,
+    autoMigrate = true
   )
 
 object MUnitDatabaseSuite:
@@ -69,10 +70,6 @@ object MUnitDatabaseSuite:
 trait MUnitDatabaseSuite extends DoobieSQL:
   self: MUnitSuite =>
   import MUnitDatabaseSuite.log
-
-  val dbFixture = resource(
-    Resource.eval(IO(confFixture())).flatMap(c => DoobieDatabase.withMigrations(c))
-  )
 
   val confFixture: Fixture[Conf] = new Fixture[Conf]("database"):
     var container: Option[MySQLContainer] = None
@@ -95,6 +92,10 @@ trait MUnitDatabaseSuite extends DoobieSQL:
 
     def readTestConf(): Try[Conf] = WrappedTestConf.parse().map(_.boat.testdb)
 
+  val dbFixture = resource(
+    Resource.eval(IO(confFixture())).flatMap(c => DoobieDatabase.withMigrations(c))
+  )
+
   override def munitFixtures: Seq[Fixture[?]] = Seq(confFixture)
 
 case class AppComponents(service: Service) //, routes: HttpApp[IO])
@@ -112,7 +113,7 @@ trait Http4sSuite extends MUnitDatabaseSuite:
       val resource = Server.appService(BoatConf.parse().copy(db = confFixture()), TestComps.builder)
       val (t, release) = resource.allocated.unsafeRunSync()
       finalizer.set(release)
-      service = Option(AppComponents(t)) //, Server.makeHandler(t)))
+      service = Option(AppComponents(t)) // , Server.makeHandler(t)))
 
     override def afterAll(): Unit =
       finalizer.get().unsafeRunSync()

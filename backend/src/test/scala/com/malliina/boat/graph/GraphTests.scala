@@ -109,7 +109,7 @@ class GraphTests extends munit.FunSuite:
   )
 
   def fromResource(filename: String) =
-    val file = Graph.file(filename)
+    val file = Graph.file(filename, Graph.graphLocalFile)
     val result = decode[FeatureCollection](Files.readString(file))
     val es = result.toOption.get.features.flatMap { f =>
       f.geometry match

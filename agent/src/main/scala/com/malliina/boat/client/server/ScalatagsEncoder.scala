@@ -1,12 +1,12 @@
 package com.malliina.boat.client.server
 
 import org.http4s.headers.`Content-Type`
-import org.http4s.{Charset, DefaultCharset, EntityEncoder, MediaType}
+import org.http4s.{Charset, EntityEncoder, MediaType}
 import scalatags.generic.Frag
 
 trait ScalatagsEncoder:
   implicit def scalatagsEncoder[F[_], C <: Frag[?, String]](implicit
-    charset: Charset = DefaultCharset
+    charset: Charset = Charset.`UTF-8`
   ): EntityEncoder[F, C] =
     contentEncoder(MediaType.text.html)
 
