@@ -33,11 +33,13 @@ object Graph:
       to
     else
       Files.deleteIfExists(to)
+      Files.createDirectories(to.getParent)
       val resourcePath = s"com/malliina/boat/graph/$name"
       val resource = Option(getClass.getClassLoader.getResourceAsStream(resourcePath))
       resource.map { is =>
         using(is) { res =>
-          write(res, to)
+          val target = if Files.isWritable(to) then to else Files.createTempFile("vaylat", ".json")
+          write(res, target)
         }
       }.getOrElse {
         throw new Exception(s"Not found: '$resourcePath'.")
