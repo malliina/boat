@@ -34,7 +34,12 @@ Navigate to http://localhost:9000.
 
 ## Deploying documentation
 
-GitHub Pages hosts the documentation. To deploy:
+GitHub Pages hosts the documentation. Install Python 3 and pip.
+
+    pip install mkdocs
+    pip install mkdocs-material
+
+To deploy:
 
     mkdocs gh-deploy
 
