@@ -57,13 +57,14 @@ object Server extends IOApp:
     )
     server <- BlazeServerBuilder[IO]
       .bindHttp(port = port, "0.0.0.0")
+      .withBanner(Nil)
       .withHttpWebSocketApp(sockets => makeHandler(service, sockets))
       .withServiceErrorHandler(errorHandler)
       .resource
   yield ServerComponents(service, server)
 
   def appService(conf: BoatConf, builder: AppCompsBuilder): Resource[IO, Service] = for
-    db <- DoobieDatabase.withMigrations(conf.db)
+    db <- DoobieDatabase.init(conf.db)
     users = DoobieUserManager(db)
     _ <- Resource.eval(users.initUser())
     trackInserts = TrackInserter(db)

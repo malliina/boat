@@ -30,68 +30,73 @@ class MapMouseListener(
   html: Popups,
   val log: BaseLogger = BaseLogger.console
 ) extends FrontKeys:
-  val markPopup = MapboxPopup(PopupOptions())
+  val popup = MapboxPopup(PopupOptions())
   var isTrackHover: Boolean = false
+  private var isPopupOpen: Boolean = false
 
   def parseClick(e: MapMouseEvent): Option[Either[JsonError, ClickType]] =
-    val features = map.queryRendered(e.point).recover { err =>
-      log.info(s"Failed to parse features '${err.error}' in '${err.json}'.")
-      Nil
-    }
-    val symbol: Option[Feature] = features.find { f =>
-      f.geometry.typeName == PointGeometry.Key &&
-      f.layer.exists(l => l.`type` == LayerType.Symbol || l.`type` == LayerType.Circle)
-    }
-    symbol.map { symbolFeature =>
-      val target =
-        symbolFeature.geometry.coords.headOption.map(LngLatLike.apply).getOrElse(e.lngLat)
-      val props = symbolFeature.props
-      if symbolFeature.layer.exists(_.id == AISRenderer.AisVesselLayer) then
-        // AIS
-        validate[VesselProps](props).map(vp => VesselClick(vp, target))
-      else if symbolFeature.layer.exists(_.id.startsWith(TrophyPrefix)) then
-        validate[PointProps](props).map { tp =>
-          TrophyClick(tp, target)
-        }
-      else if symbolFeature.layer.exists(_.id.startsWith(DevicePrefix)) then
-        validate[DeviceProps](props).map { tp =>
-          DeviceClick(tp, target)
-        }
-      else {
-        // Markers
-        val normalSymbol = validate[MarineSymbol](props).map(m => SymbolClick(m, target))
-        val minimalSymbol = validate[MinimalMarineSymbol](props).map(m => MinimalClick(m, target))
-        normalSymbol.left.flatMap(_ => minimalSymbol)
+    if isPopupOpen then
+      popup.remove()
+      isPopupOpen = false
+      None
+    else
+      val features = map.queryRendered(e.point).recover { err =>
+        log.info(s"Failed to parse features '${err.error}' in '${err.json}'.")
+        Nil
       }
-    }.orElse {
-      if !isTrackHover then
-        val limitInfo =
-          features.flatMap(_.props.as[LimitArea].toOption).headOption.map(LimitClick(_, e.lngLat))
-        val fairwayInfo =
-          features
-            .flatMap(_.props.as[FairwayInfo].toOption)
+      val symbol: Option[Feature] = features.find { f =>
+        f.geometry.typeName == PointGeometry.Key &&
+        f.layer.exists(l => l.`type` == LayerType.Symbol || l.`type` == LayerType.Circle)
+      }
+      symbol.map { symbolFeature =>
+        val target =
+          symbolFeature.geometry.coords.headOption.map(LngLatLike.apply).getOrElse(e.lngLat)
+        val props = symbolFeature.props
+        if symbolFeature.layer.exists(_.id == AISRenderer.AisVesselLayer) then
+          // AIS
+          validate[VesselProps](props).map(vp => VesselClick(vp, target))
+        else if symbolFeature.layer.exists(_.id.startsWith(TrophyPrefix)) then
+          validate[PointProps](props).map { tp =>
+            TrophyClick(tp, target)
+          }
+        else if symbolFeature.layer.exists(_.id.startsWith(DevicePrefix)) then
+          validate[DeviceProps](props).map { tp =>
+            DeviceClick(tp, target)
+          }
+        else
+          // Markers
+          val normalSymbol = validate[MarineSymbol](props).map(m => SymbolClick(m, target))
+          val minimalSymbol = validate[MinimalMarineSymbol](props).map(m => MinimalClick(m, target))
+          normalSymbol.left.flatMap(_ => minimalSymbol)
+      }.orElse {
+        if !isTrackHover then
+          val limitInfo =
+            features.flatMap(_.props.as[LimitArea].toOption).headOption.map(LimitClick(_, e.lngLat))
+          val fairwayInfo =
+            features
+              .flatMap(_.props.as[FairwayInfo].toOption)
+              .headOption
+              .map(FairwayInfoClick(_, e.lngLat))
+          val fairway = features
+            .flatMap(f => f.props.as[FairwayArea].toOption)
             .headOption
-            .map(FairwayInfoClick(_, e.lngLat))
-        val fairway = features
-          .flatMap(f => f.props.as[FairwayArea].toOption)
-          .headOption
-          .map(FairwayClick(_, e.lngLat))
-        val depth =
-          features
-            .flatMap(f => f.props.as[DepthArea].toOption)
-            .headOption
-            .map(DepthClick(_, e.lngLat))
-        val combined = limitInfo.flatMap { l =>
-          fairway.map(fc => LimitedFairwayClick(l.limit, fc.area, l.target))
-        }
-        fairwayInfo
-          .orElse(combined)
-          .orElse(fairway)
-          .orElse(limitInfo)
-          .orElse(depth)
-          .map(Right.apply)
-      else None
-    }
+            .map(FairwayClick(_, e.lngLat))
+          val depth =
+            features
+              .flatMap(f => f.props.as[DepthArea].toOption)
+              .headOption
+              .map(DepthClick(_, e.lngLat))
+          val combined = limitInfo.flatMap { l =>
+            fairway.map(fc => LimitedFairwayClick(l.limit, fc.area, l.target))
+          }
+          fairwayInfo
+            .orElse(combined)
+            .orElse(fairway)
+            .orElse(limitInfo)
+            .orElse(depth)
+            .map(Right.apply)
+        else None
+      }
 
   map.on(
     "click",
@@ -101,33 +106,33 @@ class MapMouseListener(
         parseClick(e).foreach { result =>
           result.map {
             case DeviceClick(props, target) =>
-              markPopup.show(html.device(props), target, map)
+              popup.show(html.device(props), target, map)
             case TrophyClick(props, target) =>
-              markPopup.show(html.track(props), target, map)
+              popup.show(html.track(props), target, map)
             case VesselClick(boat, target) =>
               ais
                 .info(boat.mmsi)
                 .map { info =>
-                  markPopup.show(html.ais(info), target, map)
+                  popup.show(html.ais(info), target, map)
                 }
                 .recover { err =>
                   log.info(s"Vessel info not available for '$boat'. $err.")
                 }
             case SymbolClick(marker, target) =>
-              markPopup.show(html.mark(marker), target, map)
+              popup.show(html.mark(marker), target, map)
             case MinimalClick(marker, target) =>
-              markPopup.show(html.minimalMark(marker), target, map)
+              popup.show(html.minimalMark(marker), target, map)
             case FairwayClick(area, target) =>
-              markPopup.show(html.fairway(area), target, map)
+              popup.show(html.fairway(area), target, map)
             case DepthClick(area, target) =>
-              markPopup.show(html.depthArea(area), target, map)
+              popup.show(html.depthArea(area), target, map)
             case FairwayInfoClick(info, target) =>
-              markPopup.show(html.fairwayInfo(info), target, map)
+              popup.show(html.fairwayInfo(info), target, map)
             case LimitClick(limit, target) =>
-              markPopup.show(html.limitArea(limit), target, map)
+              popup.show(html.limitArea(limit), target, map)
             case LimitedFairwayClick(limit, area, target) =>
-              markPopup.show(html.limitedFairway(limit, area), target, map)
-          }.recover { err =>
+              popup.show(html.limitedFairway(limit, area), target, map)
+          }.map(_ => isPopupOpen = true).recover { err =>
             log.info(err.describe)
           }
         }

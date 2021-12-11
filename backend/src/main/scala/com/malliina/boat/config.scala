@@ -4,6 +4,7 @@ import com.malliina.boat.auth.SecretKey
 import com.malliina.boat.db.Conf
 import com.malliina.config.ConfigReadable
 import com.malliina.push.apns.{KeyId, TeamId}
+import com.malliina.util.FileUtils
 import com.malliina.values.ErrorMessage
 import com.malliina.web.{AuthConf, ClientId, ClientSecret}
 import com.typesafe.config.{Config, ConfigFactory}
@@ -31,16 +32,10 @@ object AppMode:
     case other  => Left(ErrorMessage(s"Invalid mode: '$other'. Must be 'prod' or 'dev'."))
 
 object LocalConf:
-  val homeDir = Paths.get(sys.props("user.home"))
+  val homeDir = FileUtils.userHome
   val appDir = homeDir.resolve(".boat")
   val localConfFile = appDir.resolve("boat.conf")
   val localConf = ConfigFactory.parseFile(localConfFile.toFile).withFallback(ConfigFactory.load())
-
-//  def apply(): ConfigObjectSource = {
-//    implicit def hint[A]: ProductHint[A] = ProductHint[A](ConfigFieldMapping(CamelCase, CamelCase))
-//    ConfigObjectSource(Right(LocalConf.localConf))
-//      .withFallback(ConfigSource.default)
-//  }
 
 case class MapboxConf(token: AccessToken)
 
@@ -114,5 +109,6 @@ object BoatConf:
     c.unsafe[String]("user"),
     c.unsafe[String]("pass"),
     c.unsafe[String]("driver"),
-    c.unsafe[Int]("maxPoolSize")
+    c.unsafe[Int]("maxPoolSize"),
+    c.unsafe[Boolean]("autoMigrate")
   )

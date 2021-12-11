@@ -10,14 +10,11 @@ import scala.util.Try
 val mapboxVersion = "2.5.1"
 val webAuthVersion = "6.0.5"
 val munitVersion = "0.7.29"
-val testContainersScalaVersion = "0.39.11"
-val scalaTagsVersion = "0.10.0"
+val testContainersScalaVersion = "0.39.12"
+val scalaTagsVersion = "0.11.0"
 val primitiveVersion = "3.0.2"
-val akkaVersion = "2.6.5"
-val akkaHttpVersion = "10.1.12"
-val playJsonVersion = "2.9.2"
 val logstreamsVersion = "2.0.2"
-val http4sVersion = "0.23.6"
+val http4sVersion = "0.23.7"
 // Do not upgrade to 11.0.2 because it depends on slf4j-api alpha versions, breaking logging
 val alpnVersion = "9.4.40.v20210413"
 val webAuthDep = "com.malliina" %% "web-auth" % webAuthVersion
@@ -158,7 +155,7 @@ val backend = Project("boat", file("backend"))
     } ++ Seq("doobie-core", "doobie-hikari").map { d =>
       "org.tpolecat" %% d % "1.0.0-RC1"
     } ++ Seq("classic", "core").map { m =>
-      "ch.qos.logback" % s"logback-$m" % "1.2.6"
+      "ch.qos.logback" % s"logback-$m" % "1.2.7"
     } ++ Seq("server", "client").map { m =>
       "org.eclipse.jetty" % s"jetty-alpn-java-$m" % alpnVersion
     } ++ Seq(
@@ -250,7 +247,6 @@ val agent = project
         "com.malliina" %% "logstreams-client" % logstreamsVersion, // temporary until websocket client is available in okclient
         "com.neovisionaries" % "nv-websocket-client" % "2.14",
         "org.slf4j" % "slf4j-api" % "1.7.32",
-//        "com.lihaoyi" %% "scalatags" % scalaTagsVersion,
         ("com.lihaoyi" %% "scalatags" % scalaTagsVersion).cross(CrossVersion.for3Use2_13),
         "commons-codec" % "commons-codec" % "1.15"
       ),

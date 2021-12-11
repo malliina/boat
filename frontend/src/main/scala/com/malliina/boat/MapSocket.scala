@@ -95,7 +95,8 @@ class MapSocket(
           in =>
             map.getCanvas().style.cursor = "pointer"
             trackPopup.remove()
-            boatPopup.showText(from.boatName.name, in.lngLat, map),
+            boatPopup.showText(from.boatName.name, in.lngLat, map)
+          ,
           _ =>
             map.getCanvas().style.cursor = ""
             boatPopup.remove()
@@ -239,7 +240,7 @@ class MapSocket(
               map.queryRendered(in.point, QueryOptions.layer(name)).map { fs =>
                 fs.flatMap(_.props.as[DeviceProps].toOption).headOption.foreach { device =>
                   map.getCanvas().style.cursor = "pointer"
-                  if !popups.markPopup.isOpen() then
+                  if !popups.popup.isOpen() then
                     devicePopup.showText(device.deviceName.name, in.lngLat, map)
                 }
               },

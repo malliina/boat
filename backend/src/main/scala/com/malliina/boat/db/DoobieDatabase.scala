@@ -21,10 +21,13 @@ object DoobieDatabase:
   def apply(conf: Conf): Resource[IO, DoobieDatabase] =
     transactor(hikariConf(conf)).map { tx => new DoobieDatabase(tx) }
 
-  def withMigrations(conf: Conf) =
+  def init(conf: Conf): Resource[IO, DoobieDatabase] =
+    if conf.autoMigrate then withMigrations(conf) else apply(conf)
+
+  def withMigrations(conf: Conf): Resource[IO, DoobieDatabase] =
     Resource.eval[IO, MigrateResult](migrate(conf)).flatMap { _ => apply(conf) }
 
-  def migrate(conf: Conf): IO[MigrateResult] = IO {
+  private def migrate(conf: Conf): IO[MigrateResult] = IO {
     val flyway = Flyway.configure
       .dataSource(conf.url, conf.user, conf.pass)
       .table("flyway_schema_history2")

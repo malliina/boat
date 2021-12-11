@@ -1,5 +1,6 @@
 package com.malliina.boat.graph
 
+import com.malliina.util.{AppLogger, FileUtils}
 import com.malliina.boat.*
 import com.malliina.boat.graph.Graph.{intersection, log}
 import com.malliina.measure.DistanceM
@@ -16,25 +17,31 @@ import scala.annotation.tailrec
 import scala.concurrent.duration.DurationLong
 
 object Graph:
-  val log = LoggerFactory.getLogger(getClass)
+  val log = AppLogger(getClass)
 
   implicit val writer: Codec[Graph] = Codec.from(
     Decoder[List[ValueNode]].map(fromNodes),
     Encoder[List[ValueNode]].contramap(g => g.toList.toList)
   )
-  val graphFile = file("vaylat-all.json")
-  lazy val all = decode[Graph](Files.readString(graphFile)).toOption.get
+  val graphLocalFile = LocalConf.appDir.resolve("vaylat-all.json")
+  val graphFile = file("vaylat-all.json", graphLocalFile)
+  lazy val all: Graph = decode[Graph](Files.readString(graphFile)).toOption.get
 
-  def file(name: String) =
-    val resourcePath = s"com/malliina/boat/graph/$name"
-    val resource = Option(getClass.getClassLoader.getResourceAsStream(resourcePath))
-    resource.map { is =>
-      using(is) { res =>
-        write(res, Files.createTempFile("temp", name))
+  def file(name: String, to: Path): Path =
+    if Files.exists(to) && Files.size(to) > 0 then
+      log.info(s"Found ${to.toAbsolutePath}, using it.")
+      to
+    else
+      Files.deleteIfExists(to)
+      val resourcePath = s"com/malliina/boat/graph/$name"
+      val resource = Option(getClass.getClassLoader.getResourceAsStream(resourcePath))
+      resource.map { is =>
+        using(is) { res =>
+          write(res, to)
+        }
+      }.getOrElse {
+        throw new Exception(s"Not found: '$resourcePath'.")
       }
-    }.getOrElse {
-      throw new Exception(s"Not found: '$resourcePath'.")
-    }
 
   def write(in: InputStream, to: Path) =
     using(new FileOutputStream(to.toFile, false)) { out =>
@@ -61,13 +68,12 @@ object Graph:
 
   def intersection(line1: Line, line2: Line): Option[Coord] =
     if math.abs(line2.d - line1.d) < 0.001 then None
-    else {
+    else
       val x = (line2.c - line1.c) / (line1.d - line2.d)
       val y = (line2.d * line1.c - line1.d * line2.c) / (line2.d - line1.d)
       val cross = Coord(Longitude(x), Latitude(y))
       if line1.boxContains(cross) && line2.boxContains(cross) then Option(cross)
       else None
-    }
 
   def fromList(es: List[ValueEdge]): Graph =
     apply(es.groupBy(_.from.hash).map { case (k, ves) =>
@@ -110,7 +116,7 @@ class Graph(val nodes: Map[CoordHash, ValueNode]):
     */
   def edge(edge: Edge): Graph =
     if contains(edge) then this
-    else {
+    else
       val crossingEdges =
         nodes.values
           .flatMap(_.edges)
@@ -157,7 +163,6 @@ class Graph(val nodes: Map[CoordHash, ValueNode]):
           else withTo
         Graph(withToAndFrom)
       else edges(crossingEdges)
-    }
 
   def shortest(from: Coord, to: Coord): Either[GraphError, RouteResult] =
     val startMillis = System.currentTimeMillis()
@@ -213,7 +218,7 @@ class Graph(val nodes: Map[CoordHash, ValueNode]):
     if nextLevel.isEmpty then
       log.info("Search complete, graph exhausted.")
       shortestKnown.get(to.hash).toRight(NoRoute(from, to))
-    else {
+    else
       val candidateLevel = nextLevel.filter { route =>
         val hash = route.to.hash
         !shortestKnown.contains(hash) || shortestKnown
@@ -230,7 +235,7 @@ class Graph(val nodes: Map[CoordHash, ValueNode]):
       if shortest.isDefined && others.forall(_.cost >= shortest.get.cost) then
         log.debug(s"Found shortest path from $from to $to.")
         Right(shortest.get)
-      else {
+      else
         if hits.nonEmpty && others.nonEmpty then
           val hitCost = hits.minBy(_.cost).cost
           val otherCost = others.minBy(_.cost).cost
@@ -238,7 +243,5 @@ class Graph(val nodes: Map[CoordHash, ValueNode]):
             s"Found path from $from to $to with cost $hitCost. Another path exists with cost $otherCost, therefore continuing search..."
           )
         search(from, to, novelList, newShortest)
-      }
-    }
 
   private def cost(from: Coord, to: Coord): DistanceM = Earth.distance(from, to)

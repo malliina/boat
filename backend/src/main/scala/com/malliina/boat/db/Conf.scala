@@ -1,6 +1,13 @@
 package com.malliina.boat.db
 
-case class Conf(url: String, user: String, pass: String, driver: String, maxPoolSize: Int)
+case class Conf(
+  url: String,
+  user: String,
+  pass: String,
+  driver: String,
+  maxPoolSize: Int,
+  autoMigrate: Boolean
+)
 
 object Conf:
   val UrlKey = "url"
