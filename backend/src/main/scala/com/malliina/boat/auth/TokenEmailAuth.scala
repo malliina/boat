@@ -23,15 +23,17 @@ object TokenEmailAuth:
     webClientId: ClientId,
     iosClientId: ClientId,
     microsoftClientId: ClientId,
+    apple: TokenVerifier,
     http: HttpClient[IO]
   ): TokenEmailAuth =
     val google = GoogleAuthFlow.keyClient(Seq(webClientId, iosClientId), http)
     val microsoft = MicrosoftAuthFlow.keyClient(Seq(microsoftClientId), http)
-    new TokenEmailAuth(google, microsoft)
+    new TokenEmailAuth(google, microsoft, apple)
 
 /** Validates Google ID tokens and extracts the email address.
   */
-class TokenEmailAuth(google: KeyClient, microsoft: KeyClient) extends EmailAuth:
+class TokenEmailAuth(google: KeyClient, microsoft: KeyClient, apple: TokenVerifier)
+  extends EmailAuth:
   val EmailKey = "email"
   val EmailVerified = "email_verified"
 
@@ -50,10 +52,13 @@ class TokenEmailAuth(google: KeyClient, microsoft: KeyClient) extends EmailAuth:
         IO.raiseError(IdentityException(MissingCredentials(headers)))
       }
 
-  private def validateAny(token: IdToken, now: Instant) =
+  private def validateAny(token: IdToken, now: Instant): IO[Either[AuthError, Email]] =
     validateGoogle(token, now).flatMap { e =>
       e.fold(
-        err => validateMicrosoft(token, now),
+        err =>
+          validateMicrosoft(token, now).flatMap { e2 =>
+            e2.fold(err => validateApple(token, now), ok => IO.pure(Right(ok)))
+          },
         ok => IO.pure(Right(ok))
       )
     }
@@ -70,9 +75,14 @@ class TokenEmailAuth(google: KeyClient, microsoft: KeyClient) extends EmailAuth:
       }
     }
 
-  private def validateMicrosoft(token: IdToken, now: Instant) =
+  private def validateMicrosoft(token: IdToken, now: Instant): IO[Either[AuthError, Email]] =
     microsoft.validate(token, now).map { outcome =>
       outcome.flatMap { v =>
         v.readString(EmailKey).map(Email.apply)
       }
+    }
+
+  private def validateApple(token: IdToken, now: Instant) =
+    apple.validateToken(token, now).map { outcome =>
+      outcome.flatMap(_.readString(EmailKey).map(Email.apply))
     }

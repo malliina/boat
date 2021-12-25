@@ -3,9 +3,10 @@ package com.malliina.web
 import cats.effect.IO
 import com.malliina.http.{FullUrl, HttpClient}
 import com.malliina.oauth.TokenResponse
-import com.malliina.web.AppleAuthFlow.staticConf
-import com.malliina.values.{Email, ErrorMessage, IdToken}
+import com.malliina.values.{Email, ErrorMessage, IdToken, TokenValue}
 import com.malliina.web.*
+import com.malliina.web.AppleAuthFlow.staticConf
+import com.malliina.web.AppleTokenValidator.appleIssuer
 import com.malliina.web.OAuthKeys.*
 import com.nimbusds.jose.crypto.ECDSASigner
 import com.nimbusds.jose.{JWSAlgorithm, JWSHeader}
@@ -28,10 +29,19 @@ object AppleResponse:
 object AppleTokenValidator:
   val appleIssuer = Issuer("https://appleid.apple.com")
 
-  def apply(clientIds: Seq[ClientId]) = new AppleTokenValidator(clientIds, Seq(appleIssuer))
+class AppleTokenValidator(
+  clientIds: Seq[ClientId],
+  http: HttpClient[IO],
+  issuers: Seq[Issuer] = Seq(appleIssuer)
+) extends TokenVerifier(issuers):
+  def validateToken(
+    token: TokenValue,
+    now: Instant
+  ): IO[Either[AuthError, Verified]] =
+    http.getAs[JWTKeys](AppleAuthFlow.jwksUri).map { keys =>
+      validate(token, keys.keys, now)
+    }
 
-class AppleTokenValidator(clientIds: Seq[ClientId], issuers: Seq[Issuer])
-  extends TokenValidator(issuers):
   override protected def validateClaims(
     parsed: ParsedJWT,
     now: Instant
@@ -48,9 +58,6 @@ object AppleAuthFlow:
   val jwksUri = host / "/auth/keys"
   val tokensUrl = host / "/auth/token"
 
-  def apply(conf: AuthConf, validator: AppleTokenValidator, http: HttpClient[IO]) =
-    new AppleAuthFlow(conf, validator, http)
-
   def staticConf(conf: AuthConf): StaticConf = StaticConf(emailScope, authUrl, tokensUrl, conf)
 
 /** @see
@@ -58,7 +65,7 @@ object AppleAuthFlow:
   */
 class AppleAuthFlow(
   authConf: AuthConf,
-  validator: AppleTokenValidator,
+  validator: TokenVerifier,
   http: HttpClient[IO]
 ) extends StaticFlowStart
   with CallbackValidator[Email]:
