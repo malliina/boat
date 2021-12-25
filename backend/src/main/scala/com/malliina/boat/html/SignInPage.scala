@@ -16,7 +16,8 @@ object SignInPage extends BoatImplicits:
     ),
     div(`class` := "row social-container")(
       socialButton(AuthProvider.Google, s"${lang.signInWith} Google"),
-      socialButton(AuthProvider.Microsoft, s"${lang.signInWith} Microsoft")
+      socialButton(AuthProvider.Microsoft, s"${lang.signInWith} Microsoft"),
+      socialButton(AuthProvider.Apple, s"${lang.signInWith} Apple")
     )
   )
 

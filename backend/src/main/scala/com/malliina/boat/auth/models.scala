@@ -60,3 +60,4 @@ object AuthProvider:
 
   case object Google extends AuthProvider("google")
   case object Microsoft extends AuthProvider("microsoft")
+  case object Apple extends AuthProvider("apple")

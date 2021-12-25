@@ -14,13 +14,14 @@ import com.malliina.boat.{AppMeta, AppMode, BoatConf, Errors, S3Client, SingleEr
 import com.malliina.http.HttpClient
 import com.malliina.http.io.HttpClientIO
 import com.malliina.util.AppLogger
-import com.malliina.web.{GoogleAuthFlow, MicrosoftAuthFlow}
+import com.malliina.web.*
 import org.http4s.blaze.server.BlazeServerBuilder
-import org.http4s.server.websocket.WebSocketBuilder2
 import org.http4s.server.middleware.{GZip, HSTS}
+import org.http4s.server.websocket.WebSocketBuilder2
 import org.http4s.server.{Router, Server, ServiceErrorHandler}
 import org.http4s.{HttpApp, HttpRoutes, Request, Response}
 
+import java.time.Instant
 import scala.concurrent.ExecutionContext
 import scala.util.control.NonFatal
 
@@ -77,11 +78,18 @@ object Server extends IOApp:
     val appComps = builder(conf, http)
     val auth = Http4sAuth(JWT(conf.secret))
     val googleAuth = appComps.emailAuth
+    val appleToken =
+      if conf.apple.enabled then SignInWithApple(conf.apple).signInWithAppleToken(Instant.now())
+      else
+        log.info("Sign in with Apple is disabled.")
+        ClientSecret("disabled")
+    val appleAuthConf = AuthConf(conf.apple.clientId, appleToken)
     val authComps = AuthComps(
       googleAuth,
       auth,
       GoogleAuthFlow(conf.google.webAuthConf, http),
-      MicrosoftAuthFlow(conf.microsoft.webAuthConf, http)
+      MicrosoftAuthFlow(conf.microsoft.webAuthConf, http),
+      AppleAuthFlow(appleAuthConf, AppleTokenValidator(Seq(conf.apple.clientId)), http)
     )
     val auths = new AuthService(users, authComps)
     val tracksDatabase = DoobieTracksDatabase(db)

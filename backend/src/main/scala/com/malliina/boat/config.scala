@@ -2,11 +2,11 @@ package com.malliina.boat
 
 import com.malliina.boat.auth.SecretKey
 import com.malliina.boat.db.Conf
-import com.malliina.config.ConfigReadable
+import com.malliina.config.{ConfigOps, ConfigReadable}
 import com.malliina.push.apns.{KeyId, TeamId}
 import com.malliina.util.FileUtils
 import com.malliina.values.ErrorMessage
-import com.malliina.web.{AuthConf, ClientId, ClientSecret}
+import com.malliina.web.{AuthConf, ClientId, ClientSecret, SignInWithApple}
 import com.typesafe.config.{Config, ConfigFactory}
 
 import java.nio.file.Paths
@@ -54,6 +54,7 @@ case class BoatConf(
   db: Conf,
   google: GoogleConf,
   microsoft: WebConf,
+  apple: SignInWithApple.Conf,
   push: PushConf
 )
 
@@ -68,11 +69,6 @@ object BoatConf:
   private def byString[T](s: String => T): ConfigReadable[T] = ConfigReadable.string.map(s)
   implicit val clientSecret: ConfigReadable[ClientSecret] =
     ConfigReadable.string.map(s => ClientSecret(s))
-  implicit class ConfigOps(c: Config) extends AnyVal:
-    def read[T](key: String)(implicit r: ConfigReadable[T]): Either[ErrorMessage, T] =
-      r.read(key, c)
-    def unsafe[T: ConfigReadable](key: String): T =
-      c.read[T](key).fold(err => throw new IllegalArgumentException(err.message), identity)
 
   def parse(
     c: Config = ConfigFactory.load(LocalConf.localConf).resolve().getConfig("boat")
@@ -93,6 +89,7 @@ object BoatConf:
         WebConf(web.unsafe[ClientId]("id"), web.unsafe[ClientSecret]("secret"))
       ),
       WebConf(microsoft.unsafe[ClientId]("id"), microsoft.unsafe[ClientSecret]("secret")),
+      c.unsafe[SignInWithApple.Conf]("apple"),
       PushConf(
         APNSConf(
           apns.unsafe[Boolean]("enabled"),

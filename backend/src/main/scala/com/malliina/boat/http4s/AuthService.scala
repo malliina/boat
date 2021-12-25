@@ -21,6 +21,7 @@ class AuthService(val users: UserManager, comps: AuthComps):
   val web = comps.web
   val googleFlow = comps.googleFlow
   val microsoftFlow = comps.microsoftFlow
+  val appleFlow = comps.appleFlow
 
   def profile(req: Request[IO]): IO[UserInfo] = profile(req.headers)
 

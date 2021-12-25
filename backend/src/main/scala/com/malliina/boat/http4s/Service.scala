@@ -14,7 +14,7 @@ import com.malliina.boat.html.{BoatHtml, BoatLang}
 import com.malliina.boat.http.InviteResult.{AlreadyInvited, Invited, UnknownEmail}
 import com.malliina.boat.http.*
 import com.malliina.boat.http4s.BasicService.{cached, noCache, ranges}
-import com.malliina.boat.http4s.Service.{BoatComps, log}
+import com.malliina.boat.http4s.Service.{BoatComps, log, RequestOps}
 import com.malliina.boat.push.{BoatState, PushService}
 import com.malliina.util.AppLogger
 import com.malliina.values.{Email, UserId, Username}
@@ -51,6 +51,9 @@ object Service:
   )
 
   def apply(comps: BoatComps): Service = new Service(comps)
+
+  implicit class RequestOps[F[_]](val req: Request[F]) extends AnyVal:
+    def isSecured: Boolean = Urls.isSecure(req)
 
 class Service(comps: BoatComps) extends BasicService[IO]:
   val auth = comps.auth
@@ -338,10 +341,14 @@ class Service(comps: BoatComps) extends BasicService[IO]:
       startHinted(AuthProvider.Google, auth.googleFlow, req)
     case req @ GET -> Root / "sign-in" / "microsoft" =>
       startHinted(AuthProvider.Microsoft, auth.microsoftFlow, req)
+    case req @ GET -> Root / "sign-in" / "apple" =>
+      start(auth.appleFlow, AuthProvider.Apple, req)
     case req @ GET -> Root / "sign-in" / "callbacks" / "google" =>
       handleAuthCallback(auth.googleFlow, AuthProvider.Google, req)
     case req @ GET -> Root / "sign-in" / "callbacks" / "microsoft" =>
       handleAuthCallback(auth.microsoftFlow, AuthProvider.Microsoft, req)
+    case req @ POST -> Root / "sign-in" / "callbacks" / "apple" =>
+      handleAppleCallback(req)
     case GET -> Root / "sign-out" =>
       SeeOther(Location(reverse.index)).map { res =>
         auth.web.clearSession(res)
@@ -558,6 +565,13 @@ class Service(comps: BoatComps) extends BasicService[IO]:
       )
     }
 
+  private def start(validator: FlowStart[IO], provider: AuthProvider, req: Request[IO]) =
+    validator
+      .start(Urls.hostOnly(req) / reverse.signInCallback(provider).renderString, Map.empty)
+      .flatMap { s =>
+        startLoginFlow(s, req.isSecured)
+      }
+
   private def startHinted(
     provider: AuthProvider,
     validator: LoginHint[IO],
@@ -639,6 +653,41 @@ class Service(comps: BoatComps) extends BasicService[IO]:
         email => userResult(email, provider, req)
       )
     }
+
+  private def handleAppleCallback(req: Request[IO])(implicit
+    decoder: EntityDecoder[IO, UrlForm]
+  ): IO[Response[IO]] =
+    decoder
+      .decode(req, strict = false)
+      .foldF(
+        failure => unauthorized(Errors(failure.message)),
+        urlForm =>
+          AppleResponse(urlForm).map { form =>
+            val session =
+              web.authState[Map[String, String]](req.headers).toOption.getOrElse(Map.empty)
+            val actualState = form.state
+            val sessionState = session.get(State)
+            if sessionState.contains(actualState) then
+              val redirectUrl =
+                Urls.hostOnly(req) / reverse.signInCallback(AuthProvider.Apple).renderString
+              auth.appleFlow.validate(form.code, redirectUrl, session.get(Nonce)).flatMap { e =>
+                e.fold(
+                  err => unauthorized(Errors(err.message)),
+                  email => userResult(email, AuthProvider.Apple, req)
+                )
+              }
+            else
+              val detailed =
+                sessionState.fold(s"Got '$actualState' but found nothing to compare to.") {
+                  expected =>
+                    s"Got '$actualState' but expected '$expected'."
+                }
+              log.error(s"Authentication failed, state mismatch. $detailed $req")
+              unauthorized(Errors("State mismatch."))
+          }.recover { err =>
+            unauthorized(Errors(err))
+          }
+      )
 
   private def userResult(
     email: Email,
