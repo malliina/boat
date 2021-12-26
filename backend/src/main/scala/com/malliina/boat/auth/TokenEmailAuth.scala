@@ -87,9 +87,9 @@ class TokenEmailAuth(google: KeyClient, microsoft: KeyClient, apple: AppleTokenV
       for
         v <- outcome
         email <- v.readString(EmailKey).map(Email.apply)
-        emailVerified <- v.readBoolean(EmailVerified)
+        emailVerified <- v.readString(EmailVerified)
         result <-
-          if emailVerified then Right(email)
+          if emailVerified.toLowerCase == "true" then Right(email)
           else Left(InvalidClaims(token, ErrorMessage("Email not verified.")))
       yield result
     }
