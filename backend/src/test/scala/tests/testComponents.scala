@@ -32,14 +32,6 @@ object TestEmailAuth extends EmailAuth:
 
 class TestComps extends AppComps:
   override val pushService: PushEndpoint = NoopPushEndpoint
-  override val appleValidator: TokenVerifier = new TokenVerifier(Nil):
-    override protected def validateClaims(
-      parsed: ParsedJWT,
-      now: Instant
-    ): Either[JWTError, ParsedJWT] =
-      Left(InvalidSignature(parsed.token))
-    override def validateToken(token: TokenValue, now: Instant): IO[Either[AuthError, Verified]] =
-      IO.raiseError(new Exception("Not supported."))
   override val emailAuth: EmailAuth = TestEmailAuth
 
 object TestComps:

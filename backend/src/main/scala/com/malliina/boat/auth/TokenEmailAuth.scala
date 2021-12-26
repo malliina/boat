@@ -23,16 +23,16 @@ object TokenEmailAuth:
     webClientId: ClientId,
     iosClientId: ClientId,
     microsoftClientId: ClientId,
-    apple: TokenVerifier,
     http: HttpClient[IO]
   ): TokenEmailAuth =
     val google = GoogleAuthFlow.keyClient(Seq(webClientId, iosClientId), http)
     val microsoft = MicrosoftAuthFlow.keyClient(Seq(microsoftClientId), http)
+    val apple = AppleTokenValidator.app(http)
     new TokenEmailAuth(google, microsoft, apple)
 
 /** Validates Google ID tokens and extracts the email address.
   */
-class TokenEmailAuth(google: KeyClient, microsoft: KeyClient, apple: TokenVerifier)
+class TokenEmailAuth(google: KeyClient, microsoft: KeyClient, apple: AppleTokenValidator)
   extends EmailAuth:
   val EmailKey = "email"
   val EmailVerified = "email_verified"
@@ -84,5 +84,12 @@ class TokenEmailAuth(google: KeyClient, microsoft: KeyClient, apple: TokenVerifi
 
   private def validateApple(token: IdToken, now: Instant) =
     apple.validateToken(token, now).map { outcome =>
-      outcome.flatMap(_.readString(EmailKey).map(Email.apply))
+      for
+        v <- outcome
+        email <- v.readString(EmailKey).map(Email.apply)
+        emailVerified <- v.readBoolean(EmailVerified)
+        result <-
+          if emailVerified then Right(email)
+          else Left(InvalidClaims(token, ErrorMessage("Email not verified.")))
+      yield result
     }

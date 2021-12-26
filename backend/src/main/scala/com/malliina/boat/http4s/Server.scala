@@ -37,14 +37,11 @@ object AppCompsBuilder:
 trait AppComps:
   def pushService: PushEndpoint
   def emailAuth: EmailAuth
-  def appleValidator: TokenVerifier
 
 class ProdAppComps(conf: BoatConf, http: HttpClient[IO]) extends AppComps:
   override val pushService: PushEndpoint = BoatPushService(conf.push, http)
-  override val appleValidator: TokenVerifier =
-    AppleTokenValidator(Seq(conf.apple.clientId), http)
   override val emailAuth: EmailAuth =
-    TokenEmailAuth(conf.google.web.id, conf.google.ios.id, conf.microsoft.id, appleValidator, http)
+    TokenEmailAuth(conf.google.web.id, conf.google.ios.id, conf.microsoft.id, http)
 
 object Server extends IOApp:
   val log = AppLogger(getClass)
@@ -89,12 +86,13 @@ object Server extends IOApp:
         log.info("Sign in with Apple is disabled.")
         ClientSecret("disabled")
     val appleAuthConf = AuthConf(conf.apple.clientId, appleToken)
+    val appleValidator = AppleTokenValidator(Seq(conf.apple.clientId), http)
     val authComps = AuthComps(
       googleAuth,
       auth,
       GoogleAuthFlow(conf.google.webAuthConf, http),
       MicrosoftAuthFlow(conf.microsoft.webAuthConf, http),
-      AppleAuthFlow(appleAuthConf, appComps.appleValidator, http)
+      AppleAuthFlow(appleAuthConf, appleValidator, http)
     )
     val auths = AuthService(users, authComps)
     val tracksDatabase = DoobieTracksDatabase(db)

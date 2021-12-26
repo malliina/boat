@@ -28,6 +28,10 @@ object AppleResponse:
 
 object AppleTokenValidator:
   val appleIssuer = Issuer("https://appleid.apple.com")
+  // aud for tokens obtained in the iOS app SIWA flow
+  val boatClientId = ClientId("com.malliina.BoatTracker")
+
+  def app(http: HttpClient[IO]): AppleTokenValidator = AppleTokenValidator(Seq(boatClientId), http)
 
 class AppleTokenValidator(
   clientIds: Seq[ClientId],
