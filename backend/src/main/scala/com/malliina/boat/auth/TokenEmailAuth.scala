@@ -57,7 +57,7 @@ class TokenEmailAuth(google: KeyClient, microsoft: KeyClient, apple: AppleTokenV
       e.fold(
         err =>
           validateMicrosoft(token, now).flatMap { e2 =>
-            e2.fold(err => validateApple(token, now), ok => IO.pure(Right(ok)))
+            e2.fold(err => apple.extractEmail(token, now), ok => IO.pure(Right(ok)))
           },
         ok => IO.pure(Right(ok))
       )
@@ -80,16 +80,4 @@ class TokenEmailAuth(google: KeyClient, microsoft: KeyClient, apple: AppleTokenV
       outcome.flatMap { v =>
         v.readString(EmailKey).map(Email.apply)
       }
-    }
-
-  private def validateApple(token: IdToken, now: Instant) =
-    apple.validateToken(token, now).map { outcome =>
-      for
-        v <- outcome
-        email <- v.readString(EmailKey).map(Email.apply)
-        emailVerified <- v.readString(EmailVerified)
-        result <-
-          if emailVerified.toLowerCase == "true" then Right(email)
-          else Left(InvalidClaims(token, ErrorMessage("Email not verified.")))
-      yield result
     }

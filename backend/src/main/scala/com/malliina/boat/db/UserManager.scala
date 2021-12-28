@@ -7,6 +7,7 @@ import com.malliina.values.*
 import org.apache.commons.codec.digest.DigestUtils
 
 trait UserManager:
+  def register(email: Email): IO[UserRow]
   def userMeta(email: Email): IO[UserRow]
 
   /** Retrieves user information for the user with the given email address. If the user does not

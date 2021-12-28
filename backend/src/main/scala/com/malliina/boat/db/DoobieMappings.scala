@@ -18,6 +18,7 @@ trait DoobieMappings:
     doobie.implicits.legacy.localdate.JavaTimeLocalDateMeta
 
   implicit val tpi: Meta[TrackPointId] = wrappedId(TrackPointId.apply)
+  implicit val rti: Meta[RefreshTokenId] = wrappedId(RefreshTokenId.apply)
   implicit val di: Meta[DeviceId] = wrappedId(DeviceId.apply)
   implicit val gpi: Meta[GPSPointId] = wrappedId(GPSPointId.apply)
   implicit val gpf: Meta[GPSFix] = Meta[String].timap(GPSFix.orOther)(_.value)

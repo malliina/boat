@@ -2,7 +2,7 @@ package com.malliina.boat.db
 
 import com.malliina.boat.{CoordHash, MobileDevice, PushId, PushToken, UserToken}
 import com.malliina.measure.{DistanceM, Temperature}
-import com.malliina.values.{Email, UserId, Username}
+import com.malliina.values.{Email, IdCompanion, UserId, Username, WrappedId}
 
 import java.time.Instant
 
@@ -28,3 +28,6 @@ object NewUser:
     NewUser(Username(email.email), Option(email), UserToken.random(), enabled = true)
 
 class NotFoundException(val message: String) extends Exception
+
+case class RefreshTokenId(id: Long) extends AnyVal with WrappedId
+object RefreshTokenId extends IdCompanion[RefreshTokenId]

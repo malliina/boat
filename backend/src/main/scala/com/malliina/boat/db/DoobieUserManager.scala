@@ -89,10 +89,6 @@ class DoobieUserManager(db: DoobieDatabase) extends UserManager with DoobieSQL:
   val userColumns = fr"u.id, u.user, u.email, u.token, u.language, u.enabled, u.added"
   val selectUsers = sql"select $userColumns from users u"
 
-  private def userInsertion(user: NewUser): ConnectionIO[UserId] =
-    sql"""insert into users(user, email, token, enabled)
-          values(${user.user}, ${user.email}, ${user.token}, ${user.enabled})""".update
-      .withUniqueGeneratedKeys[UserId]("id")
   def userById(id: UserId) = sql"$selectUsers where u.id = $id"
   def userByEmail(email: Email) = sql"$selectUsers where u.email = $email".query[UserRow]
   def userByName(name: Username) = sql"$selectUsers where u.user = $name"
@@ -100,7 +96,12 @@ class DoobieUserManager(db: DoobieDatabase) extends UserManager with DoobieSQL:
   def userMeta(email: Email): IO[UserRow] = run {
     userByEmailIO(email)
   }
-
+  def register(email: Email): IO[UserRow] = run {
+    for
+      id <- getOrCreate(email)
+      user <- userByEmailIO(email)
+    yield user
+  }
   def userInfo(email: Email): IO[UserInfo] = run {
     def by(id: UserId) =
       sql"""select u.id, 
@@ -255,6 +256,11 @@ class DoobieUserManager(db: DoobieDatabase) extends UserManager with DoobieSQL:
   private def linkInvite(boat: DeviceId, to: UserId): ConnectionIO[Int] =
     sql"""insert into users_boats(user, boat, state) 
           values($to, $boat, ${InviteState.awaiting})""".update.run
+
+  private def userInsertion(user: NewUser): ConnectionIO[UserId] =
+    sql"""insert into users(user, email, token, enabled)
+          values(${user.user}, ${user.email}, ${user.token}, ${user.enabled})""".update
+      .withUniqueGeneratedKeys[UserId]("id")
 
   private def getOrCreate(email: Email): ConnectionIO[UserId] = for
     existing <- userByEmail(email).option

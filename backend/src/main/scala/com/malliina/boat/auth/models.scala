@@ -1,5 +1,6 @@
 package com.malliina.boat.auth
 
+import com.malliina.boat.db.RefreshTokenId
 import com.malliina.boat.{BoatName, Language, MinimalUserInfo, SingleError}
 import com.malliina.values.{Email, Password, Username}
 import io.circe.*
@@ -61,3 +62,8 @@ object AuthProvider:
   case object Google extends AuthProvider("google")
   case object Microsoft extends AuthProvider("microsoft")
   case object Apple extends AuthProvider("apple")
+
+case class JWTClaims(email: Email, refresh: RefreshTokenId)
+
+object JWTClaims:
+  implicit val json: Codec[JWTClaims] = deriveCodec[JWTClaims]

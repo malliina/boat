@@ -1,6 +1,7 @@
 package com.malliina.web
 
 import com.malliina.config.{ConfigOps, ConfigReadable}
+import com.malliina.http.FullUrl
 import com.malliina.util.AppLogger
 import com.malliina.web.AppleTokenValidator.appleIssuer
 import com.malliina.web.SignInWithApple.{Conf, log}
