@@ -2,7 +2,7 @@ package com.malliina.boat.db
 
 import cats.effect.IO
 import cats.implicits.*
-import com.malliina.boat.auth.JWTClaims
+import com.malliina.boat.auth.{BoatJwt, BoatJwtClaims, JWT}
 import com.malliina.boat.db.UserManager
 import com.malliina.values.*
 import com.malliina.web.{AppleAuthFlow, AppleTokenValidator, Code}
@@ -10,30 +10,21 @@ import doobie.*
 import doobie.implicits.*
 
 import java.time.Instant
+import scala.concurrent.duration.DurationInt
 
 class SIWADatabase(
-  db: DoobieDatabase,
   siwa: AppleAuthFlow,
-  tokenValidator: AppleTokenValidator,
-  users: UserManager
+  users: TokenManager,
+  jwt: JWT
 ) extends DoobieMappings:
-  def register(code: Code, now: Instant): IO[JWTClaims] =
+  val tokenValidator = siwa.validator
+
+  def register(code: Code, now: Instant): IO[BoatJwt] =
     for
       tokens <- siwa.refreshToken(code)
       email <- tokenValidator.validateOrFail(tokens.idToken, now)
       user <- users.register(email)
-      saved <- save(tokens.refreshToken, user.id)
-    yield JWTClaims(email, saved)
-
-  def userBy(email: Email) = db.run {
-    sql"""select id from users where email = $email""".query[UserId].option
-  }
-
-  def save(token: RefreshToken, user: UserId): IO[RefreshTokenId] = db.run {
-    sql"""insert into refresh_tokens(refresh_token, owner) 
-          values($token, $user)""".update.withUniqueGeneratedKeys[RefreshTokenId]("id")
-  }
-
-  def remove(token: RefreshTokenId) = db.run {
-    sql"""delete from refresh_tokens where id = $token""".update.run
-  }
+      saved <- users.save(tokens.refreshToken, user.id)
+    yield
+      val claims = BoatJwtClaims(email, saved)
+      BoatJwt(claims.email, jwt.sign(claims, 3650.days, now))

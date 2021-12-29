@@ -7,7 +7,7 @@ import com.malliina.boat.http.InviteResult.{AlreadyInvited, Invited, UnknownEmai
 import com.malliina.boat.http.{AccessResult, InviteInfo, InviteResult}
 import com.malliina.boat.{Boat, BoatInfo, BoatNames, BoatToken, BoatTokens, DeviceId, FriendInvite, Invite, InviteState, JoinedBoat, JoinedTrack, Language, TimeFormatter, UserBoats, UserInfo, UserToken, Usernames}
 import com.malliina.util.AppLogger
-import com.malliina.values.{Email, UserId, Username}
+import com.malliina.values.{Email, RefreshToken, UserId, Username}
 import doobie.*
 import doobie.implicits.*
 
@@ -82,7 +82,7 @@ object DoobieUserManager:
         )
     }
 
-class DoobieUserManager(db: DoobieDatabase) extends UserManager with DoobieSQL:
+class DoobieUserManager(db: DoobieDatabase) extends IdentityManager with DoobieSQL:
   object sql extends CommonSql
   import db.run
   implicit val logger: LogHandler = db.logHandler
@@ -221,6 +221,15 @@ class DoobieUserManager(db: DoobieDatabase) extends UserManager with DoobieSQL:
       if wasChanged then log.info(s"Changed language of user ID '$user' to '$to'.")
       wasChanged
     }
+  }
+
+  def save(token: RefreshToken, user: UserId): IO[RefreshTokenId] = run {
+    sql"""insert into refresh_tokens(refresh_token, owner) 
+          values($token, $user)""".update.withUniqueGeneratedKeys[RefreshTokenId]("id")
+  }
+
+  def remove(token: RefreshTokenId): IO[Int] = run {
+    sql"""delete from refresh_tokens where id = $token""".update.run
   }
 
   def invite(i: InviteInfo): IO[InviteResult] = run {

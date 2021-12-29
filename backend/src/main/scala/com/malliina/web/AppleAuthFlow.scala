@@ -34,7 +34,7 @@ object AppleAuthFlow:
   */
 class AppleAuthFlow(
   authConf: AuthConf,
-  validator: TokenVerifier,
+  val validator: AppleTokenValidator,
   http: HttpClient[IO]
 ) extends StaticFlowStart
   with CallbackValidator[Email]:

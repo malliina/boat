@@ -31,6 +31,7 @@ import org.http4s.server.websocket.WebSocketBuilder2
 import org.http4s.websocket.WebSocketFrame
 import org.http4s.websocket.WebSocketFrame.Text
 import org.http4s.{Callback as _, *}
+import java.time.Instant
 
 import scala.concurrent.duration.DurationInt
 
@@ -82,6 +83,12 @@ class Service(comps: BoatComps) extends BasicService[IO]:
       auth.profile(req).flatMap { _ => ok(AppMeta.default) }
     case req @ GET -> Root / "users" / "me" =>
       auth.profile(req).flatMap { user => ok(UserContainer(user)) }
+    case req @ POST -> Root / "users" / "me" =>
+      req.as[RegisterCode](implicitly, jsonBody[IO, RegisterCode]).flatMap { reg =>
+        auth.register(reg.code, Instant.now()).flatMap { userInfo =>
+          ok(userInfo)
+        }
+      }
     case req @ PUT -> Root / "users" / "me" =>
       jsonAction[ChangeLanguage](req) { (newLanguage, user) =>
         userMgmt.changeLanguage(user.id, newLanguage.language).flatMap { changed =>
