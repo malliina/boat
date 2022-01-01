@@ -32,7 +32,7 @@ object SignInWithApple:
 
   def secret(conf: Conf, now: Instant): Option[ClientSecret] =
     Option.when(conf.enabled) {
-      apply(conf).signInWithAppleToken(now)
+      SignInWithApple(conf).signInWithAppleToken(now)
     }
 
   def secretOrDummy(conf: Conf, now: Instant) =
