@@ -2,26 +2,31 @@ package com.malliina.boat.http4s
 
 import cats.effect.IO
 import com.malliina.boat.Constants.{BoatNameHeader, BoatTokenHeader}
-import com.malliina.boat.auth.SettingsPayload
-import com.malliina.boat.db.{MissingCredentials, MissingCredentialsException, UserManager}
+import com.malliina.boat.auth.{BoatJwt, SettingsPayload}
+import com.malliina.boat.db.{IdentityManager, MissingCredentials, MissingCredentialsException, SIWADatabase, UserManager}
 import com.malliina.boat.http.UserRequest
 import com.malliina.boat.http4s.AuthService.GoogleCookie
 import com.malliina.boat.{BoatName, BoatNames, BoatToken, DeviceMeta, JoinedBoat, MinimalUserInfo, SimpleBoatMeta, UserBoats, UserInfo, Usernames}
-import com.malliina.values.Email
+import com.malliina.values.{Email, IdToken}
 import org.http4s.headers.Cookie
 import org.http4s.{Headers, Request, Response}
 import org.typelevel.ci.{CIString, CIStringSyntax}
+import com.malliina.web.Code
+import java.time.Instant
 
 object AuthService:
   val GoogleCookie = ci"google"
   val ProviderCookieName = ci"boatProvider"
 
-class AuthService(val users: UserManager, comps: AuthComps):
+class AuthService(val users: IdentityManager, comps: AuthComps):
   val emailAuth = comps.google
   val web = comps.web
   val googleFlow = comps.googleFlow
   val microsoftFlow = comps.microsoftFlow
-  val appleFlow = comps.appleFlow
+  val appleWebFlow = comps.appleWebFlow
+  val siwa = SIWADatabase(comps.appleAppFlow, users, comps.customJwt)
+
+  def register(code: Code, now: Instant): IO[BoatJwt] = siwa.register(code, now)
 
   def profile(req: Request[IO]): IO[UserInfo] = profile(req.headers)
 
@@ -29,12 +34,18 @@ class AuthService(val users: UserManager, comps: AuthComps):
     users.userInfo(email)
   }
 
+  def recreate(headers: Headers, now: Instant = Instant.now()): IO[BoatJwt] =
+    Auth
+      .token(headers)
+      .map(token => siwa.recreate(token, now))
+      .fold(mce => IO.raiseError(MissingCredentialsException(mce)), identity)
+
   def optionalWebAuth(
     req: Request[IO]
-  ): IO[Either[MissingCredentials, UserRequest[Option[UserBoats]]]] = optionalUserInfo(req).map {
-    e =>
+  ): IO[Either[MissingCredentials, UserRequest[Option[UserBoats]]]] =
+    optionalUserInfo(req).map { e =>
       e.map { opt => UserRequest(opt, req) }
-  }
+    }
 
   def authOrAnon(headers: Headers): IO[MinimalUserInfo] =
     minimal(headers, _ => IO.pure(MinimalUserInfo.anon))

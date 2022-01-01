@@ -31,6 +31,7 @@ import org.http4s.server.websocket.WebSocketBuilder2
 import org.http4s.websocket.WebSocketFrame
 import org.http4s.websocket.WebSocketFrame.Text
 import org.http4s.{Callback as _, *}
+import java.time.Instant
 
 import scala.concurrent.duration.DurationInt
 
@@ -82,6 +83,16 @@ class Service(comps: BoatComps) extends BasicService[IO]:
       auth.profile(req).flatMap { _ => ok(AppMeta.default) }
     case req @ GET -> Root / "users" / "me" =>
       auth.profile(req).flatMap { user => ok(UserContainer(user)) }
+    case req @ POST -> Root / "users" / "me" =>
+      req.as[RegisterCode](implicitly, jsonBody[IO, RegisterCode]).flatMap { reg =>
+        auth.register(reg.code, Instant.now()).flatMap { boatJwt =>
+          ok(boatJwt)
+        }
+      }
+    case req @ POST -> Root / "users" / "me" / "tokens" =>
+      auth.recreate(req.headers).flatMap { boatJwt =>
+        ok(boatJwt)
+      }
     case req @ PUT -> Root / "users" / "me" =>
       jsonAction[ChangeLanguage](req) { (newLanguage, user) =>
         userMgmt.changeLanguage(user.id, newLanguage.language).flatMap { changed =>
@@ -342,7 +353,7 @@ class Service(comps: BoatComps) extends BasicService[IO]:
     case req @ GET -> Root / "sign-in" / "microsoft" =>
       startHinted(AuthProvider.Microsoft, auth.microsoftFlow, req)
     case req @ GET -> Root / "sign-in" / "apple" =>
-      start(auth.appleFlow, AuthProvider.Apple, req)
+      start(auth.appleWebFlow, AuthProvider.Apple, req)
     case req @ GET -> Root / "sign-in" / "callbacks" / "google" =>
       handleAuthCallback(auth.googleFlow, AuthProvider.Google, req)
     case req @ GET -> Root / "sign-in" / "callbacks" / "microsoft" =>
@@ -670,7 +681,7 @@ class Service(comps: BoatComps) extends BasicService[IO]:
             if sessionState.contains(actualState) then
               val redirectUrl =
                 Urls.hostOnly(req) / reverse.signInCallback(AuthProvider.Apple).renderString
-              auth.appleFlow.validate(form.code, redirectUrl, session.get(Nonce)).flatMap { e =>
+              auth.appleWebFlow.validate(form.code, redirectUrl, session.get(Nonce)).flatMap { e =>
                 e.fold(
                   err => unauthorized(Errors(err.message)),
                   email => userResult(email, AuthProvider.Apple, req)

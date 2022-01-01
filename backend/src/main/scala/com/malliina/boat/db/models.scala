@@ -1,10 +1,13 @@
 package com.malliina.boat.db
 
 import com.malliina.boat.{CoordHash, MobileDevice, PushId, PushToken, UserToken}
+import com.malliina.boat.Utils
 import com.malliina.measure.{DistanceM, Temperature}
-import com.malliina.values.{Email, UserId, Username}
+import com.malliina.values.{Email, IdCompanion, RefreshToken, StringCompanion, UserId, Username, WrappedId, WrappedString}
+import com.sun.jdi.PrimitiveValue
 
 import java.time.Instant
+import java.time.temporal.ChronoUnit
 
 case class PushDevice(
   id: PushId,
@@ -28,3 +31,16 @@ object NewUser:
     NewUser(Username(email.email), Option(email), UserToken.random(), enabled = true)
 
 class NotFoundException(val message: String) extends Exception
+
+case class RefreshTokenId(value: String) extends AnyVal with WrappedString
+object RefreshTokenId extends StringCompanion[RefreshTokenId]:
+  def random(): RefreshTokenId = RefreshTokenId(Utils.randomString(32))
+
+case class RefreshRow(
+  id: RefreshTokenId,
+  token: RefreshToken,
+  owner: UserId,
+  lastVerification: Instant,
+  canVerify: Boolean,
+  added: Instant
+)

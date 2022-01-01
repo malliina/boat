@@ -6,6 +6,8 @@ import com.malliina.boat.{BoatToken, DeviceId, InviteState, JoinedBoat, Language
 import com.malliina.values.*
 import org.apache.commons.codec.digest.DigestUtils
 
+trait IdentityManager extends UserManager with TokenManager
+
 trait UserManager:
   def userMeta(email: Email): IO[UserRow]
 
@@ -34,3 +36,10 @@ trait UserManager:
 
   protected def hash(user: Username, pass: Password): String =
     DigestUtils.md5Hex(s"$user:${pass.pass}")
+
+trait TokenManager:
+  def register(email: Email): IO[UserRow]
+  def save(token: RefreshToken, user: UserId): IO[RefreshRow]
+  def remove(token: RefreshTokenId): IO[Int]
+  def load(token: RefreshTokenId): IO[RefreshRow]
+  def updateValidation(token: RefreshTokenId): IO[RefreshRow]

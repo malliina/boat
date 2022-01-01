@@ -7,7 +7,7 @@ import com.malliina.boat.http.InviteResult.{AlreadyInvited, Invited, UnknownEmai
 import com.malliina.boat.http.{AccessResult, InviteInfo, InviteResult}
 import com.malliina.boat.{Boat, BoatInfo, BoatNames, BoatToken, BoatTokens, DeviceId, FriendInvite, Invite, InviteState, JoinedBoat, JoinedTrack, Language, TimeFormatter, UserBoats, UserInfo, UserToken, Usernames}
 import com.malliina.util.AppLogger
-import com.malliina.values.{Email, UserId, Username}
+import com.malliina.values.{Email, RefreshToken, UserId, Username}
 import doobie.*
 import doobie.implicits.*
 
@@ -82,17 +82,13 @@ object DoobieUserManager:
         )
     }
 
-class DoobieUserManager(db: DoobieDatabase) extends UserManager with DoobieSQL:
+class DoobieUserManager(db: DoobieDatabase) extends IdentityManager with DoobieSQL:
   object sql extends CommonSql
   import db.run
   implicit val logger: LogHandler = db.logHandler
   val userColumns = fr"u.id, u.user, u.email, u.token, u.language, u.enabled, u.added"
   val selectUsers = sql"select $userColumns from users u"
 
-  private def userInsertion(user: NewUser): ConnectionIO[UserId] =
-    sql"""insert into users(user, email, token, enabled)
-          values(${user.user}, ${user.email}, ${user.token}, ${user.enabled})""".update
-      .withUniqueGeneratedKeys[UserId]("id")
   def userById(id: UserId) = sql"$selectUsers where u.id = $id"
   def userByEmail(email: Email) = sql"$selectUsers where u.email = $email".query[UserRow]
   def userByName(name: Username) = sql"$selectUsers where u.user = $name"
@@ -100,7 +96,12 @@ class DoobieUserManager(db: DoobieDatabase) extends UserManager with DoobieSQL:
   def userMeta(email: Email): IO[UserRow] = run {
     userByEmailIO(email)
   }
-
+  def register(email: Email): IO[UserRow] = run {
+    for
+      id <- getOrCreate(email)
+      user <- userByEmailIO(email)
+    yield user
+  }
   def userInfo(email: Email): IO[UserInfo] = run {
     def by(id: UserId) =
       sql"""select u.id, 
@@ -222,6 +223,34 @@ class DoobieUserManager(db: DoobieDatabase) extends UserManager with DoobieSQL:
     }
   }
 
+  def save(token: RefreshToken, user: UserId): IO[RefreshRow] = run {
+    val id = RefreshTokenId.random()
+    val insertion = sql"""insert into refresh_tokens(id, refresh_token, owner) 
+                          values($id, $token, $user)""".update
+      .withUniqueGeneratedKeys[RefreshTokenId]("id")
+    insertion.flatMap { id =>
+      log.info(s"Saved refresh token with ID '$id' for user $user.")
+      loadTokenIO(id)
+    }
+  }
+
+  def remove(token: RefreshTokenId): IO[Int] = run {
+    sql"""delete from refresh_tokens where id = $token""".update.run
+  }
+
+  def load(token: RefreshTokenId): IO[RefreshRow] = run { loadTokenIO(token) }
+
+  def updateValidation(token: RefreshTokenId): IO[RefreshRow] = run {
+    val up = sql"""update refresh_tokens set last_validation = now() where id = $token""".update.run
+    up.flatMap { _ => loadTokenIO(token) }
+  }
+
+  private def loadTokenIO(id: RefreshTokenId) =
+    sql"""select id, refresh_token, owner, last_validation, now() > date_add(last_validation, interval 1 day) as can_verify, added
+          from refresh_tokens
+          where id = $id
+       """.query[RefreshRow].unique
+
   def invite(i: InviteInfo): IO[InviteResult] = run {
     userByEmail(i.email).option.flatMap { invitee =>
       invitee.map { user =>
@@ -255,6 +284,11 @@ class DoobieUserManager(db: DoobieDatabase) extends UserManager with DoobieSQL:
   private def linkInvite(boat: DeviceId, to: UserId): ConnectionIO[Int] =
     sql"""insert into users_boats(user, boat, state) 
           values($to, $boat, ${InviteState.awaiting})""".update.run
+
+  private def userInsertion(user: NewUser): ConnectionIO[UserId] =
+    sql"""insert into users(user, email, token, enabled)
+          values(${user.user}, ${user.email}, ${user.token}, ${user.enabled})""".update
+      .withUniqueGeneratedKeys[UserId]("id")
 
   private def getOrCreate(email: Email): ConnectionIO[UserId] = for
     existing <- userByEmail(email).option

@@ -5,57 +5,25 @@ import com.malliina.http.{FullUrl, HttpClient}
 import com.malliina.oauth.TokenResponse
 import com.malliina.values.{Email, ErrorMessage, IdToken, TokenValue}
 import com.malliina.web.*
-import com.malliina.web.AppleAuthFlow.staticConf
+import com.malliina.web.AppleAuthFlow.{RefreshTokenValue, staticConf}
 import com.malliina.web.AppleTokenValidator.appleIssuer
 import com.malliina.web.OAuthKeys.*
 import com.nimbusds.jose.crypto.ECDSASigner
 import com.nimbusds.jose.{JWSAlgorithm, JWSHeader}
 import com.nimbusds.jwt.{JWTClaimsSet, SignedJWT}
 import org.http4s.UrlForm
-
+import com.malliina.values.RefreshToken
+import com.malliina.util.AppLogger
+import io.circe.Codec
+import io.circe.generic.semiauto.deriveCodec
 import java.time.Instant
 import java.time.temporal.ChronoUnit
-
-case class AppleResponse(code: Code, state: String)
-
-object AppleResponse:
-  def apply(form: UrlForm): Either[ErrorMessage, AppleResponse] =
-    def read(key: String) = form.getFirst(key).toRight(ErrorMessage(s"Not found: '$key' in $form."))
-    for
-      code <- read(CodeKey).map(Code.apply)
-      state <- read(State)
-    yield AppleResponse(code, state)
-
-object AppleTokenValidator:
-  val appleIssuer = Issuer("https://appleid.apple.com")
-  // aud for tokens obtained in the iOS app SIWA flow
-  val boatClientId = ClientId("com.malliina.BoatTracker")
-
-  def app(http: HttpClient[IO]): AppleTokenValidator = AppleTokenValidator(Seq(boatClientId), http)
-
-class AppleTokenValidator(
-  clientIds: Seq[ClientId],
-  http: HttpClient[IO],
-  issuers: Seq[Issuer] = Seq(appleIssuer)
-) extends TokenVerifier(issuers):
-  def validateToken(
-    token: TokenValue,
-    now: Instant
-  ): IO[Either[AuthError, Verified]] =
-    http.getAs[JWTKeys](AppleAuthFlow.jwksUri).map { keys =>
-      validate(token, keys.keys, now)
-    }
-
-  override protected def validateClaims(
-    parsed: ParsedJWT,
-    now: Instant
-  ): Either[JWTError, ParsedJWT] =
-    checkContains(Aud, clientIds.map(_.value), parsed).map { _ =>
-      parsed
-    }
+import AppleAuthFlow.log
 
 object AppleAuthFlow:
+  private val log = AppLogger(getClass)
   val emailScope = "email"
+  val RefreshTokenValue = "refresh_token"
   val host = FullUrl.host("appleid.apple.com")
 
   val authUrl = host / "/auth/authorize"
@@ -69,7 +37,7 @@ object AppleAuthFlow:
   */
 class AppleAuthFlow(
   authConf: AuthConf,
-  validator: TokenVerifier,
+  val validator: AppleTokenValidator,
   http: HttpClient[IO]
 ) extends StaticFlowStart
   with CallbackValidator[Email]:
@@ -80,7 +48,7 @@ class AppleAuthFlow(
     redirectUrl: FullUrl,
     requestNonce: Option[String]
   ): IO[Either[AuthError, Email]] =
-    val params = tokenParameters(code, redirectUrl)
+    val params = codeParameters(code) ++ Map(RedirectUri -> redirectUrl.url)
     http.postFormAs[TokenResponse](conf.tokenEndpoint, params).flatMap { tokens =>
       http.getAs[JWTKeys](AppleAuthFlow.jwksUri).map { keys =>
         validator.validate(tokens.id_token, keys.keys, Instant.now()).flatMap { v =>
@@ -89,13 +57,26 @@ class AppleAuthFlow(
       }
     }
 
+  def refreshToken(code: Code): IO[RefreshTokenResponse] =
+    log.info(s"Exchanging authorization code for tokens...")
+    val params = codeParameters(code)
+    http.postFormAs[RefreshTokenResponse](conf.tokenEndpoint, params)
+
+  def verifyRefreshToken(token: RefreshToken): IO[TokenResponse] =
+    val params = commonParameters(RefreshTokenValue) ++ Map(
+      GrantType -> RefreshTokenValue,
+      RefreshTokenValue -> token.value
+    )
+    http.postFormAs[TokenResponse](conf.tokenEndpoint, params)
+
   override def extraRedirParams(redirectUrl: FullUrl): Map[String, String] =
     Map(ResponseType -> CodeKey, "response_mode" -> "form_post")
 
-  def tokenParameters(code: Code, redirUrl: FullUrl) = Map(
+  private def codeParameters(code: Code) =
+    commonParameters(AuthorizationCode) ++ Map(CodeKey -> code.code)
+
+  private def commonParameters(grantType: String) = Map(
     ClientIdKey -> authConf.clientId.value,
     ClientSecretKey -> authConf.clientSecret.value,
-    GrantType -> AuthorizationCode,
-    CodeKey -> code.code,
-    RedirectUri -> redirUrl.url
+    GrantType -> grantType
   )
