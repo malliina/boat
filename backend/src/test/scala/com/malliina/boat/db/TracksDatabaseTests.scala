@@ -5,7 +5,7 @@ import com.malliina.boat.db.TestData.{london, sanfran}
 import com.malliina.boat.parsing.FullCoord
 import com.malliina.boat.{BoatNames, BoatUser, Coord, DeviceId, Language, TrackId, TrackMetaShort, TrackNames, TrackRef, UserToken, UserUtils}
 import com.malliina.measure.{DistanceIntM, SpeedIntM, SpeedM, Temperature}
-import com.malliina.values.{Email, Username}
+import com.malliina.values.{Email, Username, RefreshToken}
 import tests.{MUnitDatabaseSuite, MUnitSuite}
 
 import java.time.{LocalDate, LocalTime}
@@ -15,6 +15,16 @@ object TestData:
   val sanfran = Coord.build(-122.4, 37.8).toOption.get
 
 class TracksDatabaseTests extends MUnitSuite with MUnitDatabaseSuite:
+  dbFixture.test("insertion of token") { db =>
+    val users = DoobieUserManager(db)
+    val email = Email("santa@example.com")
+    val action = for
+      u <- users.register(email)
+      res <- users.save(RefreshToken("test-token"), u.id)
+    yield res
+    action.unsafeRunSync()
+  }
+
   dbFixture.test("inserts update track aggregates") { db =>
     val tdb = DoobieTracksDatabase(db)
     val inserts = TrackInserter(db)

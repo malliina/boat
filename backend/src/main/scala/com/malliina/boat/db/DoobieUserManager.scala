@@ -14,8 +14,6 @@ import doobie.implicits.*
 object DoobieUserManager:
   private val log = AppLogger(getClass)
 
-  def apply(db: DoobieDatabase): DoobieUserManager = new DoobieUserManager(db)
-
   def collectUsers(rows: Seq[JoinedUser]): Vector[UserInfo] =
     rows.foldLeft(Vector.empty[UserInfo]) { case (acc, ub) =>
       val user = ub.user
@@ -226,13 +224,15 @@ class DoobieUserManager(db: DoobieDatabase) extends IdentityManager with DoobieS
   def save(token: RefreshToken, user: UserId): IO[RefreshRow] = run {
     log.info(s"Saving refresh token for '$user'...")
     val tokenId = RefreshTokenId.random()
-    val insertion = sql"""insert into refresh_tokens(id, refresh_token, owner) 
-                          values($tokenId, $token, $user)"""
-      .update(logger)
-      .withUniqueGeneratedKeys[RefreshTokenId]("id")
-    insertion.flatMap { id =>
-      log.info(s"Saved refresh token with ID '$id' for user $user.")
-      loadTokenIO(id)
+    val insertion =
+      sql"""insert into refresh_tokens(id, refresh_token, owner) 
+            values($tokenId, $token, $user)"""
+        .update(logger)
+        .run
+//        .withUniqueGeneratedKeys[RefreshTokenId]("id")
+    insertion.flatMap { _ =>
+      log.info(s"Saved refresh token with ID '$tokenId' for user $user.")
+      loadTokenIO(tokenId)
     }
   }
 
