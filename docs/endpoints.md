@@ -7,14 +7,14 @@ of supporting functions as documented below.
 
 The following units of measure are used in JSON responses where applicable:
 
-| Measurement | Unit
-|-------------|-----
-| Speed | Knots
-| Depth | Meters
-| Distance (old) | Millimeters
-| Distance (new) | Meters
-| Draft | Meters
-| Temperature | Celsius
+| Measurement    | Unit        |
+|----------------|-------------|
+| Speed          | Knots       |
+| Depth          | Meters      |
+| Distance (old) | Millimeters |
+| Distance (new) | Meters      |
+| Draft          | Meters      |
+| Temperature    | Celsius     |
 
 All units of measure are represented as JSON numbers.
 
@@ -124,11 +124,39 @@ Changes the user's language. Use the following payload:
     
 The following language codes are supported:
 
-| Code | Language
-|------|---------
-| sv-SE | Swedish
-| fi-FI | Finnish
-| en-US | English
+| Code  | Language |
+|-------|----------|
+| sv-SE | Swedish  |
+| fi-FI | Finnish  |
+| en-US | English  |
+
+## POST /users/me
+
+Use this endpoint to exchange an authorization code for an ID token. Provide the code in the JSON payload:
+
+    {
+        "code": "abcd1234"
+    }
+
+Returns an ID token:
+
+    {
+        "email": "santa@example.com",
+        "idToken": "abc.def.geh"
+    }
+
+Provide the returned ID token in the *Authorization* header of subsequent requests.
+
+## POST /users/me/tokens
+
+Refresh your ID token using this endpoint. Returns a refreshed ID token:
+
+    {
+        "email": "santa@example.com",
+        "idToken": "abc.def.geh"
+    }
+
+Call this endpoint if other endpoints respond with HTTP 403.
 
 ## PATCH /boats/:boat_id
 
@@ -151,10 +179,10 @@ Subscribes to push notifications:
 
 Key *device* must be one of:
 
-| Value | Meaning
-|-------|---------
-| ios | iOS token
-| android | Android token
+| Value   | Meaning       |
+|---------|---------------|
+| ios     | iOS token     |
+| android | Android token |
 
 ## POST /users/notifications/disable
 
@@ -217,11 +245,11 @@ Example response:
     
 The response contains the following items:
 
-| Key | Type | Meaning
-|-----|------|---------
-| totalCost | Number | Distance in meters from source to destination, including the distance from the provided coordinates to nearby fairways
-| route.cost | Number | Distance in meters along fairways
-| route.links | Array | The route as an array of hops along fairway points
+| Key         | Type   | Meaning                                                                                                                |
+|-------------|--------|------------------------------------------------------------------------------------------------------------------------|
+| totalCost   | Number | Distance in meters from source to destination, including the distance from the provided coordinates to nearby fairways |
+| route.cost  | Number | Distance in meters along fairways                                                                                      |
+| route.links | Array  | The route as an array of hops along fairway points                                                                     |
 
 ## POST /users/boats
  
@@ -264,11 +292,11 @@ the following general format:
 
 The following event types are used, with examples below:
 
-| Event | Meaning
-|-------|---------
-| coords | Updated coordinates for boats
-| vessels | Updated AIS location data for vessels
-| ping | Ping event (can be ignored)
+| Event   | Meaning                               |
+|---------|---------------------------------------|
+| coords  | Updated coordinates for boats         |
+| vessels | Updated AIS location data for vessels |
+| ping    | Ping event (can be ignored)           |
 
 ### Updated coordinates
 

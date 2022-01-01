@@ -44,8 +44,8 @@ Error responses use the following JSON format:
 
 Error keys include but are not limited to:
 
-| Key | Meaning
-|-----|---------
-| token_expired | The JWT has expired. The client should obtain a new one from Google and try again.
-| input | The client provided invalid input. Check your inputs.
-| generic | Most likely clients cannot recover from this.
+| Key           | Meaning                                                                            |
+|---------------|------------------------------------------------------------------------------------|
+| token_expired | The JWT has expired. The client should obtain a new one from Google and try again. |
+| input         | The client provided invalid input. Check your inputs.                              |
+| generic       | Most likely clients cannot recover from this.                                      |

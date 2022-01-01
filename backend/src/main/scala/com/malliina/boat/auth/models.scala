@@ -5,6 +5,8 @@ import com.malliina.boat.{BoatName, Language, MinimalUserInfo, SingleError}
 import com.malliina.values.{Email, IdToken, Password, Username}
 import io.circe.*
 import io.circe.generic.semiauto.*
+import java.time.Instant
+import com.malliina.web.JWTError
 
 case class SecretKey(value: String) extends AnyVal:
   override def toString = "****"
@@ -63,7 +65,7 @@ object AuthProvider:
   case object Microsoft extends AuthProvider("microsoft")
   case object Apple extends AuthProvider("apple")
 
-case class BoatJwtClaims(email: Email, refresh: RefreshTokenId)
+case class BoatJwtClaims(email: Email, refresh: RefreshTokenId, lastValidation: Instant)
 
 object BoatJwtClaims:
   implicit val json: Codec[BoatJwtClaims] = deriveCodec[BoatJwtClaims]
@@ -72,3 +74,6 @@ case class BoatJwt(email: Email, idToken: IdToken)
 
 object BoatJwt:
   implicit val json: Codec[BoatJwt] = deriveCodec[BoatJwt]
+
+class JWTException(val error: JWTError) extends Exception(error.message.message):
+  def message = error.message

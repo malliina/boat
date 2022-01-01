@@ -13,12 +13,15 @@ import com.nimbusds.jose.{JWSAlgorithm, JWSHeader}
 import com.nimbusds.jwt.{JWTClaimsSet, SignedJWT}
 import org.http4s.UrlForm
 import com.malliina.values.RefreshToken
+import com.malliina.util.AppLogger
 import io.circe.Codec
 import io.circe.generic.semiauto.deriveCodec
 import java.time.Instant
 import java.time.temporal.ChronoUnit
+import AppleAuthFlow.log
 
 object AppleAuthFlow:
+  private val log = AppLogger(getClass)
   val emailScope = "email"
   val RefreshTokenValue = "refresh_token"
   val host = FullUrl.host("appleid.apple.com")
@@ -54,11 +57,12 @@ class AppleAuthFlow(
       }
     }
 
-  def refreshToken(code: Code) =
+  def refreshToken(code: Code): IO[RefreshTokenResponse] =
+    log.info(s"Exchanging authorization code for tokens...")
     val params = codeParameters(code)
     http.postFormAs[RefreshTokenResponse](conf.tokenEndpoint, params)
 
-  def validateRefreshToken(token: RefreshToken) =
+  def verifyRefreshToken(token: RefreshToken): IO[TokenResponse] =
     val params = commonParameters(RefreshTokenValue) ++ Map(
       GrantType -> RefreshTokenValue,
       RefreshTokenValue -> token.value

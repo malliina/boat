@@ -1,7 +1,7 @@
 package com.malliina.boat.auth
 
 import cats.effect.IO
-import com.malliina.boat.db.{IdentityException, JWTError, MissingCredentials}
+import com.malliina.boat.db.{CustomJwt, IdentityException, JWTError, MissingCredentials}
 import com.malliina.boat.http4s.Auth
 import com.malliina.http.HttpClient
 import com.malliina.values.{Email, ErrorMessage, IdToken}
@@ -23,17 +23,16 @@ object TokenEmailAuth:
     webClientId: ClientId,
     iosClientId: ClientId,
     microsoftClientId: ClientId,
-    http: HttpClient[IO]
+    http: HttpClient[IO],
+    custom: CustomJwt
   ): TokenEmailAuth =
     val google = GoogleAuthFlow.keyClient(Seq(webClientId, iosClientId), http)
     val microsoft = MicrosoftAuthFlow.keyClient(Seq(microsoftClientId), http)
-    val apple = AppleTokenValidator.app(http)
-    new TokenEmailAuth(google, microsoft, apple)
+    new TokenEmailAuth(google, microsoft, custom)
 
-/** Validates Google ID tokens and extracts the email address.
+/** Validates tokens and extracts the email address.
   */
-class TokenEmailAuth(google: KeyClient, microsoft: KeyClient, apple: AppleTokenValidator)
-  extends EmailAuth:
+class TokenEmailAuth(google: KeyClient, microsoft: KeyClient, custom: CustomJwt) extends EmailAuth:
   val EmailKey = "email"
   val EmailVerified = "email_verified"
 
@@ -57,7 +56,7 @@ class TokenEmailAuth(google: KeyClient, microsoft: KeyClient, apple: AppleTokenV
       e.fold(
         err =>
           validateMicrosoft(token, now).flatMap { e2 =>
-            e2.fold(err => apple.extractEmail(token, now), ok => IO.pure(Right(ok)))
+            e2.fold(err => IO.pure(custom.email(token, now)), ok => IO.pure(Right(ok)))
           },
         ok => IO.pure(Right(ok))
       )

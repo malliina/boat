@@ -2,8 +2,8 @@ package tests
 
 import cats.effect.IO
 import com.malliina.boat.BoatConf
-import com.malliina.boat.auth.EmailAuth
-import com.malliina.boat.db.{IdentityException, PushDevice}
+import com.malliina.boat.auth.{EmailAuth, JWT, SecretKey}
+import com.malliina.boat.db.{CustomJwt, IdentityException, PushDevice}
 import com.malliina.boat.http4s.{AppComps, AppCompsBuilder, Auth}
 import com.malliina.boat.push.{BoatNotification, PushEndpoint, PushSummary}
 import com.malliina.http.HttpClient
@@ -30,9 +30,10 @@ object TestEmailAuth extends EmailAuth:
         ok => IO.pure(testEmail)
       )
 
-class TestComps extends AppComps:
+class TestComps(conf: BoatConf) extends AppComps:
+  override val customJwt: CustomJwt = CustomJwt(JWT(conf.secret))
   override val pushService: PushEndpoint = NoopPushEndpoint
   override val emailAuth: EmailAuth = TestEmailAuth
 
 object TestComps:
-  val builder: AppCompsBuilder = (conf: BoatConf, http: HttpClient[IO]) => new TestComps
+  val builder: AppCompsBuilder = (conf: BoatConf, http: HttpClient[IO]) => new TestComps(conf)

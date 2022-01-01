@@ -39,5 +39,7 @@ trait UserManager:
 
 trait TokenManager:
   def register(email: Email): IO[UserRow]
-  def save(token: RefreshToken, user: UserId): IO[RefreshTokenId]
+  def save(token: RefreshToken, user: UserId): IO[RefreshRow]
   def remove(token: RefreshTokenId): IO[Int]
+  def load(token: RefreshTokenId): IO[RefreshRow]
+  def updateValidation(token: RefreshTokenId): IO[RefreshRow]

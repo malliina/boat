@@ -1,7 +1,7 @@
 package com.malliina.boat.http4s
 
 import com.malliina.boat.auth.{BasicCredentials, EmailAuth}
-import com.malliina.boat.db.MissingCredentials
+import com.malliina.boat.db.{CustomJwt, MissingCredentials}
 import com.malliina.values.{ErrorMessage, IdToken, Password, Username}
 import com.malliina.web.{AppleAuthFlow, EmailAuthFlow, GoogleAuthFlow}
 import org.http4s.Credentials.Token
@@ -37,5 +37,6 @@ case class AuthComps(
   web: Http4sAuth,
   googleFlow: GoogleAuthFlow,
   microsoftFlow: EmailAuthFlow,
-  appleFlow: AppleAuthFlow
+  appleFlow: AppleAuthFlow,
+  customJwt: CustomJwt
 )

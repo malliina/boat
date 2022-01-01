@@ -85,9 +85,13 @@ class Service(comps: BoatComps) extends BasicService[IO]:
       auth.profile(req).flatMap { user => ok(UserContainer(user)) }
     case req @ POST -> Root / "users" / "me" =>
       req.as[RegisterCode](implicitly, jsonBody[IO, RegisterCode]).flatMap { reg =>
-        auth.register(reg.code, Instant.now()).flatMap { userInfo =>
-          ok(userInfo)
+        auth.register(reg.code, Instant.now()).flatMap { boatJwt =>
+          ok(boatJwt)
         }
+      }
+    case req @ POST -> Root / "users" / "me" / "tokens" =>
+      auth.recreate(req.headers).flatMap { boatJwt =>
+        ok(boatJwt)
       }
     case req @ PUT -> Root / "users" / "me" =>
       jsonAction[ChangeLanguage](req) { (newLanguage, user) =>

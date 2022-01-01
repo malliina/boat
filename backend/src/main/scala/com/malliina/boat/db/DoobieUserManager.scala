@@ -223,14 +223,33 @@ class DoobieUserManager(db: DoobieDatabase) extends IdentityManager with DoobieS
     }
   }
 
-  def save(token: RefreshToken, user: UserId): IO[RefreshTokenId] = run {
-    sql"""insert into refresh_tokens(refresh_token, owner) 
-          values($token, $user)""".update.withUniqueGeneratedKeys[RefreshTokenId]("id")
+  def save(token: RefreshToken, user: UserId): IO[RefreshRow] = run {
+    val id = RefreshTokenId.random()
+    val insertion = sql"""insert into refresh_tokens(id, refresh_token, owner) 
+                          values($id, $token, $user)""".update
+      .withUniqueGeneratedKeys[RefreshTokenId]("id")
+    insertion.flatMap { id =>
+      log.info(s"Saved refresh token with ID '$id' for user $user.")
+      loadTokenIO(id)
+    }
   }
 
   def remove(token: RefreshTokenId): IO[Int] = run {
     sql"""delete from refresh_tokens where id = $token""".update.run
   }
+
+  def load(token: RefreshTokenId): IO[RefreshRow] = run { loadTokenIO(token) }
+
+  def updateValidation(token: RefreshTokenId): IO[RefreshRow] = run {
+    val up = sql"""update refresh_tokens set last_validation = now() where id = $token""".update.run
+    up.flatMap { _ => loadTokenIO(token) }
+  }
+
+  private def loadTokenIO(id: RefreshTokenId) =
+    sql"""select id, refresh_token, owner, last_validation, now() > date_add(last_validation, interval 1 day) as can_verify, added
+          from refresh_tokens
+          where id = $id
+       """.query[RefreshRow].unique
 
   def invite(i: InviteInfo): IO[InviteResult] = run {
     userByEmail(i.email).option.flatMap { invitee =>

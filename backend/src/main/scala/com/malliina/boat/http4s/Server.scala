@@ -35,13 +35,21 @@ object AppCompsBuilder:
 
 // Put modules that have different implementations in dev, prod or tests here.
 trait AppComps:
+  def customJwt: CustomJwt
   def pushService: PushEndpoint
   def emailAuth: EmailAuth
 
 class ProdAppComps(conf: BoatConf, http: HttpClient[IO]) extends AppComps:
+  override val customJwt: CustomJwt = CustomJwt(JWT(conf.secret))
   override val pushService: PushEndpoint = BoatPushService(conf.push, http)
   override val emailAuth: EmailAuth =
-    TokenEmailAuth(conf.google.web.id, conf.google.ios.id, conf.microsoft.id, http)
+    TokenEmailAuth(
+      conf.google.web.id,
+      conf.google.ios.id,
+      conf.microsoft.id,
+      http,
+      customJwt
+    )
 
 object Server extends IOApp:
   val log = AppLogger(getClass)
@@ -76,7 +84,8 @@ object Server extends IOApp:
   yield
     val http = HttpClientIO()
     val appComps = builder(conf, http)
-    val auth = Http4sAuth(JWT(conf.secret))
+    val jwt = JWT(conf.secret)
+    val auth = Http4sAuth(jwt)
     val googleAuth = appComps.emailAuth
     val appleToken =
       if conf.apple.enabled then
@@ -92,7 +101,8 @@ object Server extends IOApp:
       auth,
       GoogleAuthFlow(conf.google.webAuthConf, http),
       MicrosoftAuthFlow(conf.microsoft.webAuthConf, http),
-      AppleAuthFlow(appleAuthConf, appleValidator, http)
+      AppleAuthFlow(appleAuthConf, appleValidator, http),
+      appComps.customJwt
     )
     val auths = AuthService(users, authComps)
     val tracksDatabase = DoobieTracksDatabase(db)
