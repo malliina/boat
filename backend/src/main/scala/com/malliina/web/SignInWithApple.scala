@@ -30,6 +30,17 @@ object SignInWithApple:
     clientId: ClientId
   )
 
+  def secret(conf: Conf, now: Instant): Option[ClientSecret] =
+    Option.when(conf.enabled) {
+      apply(conf).signInWithAppleToken(now)
+    }
+
+  def secretOrDummy(conf: Conf, now: Instant) =
+    secret(conf, now).getOrElse {
+      log.info(s"Sign in with Apple using ID ${conf.clientId} is disabled.")
+      ClientSecret("disabled")
+    }
+
   object Conf:
     implicit val reader: ConfigReadable[Conf] = ConfigReadable.config.emap { obj =>
       for

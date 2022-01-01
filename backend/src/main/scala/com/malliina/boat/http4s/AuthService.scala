@@ -23,8 +23,8 @@ class AuthService(val users: IdentityManager, comps: AuthComps):
   val web = comps.web
   val googleFlow = comps.googleFlow
   val microsoftFlow = comps.microsoftFlow
-  val appleFlow = comps.appleFlow
-  val siwa = SIWADatabase(appleFlow, users, comps.customJwt)
+  val appleWebFlow = comps.appleWebFlow
+  val siwa = SIWADatabase(comps.appleAppFlow, users, comps.customJwt)
 
   def register(code: Code, now: Instant): IO[BoatJwt] = siwa.register(code, now)
 

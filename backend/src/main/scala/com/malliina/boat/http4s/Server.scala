@@ -81,27 +81,30 @@ object Server extends IOApp:
     ais <- BoatMqttClient(AppMode.fromBuild, runtime)
     streams <- BoatStreams(trackInserts, ais)
     deviceStreams <- GPSStreams(gps)
+    http <- Resource.make(IO(HttpClientIO()))(c => IO(c.close()))
   yield
-    val http = HttpClientIO()
     val appComps = builder(conf, http)
     val jwt = JWT(conf.secret)
     val auth = Http4sAuth(jwt)
     val googleAuth = appComps.emailAuth
-    val appleToken =
-      if conf.apple.enabled then
-        val siwa = SignInWithApple(conf.apple)
-        siwa.signInWithAppleToken(Instant.now())
-      else
-        log.info("Sign in with Apple is disabled.")
-        ClientSecret("disabled")
-    val appleAuthConf = AuthConf(conf.apple.clientId, appleToken)
-    val appleValidator = AppleTokenValidator(Seq(conf.apple.clientId), http)
+    val appleConf = conf.apple
+    val now = Instant.now()
+    val appleWebToken = SignInWithApple.secretOrDummy(appleConf, now)
+    val appleAppToken = SignInWithApple.secretOrDummy(
+      appleConf.copy(clientId = AppleTokenValidator.boatClientId),
+      now
+    )
+    val appleWebConf = AuthConf(conf.apple.clientId, appleWebToken)
+    val appleAppConf = AuthConf(AppleTokenValidator.boatClientId, appleAppToken)
+    val appleValidator =
+      AppleTokenValidator(Seq(conf.apple.clientId, AppleTokenValidator.boatClientId), http)
     val authComps = AuthComps(
       googleAuth,
       auth,
       GoogleAuthFlow(conf.google.webAuthConf, http),
       MicrosoftAuthFlow(conf.microsoft.webAuthConf, http),
-      AppleAuthFlow(appleAuthConf, appleValidator, http),
+      AppleAuthFlow(appleWebConf, appleValidator, http),
+      AppleAuthFlow(appleAppConf, appleValidator, http),
       appComps.customJwt
     )
     val auths = AuthService(users, authComps)

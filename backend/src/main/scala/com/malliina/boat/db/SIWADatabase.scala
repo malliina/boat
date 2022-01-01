@@ -43,7 +43,7 @@ class SIWADatabase(
   def recreate(token: IdToken, now: Instant): IO[BoatJwt] =
     liftEither(jwt.verify(token, now)).flatMap { claims =>
       users.load(claims.refresh).flatMap { row =>
-        if r.canVerify then
+        if row.canVerify then
           for
             res <- siwa.verifyRefreshToken(row.token)
             _ = log.info(

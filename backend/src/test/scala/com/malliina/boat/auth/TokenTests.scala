@@ -25,7 +25,7 @@ class TokenTests extends BaseSuite:
     }
   }
 
-  test("iOS SIWA token".ignore) {
+  test("validate iOS SIWA token".ignore) {
     val token = IdToken("changeme")
     val v = AppleTokenValidator.app(HttpClientIO())
     val res = v.validateToken(token, Instant.now()).unsafeRunSync()
@@ -55,11 +55,11 @@ class TokenTests extends BaseSuite:
   def printRequest(fields: Map[String, String]) =
     val siwaConf = boatConf
       .unsafe[SignInWithApple.Conf]("apple")
-      .copy(clientId = ClientId("com.malliina.BoatTracker"))
+      .copy(clientId = AppleTokenValidator.boatClientId)
     val siwa = SignInWithApple(siwaConf)
     val privateKey = siwa.signInWithAppleToken(Instant.now())
     val conf = boatConf.getConfig("demo")
-    val code = conf.getString("code")
+//    val code = conf.getString("code")
     val http = HttpClientIO()
     val res: OkHttpResponse = http
       .postForm(

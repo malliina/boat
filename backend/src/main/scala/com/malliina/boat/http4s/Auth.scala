@@ -37,6 +37,7 @@ case class AuthComps(
   web: Http4sAuth,
   googleFlow: GoogleAuthFlow,
   microsoftFlow: EmailAuthFlow,
-  appleFlow: AppleAuthFlow,
+  appleWebFlow: AppleAuthFlow,
+  appleAppFlow: AppleAuthFlow,
   customJwt: CustomJwt
 )

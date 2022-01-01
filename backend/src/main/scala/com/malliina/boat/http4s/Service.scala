@@ -353,7 +353,7 @@ class Service(comps: BoatComps) extends BasicService[IO]:
     case req @ GET -> Root / "sign-in" / "microsoft" =>
       startHinted(AuthProvider.Microsoft, auth.microsoftFlow, req)
     case req @ GET -> Root / "sign-in" / "apple" =>
-      start(auth.appleFlow, AuthProvider.Apple, req)
+      start(auth.appleWebFlow, AuthProvider.Apple, req)
     case req @ GET -> Root / "sign-in" / "callbacks" / "google" =>
       handleAuthCallback(auth.googleFlow, AuthProvider.Google, req)
     case req @ GET -> Root / "sign-in" / "callbacks" / "microsoft" =>
@@ -681,7 +681,7 @@ class Service(comps: BoatComps) extends BasicService[IO]:
             if sessionState.contains(actualState) then
               val redirectUrl =
                 Urls.hostOnly(req) / reverse.signInCallback(AuthProvider.Apple).renderString
-              auth.appleFlow.validate(form.code, redirectUrl, session.get(Nonce)).flatMap { e =>
+              auth.appleWebFlow.validate(form.code, redirectUrl, session.get(Nonce)).flatMap { e =>
                 e.fold(
                   err => unauthorized(Errors(err.message)),
                   email => userResult(email, AuthProvider.Apple, req)
