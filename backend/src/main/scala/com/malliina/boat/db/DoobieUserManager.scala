@@ -224,9 +224,11 @@ class DoobieUserManager(db: DoobieDatabase) extends IdentityManager with DoobieS
   }
 
   def save(token: RefreshToken, user: UserId): IO[RefreshRow] = run {
-    val id = RefreshTokenId.random()
+    log.info(s"Saving refresh token for '$user'...")
+    val tokenId = RefreshTokenId.random()
     val insertion = sql"""insert into refresh_tokens(id, refresh_token, owner) 
-                          values($id, $token, $user)""".update
+                          values($tokenId, $token, $user)"""
+      .update(logger)
       .withUniqueGeneratedKeys[RefreshTokenId]("id")
     insertion.flatMap { id =>
       log.info(s"Saved refresh token with ID '$id' for user $user.")
@@ -241,12 +243,14 @@ class DoobieUserManager(db: DoobieDatabase) extends IdentityManager with DoobieS
   def load(token: RefreshTokenId): IO[RefreshRow] = run { loadTokenIO(token) }
 
   def updateValidation(token: RefreshTokenId): IO[RefreshRow] = run {
-    val up = sql"""update refresh_tokens set last_validation = now() where id = $token""".update.run
+    val up =
+      sql"""update refresh_tokens set last_verification = now() where id = $token""".update.run
     up.flatMap { _ => loadTokenIO(token) }
   }
 
   private def loadTokenIO(id: RefreshTokenId) =
-    sql"""select id, refresh_token, owner, last_validation, now() > date_add(last_validation, interval 1 day) as can_verify, added
+    log.info(s"Loading token '$id'...")
+    sql"""select id, refresh_token, owner, last_verification, now() > date_add(last_verification, interval 1 day) as can_verify, added
           from refresh_tokens
           where id = $id
        """.query[RefreshRow].unique
