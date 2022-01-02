@@ -229,7 +229,6 @@ class DoobieUserManager(db: DoobieDatabase) extends IdentityManager with DoobieS
             values($tokenId, $token, $user)"""
         .update(logger)
         .run
-//        .withUniqueGeneratedKeys[RefreshTokenId]("id")
     insertion.flatMap { _ =>
       log.info(s"Saved refresh token with ID '$tokenId' for user $user.")
       loadTokenIO(tokenId)

@@ -8,6 +8,7 @@ import com.malliina.boat.Errors
 import com.malliina.boat.db.MissingCredentialsException
 import com.malliina.boat.http4s.BasicService.{log, noCache}
 import com.malliina.util.AppLogger
+import com.malliina.http.ResponseException
 import org.http4s.CacheDirective.*
 import org.http4s.*
 import org.http4s.headers.{Accept, Location, `Cache-Control`}
@@ -51,7 +52,12 @@ class BasicService[F[_]: Applicative: Sync] extends Implicits[F]:
       }
     case mce: MissingCredentialsException =>
       notFound(Errors(mce.error.message))
+    case re: ResponseException =>
+      serverErrorResponse(s"${re.getMessage} Response: '${re.response.asString}'.", re)
     case other =>
-      Sync[F].delay(log.error("Server error.", other)).flatMap { _ =>
-        serverError(Errors("Server error."))
-      }
+      serverErrorResponse("Server error.", other)
+
+  private def serverErrorResponse(msg: String, t: Throwable) =
+    Sync[F].delay(log.error(msg, t)).flatMap { _ =>
+      serverError(Errors("Server error."))
+    }
