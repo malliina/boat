@@ -21,6 +21,7 @@ import com.malliina.values.{Email, UserId, Username}
 import com.malliina.web.OAuthKeys.{Nonce, State}
 import com.malliina.web.Utils.randomString
 import com.malliina.web.*
+import com.malliina.boat.auth.BoatJwt
 import fs2.{Pipe, Stream}
 import io.circe.parser.parse
 import io.circe.syntax.EncoderOps
@@ -337,13 +338,23 @@ class Service(comps: BoatComps) extends BasicService[IO]:
         }
       }
     case req @ GET -> Root / "sign-in" =>
+      val now = Instant.now()
       req.cookies
         .find(_.name == cookieNames.provider)
         .flatMap { cookie =>
           AuthProvider.forString(cookie.content).toOption
         }
         .map { provider =>
-          temporaryRedirect(reverse.signInFlow(provider))
+          if provider == AuthProvider.Apple then
+            val recreation = web
+              .parseLongTermCookie(req.headers)
+              .map { idToken =>
+                auth.siwa.recreate(idToken, now).flatMap { boatJwt =>
+                  appleResult(boatJwt, req)
+                }
+              }
+            recreation.getOrElse(temporaryRedirect(reverse.signInFlow(provider)))
+          else temporaryRedirect(reverse.signInFlow(provider))
         }
         .getOrElse {
           ok(html.signIn(Lang.default))
@@ -562,7 +573,7 @@ class Service(comps: BoatComps) extends BasicService[IO]:
     req: Request[IO],
     query: Query => Either[Errors, T]
   ): IO[BoatRequest[T, UserInfo]] =
-    authedAndParsed[T, UserInfo](req, auth.profile, query)
+    authedAndParsed[T, UserInfo](req, hs => auth.profile(hs, Instant.now()), query)
 
   private def authedAndParsed[T, U](
     req: Request[IO],
@@ -605,7 +616,7 @@ class Service(comps: BoatComps) extends BasicService[IO]:
     (redirectUrl, maybeEmail, extra)
   }.flatMap { case (redirectUrl, maybeEmail, extra) =>
     validator.startHinted(redirectUrl, maybeEmail, extra).flatMap { s =>
-      startLoginFlow(s, Urls.isSecure(req))
+      startLoginFlow(s, req.isSecured)
     }
   }
 
@@ -681,11 +692,8 @@ class Service(comps: BoatComps) extends BasicService[IO]:
             if sessionState.contains(actualState) then
               val redirectUrl =
                 Urls.hostOnly(req) / reverse.signInCallback(AuthProvider.Apple).renderString
-              auth.appleWebFlow.validate(form.code, redirectUrl, session.get(Nonce)).flatMap { e =>
-                e.fold(
-                  err => unauthorized(Errors(err.message)),
-                  email => userResult(email, AuthProvider.Apple, req)
-                )
+              auth.siwa.registerWeb(form.code, Instant.now(), redirectUrl).flatMap { boatJwt =>
+                appleResult(boatJwt, req)
               }
             else
               val detailed =
@@ -699,6 +707,11 @@ class Service(comps: BoatComps) extends BasicService[IO]:
             unauthorized(Errors(err))
           }
       )
+
+  private def appleResult(boatJwt: BoatJwt, req: Request[IO]) =
+    userResult(boatJwt.email, AuthProvider.Apple, req).map { res =>
+      res.addCookie(web.longTermCookie(boatJwt.idToken))
+    }
 
   private def userResult(
     email: Email,

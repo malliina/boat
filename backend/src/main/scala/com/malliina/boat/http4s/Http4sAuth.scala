@@ -2,7 +2,7 @@ package com.malliina.boat.http4s
 
 import cats.effect.IO
 import com.malliina.boat.auth.AuthProvider.SelectAccount
-import com.malliina.boat.auth.{AuthProvider, CookieConf, JWT, UserPayload}
+import com.malliina.boat.auth.{AuthProvider, BoatJwtClaims, CookieConf, JWT, UserPayload}
 import com.malliina.boat.db.{IdentityError, JWTError, MissingCredentials}
 import com.malliina.values.{IdToken, Username}
 import org.http4s.Credentials.Token
@@ -14,9 +14,6 @@ import io.circe.syntax.EncoderOps
 import io.circe.parser.{decode, parse}
 
 import scala.concurrent.duration.DurationInt
-
-object Http4sAuth:
-  def apply(jwt: JWT): Http4sAuth = new Http4sAuth(jwt)
 
 class Http4sAuth(
   val jwt: JWT,
@@ -45,6 +42,7 @@ class Http4sAuth(
     res
       .removeCookie(cookieNames.provider)
       .removeCookie(cookieNames.lastId)
+      .removeCookie(cookieNames.longTerm)
       .removeCookie(ResponseCookie(cookieNames.authState, "", path = cookiePath))
       .removeCookie(ResponseCookie(cookieNames.user, "", path = cookiePath))
       .addCookie(cookieNames.prompt, SelectAccount)
@@ -88,18 +86,27 @@ class Http4sAuth(
     httpOnly = true
   )
 
+  def parseLongTermCookie(headers: Headers) = readToken(cookieNames.longTerm, headers)
+
+  def longTermCookie(token: IdToken) = responseCookie(cookieNames.longTerm, token.value)
+
   private def readUser(cookieName: String, headers: Headers): Either[IdentityError, Username] =
     read[UserPayload](cookieName, headers).map(_.username)
 
   def read[T: Decoder](cookieName: String, headers: Headers): Either[IdentityError, T] =
     for
+      idToken <- readToken(cookieName, headers)
+      t <- jwt.verify[T](idToken).left.map { err =>
+        JWTError(err, headers)
+      }
+    yield t
+
+  def readToken(cookieName: String, headers: Headers) =
+    for
       header <- headers.get[Cookie].toRight(MissingCredentials("Cookie parsing error.", headers))
-      cookie <-
+      idToken <-
         header.values
           .find(_.name == cookieName)
           .map(c => IdToken(c.content))
           .toRight(MissingCredentials(s"Cookie not found: '$cookieName'.", headers))
-      t <- jwt.verify[T](cookie).left.map { err =>
-        JWTError(err, headers)
-      }
-    yield t
+    yield idToken

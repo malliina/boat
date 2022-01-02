@@ -47,19 +47,17 @@ class AppleAuthFlow(
     redirectUrl: FullUrl,
     requestNonce: Option[String]
   ): IO[Either[AuthError, Email]] =
-    val params = codeParameters(code) ++ Map(RedirectUri -> redirectUrl.url)
-    http.postFormAs[TokenResponse](conf.tokenEndpoint, params).flatMap { tokens =>
-      http.getAs[JWTKeys](AppleAuthFlow.jwksUri).map { keys =>
-        validator.validate(tokens.id_token, keys.keys, Instant.now()).flatMap { v =>
-          v.readString(EmailKey).map(Email.apply)
-        }
-      }
+    refreshToken(code, Map(RedirectUri -> redirectUrl.url)).flatMap { tokens =>
+      validator.extractEmail(tokens.idToken, Instant.now())
     }
 
-  def refreshToken(code: Code): IO[RefreshTokenResponse] =
+  def refreshToken(code: Code, extraParams: Map[String, String]): IO[RefreshTokenResponse] =
     log.info(s"Exchanging authorization code for tokens...")
-    val params = codeParameters(code)
-    http.postFormAs[RefreshTokenResponse](conf.tokenEndpoint, params)
+    val params = codeParameters(code) ++ extraParams
+    http.postFormAs[RefreshTokenResponse](conf.tokenEndpoint, params).map { res =>
+      log.info("Exchanged authorization code for refresh token.")
+      res
+    }
 
   def verifyRefreshToken(token: RefreshToken): IO[TokenResponse] =
     val params = commonParameters(RefreshTokenValue) ++ Map(

@@ -7,7 +7,8 @@ import com.malliina.boat.db.SIWADatabase.log
 import com.malliina.boat.db.UserManager
 import com.malliina.util.AppLogger
 import com.malliina.values.*
-import com.malliina.web
+import com.malliina.http.FullUrl
+import com.malliina.web.OAuthKeys.RedirectUri
 import com.malliina.web.{AppleAuthFlow, AppleTokenValidator, Code, Expired, InvalidClaims, JWTError}
 import doobie.*
 import doobie.implicits.*
@@ -26,9 +27,14 @@ class SIWADatabase(
 ) extends DoobieMappings:
   private val tokenValidator = siwa.validator
 
-  def register(code: Code, now: Instant): IO[BoatJwt] =
+  def registerWeb(code: Code, now: Instant, redirectUrl: FullUrl): IO[BoatJwt] =
+    register(code, now, Map(RedirectUri -> redirectUrl.url))
+
+  def registerApp(code: Code, now: Instant): IO[BoatJwt] = register(code, now, Map.empty)
+
+  def register(code: Code, now: Instant, extraParams: Map[String, String]): IO[BoatJwt] =
     for
-      tokens <- siwa.refreshToken(code)
+      tokens <- siwa.refreshToken(code, extraParams)
       email <- tokenValidator.validateOrFail(tokens.idToken, now)
       user <- users.register(email)
       saved <- users.save(tokens.refreshToken, user.id)

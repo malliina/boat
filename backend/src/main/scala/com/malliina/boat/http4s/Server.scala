@@ -88,11 +88,11 @@ object Server extends IOApp:
     val auth = Http4sAuth(jwt)
     val googleAuth = appComps.emailAuth
     val appleConf = conf.apple
-    val now = Instant.now()
-    val appleWebToken = SignInWithApple.secretOrDummy(appleConf, now)
+    val startupTime = Instant.now()
+    val appleWebToken = SignInWithApple.secretOrDummy(appleConf, startupTime)
     val appleAppToken = SignInWithApple.secretOrDummy(
       appleConf.copy(clientId = AppleTokenValidator.boatClientId),
-      now
+      startupTime
     )
     val appleWebConf = AuthConf(conf.apple.clientId, appleWebToken)
     val appleAppConf = AuthConf(AppleTokenValidator.boatClientId, appleAppToken)

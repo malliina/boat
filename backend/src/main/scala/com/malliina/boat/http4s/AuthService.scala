@@ -24,15 +24,16 @@ class AuthService(val users: IdentityManager, comps: AuthComps):
   val googleFlow = comps.googleFlow
   val microsoftFlow = comps.microsoftFlow
   val appleWebFlow = comps.appleWebFlow
-  val siwa = SIWADatabase(comps.appleAppFlow, users, comps.customJwt)
+  val siwa: SIWADatabase = SIWADatabase(comps.appleAppFlow, users, comps.customJwt)
 
-  def register(code: Code, now: Instant): IO[BoatJwt] = siwa.register(code, now)
+  def register(code: Code, now: Instant): IO[BoatJwt] = siwa.registerApp(code, now)
 
   def profile(req: Request[IO]): IO[UserInfo] = profile(req.headers)
 
-  def profile(headers: Headers): IO[UserInfo] = emailOnly(headers).flatMap { email =>
-    users.userInfo(email)
-  }
+  def profile(headers: Headers, now: Instant = Instant.now()): IO[UserInfo] =
+    emailOnly(headers, now).flatMap { email =>
+      users.userInfo(email)
+    }
 
   def recreate(headers: Headers, now: Instant = Instant.now()): IO[BoatJwt] =
     Auth
@@ -87,10 +88,13 @@ class AuthService(val users: IdentityManager, comps: AuthComps):
       users.authBoat(BoatToken(h.head.value))
     }
 
-  private def emailOnly(headers: Headers): IO[Email] =
+  private def emailOnly(headers: Headers, now: Instant): IO[Email] =
     emailAuth.authEmail(headers).handleErrorWith {
       case mce: MissingCredentialsException =>
-        authSession(headers).map(email => IO.pure(email)).getOrElse(IO.raiseError(mce))
+        authSession(headers).fold(
+          err => IO.raiseError(mce),
+          email => IO.pure(email)
+        )
       case t =>
         IO.raiseError(t)
     }
@@ -116,3 +120,5 @@ class AuthService(val users: IdentityManager, comps: AuthComps):
     web
       .authenticate(headers)
       .map(user => Email(user.name))
+
+  private def authOrRenewSession(headers: Headers) = authSession(headers)

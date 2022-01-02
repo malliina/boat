@@ -19,7 +19,8 @@ case class CookieConf(
   returnUri: String,
   lastId: String,
   provider: String,
-  prompt: String
+  prompt: String,
+  longTerm: String
 )
 
 object CookieConf:
@@ -29,7 +30,8 @@ object CookieConf:
     s"$prefix-return-uri",
     s"$prefix-last-id",
     s"$prefix-provider",
-    s"$prefix-prompt"
+    s"$prefix-prompt",
+    s"$prefix-auth"
   )
 
 case class SettingsPayload(username: Username, language: Language, authorized: Seq[BoatName])
