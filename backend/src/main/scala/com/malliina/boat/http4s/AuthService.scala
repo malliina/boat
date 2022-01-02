@@ -24,9 +24,10 @@ class AuthService(val users: IdentityManager, comps: AuthComps):
   val googleFlow = comps.googleFlow
   val microsoftFlow = comps.microsoftFlow
   val appleWebFlow = comps.appleWebFlow
-  val siwa: SIWADatabase = SIWADatabase(comps.appleAppFlow, users, comps.customJwt)
+  val appSiwa: SIWADatabase = SIWADatabase(comps.appleAppFlow, users, comps.customJwt)
+  val webSiwa: SIWADatabase = SIWADatabase(comps.appleAppFlow, users, comps.customJwt)
 
-  def register(code: Code, now: Instant): IO[BoatJwt] = siwa.registerApp(code, now)
+  def register(code: Code, now: Instant): IO[BoatJwt] = appSiwa.registerApp(code, now)
 
   def profile(req: Request[IO]): IO[UserInfo] = profile(req.headers)
 
@@ -38,7 +39,7 @@ class AuthService(val users: IdentityManager, comps: AuthComps):
   def recreate(headers: Headers, now: Instant = Instant.now()): IO[BoatJwt] =
     Auth
       .token(headers)
-      .map(token => siwa.recreate(token, now))
+      .map(token => appSiwa.recreate(token, now))
       .fold(mce => IO.raiseError(MissingCredentialsException(mce)), identity)
 
   def optionalWebAuth(

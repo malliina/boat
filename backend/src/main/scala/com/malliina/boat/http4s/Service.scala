@@ -349,7 +349,7 @@ class Service(comps: BoatComps) extends BasicService[IO]:
             val recreation = web
               .parseLongTermCookie(req.headers)
               .map { idToken =>
-                auth.siwa.recreate(idToken, now).flatMap { boatJwt =>
+                auth.webSiwa.recreate(idToken, now).flatMap { boatJwt =>
                   appleResult(boatJwt, req)
                 }
               }
@@ -692,7 +692,7 @@ class Service(comps: BoatComps) extends BasicService[IO]:
             if sessionState.contains(actualState) then
               val redirectUrl =
                 Urls.hostOnly(req) / reverse.signInCallback(AuthProvider.Apple).renderString
-              auth.siwa.registerWeb(form.code, Instant.now(), redirectUrl).flatMap { boatJwt =>
+              auth.webSiwa.registerWeb(form.code, Instant.now(), redirectUrl).flatMap { boatJwt =>
                 appleResult(boatJwt, req)
               }
             else
