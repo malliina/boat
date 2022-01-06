@@ -12,8 +12,8 @@ import com.malliina.live.LiveReload
 import com.malliina.measure.DistanceM
 import com.malliina.values.WrappedString
 import org.http4s.Uri
-import scalatags.Text.all.*
-
+import scalatags.Text.all._
+import scalatags.Text
 import scala.language.implicitConversions
 
 object BoatHtml:
@@ -39,11 +39,10 @@ class BoatHtml(
   externalScripts: Seq[FullUrl],
   cssFiles: Seq[String],
   assets: AssetsSource = HashedAssetsSource
-) extends Bootstrap(HtmlTags):
+): // extends Bootstrap(HtmlTags):
   val reverse = Reverse
-//  val mapboxVersion = AppMeta.default.mapboxVersion
 
-  implicit def wrapFrag[T <: WrappedString](w: T): StringFrag = stringFrag(w.value)
+  implicit def wrapFrag[T <: WrappedString](w: T): Modifier = stringFrag(w.value)
   implicit def wrapAttr[T <: WrappedString]: AttrValue[T] = BoatImplicits.boatStringAttr(_.value)
 
   def devices(user: UserInfo) =
@@ -148,20 +147,23 @@ class BoatHtml(
     fontAwesomeLink(a, PersonLink, "user", cls, "Sign in", href := reverse.signIn)
 
   def fontAwesomeLink(
-    tag: ConcreteHtmlTag[String],
+    tag: Any,
     idValue: String,
     faIcon: String,
     classes: String,
     titleValue: String,
     more: AttrPair*
-  ) =
-    tag(
+  ): Frag = {
+    // Workaround until https://github.com/com-lihaoyi/scalatags/pull/232 is released, scalatags 0.11.0 is broken
+    val myTag = tag.asInstanceOf[BaseTagType]
+    myTag(
       id := idValue,
       `class` := s"icon-link $faIcon $classes",
       title := titleValue,
       aria.hidden := "true",
       more
     )
+  }
 
   def page(pageConf: PageConf) = TagPage(
     html(

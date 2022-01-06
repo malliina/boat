@@ -7,7 +7,9 @@ import com.malliina.boat.http4s.Reverse
 import com.malliina.boat.{BoatIds, BoatNames, BoatRef, Emails, Forms, InviteState, UserInfo}
 import com.malliina.values.WrappedId
 import scalatags.Text
-import scalatags.Text.all.*
+//import scalatags.Text.tags._
+//import scalatags.Text.attrs.{Modifier => _, _}
+import scalatags.Text.all._
 import scalatags.text.Builder
 
 import scala.language.implicitConversions
@@ -16,7 +18,7 @@ object BoatsPage extends BoatImplicits with CSRFConf:
   val reverse = Reverse
   val empty: Modifier = modifier()
 
-  def apply(user: UserInfo): Text.TypedTag[String] =
+  def apply(user: UserInfo) =
     val langs = BoatLang(user.language)
     val lang = langs.lang
     val webLang = langs.web

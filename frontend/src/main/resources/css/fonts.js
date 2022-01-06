@@ -1,1 +1,1 @@
-import './fonts.css';
+import './fonts.less';

@@ -16,7 +16,8 @@ import org.http4s.implicits.*
 import org.http4s.server.Router
 import org.http4s.*
 import com.comcast.ip4s.{Host, Port}
-
+import org.http4s.CacheDirective.*
+import org.http4s.headers.{Accept, Location, `Cache-Control`, `WWW-Authenticate`}
 import java.nio.charset.StandardCharsets
 
 trait AppImplicits
@@ -42,7 +43,7 @@ object WebServer:
   def hash(pass: String): String = DigestUtils.md5Hex(pass)
 
 class WebServer(agentInstance: AgentInstance) extends AppImplicits:
-
+  val noCache = `Cache-Control`(`no-cache`(), `no-store`, `must-revalidate`)
   val boatUser = "boat"
   val tempUser = "temp"
 
@@ -50,7 +51,7 @@ class WebServer(agentInstance: AgentInstance) extends AppImplicits:
     case GET -> Root =>
       SeeOther(Location(settingsUri))
     case GET -> Root / "settings" =>
-      Ok(asHtml(boatForm(readConf().toOption)))
+      Ok(asHtml(boatForm(readConf().toOption)), noCache)
     case req @ GET -> Root / "settings" =>
       parseForm(req, readForm).flatMap { boatConf =>
         saveAndReload(boatConf, agentInstance)

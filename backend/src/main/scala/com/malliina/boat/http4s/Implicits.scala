@@ -48,7 +48,7 @@ trait MyScalatagsInstances:
 
 trait HtmlInstances extends MyScalatagsInstances:
   implicit def htmlEncoder[F[_]]: EntityEncoder[F, TagPage] =
-    scalatagsEncoder[F, Text.TypedTag[String]].contramap(_.tags)
+    scalatagsEncoder[F, scalatags.Text.all.Frag].contramap(_.tags)
 
 object JsonInstances extends JsonInstances
 

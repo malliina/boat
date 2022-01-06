@@ -12,10 +12,10 @@ import scala.language.implicitConversions
 object BoatImplicits extends BoatImplicits
 
 trait BoatImplicits:
-  implicit def speedHtml(s: SpeedM): StringFrag = stringFrag(formatSpeed(s))
-  implicit def distanceHtml(d: DistanceM): StringFrag = stringFrag(formatDistance(d))
-  implicit def tempHtml(t: Temperature): StringFrag = stringFrag(formatTemp(t))
-  implicit def wrappedHtml[T <: WrappedString](w: T): StringFrag = stringFrag(w.value)
+  implicit def speedHtml(s: SpeedM): Frag = stringFrag(formatSpeed(s))
+  implicit def distanceHtml(d: DistanceM): Frag = stringFrag(formatDistance(d))
+  implicit def tempHtml(t: Temperature): Frag = stringFrag(formatTemp(t))
+  implicit def wrappedHtml[T <: WrappedString](w: T): Frag = stringFrag(w.value)
   implicit def dateHtml[T <: WrappedInt](t: T): Frag = intFrag(t.value)
   implicit def dateValHtml(d: DateVal): Frag = stringFrag(d.iso8601)
   implicit def wrappedIntAttr[T <: WrappedInt]: AttrValue[T] = boatStringAttr(i => s"${i.value}")

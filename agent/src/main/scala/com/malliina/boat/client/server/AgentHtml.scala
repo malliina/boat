@@ -4,7 +4,8 @@ import cats.Show
 import com.malliina.boat.client.server.Device.{BoatDevice, GpsDevice}
 import org.http4s.Uri
 import scalatags.Text
-import scalatags.Text.all.*
+import scalatags.Text.all
+import scalatags.Text.all.{*}
 import scalatags.text.Builder
 
 object AgentHtml:
@@ -18,6 +19,8 @@ object AgentHtml:
 
   def attrValue[T](f: T => String): AttrValue[T] =
     (t: Builder, a: Text.Attr, v: T) => t.setAttr(a.name, Builder.GenericAttrValueSource(f(v)))
+
+//  val hmm: ConcreteHtmlTag[String] = scalatags.Text.tags.form
 
   def boatForm(conf: Option[BoatConf]) =
     form(action := WebServer.settingsUri, method := "post")(
@@ -103,7 +106,7 @@ object AgentHtml:
     )
   )
 
-  def asHtml(content: Text.TypedTag[String]): Text.TypedTag[String] =
+  def asHtml(content: Modifier) =
     html(
       head(link(rel := "stylesheet", href := "/css/boat.css")),
       body(content)

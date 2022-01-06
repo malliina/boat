@@ -35,7 +35,7 @@ object TracksPage extends BoatImplicits:
       case 12 => lang.dec
       case _  => ""
 
-  def apply(tracks: TracksBundle, query: TrackQuery, lang: Lang): Text.TypedTag[String] =
+  def apply(tracks: TracksBundle, query: TrackQuery, lang: Lang) =
     val sort = query.sort
     val order = query.order
     val isAsc = order == SortOrder.Asc

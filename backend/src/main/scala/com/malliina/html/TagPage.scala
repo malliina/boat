@@ -1,6 +1,6 @@
 package com.malliina.html
 
-import scalatags.Text
+import scalatags.Text.all.Frag
 
-case class TagPage(tags: Text.TypedTag[String]):
+case class TagPage(tags: Frag):
   override def toString = tags.toString()
