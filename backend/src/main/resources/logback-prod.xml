@@ -9,7 +9,7 @@
         <endpoint>${LOGSTREAMS_HOST:-wss://logs-api.malliina.com/ws/sources}</endpoint>
         <username>${LOGSTREAMS_USER:-boat}</username>
         <password>${LOGSTREAMS_PASS}</password>
-        <enabled>true</enabled>
+        <enabled>${LOGSTREAMS_ENABLED:-true}</enabled>
     </appender>
     <logger name="org.http4s.blaze.channel.nio1.NIO1SocketServerGroup" level="WARN"/>
     <root level="INFO">
