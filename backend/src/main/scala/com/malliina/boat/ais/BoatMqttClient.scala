@@ -36,10 +36,12 @@ object BoatMqttClient:
   val TestUrl = FullUrl.wss("meri-test.digitraffic.fi:61619", "/mqtt")
   val ProdUrl = FullUrl.wss("meri.digitraffic.fi:61619", "/mqtt")
 
-  def apply(mode: AppMode, rt: IORuntime)(implicit t: Temporal[IO]): Resource[IO, AISSource] =
+  def apply(enabled: Boolean, mode: AppMode, rt: IORuntime)(implicit
+    t: Temporal[IO]
+  ): Resource[IO, AISSource] =
     mode match
-      case AppMode.Prod => prod(rt)
-      case AppMode.Dev  => Resource.pure(silent())
+      case AppMode.Prod if enabled => prod(rt)
+      case _                       => Resource.pure(silent())
 
   def prod(rt: IORuntime)(implicit t: Temporal[IO]): Resource[IO, BoatMqttClient] =
     apply(ProdUrl, AllDataTopic, rt)
@@ -91,7 +93,6 @@ class BoatMqttClient(
     MqttSettings(url, newClientId(), topic, user, pass),
     rt
   )
-
   val oneConnection: Stream[IO, MqttStream.MqttPayload] =
     Stream.resource(newStream).flatMap { s =>
       s.events
@@ -103,16 +104,19 @@ class BoatMqttClient(
             }
         }
     }
-
+  val sleeper: Stream[IO, MqttStream.MqttPayload] =
+    Stream.sleep(30.seconds).flatMap(_ => Stream.empty)
   val parsed: Stream[IO, Either[Error, AISMessage]] =
-    oneConnection.repeat.interruptWhen(interrupter).map { msg =>
-      val str = msg.payloadString
-      msg.topic match
-        case Locations()   => decode[VesselLocation](str)(VesselLocation.readerGeoJson)
-        case Metadata()    => decode[VesselMetadata](str)(VesselMetadata.readerGeoJson)
-        case StatusTopic() => decode[VesselStatus](str)
-        case other => Left(DecodingFailure(s"Unknown topic: '$other'. Payload: '$str'.", Nil))
-    }
+    (oneConnection ++ sleeper).repeat
+      .interruptWhen(interrupter)
+      .map { msg =>
+        val str = msg.payloadString
+        msg.topic match
+          case Locations()   => decode[VesselLocation](str)(VesselLocation.readerGeoJson)
+          case Metadata()    => decode[VesselMetadata](str)(VesselMetadata.readerGeoJson)
+          case StatusTopic() => decode[VesselStatus](str)
+          case other => Left(DecodingFailure(s"Unknown topic: '$other'. Payload: '$str'.", Nil))
+      }
   val vesselMessages = parsed.flatMap {
     case Right(msg) =>
       msg match

@@ -38,7 +38,7 @@ object LocalConf:
   val localConf = ConfigFactory.parseFile(localConfFile.toFile).withFallback(ConfigFactory.load())
 
 case class MapboxConf(token: AccessToken)
-
+case class AisAppConf(enabled: Boolean)
 case class AppleConf(id: ClientId)
 case class WebConf(id: ClientId, secret: ClientSecret):
   def webAuthConf = AuthConf(id, secret)
@@ -50,6 +50,7 @@ case class PushConf(apns: APNSConf, fcm: FCMConf)
 
 case class BoatConf(
   mapbox: MapboxConf,
+  ais: AisAppConf,
   secret: SecretKey,
   db: Conf,
   google: GoogleConf,
@@ -82,6 +83,7 @@ object BoatConf:
     val fcm = push.getConfig("fcm")
     BoatConf(
       MapboxConf(c.getConfig("mapbox").unsafe[AccessToken]("token")),
+      AisAppConf(c.getConfig("ais").unsafe[Boolean]("enabled")),
       c.unsafe[SecretKey]("secret"),
       parseDatabase(c.getConfig("db")),
       GoogleConf(
