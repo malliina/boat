@@ -16,9 +16,6 @@ import scala.concurrent.duration.DurationInt
 object StaticService:
   private val log = AppLogger(getClass)
 
-  def apply[F[_]]()(implicit s: Sync[F]): StaticService[F] =
-    new StaticService[F]()(s)
-
 class StaticService[F[_]]()(implicit s: Sync[F]) extends BasicService[F]:
   val fontExtensions = List(".woff", ".woff2", ".eot", ".ttf")
   val supportedStaticExtensions =
