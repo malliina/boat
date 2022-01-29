@@ -9,12 +9,13 @@ object Urls:
   def hostOnly[F[_]](req: Request[F]): FullUrl =
     val proto = if isSecure(req) then "https" else "http"
     val uri = req.uri
+    val cloudHost = req.headers.get(ci"X-Forwarded-Host").map(_.head.value)
+    val directHost = req.headers
+      .get[Host]
+      .map(hp => hp.port.fold(hp.host)(port => s"${hp.host}:$port"))
     val hostAndPort =
-      req.headers
-        .get[Host]
-        .map(hp => hp.port.fold(hp.host)(port => s"${hp.host}:$port"))
-        .getOrElse("localhost")
-    FullUrl(proto, uri.host.map(_.value).getOrElse(hostAndPort), "")
+      cloudHost.orElse(uri.host.map(_.value)).orElse(directHost).getOrElse("localhost")
+    FullUrl(proto, hostAndPort, "")
 
   def isSecure[F[_]](req: Request[F]): Boolean =
     req.isSecure.getOrElse(false) || req.headers
