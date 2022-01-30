@@ -8,13 +8,13 @@ import scala.sys.process.Process
 import scala.util.Try
 
 val mapboxVersion = "2.5.1"
-val webAuthVersion = "6.1.0"
+val webAuthVersion = "6.1.5"
 val munitVersion = "0.7.29"
-val testContainersScalaVersion = "0.39.12"
+val testContainersScalaVersion = "0.40.0"
 val scalaTagsVersion = "0.11.0"
 val primitiveVersion = "3.1.0"
 val logstreamsVersion = "2.0.2"
-val http4sVersion = "0.23.7"
+val http4sVersion = "0.23.9"
 // Do not upgrade to 11.0.2 because it depends on slf4j-api alpha versions, breaking logging
 val alpnVersion = "9.4.40.v20210413"
 val webAuthDep = "com.malliina" %% "web-auth" % webAuthVersion
@@ -32,7 +32,7 @@ ThisBuild / parallelExecution := false
 Global / concurrentRestrictions += Tags.limit(Tags.Test, 1)
 
 val scala213 = "2.13.6"
-val scala3 = "3.1.0"
+val scala3 = "3.1.1"
 
 inThisBuild(
   Seq(
@@ -153,7 +153,7 @@ val backend = Project("boat", file("backend"))
     libraryDependencies ++= http4sModules.map { m =>
       "org.http4s" %% s"http4s-$m" % http4sVersion
     } ++ Seq("doobie-core", "doobie-hikari").map { d =>
-      "org.tpolecat" %% d % "1.0.0-RC1"
+      "org.tpolecat" %% d % "1.0.0-RC2"
     } ++ Seq("classic", "core").map { m =>
       "ch.qos.logback" % s"logback-$m" % "1.2.10"
     } ++ Seq("server", "client").map { m =>
@@ -164,10 +164,10 @@ val backend = Project("boat", file("backend"))
       "mysql" % "mysql-connector-java" % "5.1.49",
       "org.flywaydb" % "flyway-core" % "7.15.0",
       "org.apache.commons" % "commons-text" % "1.9",
-      "com.amazonaws" % "aws-java-sdk-s3" % "1.11.856",
+      "com.amazonaws" % "aws-java-sdk-s3" % "1.12.150",
       "com.malliina" %% "logstreams-client" % logstreamsVersion,
       "com.malliina" %% "mobile-push-io" % "3.1.0",
-      "org.slf4j" % "slf4j-api" % "1.7.32",
+      "org.slf4j" % "slf4j-api" % "1.7.35",
       "org.eclipse.paho" % "org.eclipse.paho.client.mqttv3" % "1.2.5",
       utilHtmlDep,
       webAuthDep,
@@ -243,7 +243,6 @@ val agent = project
       } ++ Seq(
         "co.fs2" %% "fs2-io" % "3.1.3",
         "com.malliina" %% "primitives" % primitiveVersion,
-//      "com.malliina" %% "logback-fs2" % logstreamsVersion,
         "com.malliina" %% "logstreams-client" % logstreamsVersion, // temporary until websocket client is available in okclient
         "com.neovisionaries" % "nv-websocket-client" % "2.14",
         "org.slf4j" % "slf4j-api" % "1.7.32",
@@ -293,8 +292,8 @@ val utils = project
     libraryDependencies ++= Seq("shapefile", "geojson").map { m =>
       "org.geotools" % s"gt-$m" % "23.0" exclude ("javax.media", "jai_core")
     } ++ Seq(
-      "ch.qos.logback" % "logback-classic" % "1.2.6",
-      "org.slf4j" % "slf4j-api" % "1.7.32",
+      "ch.qos.logback" % "logback-classic" % "1.2.10",
+      "org.slf4j" % "slf4j-api" % "1.7.35",
       "javax.media" % "jai_core" % "1.1.3",
       munitDep
     ),
