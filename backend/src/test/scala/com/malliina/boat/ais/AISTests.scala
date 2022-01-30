@@ -12,8 +12,8 @@ import tests.MUnitSuite
 import java.time.Instant
 
 class AISTests extends MUnitSuite:
-  val prodFixture = resource(BoatMqttClient.prod(rt))
-  val testFixture = resource(BoatMqttClient(TestUrl, MetadataTopic, rt))
+  val prodFixture = resource(BoatMqttClient.prod())
+  val testFixture = resource(BoatMqttClient(TestUrl, MetadataTopic))
   prodFixture.test("MqttSource".ignore) { client =>
     val events = client.slow.take(3).compile.toList.unsafeRunSync()
     events foreach println

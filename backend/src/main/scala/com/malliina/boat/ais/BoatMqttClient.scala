@@ -1,6 +1,5 @@
 package com.malliina.boat.ais
 
-import cats.effect.unsafe.IORuntime
 import cats.effect.kernel.{Resource, Temporal}
 import cats.effect.IO
 import com.malliina.boat.ais.BoatMqttClient.{AisPair, log, pass, user}
@@ -36,28 +35,30 @@ object BoatMqttClient:
   val TestUrl = FullUrl.wss("meri-test.digitraffic.fi:61619", "/mqtt")
   val ProdUrl = FullUrl.wss("meri.digitraffic.fi:61619", "/mqtt")
 
-  def apply(enabled: Boolean, mode: AppMode, rt: IORuntime)(implicit
-    t: Temporal[IO]
-  ): Resource[IO, AISSource] =
+  def apply(enabled: Boolean, mode: AppMode)(implicit t: Temporal[IO]): Resource[IO, AISSource] =
     mode match
-      case AppMode.Prod if enabled => prod(rt)
-      case _                       => Resource.pure(silent())
+      case AppMode.Prod if enabled => prod()
+      case AppMode.Dev if enabled  => prod()
+      case _                       => Resource.eval(silent())
 
-  def prod(rt: IORuntime)(implicit t: Temporal[IO]): Resource[IO, BoatMqttClient] =
-    apply(ProdUrl, AllDataTopic, rt)
+  def prod()(implicit t: Temporal[IO]): Resource[IO, BoatMqttClient] =
+    apply(ProdUrl, AllDataTopic)
 
-  def test(rt: IORuntime)(implicit t: Temporal[IO]): Resource[IO, BoatMqttClient] =
-    apply(TestUrl, AllDataTopic, rt)
+  def test()(implicit t: Temporal[IO]): Resource[IO, BoatMqttClient] =
+    apply(TestUrl, AllDataTopic)
 
-  def silent() = SilentAISSource
+  def silent(): IO[AISSource] = IO.delay {
+    log.info("AIS is disabled.")
+    SilentAISSource
+  }
 
-  def apply(url: FullUrl, topic: String, rt: IORuntime)(implicit
+  def apply(url: FullUrl, topic: String)(implicit
     t: Temporal[IO]
   ): Resource[IO, BoatMqttClient] =
     val build = for
       interrupter <- SignallingRef[IO, Boolean](false)
       messagesTopic <- Topic[IO, List[AisPair]]
-    yield new BoatMqttClient(url, topic, messagesTopic, interrupter, rt)
+    yield new BoatMqttClient(url, topic, messagesTopic, interrupter)
     for
       client <- Resource.make(build)(_.close)
       // Consumes any messages regardless of whether there's subscribers
@@ -79,21 +80,20 @@ class BoatMqttClient(
   url: FullUrl,
   topic: String,
   messagesTopic: Topic[IO, List[AisPair]],
-  interrupter: SignallingRef[IO, Boolean],
-  rt: IORuntime
+  interrupter: SignallingRef[IO, Boolean]
 )(implicit
   t: Temporal[IO]
 ) extends AISSource:
-//  val interrupter = SignallingRef[IO, Boolean](false).unsafeRunSync()
   private val metadata = TrieMap.empty[Mmsi, VesselMetadata]
 
   private val maxBatchSize = 300
   private val sendTimeWindow = 5.seconds
-  def newStream: Resource[IO, MqttStream] = MqttStream(
-    MqttSettings(url, newClientId(), topic, user, pass),
-    rt
-  )
-  val oneConnection: Stream[IO, MqttStream.MqttPayload] =
+  private val backoffTime = 30.seconds
+  private val newStream: Resource[IO, MqttStream] =
+    Resource.eval(IO(newClientId())).flatMap { id =>
+      MqttStream(MqttSettings(url, id, topic, user, pass))
+    }
+  private val oneConnection: Stream[IO, MqttStream.MqttPayload] =
     Stream.resource(newStream).flatMap { s =>
       s.events
         .handleErrorWith[IO, MqttStream.MqttPayload] { e =>
@@ -104,10 +104,12 @@ class BoatMqttClient(
             }
         }
     }
-  val sleeper: Stream[IO, MqttStream.MqttPayload] =
-    Stream.sleep(30.seconds).flatMap(_ => Stream.empty)
-  val parsed: Stream[IO, Either[Error, AISMessage]] =
-    (oneConnection ++ sleeper).repeat
+  private val backoff: Stream[IO, MqttStream.MqttPayload] =
+    Stream.eval(IO(log.info(s"Reconnecting to '$url' in $backoffTime..."))) >>
+      Stream.sleep(backoffTime) >>
+      Stream.empty
+  private val parsed: Stream[IO, Either[Error, AISMessage]] =
+    (oneConnection ++ backoff).repeat
       .interruptWhen(interrupter)
       .map { msg =>
         val str = msg.payloadString

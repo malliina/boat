@@ -78,7 +78,7 @@ object Server extends IOApp:
     _ <- Resource.eval(users.initUser())
     trackInserts = TrackInserter(db)
     gps = DoobieGPSDatabase(db)
-    ais <- BoatMqttClient(conf.ais.enabled, AppMode.fromBuild, runtime)
+    ais <- BoatMqttClient(conf.ais.enabled, AppMode.fromBuild)
     streams <- BoatStreams(trackInserts, ais)
     deviceStreams <- GPSStreams(gps)
     http <- Resource.make(IO(HttpClientIO()))(c => IO(c.close()))
