@@ -37,7 +37,7 @@ class StaticService[F[_]]()(implicit s: Sync[F]) extends BasicService[F]:
       log.debug(s"Searching for '$file' at resource '$res'...")
       StaticFile
         .fromResource(res, Option(req))
-        .map(_.putHeaders(`Cache-Control`(cacheHeaders)))
+        .map(_.putHeaders(`Cache-Control`(cacheHeaders), "Access-Control-Allow-Origin" -> "*"))
         .fold(onNotFound(req))(_.pure[F])
         .flatten
   }

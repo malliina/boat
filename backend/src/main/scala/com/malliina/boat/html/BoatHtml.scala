@@ -12,7 +12,7 @@ import com.malliina.live.LiveReload
 import com.malliina.measure.DistanceM
 import com.malliina.values.WrappedString
 import org.http4s.Uri
-import scalatags.Text.all._
+import scalatags.Text.all.*
 import scalatags.Text
 import scala.language.implicitConversions
 
@@ -29,7 +29,8 @@ object BoatHtml:
     new BoatHtml(
       ScriptAssets(s"$assetPrefix-library.js", s"$assetPrefix-loader.js", s"$assetPrefix.js"),
       externalScripts,
-      Seq(s"$assetPrefix.css", "fonts.css", "styles.css")
+      Seq(s"$assetPrefix.css", "fonts.css", "styles.css"),
+      AssetsSource(isProd)
     )
 
   case class ScriptAssets(library: String, loader: String, app: String)
@@ -38,7 +39,7 @@ class BoatHtml(
   jsFiles: ScriptAssets,
   externalScripts: Seq[FullUrl],
   cssFiles: Seq[String],
-  assets: AssetsSource = HashedAssetsSource
+  assets: AssetsSource
 ): // extends Bootstrap(HtmlTags):
   val reverse = Reverse
 
@@ -153,7 +154,7 @@ class BoatHtml(
     classes: String,
     titleValue: String,
     more: AttrPair*
-  ): Frag = {
+  ): Frag =
     // Workaround until https://github.com/com-lihaoyi/scalatags/pull/232 is released, scalatags 0.11.0 is broken
     val myTag = tag.asInstanceOf[BaseTagType]
     myTag(
@@ -163,7 +164,6 @@ class BoatHtml(
       aria.hidden := "true",
       more
     )
-  }
 
   def page(pageConf: PageConf) = TagPage(
     html(
