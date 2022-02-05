@@ -285,6 +285,20 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#post-usersme" class="md-nav__link">
+    POST /users/me
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#post-usersmetokens" class="md-nav__link">
+    POST /users/me/tokens
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#patch-boatsboat_id" class="md-nav__link">
     PATCH /boats/:boat_id
   </a>
@@ -491,6 +505,20 @@
         <li class="md-nav__item">
   <a href="#put-usersme" class="md-nav__link">
     PUT /users/me
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#post-usersme" class="md-nav__link">
+    POST /users/me
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#post-usersmetokens" class="md-nav__link">
+    POST /users/me/tokens
   </a>
   
 </li>
@@ -754,6 +782,27 @@ granted to other users. Key <code>state</code> is any of the following:</p>
 </tr>
 </tbody>
 </table>
+<h2 id="post-usersme">POST /users/me</h2>
+<p>Use this endpoint to exchange an authorization code for an ID token. Provide the code in the JSON payload:</p>
+<pre><code>{
+    "code": "abcd1234"
+}
+</code></pre>
+<p>Returns an ID token:</p>
+<pre><code>{
+    "email": "santa@example.com",
+    "idToken": "abc.def.geh"
+}
+</code></pre>
+<p>Provide the returned ID token in the <em>Authorization</em> header of subsequent requests.</p>
+<h2 id="post-usersmetokens">POST /users/me/tokens</h2>
+<p>Refresh your ID token using this endpoint. Returns a refreshed ID token:</p>
+<pre><code>{
+    "email": "santa@example.com",
+    "idToken": "abc.def.geh"
+}
+</code></pre>
+<p>Call this endpoint if other endpoints respond with HTTP 403.</p>
 <h2 id="patch-boatsboat_id">PATCH /boats/:boat_id</h2>
 <p>Changes the name of the given boat:</p>
 <pre><code>{
