@@ -40,5 +40,5 @@ The frontend
 
 - is the web app at [www.boat-tracker.com](https://www.boat-tracker.com/)
 - updates live tracks as received from the backend
-- shows saved tracks for signed in users
+- shows saved tracks for signed-in users
 - provides a map view, table view and charts for visualization
