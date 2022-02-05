@@ -1,6 +1,5 @@
 package com.malliina.boat.client.server
 
-import cats.effect.unsafe.IORuntime
 import cats.effect.kernel.{Temporal, Resource}
 import cats.effect.IO
 import com.malliina.boat.client.DeviceAgent

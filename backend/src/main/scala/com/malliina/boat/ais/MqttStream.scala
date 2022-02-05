@@ -1,7 +1,6 @@
 package com.malliina.boat.ais
 
 import cats.effect.kernel.Resource
-import cats.effect.unsafe.IORuntime
 import cats.effect.std.Dispatcher
 import cats.effect.{Concurrent, IO, Async}
 import com.malliina.boat.ais.MqttStream.{MqttPayload, log}
