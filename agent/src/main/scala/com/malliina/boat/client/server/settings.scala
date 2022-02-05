@@ -1,5 +1,6 @@
 package com.malliina.boat.client.server
 
+import cats.effect.IO
 import com.malliina.boat.BoatToken
 import com.malliina.boat.client.server.Device.BoatDevice
 import com.malliina.boat.client.server.WebServer.{boatCharset, defaultHash, hash, log}
@@ -102,7 +103,7 @@ object AgentSettings:
 
   def saveConf(conf: BoatConf): Unit = save(conf.asJson.spaces2, confFile)
 
-  def saveAndReload(conf: BoatConf, instance: AgentInstance): Boolean =
+  def saveAndReload(conf: BoatConf, instance: AgentInstance): IO[Boolean] =
     saveConf(conf)
     instance.updateIfNecessary(conf)
 

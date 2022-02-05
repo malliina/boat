@@ -1,47 +1,53 @@
 package com.malliina.boat.client.server
 
 import cats.effect.unsafe.IORuntime
-import cats.effect.kernel.Temporal
+import cats.effect.kernel.{Temporal, Resource}
 import cats.effect.IO
 import com.malliina.boat.client.DeviceAgent
 import com.malliina.boat.client.server.Device.GpsDevice
 import com.malliina.http.FullUrl
 import okhttp3.OkHttpClient
+import fs2.concurrent.{SignallingRef, Topic}
+import fs2.Stream
 
 object AgentInstance:
-  def apply(
-    initial: Option[BoatConf],
+  def resource(
+    conf: Option[BoatConf],
     url: FullUrl,
-    http: OkHttpClient,
-//    t: Temporal[IO],
-    rt: IORuntime
-  ): AgentInstance =
-    new AgentInstance(initial, url, http)(rt)
+    http: OkHttpClient
+  ): Resource[IO, AgentInstance] =
+    for
+      agent <- Resource.eval(io(url, http))
+      _ <- agent.connections.compile.resource.lastOrError
+    yield agent
 
-class AgentInstance(initialConf: Option[BoatConf], url: FullUrl, http: OkHttpClient)(implicit
-  //  t: Temporal[IO],
-  rt: IORuntime
+  def io(url: FullUrl, http: OkHttpClient): IO[AgentInstance] =
+    for
+      topic <- Topic[IO, BoatConf]
+      interrupter <- SignallingRef[IO, Boolean](false)
+    yield AgentInstance(url, http, topic, interrupter)
+
+class AgentInstance(
+  url: FullUrl,
+  http: OkHttpClient,
+  confs: Topic[IO, BoatConf],
+  interrupter: SignallingRef[IO, Boolean]
 ):
-  private var conf: Option[BoatConf] = initialConf
-  private var resOpt = conf.map { c =>
-    val res = DeviceAgent(c, url, http).allocated.unsafeRunSync()
-    if c.enabled then res._1.connect().unsafeRunAndForget()
-    res
-  }
-//  if initialConf.exists(_.enabled) then agent.connect().unsafeRunAndForget()
-
-  def updateIfNecessary(newConf: BoatConf): Boolean = synchronized {
-    if !conf.contains(newConf) then
+  val connections: Stream[IO, Unit] = confs
+    .subscribe(100)
+    .flatMap { newConf =>
       val newUrl =
         if newConf.device == GpsDevice then DeviceAgent.DeviceUrl else DeviceAgent.BoatUrl
-      conf = Option(newConf)
-      resOpt.foreach(_._2.unsafeRunSync())
-//      val oldAgent = agent
-//      finalizer.unsafeRunSync()
-//      oldAgent.close()
-      val newRes = DeviceAgent(newConf, newUrl, http).allocated.unsafeRunSync()
-      resOpt = Option(newRes)
-      if newConf.enabled then newRes._1.connect().unsafeRunAndForget()
-      true
-    else false
-  }
+      Stream.eval(DeviceAgent.fromConf(newConf, newUrl, http)).flatMap { agent =>
+        // Interrupts the previous connection when a new conf appears
+        if newConf.enabled then
+          agent.connect.interruptWhen(confs.subscribe(1).take(1).map(_ => true))
+        else Stream.empty
+      }
+    }
+    .interruptWhen(interrupter)
+
+  def updateIfNecessary(newConf: BoatConf): IO[Boolean] =
+    confs.publish1(newConf).map { t => t.fold(closed => false, _ => true) }
+
+  def close: IO[Unit] = interrupter.set(true)

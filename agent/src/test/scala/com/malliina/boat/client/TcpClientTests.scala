@@ -1,10 +1,12 @@
 package com.malliina.boat.client
 
 import cats.effect.unsafe.implicits.global
-import cats.effect.IO
+import cats.effect.kernel.Resource
+import cats.effect.{IO, Resource}
 import com.comcast.ip4s.*
 import com.comcast.ip4s.{Host, Port}
 import com.malliina.boat.RawSentence
+import com.malliina.util.AppLogger
 import fs2.{Chunk, Stream}
 import fs2.io.net.{Network, Socket}
 
@@ -15,7 +17,7 @@ import scala.concurrent.Promise
 
 class TcpClientTests extends AsyncSuite:
 //  val socketsFixture = resource(Blocker[IO].flatMap { b => SocketGroup[IO](b) })
-  val log = Logging(getClass)
+  val log = AppLogger(getClass)
 
   test("client receives sentences over TCP socket") {
     val sentences = Seq(
@@ -66,7 +68,7 @@ class TcpClientTests extends AsyncSuite:
       assertEquals(List.empty[Unit], tcp.connect().compile.toList.unsafeRunSync())
   }
 
-  def tcpFixture(host: Host, port: Port) = resource(TcpClient.resource(host, port))
+  def tcpFixture(host: Host, port: Port) = resource(Resource.eval(TcpClient(host, port)))
 
 //  def tcpResource(host: String, port: Int) = for
 //    tcp <- TcpClient(host, port)

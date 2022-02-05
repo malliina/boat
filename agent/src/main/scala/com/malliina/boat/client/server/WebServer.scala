@@ -1,12 +1,13 @@
 package com.malliina.boat.client.server
 
 import cats.effect.IO
-import com.malliina.boat.client.{Logging, TcpClient}
+import com.malliina.boat.client.TcpClient
 import com.malliina.boat.client.TcpClient.{port, host}
 import com.malliina.boat.client.server.AgentHtml.{asHtml, boatForm}
 import com.malliina.boat.client.server.AgentSettings.{readConf, saveAndReload}
 import com.malliina.boat.client.server.WebServer.settingsUri
 import com.malliina.boat.{BoatToken, Errors, Readable}
+import com.malliina.util.AppLogger
 import io.circe.syntax.EncoderOps
 import org.apache.commons.codec.digest.DigestUtils
 import org.http4s.circe.CirceInstances
@@ -27,7 +28,7 @@ trait AppImplicits
   with ScalatagsEncoder
 
 object WebServer:
-  val log = Logging(getClass)
+  val log = AppLogger(getClass)
   val boatCharset = StandardCharsets.UTF_8
   // MD5 hash of the default password "boat"
   val defaultHash = "dd8fc45d87f91c6f9a9f43a3f355a94a"
@@ -36,9 +37,6 @@ object WebServer:
   val changePassUri = uri"/init"
   val settingsPath = "settings"
   val settingsUri = uri"/settings"
-
-  def apply(agentInstance: AgentInstance): WebServer =
-    new WebServer(agentInstance)
 
   def hash(pass: String): String = DigestUtils.md5Hex(pass)
 

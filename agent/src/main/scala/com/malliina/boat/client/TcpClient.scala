@@ -5,6 +5,7 @@ import cats.effect.{Concurrent, IO, Resource}
 import com.malliina.boat.client.TcpClient.{charset, log}
 import com.malliina.boat.client.server.Device.GpsDevice
 import com.malliina.boat.{RawSentence, Readable, SentencesMessage}
+import com.malliina.util.AppLogger
 import fs2.concurrent.Topic
 import fs2.io.net.{Network, Socket}
 import fs2.{Chunk, Pipe, Pull, Stream, text}
@@ -19,7 +20,7 @@ import java.nio.{ByteBuffer, CharBuffer}
 import java.util.concurrent.atomic.{AtomicBoolean, AtomicReference}
 
 object TcpClient:
-  private val log = Logging(getClass)
+  private val log = AppLogger(getClass)
 
   private val crlf = "\r\n"
   private val lf = "\n"
@@ -35,12 +36,7 @@ object TcpClient:
   val watchMessage =
     s"${GpsDevice.watchCommand}$linefeed".getBytes(charset)
 
-  def resource(host: Host, port: Port, delimiter: String = linefeed)(implicit
-    t: Temporal[IO]
-  ): Resource[IO, TcpClient] = for client <- Resource.eval(apply(host, port, delimiter))
-  yield client
-
-  def apply(host: Host, port: Port, delimiter: String)(implicit
+  def apply(host: Host, port: Port, delimiter: String = linefeed)(implicit
     t: Temporal[IO]
   ): IO[TcpClient] = for topic <- Topic[IO, SentencesMessage]
   yield new TcpClient(host, port, delimiter, topic)
@@ -55,10 +51,9 @@ class TcpClient(
   private val active = new AtomicReference[Option[Socket[IO]]]
   private val enabled = new AtomicBoolean(true)
   // Sends after maxBatchSize sentences have been collected or every sendTimeWindow, whichever comes first
-  val maxBatchSize = 100
-  val sendTimeWindow = 500.millis
-  val reconnectInterval = 2.second
-  val maxLength = RawSentence.MaxLength + 10
+  private val maxBatchSize = 100
+  private val sendTimeWindow = 500.millis
+  private val reconnectInterval = 2.second
 
   val sentencesHub = topic.subscribe(10)
 
@@ -77,14 +72,14 @@ class TcpClient(
         .map(s => RawSentence(s.trim))
         .groupWithin(maxBatchSize, sendTimeWindow)
         .map(chunk => SentencesMessage(chunk.toList))
-      outMessages ++ inMessages.evalMap(m =>
+      outMessages ++ inMessages.evalMap { m =>
         topic.publish1(m).map { e =>
           e.fold(
             closed => log.warn(s"Topic closed, failed to publish '$m' from $hostPort."),
             identity
           )
         }
-      )
+      }
   }
 
   private def connections: Stream[IO, Socket[IO]] =

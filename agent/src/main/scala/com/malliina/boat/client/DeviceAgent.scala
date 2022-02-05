@@ -1,13 +1,12 @@
 package com.malliina.boat.client
 
-import cats.effect.kernel.{Temporal, Resource}
+import cats.effect.kernel.{Resource, Temporal}
 import cats.effect.IO
-import cats.effect.unsafe.IORuntime
 import com.malliina.boat.Constants.BoatTokenHeader
 import com.malliina.boat.client.server.BoatConf
 import com.malliina.boat.client.server.Device.GpsDevice
 import com.malliina.http.FullUrl
-import com.malliina.http.io.WebSocketIO
+import com.malliina.http.io.{SocketEvent, WebSocketIO}
 import fs2.Stream
 import okhttp3.OkHttpClient
 
@@ -17,16 +16,15 @@ object DeviceAgent:
   val BoatUrl = Host / "/ws/boats"
   val DeviceUrl = Host / "/ws/devices"
 
-  def apply(conf: BoatConf, url: FullUrl, http: OkHttpClient)(implicit
-    t: Temporal[IO],
-    rt: IORuntime
-  ): Resource[IO, DeviceAgent] =
+  def fromConf(conf: BoatConf, url: FullUrl, http: OkHttpClient)(implicit
+    t: Temporal[IO]
+  ): IO[DeviceAgent] =
     val headers = conf.token.toList.map(t => BoatTokenHeader -> t.token).toMap
     val isGps = conf.device == GpsDevice
     for
-      tcp <- TcpClient.resource(conf.host, conf.port, TcpClient.linefeed)
-      ws <- Resource.eval(WebSocketIO(url, headers, http))
-    yield new DeviceAgent(tcp, ws, isGps)
+      tcp <- TcpClient(conf.host, conf.port, TcpClient.linefeed)
+      ws <- WebSocketIO(url, headers, http)
+    yield DeviceAgent(tcp, ws, isGps)
 
 /** Connects a TCP source to a WebSocket.
   *
@@ -35,26 +33,19 @@ object DeviceAgent:
   * @param url
   *   URL to boat-tracker websocket
   */
-class DeviceAgent(tcp: TcpClient, ws: WebSocketIO, isGps: Boolean)(implicit
-  t: Temporal[IO],
-  rt: IORuntime
-):
+class DeviceAgent(tcp: TcpClient, ws: WebSocketIO, isGps: Boolean)(implicit t: Temporal[IO]):
   val toServer: Stream[IO, Array[Byte]] =
     if isGps then Stream.emit(TcpClient.watchMessage) ++ Stream.empty
     else Stream.empty
 
   /** Opens a TCP connection to the plotter and a WebSocket to the server. Reconnects on failures.
     */
-  def connect(): IO[Unit] =
-    tcp.connect(toServer.flatMap(arr => Stream.emits(arr))).compile.drain.unsafeRunAndForget()
-//    tcp.unsafeConnect(toServer.flatMap(arr => Stream.emits(arr)))
-    ws.open()
-    tcp.sentencesHub
-      .evalMap(s => IO.pure(ws.send(s)))
-      .compile
-      .drain
-
-//  def unsafeConnect(): Unit = connect().unsafeRunAndForget()
+  def connect: Stream[IO, Unit] =
+    val tcpConnection: Stream[IO, Unit] = tcp.connect(toServer.flatMap(arr => Stream.emits(arr)))
+    val webSocketConnection: Stream[IO, SocketEvent] = ws.events
+    val connections = tcpConnection.concurrently(webSocketConnection)
+    val sendStream = tcp.sentencesHub.evalMap(s => IO(ws.send(s)))
+    connections.concurrently(sendStream).onFinalize(IO(close()))
 
   def close(): Unit =
     tcp.close()
