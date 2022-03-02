@@ -26,8 +26,11 @@ object BoatHtml:
     val opt = if isProd then "opt" else "fastopt"
     val assetPrefix = s"$name-$opt"
     val externalScripts = if isProd then Nil else FullUrl.build(LiveReload.script).toSeq
+    val appScripts =
+      if isProd then Seq(s"$assetPrefix-bundle.js")
+      else Seq(s"$assetPrefix-library.js", s"$assetPrefix-loader.js", s"$assetPrefix.js")
     new BoatHtml(
-      ScriptAssets(s"$assetPrefix-library.js", s"$assetPrefix-loader.js", s"$assetPrefix.js"),
+      appScripts,
       externalScripts,
       Seq(s"$assetPrefix.css", "fonts.css", "styles.css"),
       AssetsSource(isProd)
@@ -36,7 +39,7 @@ object BoatHtml:
   case class ScriptAssets(library: String, loader: String, app: String)
 
 class BoatHtml(
-  jsFiles: ScriptAssets,
+  jsFiles: Seq[String],
   externalScripts: Seq[FullUrl],
   cssFiles: Seq[String],
   assets: AssetsSource
@@ -188,7 +191,7 @@ class BoatHtml(
       ),
       body(`class` := pageConf.bodyClasses.mkString(" "))(
         pageConf.content,
-        Seq(jsFiles.library, jsFiles.loader, jsFiles.app).map { jsFile =>
+        jsFiles.map { jsFile =>
           script(`type` := "text/javascript", src := versioned(jsFile))
         },
         externalScripts.map { url =>
