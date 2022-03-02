@@ -53,7 +53,8 @@ class ProdAppComps(conf: BoatConf, http: HttpClient[IO]) extends AppComps:
 
 object Server extends IOApp:
   val log = AppLogger(getClass)
-  val port = 9000
+
+  val port = sys.env.get("SERVER_PORT").flatMap(_.toIntOption).getOrElse(9000)
 
   def server(
     conf: BoatConf,
