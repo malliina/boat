@@ -1,4 +1,3 @@
-import com.malliina.http.FullUrl
 import sbtcrossproject.CrossPlugin.autoImport.{CrossType => PortableType, crossProject => portableProject}
 import sbtrelease.ReleasePlugin.autoImport.{ReleaseStep, releaseProcess}
 import sbtrelease.ReleaseStateTransformations._
@@ -8,13 +7,13 @@ import scala.sys.process.Process
 import scala.util.Try
 
 val mapboxVersion = "2.5.1"
-val webAuthVersion = "6.1.5"
+val webAuthVersion = "6.2.0"
 val munitVersion = "0.7.29"
-val testContainersScalaVersion = "0.40.0"
-val scalaTagsVersion = "0.11.0"
-val primitiveVersion = "3.1.0"
-val logstreamsVersion = "2.0.2"
-val http4sVersion = "0.23.9"
+val testContainersScalaVersion = "0.40.2"
+val scalaTagsVersion = "0.11.1"
+val primitiveVersion = "3.1.2"
+val logstreamsVersion = "2.1.1"
+val http4sVersion = "0.23.10"
 // Do not upgrade to 11.0.2 because it depends on slf4j-api alpha versions, breaking logging
 val alpnVersion = "9.4.40.v20210413"
 val webAuthDep = "com.malliina" %% "web-auth" % webAuthVersion
@@ -23,10 +22,9 @@ val webAuthTestDep = webAuthDep % Test classifier "tests"
 val munitDep = "org.scalameta" %% "munit" % munitVersion % Test
 val circeModules = Seq("generic", "parser")
 
-val buildAndUpload = taskKey[FullUrl]("Uploads to S3")
+val buildAndUpload = taskKey[String]("Uploads to S3, returns a URL")
 val upFiles = taskKey[Seq[String]]("lists")
 val deployDocs = taskKey[Unit]("Deploys documentation")
-val prodPort = 9000
 
 ThisBuild / parallelExecution := false
 Global / concurrentRestrictions += Tags.limit(Tags.Test, 1)
@@ -42,7 +40,16 @@ inThisBuild(
     deployDocs := Process("mkdocs gh-deploy").run(streams.value.log).exitValue(),
     Compile / packageDoc / publishArtifact := false,
     packageDoc / publishArtifact := false,
-    Compile / doc / sources := Seq.empty
+    Compile / doc / sources := Seq.empty,
+    assemblyMergeStrategy := {
+      case PathList("META-INF", "io.netty.versions.properties") => MergeStrategy.rename
+      case PathList("META-INF", "versions", xs @ _*) => MergeStrategy.rename
+      case PathList("com", "malliina", xs @ _*)         => MergeStrategy.first
+      case PathList("module-info.class")         => MergeStrategy.first
+      case x =>
+        val oldStrategy = (ThisBuild / assemblyMergeStrategy).value
+        oldStrategy(x)
+    }
   )
 )
 
@@ -108,18 +115,7 @@ val frontend = project
       "style-loader" -> "3.3.1",
       "webpack-merge" -> "5.8.0"
     ),
-    webpack / version := "5.65.0",
-    webpackCliVersion := "4.9.1",
-    startWebpackDevServer / version := "4.5.0",
-    webpackEmitSourceMaps := true,
-    scalaJSUseMainModuleInitializer := true,
     webpackBundlingMode := BundlingMode.LibraryOnly(),
-    fastOptJS / webpackConfigFile := Some(
-      baseDirectory.value / "webpack.dev.config.js"
-    ),
-    fullOptJS / webpackConfigFile := Some(
-      baseDirectory.value / "webpack.prod.config.js"
-    ),
     Compile / fullOptJS / scalaJSLinkerConfig ~= { _.withSourceMap(false) }
   )
 
@@ -128,7 +124,7 @@ val config = project
   .settings(jvmSettings)
   .settings(
     libraryDependencies ++= Seq(
-      "com.typesafe" % "config" % "1.4.1",
+      "com.typesafe" % "config" % "1.4.2",
       "com.malliina" %% "primitives" % primitiveVersion
     )
   )
@@ -159,15 +155,14 @@ val backend = Project("boat", file("backend"))
     } ++ Seq("server", "client").map { m =>
       "org.eclipse.jetty" % s"jetty-alpn-java-$m" % alpnVersion
     } ++ Seq(
-      "com.typesafe" % "config" % "1.4.1",
       "com.vividsolutions" % "jts" % "1.13",
       "mysql" % "mysql-connector-java" % "5.1.49",
       "org.flywaydb" % "flyway-core" % "7.15.0",
       "org.apache.commons" % "commons-text" % "1.9",
       "com.amazonaws" % "aws-java-sdk-s3" % "1.12.150",
       "com.malliina" %% "logstreams-client" % logstreamsVersion,
-      "com.malliina" %% "mobile-push-io" % "3.1.0",
-      "org.slf4j" % "slf4j-api" % "1.7.35",
+      "com.malliina" %% "mobile-push-io" % "3.4.1",
+      "org.slf4j" % "slf4j-api" % "1.7.36",
       "org.eclipse.paho" % "org.eclipse.paho.client.mqttv3" % "1.2.5",
       utilHtmlDep,
       webAuthDep,
@@ -186,30 +181,23 @@ val backend = Project("boat", file("backend"))
     ),
     buildInfoPackage := "com.malliina.boat",
     // linux packaging
-    Linux / httpPort := Option(s"$prodPort"),
-    Linux / httpsPort := Option("disabled"),
     maintainer := "Michael Skogberg <malliina123@gmail.com>",
-    Universal / javaOptions ++= {
-      Seq(
-        "-J-Xmx1024m",
-        s"-Dpidfile.path=/dev/null",
-        "-Dlogback.configurationFile=logback-prod.xml"
-      )
-    },
+    Universal / javaOptions ++= Seq(
+      "-J-Xmx1024m",
+      s"-Dpidfile.path=/dev/null",
+      "-Dlogback.configurationFile=logback-prod.xml"
+    ),
     releaseProcess := Seq[ReleaseStep](
       releaseStepTask(Compile / clean),
-      checkSnapshotDependencies,
-      releaseStepTask(ciBuild)
+      checkSnapshotDependencies
+      //releaseStepTask(ciBuild)
     ),
-    dockerVersion := Option(DockerVersion(19, 3, 5, None)),
-    dockerBaseImage := "openjdk:11",
-    Docker / daemonUser := "boat",
-    Docker / version := gitHash,
-    dockerRepository := Option("malliinacr.azurecr.io"),
-    dockerExposedPorts ++= Seq(prodPort),
     Compile / packageDoc / publishArtifact := false,
     packageDoc / publishArtifact := false,
-    Compile / doc / sources := Seq.empty
+    Compile / doc / sources := Seq.empty,
+    Compile / unmanagedResourceDirectories += baseDirectory.value / "public",
+    Compile / unmanagedResourceDirectories += (frontend / Compile / assetsRoot).value.getParent.toFile,
+    assembly / assemblyJarName := "app.jar"
   )
 
 val agent = project
@@ -253,7 +241,7 @@ val agent = project
     buildAndUpload := {
       val debFile = (Debian / packageBin).value
       val filename = S3Client.upload(debFile.toPath)
-      val url = FullUrl("https", "www.boat-tracker.com", s"/files/$filename")
+      val url = s"https://www.boat-tracker.com/files/$filename"
       streams.value.log.info(s"Uploaded package to '$url'.")
       url
     },
@@ -293,7 +281,7 @@ val utils = project
       "org.geotools" % s"gt-$m" % "23.0" exclude ("javax.media", "jai_core")
     } ++ Seq(
       "ch.qos.logback" % "logback-classic" % "1.2.10",
-      "org.slf4j" % "slf4j-api" % "1.7.35",
+      "org.slf4j" % "slf4j-api" % "1.7.36",
       "javax.media" % "jai_core" % "1.1.3",
       munitDep
     ),

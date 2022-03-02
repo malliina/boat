@@ -35,8 +35,9 @@ object LocalConf:
   val homeDir = FileUtils.userHome
   val appDir = homeDir.resolve(".boat")
   val localConfFile = appDir.resolve("boat.conf")
+  val isProd = BuildInfo.mode == "prod"
   val localConf = ConfigFactory.parseFile(localConfFile.toFile).withFallback(ConfigFactory.load())
-
+  val conf = if isProd then ConfigFactory.load("application-prod.conf") else localConf
 case class MapboxConf(token: AccessToken)
 case class AisAppConf(enabled: Boolean)
 case class AppleConf(id: ClientId)
@@ -72,7 +73,7 @@ object BoatConf:
     ConfigReadable.string.map(s => ClientSecret(s))
 
   def parse(
-    c: Config = ConfigFactory.load(LocalConf.localConf).resolve().getConfig("boat")
+    c: Config = ConfigFactory.load(LocalConf.conf).resolve().getConfig("boat")
   ): BoatConf =
     val google = c.getConfig("google")
     val ios = google.getConfig("ios")

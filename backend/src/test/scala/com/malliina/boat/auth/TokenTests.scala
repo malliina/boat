@@ -12,7 +12,7 @@ import java.time.Instant
 import scala.jdk.CollectionConverters.MapHasAsScala
 
 class TokenTests extends BaseSuite:
-  val boatConf = LocalConf.localConf.getConfig("boat")
+  val boatConf = LocalConf.conf.getConfig("boat")
 
   test("google token validation".ignore) {
     val in = "token_here"

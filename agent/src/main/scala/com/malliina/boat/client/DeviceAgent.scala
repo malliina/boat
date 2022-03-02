@@ -11,18 +11,18 @@ import fs2.Stream
 import okhttp3.OkHttpClient
 
 object DeviceAgent:
-  val Host = FullUrl("wss", "api.boat-tracker.com", "")
+  val Host: FullUrl = FullUrl("wss", "api.boat-tracker.com", "")
 //  val Host = FullUrl("ws", "localhost:9000", "")
-  val BoatUrl = Host / "/ws/boats"
-  val DeviceUrl = Host / "/ws/devices"
+  val BoatUrl: FullUrl = Host / "/ws/boats"
+  val DeviceUrl: FullUrl = Host / "/ws/devices"
 
   def fromConf(conf: BoatConf, url: FullUrl, http: OkHttpClient)(implicit
     t: Temporal[IO]
-  ): IO[DeviceAgent] =
+  ): Resource[IO, DeviceAgent] =
     val headers = conf.token.toList.map(t => BoatTokenHeader -> t.token).toMap
     val isGps = conf.device == GpsDevice
     for
-      tcp <- TcpClient(conf.host, conf.port, TcpClient.linefeed)
+      tcp <- Resource.eval(TcpClient.default(conf.host, conf.port, TcpClient.linefeed))
       ws <- WebSocketIO(url, headers, http)
     yield DeviceAgent(tcp, ws, isGps)
 
@@ -45,8 +45,7 @@ class DeviceAgent(tcp: TcpClient, ws: WebSocketIO, isGps: Boolean)(implicit t: T
     val webSocketConnection: Stream[IO, SocketEvent] = ws.events
     val connections = tcpConnection.concurrently(webSocketConnection)
     val sendStream = tcp.sentencesHub.evalMap(s => IO(ws.send(s)))
-    connections.concurrently(sendStream).onFinalize(IO(close()))
+    connections.concurrently(sendStream).onFinalize(close)
 
-  def close(): Unit =
-    tcp.close()
-    ws.close()
+  def close: IO[Unit] =
+    IO(tcp.close()) >> ws.close

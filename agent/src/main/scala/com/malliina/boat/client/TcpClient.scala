@@ -24,7 +24,7 @@ object TcpClient:
 
   private val crlf = "\r\n"
   private val lf = "\n"
-  val linefeed = crlf
+  val linefeed: String = crlf
   val charset = StandardCharsets.US_ASCII
 
   implicit val host: Readable[Host] =
@@ -36,10 +36,10 @@ object TcpClient:
   val watchMessage =
     s"${GpsDevice.watchCommand}$linefeed".getBytes(charset)
 
-  def apply(host: Host, port: Port, delimiter: String = linefeed)(implicit
+  def default(host: Host, port: Port, delimiter: String = linefeed)(implicit
     t: Temporal[IO]
   ): IO[TcpClient] = for topic <- Topic[IO, SentencesMessage]
-  yield new TcpClient(host, port, delimiter, topic)
+  yield TcpClient(host, port, delimiter, topic)
 
 class TcpClient(
   host: Host,
@@ -55,7 +55,7 @@ class TcpClient(
   private val sendTimeWindow = 500.millis
   private val reconnectInterval = 2.second
 
-  val sentencesHub = topic.subscribe(10)
+  val sentencesHub: Stream[IO, SentencesMessage] = topic.subscribe(10)
 
   /** Connects to `host:port`. Reconnects on failure.
     *

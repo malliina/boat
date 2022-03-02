@@ -1,18 +1,25 @@
 package com.malliina.boat.client
 
 import cats.effect.unsafe.implicits.global
+import cats.effect.IO
 import com.malliina.boat.{Constants, RawSentence, SentencesMessage}
 import com.malliina.http.FullUrl
 import com.malliina.http.io.HttpClientIO
 import com.malliina.http.io.WebSocketIO
-import com.malliina.http.io.SocketEvent.Open
+import com.malliina.http.io.SocketEvent.{Open, TextMessage}
 
 class WebSocketClientTests extends AsyncSuite:
   test("can connect to api.boat-tracker.com".ignore) {
-    val socket = WebSocketIO(DeviceAgent.BoatUrl, Map.empty, HttpClientIO().client).unsafeRunSync()
-    socket.events.collect { case o @ Open(_, _) =>
-      o
-    }.take(1).compile.toList.unsafeRunSync().take(1)
+    val socketResource = for
+      http <- HttpClientIO.resource
+      socket <- WebSocketIO(DeviceAgent.BoatUrl, Map.empty, http.client)
+    yield socket
+    socketResource.use { socket =>
+      socket.events.collect { case o @ Open(_, _) =>
+        o
+      }.take(1).compile.toList.unsafeRunSync().take(1)
+      IO.unit
+    }.unsafeRunSync()
   }
 
   test("connect boat to boat-tracker.com".ignore) {
@@ -30,11 +37,16 @@ class WebSocketClientTests extends AsyncSuite:
     ).map(RawSentence.apply)
     val msg = SentencesMessage(samples)
     val token = "todo"
-    val client = WebSocketIO(url, Map(Constants.BoatTokenHeader -> token), HttpClientIO().client)
-      .unsafeRunSync()
-    try
-      client.open()
-      client.send(msg)
-      client.messages.map(msg => println(msg)).compile.drain.unsafeRunSync()
-    finally client.close()
+    val socketResource = for
+      http <- HttpClientIO.resource
+      socket <- WebSocketIO(url, Map(Constants.BoatTokenHeader -> token), http.client)
+    yield socket
+    socketResource.use { (client: WebSocketIO) =>
+      val stream = client.events.evalMap {
+        case Open(_, _) => client.send(msg)
+        case TextMessage(socket, message) => IO(println(message))
+        case _ => IO.unit
+      }
+      stream.compile.drain
+    }
   }

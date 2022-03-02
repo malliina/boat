@@ -55,8 +55,8 @@ trait BoatSockets:
   def openSocket[T](url: FullUrl, headers: List[KeyValue], httpClient: HttpClientIO)(
     code: WebSocketIO => T
   ): T =
-    val socket = WebSocketIO(url, headers.map(kv => kv.key -> kv.value).toMap, httpClient.client)
-      .unsafeRunSync()
+    val (socket, closer) = WebSocketIO(url, headers.map(kv => kv.key -> kv.value).toMap, httpClient.client)
+      .allocated.unsafeRunSync()
     try
       socket.allEvents.compile.drain.unsafeRunAndForget()
       val opens = socket.events.collect { case o @ Open(_, _) =>
@@ -64,10 +64,10 @@ trait BoatSockets:
       }
       opens.take(1).compile.toList.unsafeRunSync()
       code(socket)
-    finally socket.close()
+    finally closer.unsafeRunSync()
 
   class TestBoat(val socket: WebSocketIO):
-    def send[T: Encoder](t: T) = socket.send(t)
-    def close(): Unit = socket.close()
+    def send[T: Encoder](t: T) = socket.send(t).unsafeRunSync()
+    def close(): Unit = socket.close.unsafeRunSync()
 
 case class Creds(user: Username, pass: Password)

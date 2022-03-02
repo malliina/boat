@@ -37,12 +37,16 @@ class AgentInstance(
     .flatMap { newConf =>
       val newUrl =
         if newConf.device == GpsDevice then DeviceAgent.DeviceUrl else DeviceAgent.BoatUrl
-      Stream.eval(DeviceAgent.fromConf(newConf, newUrl, http)).flatMap { agent =>
+      val io = DeviceAgent.fromConf(newConf, newUrl, http).use { agent =>
         // Interrupts the previous connection when a new conf appears
-        if newConf.enabled then
-          agent.connect.interruptWhen(confs.subscribe(1).take(1).map(_ => true))
-        else Stream.empty
+        val stream =
+          if newConf.enabled then
+            agent.connect.interruptWhen(confs.subscribe(1).take(1).map(_ => true))
+          else
+            Stream.empty
+        stream.compile.drain
       }
+      Stream.eval(io)
     }
     .interruptWhen(interrupter)
 

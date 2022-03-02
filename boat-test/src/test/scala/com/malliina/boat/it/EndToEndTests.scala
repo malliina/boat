@@ -53,7 +53,7 @@ class EndToEndTests extends BoatTests:
       .unsafeRunAndForget()
     val serverUrl = s.baseWsUrl.append(reverse.ws.boats.renderString)
     val clientIO: IO[Unit] =
-      DeviceAgent.fromConf(BoatConf.anon(tcpHost, tcpPort), serverUrl, httpClient.client).flatMap {
+      DeviceAgent.fromConf(BoatConf.anon(tcpHost, tcpPort), serverUrl, httpClient.client).use {
         agent =>
           agent.connect.compile.resource.lastOrError.use { _ =>
             IO(await(firstMessage.future.map(_ => ()), 5.seconds))

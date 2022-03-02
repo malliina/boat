@@ -47,7 +47,7 @@ class TcpClientTests extends AsyncSuite:
 
     // client connects to pretend-plotter
     val p = Promise[RawSentence]()
-    val client = TcpClient(tcpHost, tcpPort, TcpClient.linefeed).unsafeRunSync()
+    val client = TcpClient.default(tcpHost, tcpPort, TcpClient.linefeed).unsafeRunSync()
     client.connect(Stream.empty).compile.drain.unsafeRunAndForget()
     client.sentencesHub
       .take(1)
@@ -68,7 +68,7 @@ class TcpClientTests extends AsyncSuite:
       assertEquals(List.empty[Unit], tcp.connect().compile.toList.unsafeRunSync())
   }
 
-  def tcpFixture(host: Host, port: Port) = resource(Resource.eval(TcpClient(host, port)))
+  def tcpFixture(host: Host, port: Port) = resource(Resource.eval(TcpClient.default(host, port)))
 
 //  def tcpResource(host: String, port: Int) = for
 //    tcp <- TcpClient(host, port)
