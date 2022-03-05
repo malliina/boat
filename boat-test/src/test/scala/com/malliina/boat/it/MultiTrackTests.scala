@@ -1,5 +1,6 @@
 package com.malliina.boat.it
 
+import cats.effect.IO
 import com.malliina.boat.{RawSentence, SentencesMessage}
 import com.malliina.http.FullUrl
 import tests.AsyncSuite
@@ -34,7 +35,8 @@ class MultiTrackTests extends AsyncSuite with BoatSockets:
     openRandomBoat(url, httpClient) { boat1 =>
       boat1.send(msg(track1))
       openRandomBoat(url, httpClient) { boat2 =>
-        boat2.send(msg(track2))
+        boat2.socket.send(msg(track2))
       }
+      IO.unit
     }
   }

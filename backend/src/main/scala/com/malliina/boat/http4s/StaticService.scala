@@ -17,14 +17,14 @@ object StaticService:
   private val log = AppLogger(getClass)
 
 class StaticService[F[_]]()(implicit s: Sync[F]) extends BasicService[F]:
-  val fontExtensions = List(".woff", ".woff2", ".eot", ".ttf")
-  val supportedStaticExtensions =
+  private val fontExtensions = List(".woff", ".woff2", ".eot", ".ttf")
+  private val supportedStaticExtensions =
     List(".html", ".js", ".map", ".css", ".png", ".ico", ".svg", ".map") ++ fontExtensions
 
-  val prefix = HashedAssets.prefix
+  private val prefix = HashedAssets.prefix
   //  val routes = resourceService[F](ResourceService.Config("/db", blocker))
   //  val routes = fileService(FileService.Config("./public", blocker))
-  val routes = HttpRoutes.of[F] {
+  val routes: HttpRoutes[F] = HttpRoutes.of[F] {
     case req @ GET -> rest if supportedStaticExtensions.exists(rest.toString.endsWith) =>
       val file = UnixPath(rest.segments.mkString("/"))
       val isCacheable =

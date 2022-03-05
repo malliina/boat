@@ -285,6 +285,7 @@ class Service(comps: BoatComps) extends BasicService[IO]:
       auth
         .authBoat(req.headers)
         .flatMap { boat =>
+          log.info(s"Boat ${boat.boat} connected.")
           val boatTrack = boat.withTrack(TrackNames.random())
           inserts.joinAsBoat(boatTrack).flatMap { meta =>
             push

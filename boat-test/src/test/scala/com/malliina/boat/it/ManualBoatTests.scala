@@ -3,6 +3,7 @@ package com.malliina.boat.it
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 
+import cats.effect.IO
 import com.malliina.boat.{BoatNames, BoatToken, BoatTokens, RawSentence, SentencesMessage}
 import com.malliina.http.FullUrl
 import com.malliina.util.FileUtils
@@ -24,13 +25,11 @@ class ManualBoatTests extends BoatTests:
   def url = FullUrl.wss("www.boat-tracker.com", reverse.ws.boats.renderString)
 
   http.test("local GPS reporting".ignore) { httpClient =>
-    //    println("Lines " + gpsSentences.toList.length)
     val testMessages = relevantSentences.toList.grouped(1000).map(SentencesMessage.apply).toList
     openRandomBoat(url, httpClient) { boat =>
-      testMessages.zipWithIndex.map { case (msg, idx) =>
+      IO.parTraverseN(1)(testMessages.zipWithIndex) { case (msg, idx) =>
         println(s"Sending batch $idx/${testMessages.length}...")
-        boat.send(msg)
-        Thread.sleep(5000)
+        boat.socket.send(msg) >> IO.sleep(5.seconds)
       }
     }
   }
@@ -39,9 +38,8 @@ class ManualBoatTests extends BoatTests:
     val testMessages =
       relevantSentences.toList.grouped(30).map(SentencesMessage.apply).slice(50, 100).toList
     openRandomBoat(url, httpClient) { boat =>
-      testMessages.foreach { msg =>
-        boat.send(msg)
-        Thread.sleep(500)
+      IO.parTraverseN(1)(testMessages) { msg =>
+        boat.socket.send(msg) >> IO.sleep(500.millis)
       }
     }
   }
@@ -51,9 +49,8 @@ class ManualBoatTests extends BoatTests:
     val testMessages =
       relevantSentences.toList.grouped(30).map(SentencesMessage.apply).slice(50, 100).toList
     openBoat(url, Right(token), httpClient) { boat =>
-      testMessages.foreach { msg =>
-        boat.send(msg)
-        Thread.sleep(500)
+      IO.parTraverseN(1)(testMessages) { msg =>
+        boat.socket.send(msg) >> IO.sleep(500.millis)
       }
     }
   }
@@ -68,6 +65,6 @@ class ManualBoatTests extends BoatTests:
   http.test("boat can connect".ignore) { httpClient =>
     val token = BoatToken("todo")
     openBoat(url, Right(token), httpClient) { boat =>
-      Thread.sleep(10000)
+      IO.sleep(10.seconds)
     }
   }

@@ -59,10 +59,9 @@ class EndToEndTests extends BoatTests:
             IO(await(firstMessage.future.map(_ => ()), 5.seconds))
           }
       }
-
     openViewerSocket(httpClient, None) { socket =>
       socket.jsonMessages.map { json =>
-        log.debug(s"Viewer got JSON\\n$json...")
+        log.info(s"Viewer got JSON\\n$json...")
         firstMessage.trySuccess(json)
         json.as[CoordsEvent].toOption.foreach { ce =>
           coordsPromise.trySuccess(ce)
@@ -70,6 +69,6 @@ class EndToEndTests extends BoatTests:
       }.compile.drain.unsafeRunAndForget()
       clientIO.unsafeRunAndForget()
       await(firstMessage.future, 5.seconds)
-      await(coordsPromise.future, 5.seconds).coords
+      IO(await(coordsPromise.future, 5.seconds).coords)
     }
   }

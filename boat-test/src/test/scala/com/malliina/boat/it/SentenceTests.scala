@@ -1,5 +1,6 @@
 package com.malliina.boat.it
 
+import cats.effect.IO
 import com.malliina.boat.*
 import com.malliina.boat.db.NewUser
 import com.malliina.values.{Password, Username}
@@ -26,7 +27,9 @@ class SentenceTests extends BoatTests:
         val coords = await(coordPromise.future).coords
         val expectedCoords = List(Coord.buildOrFail(24.867495, 60.133465))
         assertEquals(coords.map(_.coord), expectedCoords)
+        IO.unit
       }
+      IO.unit
     }
   }
 
@@ -62,7 +65,10 @@ class SentenceTests extends BoatTests:
           intercept[TimeoutException] {
             Await.result(anonPromise.future, 500.millis)
           }
+          IO.unit
         }
+        IO.unit
       }
+      IO.unit
     }
   }

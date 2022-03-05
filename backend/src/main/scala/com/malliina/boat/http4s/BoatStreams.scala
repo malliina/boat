@@ -36,7 +36,7 @@ class BoatStreams(
   saved: Topic[IO, SavedEvent]
 ):
   private val trackState = TrackManager()
-  val sentencesSource = boatIn
+  private val sentencesSource = boatIn
     .subscribe(100)
     .collect { case be @ BoatEvent(message, from) =>
       be

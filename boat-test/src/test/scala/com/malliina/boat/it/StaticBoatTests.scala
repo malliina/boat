@@ -1,5 +1,6 @@
 package com.malliina.boat.it
 
+import cats.effect.IO
 import com.malliina.boat.*
 import com.malliina.util.AppLogger
 
@@ -39,6 +40,8 @@ class StaticBoatTests extends BoatTests:
         assertEquals(coordsEvent.coords.map(_.coord), List(testCoord))
         val first = coordsEvent.coords.head
         assertEquals(first.boatTimeMillis, 1525443455000L)
+        IO.unit
       }
+      IO.unit
     }
   }

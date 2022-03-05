@@ -19,7 +19,7 @@ import org.http4s.blaze.server.BlazeServerBuilder
 import org.http4s.server.middleware.{GZip, HSTS}
 import org.http4s.server.websocket.WebSocketBuilder2
 import org.http4s.server.{Router, Server, ServiceErrorHandler}
-import org.http4s.{HttpApp, HttpRoutes, Request, Response}
+import org.http4s.{Http, HttpApp, HttpRoutes, Request, Response}
 
 import java.time.Instant
 import scala.concurrent.ExecutionContext
@@ -52,9 +52,9 @@ class ProdAppComps(conf: BoatConf, http: HttpClient[IO]) extends AppComps:
     )
 
 object Server extends IOApp:
-  val log = AppLogger(getClass)
+  private val log = AppLogger(getClass)
 
-  val port = sys.env.get("SERVER_PORT").flatMap(_.toIntOption).getOrElse(9000)
+  val port: Int = sys.env.get("SERVER_PORT").flatMap(_.toIntOption).getOrElse(9000)
 
   def server(
     conf: BoatConf,
@@ -125,7 +125,7 @@ object Server extends IOApp:
     )
     Service(comps)
 
-  def makeHandler(service: Service, sockets: WebSocketBuilder2[IO]) = GZip {
+  def makeHandler(service: Service, sockets: WebSocketBuilder2[IO]): Http[IO, IO] = GZip {
     HSTS {
       CSP.when(AppMode.fromBuild.isProd) {
         orNotFound {

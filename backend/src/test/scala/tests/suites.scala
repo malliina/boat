@@ -6,7 +6,7 @@ import cats.effect.*
 import com.dimafeng.testcontainers.MySQLContainer
 import com.malliina.boat.db.{Conf, DoobieDatabase, DoobieSQL}
 import com.malliina.boat.http4s.{JsonInstances, Server, ServerComponents, Service}
-import com.malliina.boat.{BoatConf, Errors, LocalConf}
+import com.malliina.boat.{AisAppConf, BoatConf, Errors, LocalConf}
 import com.malliina.http.FullUrl
 import com.malliina.util.AppLogger
 import com.typesafe.config.Config
@@ -17,7 +17,7 @@ import org.http4s.server.websocket.WebSocketBuilder2
 import org.http4s.{EntityDecoder, EntityEncoder, HttpApp, Uri}
 import org.testcontainers.utility.DockerImageName
 
-import java.nio.file.Paths
+import java.nio.file.{Path, Paths}
 import java.util.concurrent.atomic.AtomicReference
 import scala.concurrent.ExecutionContext
 import scala.util.Try
@@ -35,7 +35,7 @@ object WrappedTestConf:
 case class TestResource[T](resource: T, close: IO[Unit])
 
 trait MUnitSuite extends FunSuite:
-  val userHome = Paths.get(sys.props("user.home"))
+  val userHome: Path = Paths.get(sys.props("user.home"))
   implicit val rt: IORuntime = cats.effect.unsafe.implicits.global
   implicit val ec: ExecutionContext = munitExecutionContext
 
@@ -55,7 +55,7 @@ trait MUnitSuite extends FunSuite:
     )
 
 object TestConf:
-  def apply(container: MySQLContainer) = Conf(
+  def apply(container: MySQLContainer): Conf = Conf(
     s"${container.jdbcUrl}?useSSL=false",
     container.username,
     container.password,
@@ -110,7 +110,10 @@ trait Http4sSuite extends MUnitDatabaseSuite:
     override def apply(): AppComponents = service.get
 
     override def beforeAll(): Unit =
-      val resource = Server.appService(BoatConf.parse().copy(db = confFixture()), TestComps.builder)
+      val resource = Server.appService(
+        BoatConf.parse().copy(db = confFixture(), ais = AisAppConf(false)),
+        TestComps.builder
+      )
       val (t, release) = resource.allocated.unsafeRunSync()
       finalizer.set(release)
       service = Option(AppComponents(t)) // , Server.makeHandler(t)))
@@ -143,7 +146,11 @@ trait ServerSuite extends MUnitDatabaseSuite with JsonInstances:
 
     override def beforeAll(): Unit =
       val testServer =
-        Server.server(BoatConf.parse().copy(db = confFixture()), TestComps.builder, port = 0)
+        Server.server(
+          BoatConf.parse().copy(db = confFixture(), ais = AisAppConf(false)),
+          TestComps.builder,
+          port = 0
+        )
       val testClient = BlazeClientBuilder[IO].resource
       val (instance, closable) = testServer.flatMap { s =>
         testClient.map { c => ServerTools(s, c) }

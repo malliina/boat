@@ -1,5 +1,6 @@
 package com.malliina.boat.it
 
+import cats.effect.IO
 import com.malliina.boat.*
 import com.malliina.boat.client.{HttpUtil, KeyValue}
 import com.malliina.http.FullUrl
@@ -13,11 +14,11 @@ import org.http4s.Uri
 import tests.{AsyncSuite, ServerSuite}
 
 abstract class BoatTests extends AsyncSuite with ServerSuite with BoatSockets:
-  def openTestBoat[T](boat: BoatName, httpClient: HttpClientIO)(code: TestBoat => T): T =
+  def openTestBoat[T](boat: BoatName, httpClient: HttpClientIO)(code: TestBoat => IO[T]): T =
     openBoat(urlFor(reverse.ws.boats), Left(boat), httpClient)(code)
 
   def openViewerSocket[T](httpClient: HttpClientIO, creds: Option[Creds] = None)(
-    code: WebSocketIO => T
+    code: WebSocketIO => IO[T]
   ): T =
     val headers = creds.map { c =>
       KeyValue(HttpUtil.Authorization, HttpUtil.authorizationValue(c.user, c.pass.pass))
@@ -28,7 +29,7 @@ abstract class BoatTests extends AsyncSuite with ServerSuite with BoatSockets:
     path: Uri,
     headers: List[KeyValue],
     httpClient: HttpClientIO
-  )(code: WebSocketIO => T): T =
+  )(code: WebSocketIO => IO[T]): T =
     openSocket(urlFor(path), headers, httpClient)(code)
 
   private def urlFor(call: Uri): FullUrl = server().baseWsUrl.append(call.renderString)
@@ -38,11 +39,11 @@ object BoatSockets:
 
 trait BoatSockets:
   self: AsyncSuite =>
-  def openRandomBoat[T](url: FullUrl, httpClient: HttpClientIO)(code: TestBoat => T): T =
+  def openRandomBoat[T](url: FullUrl, httpClient: HttpClientIO)(code: TestBoat => IO[T]): T =
     openBoat(url, Left(BoatNames.random()), httpClient)(code)
 
   def openBoat[T](url: FullUrl, boat: Either[BoatName, BoatToken], httpClient: HttpClientIO)(
-    code: TestBoat => T
+    code: TestBoat => IO[T]
   ): T =
     val headers = boat.fold(
       name => KeyValue(Constants.BoatNameHeader, name.name),
@@ -53,21 +54,20 @@ trait BoatSockets:
     }
 
   def openSocket[T](url: FullUrl, headers: List[KeyValue], httpClient: HttpClientIO)(
-    code: WebSocketIO => T
+    code: WebSocketIO => IO[T]
   ): T =
-    val (socket, closer) = WebSocketIO(url, headers.map(kv => kv.key -> kv.value).toMap, httpClient.client)
-      .allocated.unsafeRunSync()
-    try
-      socket.allEvents.compile.drain.unsafeRunAndForget()
+    WebSocketIO(url, headers.map(kv => kv.key -> kv.value).toMap, httpClient.client).use { socket =>
+      // WTF?
+//      socket.allEvents.compile.drain.unsafeRunAndForget()
       val opens = socket.events.collect { case o @ Open(_, _) =>
         o
       }
       opens.take(1).compile.toList.unsafeRunSync()
       code(socket)
-    finally closer.unsafeRunSync()
+    }.unsafeRunSync()
 
   class TestBoat(val socket: WebSocketIO):
-    def send[T: Encoder](t: T) = socket.send(t).unsafeRunSync()
+    def send[T: Encoder](t: T): Boolean = socket.send(t).unsafeRunSync()
     def close(): Unit = socket.close.unsafeRunSync()
 
 case class Creds(user: Username, pass: Password)

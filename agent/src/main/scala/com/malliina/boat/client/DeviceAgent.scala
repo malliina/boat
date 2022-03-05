@@ -1,16 +1,20 @@
 package com.malliina.boat.client
 
-import cats.effect.kernel.{Resource, Temporal}
 import cats.effect.IO
+import cats.effect.kernel.{Resource, Temporal}
 import com.malliina.boat.Constants.BoatTokenHeader
+import com.malliina.boat.client.DeviceAgent.log
 import com.malliina.boat.client.server.BoatConf
 import com.malliina.boat.client.server.Device.GpsDevice
 import com.malliina.http.FullUrl
 import com.malliina.http.io.{SocketEvent, WebSocketIO}
+import com.malliina.util.AppLogger
 import fs2.Stream
 import okhttp3.OkHttpClient
 
 object DeviceAgent:
+  private val log = AppLogger(getClass)
+
   val Host: FullUrl = FullUrl("wss", "api.boat-tracker.com", "")
 //  val Host = FullUrl("ws", "localhost:9000", "")
   val BoatUrl: FullUrl = Host / "/ws/boats"
@@ -43,8 +47,10 @@ class DeviceAgent(tcp: TcpClient, ws: WebSocketIO, isGps: Boolean)(implicit t: T
   def connect: Stream[IO, Unit] =
     val tcpConnection: Stream[IO, Unit] = tcp.connect(toServer.flatMap(arr => Stream.emits(arr)))
     val webSocketConnection: Stream[IO, SocketEvent] = ws.events
-    val connections = tcpConnection.concurrently(webSocketConnection)
-    val sendStream = tcp.sentencesHub.evalMap(s => IO(ws.send(s)))
+    val connections: Stream[IO, Unit] =
+      tcpConnection.concurrently(webSocketConnection.map(s => ()))
+    val sendStream =
+      tcp.sentencesHub.evalMap(s => IO(log.debug(s"Sending $s")) >> ws.send(s)).map(_ => ())
     connections.concurrently(sendStream).onFinalize(close)
 
   def close: IO[Unit] =

@@ -17,7 +17,7 @@ sealed trait AppMode:
 object AppMode:
   case object Prod extends AppMode
   case object Dev extends AppMode
-  val fromBuild = unsafe(BuildInfo.mode)
+  val fromBuild: AppMode = unsafe(BuildInfo.mode)
 
   implicit val reader: ConfigReadable[AppMode] = ConfigReadable.string.emap { s =>
     fromString(s)
