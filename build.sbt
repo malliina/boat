@@ -129,8 +129,6 @@ val config = project
     )
   )
 
-val http4sModules = Seq("blaze-server", "blaze-client", "dsl", "circe")
-
 val backend = Project("boat", file("backend"))
   .enablePlugins(
     LiveRevolverPlugin,
@@ -146,7 +144,7 @@ val backend = Project("boat", file("backend"))
     Compile / unmanagedResourceDirectories ++= Seq(
       baseDirectory.value / "docs"
     ),
-    libraryDependencies ++= http4sModules.map { m =>
+    libraryDependencies ++= Seq("blaze-server", "blaze-client", "ember-server", "dsl", "circe").map { m =>
       "org.http4s" %% s"http4s-$m" % http4sVersion
     } ++ Seq("doobie-core", "doobie-hikari").map { d =>
       "org.tpolecat" %% d % "1.0.0-RC2"

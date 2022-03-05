@@ -3,6 +3,7 @@ package tests
 import cats.effect.unsafe.IORuntime
 import cats.effect.kernel.Resource
 import cats.effect.*
+import com.comcast.ip4s.port
 import com.dimafeng.testcontainers.MySQLContainer
 import com.malliina.boat.db.{Conf, DoobieDatabase, DoobieSQL}
 import com.malliina.boat.http4s.{JsonInstances, Server, ServerComponents, Service}
@@ -149,7 +150,7 @@ trait ServerSuite extends MUnitDatabaseSuite with JsonInstances:
         Server.server(
           BoatConf.parse().copy(db = confFixture(), ais = AisAppConf(false)),
           TestComps.builder,
-          port = 0
+          port = port"0"
         )
       val testClient = BlazeClientBuilder[IO].resource
       val (instance, closable) = testServer.flatMap { s =>

@@ -3,6 +3,7 @@ package com.malliina.boat.http4s
 import cats.data.Kleisli
 import cats.effect.kernel.Resource
 import cats.effect.{ExitCode, IO, IOApp}
+import com.comcast.ip4s.{Port, host, port}
 import com.malliina.boat.ais.BoatMqttClient
 import com.malliina.boat.auth.{EmailAuth, JWT, TokenEmailAuth}
 import com.malliina.boat.db.*
@@ -16,6 +17,7 @@ import com.malliina.http.io.HttpClientIO
 import com.malliina.util.AppLogger
 import com.malliina.web.*
 import org.http4s.blaze.server.BlazeServerBuilder
+import org.http4s.ember.server.EmberServerBuilder
 import org.http4s.server.middleware.{GZip, HSTS}
 import org.http4s.server.websocket.WebSocketBuilder2
 import org.http4s.server.{Router, Server, ServiceErrorHandler}
@@ -54,23 +56,25 @@ class ProdAppComps(conf: BoatConf, http: HttpClient[IO]) extends AppComps:
 object Server extends IOApp:
   private val log = AppLogger(getClass)
 
-  val port: Int = sys.env.get("SERVER_PORT").flatMap(_.toIntOption).getOrElse(9000)
+  private val port: Port =
+    sys.env.get("SERVER_PORT").flatMap(s => Port.fromString(s)).getOrElse(port"9000")
 
   def server(
     conf: BoatConf,
     builder: AppCompsBuilder,
-    port: Int = port
+    port: Port = port
   ): Resource[IO, ServerComponents] = for
     service <- appService(conf, builder)
     _ <- Resource.eval(
       IO(log.info(s"Binding on port $port using app version ${AppMeta.default.gitHash}..."))
     )
-    server <- BlazeServerBuilder[IO]
-      .bindHttp(port = port, "0.0.0.0")
-      .withBanner(Nil)
+    server <- EmberServerBuilder
+      .default[IO]
+      .withHost(host"0.0.0.0")
+      .withPort(port)
       .withHttpWebSocketApp(sockets => makeHandler(service, sockets))
-      .withServiceErrorHandler(errorHandler)
-      .resource
+      .withErrorHandler(errorHandler)
+      .build
   yield ServerComponents(service, server)
 
   def appService(conf: BoatConf, builder: AppCompsBuilder): Resource[IO, Service] = for
@@ -82,7 +86,7 @@ object Server extends IOApp:
     ais <- BoatMqttClient(conf.ais.enabled, AppMode.fromBuild)
     streams <- BoatStreams(trackInserts, ais)
     deviceStreams <- GPSStreams(gps)
-    http <- Resource.make(IO(HttpClientIO()))(c => IO(c.close()))
+    http <- HttpClientIO.resource
   yield
     val appComps = builder(conf, http)
     val jwt = JWT(conf.secret)
@@ -145,8 +149,8 @@ object Server extends IOApp:
         .handleErrorWith(BasicService.errorHandler)
     }
 
-  private def errorHandler: ServiceErrorHandler[IO] = req => { case NonFatal(t) =>
-    log.error(s"Server error for ${req.method} '${req.uri.renderString}'.", t)
+  private def errorHandler: PartialFunction[Throwable, IO[Response[IO]]] = { case NonFatal(t) =>
+    log.error(s"Server error.", t)
     BasicService.serverError(Errors(SingleError("Server error.", "server")))
   }
 
