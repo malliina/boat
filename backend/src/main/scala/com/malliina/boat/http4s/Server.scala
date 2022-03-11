@@ -24,6 +24,7 @@ import org.http4s.{Http, HttpApp, HttpRoutes, Request, Response}
 
 import java.time.Instant
 import scala.concurrent.ExecutionContext
+import scala.concurrent.duration.DurationInt
 import scala.util.control.NonFatal
 
 case class ServerComponents(app: Service, server: Server)
@@ -69,6 +70,7 @@ object Server extends IOApp:
     )
     server <- EmberServerBuilder
       .default[IO]
+      .withIdleTimeout(30.days)
       .withHost(host"0.0.0.0")
       .withPort(port)
       .withHttpWebSocketApp(sockets => makeHandler(service, sockets))
