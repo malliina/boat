@@ -7,13 +7,15 @@ import scala.sys.process.Process
 import scala.util.Try
 
 val mapboxVersion = "2.5.1"
-val webAuthVersion = "6.2.0"
+val webAuthVersion = "6.2.2"
 val munitVersion = "0.7.29"
 val testContainersScalaVersion = "0.40.2"
 val scalaTagsVersion = "0.11.1"
-val primitiveVersion = "3.1.2"
-val logstreamsVersion = "2.1.1"
+val primitiveVersion = "3.1.3"
+val logstreamsVersion = "2.1.6"
 val http4sVersion = "0.23.10"
+val slf4jVersion = "1.7.36"
+val logbackVersion = "1.2.11"
 // Do not upgrade to 11.0.2 because it depends on slf4j-api alpha versions, breaking logging
 val alpnVersion = "9.4.40.v20210413"
 val webAuthDep = "com.malliina" %% "web-auth" % webAuthVersion
@@ -144,12 +146,12 @@ val backend = Project("boat", file("backend"))
     Compile / unmanagedResourceDirectories ++= Seq(
       baseDirectory.value / "docs"
     ),
-    libraryDependencies ++= Seq("blaze-server", "blaze-client", "ember-server", "dsl", "circe").map { m =>
+    libraryDependencies ++= Seq("ember-server", "blaze-client", "dsl", "circe").map { m =>
       "org.http4s" %% s"http4s-$m" % http4sVersion
-    } ++ Seq("doobie-core", "doobie-hikari").map { d =>
-      "org.tpolecat" %% d % "1.0.0-RC2"
+    } ++ Seq("core", "hikari").map { d =>
+      "org.tpolecat" %% s"doobie-$d" % "1.0.0-RC2"
     } ++ Seq("classic", "core").map { m =>
-      "ch.qos.logback" % s"logback-$m" % "1.2.10"
+      "ch.qos.logback" % s"logback-$m" % logbackVersion
     } ++ Seq("server", "client").map { m =>
       "org.eclipse.jetty" % s"jetty-alpn-java-$m" % alpnVersion
     } ++ Seq(
@@ -159,7 +161,7 @@ val backend = Project("boat", file("backend"))
       "org.apache.commons" % "commons-text" % "1.9",
       "com.amazonaws" % "aws-java-sdk-s3" % "1.12.150",
       "com.malliina" %% "logstreams-client" % logstreamsVersion,
-      "com.malliina" %% "mobile-push-io" % "3.4.1",
+      "com.malliina" %% "mobile-push-io" % "3.4.2",
       "org.slf4j" % "slf4j-api" % "1.7.36",
       "org.eclipse.paho" % "org.eclipse.paho.client.mqttv3" % "1.2.5",
       utilHtmlDep,
@@ -229,9 +231,8 @@ val agent = project
       } ++ Seq(
         "co.fs2" %% "fs2-io" % "3.1.3",
         "com.malliina" %% "primitives" % primitiveVersion,
-        "com.malliina" %% "logstreams-client" % logstreamsVersion, // temporary until websocket client is available in okclient
-        "com.neovisionaries" % "nv-websocket-client" % "2.14",
-        "org.slf4j" % "slf4j-api" % "1.7.32",
+        "com.malliina" %% "logstreams-client" % logstreamsVersion,
+        "org.slf4j" % "slf4j-api" % slf4jVersion,
         "com.lihaoyi" %% "scalatags" % scalaTagsVersion,
         "commons-codec" % "commons-codec" % "1.15"
       ),
@@ -278,8 +279,8 @@ val utils = project
     libraryDependencies ++= Seq("shapefile", "geojson").map { m =>
       "org.geotools" % s"gt-$m" % "23.0" exclude ("javax.media", "jai_core")
     } ++ Seq(
-      "ch.qos.logback" % "logback-classic" % "1.2.10",
-      "org.slf4j" % "slf4j-api" % "1.7.36",
+      "ch.qos.logback" % "logback-classic" % logbackVersion,
+      "org.slf4j" % "slf4j-api" % slf4jVersion,
       "javax.media" % "jai_core" % "1.1.3",
       munitDep
     ),

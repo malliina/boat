@@ -16,7 +16,6 @@ import com.malliina.http.HttpClient
 import com.malliina.http.io.HttpClientIO
 import com.malliina.util.AppLogger
 import com.malliina.web.*
-import org.http4s.blaze.server.BlazeServerBuilder
 import org.http4s.ember.server.EmberServerBuilder
 import org.http4s.server.middleware.{GZip, HSTS}
 import org.http4s.server.websocket.WebSocketBuilder2
