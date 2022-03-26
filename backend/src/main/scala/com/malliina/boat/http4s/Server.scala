@@ -16,7 +16,7 @@ import com.malliina.http.HttpClient
 import com.malliina.http.io.HttpClientIO
 import com.malliina.util.AppLogger
 import com.malliina.web.*
-import org.http4s.ember.server.EmberServerBuilder
+import org.http4s.blaze.server.BlazeServerBuilder
 import org.http4s.server.middleware.{GZip, HSTS}
 import org.http4s.server.websocket.WebSocketBuilder2
 import org.http4s.server.{Router, Server, ServiceErrorHandler}
@@ -68,14 +68,22 @@ object Server extends IOApp:
     _ <- Resource.eval(
       IO(log.info(s"Binding on port $port using app version ${AppMeta.default.gitHash}..."))
     )
-    server <- EmberServerBuilder
-      .default[IO]
-      .withIdleTimeout(30.days)
-      .withHost(host"0.0.0.0")
-      .withPort(port)
+//    server <- EmberServerBuilder
+//      .default[IO]
+//      .withIdleTimeout(30.days)
+//      .withHost(host"0.0.0.0")
+//      .withPort(port)
+//      .withHttpWebSocketApp(sockets => makeHandler(service, sockets))
+//      .withErrorHandler(errorHandler)
+//      .build
+    server <- BlazeServerBuilder[IO]
+      .bindHttp(port = port.value, "0.0.0.0")
       .withHttpWebSocketApp(sockets => makeHandler(service, sockets))
-      .withErrorHandler(errorHandler)
-      .build
+      .withIdleTimeout(30.days)
+      .withResponseHeaderTimeout(30.minutes)
+      .withServiceErrorHandler(blazeErrorHandler)
+      .withBanner(Nil)
+      .resource
   yield ServerComponents(service, server)
 
   def appService(conf: BoatConf, builder: AppCompsBuilder): Resource[IO, Service] = for
@@ -149,6 +157,9 @@ object Server extends IOApp:
         .getOrElseF(BasicService.notFoundReq(req))
         .handleErrorWith(BasicService.errorHandler)
     }
+
+  def blazeErrorHandler: Request[IO] => PartialFunction[Throwable, IO[Response[IO]]] =
+    req => errorHandler
 
   private def errorHandler: PartialFunction[Throwable, IO[Response[IO]]] = { case NonFatal(t) =>
     log.error(s"Server error.", t)

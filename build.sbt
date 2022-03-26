@@ -9,11 +9,11 @@ import scala.util.Try
 val mapboxVersion = "2.5.1"
 val webAuthVersion = "6.2.2"
 val munitVersion = "0.7.29"
-val testContainersScalaVersion = "0.40.2"
+val testContainersScalaVersion = "0.40.3"
 val scalaTagsVersion = "0.11.1"
 val primitiveVersion = "3.1.3"
 val logstreamsVersion = "2.1.6"
-val http4sVersion = "0.23.10"
+val http4sVersion = "0.23.11"
 val slf4jVersion = "1.7.36"
 val logbackVersion = "1.2.11"
 // Do not upgrade to 11.0.2 because it depends on slf4j-api alpha versions, breaking logging
@@ -95,7 +95,6 @@ val frontend = project
       "org.scalameta" %%% "munit" % munitVersion % Test
     ),
     Compile / npmDependencies ++= Seq(
-      "@fortawesome/fontawesome-free" -> "5.15.4",
       "@mapbox/mapbox-gl-geocoder" -> "4.7.4",
       "@popperjs/core" -> "2.10.2",
       "@turf/turf" -> "6.5.0",
@@ -146,7 +145,7 @@ val backend = Project("boat", file("backend"))
     Compile / unmanagedResourceDirectories ++= Seq(
       baseDirectory.value / "docs"
     ),
-    libraryDependencies ++= Seq("ember-server", "blaze-client", "dsl", "circe").map { m =>
+    libraryDependencies ++= Seq("blaze-server", "blaze-client", "dsl", "circe").map { m =>
       "org.http4s" %% s"http4s-$m" % http4sVersion
     } ++ Seq("core", "hikari").map { d =>
       "org.tpolecat" %% s"doobie-$d" % "1.0.0-RC2"

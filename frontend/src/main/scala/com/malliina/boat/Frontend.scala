@@ -11,10 +11,6 @@ import scala.scalajs.js.annotation.*
 object BootstrapCss extends js.Object
 
 @js.native
-@JSImport("@fortawesome/fontawesome-free/css/all.min.css", JSImport.Namespace)
-object FontAwesomeCss extends js.Object
-
-@js.native
 @JSImport("mapbox-gl/dist/mapbox-gl.css", JSImport.Namespace)
 object MapboxCss extends js.Object
 
@@ -24,7 +20,6 @@ object MapboxGlCss extends js.Object
 
 object Frontend extends BodyClasses:
   private val bootstrapCss = BootstrapCss
-  private val fontAwesomeCss = FontAwesomeCss
   private val mapboxCss = MapboxCss
   private val mapboxGlCss = MapboxGlCss
   val log: BaseLogger = BaseLogger.console
