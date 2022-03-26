@@ -151,16 +151,14 @@ class BoatHtml(
     fontAwesomeLink(a, PersonLink, "user", cls, "Sign in", href := reverse.signIn)
 
   def fontAwesomeLink(
-    tag: Any,
+    tag: ConcreteHtmlTag[String],
     idValue: String,
     faIcon: String,
     classes: String,
     titleValue: String,
     more: AttrPair*
   ): Frag =
-    // Workaround until https://github.com/com-lihaoyi/scalatags/pull/232 is released, scalatags 0.11.0 is broken
-    val myTag = tag.asInstanceOf[BaseTagType]
-    myTag(
+    tag(
       id := idValue,
       `class` := s"icon-link $faIcon $classes",
       title := titleValue,

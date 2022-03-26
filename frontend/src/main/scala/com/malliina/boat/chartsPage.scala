@@ -4,7 +4,7 @@ import com.malliina.chartjs.*
 import org.scalajs.dom.raw.{CanvasRenderingContext2D, HTMLCanvasElement}
 
 object ChartsView extends BaseFront:
-  def apply(): Either[NotFound, ChartsView] = elem(ChartsId).map { e =>
+  def default: Either[NotFound, ChartsView] = elem(ChartsId).map { e =>
     new ChartsView(e.asInstanceOf[HTMLCanvasElement])
   }
 
@@ -14,10 +14,6 @@ class ChartsView(canvas: HTMLCanvasElement) extends BaseFront:
     val sample = queryInt(SampleKey)
     ChartSocket(ctx, track, sample)
   }
-
-object ChartSocket:
-  def apply(ctx: CanvasRenderingContext2D, track: TrackName, sample: Option[Int]): ChartSocket =
-    new ChartSocket(ctx, track, sample)
 
 /** Initializes an empty chart, then appends data in `onCoords`.
   *

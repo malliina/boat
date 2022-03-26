@@ -10,8 +10,6 @@ object AISRenderer:
 
   val MaxTrailLength = 100
 
-  def apply(map: MapboxMap): AISRenderer = new AISRenderer(map)
-
 class AISRenderer(val map: MapboxMap, val log: BaseLogger = BaseLogger.console)
   extends GeoUtils
   with Parsing:

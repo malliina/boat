@@ -1,8 +1,5 @@
 package com.malliina.boat
 
-object StatsPage:
-  def apply(): StatsPage = new StatsPage
-
 class StatsPage extends BaseFront:
   document.getElementsByClassName("year-row").foreach { row =>
     row.addOnClick { e =>

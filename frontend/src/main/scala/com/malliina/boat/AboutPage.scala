@@ -3,9 +3,6 @@ package com.malliina.boat
 import com.malliina.http.HttpClient
 import org.scalajs.dom.raw.HTMLInputElement
 
-object AboutPage:
-  def apply() = new AboutPage
-
 class AboutPage extends BaseFront:
   document.getElementsByName(LanguageRadios).foreach { radio =>
     radio.addOnClick { e =>

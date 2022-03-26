@@ -9,12 +9,9 @@ import io.circe.syntax.EncoderOps
 import scala.scalajs.js.{JSON, URIUtils}
 
 object MapView extends CookieNames:
-  def apply(): Either[NotFound, MapView] =
+  def default: Either[NotFound, MapView] =
     val lang = readCookie(LanguageName).map(Language.apply).getOrElse(Language.default)
-    readCookie(TokenCookieName).map(t => apply(AccessToken(t), lang))
-
-  def apply(accessToken: AccessToken, language: Language): MapView =
-    new MapView(accessToken, language)
+    readCookie(TokenCookieName).map(t => MapView(AccessToken(t), lang))
 
   def readCookie(key: String): Either[NotFound, String] =
     cookies.get(key).toRight(NotFound(key))
@@ -55,11 +52,10 @@ class MapView(
       e.key match
         case SearchKey =>
           if isGeocoderVisible then map.removeControl(geocoder)
-          else {
+          else
             map.addControl(geocoder)
             // focuses the search box when opened
             focusSearch("mapboxgl-ctrl-geocoder", e)
-          }
           isGeocoderVisible = !isGeocoderVisible
         case DirectionsKey =>
           pathFinder.toggleState()

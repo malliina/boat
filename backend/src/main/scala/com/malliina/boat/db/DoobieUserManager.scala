@@ -289,8 +289,8 @@ class DoobieUserManager(db: DoobieDatabase) extends IdentityManager with DoobieS
           values($to, $boat, ${InviteState.awaiting})""".update.run
 
   private def userInsertion(user: NewUser): ConnectionIO[UserId] =
-    sql"""insert into users(user, email, token, enabled)
-          values(${user.user}, ${user.email}, ${user.token}, ${user.enabled})""".update
+    sql"""insert into users(user, email, token, language, enabled)
+          values(${user.user}, ${user.email}, ${user.token}, ${Language.default}, ${user.enabled})""".update
       .withUniqueGeneratedKeys[UserId]("id")
 
   private def getOrCreate(email: Email): ConnectionIO[UserId] = for
