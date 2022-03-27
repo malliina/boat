@@ -3,9 +3,9 @@ package com.malliina.boat.it
 import cats.effect.IO
 import com.malliina.boat.{RawSentence, SentencesMessage}
 import com.malliina.http.FullUrl
-import tests.AsyncSuite
+import tests.BaseSuite
 
-class MultiTrackTests extends AsyncSuite with BoatSockets:
+class MultiTrackTests extends BaseSuite with BoatSockets:
   //  def url = FullUrl.ws("localhost:9000", reverse.boats().toString)
   def url = FullUrl.wss("www.boat-tracker.com", reverse.ws.boats.renderString)
 

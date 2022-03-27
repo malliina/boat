@@ -11,15 +11,15 @@ import com.malliina.util.AppLogger
 import com.malliina.values.{Password, Username}
 import io.circe.Encoder
 import org.http4s.Uri
-import tests.{AsyncSuite, ServerSuite}
+import tests.{BaseSuite, ServerSuite}
 
-abstract class BoatTests extends AsyncSuite with ServerSuite with BoatSockets:
-  def openTestBoat[T](boat: BoatName, httpClient: HttpClientIO)(code: TestBoat => IO[T]): T =
+abstract class BoatTests extends BaseSuite with ServerSuite with BoatSockets:
+  def openTestBoat[T](boat: BoatName, httpClient: HttpClientIO)(code: TestBoat => IO[T]): IO[T] =
     openBoat(urlFor(reverse.ws.boats), Left(boat), httpClient)(code)
 
   def openViewerSocket[T](httpClient: HttpClientIO, creds: Option[Creds] = None)(
     code: WebSocketIO => IO[T]
-  ): T =
+  ): IO[T] =
     val headers = creds.map { c =>
       KeyValue(HttpUtil.Authorization, HttpUtil.authorizationValue(c.user, c.pass.pass))
     }.toList
@@ -29,7 +29,7 @@ abstract class BoatTests extends AsyncSuite with ServerSuite with BoatSockets:
     path: Uri,
     headers: List[KeyValue],
     httpClient: HttpClientIO
-  )(code: WebSocketIO => IO[T]): T =
+  )(code: WebSocketIO => IO[T]): IO[T] =
     openSocket(urlFor(path), headers, httpClient)(code)
 
   private def urlFor(call: Uri): FullUrl = server().baseWsUrl.append(call.renderString)
@@ -38,33 +38,30 @@ object BoatSockets:
   private val log = AppLogger(getClass)
 
 trait BoatSockets:
-  self: AsyncSuite =>
-  def openRandomBoat[T](url: FullUrl, httpClient: HttpClientIO)(code: TestBoat => IO[T]): T =
+  self: BaseSuite =>
+  def openRandomBoat[T](url: FullUrl, httpClient: HttpClientIO)(code: TestBoat => IO[T]): IO[T] =
     openBoat(url, Left(BoatNames.random()), httpClient)(code)
 
   def openBoat[T](url: FullUrl, boat: Either[BoatName, BoatToken], httpClient: HttpClientIO)(
     code: TestBoat => IO[T]
-  ): T =
+  ): IO[T] =
     val headers = boat.fold(
       name => KeyValue(Constants.BoatNameHeader, name.name),
       t => KeyValue(Constants.BoatTokenHeader, t.token)
     )
     openSocket(url, List(headers), httpClient) { socket =>
-      code(new TestBoat(socket))
+      code(TestBoat(socket))
     }
 
   def openSocket[T](url: FullUrl, headers: List[KeyValue], httpClient: HttpClientIO)(
     code: WebSocketIO => IO[T]
-  ): T =
+  ): IO[T] =
     WebSocketIO(url, headers.map(kv => kv.key -> kv.value).toMap, httpClient.client).use { socket =>
-      // WTF?
-//      socket.allEvents.compile.drain.unsafeRunAndForget()
-      val opens = socket.events.collect { case o @ Open(_, _) =>
+      val openEvents = socket.events.collect { case o @ Open(_, _) =>
         o
       }
-      opens.take(1).compile.toList.unsafeRunSync()
-      code(socket)
-    }.unsafeRunSync()
+      openEvents.take(1).compile.toList >> code(socket)
+    }
 
   class TestBoat(val socket: WebSocketIO):
     def send[T: Encoder](t: T): Boolean = socket.send(t).unsafeRunSync()

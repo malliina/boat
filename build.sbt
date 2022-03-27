@@ -167,7 +167,8 @@ val backend = Project("boat", file("backend"))
       webAuthDep,
       webAuthTestDep,
       munitDep,
-      "com.dimafeng" %% "testcontainers-scala-mysql" % testContainersScalaVersion % Test
+      "com.dimafeng" %% "testcontainers-scala-mysql" % testContainersScalaVersion % Test,
+      "org.typelevel" %% "munit-cats-effect-3" % "1.0.7" % Test
     ),
     clientProject := frontend,
     buildInfoKeys := Seq[BuildInfoKey](
@@ -181,15 +182,9 @@ val backend = Project("boat", file("backend"))
     buildInfoPackage := "com.malliina.boat",
     // linux packaging
     maintainer := "Michael Skogberg <malliina123@gmail.com>",
-    Universal / javaOptions ++= Seq(
-      "-J-Xmx1024m",
-      s"-Dpidfile.path=/dev/null",
-      "-Dlogback.configurationFile=logback-prod.xml"
-    ),
     releaseProcess := Seq[ReleaseStep](
       releaseStepTask(Compile / clean),
       checkSnapshotDependencies
-      //releaseStepTask(ciBuild)
     ),
     Compile / packageDoc / publishArtifact := false,
     packageDoc / publishArtifact := false,

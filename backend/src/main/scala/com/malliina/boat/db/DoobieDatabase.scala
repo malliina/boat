@@ -18,14 +18,14 @@ import scala.concurrent.duration.DurationInt
 object DoobieDatabase:
   val log = AppLogger(getClass)
 
-  def apply(conf: Conf): Resource[IO, DoobieDatabase] =
-    transactor(hikariConf(conf)).map { tx => new DoobieDatabase(tx) }
+  def resource(conf: => Conf): Resource[IO, DoobieDatabase] =
+    transactor(hikariConf(conf)).map { tx => DoobieDatabase(tx) }
 
   def init(conf: Conf): Resource[IO, DoobieDatabase] =
-    if conf.autoMigrate then withMigrations(conf) else apply(conf)
+    if conf.autoMigrate then withMigrations(conf) else resource(conf)
 
   def withMigrations(conf: Conf): Resource[IO, DoobieDatabase] =
-    Resource.eval[IO, MigrateResult](migrate(conf)).flatMap { _ => apply(conf) }
+    Resource.eval[IO, MigrateResult](migrate(conf)).flatMap { _ => resource(conf) }
 
   private def migrate(conf: Conf): IO[MigrateResult] = IO {
     val flyway = Flyway.configure
@@ -46,7 +46,7 @@ object DoobieDatabase:
     log.info(s"Connecting to '${conf.url}'...")
     hikari
 
-  def transactor(conf: HikariConfig): Resource[IO, HikariTransactor[IO]] =
+  private def transactor(conf: HikariConfig): Resource[IO, HikariTransactor[IO]] =
     for
       ec <- ExecutionContexts.fixedThreadPool[IO](32)
       tx <- HikariTransactor.fromHikariConfig[IO](conf, ec)

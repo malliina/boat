@@ -33,27 +33,24 @@ object WrappedTestConf:
     )
   )
 
-case class TestResource[T](resource: T, close: IO[Unit])
-
-trait MUnitSuite extends FunSuite:
+trait MUnitSuite extends munit.CatsEffectSuite:
   val userHome: Path = Paths.get(sys.props("user.home"))
-  implicit val rt: IORuntime = cats.effect.unsafe.implicits.global
-  implicit val ec: ExecutionContext = munitExecutionContext
+//  implicit val rt: IORuntime = cats.effect.unsafe.implicits.global
+//  implicit val ec: ExecutionContext = munitExecutionContext
 
-  def databaseFixture(conf: => Conf): FunFixture[DoobieDatabase] = resource {
-    DoobieDatabase(conf)
-  }
+  def databaseFixture(conf: => Conf) =
+    ResourceFixture(DoobieDatabase.resource(conf))
 
-  def resource[T](res: Resource[IO, T]): FunFixture[T] =
-    var finalizer: Option[IO[Unit]] = None
-    FunFixture(
-      setup = opts =>
-        val (t, f) = res.allocated.unsafeRunSync()
-        finalizer = Option(f)
-        t
-      ,
-      teardown = t => finalizer.foreach(_.unsafeRunSync())
-    )
+  def resource[T](res: Resource[IO, T]) = ResourceFixture(res)
+//    var finalizer: Option[IO[Unit]] = None
+//    FunFixture(
+//      setup = opts =>
+//        val (t, f) = res.allocated.unsafeRunSync()
+//        finalizer = Option(f)
+//        t
+//      ,
+//      teardown = t => finalizer.foreach(_.unsafeRunSync())
+//    )
 
 object TestConf:
   def apply(container: MySQLContainer): Conf = Conf(
@@ -93,7 +90,7 @@ trait MUnitDatabaseSuite extends DoobieSQL:
 
     def readTestConf(): Try[Conf] = WrappedTestConf.parse().map(_.boat.testdb)
 
-  val dbFixture = resource(
+  val dbFixture = ResourceFixture(
     Resource.eval(IO(confFixture())).flatMap(c => DoobieDatabase.withMigrations(c))
   )
 
