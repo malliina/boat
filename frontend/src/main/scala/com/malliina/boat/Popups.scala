@@ -3,9 +3,6 @@ package com.malliina.boat
 import com.malliina.measure.{DistanceM, SpeedM}
 import scalatags.JsDom.all.*
 
-object Popups:
-  def apply(lang: Lang) = new Popups(lang)
-
 class Popups(lang: Lang) extends BoatModels:
   val empty = modifier()
   val trackLang = lang.track

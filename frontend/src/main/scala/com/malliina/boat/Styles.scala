@@ -6,13 +6,6 @@ import io.circe.syntax.EncoderOps
 import scala.language.implicitConversions
 
 object Styles:
-//  trait Convertible[T] {
-//    def toJson(t: T): Json
-//  }
-//  object Convertible {
-//    implicit val int: Convertible[Int] = i => i.asJson
-//    implicit val string: Convertible[String] = s => i.asJson
-//  }
   implicit def string(s: String): Json = s.asJson
   implicit def int(i: Int): Json = i.asJson
 

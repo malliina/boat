@@ -1,10 +1,9 @@
 package com.malliina.boat
 
-import com.malliina.boat.MaritimeJson.partialReader
+import com.malliina.boat.MaritimeJson.{nonEmptyOpt, partialReader}
 import com.malliina.measure.{DistanceM, SpeedM}
 import io.circe.*
 import io.circe.generic.semiauto.*
-import MaritimeJson.nonEmptyOpt
 
 /** Navigointilaji (NAVL_TYYP)
   */

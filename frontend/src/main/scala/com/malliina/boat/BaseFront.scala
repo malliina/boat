@@ -2,8 +2,7 @@ package com.malliina.boat
 
 import java.net.URI
 
-import org.scalajs.dom.raw.{Element, HTMLAnchorElement}
-import org.scalajs.dom.window
+import org.scalajs.dom.{Element, HTMLAnchorElement, window}
 
 import scala.util.Try
 

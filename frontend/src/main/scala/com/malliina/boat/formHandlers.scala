@@ -3,7 +3,7 @@ package com.malliina.boat
 import com.malliina.boat.FrontKeys.{CommentsRow, TrackRow}
 import com.malliina.boat.http.CSRFConf
 import com.malliina.http.HttpClient
-import org.scalajs.dom.raw.*
+import org.scalajs.dom.*
 import io.circe.*
 import io.circe.syntax.EncoderOps
 

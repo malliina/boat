@@ -4,7 +4,7 @@ import com.malliina.boat.BoatFormats.formatDistance
 import com.malliina.boat.PathFinder.*
 import com.malliina.http.HttpClient
 import com.malliina.mapbox.{MapMouseEvent, MapboxMap, MapboxMarker}
-import org.scalajs.dom.raw.{HTMLDivElement, HTMLSpanElement}
+import org.scalajs.dom.{HTMLDivElement, HTMLSpanElement}
 import scalatags.JsDom.all.*
 import io.circe.*
 import io.circe.syntax.EncoderOps
@@ -33,12 +33,11 @@ class PathFinder(val map: MapboxMap) extends GeoUtils with BaseFront:
       mapContainer.classList.add(Routes)
       routesContainer.classList.add(Enabled)
       elemAs[HTMLSpanElement](Question).foreach(_.classList.add(Invisible))
-    else {
+    else
       isEnabled = false
       mapContainer.classList.remove(Routes)
       routesContainer.classList.remove(Enabled)
       clear()
-    }
 
   def updatePath(e: MapMouseEvent): Unit =
     if isEnabled then

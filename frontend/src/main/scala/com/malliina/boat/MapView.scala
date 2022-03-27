@@ -1,8 +1,7 @@
 package com.malliina.boat
 
 import com.malliina.mapbox.{LngLat, MapOptions, MapboxGeocoder, MapboxMap, mapboxGl}
-import org.scalajs.dom.raw.*
-import org.scalajs.dom.{document, window}
+import org.scalajs.dom.*
 import io.circe.*
 import io.circe.syntax.EncoderOps
 

@@ -1,6 +1,6 @@
 package com.malliina.chartjs
 
-import org.scalajs.dom.raw.CanvasRenderingContext2D
+import org.scalajs.dom.CanvasRenderingContext2D
 
 import scala.scalajs.js
 import scala.scalajs.js.Dynamic.literal

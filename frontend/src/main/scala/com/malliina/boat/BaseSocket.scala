@@ -4,7 +4,7 @@ import com.malliina.boat.BaseSocket.Ping
 import com.malliina.http.FullUrl
 import org.scalajs.dom
 import org.scalajs.dom.CloseEvent
-import org.scalajs.dom.raw.{Event, MessageEvent}
+import org.scalajs.dom.{Event, MessageEvent}
 import io.circe.*
 import io.circe.syntax.EncoderOps
 import io.circe.parser.{decode, parse}

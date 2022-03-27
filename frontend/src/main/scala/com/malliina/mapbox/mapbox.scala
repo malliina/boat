@@ -2,8 +2,7 @@ package com.malliina.mapbox
 
 import com.malliina.boat.{AccessToken, Coord, Feature, FeatureCollection, JsonError, Latitude, Layer, Longitude, Parsing}
 import org.scalajs.dom
-import org.scalajs.dom.html
-import org.scalajs.dom.raw.{Event, HTMLCanvasElement}
+import org.scalajs.dom.{html, Event, HTMLCanvasElement}
 import scalatags.JsDom.TypedTag
 import com.malliina.{OptionOps, OptionStringOps, OptionDoubleOps}
 

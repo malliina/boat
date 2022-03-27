@@ -5,7 +5,6 @@ import io.circe.*
 import io.circe.parser.{decode, parse}
 import io.circe.syntax.EncoderOps
 import org.scalajs.dom
-import org.scalajs.dom.raw.XMLHttpRequest
 import org.scalajs.dom.*
 
 import scala.concurrent.Future

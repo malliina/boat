@@ -9,7 +9,6 @@ class About(lang: WebLang, profile: ProfileLang) extends AboutKeys:
   val empty = modifier()
 
   def about(user: Username, language: Language) =
-    println(s"Lang $language")
     val isLoggedIn = user != Usernames.anon
     div(id := ModalId, `class` := s"${FrontKeys.Modal} $Hidden")(
       div(`class` := "modal-content")(

@@ -2,7 +2,7 @@ package com.malliina.boat
 
 import com.malliina.boat.http.CSRFConf
 import org.scalajs.dom
-import org.scalajs.dom.raw.HTMLFormElement
+import org.scalajs.dom.HTMLFormElement
 import org.scalajs.dom.{Element, Event}
 import scalatags.JsDom.all.*
 

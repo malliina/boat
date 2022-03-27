@@ -1,7 +1,7 @@
 package com.malliina.boat
 
 import com.malliina.chartjs.*
-import org.scalajs.dom.raw.{CanvasRenderingContext2D, HTMLCanvasElement}
+import org.scalajs.dom.{CanvasRenderingContext2D, HTMLCanvasElement}
 
 object ChartsView extends BaseFront:
   def default: Either[NotFound, ChartsView] = elem(ChartsId).map { e =>

@@ -1,6 +1,6 @@
 package com.malliina.boat
 
-import org.scalajs.dom.raw.HTMLElement
+import org.scalajs.dom.HTMLElement
 
 object DOM:
   def isInside(target: HTMLElement, elem: HTMLElement): Boolean =
