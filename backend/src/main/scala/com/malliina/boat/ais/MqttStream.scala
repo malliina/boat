@@ -14,12 +14,11 @@ import java.nio.charset.StandardCharsets
 object MqttStream:
   private val log = AppLogger(getClass)
 
-  def apply(settings: MqttSettings): Resource[IO, MqttStream] =
+  def resource(settings: MqttSettings, d: Dispatcher[IO]): Resource[IO, MqttStream] =
     for
       in <- Resource.eval(Topic[IO, MqttPayload])
       signal <- Resource.eval(SignallingRef[IO, Boolean](false))
-      d <- Dispatcher[IO]
-      stream <- Resource.make(IO(new MqttStream(settings, in, signal, d)))(_.close)
+      stream <- Resource.make(IO(MqttStream(settings, in, signal, d)))(_.close)
       _ <- Resource.eval(stream.start)
     yield stream
 

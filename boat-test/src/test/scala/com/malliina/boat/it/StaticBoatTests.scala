@@ -1,6 +1,6 @@
 package com.malliina.boat.it
 
-import cats.effect.IO
+import cats.effect.{Deferred, IO}
 import com.malliina.boat.*
 import com.malliina.util.AppLogger
 
@@ -23,25 +23,29 @@ class StaticBoatTests extends BoatTests:
   http.test("GPS reporting") { client =>
     val boatName = BoatNames.random()
     openTestBoat(boatName, client) { boat =>
-      val coordPromise = Promise[CoordsEvent]()
-      val testMessage = SentencesMessage(testTrack.take(6))
-      val testCoord = Coord.buildOrFail(24.89171, 60.1532)
+      Deferred[IO, CoordsEvent].flatMap { coordPromise =>
+        val testMessage = SentencesMessage(testTrack.take(6))
+        val testCoord = Coord.buildOrFail(24.89171, 60.1532)
 
-      openViewerSocket(client, None) { socket =>
-        socket.jsonMessages.map { json =>
-          json.as[CoordsEvent].toOption.filter(_.from.boatName == boatName).foreach { c =>
-            coordPromise.trySuccess(c)
+        openViewerSocket(client, None) { socket =>
+          socket.jsonMessages.evalTap { json =>
+            json
+              .as[CoordsEvent]
+              .toOption
+              .filter(_.from.boatName == boatName)
+              .map(c => coordPromise.complete(c))
+              .getOrElse(IO.unit)
+          }.compile.drain.unsafeRunAndForget()
+          boat.send(testMessage).flatMap { sent =>
+            assert(sent)
+            coordPromise.get.map { coordsEvent =>
+              assertEquals(coordsEvent.from.boatName, boatName)
+              assertEquals(coordsEvent.coords.map(_.coord), List(testCoord))
+              val first = coordsEvent.coords.head
+              assertEquals(first.boatTimeMillis, 1525443455000L)
+            }
           }
-        }.compile.drain.unsafeRunAndForget()
-        val sent = boat.send(testMessage)
-        assert(sent)
-        val coordsEvent = await(coordPromise.future, 3.seconds)
-        assertEquals(coordsEvent.from.boatName, boatName)
-        assertEquals(coordsEvent.coords.map(_.coord), List(testCoord))
-        val first = coordsEvent.coords.head
-        assertEquals(first.boatTimeMillis, 1525443455000L)
-        IO.unit
+        }
       }
-      IO.unit
     }
   }

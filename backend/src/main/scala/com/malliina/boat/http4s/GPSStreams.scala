@@ -14,7 +14,7 @@ import fs2.Stream
 object GPSStreams:
   private val log = AppLogger(getClass)
 
-  def apply(db: GPSSource): Resource[IO, GPSStreams] =
+  def resource(db: GPSSource): Resource[IO, GPSStreams] =
     for
       gps <- Resource.eval(build(db))
       _ <- Stream.emit(()).concurrently(gps.publisher).compile.resource.lastOrError
@@ -24,7 +24,7 @@ object GPSStreams:
     for
       in <- Topic[IO, InputEvent]
       saved <- Topic[IO, SavedEvent]
-    yield new GPSStreams(db, in, saved)
+    yield GPSStreams(db, in, saved)
 
 class GPSStreams(val db: GPSSource, val in: Topic[IO, InputEvent], saved: Topic[IO, SavedEvent]):
   val deviceState = GPSManager()

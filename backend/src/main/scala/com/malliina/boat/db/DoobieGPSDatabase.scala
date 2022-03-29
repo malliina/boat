@@ -10,8 +10,6 @@ import com.malliina.boat.parsing.GPSCoord
 import com.malliina.measure.DistanceM
 
 object DoobieGPSDatabase:
-  def apply(db: DoobieDatabase): DoobieGPSDatabase = new DoobieGPSDatabase(db)
-
   def collect(rows: Seq[JoinedGPS], formatter: TimeFormatter) =
     rows.foldLeft(Vector.empty[GPSCoordsEvent]) { case (acc, joined) =>
       val device = joined.device

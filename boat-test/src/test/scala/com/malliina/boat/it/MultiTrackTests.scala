@@ -35,8 +35,7 @@ class MultiTrackTests extends BaseSuite with BoatSockets:
     openRandomBoat(url, httpClient) { boat1 =>
       boat1.send(msg(track1))
       openRandomBoat(url, httpClient) { boat2 =>
-        boat2.socket.send(msg(track2))
+        boat2.send(msg(track2))
       }
-      IO.unit
     }
   }

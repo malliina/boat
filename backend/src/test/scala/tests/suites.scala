@@ -1,6 +1,5 @@
 package tests
 
-import cats.effect.unsafe.IORuntime
 import cats.effect.kernel.Resource
 import cats.effect.*
 import com.comcast.ip4s.port
@@ -20,7 +19,6 @@ import org.testcontainers.utility.DockerImageName
 
 import java.nio.file.{Path, Paths}
 import java.util.concurrent.atomic.AtomicReference
-import scala.concurrent.ExecutionContext
 import scala.util.Try
 
 case class TestBoatConf(testdb: Conf)
@@ -35,22 +33,8 @@ object WrappedTestConf:
 
 trait MUnitSuite extends munit.CatsEffectSuite:
   val userHome: Path = Paths.get(sys.props("user.home"))
-//  implicit val rt: IORuntime = cats.effect.unsafe.implicits.global
-//  implicit val ec: ExecutionContext = munitExecutionContext
-
-  def databaseFixture(conf: => Conf) =
-    ResourceFixture(DoobieDatabase.resource(conf))
-
+  def databaseFixture(conf: => Conf) = resource(DoobieDatabase.resource(conf))
   def resource[T](res: Resource[IO, T]) = ResourceFixture(res)
-//    var finalizer: Option[IO[Unit]] = None
-//    FunFixture(
-//      setup = opts =>
-//        val (t, f) = res.allocated.unsafeRunSync()
-//        finalizer = Option(f)
-//        t
-//      ,
-//      teardown = t => finalizer.foreach(_.unsafeRunSync())
-//    )
 
 object TestConf:
   def apply(container: MySQLContainer): Conf = Conf(
@@ -101,23 +85,15 @@ case class AppComponents(service: Service) //, routes: HttpApp[IO])
 // https://github.com/typelevel/munit-cats-effect
 trait Http4sSuite extends MUnitDatabaseSuite:
   self: MUnitSuite =>
-  val app: Fixture[AppComponents] = new Fixture[AppComponents]("boat-app"):
-    private var service: Option[AppComponents] = None
-    val finalizer = new AtomicReference[IO[Unit]](IO.pure(()))
 
-    override def apply(): AppComponents = service.get
-
-    override def beforeAll(): Unit =
-      val resource = Server.appService(
-        BoatConf.parse().copy(db = confFixture(), ais = AisAppConf(false)),
-        TestComps.builder
-      )
-      val (t, release) = resource.allocated.unsafeRunSync()
-      finalizer.set(release)
-      service = Option(AppComponents(t)) // , Server.makeHandler(t)))
-
-    override def afterAll(): Unit =
-      finalizer.get().unsafeRunSync()
+  val appResource: Resource[IO, AppComponents] = for
+    conf <- Resource.eval(IO(confFixture()))
+    service <- Server.appService(
+      BoatConf.parse().copy(db = conf, ais = AisAppConf(false)),
+      TestComps.builder
+    )
+  yield AppComponents(service)
+  val app = ResourceSuiteLocalFixture("munit-boat-app", appResource)
 
   override def munitFixtures: Seq[Fixture[?]] = Seq(confFixture, app)
 
@@ -136,27 +112,16 @@ trait ServerSuite extends MUnitDatabaseSuite with JsonInstances:
   import ServerSuite.log
   implicit val tsBody: EntityDecoder[IO, Errors] = jsonBody[IO, Errors]
 
-  val server: Fixture[ServerTools] = new Fixture[ServerTools]("server"):
-    private var tools: Option[ServerTools] = None
-    val finalizer = new AtomicReference[IO[Unit]](IO.pure(()))
-
-    override def apply(): ServerTools = tools.get
-
-    override def beforeAll(): Unit =
-      val testServer =
-        Server.server(
-          BoatConf.parse().copy(db = confFixture(), ais = AisAppConf(false)),
-          TestComps.builder,
-          port = port"0"
-        )
-      val testClient = BlazeClientBuilder[IO].resource
-      val (instance, closable) = testServer.flatMap { s =>
-        testClient.map { c => ServerTools(s, c) }
-      }.allocated.unsafeRunSync()
-      tools = Option(instance)
-      finalizer.set(closable)
-
-    override def afterAll(): Unit =
-      finalizer.get().unsafeRunSync()
+  def testServerResource: Resource[IO, ServerTools] =
+    for
+      conf <- Resource.eval(IO(confFixture()))
+      service <- Server.server(
+        BoatConf.parse().copy(db = conf, ais = AisAppConf(false)),
+        TestComps.builder,
+        port = port"0"
+      )
+      client <- BlazeClientBuilder[IO].resource
+    yield ServerTools(service, client)
+  val server = ResourceSuiteLocalFixture("munit-server", testServerResource)
 
   override def munitFixtures: Seq[Fixture[?]] = Seq(confFixture, server)

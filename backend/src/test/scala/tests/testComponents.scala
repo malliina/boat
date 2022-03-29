@@ -36,4 +36,4 @@ class TestComps(conf: BoatConf) extends AppComps:
   override val emailAuth: EmailAuth = TestEmailAuth
 
 object TestComps:
-  val builder: AppCompsBuilder = (conf: BoatConf, http: HttpClient[IO]) => new TestComps(conf)
+  val builder: AppCompsBuilder = (conf: BoatConf, http: HttpClient[IO]) => TestComps(conf)

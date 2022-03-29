@@ -1,6 +1,6 @@
 package com.malliina.boat.it
 
-import cats.effect.IO
+import cats.effect.{Deferred, IO}
 import com.malliina.boat.*
 import com.malliina.boat.db.NewUser
 import com.malliina.values.{Password, Username}
@@ -11,25 +11,28 @@ class SentenceTests extends BoatTests:
   // TODO Why is this test ignored?
   http.test("anonymously sent sentence is received by anonymous viewer".ignore) { client =>
     openTestBoat(BoatNames.random(), client) { boat =>
-      val sentencePromise = Promise[SentencesEvent]()
-      val coordPromise = Promise[CoordsEvent]()
-      val testMessage = SentencesMessage(
-        Seq(RawSentence("$GPGGA,154106,6008.0079,N,02452.0497,E,1,12,0.60,0,M,19.5,M,,*68"))
-      )
-      openViewerSocket(client, None) { socket =>
-        socket.jsonMessages.map { json =>
-          json.as[SentencesEvent].foreach { ss => sentencePromise.trySuccess(ss) }
-          json.as[CoordsEvent].foreach { c => coordPromise.trySuccess(c) }
-        }.compile.drain.unsafeRunAndForget()
-        boat.send(testMessage)
-        val received = await(sentencePromise.future)
-        assertEquals(received.sentences, testMessage.sentences)
-        val coords = await(coordPromise.future).coords
-        val expectedCoords = List(Coord.buildOrFail(24.867495, 60.133465))
-        assertEquals(coords.map(_.coord), expectedCoords)
-        IO.unit
+      Deferred[IO, SentencesEvent].flatMap { sentencePromise =>
+        Deferred[IO, CoordsEvent].flatMap { coordPromise =>
+          val testMessage = SentencesMessage(
+            Seq(RawSentence("$GPGGA,154106,6008.0079,N,02452.0497,E,1,12,0.60,0,M,19.5,M,,*68"))
+          )
+          openViewerSocket(client, None) { socket =>
+            socket.jsonMessages.evalTap { json =>
+              json.as[SentencesEvent].map(ss => sentencePromise.complete(ss)).getOrElse(IO.unit) >>
+                json.as[CoordsEvent].map(c => coordPromise.complete(c)).getOrElse(IO.unit)
+            }.compile.drain.unsafeRunAndForget()
+            boat.send(testMessage).map { _ =>
+              sentencePromise.get.flatMap { received =>
+                assertEquals(received.sentences, testMessage.sentences)
+                coordPromise.get.map { coords =>
+                  val expectedCoords = List(Coord.buildOrFail(24.867495, 60.133465))
+                  assertEquals(coords.coords.map(_.coord), expectedCoords)
+                }
+              }
+            }
+          }
+        }
       }
-      IO.unit
     }
   }
 
@@ -40,35 +43,43 @@ class SentenceTests extends BoatTests:
     val testPass = Password("demo")
     s.server.app.userMgmt
       .addUser(NewUser(testUser, None, UserToken.random(), enabled = true))
-      .unsafeRunSync()
-    val creds = Option(Creds(testUser, testPass))
-    openTestBoat(BoatNames.random(), client) { boat =>
-      val authPromise = Promise[CoordsEvent]()
-      val anonPromise = Promise[CoordsEvent]()
-      val testMessage = SentencesMessage(
-        Seq(RawSentence("$GPGGA,154106,6008.0079,N,02452.0497,E,1,12,0.60,0,M,19.5,M,,*68"))
-      )
-      openViewerSocket(client, None) { anonSocket =>
-        anonSocket.jsonMessages.map { json =>
-          json.as[CoordsEvent].toOption.filter(_.from.username == testUser).foreach { c =>
-            anonPromise.trySuccess(c)
-          }
-        }.compile.drain.unsafeRunAndForget()
-        openViewerSocket(client, creds) { authSocket =>
-          authSocket.jsonMessages.map { json =>
-            json.as[CoordsEvent].toOption.filter(_.from.username == testUser).foreach { se =>
-              authPromise.trySuccess(se)
+      .map { _ =>
+        val creds = Option(Creds(testUser, testPass))
+        openTestBoat(BoatNames.random(), client) { boat =>
+          Deferred[IO, CoordsEvent].flatMap { authPromise =>
+            Deferred[IO, CoordsEvent].flatMap { anonPromise =>
+              val testMessage = SentencesMessage(
+                Seq(RawSentence("$GPGGA,154106,6008.0079,N,02452.0497,E,1,12,0.60,0,M,19.5,M,,*68"))
+              )
+              openViewerSocket(client, None) { anonSocket =>
+                anonSocket.jsonMessages.evalTap { json =>
+                  json
+                    .as[CoordsEvent]
+                    .toOption
+                    .filter(_.from.username == testUser)
+                    .map(c => anonPromise.complete(c))
+                    .getOrElse(IO.unit)
+                }.compile.drain.unsafeRunAndForget()
+                openViewerSocket(client, creds) { authSocket =>
+                  authSocket.jsonMessages.evalTap { json =>
+                    json
+                      .as[CoordsEvent]
+                      .toOption
+                      .filter(_.from.username == testUser)
+                      .map(se => authPromise.complete(se))
+                      .getOrElse(IO.unit)
+                  }.compile.drain.unsafeRunAndForget()
+                  boat.send(testMessage).flatMap { _ =>
+                    authPromise.get.flatMap { _ =>
+                      interceptIO[TimeoutException] {
+                        anonPromise.get.timeout(500.millis)
+                      }
+                    }
+                  }
+                }
+              }
             }
-          }.compile.drain.unsafeRunAndForget()
-          boat.send(testMessage)
-          await(authPromise.future)
-          intercept[TimeoutException] {
-            Await.result(anonPromise.future, 500.millis)
           }
-          IO.unit
         }
-        IO.unit
       }
-      IO.unit
-    }
   }

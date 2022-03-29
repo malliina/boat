@@ -29,7 +29,7 @@ class ManualBoatTests extends BoatTests:
     openRandomBoat(url, httpClient) { boat =>
       IO.parTraverseN(1)(testMessages.zipWithIndex) { case (msg, idx) =>
         println(s"Sending batch $idx/${testMessages.length}...")
-        boat.socket.send(msg) >> IO.sleep(5.seconds)
+        boat.send(msg) >> IO.sleep(5.seconds)
       }
     }
   }
@@ -39,7 +39,7 @@ class ManualBoatTests extends BoatTests:
       relevantSentences.toList.grouped(30).map(SentencesMessage.apply).slice(50, 100).toList
     openRandomBoat(url, httpClient) { boat =>
       IO.parTraverseN(1)(testMessages) { msg =>
-        boat.socket.send(msg) >> IO.sleep(500.millis)
+        boat.send(msg) >> IO.sleep(500.millis)
       }
     }
   }
@@ -50,7 +50,7 @@ class ManualBoatTests extends BoatTests:
       relevantSentences.toList.grouped(30).map(SentencesMessage.apply).slice(50, 100).toList
     openBoat(url, Right(token), httpClient) { boat =>
       IO.parTraverseN(1)(testMessages) { msg =>
-        boat.socket.send(msg) >> IO.sleep(500.millis)
+        boat.send(msg) >> IO.sleep(500.millis)
       }
     }
   }

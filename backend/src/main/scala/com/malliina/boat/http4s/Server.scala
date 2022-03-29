@@ -3,6 +3,7 @@ package com.malliina.boat.http4s
 import cats.data.Kleisli
 import cats.effect.kernel.Resource
 import cats.effect.{ExitCode, IO, IOApp}
+import cats.effect.std.Dispatcher
 import com.comcast.ip4s.{Port, host, port}
 import com.malliina.boat.ais.BoatMqttClient
 import com.malliina.boat.auth.{EmailAuth, JWT, TokenEmailAuth}
@@ -33,7 +34,7 @@ trait AppCompsBuilder:
   def apply(conf: BoatConf, http: HttpClient[IO]): AppComps
 
 object AppCompsBuilder:
-  val prod: AppCompsBuilder = (conf: BoatConf, http: HttpClient[IO]) => new ProdAppComps(conf, http)
+  val prod: AppCompsBuilder = (conf: BoatConf, http: HttpClient[IO]) => ProdAppComps(conf, http)
 
 // Put modules that have different implementations in dev, prod or tests here.
 trait AppComps:
@@ -87,14 +88,15 @@ object Server extends IOApp:
   yield ServerComponents(service, server)
 
   def appService(conf: BoatConf, builder: AppCompsBuilder): Resource[IO, Service] = for
+    dispatcher <- Dispatcher[IO]
     db <- DoobieDatabase.init(conf.db)
     users = DoobieUserManager(db)
     _ <- Resource.eval(users.initUser())
     trackInserts = TrackInserter(db)
     gps = DoobieGPSDatabase(db)
-    ais <- BoatMqttClient(conf.ais.enabled, AppMode.fromBuild)
-    streams <- BoatStreams(trackInserts, ais)
-    deviceStreams <- GPSStreams(gps)
+    ais <- BoatMqttClient(conf.ais.enabled, AppMode.fromBuild, dispatcher)
+    streams <- BoatStreams.resource(trackInserts, ais)
+    deviceStreams <- GPSStreams.resource(gps)
     http <- HttpClientIO.resource
   yield
     val appComps = builder(conf, http)

@@ -14,7 +14,7 @@ import org.http4s.Uri
 import tests.{BaseSuite, ServerSuite}
 
 abstract class BoatTests extends BaseSuite with ServerSuite with BoatSockets:
-  def openTestBoat[T](boat: BoatName, httpClient: HttpClientIO)(code: TestBoat => IO[T]): IO[T] =
+  def openTestBoat[T](boat: BoatName, httpClient: HttpClientIO)(code: WebSocketIO => IO[T]): IO[T] =
     openBoat(urlFor(reverse.ws.boats), Left(boat), httpClient)(code)
 
   def openViewerSocket[T](httpClient: HttpClientIO, creds: Option[Creds] = None)(
@@ -39,18 +39,18 @@ object BoatSockets:
 
 trait BoatSockets:
   self: BaseSuite =>
-  def openRandomBoat[T](url: FullUrl, httpClient: HttpClientIO)(code: TestBoat => IO[T]): IO[T] =
+  def openRandomBoat[T](url: FullUrl, httpClient: HttpClientIO)(code: WebSocketIO => IO[T]): IO[T] =
     openBoat(url, Left(BoatNames.random()), httpClient)(code)
 
   def openBoat[T](url: FullUrl, boat: Either[BoatName, BoatToken], httpClient: HttpClientIO)(
-    code: TestBoat => IO[T]
+    code: WebSocketIO => IO[T]
   ): IO[T] =
     val headers = boat.fold(
       name => KeyValue(Constants.BoatNameHeader, name.name),
       t => KeyValue(Constants.BoatTokenHeader, t.token)
     )
     openSocket(url, List(headers), httpClient) { socket =>
-      code(TestBoat(socket))
+      code(socket)
     }
 
   def openSocket[T](url: FullUrl, headers: List[KeyValue], httpClient: HttpClientIO)(
@@ -62,9 +62,5 @@ trait BoatSockets:
       }
       openEvents.take(1).compile.toList >> code(socket)
     }
-
-  class TestBoat(val socket: WebSocketIO):
-    def send[T: Encoder](t: T): Boolean = socket.send(t).unsafeRunSync()
-    def close(): Unit = socket.close.unsafeRunSync()
 
 case class Creds(user: Username, pass: Password)

@@ -14,7 +14,7 @@ import fs2.Stream
 object BoatStreams:
   private val log = AppLogger(getClass)
 
-  def apply(db: TrackInsertsDatabase, ais: AISSource): Resource[IO, BoatStreams] =
+  def resource(db: TrackInsertsDatabase, ais: AISSource): Resource[IO, BoatStreams] =
     for
       streams <- Resource.eval(build(db, ais))
       _ <- Stream.emit(()).concurrently(streams.publisher).compile.resource.lastOrError
@@ -23,7 +23,7 @@ object BoatStreams:
   def build(db: TrackInsertsDatabase, ais: AISSource): IO[BoatStreams] = for
     in <- Topic[IO, InputEvent]
     saved <- Topic[IO, SavedEvent]
-  yield new BoatStreams(db, ais, in, saved)
+  yield BoatStreams(db, ais, in, saved)
 
   def rights[L, R](src: fs2.Stream[IO, Either[L, R]]): fs2.Stream[IO, R] = src.flatMap { e =>
     e.fold(l => fs2.Stream.empty, r => fs2.Stream(r))

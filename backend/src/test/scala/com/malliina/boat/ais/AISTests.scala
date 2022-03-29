@@ -1,5 +1,7 @@
 package com.malliina.boat.ais
 
+import cats.effect.IO
+import cats.effect.std.Dispatcher
 import com.malliina.boat.*
 import com.malliina.boat.ais.BoatMqttClient.*
 import com.nimbusds.jose.util.StandardCharset
@@ -12,8 +14,10 @@ import tests.MUnitSuite
 import java.time.Instant
 
 class AISTests extends MUnitSuite:
-  val prodFixture = resource(BoatMqttClient.prod())
-  val testFixture = resource(BoatMqttClient(TestUrl, MetadataTopic))
+  val prodFixture = resource(Dispatcher[IO].flatMap { d => BoatMqttClient.prod(d) })
+  val testFixture = resource(Dispatcher[IO].flatMap { d =>
+    BoatMqttClient(TestUrl, MetadataTopic, d)
+  })
   prodFixture.test("MqttSource".ignore) { client =>
     val events = client.slow.take(3).compile.toList.unsafeRunSync()
     events foreach println

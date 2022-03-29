@@ -2,6 +2,7 @@ package com.malliina.boat.ais
 
 import cats.effect.kernel.{Resource, Temporal}
 import cats.effect.IO
+import cats.effect.std.Dispatcher
 import com.malliina.boat.ais.BoatMqttClient.{AisPair, log, pass, user}
 import com.malliina.boat.{AISMessage, AppMode, Locations, Metadata, Mmsi, StatusTopic, TimeFormatter, VesselLocation, VesselMetadata, VesselStatus}
 import com.malliina.http.FullUrl
@@ -35,30 +36,32 @@ object BoatMqttClient:
   val TestUrl = FullUrl.wss("meri-test.digitraffic.fi:61619", "/mqtt")
   val ProdUrl = FullUrl.wss("meri.digitraffic.fi:61619", "/mqtt")
 
-  def apply(enabled: Boolean, mode: AppMode)(implicit t: Temporal[IO]): Resource[IO, AISSource] =
+  def apply(enabled: Boolean, mode: AppMode, d: Dispatcher[IO])(implicit
+    t: Temporal[IO]
+  ): Resource[IO, AISSource] =
     mode match
-      case AppMode.Prod if enabled => prod()
-      case AppMode.Dev if enabled  => prod()
+      case AppMode.Prod if enabled => prod(d)
+      case AppMode.Dev if enabled  => prod(d)
       case _                       => Resource.eval(silent())
 
-  def prod()(implicit t: Temporal[IO]): Resource[IO, BoatMqttClient] =
-    apply(ProdUrl, AllDataTopic)
+  def prod(d: Dispatcher[IO])(implicit t: Temporal[IO]): Resource[IO, BoatMqttClient] =
+    apply(ProdUrl, AllDataTopic, d)
 
-  def test()(implicit t: Temporal[IO]): Resource[IO, BoatMqttClient] =
-    apply(TestUrl, AllDataTopic)
+  def test(d: Dispatcher[IO])(implicit t: Temporal[IO]): Resource[IO, BoatMqttClient] =
+    apply(TestUrl, AllDataTopic, d)
 
   def silent(): IO[AISSource] = IO.delay {
     log.info("AIS is disabled.")
     SilentAISSource
   }
 
-  def apply(url: FullUrl, topic: String)(implicit
+  def apply(url: FullUrl, topic: String, d: Dispatcher[IO])(implicit
     t: Temporal[IO]
   ): Resource[IO, BoatMqttClient] =
     val build = for
       interrupter <- SignallingRef[IO, Boolean](false)
       messagesTopic <- Topic[IO, List[AisPair]]
-    yield new BoatMqttClient(url, topic, messagesTopic, interrupter)
+    yield new BoatMqttClient(url, topic, messagesTopic, interrupter, d)
     for
       client <- Resource.make(build)(_.close)
       // Consumes any messages regardless of whether there's subscribers
@@ -80,7 +83,8 @@ class BoatMqttClient(
   url: FullUrl,
   topic: String,
   messagesTopic: Topic[IO, List[AisPair]],
-  interrupter: SignallingRef[IO, Boolean]
+  interrupter: SignallingRef[IO, Boolean],
+  d: Dispatcher[IO]
 )(implicit
   t: Temporal[IO]
 ) extends AISSource:
@@ -91,7 +95,7 @@ class BoatMqttClient(
   private val backoffTime = 30.seconds
   private val newStream: Resource[IO, MqttStream] =
     Resource.eval(IO(newClientId())).flatMap { id =>
-      MqttStream(MqttSettings(url, id, topic, user, pass))
+      MqttStream.resource(MqttSettings(url, id, topic, user, pass), d)
     }
   private val oneConnection: Stream[IO, MqttStream.MqttPayload] =
     Stream.resource(newStream).flatMap { s =>
