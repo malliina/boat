@@ -177,7 +177,8 @@ val backend = Project("boat", file("backend"))
       scalaVersion,
       "gitHash" -> gitHash,
       "mapboxVersion" -> mapboxVersion,
-      "mode" -> (if ((Global / scalaJSStage).value == FullOptStage) "prod" else "dev")
+      "mode" -> (if ((Global / scalaJSStage).value == FullOptStage) "prod" else "dev"),
+      "isProd" -> ((Global / scalaJSStage).value == FullOptStage)
     ),
     buildInfoPackage := "com.malliina.boat",
     // linux packaging
