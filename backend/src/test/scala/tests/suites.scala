@@ -1,13 +1,14 @@
 package tests
 
-import cats.effect.kernel.Resource
 import cats.effect.*
+import cats.effect.kernel.Resource
 import com.comcast.ip4s.port
 import com.dimafeng.testcontainers.MySQLContainer
 import com.malliina.boat.db.{Conf, DoobieDatabase, DoobieSQL}
 import com.malliina.boat.http4s.{JsonInstances, Server, ServerComponents, Service}
 import com.malliina.boat.{AisAppConf, BoatConf, Errors, LocalConf}
-import com.malliina.http.FullUrl
+import com.malliina.http.{FullUrl, HttpClient}
+import com.malliina.http.io.HttpClientIO
 import com.malliina.util.AppLogger
 import com.typesafe.config.Config
 import munit.FunSuite
@@ -97,10 +98,8 @@ trait Http4sSuite extends MUnitDatabaseSuite:
 
   override def munitFixtures: Seq[Fixture[?]] = Seq(confFixture, app)
 
-case class ServerTools(server: ServerComponents, client: Client[IO]):
+case class ServerTools(server: ServerComponents, client: HttpClient[IO]):
   def port = server.server.address.getPort
-  def baseHttpUri = Uri.unsafeFromString(s"http://localhost:$port")
-  def baseWsUri = Uri.unsafeFromString(s"ws://localhost:$port")
   def baseHttpUrl = FullUrl("http", s"localhost:$port", "")
   def baseWsUrl = FullUrl("ws", s"localhost:$port", "")
 
@@ -120,8 +119,9 @@ trait ServerSuite extends MUnitDatabaseSuite with JsonInstances:
         TestComps.builder,
         port = port"0"
       )
-      client <- BlazeClientBuilder[IO].resource
+      client <- HttpClientIO.resource
     yield ServerTools(service, client)
-  val server = ResourceSuiteLocalFixture("munit-server", testServerResource)
+  val server: Fixture[ServerTools] =
+    ResourceSuiteLocalFixture("munit-server", testServerResource)
 
   override def munitFixtures: Seq[Fixture[?]] = Seq(confFixture, server)

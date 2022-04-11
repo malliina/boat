@@ -54,6 +54,7 @@ class Http4sAuth(
     res: Response[IO]
   ) = withUser(user, isSecure, res)
     .removeCookie(cookieNames.returnUri)
+    .removeCookie(cookieNames.prompt)
     .addCookie(responseCookie(cookieNames.lastId, user.username.name))
     .addCookie(responseCookie(cookieNames.provider, provider.name))
 

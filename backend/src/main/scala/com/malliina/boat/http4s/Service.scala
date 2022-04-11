@@ -52,8 +52,6 @@ object Service:
     devices: GPSStreams
   )
 
-  def apply(comps: BoatComps): Service = new Service(comps)
-
   implicit class RequestOps[F[_]](val req: Request[F]) extends AnyVal:
     def isSecured: Boolean = Urls.isSecure(req)
 

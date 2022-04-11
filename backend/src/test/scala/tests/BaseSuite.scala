@@ -9,9 +9,6 @@ import scala.concurrent.{Await, Future}
 abstract class BaseSuite extends MUnitSuite:
   val reverse = Reverse
 
-  val http = FunFixture[HttpClientIO](
-    opts => HttpClientIO(),
-    teardown = _.close()
-  )
+  val http = ResourceFixture(HttpClientIO.resource)
 
   def await[T](f: Future[T], duration: Duration = 40.seconds): T = Await.result(f, duration)

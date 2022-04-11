@@ -7,29 +7,25 @@ import tests.{MUnitSuite, ServerSuite}
 
 class ServerTests extends MUnitSuite with ServerSuite:
   test("can call server") {
-    val uri = baseUrl.addPath("health")
-    val status = client.statusFromUri(uri).unsafeRunSync()
-    assertEquals(status, Status.Ok)
+    assertIO(status("/health"), Status.Ok.code)
   }
 
   test("call with no creds") {
-    val res = client
-      .run(Request[IO](uri = baseUrl.addPath("my-track")))
-      .use(res => IO.pure(res))
-      .unsafeRunSync()
-    assertEquals(res.status, Status.NotFound)
-    val errors = res.as[Errors].unsafeRunSync()
-    assertEquals(errors.message, Auth.noCredentials)
+    client.get(baseUrl / "my-track").map { res =>
+      assertEquals(res.status, Status.NotFound.code)
+      val errors = res.parse[Errors].toOption.get
+      assertEquals(errors.message, Auth.noCredentials)
+    }
   }
 
   test("apple app association") {
-    assertEquals(status(".well-known/apple-app-site-association"), Status.Ok)
-    assertEquals(status(".well-known/assetlinks.json"), Status.Ok)
+    assertIO(status(".well-known/apple-app-site-association"), Status.Ok.code)
+    assertIO(status(".well-known/assetlinks.json"), Status.Ok.code)
   }
 
-  private def status(path: String) =
-    val url = baseUrl.addPath(path)
-    client.statusFromUri(url).unsafeRunSync()
+  private def status(path: String): IO[Int] =
+    val url = baseUrl / path
+    client.get(url).map(r => r.code)
 
-  def baseUrl = server().baseHttpUri
+  def baseUrl = server().baseHttpUrl
   def client = server().client
