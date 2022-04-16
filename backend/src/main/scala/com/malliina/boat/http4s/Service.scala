@@ -233,11 +233,13 @@ class Service(comps: BoatComps) extends BasicService[IO]:
         DoubleVar(srcLng) / DoubleVar(destLat) / DoubleVar(destLng) =>
       RouteRequest(srcLat, srcLng, destLat, destLng).map { req =>
         // TODO Run on another thread
-        g.shortest(req.from, req.to).map { result => ok(result) }.recover {
-          case NoRoute(f, t)     => notFound(Errors(s"No route found from '$f' to '$t'."))
-          case UnresolvedFrom(f) => badRequest(Errors(s"Unresolvable from '$f'."))
-          case UnresolvedTo(t)   => badRequest(Errors(s"Unresolvable to '$t'."))
-          case EmptyGraph        => serverError(Errors("Graph engine not available."))
+        IO.blocking(g.shortest(req.from, req.to)).flatMap { op =>
+          op.map { result => ok(result) }.recover {
+            case NoRoute(f, t)     => notFound(Errors(s"No route found from '$f' to '$t'."))
+            case UnresolvedFrom(f) => badRequest(Errors(s"Unresolvable from '$f'."))
+            case UnresolvedTo(t)   => badRequest(Errors(s"Unresolvable to '$t'."))
+            case EmptyGraph        => serverError(Errors("Graph engine not available."))
+          }
         }
       }.recover { err =>
         badRequest(Errors(err.message))
@@ -245,6 +247,7 @@ class Service(comps: BoatComps) extends BasicService[IO]:
     case req @ GET -> Root / "ws" / "updates" =>
       auth.authOrAnon(req.headers).flatMap { user =>
         val username = user.username
+        log.info(s"Viewer '${user.username}' joined.")
         BoatQuery(req.uri.query).map { limits =>
           val historicalLimits =
             if limits.tracks.nonEmpty && username == Usernames.anon then
