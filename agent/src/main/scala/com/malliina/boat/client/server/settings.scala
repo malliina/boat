@@ -58,7 +58,6 @@ object BoatConf:
   )
 
   implicit val json: Codec[BoatConf] = deriveCodec[BoatConf]
-//  val empty = BoatConf("", 0, Device.default, None, enabled = false)
 
   def anon(host: Host, port: Port) = BoatConf(host, port, Device.default, None, enabled = true)
 

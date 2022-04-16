@@ -6,7 +6,7 @@ import com.malliina.boat.client.TcpClient.{charset, log}
 import com.malliina.boat.client.server.Device.GpsDevice
 import com.malliina.boat.{RawSentence, Readable, SentencesMessage}
 import com.malliina.util.AppLogger
-import fs2.concurrent.Topic
+import fs2.concurrent.{SignallingRef, Topic}
 import fs2.io.net.{Network, Socket}
 import fs2.{Chunk, Pipe, Pull, Stream, text}
 import cats.effect.MonadCancelThrow
@@ -14,6 +14,7 @@ import cats.syntax.all.*
 import com.comcast.ip4s.*
 import com.malliina.boat.Readable.from
 import com.malliina.values.ErrorMessage
+
 import java.net.InetSocketAddress
 import java.nio.charset.{Charset, StandardCharsets}
 import java.nio.{ByteBuffer, CharBuffer}
@@ -38,18 +39,20 @@ object TcpClient:
 
   def default(host: Host, port: Port, delimiter: String = linefeed)(implicit
     t: Temporal[IO]
-  ): IO[TcpClient] = for topic <- Topic[IO, SentencesMessage]
-  yield TcpClient(host, port, delimiter, topic)
+  ): IO[TcpClient] = for
+    topic <- Topic[IO, SentencesMessage]
+    signal <- SignallingRef[IO, Boolean](false)
+  yield TcpClient(host, port, delimiter, topic, signal)
 
 class TcpClient(
   host: Host,
   port: Port,
   delimiter: String,
-  topic: Topic[IO, SentencesMessage]
+  topic: Topic[IO, SentencesMessage],
+  signal: SignallingRef[IO, Boolean]
 )(implicit t: Temporal[IO]):
   val hostPort = s"tcp://$host:$port"
   private val active = new AtomicReference[Option[Socket[IO]]]
-  private val enabled = new AtomicBoolean(true)
   // Sends after maxBatchSize sentences have been collected or every sendTimeWindow, whichever comes first
   private val maxBatchSize = 100
   private val sendTimeWindow = 500.millis
@@ -89,13 +92,16 @@ class TcpClient(
         IO(log.info(s"Connected to $hostPort."))
       }
       .handleErrorWith { e =>
-        if enabled.get() then
-          log.warn(s"Lost connection to $hostPort. Reconnecting in $reconnectInterval...", e)
-          connections.delayBy(reconnectInterval)
-        else
-          log.info(s"Disconnected from $hostPort.")
-          Stream.empty
+        Stream.eval(signal.get).flatMap { isDisabled =>
+          if !isDisabled then
+            log.warn(s"Lost connection to $hostPort. Reconnecting in $reconnectInterval...", e)
+            connections.delayBy(reconnectInterval)
+          else
+            log.info(s"Disconnected from $hostPort.")
+            Stream.empty
+        }
       }
+      .interruptWhen(signal)
 
   def decode[F[_]](charset: Charset): Pipe[F, Byte, String] =
     val decoder = charset.newDecoder
@@ -124,6 +130,4 @@ class TcpClient(
       }
     }
 
-  def close(): Unit =
-    enabled.set(false)
-//    active.get().foreach(_.close.unsafeRunSync())
+  def close: IO[Boolean] = signal.getAndSet(true)

@@ -58,18 +58,14 @@ class TcpClientTests extends AsyncSuite:
       .drain
       .unsafeRunSync()
     val received = await(p.future)
-    client.close()
+    client.close.unsafeRunSync()
     assertEquals(received, sentences.map(RawSentence.apply).head)
   }
 
   tcpFixture(host"127.0.0.1", port"10109").test("connection to unavailable server fails stream") {
     tcp =>
-      tcp.close()
+      tcp.close.unsafeRunSync()
       assertEquals(List.empty[Unit], tcp.connect().compile.toList.unsafeRunSync())
   }
 
   def tcpFixture(host: Host, port: Port) = resource(Resource.eval(TcpClient.default(host, port)))
-
-//  def tcpResource(host: String, port: Int) = for
-//    tcp <- TcpClient(host, port)
-//  yield tcp

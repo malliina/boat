@@ -283,7 +283,7 @@ class Service(comps: BoatComps) extends BasicService[IO]:
       auth
         .authBoat(req.headers)
         .flatMap { boat =>
-          log.info(s"Boat ${boat.boat} connected.")
+          log.info(s"Boat '${boat.boat}' by '${boat.user}' connected.")
           val boatTrack = boat.withTrack(TrackNames.random())
           inserts.joinAsBoat(boatTrack).flatMap { meta =>
             push
@@ -296,7 +296,7 @@ class Service(comps: BoatComps) extends BasicService[IO]:
                   sockets,
                   toClients,
                   message =>
-                    log.debug(s"Boat ${boat.boat} says '$message'.")
+                    log.debug(s"Boat '${boat.boat}' by '${boat.user}' says '$message'.")
                     val parsed = parseUnsafe(message)
                     streams.boatIn
                       .publish1(BoatEvent(parsed, meta))
@@ -426,7 +426,7 @@ class Service(comps: BoatComps) extends BasicService[IO]:
       user <- form.readT[UserId](Forms.User)
     yield RevokeAccess(boat, user)
 
-  private def webSocket[T](
+  private def webSocket(
     sockets: WebSocketBuilder2[IO],
     toClient: Stream[IO, WebSocketFrame],
     onMessage: String => IO[Unit],
@@ -434,6 +434,7 @@ class Service(comps: BoatComps) extends BasicService[IO]:
   ) =
     val fromClient: Pipe[IO, WebSocketFrame, Unit] = _.evalMap {
       case Text(message, _) =>
+        log.debug(s"Message $message")
         onMessage(message)
       case f =>
         IO(log.debug(s"Unknown WebSocket frame: $f"))

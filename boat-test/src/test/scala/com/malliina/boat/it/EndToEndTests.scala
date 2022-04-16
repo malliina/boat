@@ -1,12 +1,14 @@
 package com.malliina.boat.it
 
 import cats.effect.{IO, Resource}
-import com.malliina.boat.CoordsEvent
+import cats.effect.kernel.Deferred
+import com.malliina.boat.{CoordsEvent, SentencesEvent}
 import com.malliina.boat.client.server.BoatConf
 import com.malliina.boat.client.{DeviceAgent, TcpClient}
 import com.malliina.boat.it.EndToEndTests.log
 import com.malliina.util.AppLogger
 import fs2.Stream
+import fs2.concurrent.SignallingRef
 import fs2.io.net.{Network, Socket}
 import io.circe.Json
 import com.comcast.ip4s.*
@@ -29,6 +31,13 @@ class EndToEndTests extends BoatTests:
     "$GPGGA,125642,6009.2559,N,02447.5942,E,1,12,0.60,1,M,19.5,M,,*68"
   )
 
+  /**   1. Starts a plotter (TCP server) and boat backend
+    *   1. Connects to plotter and backend with agent
+    *   1. Plotter emits sentences (above) to agent
+    *   1. Agent sends them to boat
+    *   1. Client (frontend) opens socket to boat backend
+    *   1. Client receives coordinates event from backend based on sentences
+    */
   http.test("plotter to frontend") { httpClient =>
     val s = server()
     // the client validates maximum frame length, so we must not concatenate multiple sentences
@@ -38,37 +47,52 @@ class EndToEndTests extends BoatTests:
 
     val tcpHost = host"127.0.0.1"
     val tcpPort = port"10104"
-    val firstMessage = Promise[Json]()
-    val coordsPromise = Promise[CoordsEvent]()
-    log.info(s"Starting TCP server at $tcpHost:$tcpPort...")
-    Network[IO]
-      .server(port = Option(tcpPort))
-      .take(1)
-      .evalMap { client =>
-        log.info(s"TCP server handling client...")
-        plotterOutput.through(client.writes).compile.drain
-      }
-      .compile
-      .drain
-      .unsafeRunAndForget()
-    val serverUrl = s.baseWsUrl.append(reverse.ws.boats.renderString)
-    val clientIO: IO[Unit] =
-      DeviceAgent.fromConf(BoatConf.anon(tcpHost, tcpPort), serverUrl, httpClient.client).use {
-        agent =>
-          agent.connect.compile.resource.lastOrError.use { _ =>
-            IO(await(firstMessage.future.map(_ => ()), 5.seconds))
+
+    SignallingRef[IO, Boolean](false).flatMap { complete =>
+      Deferred[IO, Json].flatMap { (firstMessage: Deferred[IO, Json]) =>
+        Deferred[IO, CoordsEvent].flatMap { (coordsPromise: Deferred[IO, CoordsEvent]) =>
+          log.info(s"Starting TCP server at $tcpHost:$tcpPort...")
+          val server = Network[IO]
+            .server(port = Option(tcpPort))
+            .take(1)
+            .evalMap { client =>
+              log.info(s"TCP server handling client...")
+              plotterOutput.through(client.writes).compile.drain
+            }
+          val serverUrl = s.baseWsUrl.append(reverse.ws.boats.renderString)
+          val agent: IO[Json] =
+            DeviceAgent
+              .fromConf(BoatConf.anon(tcpHost, tcpPort), serverUrl, httpClient.client)
+              .use { agent =>
+                agent.connect.compile.resource.lastOrError.use { e =>
+                  log.info(s"Agent complete")
+                  firstMessage.get
+                }
+              }
+          val viewer = openViewerSocket(httpClient, None) { socket =>
+            socket.jsonMessages.evalTap { json =>
+              log.debug(s"Viewer got JSON\\n$json...")
+              firstMessage.complete(json) >> json
+                .as[CoordsEvent]
+                .toOption
+                .map(ce => coordsPromise.complete(ce))
+                .getOrElse(IO.pure(false))
+            }.compile.drain
           }
-      }
-    openViewerSocket(httpClient, None) { socket =>
-      socket.jsonMessages.map { json =>
-        log.info(s"Viewer got JSON\\n$json...")
-        firstMessage.trySuccess(json)
-        json.as[CoordsEvent].toOption.foreach { ce =>
-          coordsPromise.trySuccess(ce)
+          val system =
+            Stream
+              .never[IO]
+              .concurrently(server)
+              .concurrently(Stream.eval(agent))
+              .concurrently(Stream.eval(viewer))
+              .interruptWhen(complete)
+          for
+            _ <- system.compile.drain.start
+            _ <- firstMessage.get
+            cs <- coordsPromise.get
+            _ <- complete.getAndSet(true)
+          yield cs.coords
         }
-      }.compile.drain.unsafeRunAndForget()
-      clientIO.unsafeRunAndForget()
-      await(firstMessage.future, 5.seconds)
-      IO(await(coordsPromise.future, 5.seconds).coords)
+      }
     }
   }

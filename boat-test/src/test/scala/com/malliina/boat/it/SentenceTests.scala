@@ -16,21 +16,25 @@ class SentenceTests extends BoatTests:
           val testMessage = SentencesMessage(
             Seq(RawSentence("$GPGGA,154106,6008.0079,N,02452.0497,E,1,12,0.60,0,M,19.5,M,,*68"))
           )
-          openViewerSocket(client, None) { socket =>
+          val viewer = openViewerSocket(client, None) { socket =>
             socket.jsonMessages.evalTap { json =>
               json.as[SentencesEvent].map(ss => sentencePromise.complete(ss)).getOrElse(IO.unit) >>
                 json.as[CoordsEvent].map(c => coordPromise.complete(c)).getOrElse(IO.unit)
-            }.compile.drain.unsafeRunAndForget()
-            boat.send(testMessage).map { _ =>
-              sentencePromise.get.flatMap { received =>
-                assertEquals(received.sentences, testMessage.sentences)
-                coordPromise.get.map { coords =>
-                  val expectedCoords = List(Coord.buildOrFail(24.867495, 60.133465))
-                  assertEquals(coords.coords.map(_.coord), expectedCoords)
-                }
+            }.compile.drain
+          }
+          val messages = boat.send(testMessage).map { _ =>
+            sentencePromise.get.flatMap { received =>
+              assertEquals(received.sentences, testMessage.sentences)
+              coordPromise.get.map { coords =>
+                val expectedCoords = List(Coord.buildOrFail(24.867495, 60.133465))
+                assertEquals(coords.coords.map(_.coord), expectedCoords)
               }
             }
           }
+          for
+            _ <- viewer.start
+            res <- messages
+          yield messages
         }
       }
     }
@@ -51,7 +55,7 @@ class SentenceTests extends BoatTests:
               val testMessage = SentencesMessage(
                 Seq(RawSentence("$GPGGA,154106,6008.0079,N,02452.0497,E,1,12,0.60,0,M,19.5,M,,*68"))
               )
-              openViewerSocket(client, None) { anonSocket =>
+              val anonSocket = openViewerSocket(client, None) { anonSocket =>
                 anonSocket.jsonMessages.evalTap { json =>
                   json
                     .as[CoordsEvent]
@@ -59,25 +63,30 @@ class SentenceTests extends BoatTests:
                     .filter(_.from.username == testUser)
                     .map(c => anonPromise.complete(c))
                     .getOrElse(IO.unit)
-                }.compile.drain.unsafeRunAndForget()
-                openViewerSocket(client, creds) { authSocket =>
-                  authSocket.jsonMessages.evalTap { json =>
-                    json
-                      .as[CoordsEvent]
-                      .toOption
-                      .filter(_.from.username == testUser)
-                      .map(se => authPromise.complete(se))
-                      .getOrElse(IO.unit)
-                  }.compile.drain.unsafeRunAndForget()
-                  boat.send(testMessage).flatMap { _ =>
-                    authPromise.get.flatMap { _ =>
-                      interceptIO[TimeoutException] {
-                        anonPromise.get.timeout(500.millis)
-                      }
-                    }
+                }.compile.drain
+              }
+              val authedSocket = openViewerSocket(client, creds) { authSocket =>
+                authSocket.jsonMessages.evalTap { json =>
+                  json
+                    .as[CoordsEvent]
+                    .toOption
+                    .filter(_.from.username == testUser)
+                    .map(se => authPromise.complete(se))
+                    .getOrElse(IO.unit)
+                }.compile.drain
+              }
+              val process = boat.send(testMessage).flatMap { _ =>
+                authPromise.get.flatMap { _ =>
+                  interceptIO[TimeoutException] {
+                    anonPromise.get.timeout(500.millis)
                   }
                 }
               }
+              for
+                _ <- anonSocket.start
+                _ <- authedSocket.start
+                res <- process
+              yield res
             }
           }
         }

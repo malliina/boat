@@ -26,8 +26,7 @@ class StaticBoatTests extends BoatTests:
       Deferred[IO, CoordsEvent].flatMap { coordPromise =>
         val testMessage = SentencesMessage(testTrack.take(6))
         val testCoord = Coord.buildOrFail(24.89171, 60.1532)
-
-        openViewerSocket(client, None) { socket =>
+        val viewer = openViewerSocket(client, None) { socket =>
           socket.jsonMessages.evalTap { json =>
             json
               .as[CoordsEvent]
@@ -35,17 +34,21 @@ class StaticBoatTests extends BoatTests:
               .filter(_.from.boatName == boatName)
               .map(c => coordPromise.complete(c))
               .getOrElse(IO.unit)
-          }.compile.drain.unsafeRunAndForget()
-          boat.send(testMessage).flatMap { sent =>
-            assert(sent)
-            coordPromise.get.map { coordsEvent =>
-              assertEquals(coordsEvent.from.boatName, boatName)
-              assertEquals(coordsEvent.coords.map(_.coord), List(testCoord))
-              val first = coordsEvent.coords.head
-              assertEquals(first.boatTimeMillis, 1525443455000L)
-            }
+          }.compile.drain
+        }
+        val messages = boat.send(testMessage).flatMap { sent =>
+          assert(sent)
+          coordPromise.get.map { coordsEvent =>
+            assertEquals(coordsEvent.from.boatName, boatName)
+            assertEquals(coordsEvent.coords.map(_.coord), List(testCoord))
+            val first = coordsEvent.coords.head
+            assertEquals(first.boatTimeMillis, 1525443455000L)
           }
         }
+        for
+          _ <- viewer.start
+          res <- messages
+        yield res
       }
     }
   }

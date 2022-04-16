@@ -10,6 +10,7 @@ import com.malliina.http.FullUrl
 import com.malliina.http.io.{SocketEvent, WebSocketIO}
 import com.malliina.util.AppLogger
 import fs2.Stream
+import fs2.concurrent.SignallingRef
 import okhttp3.OkHttpClient
 
 object DeviceAgent:
@@ -28,7 +29,8 @@ object DeviceAgent:
     for
       tcp <- Resource.eval(TcpClient.default(conf.host, conf.port, TcpClient.linefeed))
       ws <- WebSocketIO(url, headers, http)
-    yield DeviceAgent(tcp, ws, isGps)
+      signal <- Resource.eval(SignallingRef[IO, Boolean](false))
+    yield DeviceAgent(tcp, ws, signal, isGps)
 
 /** Connects a TCP source to a WebSocket.
   *
@@ -37,7 +39,12 @@ object DeviceAgent:
   * @param url
   *   URL to boat-tracker websocket
   */
-class DeviceAgent(tcp: TcpClient, ws: WebSocketIO, isGps: Boolean)(implicit t: Temporal[IO]):
+class DeviceAgent(
+  tcp: TcpClient,
+  ws: WebSocketIO,
+  signal: SignallingRef[IO, Boolean],
+  isGps: Boolean
+)(implicit t: Temporal[IO]):
   val toServer: Stream[IO, Array[Byte]] =
     if isGps then Stream.emit(TcpClient.watchMessage) ++ Stream.empty
     else Stream.empty
@@ -47,11 +54,16 @@ class DeviceAgent(tcp: TcpClient, ws: WebSocketIO, isGps: Boolean)(implicit t: T
   def connect: Stream[IO, Unit] =
     val tcpConnection: Stream[IO, Unit] = tcp.connect(toServer.flatMap(arr => Stream.emits(arr)))
     val webSocketConnection: Stream[IO, SocketEvent] = ws.events
-    val connections: Stream[IO, Unit] =
-      tcpConnection.concurrently(webSocketConnection.map(s => ()))
     val sendStream =
-      tcp.sentencesHub.evalMap(s => IO(log.debug(s"Sending $s")) >> ws.send(s)).map(_ => ())
-    connections.concurrently(sendStream).onFinalize(close)
+      tcp.sentencesHub
+        .evalMap(s => IO(log.debug(s"Sending $s")) >> ws.send(s))
+    Stream.never
+      .concurrently(tcpConnection)
+      .concurrently(webSocketConnection)
+      .concurrently(sendStream)
+      .interruptWhen(signal)
+      .onFinalize(close)
 
   def close: IO[Unit] =
-    IO(tcp.close()) >> ws.close
+    IO(log.info(s"Closing agent to ${tcp.hostPort} and ${ws.url}.")) >>
+      signal.getAndSet(true) >> tcp.close >> ws.close
