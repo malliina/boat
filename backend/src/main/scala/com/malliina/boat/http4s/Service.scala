@@ -232,7 +232,6 @@ class Service(comps: BoatComps) extends BasicService[IO]:
     case GET -> Root / "routes" / DoubleVar(srcLat) /
         DoubleVar(srcLng) / DoubleVar(destLat) / DoubleVar(destLng) =>
       RouteRequest(srcLat, srcLng, destLat, destLng).map { req =>
-        // TODO Run on another thread
         IO.blocking(g.shortest(req.from, req.to)).flatMap { op =>
           op.map { result => ok(result) }.recover {
             case NoRoute(f, t)     => notFound(Errors(s"No route found from '$f' to '$t'."))
