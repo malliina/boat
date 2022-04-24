@@ -83,6 +83,8 @@ val cross = portableProject(JSPlatform, JVMPlatform)
 val crossJvm = cross.jvm
 val crossJs = cross.js
 
+val isProd = settingKey[Boolean]("isProd")
+
 val frontend = project
   .in(file("frontend"))
   .enablePlugins(NodeJsPlugin, ClientPlugin)
@@ -117,7 +119,8 @@ val frontend = project
       "webpack-merge" -> "5.8.0"
     ),
     webpackBundlingMode := BundlingMode.LibraryOnly(),
-    Compile / fullOptJS / scalaJSLinkerConfig ~= { _.withSourceMap(false) }
+    Compile / fullOptJS / scalaJSLinkerConfig ~= { _.withSourceMap(false) },
+    isProd := (Global / scalaJSStage).value == FullOptStage
   )
 
 val config = project
@@ -177,12 +180,12 @@ val backend = Project("boat", file("backend"))
       scalaVersion,
       "gitHash" -> gitHash,
       "mapboxVersion" -> mapboxVersion,
-      "mode" -> (if ((Global / scalaJSStage).value == FullOptStage) "prod" else "dev"),
-      "isProd" -> ((Global / scalaJSStage).value == FullOptStage)
+      "assetsDir" -> (frontend / assetsRoot).value,
+      "publicFolder" -> (frontend / assetsPrefix).value,
+      "mode" -> (if ((frontend / isProd).value) "prod" else "dev"),
+      "isProd" -> (frontend / isProd).value
     ),
     buildInfoPackage := "com.malliina.boat",
-    // linux packaging
-    maintainer := "Michael Skogberg <malliina123@gmail.com>",
     releaseProcess := Seq[ReleaseStep](
       releaseStepTask(Compile / clean),
       checkSnapshotDependencies
@@ -190,8 +193,26 @@ val backend = Project("boat", file("backend"))
     Compile / packageDoc / publishArtifact := false,
     packageDoc / publishArtifact := false,
     Compile / doc / sources := Seq.empty,
-    Compile / unmanagedResourceDirectories += baseDirectory.value / "public",
-    Compile / unmanagedResourceDirectories += (frontend / Compile / assetsRoot).value.getParent.toFile,
+    start := Def.taskIf {
+      if (start.inputFileChanges.hasChanges) {
+        refreshBrowsers.value
+      } else {
+        Def.task(streams.value.log.info("No backend changes."))
+      }
+    }.dependsOn(start).value,
+    (frontend / Compile / start) := Def.taskIf {
+      if ((frontend / Compile / start).inputFileChanges.hasChanges) {
+        refreshBrowsers.value
+      } else {
+        Def.task(streams.value.log.info("No frontend changes.")).value
+      }
+    }.dependsOn(frontend / start).value,
+    Compile / unmanagedResourceDirectories ++= {
+      val prodAssets =
+        if ((frontend / isProd).value) List((frontend / Compile / assetsRoot).value.getParent.toFile)
+        else Nil
+      (baseDirectory.value / "public") +: prodAssets
+    },
     assembly / assemblyJarName := "app.jar"
   )
 

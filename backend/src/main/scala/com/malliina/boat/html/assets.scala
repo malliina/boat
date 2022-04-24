@@ -10,7 +10,7 @@ trait AssetsSource:
 object AssetsSource:
   def apply(isProd: Boolean): AssetsSource =
     if isProd then CDNAssets(FullUrl.https("cdn.boat-tracker.com", ""))
-    else HashedAssetsSource
+    else DirectAssets
 
 object DirectAssets extends AssetsSource:
   override def at(file: String): Uri = Uri.unsafeFromString(s"/assets/$file")

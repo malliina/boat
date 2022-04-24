@@ -4,8 +4,8 @@ import com.malliina.boat.FrontKeys.*
 import com.malliina.boat.html.BoatHtml.ScriptAssets
 import com.malliina.boat.http.{Limits, TrackQuery}
 import com.malliina.boat.http4s.Reverse
-import com.malliina.boat.{AppConf, AppMode, FullTrack, Lang, TrackRef, TracksBundle, UserBoats, UserInfo, Usernames}
-import com.malliina.html.HtmlTags.{cssLink, deviceWidthViewport, titleTag, fullUrl}
+import com.malliina.boat.{AppConf, AppMode, BuildInfo, FullTrack, Lang, TrackRef, TracksBundle, UserBoats, UserInfo, Usernames}
+import com.malliina.html.HtmlTags.{cssLink, deviceWidthViewport, fullUrl, titleTag}
 import com.malliina.html.{Bootstrap, HtmlTags, TagPage}
 import com.malliina.http.FullUrl
 import com.malliina.live.LiveReload
@@ -14,12 +14,11 @@ import com.malliina.values.WrappedString
 import org.http4s.Uri
 import scalatags.Text.all.*
 import scalatags.Text
+
 import scala.language.implicitConversions
 
 object BoatHtml:
-  def fromBuild = apply(AppMode.fromBuild)
-
-  def apply(mode: AppMode): BoatHtml = apply(mode == AppMode.Prod)
+  def fromBuild: BoatHtml = apply(BuildInfo.isProd)
 
   def apply(isProd: Boolean): BoatHtml =
     val name = "frontend"
