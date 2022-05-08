@@ -78,6 +78,8 @@ class Service(comps: BoatComps) extends BasicService[IO]:
     case req @ GET -> Root =>
       index(req)
     case GET -> Root / "health" => ok(AppMeta.default)
+    case GET -> Root / "favicon.ico" =>
+      temporaryRedirect(Uri.unsafeFromString(s"/${BoatHtml.faviconPath}"))
     case req @ GET -> Root / "pingAuth" =>
       auth.profile(req).flatMap { _ => ok(AppMeta.default) }
     case req @ GET -> Root / "users" / "me" =>
@@ -398,6 +400,7 @@ class Service(comps: BoatComps) extends BasicService[IO]:
     case req @ GET -> Root / ".well-known" / "assetlinks.json" =>
       fileFromPublicResources("android-assetlinks.json", req)
     case req @ GET -> Root / TrackCanonicalVar(canonical) =>
+      log.info("What")
       respond(req)(
         json = authedTrackQuery(req).flatMap { authed =>
           db.canonical(canonical, authed.user.language)

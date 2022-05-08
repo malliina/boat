@@ -1,7 +1,6 @@
 import sbtcrossproject.CrossPlugin.autoImport.{CrossType => PortableType, crossProject => portableProject}
 import sbtrelease.ReleasePlugin.autoImport.{ReleaseStep, releaseProcess}
 import sbtrelease.ReleaseStateTransformations._
-import com.typesafe.sbt.packager.docker.DockerVersion
 
 import scala.sys.process.Process
 import scala.util.Try
@@ -181,6 +180,7 @@ val backend = Project("boat", file("backend"))
       "gitHash" -> gitHash,
       "mapboxVersion" -> mapboxVersion,
       "assetsDir" -> (frontend / assetsRoot).value,
+      "publicDir" -> (Compile / resourceDirectory).value.toPath.resolve("public"),
       "publicFolder" -> (frontend / assetsPrefix).value,
       "mode" -> (if ((frontend / isProd).value) "prod" else "dev"),
       "isProd" -> (frontend / isProd).value

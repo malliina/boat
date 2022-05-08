@@ -20,6 +20,8 @@ import scala.language.implicitConversions
 object BoatHtml:
   def fromBuild: BoatHtml = apply(BuildInfo.isProd)
 
+  val faviconPath = "assets/img/favicon.png"
+
   def apply(isProd: Boolean): BoatHtml =
     val name = "frontend"
     val opt = if isProd then "opt" else "fastopt"
@@ -181,7 +183,7 @@ class BoatHtml(
         deviceWidthViewport,
         StructuredData.appStructuredData,
         StructuredData.appLinkMetadata,
-        link(rel := "icon", `type` := "image/png", href := "/assets/img/favicon.png"),
+        link(rel := "icon", `type` := "image/png", href := versioned("img/favicon.png")),
         cssFiles.map { file =>
           cssLink(versioned(file))
         }

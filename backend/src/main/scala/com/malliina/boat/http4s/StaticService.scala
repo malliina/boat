@@ -23,7 +23,8 @@ class StaticService[F[_]: Async] extends BasicService[F]:
   private val supportedStaticExtensions =
     List(".html", ".js", ".map", ".css", ".png", ".ico", ".svg", ".map") ++ fontExtensions
 
-  private val publicDir = fs2.io.file.Path(BuildInfo.assetsDir)
+  private val assetsDir = fs2.io.file.Path(BuildInfo.assetsDir)
+  private val publicDir = fs2.io.file.Path(BuildInfo.publicDir)
   private val allowAllOrigins = Header.Raw(ci"Access-Control-Allow-Origin", "*")
 
   val routes: HttpRoutes[F] = HttpRoutes.of[F] {
@@ -35,13 +36,22 @@ class StaticService[F[_]: Async] extends BasicService[F]:
       val cacheHeaders =
         if isCacheable then NonEmptyList.of(`max-age`(365.days), `public`)
         else NonEmptyList.of(`no-cache`(), `no-store`, `must-revalidate`)
-      val assetPath: fs2.io.file.Path = publicDir.resolve(file.value)
-      val resourcePath = s"${BuildInfo.publicFolder}/${file.value}"
-      val path = if BuildInfo.isProd then resourcePath else assetPath.toNioPath.toAbsolutePath
-      log.info(s"Searching for '$path'...")
+
       val search =
-        if BuildInfo.isProd then StaticFile.fromResource(resourcePath, Option(req))
-        else StaticFile.fromPath(assetPath, Option(req))
+        if BuildInfo.isProd then
+          val resourcePath = s"${BuildInfo.publicFolder}/${file.value}"
+          log.info(s"Searching for resource '$resourcePath'...")
+          StaticFile.fromResource(resourcePath, Option(req))
+        else
+          val assetPath: fs2.io.file.Path = assetsDir.resolve(file.value)
+          val publicPath = publicDir.resolve(file.value)
+          log.info(
+            s"Searching for file '${assetPath.toNioPath.toAbsolutePath}' or '${publicPath.toNioPath.toAbsolutePath}'..."
+          )
+          StaticFile
+            .fromPath(assetPath, Option(req))
+            .orElse(StaticFile.fromPath(publicPath, Option(req)))
+
       search
         .map(_.putHeaders(`Cache-Control`(cacheHeaders), allowAllOrigins))
         .fold(onNotFound(req))(_.pure[F])
