@@ -286,8 +286,7 @@ class Service(comps: BoatComps) extends BasicService[IO]:
         .authBoat(req.headers)
         .flatMap { boat =>
           log.info(s"Boat '${boat.boat}' by '${boat.user}' connected.")
-          val boatTrack = boat.withTrack(TrackNames.random())
-          inserts.joinAsBoat(boatTrack).flatMap { meta =>
+          inserts.joinAsBoat(boat).flatMap { meta =>
             push
               .push(meta, BoatState.Connected)
               .handleErrorWith { t =>
@@ -315,7 +314,13 @@ class Service(comps: BoatComps) extends BasicService[IO]:
                     IO(log.info(s"Boat '${boat.boat}' by '${boat.user}' left.")).flatMap { _ =>
                       push.push(meta, BoatState.Disconnected).map(_ => ())
                     }
-                )
+                ).onError { t =>
+                  IO(
+                    log.info(s"Boat '${boat.boat}' by '${boat.user}' left exceptionally.", t)
+                  ).flatMap { _ =>
+                    push.push(meta, BoatState.Disconnected).map(_ => ())
+                  }
+                }
               }
           }
         }

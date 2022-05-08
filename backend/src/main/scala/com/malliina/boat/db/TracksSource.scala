@@ -27,7 +27,7 @@ trait TrackInsertsDatabase:
     * @return
     *   track specs, or failure if there is a naming clash
     */
-  def joinAsBoat(meta: BoatTrackMeta): IO[TrackMeta]
+  def joinAsBoat(meta: DeviceMeta): IO[TrackMeta]
   def joinAsDevice(meta: DeviceMeta): IO[JoinedBoat]
   def saveSentences(sentences: SentencesEvent): IO[Seq[KeyedSentence]]
   def saveCoords(coords: FullCoord): IO[InsertedPoint]

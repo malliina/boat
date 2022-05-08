@@ -150,10 +150,8 @@ class DoobieUserManager(db: DoobieDatabase) extends IdentityManager with DoobieS
   }
 
   def authBoat(token: BoatToken): IO[JoinedBoat] = run {
-    log.info(s"Authenticating boat...")
     CommonSql.boatsByToken(token).flatMap { opt =>
       opt.map { b =>
-        log.info(s"Got boat ${b.boat}...")
         pure(b)
       }.getOrElse {
         fail(IdentityException(InvalidToken(token)))

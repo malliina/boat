@@ -11,6 +11,8 @@ import doobie.implicits.*
 import cats.effect.IO
 import com.malliina.util.AppLogger
 
+import java.time.temporal.ChronoUnit
+
 object TrackInserter:
   private val log = AppLogger(getClass)
 
@@ -25,7 +27,7 @@ class TrackInserter(val db: DoobieDatabase) extends TrackInsertsDatabase with Do
   private def trackById(id: TrackId) =
     sql"${CommonSql.nonEmptyTracks} and t.id = $id".query[JoinedTrack].unique
 
-  private def trackMetas(more: Fragment) =
+  private def trackMetas(more: Fragment): Query0[TrackMeta] =
     sql"""select t.id, t.name, t.title, t.canonical, t.comments, t.added, t.avg_speed, t.avg_water_temp, t.points, t.distance, b.id boatId, b.name boatName, b.token boatToken, u.id userId, u.user, u.email
           from tracks t, boats b, users u
           where t.boat = b.id and b.owner = u.id $more""".query[TrackMeta]
@@ -84,24 +86,36 @@ class TrackInserter(val db: DoobieDatabase) extends TrackInsertsDatabase with Do
       updated
   }
 
-  def joinAsBoat(meta: BoatTrackMeta): IO[TrackMeta] = run {
-    val existing = trackMetas(
-      fr"and u.user = ${meta.user} and b.name = ${meta.boat} and t.name = ${meta.track}"
-    ).option
+  def joinAsBoat(meta: DeviceMeta): IO[TrackMeta] = run {
+    val existing: ConnectionIO[List[TrackMeta]] = trackMetas(
+      fr"and u.user = ${meta.user} and b.name = ${meta.boat} and t.id in (select p.track from points p where p.added > now() - interval 10 minute)"
+    ).to[List]
     existing.flatMap { opt =>
-      opt.map(pure).getOrElse {
-        joinBoat(meta).flatMap { boat =>
-          // Is this necessary?
-          trackMetas(fr"and t.name = ${meta.track} and b.id = ${boat.id}").option.flatMap { opt =>
-            opt.map(pure).getOrElse {
-              insertTrack(TrackInput.empty(meta.track, boat.id)).map { meta =>
-                log.info(s"Registered track with ID '${meta.track}' for boat '${boat.id}'.")
-                meta
-              }
+      opt
+        .sortBy(_.trackAdded)
+        .reverse
+        .headOption
+        .map { t =>
+          log.info(
+            s"Resuming track ${t.track} for boat '${meta.boat}' by '${meta.user}'. There was probably a temporary connection glitch."
+          )
+          pure(t)
+        }
+        .getOrElse {
+          val trackMeta = meta.withTrack(TrackNames.random())
+          joinBoat(trackMeta).flatMap { boat =>
+            // Is this necessary?
+            trackMetas(fr"and t.name = ${trackMeta.track} and b.id = ${boat.id}").option.flatMap {
+              opt =>
+                opt.map(pure).getOrElse {
+                  insertTrack(TrackInput.empty(trackMeta.track, boat.id)).map { meta =>
+                    log.info(s"Registered track with ID '${meta.track}' for boat '${boat.id}'.")
+                    meta
+                  }
+                }
             }
           }
         }
-      }
     }
   }
 
