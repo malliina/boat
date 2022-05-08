@@ -68,6 +68,7 @@ class DoobiePushDatabase(db: DoobieDatabase, push: PushEndpoint) extends PushSer
     yield summary
 
   private def handle(summary: PushSummary): IO[Int] =
+    log.info(summary.describe)
     if summary.isEmpty then IO.pure(0)
     else
       db.run {
@@ -90,6 +91,4 @@ class DoobiePushDatabase(db: DoobieDatabase, push: PushEndpoint) extends PushSer
           }
         }.map(_.sum)
         deleteIO.flatMap { r1 => updateIO.map { r2 => r1 + r2 } }
-//        NonEmptyList.of(deleteIO, updateIO).map2(_ + _)
-//        ConnectionIO.map2(deleteIO, updateIO)(_ + _)
       }

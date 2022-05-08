@@ -13,11 +13,8 @@ import com.malliina.util.AppLogger
 object BoatPushService:
   private val log = AppLogger(getClass)
 
-  def apply(ios: APNS, android: PushClient[GCMToken]): BoatPushService =
-    new BoatPushService(ios, android)
-
-  def apply(c: PushConf, http: HttpClient[IO]): BoatPushService =
-    apply(APNSPush(c.apns, http), FCMPush(c.fcm, http))
+  def fromConf(c: PushConf, http: HttpClient[IO]): BoatPushService =
+    BoatPushService(APNSPush.fromConf(c.apns, http), FCMPush(c.fcm, http))
 
 class BoatPushService(ios: APNS, android: PushClient[GCMToken]) extends PushEndpoint:
   override def push(notification: BoatNotification, to: PushDevice): IO[PushSummary] =

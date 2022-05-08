@@ -20,10 +20,7 @@ object NoopAPNS extends APNS:
 object APNSPush:
   private val log = AppLogger(getClass)
 
-  def apply(sandbox: APNSHttpClientF[IO], prod: APNSHttpClientF[IO]): APNSPush =
-    new APNSPush(sandbox, prod)
-
-  def apply(conf: APNSConf, http: HttpClient[IO]): APNS =
+  def fromConf(conf: APNSConf, http: HttpClient[IO]): APNS =
     if conf.enabled then
       val confModel = APNSTokenConf(Paths.get(conf.privateKey), conf.keyId, conf.teamId)
       log.info(
@@ -32,8 +29,10 @@ object APNSPush:
       val prep = RequestPreparer.token(confModel)
       val sandbox = new APNSHttpClientF(http, prep, isSandbox = true)
       val prod = new APNSHttpClientF(http, prep, isSandbox = false)
-      apply(sandbox, prod)
-    else NoopAPNS
+      APNSPush(sandbox, prod)
+    else
+      log.info(s"APNS is disabled.")
+      NoopAPNS
 
 class APNSPush(sandbox: APNSHttpClientF[IO], prod: APNSHttpClientF[IO])
   extends PushClient[APNSToken]
@@ -45,10 +44,7 @@ class APNSPush(sandbox: APNSHttpClientF[IO], prod: APNSHttpClientF[IO])
       .simple(notification.message)
       .copy(data = Map("meta" -> notification.asJson))
     val request = APNSRequest.withTopic(topic, message)
-    def pushSandbox = push(to, request, isProd = false)
-    def pushProd = push(to, request, isProd = true)
-    import cats.implicits.*
-    pushProd.map2(pushSandbox)(_ ++ _)
+    push(to, request, isProd = true)
 
   def push(to: APNSToken, request: APNSRequest, isProd: Boolean): IO[PushSummary] =
     val service = if isProd then prod else sandbox
@@ -69,7 +65,8 @@ class APNSPush(sandbox: APNSHttpClientF[IO], prod: APNSHttpClientF[IO])
     result.fold(
       err =>
         if useLog then log.error(s"Failed to push to '$token'. ${err.description}")
-        APNSHttpResult(token, None, Option(err)),
+        APNSHttpResult(token, None, Option(err))
+      ,
       id =>
         if useLog then log.info(s"Successfully pushed to '$token'.")
         APNSHttpResult(token, Option(id), None)

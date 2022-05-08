@@ -5,6 +5,7 @@ import com.malliina.boat.db.PushDevice
 import com.malliina.boat.{MobileDevice, PushToken}
 import com.malliina.push.Token
 import com.malliina.push.gcm.MappedGCMResponse.TokenReplacement
+import com.malliina.util.FileUtils
 
 case class PushTokenReplacement(oldToken: PushToken, newToken: PushToken, device: MobileDevice)
 
@@ -21,6 +22,19 @@ case class PushSummary(badTokens: Seq[PushToken], replacements: Seq[PushTokenRep
 
   def ++(other: PushSummary): PushSummary =
     PushSummary(badTokens ++ other.badTokens, replacements ++ other.replacements)
+
+  private def section[T](xs: Seq[T]) = xs.mkString(
+    FileUtils.lineSep + FileUtils.lineSep,
+    FileUtils.lineSep,
+    FileUtils.lineSep + FileUtils.lineSep
+  )
+
+  private def tokensList = section(badTokens)
+  private def replacementsList =
+    section(replacements.map(r => s"${r.oldToken} to ${r.newToken} for ${r.device}"))
+
+  def describe =
+    s"Bad tokens: ${badTokens.size}. $tokensList Replacements: ${replacements.size}. $replacementsList"
 
 object PushSummary:
   val empty = PushSummary(Nil, Nil)

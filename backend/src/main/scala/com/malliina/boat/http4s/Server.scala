@@ -44,7 +44,7 @@ trait AppComps:
 
 class ProdAppComps(conf: BoatConf, http: HttpClient[IO]) extends AppComps:
   override val customJwt: CustomJwt = CustomJwt(JWT(conf.secret))
-  override val pushService: PushEndpoint = BoatPushService(conf.push, http)
+  override val pushService: PushEndpoint = BoatPushService.fromConf(conf.push, http)
   override val emailAuth: EmailAuth =
     TokenEmailAuth(
       conf.google.web.id,
