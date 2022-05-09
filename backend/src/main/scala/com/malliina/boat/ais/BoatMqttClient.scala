@@ -42,7 +42,7 @@ object BoatMqttClient:
     mode match
       case AppMode.Prod if enabled => prod(d)
       case AppMode.Dev if enabled  => prod(d)
-      case _                       => Resource.eval(silent())
+      case _                       => Resource.eval(silent)
 
   def prod(d: Dispatcher[IO])(implicit t: Temporal[IO]): Resource[IO, BoatMqttClient] =
     apply(ProdUrl, AllDataTopic, d)
@@ -50,7 +50,7 @@ object BoatMqttClient:
   def test(d: Dispatcher[IO])(implicit t: Temporal[IO]): Resource[IO, BoatMqttClient] =
     apply(TestUrl, AllDataTopic, d)
 
-  def silent(): IO[AISSource] = IO.delay {
+  def silent: IO[AISSource] = IO.delay {
     log.info("AIS is disabled.")
     SilentAISSource
   }
@@ -123,7 +123,7 @@ class BoatMqttClient(
           case StatusTopic() => decode[VesselStatus](str)
           case other => Left(DecodingFailure(s"Unknown topic: '$other'. Payload: '$str'.", Nil))
       }
-  val vesselMessages = parsed.flatMap {
+  val vesselMessages: Stream[IO, AisPair] = parsed.flatMap {
     case Right(msg) =>
       msg match
         case loc: VesselLocation =>

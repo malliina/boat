@@ -55,7 +55,9 @@ class AISTests extends MUnitSuite:
     opts.setMqttVersion(4)
     client.connect(opts)
     println("Connected")
-    client.subscribe("vessels/#")
+    client.subscribe(MetadataTopic)
     println("Subscribed")
-    Thread.sleep(10000)
+    Thread.sleep(5000)
+    client.unsubscribe(AllDataTopic)
+    client.close(true)
   }
