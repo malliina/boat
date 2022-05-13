@@ -32,6 +32,7 @@ class FCMPush(fcm: GoogleClientF[IO]) extends PushClient[GCMToken]:
       val detailed = if hasUninstalled then s" $uninstalledCount uninstalled device$suffix." else ""
       log.info(s"FCM push to '$to' complete.$detailed")
       PushSummary(
+        Nil,
         r.uninstalled.map(t => PushToken(t.token)),
         r.replacements.map(PushTokenReplacement.apply)
       )

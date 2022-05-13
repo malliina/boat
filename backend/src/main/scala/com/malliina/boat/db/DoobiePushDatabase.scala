@@ -69,7 +69,7 @@ class DoobiePushDatabase(db: DoobieDatabase, push: PushEndpoint) extends PushSer
 
   private def handle(summary: PushSummary): IO[Int] =
     log.info(summary.describe)
-    if summary.isEmpty then IO.pure(0)
+    if summary.noBadTokensOrReplacements then IO.pure(0)
     else
       db.run {
         val deleteIO = summary.badTokens.toList.toNel.map { bad =>

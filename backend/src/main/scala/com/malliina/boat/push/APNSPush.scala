@@ -51,6 +51,7 @@ class APNSPush(sandbox: APNSHttpClientF[IO], prod: APNSHttpClientF[IO])
     service.push(to, request).map(loggedMap(_, to, useLog = isProd)).map { result =>
       if isProd then
         PushSummary(
+          if result.error.isEmpty then Seq(result.token) else Nil,
           if result.error.contains(BadDeviceToken) then Seq(PushToken(result.token.token)) else Nil,
           Nil
         )
