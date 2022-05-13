@@ -400,7 +400,6 @@ class Service(comps: BoatComps) extends BasicService[IO]:
     case req @ GET -> Root / ".well-known" / "assetlinks.json" =>
       fileFromPublicResources("android-assetlinks.json", req)
     case req @ GET -> Root / TrackCanonicalVar(canonical) =>
-      log.info("What")
       respond(req)(
         json = authedTrackQuery(req).flatMap { authed =>
           db.canonical(canonical, authed.user.language)
