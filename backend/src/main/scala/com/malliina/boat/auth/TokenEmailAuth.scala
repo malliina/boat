@@ -36,11 +36,11 @@ class TokenEmailAuth(google: KeyClient, microsoft: KeyClient, custom: CustomJwt)
   val EmailKey = "email"
   val EmailVerified = "email_verified"
 
-  def authEmail(headers: Headers): IO[Email] =
+  def authEmail(headers: Headers, now: Instant): IO[Email] =
     Auth
       .token(headers)
       .map { token =>
-        validateAny(token, Instant.now()).flatMap { e =>
+        validateAny(token, now).flatMap { e =>
           e.fold(
             err => IO.raiseError(IdentityException(JWTError(err, headers))),
             email => IO.pure(email)

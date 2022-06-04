@@ -43,3 +43,4 @@ trait TokenManager:
   def remove(token: RefreshTokenId): IO[Int]
   def load(token: RefreshTokenId): IO[RefreshRow]
   def updateValidation(token: RefreshTokenId): IO[RefreshRow]
+  def refreshTokens(user: UserId): IO[List[RefreshToken]]

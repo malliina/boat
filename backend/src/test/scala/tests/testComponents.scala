@@ -22,7 +22,7 @@ object TestEmailAuth extends EmailAuth:
   val testToken = "header.payload.signature"
   val testEmail = Email("test@example.com")
 
-  override def authEmail(headers: Headers): IO[Email] =
+  override def authEmail(headers: Headers, now: Instant): IO[Email] =
     Auth
       .token(headers)
       .fold(

@@ -11,7 +11,8 @@ import com.malliina.values.{Email, IdToken}
 import org.http4s.headers.Cookie
 import org.http4s.{Headers, Request, Response}
 import org.typelevel.ci.{CIString, CIStringSyntax}
-import com.malliina.web.Code
+import com.malliina.web.{Code, RevokeResult}
+
 import java.time.Instant
 
 object AuthService:
@@ -26,6 +27,19 @@ class AuthService(val users: IdentityManager, comps: AuthComps):
   val appleWebFlow = comps.appleWebFlow
   val appSiwa: SIWADatabase = SIWADatabase(comps.appleAppFlow, users, comps.customJwt)
   val webSiwa: SIWADatabase = SIWADatabase(comps.appleWebFlow, users, comps.customJwt)
+
+  def delete(headers: Headers, now: Instant): IO[List[RevokeResult]] =
+    for
+      user <- profile(headers, now)
+      tokens <- users.refreshTokens(user.id)
+      revocations <- IO.parTraverseN(1)(tokens) { token =>
+        for
+          app <- comps.appleAppFlow.revoke(token)
+          web <- comps.appleWebFlow.revoke(token)
+        yield List(app, web)
+      }
+      _ <- users.deleteUser(user.username)
+    yield revocations.flatten
 
   def register(code: Code, now: Instant): IO[BoatJwt] = appSiwa.registerApp(code, now)
 
@@ -90,7 +104,7 @@ class AuthService(val users: IdentityManager, comps: AuthComps):
     }
 
   private def emailOnly(headers: Headers, now: Instant): IO[Email] =
-    emailAuth.authEmail(headers).handleErrorWith {
+    emailAuth.authEmail(headers, now).handleErrorWith {
       case mce: MissingCredentialsException =>
         authSession(headers).fold(
           err => IO.raiseError(mce),

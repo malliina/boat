@@ -22,3 +22,8 @@ case class RefreshTokenResponse(id_token: IdToken, refresh_token: RefreshToken):
 
 object RefreshTokenResponse:
   implicit val json: Codec[RefreshTokenResponse] = deriveCodec[RefreshTokenResponse]
+
+case class RevokeResult(success: Boolean, statusCode: Int, token: RefreshToken, clientId: ClientId)
+
+object RevokeResult:
+  implicit val json: Codec[RevokeResult] = deriveCodec[RevokeResult]

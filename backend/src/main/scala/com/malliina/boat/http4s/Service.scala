@@ -101,6 +101,10 @@ class Service(comps: BoatComps) extends BasicService[IO]:
           ok(SimpleMessage(msg))
         }
       }
+    case req @ POST -> Root / "users" / "me" / "delete" =>
+      auth.delete(req.headers, Instant.now()).flatMap { _ =>
+        ok(SimpleMessage("Deleted."))
+      }
     case req @ POST -> Root / "users" / "notifications" =>
       jsonAction[PushPayload](req) { (payload, user) =>
         push.enable(PushInput(payload.token, payload.device, user.id)).flatMap { _ =>
