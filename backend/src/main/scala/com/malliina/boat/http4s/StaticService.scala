@@ -40,12 +40,12 @@ class StaticService[F[_]: Async] extends BasicService[F]:
       val search =
         if BuildInfo.isProd then
           val resourcePath = s"${BuildInfo.publicFolder}/${file.value}"
-          log.info(s"Searching for resource '$resourcePath'...")
+          log.debug(s"Searching for resource '$resourcePath'...")
           StaticFile.fromResource(resourcePath, Option(req))
         else
           val assetPath: fs2.io.file.Path = assetsDir.resolve(file.value)
           val publicPath = publicDir.resolve(file.value)
-          log.info(
+          log.debug(
             s"Searching for file '${assetPath.toNioPath.toAbsolutePath}' or '${publicPath.toNioPath.toAbsolutePath}'..."
           )
           StaticFile

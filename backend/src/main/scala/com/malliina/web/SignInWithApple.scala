@@ -56,26 +56,27 @@ object SignInWithApple:
   */
 class SignInWithApple(conf: Conf):
   log.info(
-    s"Configuring Sign in with Apple using client ID '${conf.clientId}' team '${conf.teamId}' key ID '${conf.keyId}' at '${conf.privateKey}'...'"
+    s"Configuring Sign in with Apple using client ID '${conf.clientId}' team '${conf.teamId}' key ID '${conf.keyId}' at '${conf.privateKey}'..."
   )
   private val content = Files.readAllLines(conf.privateKey).asScala.drop(1).dropRight(1).mkString
   private val decoded = Base64.getDecoder.decode(content)
-  private val keySpec = new PKCS8EncodedKeySpec(decoded)
+  private val keySpec = PKCS8EncodedKeySpec(decoded)
   private val keyFactory = KeyFactory.getInstance("EC")
   private val key = keyFactory.generatePrivate(keySpec).asInstanceOf[ECPrivateKey]
-  private val signer = new ECDSASigner(key)
-  private val header = new JWSHeader.Builder(JWSAlgorithm.ES256).keyID(conf.keyId).build()
+  private val signer = ECDSASigner(key)
+  private val header = JWSHeader.Builder(JWSAlgorithm.ES256).keyID(conf.keyId).build()
 
   def signInWithAppleToken(now: Instant): ClientSecret =
     val issuedAt = Date.from(now)
     val exp = Date.from(now.plus(179, ChronoUnit.DAYS))
-    val claims = new JWTClaimsSet.Builder()
+    val claims = JWTClaimsSet
+      .Builder()
       .issuer(conf.teamId)
       .issueTime(issuedAt)
       .expirationTime(exp)
       .audience(appleIssuer.value)
       .subject(conf.clientId.value)
       .build()
-    val signable = new SignedJWT(header, claims)
+    val signable = SignedJWT(header, claims)
     signable.sign(signer)
     ClientSecret(signable.serialize())

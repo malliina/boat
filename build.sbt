@@ -5,7 +5,7 @@ import sbtrelease.ReleaseStateTransformations._
 import scala.sys.process.Process
 import scala.util.Try
 
-val mapboxVersion = "2.5.1"
+val mapboxVersion = "2.8.2"
 val webAuthVersion = "6.2.2"
 val munitVersion = "0.7.29"
 val testContainersScalaVersion = "0.40.3"
@@ -96,11 +96,11 @@ val frontend = project
       "org.scalameta" %%% "munit" % munitVersion % Test
     ),
     Compile / npmDependencies ++= Seq(
-      "@mapbox/mapbox-gl-geocoder" -> "4.7.4",
-      "@popperjs/core" -> "2.10.2",
+      "@mapbox/mapbox-gl-geocoder" -> "5.0.1",
+      "@popperjs/core" -> "2.11.5",
       "@turf/turf" -> "6.5.0",
       "bootstrap" -> "5.1.3",
-      "chart.js" -> "3.5.1",
+      "chart.js" -> "3.8.0",
       "mapbox-gl" -> mapboxVersion
     ),
     Compile / npmDevDependencies ++= Seq(
@@ -115,7 +115,8 @@ val frontend = project
       "postcss-loader" -> "6.2.1",
       "postcss-preset-env" -> "7.2.0",
       "style-loader" -> "3.3.1",
-      "webpack-merge" -> "5.8.0"
+      "webpack-merge" -> "5.8.0",
+      "npm-check-updates" -> "13.1.1"
     ),
     webpackBundlingMode := BundlingMode.LibraryOnly(),
     Compile / fullOptJS / scalaJSLinkerConfig ~= { _.withSourceMap(false) },
