@@ -205,12 +205,13 @@ trait Owned:
   def ownerName(lang: SpecialWords): String =
     val finnishSpecial = Lang.fi.specialWords
     owner match
-      case finnishSpecial.transportAgency => lang.transportAgency
-      case finnishSpecial.defenceForces   => lang.defenceForces
-      case finnishSpecial.portOfHelsinki  => lang.portOfHelsinki
-      case finnishSpecial.cityOfHelsinki  => lang.cityOfHelsinki
-      case finnishSpecial.cityOfEspoo     => lang.cityOfEspoo
-      case _                              => owner
+      case finnishSpecial.transportAgency               => lang.transportAgency
+      case finnishSpecial.transportInfrastructureAgency => lang.transportInfrastructureAgency
+      case finnishSpecial.defenceForces                 => lang.defenceForces
+      case finnishSpecial.portOfHelsinki                => lang.portOfHelsinki
+      case finnishSpecial.cityOfHelsinki                => lang.cityOfHelsinki
+      case finnishSpecial.cityOfEspoo                   => lang.cityOfEspoo
+      case _                                            => owner
 
 trait SymbolLike extends NameLike:
   def locationFi: Option[String]
@@ -580,17 +581,16 @@ case class LimitArea(
 object LimitArea:
   import com.malliina.measure.{DistanceDoubleM, SpeedDoubleM}
 
-  implicit val decoder: Decoder[LimitArea] = new Decoder[LimitArea]:
-    final def apply(c: HCursor): Decoder.Result[LimitArea] =
-      for
-        types <-
-          c.downField("RAJOITUSTY")
-            .as[String]
-            .flatMap(s => LimitType.fromString(s).left.map(e => DecodingFailure(e, Nil)))
-        limit <- c.downField("SUURUUS").as[Option[Double]].map(_.map(_.kmh))
-        length <- c.downField("PITUUS").as[Option[Double]].map(_.map(_.meters))
-        responsible <- c.downField("MERK_VAST").as[Option[String]](nonEmptyOpt)
-        location <- c.downField("NIMI_SIJAI").as[Option[String]](nonEmptyOpt)
-        fairwayName <- c.downField("VAY_NIMISU").as[Option[String]](nonEmptyOpt)
-        publishDate <- c.downField("IRROTUS_PV").as[String]
-      yield LimitArea(types, limit, length, responsible, location, fairwayName, publishDate)
+  implicit val decoder: Decoder[LimitArea] = (c: HCursor) =>
+    for
+      types <-
+        c.downField("RAJOITUSTY")
+          .as[String]
+          .flatMap(s => LimitType.fromString(s).left.map(e => DecodingFailure(e, Nil)))
+      limit <- c.downField("SUURUUS").as[Option[Double]].map(_.map(_.kmh))
+      length <- c.downField("PITUUS").as[Option[Double]].map(_.map(_.meters))
+      responsible <- c.downField("MERK_VAST").as[Option[String]](nonEmptyOpt)
+      location <- c.downField("NIMI_SIJAI").as[Option[String]](nonEmptyOpt)
+      fairwayName <- c.downField("VAY_NIMISU").as[Option[String]](nonEmptyOpt)
+      publishDate <- c.downField("IRROTUS_PV").as[String]
+    yield LimitArea(types, limit, length, responsible, location, fairwayName, publishDate)

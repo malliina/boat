@@ -95,11 +95,15 @@ class Popups(lang: Lang) extends BoatModels:
   )
 
   private def limitContent(limit: LimitArea) = modifier(
-    row(limitsLang.limit, limit.describe(limitsLang.types)),
+    row(limitsLang.limit, describeItems(limit.describeTypes(limitsLang.types))),
     limit.limit.fold(empty)(speed => row(limitsLang.magnitude, s"${speed.toKmh.toInt} km/h")),
     limit.location.fold(empty)(l => row(limitsLang.location, l)),
     limit.fairwayName.fold(empty)(f => row(limitsLang.fairwayName, f))
   )
+
+  private def describeItems(items: Seq[String]): Modifier =
+    if items.length > 1 then ul(`class` := "popup-list")(items.map(i => li(i)))
+    else items.mkString(", ")
 
   def limitedFairway(limit: LimitArea, area: FairwayArea) =
     fairway(
