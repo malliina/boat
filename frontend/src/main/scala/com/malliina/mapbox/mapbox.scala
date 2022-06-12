@@ -51,7 +51,7 @@ trait MarkerOptions extends js.Object:
   def element: html.Element
 
 object MarkerOptions:
-  def apply[T <: dom.Element, E <: Event](html: TypedTag[T]): MarkerOptions =
+  def apply[T <: dom.Element](html: TypedTag[T]): MarkerOptions =
     apply(html.render)
 
   def apply[T <: dom.Element](el: T): MarkerOptions =

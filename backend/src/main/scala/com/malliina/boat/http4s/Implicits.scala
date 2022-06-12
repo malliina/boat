@@ -3,14 +3,13 @@ package com.malliina.boat.http4s
 import cats.effect.kernel.{Sync, Concurrent}
 import cats.effect.IO
 import com.malliina.boat.{DeviceId, TrackCanonical, TrackId, TrackName}
-import com.malliina.html.TagPage
 import com.malliina.values.Username
 import io.circe.{Decoder, Encoder, Printer}
 import io.circe.syntax.EncoderOps
 import org.http4s.circe.CirceInstances
 import org.http4s.dsl.Http4sDsl
 import org.http4s.headers.`Content-Type`
-import org.http4s.{Charset, DecodeResult, DefaultCharset, EntityDecoder, EntityEncoder, MediaType, syntax}
+import org.http4s.{Charset, DecodeResult, EntityDecoder, EntityEncoder, MediaType, syntax}
 import scalatags.Text
 import scalatags.generic.Frag
 
@@ -46,9 +45,7 @@ trait MyScalatagsInstances:
       .contramap[C](content => content.render)
       .withContentType(`Content-Type`(mediaType, charset))
 
-trait HtmlInstances extends MyScalatagsInstances:
-  implicit def htmlEncoder[F[_]]: EntityEncoder[F, TagPage] =
-    scalatagsEncoder[F, scalatags.Text.all.Frag].contramap(_.tags)
+trait HtmlInstances extends MyScalatagsInstances
 
 object JsonInstances extends JsonInstances
 

@@ -6,7 +6,7 @@ import com.malliina.boat.http.{Limits, TrackQuery}
 import com.malliina.boat.http4s.Reverse
 import com.malliina.boat.{AppConf, AppMode, BuildInfo, FullTrack, Lang, TrackRef, TracksBundle, UserBoats, UserInfo, Usernames}
 import com.malliina.html.HtmlTags.{cssLink, deviceWidthViewport, fullUrl, titleTag}
-import com.malliina.html.{Bootstrap, HtmlTags, TagPage}
+import com.malliina.html.{Bootstrap, HtmlTags}
 import com.malliina.http.FullUrl
 import com.malliina.live.LiveReload
 import com.malliina.measure.DistanceM
@@ -44,7 +44,7 @@ class BoatHtml(
   externalScripts: Seq[FullUrl],
   cssFiles: Seq[String],
   assets: AssetsSource
-): // extends Bootstrap(HtmlTags):
+):
   val reverse = Reverse
 
   implicit def wrapFrag[T <: WrappedString](w: T): Modifier = stringFrag(w.value)
@@ -53,7 +53,7 @@ class BoatHtml(
   def devices(user: UserInfo) =
     page(PageConf(BoatsPage(user), bodyClasses = Seq(BoatsClass)))
 
-  def tracks(data: TracksBundle, query: TrackQuery, lang: Lang): TagPage =
+  def tracks(data: TracksBundle, query: TrackQuery, lang: Lang): Frag =
     page(PageConf(TracksPage(data, query, lang), bodyClasses = Seq(StatsClass)))
 
   def signIn(lang: Lang) = page(PageConf(SignInPage(lang.settings)))
@@ -167,8 +167,8 @@ class BoatHtml(
       more
     )
 
-  def page(pageConf: PageConf) = TagPage(
-    html(
+  def page(pageConf: PageConf): Frag =
+    html(lang := "en")(
       head(
         meta(charset := "utf-8"),
         meta(
@@ -198,6 +198,5 @@ class BoatHtml(
         }
       )
     )
-  )
 
   def versioned(file: String): Uri = assets.at(file)
