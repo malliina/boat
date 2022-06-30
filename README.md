@@ -60,6 +60,12 @@ therefore it is currently a separate step from the release process.
 
 ## Notes
 
+### Backups
+
+Use mysqldump:
+
+    ./mysqldump -u boat@malliinadatalake -p --no-tablespaces -h malliinadatalake.mysql.database.azure.com boat > boat.sql
+
 ### IntelliJ
 
 If using BSP, exclude folder [project/target/node-modules](project/target/node-modules) in the 

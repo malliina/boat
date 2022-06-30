@@ -58,7 +58,7 @@ class TcpClient(
   private val sendTimeWindow = 500.millis
   private val reconnectInterval = 2.second
 
-  val sentencesHub: Stream[IO, SentencesMessage] = topic.subscribe(10)
+  val sentencesHub: Stream[IO, SentencesMessage] = topic.subscribe(maxQueued = 10)
 
   /** Connects to `host:port`. Reconnects on failure.
     *

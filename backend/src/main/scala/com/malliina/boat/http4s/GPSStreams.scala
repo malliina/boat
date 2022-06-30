@@ -34,8 +34,8 @@ class GPSStreams(val db: GPSSource, val in: Topic[IO, InputEvent], saved: Topic[
       be
     }
     .map { boatEvent =>
-      BoatParser
-        .read[SentencesMessage](boatEvent.message)
+      boatEvent.message
+        .as[SentencesMessage]
         .map(_.toGpsEvent(boatEvent.from))
         .left
         .map(err => DeviceJsonError(err, boatEvent))

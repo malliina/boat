@@ -37,13 +37,13 @@ class BoatStreams(
 ):
   private val trackState = TrackManager()
   private val sentencesSource = boatIn
-    .subscribe(100)
-    .collect { case be @ BoatEvent(message, from) =>
+    .subscribe(maxQueued = 100)
+    .collect { case be @ BoatEvent(_, _) =>
       be
     }
     .map { boatEvent =>
-      BoatParser
-        .read[SentencesMessage](boatEvent.message)
+      boatEvent.message
+        .as[SentencesMessage]
         .map(_.toTrackEvent(boatEvent.from.short))
         .left
         .map { err =>

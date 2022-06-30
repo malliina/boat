@@ -2,30 +2,27 @@ package com.malliina.boat
 
 object Constants extends Constants
 
-trait Constants extends CookieNames with BoatHeaders {
+trait Constants extends CookieNames with BoatHeaders:
   val BoatTokenQuery = "token"
   val DefaultSample = 4
   val StyleId = "ck8lhls0r0obm1ilkvglk0ulr"
-}
 
 object BoatHeaders extends BoatHeaders
 
-trait BoatHeaders {
+trait BoatHeaders:
   val BoatNameHeader = "X-Boat"
   val BoatTokenHeader = "X-Token"
   val TrackNameHeader = "X-Track"
-}
 
 object CookieNames extends CookieNames
 
-trait CookieNames {
+trait CookieNames:
   val LanguageName = "lang"
   val TokenCookieName = "mapboxToken"
-}
 
 object FrontKeys extends FrontKeys
 
-trait FrontKeys extends BodyClasses with ListKeys with NavKeys with AboutKeys {
+trait FrontKeys extends BodyClasses with ListKeys with NavKeys with AboutKeys:
   val ChartsId = "charts"
   val Close = "close"
   val Enabled = "enabled"
@@ -47,13 +44,11 @@ trait FrontKeys extends BodyClasses with ListKeys with NavKeys with AboutKeys {
 
   val Invisible = "invisible"
   val Visible = "visible"
-}
 
-trait AboutKeys {
+trait AboutKeys:
   val LanguageRadios = "language-radios"
-}
 
-trait NavKeys {
+trait NavKeys:
   val DropdownContentId = "dropdown-content"
   val DropdownLinkId = "dropdown-link"
   val BoatDropdownId = "dropdown-link-boat"
@@ -72,9 +67,8 @@ trait NavKeys {
 
   val RouteLength = "route-length"
   val RouteText = "route-text"
-}
 
-trait ListKeys {
+trait ListKeys:
   val CancelEditCommentsId = "comments-cancel"
   val EditCommentsFormId = "comments-form"
   val EditCommentsId = "comments-edit"
@@ -99,13 +93,11 @@ trait ListKeys {
   val TrackDataId = "track-data"
   val TrackRow = "track-row"
   val TrackTitleId = "track-title"
-}
 
-trait BodyClasses {
+trait BodyClasses:
   val AboutClass = "about"
   val BoatsClass = "boats"
   val ChartsClass = "charts"
   val FormsClass = "forms"
   val MapClass = "map"
   val StatsClass = "stats"
-}

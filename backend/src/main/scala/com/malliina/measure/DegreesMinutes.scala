@@ -50,7 +50,7 @@ case class LatitudeDM(degrees: Int, minutes: Double, direction: NorthOrSouth):
 object LatitudeDM:
   val latitude = """(\d{4}\.\d+),([NS])""".r
 
-  def parse(in: String) = in match
+  def parse(in: String): Either[SingleError, LatitudeDM] = in match
     case latitude(ddStr, nsStr) =>
       for
         dd <- DegreesMinutes.parse(ddStr)

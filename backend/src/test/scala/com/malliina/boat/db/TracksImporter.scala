@@ -2,20 +2,73 @@ package com.malliina.boat.db
 
 import cats.effect.IO
 import cats.implicits.*
-import com.malliina.boat.{BoatConf, BoatName, BoatUser, DateVal, DeviceId, LocalConf, TrackId, TrackInput, TrackNames}
-import com.malliina.values.Email
+import com.malliina.boat.{BoatConf, BoatName, BoatUser, DateVal, DeviceId, LocalConf, RawSentence, TrackId, TrackInput, TrackMeta, TrackNames}
+import com.malliina.values.{Email, Username}
 import tests.{MUnitSuite, WrappedTestConf}
 import fs2.io.file.Path
+import fs2.{Chunk, Stream}
+import scala.concurrent.duration.Duration
+import scala.concurrent.duration.DurationInt
+import java.time.LocalDate
 
 class TracksImporter extends MUnitSuite:
   def testConf = WrappedTestConf.parse().map(_.boat.testdb).fold(e => throw e, identity)
   def dbResource = databaseFixture(testConf)
-  val file = Path.fromNioPath(userHome.resolve(".boat/LogNYY.txt"))
+  val file = Path.fromNioPath(userHome.resolve(".boat/log.txt"))
 
-//  dbResource.test("import tracks from plotter log file".ignore) { db =>
-//////    importSlice(".boat/Log20200513.txt", 1273831, 1320488)
-////    importSlice(".boat/latest.txt", 1233566, 1350930, db.resource)
-//  }
+  override def munitTimeout: Duration = 6.hours
+
+  dbResource.test("import tracks from plotter log file".ignore) { db =>
+    val day = LocalDate.of(2022, 6, 2)
+    importByDay(file, day, db)
+  }
+
+  test("split by date".ignore) {
+    val what: IO[List[(LocalDate, Chunk[RawSentence])]] =
+      TrackStreams().fileByDate(file).compile.toList
+    what.map { list =>
+      println(s"List of size ${list.size}")
+      val day = LocalDate.of(2022, 6, 1)
+      val dayChunk = list.toMap.getOrElse(day, Chunk.empty).toList
+      println(s"On $day chunk of size ${dayChunk.size}")
+    }
+  }
+
+  private def importByDay(file: Path, day: LocalDate, db: DoobieDatabase): IO[Long] =
+    val inserts = TrackInserter(db)
+    val importer = TrackImporter(inserts)
+    val trackName = TrackNames.random()
+    val user = BoatUser(trackName, BoatName("Amina"), Username("mle"))
+    inserts.joinAsBoat(user).flatMap { track =>
+      importer.save(importer.sentencesForDay(file, day), track.short)
+    }
+
+  def splitTracksByDate(oldTrack: TrackId, db: TrackInserter) =
+    def createAndUpdateTrack(date: DateVal) =
+      val in = TrackInput.empty(TrackNames.random(), DeviceId(14))
+      for
+        newTrack <- db.insertTrack(in)
+        updated <- db.changeTrack(oldTrack, date, newTrack.track)
+      yield updated
+
+    val action = for
+      dates <- db.dates(oldTrack)
+      updates <- dates.traverse(date => createAndUpdateTrack(date))
+    yield updates
+    db.db.run(action)
+
+//  private def importSlice(file: String, drop: Int, last: Int, db: DoobieDatabase): IO[Long] =
+//    val inserts = TrackInserter(db)
+//    val importer = TrackImporter(inserts)
+//    val trackName = TrackNames.random()
+//    val track: TrackMeta =
+//      inserts.joinAsBoat(BoatUser(trackName, BoatName("Amina"), Username("mle"))).unsafeRunSync()
+//    val s: Source[RawSentence, Future[IOResult]] =
+//      importer
+//        .fileSource(FileUtils.userHome.resolve(file))
+//        .drop(drop)
+//        .take(last - drop)
+//    importer.save(s, track.short)
 
 //  dbResource.test("modify tracks".ignore) { db =>
 //    val oldTrack = TrackId(175)
@@ -34,36 +87,3 @@ class TracksImporter extends MUnitSuite:
 ////    println("test")
 //    println(rows.unsafeRunSync())
 //  }
-
-  test("split by date".ignore) {
-//    TrackImporter.byDate()
-  }
-
-//  private def importSlice(file: String, drop: Int, last: Int, db: DoobieDatabase) = {
-//    val inserts = TrackInserter(db)
-//    val importer = new TrackImporter(inserts)
-//    val trackName = TrackNames.random()
-//    val track =
-//      inserts.joinAsBoat(BoatUser(trackName, BoatName("Amina"), Username("mle"))).unsafeRunSync()
-//    val s: Source[RawSentence, Future[IOResult]] =
-//      importer
-//        .fileSource(FileUtils.userHome.resolve(file))
-//        .drop(drop)
-//        .take(last - drop)
-//    val task = importer.saveSource(s, track.short)
-//    await(task, 300000.seconds)
-//  }
-
-  def splitTracksByDate(oldTrack: TrackId, db: TrackInserter) =
-    def createAndUpdateTrack(date: DateVal) =
-      val in = TrackInput.empty(TrackNames.random(), DeviceId(14))
-      for
-        newTrack <- db.insertTrack(in)
-        updated <- db.changeTrack(oldTrack, date, newTrack.track)
-      yield updated
-
-    val action = for
-      dates <- db.dates(oldTrack)
-      updates <- dates.traverse(date => createAndUpdateTrack(date))
-    yield updates
-    db.db.run(action)

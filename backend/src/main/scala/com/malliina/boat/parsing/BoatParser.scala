@@ -17,7 +17,7 @@ object BoatParser:
     sentences.map(parseGps).flatMap(e => e.asOption(handleError))
 
   def readSentences(event: BoatEvent): Either[DecodingFailure, SentencesEvent] =
-    read[SentencesEvent](event.message)
+    event.message.as[SentencesEvent]
 
   /** Parses the following values from NNEA 0183 sentences:
     *
