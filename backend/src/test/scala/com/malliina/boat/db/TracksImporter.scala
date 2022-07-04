@@ -19,7 +19,7 @@ class TracksImporter extends MUnitSuite:
   override def munitTimeout: Duration = 6.hours
 
   dbResource.test("import tracks from plotter log file".ignore) { db =>
-    val day = LocalDate.of(2022, 6, 2)
+    val day = LocalDate.of(2022, 6, 23)
     importByDay(file, day, db)
   }
 

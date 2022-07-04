@@ -10,13 +10,12 @@ import doobie.*
 import doobie.implicits.*
 import cats.effect.IO
 import com.malliina.util.AppLogger
+import concurrent.duration.DurationLong
 
 import java.time.temporal.ChronoUnit
 
 object TrackInserter:
   private val log = AppLogger(getClass)
-
-  def apply(db: DoobieDatabase): TrackInserter = new TrackInserter(db)
 
 class TrackInserter(val db: DoobieDatabase) extends TrackInsertsDatabase with DoobieSQL:
   import DoobieMappings.*
@@ -145,15 +144,33 @@ class TrackInserter(val db: DoobieDatabase) extends TrackInsertsDatabase with Do
     }
   }
 
-  def saveSentences(sentences: SentencesEvent): IO[Seq[KeyedSentence]] = run {
+  def saveSentencesOld(sentences: SentencesEvent): IO[Seq[KeyedSentence]] = run {
     val from = sentences.from
     sentences.sentences.toList.traverse { s =>
-      sql"""insert into sentences(sentence, track) 
+      sql"""insert into sentences(sentence, track)
             values($s, ${from.track})""".update.withUniqueGeneratedKeys[SentenceKey]("id").map {
         key =>
           KeyedSentence(key, s, from)
       }
     }
+  }
+
+  def saveSentences(sentences: SentencesEvent): IO[Seq[KeyedSentence]] = run {
+    val from = sentences.from
+    val sql = """insert into sentences(sentence, track) values(?, ?)"""
+    val pairs = sentences.sentences.toList.map { s =>
+      (s, from.track)
+    }
+    val start = System.currentTimeMillis()
+    Update[(RawSentence, TrackId)](sql)
+      .updateManyWithGeneratedKeys[SentenceKey]("id")(pairs)
+      .compile
+      .toList
+      .map { list =>
+        val duration = (System.currentTimeMillis() - start).millis
+        log.info(s"Inserted ${sentences.sentences.length} sentences in $duration")
+        list.zip(sentences.sentences).map { case (sk, s) => KeyedSentence(sk, s, from) }
+      }
   }
 
   def saveCoords(coord: FullCoord): IO[InsertedPoint] = run {
@@ -189,12 +206,14 @@ class TrackInserter(val db: DoobieDatabase) extends TrackInsertsDatabase with Do
               set avg_water_temp = $avgTemp, avg_speed = $avgSpeed, points = $points, distance = $distance 
               where id = $track""".update.run
       }
-      parts <- coord.parts.toList.traverse { part =>
-        sql"""insert into sentence_points(sentence, point) values($part, $point)""".update.run
-      }
+      parts <- insertSentencePoints(coord.parts.map { key => (key, point) })
       ref <- trackById(track)
     yield InsertedPoint(point, ref)
   }
+
+  private def insertSentencePoints(rows: Seq[(SentenceKey, TrackPointId)]): ConnectionIO[Int] =
+    val sql = "insert into sentence_points(sentence, point) values(?, ?)"
+    Update[(SentenceKey, TrackPointId)](sql).updateMany(rows)
 
   private def insertPoint(c: FullCoord, atIndex: Int, diff: DistanceM): ConnectionIO[TrackPointId] =
     sql"""insert into points(longitude, latitude, coord, boat_speed, water_temp, depthm, depth_offsetm, boat_time, track, track_index, diff)

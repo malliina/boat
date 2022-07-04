@@ -34,29 +34,45 @@ class TrackImporter(inserts: TrackInsertsDatabase) extends TrackStreams:
 
   def save(source: Stream[IO, RawSentence], track: TrackMetaShort): IO[Long] =
     val describe = s"track ${track.trackName} with boat ${track.boatName} by ${track.username}"
+    val start = System.currentTimeMillis()
     val task = source
       .filter(_ != RawSentence.initialZda)
       .groupWithin(100, 500.millis)
-      .map(chunk => SentencesEvent(chunk.toList, track))
+      .map { chunk =>
+        log.info(s"Got chunk of size ${chunk.size}.")
+        SentencesEvent(chunk.toList, track)
+      }
+      .through(s => s.evalTap(e => IO(log.info(s"Processing ${e.sentences.length} sentences."))))
       .through(processor)
+      .take(5)
       .fold(0) { (acc, point) =>
+        val duration = 1.0d * (System.currentTimeMillis() - start) / 1000d
+        val pps = if duration > 0 then 1.0d * acc / duration else 0
         if acc == 0 then log.info(s"Saving points to $describe...")
-        if acc % 100 == 0 && acc > 0 then log.info(s"Inserted $acc points to $describe...")
+        if acc > 0 then log.info(s"Inserted $acc points to $describe. Pace is $pps points/s.")
         acc + 1
       }
 
     task.compile.toList.map(_.head)
 
   private def processor: Pipe[IO, SentencesEvent, InsertedPoint] =
-    _.through(sentenceInserter).through(sentenceCompiler).through(pointInserter)
+    _.evalTap(e =>
+      IO(log.info(s"Inserting sentences event with ${e.sentences.length} sentences..."))
+    )
+      .through(sentenceInserter)
+      .through(s => s.evalTap(ss => IO(log.info(s"Inserted ${ss.length} sentences."))))
+      .through(sentenceCompiler)
+      .through(s => s.evalTap(e => IO(log.info(s"Compiled coord of ${e.parts.length} sentences."))))
+      .through(pointInserter)
+      .through(s => s.evalTap(e => IO(log.info(s"Inserted point ${e.point}."))))
 
-  private def sentenceInserter: Pipe[IO, SentencesEvent, KeyedSentence] =
-    _.evalMap(e => inserts.saveSentences(e)).flatMap(kss => Stream.emits(kss))
+  private def sentenceInserter: Pipe[IO, SentencesEvent, Seq[KeyedSentence]] =
+    _.evalMap(e => inserts.saveSentences(e))
 
-  private def sentenceCompiler: Pipe[IO, KeyedSentence, FullCoord] =
+  private def sentenceCompiler: Pipe[IO, Seq[KeyedSentence], FullCoord] =
     val state = TrackManager()
-    _.flatMap { sentence =>
-      Stream.emits(BoatParser.parseMulti(Seq(sentence)).flatMap(parsed => state.update(parsed)))
+    _.flatMap { sentences =>
+      Stream.emits(BoatParser.parseMulti(sentences).flatMap(parsed => state.update(parsed)))
     }
 
   private def pointInserter: Pipe[IO, FullCoord, InsertedPoint] =
