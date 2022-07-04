@@ -27,10 +27,9 @@ class TracksImporter extends MUnitSuite:
     val what: IO[List[(LocalDate, Chunk[RawSentence])]] =
       TrackStreams().fileByDate(file).compile.toList
     what.map { list =>
-      println(s"List of size ${list.size}")
-      val day = LocalDate.of(2022, 6, 1)
-      val dayChunk = list.toMap.getOrElse(day, Chunk.empty).toList
-      println(s"On $day chunk of size ${dayChunk.size}")
+      list.sortBy(_._1).foreach { case (date, chunk) =>
+        println(s"$date: ${chunk.size}")
+      }
     }
   }
 
