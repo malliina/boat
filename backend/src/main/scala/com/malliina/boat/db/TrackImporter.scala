@@ -38,33 +38,23 @@ class TrackImporter(inserts: TrackInsertsDatabase) extends TrackStreams:
     val task = source
       .filter(_ != RawSentence.initialZda)
       .groupWithin(100, 500.millis)
-      .map { chunk =>
-        log.info(s"Got chunk of size ${chunk.size}.")
-        SentencesEvent(chunk.toList, track)
-      }
-      .through(s => s.evalTap(e => IO(log.info(s"Processing ${e.sentences.length} sentences."))))
+      .map(chunk => SentencesEvent(chunk.toList, track))
       .through(processor)
-      .take(5)
       .fold(0) { (acc, point) =>
         val duration = 1.0d * (System.currentTimeMillis() - start) / 1000d
         val pps = if duration > 0 then 1.0d * acc / duration else 0
         if acc == 0 then log.info(s"Saving points to $describe...")
-        if acc > 0 then log.info(s"Inserted $acc points to $describe. Pace is $pps points/s.")
+        if acc % 100 == 0 && acc > 0 then
+          log.info(s"Inserted $acc points to $describe. Pace is $pps points/s.")
         acc + 1
       }
 
     task.compile.toList.map(_.head)
 
   private def processor: Pipe[IO, SentencesEvent, InsertedPoint] =
-    _.evalTap(e =>
-      IO(log.info(s"Inserting sentences event with ${e.sentences.length} sentences..."))
-    )
-      .through(sentenceInserter)
-      .through(s => s.evalTap(ss => IO(log.info(s"Inserted ${ss.length} sentences."))))
+    _.through(sentenceInserter)
       .through(sentenceCompiler)
-      .through(s => s.evalTap(e => IO(log.info(s"Compiled coord of ${e.parts.length} sentences."))))
       .through(pointInserter)
-      .through(s => s.evalTap(e => IO(log.info(s"Inserted point ${e.point}."))))
 
   private def sentenceInserter: Pipe[IO, SentencesEvent, Seq[KeyedSentence]] =
     _.evalMap(e => inserts.saveSentences(e))

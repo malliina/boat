@@ -1,6 +1,7 @@
 package com.malliina.boat.db
 
 import cats.implicits.*
+import cats.effect.kernel.implicits.monadCancelOps_
 import com.malliina.boat.db.TrackInserter.log
 import com.malliina.boat.parsing.FullCoord
 import com.malliina.boat.*
@@ -10,9 +11,11 @@ import doobie.*
 import doobie.implicits.*
 import cats.effect.IO
 import com.malliina.util.AppLogger
-import concurrent.duration.DurationLong
+import doobie.free.preparedstatement.PreparedStatementIO
 
+import concurrent.duration.DurationLong
 import java.time.temporal.ChronoUnit
+import scala.annotation.tailrec
 
 object TrackInserter:
   private val log = AppLogger(getClass)
@@ -144,34 +147,34 @@ class TrackInserter(val db: DoobieDatabase) extends TrackInsertsDatabase with Do
     }
   }
 
-  def saveSentencesOld(sentences: SentencesEvent): IO[Seq[KeyedSentence]] = run {
-    val from = sentences.from
-    sentences.sentences.toList.traverse { s =>
-      sql"""insert into sentences(sentence, track)
-            values($s, ${from.track})""".update.withUniqueGeneratedKeys[SentenceKey]("id").map {
-        key =>
-          KeyedSentence(key, s, from)
-      }
-    }
-  }
-
   def saveSentences(sentences: SentencesEvent): IO[Seq[KeyedSentence]] = run {
     val from = sentences.from
-    val sql = """insert into sentences(sentence, track) values(?, ?)"""
     val pairs = sentences.sentences.toList.map { s =>
       (s, from.track)
     }
-    val start = System.currentTimeMillis()
-    Update[(RawSentence, TrackId)](sql)
-      .updateManyWithGeneratedKeys[SentenceKey]("id")(pairs)
-      .compile
-      .toList
-      .map { list =>
-        val duration = (System.currentTimeMillis() - start).millis
-        log.info(s"Inserted ${sentences.sentences.length} sentences in $duration")
-        list.zip(sentences.sentences).map { case (sk, s) => KeyedSentence(sk, s, from) }
-      }
+    save(pairs).compile.toList.map { list =>
+      list.zip(sentences.sentences).map { case (sk, s) => KeyedSentence(sk, s, from) }
+    }
   }
+
+  private def save(pairs: List[(RawSentence, TrackId)]): fs2.Stream[ConnectionIO, SentenceKey] =
+    val params = pairs.map(_ => "(?,?)").mkString(",")
+    val sql = s"insert into sentences(sentence, track) values$params"
+    val prep = makeParams(pairs)
+    HC.updateWithGeneratedKeys[SentenceKey](List("id"))(sql, prep, 512)
+
+  @tailrec
+  private def makeParams(
+    pairs: List[(RawSentence, TrackId)],
+    acc: PreparedStatementIO[Unit] = ().pure[PreparedStatementIO],
+    pos: Int = 0
+  ): PreparedStatementIO[Unit] =
+    pairs match
+      case (s, t) :: tail =>
+        val nextAcc = acc *> HPS.set(pos + 1, s) *> HPS.set(pos + 2, t)
+        makeParams(tail, nextAcc, pos + 2)
+      case Nil =>
+        acc
 
   def saveCoords(coord: FullCoord): IO[InsertedPoint] = run {
     val track = coord.from.track
@@ -211,9 +214,29 @@ class TrackInserter(val db: DoobieDatabase) extends TrackInsertsDatabase with Do
     yield InsertedPoint(point, ref)
   }
 
-  private def insertSentencePoints(rows: Seq[(SentenceKey, TrackPointId)]): ConnectionIO[Int] =
-    val sql = "insert into sentence_points(sentence, point) values(?, ?)"
-    Update[(SentenceKey, TrackPointId)](sql).updateMany(rows)
+  private def insertSentencePoints(
+    rows: Seq[(SentenceKey, TrackPointId)]
+  ): ConnectionIO[List[(SentenceKey, TrackPointId)]] =
+    val params = rows.map(_ => "(?,?)").mkString(",")
+    val sql = s"insert into sentence_points(sentence, point) values$params"
+    HC.updateWithGeneratedKeys[(SentenceKey, TrackPointId)](List("sentence", "point"))(
+      sql,
+      makeSpParams(rows.toList),
+      512
+    ).compile
+      .toList
+
+  private def makeSpParams(
+    pairs: List[(SentenceKey, TrackPointId)],
+    acc: PreparedStatementIO[Unit] = ().pure[PreparedStatementIO],
+    pos: Int = 0
+  ): PreparedStatementIO[Unit] =
+    pairs match
+      case (s, t) :: tail =>
+        val nextAcc = acc *> HPS.set(pos + 1, s) *> HPS.set(pos + 2, t)
+        makeSpParams(tail, nextAcc, pos + 2)
+      case Nil =>
+        acc
 
   private def insertPoint(c: FullCoord, atIndex: Int, diff: DistanceM): ConnectionIO[TrackPointId] =
     sql"""insert into points(longitude, latitude, coord, boat_speed, water_temp, depthm, depth_offsetm, boat_time, track, track_index, diff)

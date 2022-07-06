@@ -4,9 +4,13 @@ import cats.effect.IO
 import cats.implicits.*
 import com.malliina.boat.{BoatConf, BoatName, BoatUser, DateVal, DeviceId, LocalConf, RawSentence, TrackId, TrackInput, TrackMeta, TrackNames}
 import com.malliina.values.{Email, Username}
+import com.zaxxer.hikari.HikariDataSource
 import tests.{MUnitSuite, WrappedTestConf}
 import fs2.io.file.Path
 import fs2.{Chunk, Stream}
+
+import java.sql.PreparedStatement
+import java.sql.Statement
 import scala.concurrent.duration.Duration
 import scala.concurrent.duration.DurationInt
 import java.time.LocalDate
@@ -21,6 +25,15 @@ class TracksImporter extends MUnitSuite:
   dbResource.test("import tracks from plotter log file".ignore) { db =>
     val day = LocalDate.of(2022, 6, 23)
     importByDay(file, day, db)
+  }
+
+  dbResource.test("insert user".ignore) { db =>
+    val users = DoobieUserManager(db)
+    val email = Email("santa@example.com")
+    val action =
+      for u <- users.register(email)
+      yield u
+    action.unsafeRunSync()
   }
 
   test("split by date".ignore) {
@@ -38,6 +51,8 @@ class TracksImporter extends MUnitSuite:
     val importer = TrackImporter(inserts)
     val trackName = TrackNames.random()
     val user = BoatUser(trackName, BoatName("Amina"), Username("mle"))
+//    val user = BoatUser(trackName, BoatName("xrxmjq"), Username("santa@example.com"))
+//    val user = BoatUser(trackName, BoatName("hzghbu"), Username("santa@example.com"))
     inserts.joinAsBoat(user).flatMap { track =>
       importer.save(importer.sentencesForDay(file, day), track.short)
     }

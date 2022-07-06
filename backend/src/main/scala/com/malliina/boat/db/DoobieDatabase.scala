@@ -4,7 +4,7 @@ import cats.effect.IO.*
 import cats.effect.kernel.Resource
 import cats.effect.IO
 import com.malliina.util.AppLogger
-import com.zaxxer.hikari.HikariConfig
+import com.zaxxer.hikari.{HikariConfig, HikariDataSource}
 import doobie.*
 import doobie.hikari.HikariTransactor
 import doobie.implicits.*
@@ -35,14 +35,14 @@ object DoobieDatabase:
     flyway.migrate()
   }
 
-  private def hikariConf(conf: Conf): HikariConfig =
+  def hikariConf(conf: Conf): HikariConfig =
     val hikari = new HikariConfig()
     hikari.setDriverClassName(Conf.MySQLDriver)
     hikari.setJdbcUrl(conf.url)
     hikari.setUsername(conf.user)
     hikari.setPassword(conf.pass)
     hikari.setMaxLifetime(60.seconds.toMillis)
-    hikari.setMaximumPoolSize(10)
+    hikari.setMaximumPoolSize(conf.maxPoolSize)
     log.info(s"Connecting to '${conf.url}'...")
     hikari
 
@@ -58,8 +58,7 @@ class DoobieDatabase(tx: HikariTransactor[IO]):
   implicit val logHandler: LogHandler = LogHandler {
     case Success(sql, args, exec, processing) =>
       val msg = s"OK '$sql' exec ${exec.toMillis} ms processing ${processing.toMillis} ms."
-      log.info(msg)
-//      if exec > 1.second then log.info(msg) else log.debug(msg)
+      if exec > 1.second then log.info(msg) else log.debug(msg)
     case ProcessingFailure(sql, args, exec, processing, failure) =>
       log.error(s"Failed '$sql' in ${exec + processing}.", failure)
     case ExecFailure(sql, args, exec, failure) =>
