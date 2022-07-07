@@ -16,6 +16,7 @@ import doobie.free.preparedstatement.PreparedStatementIO
 import concurrent.duration.DurationLong
 import java.time.temporal.ChronoUnit
 import scala.annotation.tailrec
+import scala.util.Random
 
 object TrackInserter:
   private val log = AppLogger(getClass)
@@ -212,6 +213,15 @@ class TrackInserter(val db: DoobieDatabase) extends TrackInsertsDatabase with Do
       parts <- insertSentencePoints(coord.parts.map { key => (key, point) })
       ref <- trackById(track)
     yield InsertedPoint(point, ref)
+  }
+
+  def saveCoordsFast(coord: FullCoord): IO[TrackPointId] = run {
+    for
+//      prev <- previous
+//      diff <- prev.map(p => computeDistance(p.coord, coord.coord)).getOrElse(pure(DistanceM.zero))
+      point <- insertPoint(coord, Random.between(1, 1000000), DistanceM.zero)
+      parts <- insertSentencePoints(coord.parts.map { key => (key, point) })
+    yield point
   }
 
   private def insertSentencePoints(

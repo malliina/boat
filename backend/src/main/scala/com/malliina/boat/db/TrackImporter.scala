@@ -4,7 +4,7 @@ import cats.effect.IO
 import cats.kernel.Eq
 import com.malliina.boat.db.TrackImporter.{dateEq, log}
 import com.malliina.boat.parsing.*
-import com.malliina.boat.{InsertedPoint, KeyedSentence, RawSentence, SentencesEvent, TrackMetaShort}
+import com.malliina.boat.{InsertedPoint, KeyedSentence, RawSentence, SentencesEvent, TrackMetaShort, TrackPointId}
 import com.malliina.util.AppLogger
 import fs2.{Chunk, Pipe, Stream, text}
 import fs2.io.file.Path
@@ -51,10 +51,10 @@ class TrackImporter(inserts: TrackInsertsDatabase) extends TrackStreams:
 
     task.compile.toList.map(_.head)
 
-  private def processor: Pipe[IO, SentencesEvent, InsertedPoint] =
+  private def processor: Pipe[IO, SentencesEvent, TrackPointId] =
     _.through(sentenceInserter)
       .through(sentenceCompiler)
-      .through(pointInserter)
+      .through(pointInserterFast)
 
   private def sentenceInserter: Pipe[IO, SentencesEvent, Seq[KeyedSentence]] =
     _.evalMap(e => inserts.saveSentences(e))
@@ -67,6 +67,9 @@ class TrackImporter(inserts: TrackInsertsDatabase) extends TrackStreams:
 
   private def pointInserter: Pipe[IO, FullCoord, InsertedPoint] =
     _.mapAsync(1)(coord => inserts.saveCoords(coord))
+
+  private def pointInserterFast: Pipe[IO, FullCoord, TrackPointId] =
+    _.mapAsync(1)(coord => inserts.saveCoordsFast(coord))
 
 class TrackStreams:
   def sentencesForDay(file: Path, day: LocalDate): Stream[IO, RawSentence] =

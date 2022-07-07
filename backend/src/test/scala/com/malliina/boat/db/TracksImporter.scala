@@ -22,19 +22,20 @@ class TracksImporter extends MUnitSuite:
 
   override def munitTimeout: Duration = 6.hours
 
-  dbResource.test("import tracks from plotter log file".ignore) { db =>
-    val day = LocalDate.of(2022, 6, 23)
-    importByDay(file, day, db)
-  }
+//  dbResource.test("import tracks from plotter log file") { db =>
+//    val day = LocalDate.of(2022, 6, 25)
+//    importByDay(file, day, db)
+//  }
 
-  dbResource.test("insert user".ignore) { db =>
-    val users = DoobieUserManager(db)
-    val email = Email("santa@example.com")
-    val action =
-      for u <- users.register(email)
-      yield u
-    action.unsafeRunSync()
-  }
+//
+//  dbResource.test("insert user".ignore) { db =>
+//    val users = DoobieUserManager(db)
+//    val email = Email("santa@example.com")
+//    val action =
+//      for u <- users.register(email)
+//      yield u
+//    action.unsafeRunSync()
+//  }
 
   test("split by date".ignore) {
     val what: IO[List[(LocalDate, Chunk[RawSentence])]] =
@@ -50,9 +51,9 @@ class TracksImporter extends MUnitSuite:
     val inserts = TrackInserter(db)
     val importer = TrackImporter(inserts)
     val trackName = TrackNames.random()
-    val user = BoatUser(trackName, BoatName("Amina"), Username("mle"))
+//    val user = BoatUser(trackName, BoatName("Amina"), Username("mle"))
 //    val user = BoatUser(trackName, BoatName("xrxmjq"), Username("santa@example.com"))
-//    val user = BoatUser(trackName, BoatName("hzghbu"), Username("santa@example.com"))
+    val user = BoatUser(trackName, BoatName("hzghbu"), Username("santa@example.com"))
     inserts.joinAsBoat(user).flatMap { track =>
       importer.save(importer.sentencesForDay(file, day), track.short)
     }

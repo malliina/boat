@@ -31,6 +31,7 @@ trait TrackInsertsDatabase:
   def joinAsDevice(meta: DeviceMeta): IO[JoinedBoat]
   def saveSentences(sentences: SentencesEvent): IO[Seq[KeyedSentence]]
   def saveCoords(coords: FullCoord): IO[InsertedPoint]
+  def saveCoordsFast(coords: FullCoord): IO[TrackPointId]
 
 trait StatsSource:
   def stats(user: MinimalUserInfo, limits: TrackQuery, lang: Lang): IO[StatsResponse]
