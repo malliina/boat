@@ -51,10 +51,10 @@ class TrackImporter(inserts: TrackInsertsDatabase) extends TrackStreams:
 
     task.compile.toList.map(_.head)
 
-  private def processor: Pipe[IO, SentencesEvent, TrackPointId] =
+  private def processor: Pipe[IO, SentencesEvent, InsertedPoint] =
     _.through(sentenceInserter)
       .through(sentenceCompiler)
-      .through(pointInserterFast)
+      .through(pointInserter)
 
   private def sentenceInserter: Pipe[IO, SentencesEvent, Seq[KeyedSentence]] =
     _.evalMap(e => inserts.saveSentences(e))

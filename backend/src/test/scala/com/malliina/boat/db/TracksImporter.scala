@@ -22,11 +22,10 @@ class TracksImporter extends MUnitSuite:
 
   override def munitTimeout: Duration = 6.hours
 
-//  dbResource.test("import tracks from plotter log file") { db =>
-//    val day = LocalDate.of(2022, 6, 25)
+//  dbResource.test("import tracks from plotter log file".ignore) { db =>
+//    val day = LocalDate.of(2022, 6, 4)
 //    importByDay(file, day, db)
 //  }
-
 //
 //  dbResource.test("insert user".ignore) { db =>
 //    val users = DoobieUserManager(db)
@@ -51,9 +50,9 @@ class TracksImporter extends MUnitSuite:
     val inserts = TrackInserter(db)
     val importer = TrackImporter(inserts)
     val trackName = TrackNames.random()
-//    val user = BoatUser(trackName, BoatName("Amina"), Username("mle"))
+    val user = BoatUser(trackName, BoatName("Amina"), Username("mle"))
 //    val user = BoatUser(trackName, BoatName("xrxmjq"), Username("santa@example.com"))
-    val user = BoatUser(trackName, BoatName("hzghbu"), Username("santa@example.com"))
+//    val user = BoatUser(trackName, BoatName("hzghbu"), Username("santa@example.com"))
     inserts.joinAsBoat(user).flatMap { track =>
       importer.save(importer.sentencesForDay(file, day), track.short)
     }
