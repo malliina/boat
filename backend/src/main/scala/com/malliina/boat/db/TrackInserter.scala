@@ -1,6 +1,7 @@
 package com.malliina.boat.db
 
 import cats.implicits.*
+import cats.data.NonEmptyList
 import cats.effect.kernel.implicits.monadCancelOps_
 import com.malliina.boat.db.TrackInserter.log
 import com.malliina.boat.parsing.FullCoord
@@ -153,15 +154,21 @@ class TrackInserter(val db: DoobieDatabase) extends TrackInsertsDatabase with Do
     val pairs = sentences.sentences.toList.map { s =>
       (s, from.track)
     }
-    save(pairs).compile.toList.map { list =>
-      list.zip(sentences.sentences).map { case (sk, s) => KeyedSentence(sk, s, from) }
+    pairs.toNel.map { ps =>
+      save(ps).compile.toList.map { list =>
+        list.zip(sentences.sentences).map { case (sk, s) => KeyedSentence(sk, s, from) }
+      }
+    }.getOrElse {
+      List.empty[KeyedSentence].pure[ConnectionIO]
     }
   }
 
-  private def save(pairs: List[(RawSentence, TrackId)]): fs2.Stream[ConnectionIO, SentenceKey] =
-    val params = pairs.map(_ => "(?,?)").mkString(",")
+  private def save(
+    pairs: NonEmptyList[(RawSentence, TrackId)]
+  ): fs2.Stream[ConnectionIO, SentenceKey] =
+    val params = pairs.toList.map(_ => "(?,?)").mkString(",")
     val sql = s"insert into sentences(sentence, track) values$params"
-    val prep = makeParams(pairs)
+    val prep = makeParams(pairs.toList)
     HC.updateWithGeneratedKeys[SentenceKey](List("id"))(sql, prep, 512)
 
   @tailrec
@@ -210,31 +217,33 @@ class TrackInserter(val db: DoobieDatabase) extends TrackInsertsDatabase with Do
               set avg_water_temp = $avgTemp, avg_speed = $avgSpeed, points = $points, distance = $distance 
               where id = $track""".update.run
       }
-      parts <- insertSentencePoints(coord.parts.map { key => (key, point) })
+      _ <- insertSentencePoints(coord.parts.map { key => (key, point) }.toList)
       ref <- trackById(track)
     yield InsertedPoint(point, ref)
   }
 
   def saveCoordsFast(coord: FullCoord): IO[TrackPointId] = run {
     for
-//      prev <- previous
-//      diff <- prev.map(p => computeDistance(p.coord, coord.coord)).getOrElse(pure(DistanceM.zero))
       point <- insertPoint(coord, Random.between(1, 1000000), DistanceM.zero)
-      parts <- insertSentencePoints(coord.parts.map { key => (key, point) })
+      _ <- insertSentencePoints(coord.parts.map { key => (key, point) }.toList)
     yield point
   }
 
   private def insertSentencePoints(
-    rows: Seq[(SentenceKey, TrackPointId)]
+    rows: List[(SentenceKey, TrackPointId)]
   ): ConnectionIO[List[(SentenceKey, TrackPointId)]] =
-    val params = rows.map(_ => "(?,?)").mkString(",")
-    val sql = s"insert into sentence_points(sentence, point) values$params"
-    HC.updateWithGeneratedKeys[(SentenceKey, TrackPointId)](List("sentence", "point"))(
-      sql,
-      makeSpParams(rows.toList),
-      512
-    ).compile
-      .toList
+    rows.toNel.map { rs =>
+      val params = rows.map(_ => "(?,?)").mkString(",")
+      val sql = s"insert into sentence_points(sentence, point) values$params"
+      HC.updateWithGeneratedKeys[(SentenceKey, TrackPointId)](List("sentence", "point"))(
+        sql,
+        makeSpParams(rows),
+        512
+      ).compile
+        .toList
+    }.getOrElse {
+      List.empty[(SentenceKey, TrackPointId)].pure[ConnectionIO]
+    }
 
   private def makeSpParams(
     pairs: List[(SentenceKey, TrackPointId)],
