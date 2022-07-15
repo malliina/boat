@@ -52,24 +52,23 @@ class TcpClient(
   signal: SignallingRef[IO, Boolean]
 )(implicit t: Temporal[IO]):
   val hostPort = s"tcp://$host:$port"
-  private val active = new AtomicReference[Option[Socket[IO]]]
   // Sends after maxBatchSize sentences have been collected or every sendTimeWindow, whichever comes first
   private val maxBatchSize = 100
   private val sendTimeWindow = 500.millis
-  private val reconnectInterval = 2.second
+  private val reconnectInterval = 3.second
 
   val sentencesHub: Stream[IO, SentencesMessage] = topic.subscribe(maxQueued = 10)
 
   /** Connects to `host:port`. Reconnects on failure.
     *
-    * Makes received sentences available in `sentencesHub`. Sends `toServer` to the server.
+    * Makes received sentences available in `sentencesHub`. Sends `toServer` to the server upon
+    * connection.
     */
   def connect(toServer: Stream[IO, Byte] = Stream.empty): Stream[IO, Unit] = connections.flatMap {
     socket =>
-      active.set(Option(socket))
       val outMessages = toServer.through(socket.writes)
       val inMessages = socket.reads
-        .through(decode[IO](charset))
+        .through(text.decodeWithCharset(charset))
         .through(text.lines)
         .filter(_.startsWith("$"))
         .map(s => RawSentence(s.trim))
@@ -87,7 +86,10 @@ class TcpClient(
 
   private def connections: Stream[IO, Socket[IO]] =
     Stream
-      .resource(Network[IO].client(SocketAddress(host, port)))
+      .resource(
+        Resource.eval(IO(log.info(s"Connecting to $hostPort..."))) >>
+          Network[IO].client(SocketAddress(host, port))
+      )
       .evalTap { socket =>
         IO(log.info(s"Connected to $hostPort."))
       }
@@ -102,32 +104,5 @@ class TcpClient(
         }
       }
       .interruptWhen(signal)
-
-  def decode[F[_]](charset: Charset): Pipe[F, Byte, String] =
-    val decoder = charset.newDecoder
-    val maxCharsPerByte = math.ceil(decoder.maxCharsPerByte().toDouble).toInt
-    val avgBytesPerChar = math.ceil(1.0 / decoder.averageCharsPerByte().toDouble).toInt
-    val charBufferSize = 128
-
-    _.repeatPull[String] {
-      _.unconsN(charBufferSize * avgBytesPerChar, allowFewer = true).flatMap {
-        case None =>
-          val charBuffer = CharBuffer.allocate(1)
-          decoder.decode(ByteBuffer.allocate(0), charBuffer, true)
-          decoder.flush(charBuffer)
-          val outputString = charBuffer.flip().toString
-          if outputString.isEmpty then Pull.done.as(None)
-          else Pull.output1(outputString).as(None)
-        case Some((chunk, stream)) =>
-          if chunk.nonEmpty then
-            val bytes = chunk.toArray
-            val byteBuffer = ByteBuffer.wrap(bytes)
-            val charBuffer = CharBuffer.allocate(bytes.length * maxCharsPerByte)
-            decoder.decode(byteBuffer, charBuffer, false)
-            val nextStream = stream.consChunk(Chunk.byteBuffer(byteBuffer.slice()))
-            Pull.output1(charBuffer.flip().toString).as(Some(nextStream))
-          else Pull.output(Chunk.empty[String]).as(Some(stream))
-      }
-    }
 
   def close: IO[Boolean] = signal.getAndSet(true)
