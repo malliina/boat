@@ -150,7 +150,16 @@ class Service(comps: BoatComps) extends BasicService[IO]:
             seeOther(reverse.boats)
           }
       }
-    case GET -> Root / "conf" => ok(ClientConf.default)
+    case req @ GET -> Root / "conf" =>
+      respondCustom(req)(
+        json = rs =>
+          val conf =
+            if rs.exists(_.satisfies(ContentVersions.Version2)) then ClientConf.default
+            else ClientConf.old
+          ok(conf)
+        ,
+        html = ok(ClientConf.default)
+      )
     case req @ GET -> Root / "boats" =>
       auth.profile(req).flatMap { user =>
         ok(html.devices(user))
@@ -557,6 +566,7 @@ class Service(comps: BoatComps) extends BasicService[IO]:
     json: NonEmptyList[MediaRange] => IO[Response[IO]],
     html: IO[Response[IO]]
   ): IO[Response[IO]] =
+    log.info("Handling req")
     val rs = ranges(req.headers)
     val qp = req.uri.query.params
     if rs.exists(_.satisfies(MediaType.text.html)) && !qp.contains("json") then html

@@ -663,6 +663,7 @@ case class MapConf(styleId: String, styleUrl: String, icons: IconsConf)
 
 object MapConf:
   implicit val json: Codec[MapConf] = deriveCodec[MapConf]
+  val old = apply(Constants.StyleIdOld)
   val active = apply(Constants.StyleId)
 
   def apply(styleId: String): MapConf = MapConf(

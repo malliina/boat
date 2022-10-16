@@ -51,8 +51,11 @@ case class ClientConf(map: MapConf, languages: Languages, layers: Layers)
 
 object ClientConf:
   implicit val json: Codec[ClientConf] = deriveCodec[ClientConf]
-  val default =
-    ClientConf(MapConf.active, Languages(Lang.fi, Lang.se, Lang.en), Layers.default)
+  val default = withMap(MapConf.active)
+  val old = withMap(MapConf.old)
+
+  def withMap(map: MapConf) =
+    ClientConf(map, Languages(Lang.fi, Lang.se, Lang.en), Layers.default)
 
 /** Alternative to LocalDate because according to its Javadoc reference equality and other
   * operations may have unpredictable results whereas this class has predictable structural equality
