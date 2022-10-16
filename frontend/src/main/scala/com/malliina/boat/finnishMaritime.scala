@@ -309,15 +309,14 @@ object MinimalMarineSymbol:
       influence <- c.downField("VAIKUTUSAL").as[ZoneOfInfluence]
     yield MinimalMarineSymbol(owner, nameFi, nameSe, locationFi, locationSe, influence)
 
-case class DepthArea(minDepth: DistanceM, maxDepth: DistanceM, when: String)
+case class DepthArea(minDepth: DistanceM, maxDepth: DistanceM)
 
 object DepthArea:
   implicit val decoder: Decoder[DepthArea] = (c: HCursor) =>
     for
-      min <- c.downField("MINDEPTH").as[DistanceM]
-      max <- c.downField("MAXDEPTH").as[DistanceM]
-      when <- c.downField("IRROTUS_PV").as[String]
-    yield DepthArea(min, max, when)
+      min <- c.downField("DRVAL1").as[DistanceM]
+      max <- c.downField("DRVAL2").as[DistanceM]
+    yield DepthArea(min, max)
 
 sealed abstract class QualityClass(val value: Int)
 

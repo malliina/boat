@@ -44,6 +44,7 @@ class MapMouseListener(
         log.info(s"Failed to parse features '${err.error}' in '${err.json}'.")
         Nil
       }
+//      features foreach println
       val symbol: Option[Feature] = features.find { f =>
         f.geometry.typeName == PointGeometry.Key &&
         f.layer.exists(l => l.`type` == LayerType.Symbol || l.`type` == LayerType.Circle)
