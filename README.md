@@ -26,9 +26,7 @@ The Android app is in repo [boattracker-android](https://github.com/malliina/boa
 
 Create and configure `~/.boat/boat.conf`.
 
-    sbt
-    project boat
-    ~start
+    sbt ~start
 
 Navigate to http://localhost:9000.
 

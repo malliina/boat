@@ -257,37 +257,36 @@ object MarineSymbol:
 
   val nonEmpty: Decoder[String] = MaritimeJson.nonEmpty
 
-  implicit val decoder: Decoder[MarineSymbol] = new Decoder[MarineSymbol]:
-    final def apply(c: HCursor): Decoder.Result[MarineSymbol] =
-      for
-        owner <- c.downField("OMISTAJA").as[String]
-        topSign <- c.downField("HUIPPUMERK").as[Boolean](boolNum)
-        fasadi <- c.downField("FASADIVALO").as[Boolean](boolNum)
-        nameFi <- c.downField("NIMIS").as[Option[String]](nonEmptyOpt)
-        nameSe <- c.downField("NIMIR").as[Option[String]](nonEmptyOpt)
-        locationFi <- c.downField("SIJAINTIS").as[Option[String]](nonEmptyOpt)
-        locationSe <- c.downField("SIJAINTIR").as[Option[String]](nonEmptyOpt)
-        flotation <- c.downField("SUBTYPE").as[Flotation]
-        state <- c.downField("TILA").as[String]
-        lit <- c.downField("VALAISTU").as[Boolean](boolString)
-        aidType <- c.downField("TY_JNR").as[AidType]
-        navMark <- c.downField("NAVL_TYYP").as[NavMark]
-        construction <- c.downField("RAKT_TYYP").as[Option[ConstructionInfo]]
-      yield MarineSymbol(
-        owner,
-        fasadi,
-        topSign,
-        nameFi,
-        nameSe,
-        locationFi,
-        locationSe,
-        flotation,
-        state,
-        lit,
-        aidType,
-        navMark,
-        construction
-      )
+  implicit val decoder: Decoder[MarineSymbol] = (c: HCursor) =>
+    for
+      owner <- c.downField("OMISTAJA").as[String]
+      topSign <- c.downField("HUIPPUMERK").as[Boolean](boolNum)
+      fasadi <- c.downField("FASADIVALO").as[Boolean](boolNum)
+      nameFi <- c.downField("NIMIS").as[Option[String]](nonEmptyOpt)
+      nameSe <- c.downField("NIMIR").as[Option[String]](nonEmptyOpt)
+      locationFi <- c.downField("SIJAINTIS").as[Option[String]](nonEmptyOpt)
+      locationSe <- c.downField("SIJAINTIR").as[Option[String]](nonEmptyOpt)
+      flotation <- c.downField("SUBTYPE").as[Flotation]
+      state <- c.downField("TILA").as[String]
+      lit <- c.downField("VALAISTU").as[Boolean](boolString)
+      aidType <- c.downField("TY_JNR").as[AidType]
+      navMark <- c.downField("NAVL_TYYP").as[NavMark]
+      construction <- c.downField("RAKT_TYYP").as[Option[ConstructionInfo]]
+    yield MarineSymbol(
+      owner,
+      fasadi,
+      topSign,
+      nameFi,
+      nameSe,
+      locationFi,
+      locationSe,
+      flotation,
+      state,
+      lit,
+      aidType,
+      navMark,
+      construction
+    )
 
 case class MinimalMarineSymbol(
   owner: String,
@@ -300,27 +299,25 @@ case class MinimalMarineSymbol(
   with Owned
 
 object MinimalMarineSymbol:
-  implicit val decoder: Decoder[MinimalMarineSymbol] = new Decoder[MinimalMarineSymbol]:
-    final def apply(c: HCursor): Decoder.Result[MinimalMarineSymbol] =
-      for
-        owner <- c.downField("OMISTAJA").as[String]
-        nameFi <- c.downField("NIMIS").as[Option[String]](nonEmptyOpt)
-        nameSe <- c.downField("NIMIR").as[Option[String]](nonEmptyOpt)
-        locationFi <- c.downField("SIJAINTIS").as[Option[String]](nonEmptyOpt)
-        locationSe <- c.downField("SIJAINTIR").as[Option[String]](nonEmptyOpt)
-        influence <- c.downField("VAIKUTUSAL").as[ZoneOfInfluence]
-      yield MinimalMarineSymbol(owner, nameFi, nameSe, locationFi, locationSe, influence)
+  implicit val decoder: Decoder[MinimalMarineSymbol] = (c: HCursor) =>
+    for
+      owner <- c.downField("OMISTAJA").as[String]
+      nameFi <- c.downField("NIMIS").as[Option[String]](nonEmptyOpt)
+      nameSe <- c.downField("NIMIR").as[Option[String]](nonEmptyOpt)
+      locationFi <- c.downField("SIJAINTIS").as[Option[String]](nonEmptyOpt)
+      locationSe <- c.downField("SIJAINTIR").as[Option[String]](nonEmptyOpt)
+      influence <- c.downField("VAIKUTUSAL").as[ZoneOfInfluence]
+    yield MinimalMarineSymbol(owner, nameFi, nameSe, locationFi, locationSe, influence)
 
 case class DepthArea(minDepth: DistanceM, maxDepth: DistanceM, when: String)
 
 object DepthArea:
-  implicit val decoder: Decoder[DepthArea] = new Decoder[DepthArea]:
-    final def apply(c: HCursor): Decoder.Result[DepthArea] =
-      for
-        min <- c.downField("MINDEPTH").as[DistanceM]
-        max <- c.downField("MAXDEPTH").as[DistanceM]
-        when <- c.downField("IRROTUS_PV").as[String]
-      yield DepthArea(min, max, when)
+  implicit val decoder: Decoder[DepthArea] = (c: HCursor) =>
+    for
+      min <- c.downField("MINDEPTH").as[DistanceM]
+      max <- c.downField("MAXDEPTH").as[DistanceM]
+      when <- c.downField("IRROTUS_PV").as[String]
+    yield DepthArea(min, max, when)
 
 sealed abstract class QualityClass(val value: Int)
 
