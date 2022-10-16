@@ -5,7 +5,7 @@ import sbtrelease.ReleaseStateTransformations._
 import scala.sys.process.Process
 import scala.util.Try
 
-val mapboxVersion = "2.8.2"
+val mapboxVersion = "2.10.0"
 val webAuthVersion = "6.2.2"
 val munitVersion = "0.7.29"
 val testContainersScalaVersion = "0.40.3"

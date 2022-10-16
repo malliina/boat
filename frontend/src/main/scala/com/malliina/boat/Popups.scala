@@ -90,7 +90,7 @@ class Popups(lang: Lang) extends BoatModels:
     )
 
   def limitArea(limit: LimitArea) = popupTable(
-    limit.responsible.fold(empty)(r => titleRow(r)(r)),
+    limit.responsible.fold(empty)(r => titleRow(r)),
     limitContent(limit)
   )
 
