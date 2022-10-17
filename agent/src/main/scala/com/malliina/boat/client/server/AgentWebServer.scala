@@ -1,11 +1,12 @@
 package com.malliina.boat.client.server
 
 import cats.effect.{ExitCode, IO, IOApp, Resource}
+import com.comcast.ip4s.{Port, host, port}
 import com.malliina.boat.client.DeviceAgent
 import com.malliina.boat.client.server.Device.GpsDevice
 import com.malliina.http.io.HttpClientIO
 import com.malliina.util.AppLogger
-import org.http4s.blaze.server.BlazeServerBuilder
+import org.http4s.ember.server.EmberServerBuilder
 import org.slf4j.LoggerFactory
 
 object AgentWebServer extends IOApp:
@@ -19,11 +20,12 @@ object AgentWebServer extends IOApp:
     http <- httpResource
     agentManager <- AgentInstance.resource(conf, url, http.client)
     service = WebServer(agentManager)
-    server <- BlazeServerBuilder[IO]
-      .bindHttp(port = 8080, "0.0.0.0")
+    server <- EmberServerBuilder
+      .default[IO]
+      .withHost(host"0.0.0.0")
+      .withPort(port"8080")
       .withHttpApp(service.service)
-      .withBanner(Nil)
-      .resource
+      .build
   yield
     log.info(s"Starting HTTP server at ${server.baseUri}...")
     server

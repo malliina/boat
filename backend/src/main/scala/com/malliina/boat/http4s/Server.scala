@@ -77,14 +77,6 @@ object Server extends IOApp:
       .withHttpWebSocketApp(sockets => makeHandler(service, sockets))
       .withErrorHandler(errorHandler)
       .build
-//    server <- BlazeServerBuilder[IO]
-//      .bindHttp(port = port.value, "0.0.0.0")
-//      .withHttpWebSocketApp(sockets => makeHandler(service, sockets))
-//      .withIdleTimeout(30.days)
-//      .withResponseHeaderTimeout(30.minutes)
-//      .withServiceErrorHandler(blazeErrorHandler)
-//      .withBanner(Nil)
-//      .resource
   yield ServerComponents(service, server)
 
   def appService(conf: BoatConf, builder: AppCompsBuilder): Resource[IO, Service] = for

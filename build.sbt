@@ -241,7 +241,7 @@ val agent = project
         .withGroup(daemonUser.value)
     },
     libraryDependencies ++=
-      Seq("blaze-server", "blaze-client", "dsl", "circe").map { m =>
+      Seq("ember-server", "dsl", "circe").map { m =>
         "org.http4s" %% s"http4s-$m" % http4sVersion
       } ++ Seq("generic", "parser").map { m =>
         "io.circe" %% s"circe-$m" % "0.14.3"
