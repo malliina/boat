@@ -12,8 +12,6 @@ import com.malliina.http.io.HttpClientIO
 import com.malliina.util.AppLogger
 import com.typesafe.config.Config
 import munit.FunSuite
-import org.http4s.blaze.client.BlazeClientBuilder
-import org.http4s.client.Client
 import org.http4s.server.websocket.WebSocketBuilder2
 import org.http4s.{EntityDecoder, EntityEncoder, HttpApp, Uri}
 import org.testcontainers.utility.DockerImageName

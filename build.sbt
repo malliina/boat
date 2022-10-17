@@ -6,13 +6,13 @@ import scala.sys.process.Process
 import scala.util.Try
 
 val mapboxVersion = "2.10.0"
-val webAuthVersion = "6.2.2"
+val webAuthVersion = "6.2.3"
 val munitVersion = "0.7.29"
 val testContainersScalaVersion = "0.40.3"
 val scalaTagsVersion = "0.11.1"
-val primitiveVersion = "3.1.3"
-val logstreamsVersion = "2.1.6"
-val http4sVersion = "0.23.11"
+val primitiveVersion = "3.2.0"
+val logstreamsVersion = "2.2.1"
+val http4sVersion = "0.23.16"
 val slf4jVersion = "1.7.36"
 val logbackVersion = "1.2.11"
 // Do not upgrade to 11.0.2 because it depends on slf4j-api alpha versions, breaking logging
@@ -71,7 +71,7 @@ val cross = portableProject(JSPlatform, JVMPlatform)
   .disablePlugins(RevolverPlugin)
   .settings(boatSettings)
   .settings(
-    libraryDependencies ++= circeModules.map(m => "io.circe" %%% s"circe-$m" % "0.14.1") ++ Seq(
+    libraryDependencies ++= circeModules.map(m => "io.circe" %%% s"circe-$m" % "0.14.3") ++ Seq(
       "com.malliina" %%% "primitives" % primitiveVersion,
       "com.lihaoyi" %%% "scalatags" % scalaTagsVersion,
       "org.scalameta" %%% "munit" % munitVersion % Test
@@ -148,7 +148,7 @@ val backend = Project("boat", file("backend"))
     Compile / unmanagedResourceDirectories ++= Seq(
       baseDirectory.value / "docs"
     ),
-    libraryDependencies ++= Seq("blaze-server", "blaze-client", "dsl", "circe").map { m =>
+    libraryDependencies ++= Seq("ember-server", "dsl", "circe").map { m =>
       "org.http4s" %% s"http4s-$m" % http4sVersion
     } ++ Seq("core", "hikari").map { d =>
       "org.tpolecat" %% s"doobie-$d" % "1.0.0-RC2"
@@ -163,7 +163,7 @@ val backend = Project("boat", file("backend"))
       "org.apache.commons" % "commons-text" % "1.9",
       "com.amazonaws" % "aws-java-sdk-s3" % "1.12.150",
       "com.malliina" %% "logstreams-client" % logstreamsVersion,
-      "com.malliina" %% "mobile-push-io" % "3.4.2",
+      "com.malliina" %% "mobile-push-io" % "3.5.0",
       "org.slf4j" % "slf4j-api" % "1.7.36",
       "org.eclipse.paho" % "org.eclipse.paho.client.mqttv3" % "1.2.5",
       utilHtmlDep,
@@ -244,7 +244,7 @@ val agent = project
       Seq("blaze-server", "blaze-client", "dsl", "circe").map { m =>
         "org.http4s" %% s"http4s-$m" % http4sVersion
       } ++ Seq("generic", "parser").map { m =>
-        "io.circe" %% s"circe-$m" % "0.14.1"
+        "io.circe" %% s"circe-$m" % "0.14.3"
       } ++ Seq(
         "co.fs2" %% "fs2-io" % "3.1.3",
         "com.malliina" %% "primitives" % primitiveVersion,
