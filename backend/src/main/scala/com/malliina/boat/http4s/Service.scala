@@ -566,7 +566,6 @@ class Service(comps: BoatComps) extends BasicService[IO]:
     json: NonEmptyList[MediaRange] => IO[Response[IO]],
     html: IO[Response[IO]]
   ): IO[Response[IO]] =
-    log.info("Handling req")
     val rs = ranges(req.headers)
     val qp = req.uri.query.params
     if rs.exists(_.satisfies(MediaType.text.html)) && !qp.contains("json") then html
