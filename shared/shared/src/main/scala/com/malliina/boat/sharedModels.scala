@@ -294,11 +294,10 @@ case class ChangeLanguage(language: Language)
 object ChangeLanguage:
   implicit val json: Codec[ChangeLanguage] = deriveCodec[ChangeLanguage]
 
-case class SimpleMessage(message: String) extends AnyVal
+case class SimpleMessage(message: String)
 
 object SimpleMessage:
-  implicit val json: Codec[SimpleMessage] =
-    Codec.from(Decoder.decodeString.map(apply), Encoder.encodeString.contramap(_.message))
+  implicit val json: Codec[SimpleMessage] = deriveCodec[SimpleMessage]
 
 trait BoatTrackMeta extends DeviceMeta:
   def track: TrackName
