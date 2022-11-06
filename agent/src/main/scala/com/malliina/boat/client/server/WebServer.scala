@@ -2,12 +2,14 @@ package com.malliina.boat.client.server
 
 import cats.effect.IO
 import com.malliina.boat.client.TcpClient
-import com.malliina.boat.client.TcpClient.{port, host}
+import com.malliina.boat.client.{FormReadable, FormReader}
+import com.malliina.boat.client.TcpClient.{host, port}
 import com.malliina.boat.client.server.AgentHtml.{asHtml, boatForm}
 import com.malliina.boat.client.server.AgentSettings.{readConf, saveAndReload}
 import com.malliina.boat.client.server.WebServer.settingsUri
-import com.malliina.boat.{BoatToken, Errors, Readable}
+import com.malliina.boat.{BoatToken, Errors, Readables}
 import com.malliina.util.AppLogger
+import com.malliina.values.Readable
 import io.circe.syntax.EncoderOps
 import org.apache.commons.codec.digest.DigestUtils
 import org.http4s.circe.CirceInstances
@@ -19,6 +21,7 @@ import org.http4s.*
 import com.comcast.ip4s.{Host, Port}
 import org.http4s.CacheDirective.*
 import org.http4s.headers.{Accept, Location, `Cache-Control`, `WWW-Authenticate`}
+
 import java.nio.charset.StandardCharsets
 
 trait AppImplicits
@@ -66,31 +69,25 @@ class WebServer(agentInstance: AgentInstance) extends AppImplicits:
 
   implicit val deviceReadable: Readable[Device] = Readable.string.map(s => Device(s))
   implicit val tokenReadable: Readable[BoatToken] = Readable.string.map(s => BoatToken(s))
+  implicit val boolReadable: Readable[Boolean] = Readables.boolean
 
   val service = Router("/" -> routes).orNotFound
 
   def readForm(form: FormReader): Either[Errors, BoatConf] = for
-    host <- form.readT[Host]("host")
-    port <- form.readT[Port]("port")
-    device <- form.readT[Device]("device")
-    token <- form.readT[Option[BoatToken]]("token")
-    enabled <- form.readT[Boolean]("enabled")
+    host <- form.read[Host]("host")
+    port <- form.read[Port]("port")
+    device <- form.read[Device]("device")
+    token <- form.read[Option[BoatToken]]("token")
+    enabled <- form.read[Boolean]("enabled")
   yield BoatConf(host, port, device, token, enabled)
 
   def parseForm[T](req: Request[IO], read: FormReader => Either[Errors, T])(implicit
     decoder: EntityDecoder[IO, UrlForm]
-  ) =
+  ): IO[T] =
     decoder
       .decode(req, strict = false)
       .foldF(
         err => IO.raiseError(err),
         form =>
-          read(new FormReader(form)).fold(err => IO.raiseError(err.asException), ok => IO.pure(ok))
+          read(FormReader(form)).fold(err => IO.raiseError(err.asException), ok => IO.pure(ok))
       )
-
-class FormReader(form: UrlForm):
-  def read[T](key: String, build: Option[String] => Either[Errors, T]): Either[Errors, T] =
-    build(form.getFirst(key))
-
-  def readT[T](key: String)(implicit r: Readable[T]): Either[Errors, T] =
-    read[T](key, s => r(s))

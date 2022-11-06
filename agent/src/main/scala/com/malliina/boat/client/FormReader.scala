@@ -1,12 +1,12 @@
-package com.malliina.boat.http4s
+package com.malliina.boat.client
 
 import com.malliina.boat.{Errors, SingleError}
 import com.malliina.values.{ErrorMessage, Readable}
 import org.http4s.UrlForm
 
 class FormReader(form: UrlForm):
-  def read[T](key: String)(implicit r: Readable[T]): Either[Errors, T] =
-    FormReadable[T].read(key, form).left.map(err => Errors(SingleError.input(err.message)))
+  def read[T](key: String)(implicit fr: FormReadable[T]): Either[Errors, T] =
+    fr.read(key, form).left.map(err => Errors(SingleError.input(err.message)))
 
 trait FormReadable[T]:
   def read(key: String, form: UrlForm): Either[ErrorMessage, T]

@@ -5,7 +5,7 @@ import cats.effect.IO
 import cats.implicits.catsSyntaxFlatten
 import com.malliina.assets.HashedAssets
 import com.malliina.boat.Constants.{LanguageName, TokenCookieName}
-import com.malliina.boat.{Readable as BoatReadable, *}
+import com.malliina.boat.*
 import com.malliina.boat.auth.AuthProvider.{PromptKey, SelectAccount}
 import com.malliina.boat.auth.{AuthProvider, SettingsPayload, UserPayload}
 import com.malliina.boat.db.*
@@ -17,10 +17,10 @@ import com.malliina.boat.http4s.BasicService.{cached, noCache, ranges}
 import com.malliina.boat.http4s.Service.{BoatComps, log, RequestOps}
 import com.malliina.boat.push.{BoatState, PushService}
 import com.malliina.util.AppLogger
-import com.malliina.values.{Email, UserId, Username}
+import com.malliina.values.{Email, UserId, Username, Readable}
 import com.malliina.web.OAuthKeys.{Nonce, State}
 import com.malliina.web.Utils.randomString
-import com.malliina.web.*
+import com.malliina.web.{Readable as WebReadable, *}
 import com.malliina.boat.auth.BoatJwt
 import fs2.{Pipe, Stream}
 import io.circe.parser.parse
@@ -211,13 +211,13 @@ class Service(comps: BoatComps) extends BasicService[IO]:
       )
     case req @ PUT -> Root / "tracks" / TrackNameVar(trackName) =>
       def readTitle(form: FormReader) =
-        form.readT[TrackTitle](TrackTitle.Key).map(ChangeTrackTitle.apply)
+        form.read[TrackTitle](TrackTitle.Key).map(ChangeTrackTitle.apply)
       trackAction[ChangeTrackTitle](req, readTitle) { (title, user) =>
         inserts.updateTitle(trackName, title.title, user.id)
       }
     case req @ PATCH -> Root / "tracks" / TrackIdVar(trackId) =>
       def readComments(form: FormReader) =
-        form.readT[String](TrackComments.Key).map(ChangeComments.apply)
+        form.read[String](TrackComments.Key).map(ChangeComments.apply)
       trackAction[ChangeComments](req, readComments) { (comments, user) =>
         inserts.updateComments(trackId, comments.comments, user.id)
       }
@@ -430,22 +430,23 @@ class Service(comps: BoatComps) extends BasicService[IO]:
   }
 
   def parseUnsafe(message: String) =
-    parse(message).fold(err => throw new Exception(s"Not JSON: '$message'."), identity)
+    parse(message).fold(err => throw Exception(s"Not JSON: '$message'."), identity)
 
   object forms:
+    import Readables.*
     def invite(form: FormReader) = for
-      boat <- form.readT[DeviceId](Forms.Boat)
-      email <- form.readT[Email](Forms.Email)
+      boat <- form.read[DeviceId](Forms.Boat)
+      email <- form.read[Email](Forms.Email)
     yield InvitePayload(boat, email)
 
     def respondInvite(form: FormReader) = for
-      boat <- form.readT[DeviceId](Forms.Boat)
-      accept <- form.readT[Boolean](Forms.Accept)
+      boat <- form.read[DeviceId](Forms.Boat)
+      accept <- form.read[Boolean](Forms.Accept)
     yield InviteResponse(boat, accept)
 
     def revokeInvite(form: FormReader) = for
-      boat <- form.readT[DeviceId](Forms.Boat)
-      user <- form.readT[UserId](Forms.User)
+      boat <- form.read[DeviceId](Forms.Boat)
+      user <- form.read[UserId](Forms.User)
     yield RevokeAccess(boat, user)
 
   private def webSocket(
@@ -502,13 +503,13 @@ class Service(comps: BoatComps) extends BasicService[IO]:
       }
     }
 
-  implicit val boatNameReader: BoatReadable[BoatName] =
-    BoatReadable.string.flatMap(s => BoatName.build(s.trim).left.map(e => Errors(e)))
+  implicit val boatNameReader: Readable[BoatName] =
+    Readable.string.emap(s => BoatName.build(s.trim))
 
   private def boatFormAction(req: Request[IO])(code: (BoatName, UserInfo) => IO[BoatRow]) =
     formAction(
       req,
-      form => form.readT[BoatName](BoatNames.Key)
+      form => form.read[BoatName](BoatNames.Key)
     ) { (boatName, user) =>
       code(boatName, user).flatMap { row =>
         respond(req)(

@@ -76,6 +76,7 @@ object Server extends IOApp:
       .withPort(port)
       .withHttpWebSocketApp(sockets => makeHandler(service, sockets))
       .withErrorHandler(errorHandler)
+      .withShutdownTimeout(1.millis)
       .build
   yield ServerComponents(service, server)
 

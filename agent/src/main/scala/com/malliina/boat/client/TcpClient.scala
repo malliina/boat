@@ -4,15 +4,16 @@ import cats.effect.kernel.{Concurrent, Resource, Temporal}
 import cats.effect.{Concurrent, IO, Resource}
 import com.malliina.boat.client.TcpClient.{charset, log}
 import com.malliina.boat.client.server.Device.GpsDevice
-import com.malliina.boat.{RawSentence, Readable, SentencesMessage}
+import com.malliina.boat.{RawSentence, SentencesMessage, Readables}
 import com.malliina.util.AppLogger
+import com.malliina.values.Readable
 import fs2.concurrent.{SignallingRef, Topic}
 import fs2.io.net.{Network, Socket}
 import fs2.{Chunk, Pipe, Pull, Stream, text}
 import cats.effect.MonadCancelThrow
 import cats.syntax.all.*
 import com.comcast.ip4s.*
-import com.malliina.boat.Readable.from
+import com.malliina.boat.Readables.from
 import com.malliina.values.ErrorMessage
 
 import java.net.InetSocketAddress
@@ -29,9 +30,9 @@ object TcpClient:
   val charset = StandardCharsets.US_ASCII
 
   implicit val host: Readable[Host] =
-    from[String, Host](s => Host.fromString(s).toRight(ErrorMessage(s"Invalid host: '$s'.")))
+    Readables.string.emap(s => Host.fromString(s).toRight(ErrorMessage(s"Invalid host: '$s'.")))
   implicit val port: Readable[Port] =
-    from[Int, Port](i => Port.fromInt(i).toRight(ErrorMessage(s"Invalid port: '$i'.")))
+    Readables.int.emap(i => Port.fromInt(i).toRight(ErrorMessage(s"Invalid port: '$i'.")))
 
   // Subscribes to NMEA messages. Depending on device, by default, nothing happens.
   val watchMessage =
