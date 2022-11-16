@@ -6,9 +6,9 @@ import scala.sys.process.Process
 import scala.util.Try
 
 val mapboxVersion = "2.10.0"
-val webAuthVersion = "6.2.3"
+val webAuthVersion = "6.3.0"
 val munitVersion = "0.7.29"
-val testContainersScalaVersion = "0.40.3"
+val testContainersScalaVersion = "0.40.11"
 val scalaTagsVersion = "0.11.1"
 val primitiveVersion = "3.2.0"
 val logstreamsVersion = "2.2.1"

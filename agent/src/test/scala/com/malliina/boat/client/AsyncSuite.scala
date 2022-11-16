@@ -11,7 +11,6 @@ import scala.concurrent.{Await, ExecutionContext, Future}
 abstract class AsyncSuite extends FunSuite:
   val executor = Executors.newCachedThreadPool()
   implicit val textExecutor: ExecutionContext = ExecutionContext.fromExecutor(executor)
-//  implicit val timer: Temporal[IO] = IO.(textExecutor)
 
   def resource[T](res: Resource[IO, T]): FunFixture[T] =
     var finalizer: Option[IO[Unit]] = None
@@ -19,7 +18,8 @@ abstract class AsyncSuite extends FunSuite:
       setup = opts =>
         val (t, f) = res.allocated.unsafeRunSync()
         finalizer = Option(f)
-        t,
+        t
+      ,
       teardown = t => finalizer.foreach(_.unsafeRunSync())
     )
 

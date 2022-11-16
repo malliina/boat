@@ -20,7 +20,7 @@ import com.malliina.util.AppLogger
 import com.malliina.values.{Email, UserId, Username, Readable}
 import com.malliina.web.OAuthKeys.{Nonce, State}
 import com.malliina.web.Utils.randomString
-import com.malliina.web.{Readable as WebReadable, *}
+import com.malliina.web.*
 import com.malliina.boat.auth.BoatJwt
 import fs2.{Pipe, Stream}
 import io.circe.parser.parse
@@ -664,7 +664,7 @@ class Service(comps: BoatComps) extends BasicService[IO]:
   }
 
   private def handleAuthCallback(
-    flow: DiscoveringAuthFlow[Email],
+    flow: DiscoveringAuthFlow[IO, Email],
     provider: AuthProvider,
     req: Request[IO]
   ) = handleCallback(

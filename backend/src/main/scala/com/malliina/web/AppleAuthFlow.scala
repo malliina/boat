@@ -39,8 +39,8 @@ class AppleAuthFlow(
   authConf: AuthConf,
   val validator: AppleTokenValidator,
   http: HttpClient[IO]
-) extends StaticFlowStart
-  with CallbackValidator[Email]:
+) extends StaticFlowStart[IO]
+  with CallbackValidator[IO, Email]:
   override val conf: StaticConf = staticConf(authConf)
 
   override def validate(

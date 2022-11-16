@@ -32,7 +32,8 @@ object TokenEmailAuth:
 
 /** Validates tokens and extracts the email address.
   */
-class TokenEmailAuth(google: KeyClient, microsoft: KeyClient, custom: CustomJwt) extends EmailAuth:
+class TokenEmailAuth(google: KeyClient[IO], microsoft: KeyClient[IO], custom: CustomJwt)
+  extends EmailAuth:
   val EmailKey = "email"
   val EmailVerified = "email_verified"
 

@@ -9,8 +9,6 @@ import doobie.*
 import doobie.implicits.*
 
 object DoobieFairwayService:
-  def apply(db: DoobieDatabase): DoobieFairwayService = new DoobieFairwayService(db)
-
   def collect(rows: Seq[CoordFairway]): Seq[CoordFairways] =
     rows.foldLeft(Vector.empty[CoordFairways]) { case (acc, cf) =>
       val idx = acc.indexWhere(_.coord == cf.coord)
