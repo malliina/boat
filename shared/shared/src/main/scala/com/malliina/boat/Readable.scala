@@ -49,7 +49,6 @@ object Readables:
   }
   implicit val device: Readable[DeviceId] = from[Long, DeviceId](DeviceId.build)
   implicit val userId: Readable[UserId] = from[Long, UserId](UserId.build)
-  implicit val email: Readable[Email] = from[String, Email](Email.build)
   implicit val trackTitle: Readable[TrackTitle] = from[String, TrackTitle](TrackTitle.build)
 
 //  implicit def option[T: Readable]: Readable[Option[T]] = (opt: Option[String]) =>

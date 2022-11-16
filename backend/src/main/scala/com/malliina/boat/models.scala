@@ -273,6 +273,11 @@ case class PushPayload(token: PushToken, device: MobileDevice)
 object PushPayload:
   implicit val json: Codec[PushPayload] = deriveCodec[PushPayload]
 
+case class DisablePush(token: PushToken)
+
+object DisablePush:
+  implicit val json: Codec[DisablePush] = deriveCodec[DisablePush]
+
 object TrackNames:
   def random() = TrackName(Utils.randomString(6))
 

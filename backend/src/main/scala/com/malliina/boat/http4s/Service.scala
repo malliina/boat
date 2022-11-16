@@ -111,8 +111,8 @@ class Service(comps: BoatComps) extends BasicService[IO]:
           ok(SimpleMessage("Enabled."))
         }
       }
-    case req @ PUT -> Root / "users" / "notifications" / "disable" =>
-      jsonAction[PushPayload](req) { (payload, user) =>
+    case req @ POST -> Root / "users" / "notifications" / "disable" =>
+      jsonAction[DisablePush](req) { (payload, user) =>
         push.disable(payload.token, user.id).flatMap { disabled =>
           val msg = if disabled then "Disabled." else NoChange
           ok(SimpleMessage(msg))
@@ -436,7 +436,7 @@ class Service(comps: BoatComps) extends BasicService[IO]:
     import Readables.*
     def invite(form: FormReader) = for
       boat <- form.read[DeviceId](Forms.Boat)
-      email <- form.read[Email](Forms.Email)
+      email <- form.read[Email](Forms.Email)(Readable.email)
     yield InvitePayload(boat, email)
 
     def respondInvite(form: FormReader) = for
