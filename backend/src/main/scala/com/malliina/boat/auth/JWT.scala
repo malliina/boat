@@ -1,11 +1,11 @@
 package com.malliina.boat.auth
 
 import com.malliina.util.AppLogger
-import com.malliina.values.{ErrorMessage, IdToken, TokenValue, Readable}
+import com.malliina.values.{ErrorMessage, IdToken, Readable, TokenValue}
 import com.malliina.web.{Expired, InvalidClaims, InvalidSignature, Issuer, JWTError, MissingData, ParseError}
 import com.nimbusds.jose.crypto.{MACSigner, MACVerifier}
 import com.nimbusds.jose.util.JSONObjectUtils
-import com.nimbusds.jose.{JWSAlgorithm, JWSHeader}
+import com.nimbusds.jose.{JOSEException, JWSAlgorithm, JWSHeader}
 import com.nimbusds.jwt.{JWTClaimsSet, SignedJWT}
 import io.circe.parser.parse
 import io.circe.syntax.EncoderOps
@@ -67,8 +67,13 @@ object JWT:
   object Verified:
     def verify(parsed: Parsed, secret: SecretKey, now: Instant): Either[JWTError, Verified] =
       val verifier = new MACVerifier(secret.value)
+      val signatureVerification =
+        try
+          val verified = parsed.jwt.verify(verifier)
+          if verified then Right(()) else Left(InvalidSignature(parsed.token))
+        catch case _: JOSEException => Left(InvalidSignature(parsed.token))
       for
-        _ <- if parsed.jwt.verify(verifier) then Right(()) else Left(InvalidSignature(parsed.token))
+        _ <- signatureVerification
         _ <- parsed.checkExpiration(now).toLeft(())
       yield Verified(parsed)
 
