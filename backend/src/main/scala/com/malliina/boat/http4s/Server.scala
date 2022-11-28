@@ -90,7 +90,7 @@ object Server extends IOApp:
     ais <- BoatMqttClient(conf.ais.enabled, AppMode.fromBuild, dispatcher)
     streams <- BoatStreams.resource(trackInserts, ais)
     deviceStreams <- GPSStreams.resource(gps)
-    http <- HttpClientIO.resource
+    http <- HttpClientIO.resource[IO]
   yield
     val appComps = builder(conf, http)
     val jwt = JWT(conf.secret)

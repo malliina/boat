@@ -117,7 +117,7 @@ trait ServerSuite extends MUnitDatabaseSuite with JsonInstances:
         TestComps.builder,
         port = port"0"
       )
-      client <- HttpClientIO.resource
+      client <- HttpClientIO.resource[IO]
     yield ServerTools(service, client)
   val server: Fixture[ServerTools] =
     ResourceSuiteLocalFixture("munit-server", testServerResource)

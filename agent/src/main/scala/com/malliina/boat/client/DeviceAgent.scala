@@ -7,7 +7,7 @@ import com.malliina.boat.client.DeviceAgent.log
 import com.malliina.boat.client.server.BoatConf
 import com.malliina.boat.client.server.Device.GpsDevice
 import com.malliina.http.FullUrl
-import com.malliina.http.io.{SocketEvent, WebSocketIO}
+import com.malliina.http.io.{SocketEvent, WebSocketF}
 import com.malliina.util.AppLogger
 import fs2.Stream
 import fs2.concurrent.SignallingRef
@@ -28,7 +28,7 @@ object DeviceAgent:
     val isGps = conf.device == GpsDevice
     for
       tcp <- Resource.eval(TcpClient.default(conf.host, conf.port, TcpClient.linefeed))
-      ws <- WebSocketIO(url, headers, http)
+      ws <- WebSocketF.build[IO](url, headers, http)
       signal <- Resource.eval(SignallingRef[IO, Boolean](false))
     yield DeviceAgent(tcp, ws, signal, isGps)
 
@@ -41,7 +41,7 @@ object DeviceAgent:
   */
 class DeviceAgent(
   tcp: TcpClient,
-  ws: WebSocketIO,
+  ws: WebSocketF[IO],
   signal: SignallingRef[IO, Boolean],
   isGps: Boolean
 )(implicit t: Temporal[IO]):

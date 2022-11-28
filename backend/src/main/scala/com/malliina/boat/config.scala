@@ -60,8 +60,6 @@ case class BoatConf(
   push: PushConf
 )
 
-case class WrappedConf(boat: BoatConf)
-
 object BoatConf:
   implicit val token: ConfigReadable[AccessToken] = byString(s => AccessToken(s))
   implicit val secret: ConfigReadable[SecretKey] = byString(s => SecretKey(s))

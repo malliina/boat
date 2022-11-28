@@ -9,7 +9,6 @@ import scala.collection.JavaConverters.asScalaBufferConverter
 
 trait FileStore {
   def upload(file: Path): String
-
   def files(): Seq[S3ObjectSummary]
 }
 

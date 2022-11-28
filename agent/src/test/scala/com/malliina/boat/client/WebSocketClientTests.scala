@@ -4,15 +4,14 @@ import cats.effect.unsafe.implicits.global
 import cats.effect.IO
 import com.malliina.boat.{Constants, RawSentence, SentencesMessage}
 import com.malliina.http.FullUrl
-import com.malliina.http.io.HttpClientIO
-import com.malliina.http.io.WebSocketIO
+import com.malliina.http.io.{HttpClientIO, WebSocketF}
 import com.malliina.http.io.SocketEvent.{Open, TextMessage}
 
 class WebSocketClientTests extends AsyncSuite:
   test("can connect to api.boat-tracker.com".ignore) {
     val socketResource = for
-      http <- HttpClientIO.resource
-      socket <- WebSocketIO(DeviceAgent.BoatUrl, Map.empty, http.client)
+      http <- HttpClientIO.resource[IO]
+      socket <- WebSocketF.build[IO](DeviceAgent.BoatUrl, Map.empty, http.client)
     yield socket
     socketResource.use { socket =>
       socket.events.collect { case o @ Open(_, _) =>
@@ -38,14 +37,14 @@ class WebSocketClientTests extends AsyncSuite:
     val msg = SentencesMessage(samples)
     val token = "todo"
     val socketResource = for
-      http <- HttpClientIO.resource
-      socket <- WebSocketIO(url, Map(Constants.BoatTokenHeader -> token), http.client)
+      http <- HttpClientIO.resource[IO]
+      socket <- WebSocketF.build[IO](url, Map(Constants.BoatTokenHeader -> token), http.client)
     yield socket
-    socketResource.use { (client: WebSocketIO) =>
+    socketResource.use { (client: WebSocketF[IO]) =>
       val stream = client.events.evalMap {
-        case Open(_, _) => client.send(msg)
+        case Open(_, _)                   => client.send(msg)
         case TextMessage(socket, message) => IO(println(message))
-        case _ => IO.unit
+        case _                            => IO.unit
       }
       stream.compile.drain
     }
