@@ -1,6 +1,6 @@
 package com.malliina.boat.client.server
 
-import cats.effect.{ExitCode, IO, IOApp, Resource}
+import cats.effect.{Async, ExitCode, IO, IOApp, Resource}
 import com.comcast.ip4s.{Port, host, port}
 import com.malliina.boat.client.DeviceAgent
 import com.malliina.boat.client.server.Device.GpsDevice
@@ -15,13 +15,12 @@ object AgentWebServer extends IOApp:
   val conf = AgentSettings.readConf().toOption
   val url =
     if conf.exists(_.device == GpsDevice) then DeviceAgent.DeviceUrl else DeviceAgent.BoatUrl
-  val httpResource = Resource.make(IO(HttpClientIO()))(http => IO(http.close()))
-  val serverResource = for
-    http <- httpResource
-    agentManager <- AgentInstance.resource(conf, url, http.client)
+  def serverResource[F[_]: Async] = for
+    http <- HttpClientIO.resource[F]
+    agentManager <- AgentInstance.resource[F](url, http.client)
     service = WebServer(agentManager)
     server <- EmberServerBuilder
-      .default[IO]
+      .default[F]
       .withHost(host"0.0.0.0")
       .withPort(port"8080")
       .withHttpApp(service.service)
@@ -31,4 +30,4 @@ object AgentWebServer extends IOApp:
     server
 
   override def run(args: List[String]): IO[ExitCode] =
-    serverResource.use(_ => IO.never).as(ExitCode.Success)
+    serverResource[IO].use(_ => IO.never).as(ExitCode.Success)

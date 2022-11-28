@@ -102,7 +102,7 @@ object AgentSettings:
 
   def saveConf(conf: BoatConf): Unit = save(conf.asJson.spaces2, confFile)
 
-  def saveAndReload(conf: BoatConf, instance: AgentInstance): IO[Boolean] =
+  def saveAndReload[F[_]](conf: BoatConf, instance: AgentInstance[F]): F[Boolean] =
     saveConf(conf)
     instance.updateIfNecessary(conf)
 

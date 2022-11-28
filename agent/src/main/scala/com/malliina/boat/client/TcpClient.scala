@@ -1,16 +1,15 @@
 package com.malliina.boat.client
 
 import cats.effect.kernel.{Concurrent, Resource, Temporal}
-import cats.effect.{Concurrent, IO, Resource}
+import cats.effect.{Async, Concurrent, IO, MonadCancelThrow, Resource, Sync}
 import com.malliina.boat.client.TcpClient.{charset, log}
 import com.malliina.boat.client.server.Device.GpsDevice
-import com.malliina.boat.{RawSentence, SentencesMessage, Readables}
+import com.malliina.boat.{RawSentence, Readables, SentencesMessage}
 import com.malliina.util.AppLogger
 import com.malliina.values.Readable
 import fs2.concurrent.{SignallingRef, Topic}
 import fs2.io.net.{Network, Socket}
 import fs2.{Chunk, Pipe, Pull, Stream, text}
-import cats.effect.MonadCancelThrow
 import cats.syntax.all.*
 import com.comcast.ip4s.*
 import com.malliina.boat.Readables.from
@@ -38,34 +37,33 @@ object TcpClient:
   val watchMessage =
     s"${GpsDevice.watchCommand}$linefeed".getBytes(charset)
 
-  def default(host: Host, port: Port, delimiter: String = linefeed)(implicit
-    t: Temporal[IO]
-  ): IO[TcpClient] = for
-    topic <- Topic[IO, SentencesMessage]
-    signal <- SignallingRef[IO, Boolean](false)
-  yield TcpClient(host, port, delimiter, topic, signal)
+  def default[F[_]: Async](host: Host, port: Port)(implicit
+    t: Temporal[F]
+  ): F[TcpClient[F]] = for
+    topic <- Topic[F, SentencesMessage]
+    signal <- SignallingRef[F, Boolean](false)
+  yield TcpClient[F](host, port, topic, signal)
 
-class TcpClient(
+class TcpClient[F[_]: Async](
   host: Host,
   port: Port,
-  delimiter: String,
-  topic: Topic[IO, SentencesMessage],
-  signal: SignallingRef[IO, Boolean]
-)(implicit t: Temporal[IO]):
+  topic: Topic[F, SentencesMessage],
+  signal: SignallingRef[F, Boolean]
+)(implicit t: Temporal[F]):
   val hostPort = s"tcp://$host:$port"
   // Sends after maxBatchSize sentences have been collected or every sendTimeWindow, whichever comes first
   private val maxBatchSize = 100
   private val sendTimeWindow = 500.millis
   private val reconnectInterval = 3.second
 
-  val sentencesHub: Stream[IO, SentencesMessage] = topic.subscribe(maxQueued = 10)
+  val sentencesHub: Stream[F, SentencesMessage] = topic.subscribe(maxQueued = 10)
 
   /** Connects to `host:port`. Reconnects on failure.
     *
     * Makes received sentences available in `sentencesHub`. Sends `toServer` to the server upon
     * connection.
     */
-  def connect(toServer: Stream[IO, Byte] = Stream.empty): Stream[IO, Unit] = connections.flatMap {
+  def connect(toServer: Stream[F, Byte] = Stream.empty): Stream[F, Unit] = connections.flatMap {
     socket =>
       val outMessages = toServer.through(socket.writes)
       val inMessages = socket.reads
@@ -85,14 +83,14 @@ class TcpClient(
       }
   }
 
-  private def connections: Stream[IO, Socket[IO]] =
+  private def connections: Stream[F, Socket[F]] =
     Stream
       .resource(
-        Resource.eval(IO(log.info(s"Connecting to $hostPort..."))) >>
-          Network[IO].client(SocketAddress(host, port))
+        Resource.eval(delay(log.info(s"Connecting to $hostPort..."))) >>
+          Network[F].client(SocketAddress(host, port))
       )
       .evalTap { socket =>
-        IO(log.info(s"Connected to $hostPort."))
+        delay(log.info(s"Connected to $hostPort."))
       }
       .handleErrorWith { e =>
         Stream.eval(signal.get).flatMap { isDisabled =>
@@ -106,4 +104,6 @@ class TcpClient(
       }
       .interruptWhen(signal)
 
-  def close: IO[Boolean] = signal.getAndSet(true)
+  def close: F[Boolean] = signal.getAndSet(true)
+
+  private def delay[T](thunk: => T) = Sync[F].delay(thunk)

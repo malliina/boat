@@ -47,7 +47,7 @@ class TcpClientTests extends AsyncSuite:
 
     // client connects to pretend-plotter
     val p = Promise[RawSentence]()
-    val client = TcpClient.default(tcpHost, tcpPort, TcpClient.linefeed).unsafeRunSync()
+    val client = TcpClient.default[IO](tcpHost, tcpPort).unsafeRunSync()
     client.connect(Stream.empty).compile.drain.unsafeRunAndForget()
     client.sentencesHub
       .take(1)

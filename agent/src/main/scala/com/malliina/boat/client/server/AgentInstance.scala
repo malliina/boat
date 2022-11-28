@@ -1,7 +1,8 @@
 package com.malliina.boat.client.server
 
-import cats.effect.kernel.{Temporal, Resource}
-import cats.effect.IO
+import cats.syntax.all.{toFunctorOps, toFlatMapOps}
+import cats.effect.kernel.{Resource, Temporal}
+import cats.effect.Async
 import com.malliina.boat.client.DeviceAgent
 import com.malliina.boat.client.server.Device.GpsDevice
 import com.malliina.http.FullUrl
@@ -10,29 +11,28 @@ import fs2.concurrent.{SignallingRef, Topic}
 import fs2.Stream
 
 object AgentInstance:
-  def resource(
-    conf: Option[BoatConf],
+  def resource[F[_]: Async](
     url: FullUrl,
     http: OkHttpClient
-  ): Resource[IO, AgentInstance] =
+  ): Resource[F, AgentInstance[F]] =
     for
       agent <- Resource.eval(io(url, http))
       _ <- agent.connections.compile.resource.lastOrError
     yield agent
 
-  def io(url: FullUrl, http: OkHttpClient): IO[AgentInstance] =
+  def io[F[_]: Async](url: FullUrl, http: OkHttpClient): F[AgentInstance[F]] =
     for
-      topic <- Topic[IO, BoatConf]
-      interrupter <- SignallingRef[IO, Boolean](false)
+      topic <- Topic[F, BoatConf]
+      interrupter <- SignallingRef[F, Boolean](false)
     yield AgentInstance(url, http, topic, interrupter)
 
-class AgentInstance(
+class AgentInstance[F[_]: Async](
   url: FullUrl,
   http: OkHttpClient,
-  confs: Topic[IO, BoatConf],
-  interrupter: SignallingRef[IO, Boolean]
+  confs: Topic[F, BoatConf],
+  interrupter: SignallingRef[F, Boolean]
 ):
-  val connections: Stream[IO, Unit] = confs
+  val connections: Stream[F, Unit] = confs
     .subscribe(100)
     .flatMap { newConf =>
       val newUrl =
@@ -42,15 +42,14 @@ class AgentInstance(
         val stream =
           if newConf.enabled then
             agent.connect.interruptWhen(confs.subscribe(1).take(1).map(_ => true))
-          else
-            Stream.empty
+          else Stream.empty
         stream.compile.drain
       }
       Stream.eval(io)
     }
     .interruptWhen(interrupter)
 
-  def updateIfNecessary(newConf: BoatConf): IO[Boolean] =
+  def updateIfNecessary(newConf: BoatConf): F[Boolean] =
     confs.publish1(newConf).map { t => t.fold(closed => false, _ => true) }
 
-  def close: IO[Unit] = interrupter.set(true)
+  def close: F[Unit] = interrupter.set(true)

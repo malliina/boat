@@ -1,6 +1,7 @@
 package com.malliina.boat.client.server
 
-import cats.effect.IO
+import cats.effect.{Async, IO}
+import cats.syntax.all.toFlatMapOps
 import com.malliina.boat.client.TcpClient
 import com.malliina.boat.client.{FormReadable, FormReader}
 import com.malliina.boat.client.TcpClient.{host, port}
@@ -24,9 +25,9 @@ import org.http4s.headers.{Accept, Location, `Cache-Control`, `WWW-Authenticate`
 
 import java.nio.charset.StandardCharsets
 
-trait AppImplicits
+trait AppImplicits[F[_]]
   extends syntax.AllSyntax
-  with Http4sDsl[IO]
+  with Http4sDsl[F]
   with CirceInstances
   with ScalatagsEncoder
 
@@ -43,12 +44,12 @@ object WebServer:
 
   def hash(pass: String): String = DigestUtils.md5Hex(pass)
 
-class WebServer(agentInstance: AgentInstance) extends AppImplicits:
+class WebServer[F[_]: Async](agentInstance: AgentInstance[F]) extends AppImplicits[F]:
   val noCache = `Cache-Control`(`no-cache`(), `no-store`, `must-revalidate`)
   val boatUser = "boat"
   val tempUser = "temp"
 
-  val routes = HttpRoutes.of[IO] {
+  val routes = HttpRoutes.of[F] {
     case GET -> Root =>
       SeeOther(Location(settingsUri))
     case GET -> Root / "settings" =>
@@ -62,7 +63,7 @@ class WebServer(agentInstance: AgentInstance) extends AppImplicits:
       static(path, req)
   }
 
-  def static(file: String, request: Request[IO]): IO[Response[IO]] =
+  def static(file: String, request: Request[F]): F[Response[F]] =
     StaticFile
       .fromResource("/" + file, Some(request))
       .getOrElseF(NotFound(Errors(s"Not found: '$file'.").asJson))
@@ -81,13 +82,13 @@ class WebServer(agentInstance: AgentInstance) extends AppImplicits:
     enabled <- form.read[Boolean]("enabled")
   yield BoatConf(host, port, device, token, enabled)
 
-  def parseForm[T](req: Request[IO], read: FormReader => Either[Errors, T])(implicit
-    decoder: EntityDecoder[IO, UrlForm]
-  ): IO[T] =
+  def parseForm[T](req: Request[F], read: FormReader => Either[Errors, T])(implicit
+    decoder: EntityDecoder[F, UrlForm]
+  ): F[T] =
     decoder
       .decode(req, strict = false)
       .foldF(
-        err => IO.raiseError(err),
-        form =>
-          read(FormReader(form)).fold(err => IO.raiseError(err.asException), ok => IO.pure(ok))
+        err => F.raiseError(err),
+        form => read(FormReader(form)).fold(err => F.raiseError(err.asException), ok => F.pure(ok))
       )
+  val F = Async[F]

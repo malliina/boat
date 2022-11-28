@@ -62,7 +62,7 @@ class EndToEndTests extends BoatTests:
           val serverUrl = s.baseWsUrl.append(reverse.ws.boats.renderString)
           val agent: IO[Json] =
             DeviceAgent
-              .fromConf(BoatConf.anon(tcpHost, tcpPort), serverUrl, httpClient.client)
+              .fromConf[IO](BoatConf.anon(tcpHost, tcpPort), serverUrl, httpClient.client)
               .use { agent =>
                 agent.connect.compile.resource.lastOrError.use { e =>
                   log.info(s"Agent complete")
