@@ -3,6 +3,7 @@ package com.malliina.boat.db
 import cats.implicits.*
 import cats.data.NonEmptyList
 import cats.effect.kernel.implicits.monadCancelOps_
+import cats.syntax.all.{toFlatMapOps, toFunctorOps}
 import com.malliina.boat.db.TrackInserter.log
 import com.malliina.boat.parsing.FullCoord
 import com.malliina.boat.*
@@ -10,7 +11,7 @@ import com.malliina.measure.{DistanceM, SpeedIntM, SpeedM}
 import com.malliina.values.UserId
 import doobie.*
 import doobie.implicits.*
-import cats.effect.IO
+import cats.effect.{Async, IO}
 import com.malliina.util.AppLogger
 import doobie.free.preparedstatement.PreparedStatementIO
 
@@ -22,7 +23,9 @@ import scala.util.Random
 object TrackInserter:
   private val log = AppLogger(getClass)
 
-class TrackInserter(val db: DoobieDatabase) extends TrackInsertsDatabase with DoobieSQL:
+class TrackInserter[F[_]: Async](val db: DoobieDatabase[F])
+  extends TrackInsertsDatabase[F]
+  with DoobieSQL:
   import DoobieMappings.*
   import db.{run, logHandler}
   val minSpeed: SpeedM = 1.kmh
@@ -36,7 +39,7 @@ class TrackInserter(val db: DoobieDatabase) extends TrackInsertsDatabase with Do
           from tracks t, boats b, users u
           where t.boat = b.id and b.owner = u.id $more""".query[TrackMeta]
 
-  def updateTitle(track: TrackName, title: TrackTitle, user: UserId): IO[JoinedTrack] =
+  def updateTitle(track: TrackName, title: TrackTitle, user: UserId): F[JoinedTrack] =
     log.info(s"Updating title of '$track' by user ID $user to '$title'...")
     val trackIO =
       sql"""$trackIds and t.name = $track and b.uid = $user"""
@@ -49,7 +52,7 @@ class TrackInserter(val db: DoobieDatabase) extends TrackInsertsDatabase with Do
             where id = $tid""".update.run
     updateTrack(trackIO, updateIO)
 
-  def updateComments(track: TrackId, comments: String, user: UserId): IO[JoinedTrack] =
+  def updateComments(track: TrackId, comments: String, user: UserId): F[JoinedTrack] =
     log.info(s"Updating comments of '$track' by user ID $user to '$comments'...")
     val trackIO =
       sql"""$trackIds and t.id = $track and b.uid = $user"""
@@ -61,13 +64,13 @@ class TrackInserter(val db: DoobieDatabase) extends TrackInsertsDatabase with Do
             where id = $tid""".update.run
     updateTrack(trackIO, updateIO)
 
-  def addBoat(boat: BoatName, user: UserId): IO[BoatRow] = run {
+  def addBoat(boat: BoatName, user: UserId): F[BoatRow] = run {
     saveNewBoat(boat, user, BoatTokens.random()).flatMap { id =>
       boatById(id)
     }
   }
 
-  def removeDevice(device: DeviceId, user: UserId): IO[Int] = run {
+  def removeDevice(device: DeviceId, user: UserId): F[Int] = run {
     sql"delete from boats where owner = $user and id = $device".update.run.map { rows =>
       if rows == 1 then log.info(s"Deleted boat '$device' owned by '$user'.")
       else log.warn(s"Boat '$device' owned by '$user' not found.")
@@ -75,7 +78,7 @@ class TrackInserter(val db: DoobieDatabase) extends TrackInsertsDatabase with Do
     }
   }
 
-  def renameBoat(boat: DeviceId, newName: BoatName, user: UserId): IO[BoatRow] = run {
+  def renameBoat(boat: DeviceId, newName: BoatName, user: UserId): F[BoatRow] = run {
     val ownershipCheck =
       sql"select exists(${CommonSql.boats} and b.id = $boat and b.owner = $user)"
         .query[Boolean]
@@ -90,7 +93,7 @@ class TrackInserter(val db: DoobieDatabase) extends TrackInsertsDatabase with Do
       updated
   }
 
-  def joinAsBoat(meta: DeviceMeta): IO[TrackMeta] = run {
+  def joinAsBoat(meta: DeviceMeta): F[TrackMeta] = run {
     val existing: ConnectionIO[List[TrackMeta]] = trackMetas(
       fr"and u.user = ${meta.user} and b.name = ${meta.boat} and t.id in (select p.track from points p where p.added > now() - interval 10 minute)"
     ).to[List]
@@ -123,7 +126,7 @@ class TrackInserter(val db: DoobieDatabase) extends TrackInsertsDatabase with Do
     }
   }
 
-  def joinAsDevice(from: DeviceMeta): IO[JoinedBoat] = run {
+  def joinAsDevice(from: DeviceMeta): F[JoinedBoat] = run {
     val user = from.user
     val boat = from.boat
     sql"${CommonSql.boats} and b.name = $boat and u.user = $user".query[JoinedBoat].option.flatMap {
@@ -149,7 +152,7 @@ class TrackInserter(val db: DoobieDatabase) extends TrackInsertsDatabase with Do
     }
   }
 
-  def saveSentences(sentences: SentencesEvent): IO[Seq[KeyedSentence]] = run {
+  def saveSentences(sentences: SentencesEvent): F[Seq[KeyedSentence]] = run {
     val from = sentences.from
     val pairs = sentences.sentences.toList.map { s =>
       (s, from.track)
@@ -184,7 +187,7 @@ class TrackInserter(val db: DoobieDatabase) extends TrackInsertsDatabase with Do
       case Nil =>
         acc
 
-  def saveCoords(coord: FullCoord): IO[InsertedPoint] = run {
+  def saveCoords(coord: FullCoord): F[InsertedPoint] = run {
     val track = coord.from.track
     val trail =
       sql"""select id, longitude, latitude, coord, boat_speed, water_temp, depthm, depth_offsetm, boat_time, track, track_index, diff, added 
@@ -222,7 +225,7 @@ class TrackInserter(val db: DoobieDatabase) extends TrackInsertsDatabase with Do
     yield InsertedPoint(point, ref)
   }
 
-  def saveCoordsFast(coord: FullCoord): IO[TrackPointId] = run {
+  def saveCoordsFast(coord: FullCoord): F[TrackPointId] = run {
     for
       point <- insertPoint(coord, Random.between(1, 1000000), DistanceM.zero)
       _ <- insertSentencePoints(coord.parts.map { key => (key, point) }.toList)
@@ -323,7 +326,7 @@ class TrackInserter(val db: DoobieDatabase) extends TrackInsertsDatabase with Do
   private def updateTrack(
     tid: ConnectionIO[TrackId],
     update: TrackId => ConnectionIO[Int]
-  ): IO[JoinedTrack] = db.run {
+  ): F[JoinedTrack] = db.run {
     for
       id <- tid
       _ <- update(id)

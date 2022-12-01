@@ -15,7 +15,7 @@ import org.http4s.headers.{Accept, Location, `Cache-Control`}
 
 import scala.concurrent.duration.FiniteDuration
 
-object BasicService extends BasicService[IO]:
+object BasicService:
   private val log = AppLogger(getClass)
 
   val noCache = `Cache-Control`(`no-cache`(), `no-store`, `must-revalidate`)
@@ -29,7 +29,7 @@ object BasicService extends BasicService[IO]:
     .map(_.values.map(_.mediaRange))
     .getOrElse(NonEmptyList.of(MediaRange.`*/*`))
 
-class BasicService[F[_]: Applicative: Sync] extends Implicits[F]:
+class BasicService[F[_]: Sync] extends Implicits[F]:
   def temporaryRedirect(uri: Uri): F[Response[F]] =
     TemporaryRedirect(Location(uri)).map(_.putHeaders(noCache))
   def seeOther(uri: Uri): F[Response[F]] =

@@ -1,5 +1,6 @@
 package com.malliina.boat.push
 
+import cats.{Applicative, Monad}
 import cats.effect.IO
 import com.malliina.boat.MobileDevice.{Android, IOS, Unknown}
 import com.malliina.boat.PushConf
@@ -13,11 +14,13 @@ import com.malliina.util.AppLogger
 object BoatPushService:
   private val log = AppLogger(getClass)
 
-  def fromConf(c: PushConf, http: HttpClient[IO]): BoatPushService =
-    BoatPushService(APNSPush.fromConf(c.apns, http), FCMPush(c.fcm, http))
+  def fromConf[F[+_]: Monad](c: PushConf, http: HttpClient[F]): BoatPushService[F] =
+    BoatPushService(APNSPush.fromConf(c.apns, http), FCMPush.build(c.fcm, http))
 
-class BoatPushService(ios: APNS, android: PushClient[GCMToken]) extends PushEndpoint:
-  override def push(notification: BoatNotification, to: PushDevice): IO[PushSummary] =
+class BoatPushService[F[_]: Applicative](ios: APNS[F], android: PushClient[F, GCMToken])
+  extends PushEndpoint[F]:
+  val F = Applicative[F]
+  override def push(notification: BoatNotification, to: PushDevice): F[PushSummary] =
     to.device match
       case IOS =>
         ios.push(notification, APNSToken(to.token.token))
@@ -25,4 +28,4 @@ class BoatPushService(ios: APNS, android: PushClient[GCMToken]) extends PushEndp
         android.push(notification, GCMToken(to.token.token))
       case Unknown(name) =>
         log.error(s"Unsupported device: '$name'. Ignoring push request.")
-        IO.pure(PushSummary.empty)
+        F.pure(PushSummary.empty)

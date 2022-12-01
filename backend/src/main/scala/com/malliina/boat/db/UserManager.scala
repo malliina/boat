@@ -6,10 +6,10 @@ import com.malliina.boat.{BoatToken, DeviceId, InviteState, JoinedBoat, Language
 import com.malliina.values.*
 import org.apache.commons.codec.digest.DigestUtils
 
-trait IdentityManager extends UserManager with TokenManager
+trait IdentityManager[F[_]] extends UserManager[F] with TokenManager[F]
 
-trait UserManager:
-  def userMeta(email: Email): IO[UserRow]
+trait UserManager[F[_]]:
+  def userMeta(email: Email): F[UserRow]
 
   /** Retrieves user information for the user with the given email address. If the user does not
     * exist, one is created with the email address as the username, and with a newly created
@@ -23,24 +23,24 @@ trait UserManager:
     * @return
     *   user info for `email`
     */
-  def userInfo(email: Email): IO[UserInfo]
-  def authBoat(token: BoatToken): IO[JoinedBoat]
-  def boats(user: Email): IO[UserBoats]
-  def addUser(user: NewUser): IO[Either[AlreadyExists, UserRow]]
-  def deleteUser(user: Username): IO[Either[UserDoesNotExist, Unit]]
-  def changeLanguage(user: UserId, to: Language): IO[Boolean]
-  def invite(i: InviteInfo): IO[InviteResult]
-  def grantAccess(boat: DeviceId, to: UserId, principal: UserId): IO[InviteResult]
-  def revokeAccess(boat: DeviceId, from: UserId, principal: UserId): IO[AccessResult]
-  def updateInvite(boat: DeviceId, user: UserId, state: InviteState): IO[Long]
+  def userInfo(email: Email): F[UserInfo]
+  def authBoat(token: BoatToken): F[JoinedBoat]
+  def boats(user: Email): F[UserBoats]
+  def addUser(user: NewUser): F[Either[AlreadyExists, UserRow]]
+  def deleteUser(user: Username): F[Either[UserDoesNotExist, Unit]]
+  def changeLanguage(user: UserId, to: Language): F[Boolean]
+  def invite(i: InviteInfo): F[InviteResult]
+  def grantAccess(boat: DeviceId, to: UserId, principal: UserId): F[InviteResult]
+  def revokeAccess(boat: DeviceId, from: UserId, principal: UserId): F[AccessResult]
+  def updateInvite(boat: DeviceId, user: UserId, state: InviteState): F[Long]
 
   protected def hash(user: Username, pass: Password): String =
     DigestUtils.md5Hex(s"$user:${pass.pass}")
 
-trait TokenManager:
-  def register(email: Email): IO[UserRow]
-  def save(token: RefreshToken, user: UserId): IO[RefreshRow]
-  def remove(token: RefreshTokenId): IO[Int]
-  def load(token: RefreshTokenId): IO[RefreshRow]
-  def updateValidation(token: RefreshTokenId): IO[RefreshRow]
-  def refreshTokens(user: UserId): IO[List[RefreshToken]]
+trait TokenManager[F[_]]:
+  def register(email: Email): F[UserRow]
+  def save(token: RefreshToken, user: UserId): F[RefreshRow]
+  def remove(token: RefreshTokenId): F[Int]
+  def load(token: RefreshTokenId): F[RefreshRow]
+  def updateValidation(token: RefreshTokenId): F[RefreshRow]
+  def refreshTokens(user: UserId): F[List[RefreshToken]]

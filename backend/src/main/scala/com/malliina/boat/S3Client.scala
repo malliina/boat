@@ -15,7 +15,7 @@ trait FileStore:
   def files(): Seq[S3ObjectSummary]
 
 object S3Client:
-  def apply(): S3Client =
+  def build(): S3Client =
     val builder = AmazonS3ClientBuilder
       .standard()
       .withCredentials(
@@ -24,7 +24,7 @@ object S3Client:
           DefaultAWSCredentialsProviderChain.getInstance()
         )
       )
-    new S3Client(builder.withRegion(Regions.EU_WEST_1).build(), "agent.boat-tracker.com")
+    S3Client(builder.withRegion(Regions.EU_WEST_1).build(), "agent.boat-tracker.com")
 
 class S3Client(aws: AmazonS3, bucketName: String) extends FileStore:
   def download(key: String): S3Object =

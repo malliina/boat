@@ -1,6 +1,7 @@
 package com.malliina.web
 
-import cats.effect.IO
+import cats.effect.{IO, Sync}
+import cats.syntax.all.{toFlatMapOps, toFunctorOps}
 import com.malliina.http.HttpClient
 import com.malliina.values.{Email, ErrorMessage, IdToken, TokenValue}
 import com.malliina.web.AppleTokenValidator.EmailVerified
@@ -13,20 +14,22 @@ object AppleTokenValidator:
   val appleIssuer = Issuer("https://appleid.apple.com")
   // aud for tokens obtained in the iOS app SIWA flow
   val boatClientId = ClientId("com.malliina.BoatTracker")
-  def app(http: HttpClient[IO]): AppleTokenValidator = AppleTokenValidator(Seq(boatClientId), http)
+  def app[F[_]: Sync](http: HttpClient[F]): AppleTokenValidator[F] =
+    AppleTokenValidator(Seq(boatClientId), http)
 
-class AppleTokenValidator(
+class AppleTokenValidator[F[_]: Sync](
   clientIds: Seq[ClientId],
-  http: HttpClient[IO],
+  http: HttpClient[F],
   issuers: Seq[Issuer] = Seq(appleIssuer)
-) extends TokenVerifier(issuers):
+) extends TokenVerifier[F](issuers):
+  val F = Sync[F]
 
-  def validateOrFail(token: TokenValue, now: Instant): IO[Email] =
+  def validateOrFail(token: TokenValue, now: Instant): F[Email] =
     extractEmail(token, now).flatMap { e =>
-      e.fold(err => IO.raiseError(AuthException(err)), IO.pure)
+      e.fold(err => F.raiseError(AuthException(err)), F.pure)
     }
 
-  def extractEmail(token: TokenValue, now: Instant): IO[Either[AuthError, Email]] =
+  def extractEmail(token: TokenValue, now: Instant): F[Either[AuthError, Email]] =
     validateToken(token, now).map { outcome =>
       for
         v <- outcome
@@ -41,7 +44,7 @@ class AppleTokenValidator(
   def validateToken(
     token: TokenValue,
     now: Instant
-  ): IO[Either[AuthError, Verified]] =
+  ): F[Either[AuthError, Verified]] =
     http.getAs[JWTKeys](AppleAuthFlow.jwksUri).map { keys =>
       validate(token, keys.keys, now)
     }

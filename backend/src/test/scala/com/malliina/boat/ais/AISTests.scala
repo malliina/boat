@@ -16,7 +16,7 @@ import java.time.Instant
 class AISTests extends MUnitSuite:
   val prodFixture = resource(Dispatcher[IO].flatMap { d => BoatMqttClient.prod(d) })
   val testFixture = resource(Dispatcher[IO].flatMap { d =>
-    BoatMqttClient(TestUrl, MetadataTopic, d)
+    BoatMqttClient.url(TestUrl, MetadataTopic, d)
   })
   prodFixture.test("MqttSource".ignore) { client =>
     val events = client.slow.take(3).compile.toList.unsafeRunSync()

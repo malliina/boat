@@ -1,8 +1,7 @@
 package com.malliina.boat.db
 
-import cats.effect.IO.*
 import cats.effect.kernel.Resource
-import cats.effect.IO
+import cats.effect.{Async, Sync}
 import com.malliina.util.AppLogger
 import com.zaxxer.hikari.{HikariConfig, HikariDataSource}
 import doobie.*
@@ -18,16 +17,16 @@ import scala.concurrent.duration.DurationInt
 object DoobieDatabase:
   val log = AppLogger(getClass)
 
-  def resource(conf: => Conf): Resource[IO, DoobieDatabase] =
-    transactor(hikariConf(conf)).map { tx => DoobieDatabase(tx) }
+  def resource[F[_]: Async](conf: => Conf): Resource[F, DoobieDatabase[F]] =
+    transactor[F](hikariConf(conf)).map { tx => DoobieDatabase(tx) }
 
-  def init(conf: Conf): Resource[IO, DoobieDatabase] =
-    if conf.autoMigrate then withMigrations(conf) else resource(conf)
+  def init[F[_]: Async](conf: Conf): Resource[F, DoobieDatabase[F]] =
+    if conf.autoMigrate then withMigrations[F](conf) else resource[F](conf)
 
-  def withMigrations(conf: Conf): Resource[IO, DoobieDatabase] =
-    Resource.eval[IO, MigrateResult](migrate(conf)).flatMap { _ => resource(conf) }
+  def withMigrations[F[_]: Async](conf: Conf): Resource[F, DoobieDatabase[F]] =
+    Resource.eval[F, MigrateResult](migrate(conf)).flatMap { _ => resource(conf) }
 
-  private def migrate(conf: Conf): IO[MigrateResult] = IO {
+  private def migrate[F[_]: Sync](conf: Conf): F[MigrateResult] = Sync[F].delay {
     val flyway = Flyway.configure
       .dataSource(conf.url, conf.user, conf.pass)
       .table("flyway_schema_history2")
@@ -35,7 +34,7 @@ object DoobieDatabase:
     flyway.migrate()
   }
 
-  def hikariConf(conf: Conf): HikariConfig =
+  private def hikariConf(conf: Conf): HikariConfig =
     val hikari = new HikariConfig()
     hikari.setDriverClassName(Conf.MySQLDriver)
     hikari.setJdbcUrl(conf.url)
@@ -46,13 +45,13 @@ object DoobieDatabase:
     log.info(s"Connecting to '${conf.url}'...")
     hikari
 
-  private def transactor(conf: HikariConfig): Resource[IO, HikariTransactor[IO]] =
+  private def transactor[F[_]: Async](conf: HikariConfig): Resource[F, HikariTransactor[F]] =
     for
-      ec <- ExecutionContexts.fixedThreadPool[IO](32)
-      tx <- HikariTransactor.fromHikariConfig[IO](conf, ec)
+      ec <- ExecutionContexts.fixedThreadPool[F](32)
+      tx <- HikariTransactor.fromHikariConfig[F](conf, ec)
     yield tx
 
-class DoobieDatabase(tx: HikariTransactor[IO]):
+class DoobieDatabase[F[_]: Async](tx: HikariTransactor[F]):
   private val log = AppLogger(getClass)
 
   implicit val logHandler: LogHandler = LogHandler {
@@ -65,4 +64,4 @@ class DoobieDatabase(tx: HikariTransactor[IO]):
       log.error(s"Exec failed '$sql' in $exec.'", failure)
   }
 
-  def run[T](io: ConnectionIO[T]): IO[T] = io.transact(tx)
+  def run[T](io: ConnectionIO[T]): F[T] = io.transact(tx)

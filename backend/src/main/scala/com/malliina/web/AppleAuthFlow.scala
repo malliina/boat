@@ -1,6 +1,7 @@
 package com.malliina.web
 
-import cats.effect.IO
+import cats.effect.{IO, Sync}
+import cats.syntax.all.{toFlatMapOps, toFunctorOps}
 import com.malliina.http.{FullUrl, HttpClient}
 import com.malliina.oauth.TokenResponse
 import com.malliina.util.AppLogger
@@ -35,24 +36,24 @@ object AppleAuthFlow:
 /** @see
   *   https://developer.apple.com/documentation/signinwithapplejs/incorporating_sign_in_with_apple_into_other_platforms
   */
-class AppleAuthFlow(
+class AppleAuthFlow[F[_]: Sync](
   authConf: AuthConf,
-  val validator: AppleTokenValidator,
-  http: HttpClient[IO]
-) extends StaticFlowStart[IO]
-  with CallbackValidator[IO, Email]:
+  val validator: AppleTokenValidator[F],
+  http: HttpClient[F]
+) extends StaticFlowStart[F]
+  with CallbackValidator[F, Email]:
   override val conf: StaticConf = staticConf(authConf)
 
   override def validate(
     code: Code,
     redirectUrl: FullUrl,
     requestNonce: Option[String]
-  ): IO[Either[AuthError, Email]] =
+  ): F[Either[AuthError, Email]] =
     refreshToken(code, Map(RedirectUri -> redirectUrl.url)).flatMap { tokens =>
       validator.extractEmail(tokens.idToken, Instant.now())
     }
 
-  def refreshToken(code: Code, extraParams: Map[String, String]): IO[RefreshTokenResponse] =
+  def refreshToken(code: Code, extraParams: Map[String, String]): F[RefreshTokenResponse] =
     log.info(s"Exchanging authorization code for tokens...")
     val params = codeParameters(code) ++ extraParams
     http.postFormAs[RefreshTokenResponse](conf.tokenEndpoint, params).map { res =>
@@ -60,7 +61,7 @@ class AppleAuthFlow(
       res
     }
 
-  def verifyRefreshToken(token: RefreshToken): IO[TokenResponse] =
+  def verifyRefreshToken(token: RefreshToken): F[TokenResponse] =
     val params = commonParameters(RefreshTokenValue) ++ Map(
       GrantType -> RefreshTokenValue,
       RefreshTokenValue -> token.value
@@ -68,7 +69,7 @@ class AppleAuthFlow(
     http.postFormAs[TokenResponse](conf.tokenEndpoint, params)
 
   // https://developer.apple.com/documentation/sign_in_with_apple/revoke_tokens
-  def revoke(token: RefreshToken): IO[RevokeResult] =
+  def revoke(token: RefreshToken): F[RevokeResult] =
     val params = credentialParameters ++ Map(
       "token" -> token.token,
       "token_type_hint" -> "refresh_token"

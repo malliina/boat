@@ -1,6 +1,8 @@
 package com.malliina.boat.http4s
 
-import cats.effect.IO
+import cats.effect.{IO, Sync}
+import cats.effect.syntax.all.concurrentParTraverseOps
+import cats.syntax.all.{catsSyntaxApplicativeError, toFlatMapOps, toFunctorOps}
 import com.malliina.boat.Constants.{BoatNameHeader, BoatTokenHeader}
 import com.malliina.boat.auth.{BoatJwt, SettingsPayload}
 import com.malliina.boat.db.{IdentityManager, MissingCredentials, MissingCredentialsException, SIWADatabase, UserManager}
@@ -19,104 +21,115 @@ object AuthService:
   val GoogleCookie = ci"google"
   val ProviderCookieName = ci"boatProvider"
 
-class AuthService(val users: IdentityManager, comps: AuthComps):
+class AuthService[F[_]: Sync](val users: IdentityManager[F], comps: AuthComps[F]):
+  val F = Sync[F]
   val emailAuth = comps.google
   val web = comps.web
   val googleFlow = comps.googleFlow
   val microsoftFlow = comps.microsoftFlow
   val appleWebFlow = comps.appleWebFlow
-  val appSiwa: SIWADatabase = SIWADatabase(comps.appleAppFlow, users, comps.customJwt)
-  val webSiwa: SIWADatabase = SIWADatabase(comps.appleWebFlow, users, comps.customJwt)
+  val appSiwa: SIWADatabase[F] = SIWADatabase(comps.appleAppFlow, users, comps.customJwt)
+  val webSiwa: SIWADatabase[F] = SIWADatabase(comps.appleWebFlow, users, comps.customJwt)
 
-  def delete(headers: Headers, now: Instant): IO[List[RevokeResult]] =
+  def delete(headers: Headers, now: Instant): F[List[RevokeResult]] =
+    import cats.implicits.*
     for
       user <- profile(headers, now)
       tokens <- users.refreshTokens(user.id)
-      revocations <- IO.parTraverseN(1)(tokens) { token =>
+      revocations <- tokens.traverse { token =>
         for
           app <- comps.appleAppFlow.revoke(token)
           web <- comps.appleWebFlow.revoke(token)
         yield List(app, web)
       }
+//      revocations <- F.parTraverseN(1)(tokens) { token =>
+//        for
+//          app <- comps.appleAppFlow.revoke(token)
+//          web <- comps.appleWebFlow.revoke(token)
+//        yield List(app, web)
+//      }
       _ <- users.deleteUser(user.username)
     yield revocations.flatten
 
-  def register(code: Code, now: Instant): IO[BoatJwt] = appSiwa.registerApp(code, now)
+  def register(code: Code, now: Instant): F[BoatJwt] = appSiwa.registerApp(code, now)
 
-  def profile(req: Request[IO]): IO[UserInfo] = profile(req.headers)
+  def profile(req: Request[F]): F[UserInfo] = profile(req.headers)
 
-  def profile(headers: Headers, now: Instant = Instant.now()): IO[UserInfo] =
+  def profileMini(headers: Headers): F[MinimalUserInfo] =
+    profile(headers).map(ui => ui: MinimalUserInfo)
+
+  def profile(headers: Headers, now: Instant = Instant.now()): F[UserInfo] =
     emailOnly(headers, now).flatMap { email =>
       users.userInfo(email)
     }
 
-  def recreate(headers: Headers, now: Instant = Instant.now()): IO[BoatJwt] =
+  def recreate(headers: Headers, now: Instant = Instant.now()): F[BoatJwt] =
     Auth
       .token(headers)
       .map(token => appSiwa.recreate(token, now))
-      .fold(mce => IO.raiseError(MissingCredentialsException(mce)), identity)
+      .fold(mce => F.raiseError(MissingCredentialsException(mce)), identity)
 
   def optionalWebAuth(
-    req: Request[IO]
-  ): IO[Either[MissingCredentials, UserRequest[Option[UserBoats]]]] =
+    req: Request[F]
+  ): F[Either[MissingCredentials, UserRequest[F, Option[UserBoats]]]] =
     optionalUserInfo(req).map { e =>
       e.map { opt => UserRequest(opt, req) }
     }
 
-  def authOrAnon(headers: Headers): IO[MinimalUserInfo] =
-    minimal(headers, _ => IO.pure(MinimalUserInfo.anon))
+  def authOrAnon(headers: Headers): F[MinimalUserInfo] =
+    minimal(headers, _ => F.pure(MinimalUserInfo.anon))
 
-  def typical(headers: Headers) = minimal(headers, mce => IO.raiseError(mce))
+  def typical(headers: Headers) = minimal(headers, mce => F.raiseError(mce))
 
-  def minimal(headers: Headers, onFail: MissingCredentialsException => IO[MinimalUserInfo]) =
-    profile(headers).handleErrorWith {
-      case mce: MissingCredentialsException => settings(headers).map(IO.pure).getOrElse(onFail(mce))
-      case other                            => IO.raiseError(other)
+  def minimal(headers: Headers, onFail: MissingCredentialsException => F[MinimalUserInfo]) =
+    profileMini(headers).handleErrorWith {
+      case mce: MissingCredentialsException => settings(headers).map(F.pure).getOrElse(onFail(mce))
+      case other                            => F.raiseError(other)
     }
 
-  def saveSettings(settings: SettingsPayload, res: Response[IO], isSecure: Boolean) = web.withJwt(
+  def saveSettings(settings: SettingsPayload, res: Response[F], isSecure: Boolean) = web.withJwt(
     SettingsPayload.cookieName,
     settings,
     isSecure,
     res
   )
 
-  def settings(headers: Headers) =
+  def settings(headers: Headers): Option[SettingsPayload] =
     web
       .read[SettingsPayload](SettingsPayload.cookieName, headers)
       .toOption
       .filter(_.username != Usernames.anon)
 
-  def authBoat(headers: Headers): IO[DeviceMeta] = authDevice(headers)
+  def authBoat(headers: Headers): F[DeviceMeta] = authDevice(headers)
 
-  def authDevice(headers: Headers): IO[DeviceMeta] =
-    boatToken(headers).getOrElse {
+  def authDevice(headers: Headers): F[DeviceMeta] =
+    boatToken(headers).map(e => e.map(jb => jb: DeviceMeta)).getOrElse {
       val boatName = headers
         .get(CIString(BoatNameHeader))
         .map(h => BoatName(h.head.value))
         .getOrElse(BoatNames.random())
-      IO.pure(SimpleBoatMeta(Usernames.anon, boatName))
+      F.pure(SimpleBoatMeta(Usernames.anon, boatName): DeviceMeta)
     }
 
-  def boatToken(headers: Headers): Option[IO[JoinedBoat]] =
+  def boatToken(headers: Headers): Option[F[JoinedBoat]] =
     headers.get(CIString(BoatTokenHeader)).map { h =>
       users.authBoat(BoatToken(h.head.value))
     }
 
-  private def emailOnly(headers: Headers, now: Instant): IO[Email] =
+  private def emailOnly(headers: Headers, now: Instant): F[Email] =
     emailAuth.authEmail(headers, now).handleErrorWith {
       case mce: MissingCredentialsException =>
         authSession(headers).fold(
-          err => IO.raiseError(mce),
-          email => IO.pure(email)
+          err => F.raiseError(mce),
+          email => F.pure(email)
         )
       case t =>
-        IO.raiseError(t)
+        F.raiseError(t)
     }
 
   private def optionalUserInfo(
-    req: Request[IO]
-  ): IO[Either[MissingCredentials, Option[UserBoats]]] =
+    req: Request[F]
+  ): F[Either[MissingCredentials, Option[UserBoats]]] =
     val headers = req.headers
     authSession(headers).map { email =>
       users.boats(email).map { boats => Right(Option(boats)) }
@@ -127,8 +140,8 @@ class AuthService(val users: IdentityManager, comps: AuthComps):
           r.name == providerCookieName && r.content == GoogleCookie.toString
         )
       }
-      if hasGoogleCookie then IO.pure(Left(MissingCredentials(headers)))
-      else IO.pure(Right(None))
+      if hasGoogleCookie then F.pure(Left(MissingCredentials(headers)))
+      else F.pure(Right(None))
     }
 
   private def authSession(headers: Headers) =

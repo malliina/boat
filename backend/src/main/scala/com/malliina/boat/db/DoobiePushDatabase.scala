@@ -1,6 +1,6 @@
 package com.malliina.boat.db
 
-import cats.effect.IO
+import cats.effect.{Async, IO, Sync}
 import cats.data.NonEmptyList
 import cats.implicits.*
 import com.malliina.boat.db.DoobiePushDatabase.log
@@ -14,13 +14,13 @@ import doobie.implicits.*
 object DoobiePushDatabase:
   private val log = AppLogger(getClass)
 
-  def apply(db: DoobieDatabase, push: PushEndpoint): DoobiePushDatabase =
-    new DoobiePushDatabase(db, push)
-
-class DoobiePushDatabase(db: DoobieDatabase, push: PushEndpoint) extends PushService with DoobieSQL:
+class DoobiePushDatabase[F[_]: Async](db: DoobieDatabase[F], push: PushEndpoint[F])
+  extends PushService[F]
+  with DoobieSQL:
   implicit val logger: LogHandler = db.logHandler
+  val F = Sync[F]
 
-  def enable(input: PushInput): IO[PushId] = db.run {
+  def enable(input: PushInput): F[PushId] = db.run {
     val existing = sql"""select id 
                          from push_clients 
                          where token = ${input.token} and device = ${input.device}"""
@@ -42,7 +42,7 @@ class DoobiePushDatabase(db: DoobieDatabase, push: PushEndpoint) extends PushSer
     }
   }
 
-  def disable(token: PushToken, user: UserId): IO[Boolean] = db.run {
+  def disable(token: PushToken, user: UserId): F[Boolean] = db.run {
     sql"delete from push_clients where token = $token and user = $user".update.run.map { rows =>
       if rows > 0 then
         log.info(s"Disabled notifications for token '$token'.")
@@ -53,7 +53,7 @@ class DoobiePushDatabase(db: DoobieDatabase, push: PushEndpoint) extends PushSer
     }
   }
 
-  def push(device: UserDevice, state: BoatState): IO[PushSummary] =
+  def push(device: UserDevice, state: BoatState): F[PushSummary] =
     val notification = BoatNotification(device.deviceName, state)
     val devices = db.run {
       sql"select id, token, device, user, added from push_clients where user = ${device.userId}"
@@ -67,9 +67,9 @@ class DoobiePushDatabase(db: DoobieDatabase, push: PushEndpoint) extends PushSer
       _ <- handle(summary)
     yield summary
 
-  private def handle(summary: PushSummary): IO[Int] =
+  private def handle(summary: PushSummary): F[Int] =
     log.info(summary.describe)
-    if summary.noBadTokensOrReplacements then IO.pure(0)
+    if summary.noBadTokensOrReplacements then F.pure(0)
     else
       db.run {
         val deleteIO = summary.badTokens.toList.toNel.map { bad =>

@@ -1,8 +1,10 @@
 package com.malliina.boat.http4s
 
 import cats.data.NonEmptyList
-import cats.effect.IO
+import cats.effect.kernel.Async
+import cats.effect.{IO, Sync}
 import cats.implicits.catsSyntaxFlatten
+import cats.syntax.all.{catsSyntaxApplicativeError, toFlatMapOps, toFunctorOps}
 import com.malliina.assets.HashedAssets
 import com.malliina.boat.Constants.{LanguageName, TokenCookieName}
 import com.malliina.boat.*
@@ -14,10 +16,10 @@ import com.malliina.boat.html.{BoatHtml, BoatLang}
 import com.malliina.boat.http.InviteResult.{AlreadyInvited, Invited, UnknownEmail}
 import com.malliina.boat.http.*
 import com.malliina.boat.http4s.BasicService.{cached, noCache, ranges}
-import com.malliina.boat.http4s.Service.{BoatComps, log, RequestOps}
+import com.malliina.boat.http4s.Service.{BoatComps, RequestOps, log}
 import com.malliina.boat.push.{BoatState, PushService}
 import com.malliina.util.AppLogger
-import com.malliina.values.{Email, UserId, Username, Readable}
+import com.malliina.values.{Email, Readable, UserId, Username}
 import com.malliina.web.OAuthKeys.{Nonce, State}
 import com.malliina.web.Utils.randomString
 import com.malliina.web.*
@@ -32,30 +34,31 @@ import org.http4s.server.websocket.WebSocketBuilder2
 import org.http4s.websocket.WebSocketFrame
 import org.http4s.websocket.WebSocketFrame.Text
 import org.http4s.{Callback as _, *}
-import java.time.Instant
 
+import java.time.Instant
 import scala.concurrent.duration.DurationInt
 
 object Service:
   private val log = AppLogger(getClass)
 
-  case class BoatComps(
+  case class BoatComps[F[_]](
     html: BoatHtml,
-    db: TracksSource,
-    inserts: TrackInsertsDatabase,
-    stats: StatsSource,
-    auth: AuthService,
+    db: TracksSource[F],
+    inserts: TrackInsertsDatabase[F],
+    stats: StatsSource[F],
+    auth: AuthService[F],
     mapboxToken: AccessToken,
     s3: S3Client,
-    push: PushService,
-    streams: BoatStreams,
-    devices: GPSStreams
+    push: PushService[F],
+    streams: BoatStreams[F],
+    devices: GPSStreams[F]
   )
 
   implicit class RequestOps[F[_]](val req: Request[F]) extends AnyVal:
     def isSecured: Boolean = Urls.isSecure(req)
 
-class Service(comps: BoatComps) extends BasicService[IO]:
+class Service[F[_]: Async](comps: BoatComps[F]) extends BasicService[F]:
+  val F = Sync[F]
   val auth = comps.auth
   val userMgmt = auth.users
   val html = comps.html
@@ -70,13 +73,12 @@ class Service(comps: BoatComps) extends BasicService[IO]:
   val g = Graph.all
   val NoChange = "No change."
 
-  val toClients: Stream[IO, WebSocketFrame] = Stream.never[IO].map { _ =>
+  val toClients: Stream[F, WebSocketFrame] = Stream.never[F].map { _ =>
     Text(PingEvent(System.currentTimeMillis()).asJson.noSpaces)
   }
 
-  def routes(sockets: WebSocketBuilder2[IO]): HttpRoutes[IO] = HttpRoutes.of[IO] {
-    case req @ GET -> Root =>
-      index(req)
+  def routes(sockets: WebSocketBuilder2[F]): HttpRoutes[F] = HttpRoutes.of[F] {
+    case req @ GET -> Root      => index(req)
     case GET -> Root / "health" => ok(AppMeta.default)
     case GET -> Root / "favicon.ico" =>
       temporaryRedirect(Uri.unsafeFromString(s"/${BoatHtml.faviconPath}"))
@@ -85,7 +87,7 @@ class Service(comps: BoatComps) extends BasicService[IO]:
     case req @ GET -> Root / "users" / "me" =>
       auth.profile(req).flatMap { user => ok(UserContainer(user)) }
     case req @ POST -> Root / "users" / "me" =>
-      req.as[RegisterCode](implicitly, jsonBody[IO, RegisterCode]).flatMap { reg =>
+      req.as[RegisterCode](implicitly, jsonBody[F, RegisterCode]).flatMap { reg =>
         auth.register(reg.code, Instant.now()).flatMap { boatJwt =>
           ok(boatJwt)
         }
@@ -247,7 +249,7 @@ class Service(comps: BoatComps) extends BasicService[IO]:
     case GET -> Root / "routes" / DoubleVar(srcLat) /
         DoubleVar(srcLng) / DoubleVar(destLat) / DoubleVar(destLng) =>
       RouteRequest(srcLat, srcLng, destLat, destLng).map { req =>
-        IO.blocking(g.shortest(req.from, req.to)).flatMap { op =>
+        F.blocking(g.shortest(req.from, req.to)).flatMap { op =>
           op.map { result => ok(result) }.recover {
             case NoRoute(f, t)     => notFound(Errors(s"No route found from '$f' to '$t'."))
             case UnresolvedFrom(f) => badRequest(Errors(s"Unresolvable from '$f'."))
@@ -275,7 +277,7 @@ class Service(comps: BoatComps) extends BasicService[IO]:
             log.debug(
               s"Points ${es.map(_.coords.length).sum} intelligent $intelligentSample actual $actualSample"
             )
-            IO.pure(es.toList.map(_.sample(actualSample)))
+            F.pure(es.toList.map(_.sample(actualSample)))
           }
           val deviceHistory = Stream.evalSeq(historyIO)
           val gpsHistory = Stream.evalSeq(deviceStreams.db.history(user))
@@ -289,8 +291,8 @@ class Service(comps: BoatComps) extends BasicService[IO]:
           webSocket(
             sockets,
             eventSource,
-            message => IO(log.info(message)),
-            onClose = IO(log.info(s"Viewer '$username' left."))
+            message => F.delay(log.info(message)),
+            onClose = F.delay(log.info(s"Viewer '$username' left."))
           )
         }.recover { errors =>
           badRequest(errors)
@@ -304,8 +306,9 @@ class Service(comps: BoatComps) extends BasicService[IO]:
           inserts.joinAsBoat(boat).flatMap { meta =>
             push
               .push(meta, BoatState.Connected)
+              .as[Unit](())
               .handleErrorWith { t =>
-                IO(log.error(s"Failed to push all device notifications.", t))
+                F.delay(log.error(s"Failed to push all device notifications.", t))
               }
               .flatMap { _ =>
                 webSocket(
@@ -326,11 +329,11 @@ class Service(comps: BoatComps) extends BasicService[IO]:
                       )
                   ,
                   onClose =
-                    IO(log.info(s"Boat '${boat.boat}' by '${boat.user}' left.")).flatMap { _ =>
+                    F.delay(log.info(s"Boat '${boat.boat}' by '${boat.user}' left.")).flatMap { _ =>
                       push.push(meta, BoatState.Disconnected).map(_ => ())
                     }
                 ).onError { t =>
-                  IO(
+                  F.delay(
                     log.info(s"Boat '${boat.boat}' by '${boat.user}' left exceptionally.", t)
                   ).flatMap { _ =>
                     push.push(meta, BoatState.Disconnected).map(_ => ())
@@ -354,7 +357,7 @@ class Service(comps: BoatComps) extends BasicService[IO]:
                     identity
                   )
                 ),
-            onClose = IO(log.info(s"Device '${boat.boatName}' by '${boat.username}' left."))
+            onClose = F.delay(log.info(s"Device '${boat.boatName}' by '${boat.username}' left."))
           )
         }
       }
@@ -403,10 +406,10 @@ class Service(comps: BoatComps) extends BasicService[IO]:
       val urls = comps.s3.files().map { summary =>
         Urls.hostOnly(req) / "files" / summary.getKey
       }
-      ok(Json.obj("files" -> urls.asJson))(jsonEncoder[IO])
+      ok(Json.obj("files" -> urls.asJson))(jsonEncoder[F])
     case GET -> Root / "files" / file =>
       val obj = comps.s3.download(file)
-      val stream = fs2.io.readInputStream[IO](IO.pure(obj.getObjectContent), 8192)
+      val stream = fs2.io.readInputStream[F](F.pure(obj.getObjectContent), 8192)
       Ok(stream)
     case req @ GET -> Root / ".well-known" / "apple-app-site-association" =>
       fileFromPublicResources("apple-app-site-association.json", req)
@@ -450,21 +453,21 @@ class Service(comps: BoatComps) extends BasicService[IO]:
     yield RevokeAccess(boat, user)
 
   private def webSocket(
-    sockets: WebSocketBuilder2[IO],
-    toClient: Stream[IO, WebSocketFrame],
-    onMessage: String => IO[Unit],
-    onClose: IO[Unit]
+    sockets: WebSocketBuilder2[F],
+    toClient: Stream[F, WebSocketFrame],
+    onMessage: String => F[Unit],
+    onClose: F[Unit]
   ) =
-    val fromClient: Pipe[IO, WebSocketFrame, Unit] = _.evalMap {
+    val fromClient: Pipe[F, WebSocketFrame, Unit] = _.evalMap {
       case Text(message, _) =>
         log.debug(s"Message $message")
         onMessage(message)
       case f =>
-        IO(log.debug(s"Unknown WebSocket frame: $f"))
+        F.delay(log.debug(s"Unknown WebSocket frame: $f"))
     }
     sockets.withOnClose(onClose).build(toClient, fromClient)
 
-  private def index(req: Request[IO]) =
+  private def index(req: Request[F]) =
     auth.optionalWebAuth(req).flatMap { result =>
       result.map { userRequest =>
         val maybeBoat = userRequest.user
@@ -493,8 +496,8 @@ class Service(comps: BoatComps) extends BasicService[IO]:
       }
     }
 
-  private def trackAction[T: Decoder](req: Request[IO], readForm: FormReader => Either[Errors, T])(
-    code: (T, UserInfo) => IO[JoinedTrack]
+  private def trackAction[T: Decoder](req: Request[F], readForm: FormReader => Either[Errors, T])(
+    code: (T, UserInfo) => F[JoinedTrack]
   ) =
     formAction[T](req, readForm) { (t, user) =>
       code(t, user).flatMap { track =>
@@ -506,7 +509,7 @@ class Service(comps: BoatComps) extends BasicService[IO]:
   implicit val boatNameReader: Readable[BoatName] =
     Readable.string.emap(s => BoatName.build(s.trim))
 
-  private def boatFormAction(req: Request[IO])(code: (BoatName, UserInfo) => IO[BoatRow]) =
+  private def boatFormAction(req: Request[F])(code: (BoatName, UserInfo) => F[BoatRow]) =
     formAction(
       req,
       form => form.read[BoatName](BoatNames.Key)
@@ -519,9 +522,9 @@ class Service(comps: BoatComps) extends BasicService[IO]:
       }
     }
 
-  private def formAction[T: Decoder](req: Request[IO], readForm: FormReader => Either[Errors, T])(
-    code: (T, UserInfo) => IO[Response[IO]]
-  )(implicit decoder: EntityDecoder[IO, UrlForm]): IO[Response[IO]] =
+  private def formAction[T: Decoder](req: Request[F], readForm: FormReader => Either[Errors, T])(
+    code: (T, UserInfo) => F[Response[F]]
+  )(implicit decoder: EntityDecoder[F, UrlForm]): F[Response[F]] =
     auth.profile(req).flatMap { user =>
       val decoded = req.decodeJson[T].handleErrorWith { t =>
         decoder
@@ -532,12 +535,12 @@ class Service(comps: BoatComps) extends BasicService[IO]:
                 s"Both JSON and form decode failed for ${req.method} '${req.uri.renderString}'. $fail",
                 t
               )
-              IO.raiseError(fail)
+              F.raiseError(fail)
             ,
             form =>
               readForm(new FormReader(form)).fold(
-                err => IO.raiseError(err.asException),
-                IO.pure
+                err => F.raiseError(err.asException),
+                F.pure
               )
           )
       }
@@ -549,68 +552,68 @@ class Service(comps: BoatComps) extends BasicService[IO]:
       }
     }
 
-  private def jsonAction[T: Decoder](req: Request[IO])(
-    code: (T, UserInfo) => IO[Response[IO]]
+  private def jsonAction[T: Decoder](req: Request[F])(
+    code: (T, UserInfo) => F[Response[F]]
   ) =
     auth.profile(req).flatMap { user =>
-      req.as[T](implicitly, jsonBody[IO, T]).flatMap { t =>
+      req.as[T](implicitly, jsonBody[F, T]).flatMap { t =>
         code(t, user)
       }
     }
 
   private def respond(
-    req: Request[IO]
-  )(json: IO[Response[IO]], html: IO[Response[IO]]): IO[Response[IO]] =
+    req: Request[F]
+  )(json: F[Response[F]], html: F[Response[F]]): F[Response[F]] =
     respondCustom(req)(_ => json, html)
 
-  private def respondCustom(req: Request[IO])(
-    json: NonEmptyList[MediaRange] => IO[Response[IO]],
-    html: IO[Response[IO]]
-  ): IO[Response[IO]] =
+  private def respondCustom(req: Request[F])(
+    json: NonEmptyList[MediaRange] => F[Response[F]],
+    html: F[Response[F]]
+  ): F[Response[F]] =
     val rs = ranges(req.headers)
     val qp = req.uri.query.params
     if rs.exists(_.satisfies(MediaType.text.html)) && !qp.contains("json") then html
     else json(rs)
 
-  def fileFromPublicResources(file: String, req: Request[IO]): IO[Response[IO]] =
+  def fileFromPublicResources(file: String, req: Request[F]): F[Response[F]] =
     StaticFile
       .fromResource(
         s"${HashedAssets.prefix}/$file",
         Option(req),
         preferGzipped = true
       )
-      .fold(notFoundReq(req))(res => IO.pure(res.putHeaders(cached(1.hour))))
+      .fold(notFoundReq(req))(res => F.pure(res.putHeaders(cached(1.hour))))
       .flatten
 
   def docsRedirect(name: String) = SeeOther(
     Location(uri"https://docs.boat-tracker.com/".addPath(s"$name/"))
   )
 
-  private def authedLimited(req: Request[IO]) =
+  private def authedLimited(req: Request[F]) =
     authedAndParsed(req, auth.typical, TrackQuery.withDefault(_, 100))
 
-  private def authedTrackQuery(req: Request[IO]): IO[BoatRequest[TrackQuery, MinimalUserInfo]] =
+  private def authedTrackQuery(req: Request[F]): F[BoatRequest[TrackQuery, MinimalUserInfo]] =
     authedAndParsed(req, auth.typical, TrackQuery.apply)
 
   private def authedQuery[T, U](
-    req: Request[IO],
+    req: Request[F],
     query: Query => Either[Errors, T]
-  ): IO[BoatRequest[T, UserInfo]] =
+  ): F[BoatRequest[T, UserInfo]] =
     authedAndParsed[T, UserInfo](req, hs => auth.profile(hs, Instant.now()), query)
 
   private def authedAndParsed[T, U](
-    req: Request[IO],
-    makeAuth: Headers => IO[U],
+    req: Request[F],
+    makeAuth: Headers => F[U],
     query: Query => Either[Errors, T]
-  ): IO[BoatRequest[T, U]] =
+  ): F[BoatRequest[T, U]] =
     makeAuth(req.headers).flatMap { user =>
       query(req.uri.query).fold(
-        err => IO.raiseError(new InvalidRequest(req, err)),
-        q => IO.pure(AnyBoatRequest(user, q, req.headers))
+        err => F.raiseError(InvalidRequest(req, err)),
+        q => F.pure(AnyBoatRequest(user, q, req.headers))
       )
     }
 
-  private def start(validator: FlowStart[IO], provider: AuthProvider, req: Request[IO]) =
+  private def start(validator: FlowStart[F], provider: AuthProvider, req: Request[F]) =
     validator
       .start(Urls.hostOnly(req) / reverse.signInCallback(provider).renderString, Map.empty)
       .flatMap { s =>
@@ -619,9 +622,9 @@ class Service(comps: BoatComps) extends BasicService[IO]:
 
   private def startHinted(
     provider: AuthProvider,
-    validator: LoginHint[IO],
-    req: Request[IO]
-  ): IO[Response[IO]] = IO {
+    validator: LoginHint[F],
+    req: Request[F]
+  ): F[Response[F]] = F.delay {
     val redirectUrl = Urls.hostOnly(req) / reverse.signInCallback(provider).renderString
     val lastIdCookie = req.cookies.find(_.name == cookieNames.lastId)
     val promptValue = req.cookies
@@ -643,7 +646,7 @@ class Service(comps: BoatComps) extends BasicService[IO]:
     }
   }
 
-  private def startLoginFlow(s: Start, isSecure: Boolean): IO[Response[IO]] = IO {
+  private def startLoginFlow(s: Start, isSecure: Boolean): F[Response[F]] = F.delay {
     val state = randomString()
     val encodedParams = (s.params ++ Map(OAuthKeys.State -> state)).map { case (k, v) =>
       k -> com.malliina.web.Utils.urlEncode(v)
@@ -664,9 +667,9 @@ class Service(comps: BoatComps) extends BasicService[IO]:
   }
 
   private def handleAuthCallback(
-    flow: DiscoveringAuthFlow[IO, Email],
+    flow: DiscoveringAuthFlow[F, Email],
     provider: AuthProvider,
-    req: Request[IO]
+    req: Request[F]
   ) = handleCallback(
     req,
     provider,
@@ -679,10 +682,10 @@ class Service(comps: BoatComps) extends BasicService[IO]:
   )
 
   private def handleCallback(
-    req: Request[IO],
+    req: Request[F],
     provider: AuthProvider,
-    validate: Callback => IO[Either[AuthError, Email]]
-  ): IO[Response[IO]] =
+    validate: Callback => F[Either[AuthError, Email]]
+  ): F[Response[F]] =
     val params = req.uri.query.params
     val session = web.authState[Map[String, String]](req.headers).toOption.getOrElse(Map.empty)
     val cb = Callback(
@@ -699,9 +702,9 @@ class Service(comps: BoatComps) extends BasicService[IO]:
       )
     }
 
-  private def handleAppleCallback(req: Request[IO])(implicit
-    decoder: EntityDecoder[IO, UrlForm]
-  ): IO[Response[IO]] =
+  private def handleAppleCallback(req: Request[F])(implicit
+    decoder: EntityDecoder[F, UrlForm]
+  ): F[Response[F]] =
     decoder
       .decode(req, strict = false)
       .foldF(
@@ -731,7 +734,7 @@ class Service(comps: BoatComps) extends BasicService[IO]:
           }
       )
 
-  private def appleResult(boatJwt: BoatJwt, req: Request[IO]) =
+  private def appleResult(boatJwt: BoatJwt, req: Request[F]) =
     userResult(boatJwt.email, AuthProvider.Apple, req).map { res =>
       res.addCookie(web.longTermCookie(boatJwt.idToken))
     }
@@ -739,8 +742,8 @@ class Service(comps: BoatComps) extends BasicService[IO]:
   private def userResult(
     email: Email,
     provider: AuthProvider,
-    req: Request[IO]
-  ): IO[Response[IO]] =
+    req: Request[F]
+  ): F[Response[F]] =
     val returnUri: Uri = req.cookies
       .find(_.name == cookieNames.returnUri)
       .flatMap(c => Uri.fromString(c.content).toOption)
@@ -752,10 +755,10 @@ class Service(comps: BoatComps) extends BasicService[IO]:
   def stringify(map: Map[String, String]): String =
     map.map { case (key, value) => s"$key=$value" }.mkString("&")
 
-  def buildMessage(req: UserRequest[?], message: String) =
+  def buildMessage(req: UserRequest[?, ?], message: String) =
     s"User '${req.user}' from '${req.req.remoteAddr.getOrElse("unknown")}' $message."
 
-  def onUnauthorized(error: IdentityError): IO[Response[IO]] =
+  def onUnauthorized(error: IdentityError): F[Response[F]] =
     log.warn(error.message.message)
     unauthorized(Errors(s"Unauthorized."))
 

@@ -6,7 +6,7 @@ import com.malliina.values.{Email, UserId, Username}
 import java.time.Instant
 import scala.concurrent.Future
 
-trait PassThroughUserManager extends UserManager:
+trait PassThroughUserManager[F[_]] extends UserManager[F]:
   val godUser = UserRow(
     UserId(1L),
     Username("test"),

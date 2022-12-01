@@ -1,6 +1,5 @@
 package com.malliina.boat.http4s
 
-import cats.effect.IO
 import com.malliina.boat.auth.AuthProvider.SelectAccount
 import com.malliina.boat.auth.{AuthProvider, BoatJwtClaims, CookieConf, JWT, UserPayload}
 import com.malliina.boat.db.{IdentityError, JWTError, MissingCredentials}
@@ -15,7 +14,7 @@ import io.circe.parser.{decode, parse}
 
 import scala.concurrent.duration.DurationInt
 
-class Http4sAuth(
+class Http4sAuth[F[_]](
   val jwt: JWT,
   val cookieNames: CookieConf = CookieConf.prefixed("boat")
 ):
@@ -35,10 +34,10 @@ class Http4sAuth(
       case _               => Left(MissingCredentials("Missing token.", headers))
     )
 
-  def withSession[T: Encoder](t: T, isSecure: Boolean, res: Response[IO]): res.Self =
+  def withSession[T: Encoder](t: T, isSecure: Boolean, res: Response[F]): res.Self =
     withJwt(cookieNames.authState, t, isSecure, res)
 
-  def clearSession(res: Response[IO]): res.Self =
+  def clearSession(res: Response[F]): res.Self =
     res
       .removeCookie(cookieNames.provider)
       .removeCookie(cookieNames.lastId)
@@ -51,21 +50,21 @@ class Http4sAuth(
     user: UserPayload,
     isSecure: Boolean,
     provider: AuthProvider,
-    res: Response[IO]
+    res: Response[F]
   ) = withUser(user, isSecure, res)
     .removeCookie(cookieNames.returnUri)
     .removeCookie(cookieNames.prompt)
     .addCookie(responseCookie(cookieNames.lastId, user.username.name))
     .addCookie(responseCookie(cookieNames.provider, provider.name))
 
-  def withUser[T: Encoder](t: T, isSecure: Boolean, res: Response[IO]): res.Self =
+  def withUser[T: Encoder](t: T, isSecure: Boolean, res: Response[F]): res.Self =
     withJwt(cookieNames.user, t, isSecure, res)
 
   def withJwt[T: Encoder](
     cookieName: String,
     t: T,
     isSecure: Boolean,
-    res: Response[IO]
+    res: Response[F]
   ): res.Self =
     val signed = jwt.sign[T](t, 12.hours)
     res.addCookie(

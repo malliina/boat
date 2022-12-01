@@ -1,13 +1,14 @@
 package com.malliina.boat.db
 
-import cats.effect.IO
+import cats.effect.{IO, Temporal}
 import cats.kernel.Eq
+import cats.syntax.all.toFunctorOps
 import com.malliina.boat.db.TrackImporter.{dateEq, log}
 import com.malliina.boat.parsing.*
 import com.malliina.boat.{InsertedPoint, KeyedSentence, RawSentence, SentencesEvent, TrackMetaShort, TrackPointId}
 import com.malliina.util.AppLogger
 import fs2.{Chunk, Pipe, Stream, text}
-import fs2.io.file.Path
+import fs2.io.file.{Files, Path}
 
 import java.nio.file.Path as JPath
 import java.time.LocalDate
@@ -19,7 +20,8 @@ object TrackImporter:
   implicit val dateEq: Eq[LocalDate] =
     Eq.by[LocalDate, (Int, Int, Int)](d => (d.getYear, d.getMonthValue, d.getDayOfMonth))
 
-class TrackImporter(inserts: TrackInsertsDatabase) extends TrackStreams:
+class TrackImporter[F[_]: Files: Temporal](inserts: TrackInsertsDatabase[F])
+  extends TrackStreams[F]:
 
   /** Saves sentences in `file` to the database `track`.
     *
@@ -30,9 +32,9 @@ class TrackImporter(inserts: TrackInsertsDatabase) extends TrackStreams:
     * @return
     *   number of points saved
     */
-  def saveFile(file: Path, track: TrackMetaShort): IO[Long] = save(sentences(file), track)
+  def saveFile(file: Path, track: TrackMetaShort): F[Long] = save(sentences(file), track)
 
-  def save(source: Stream[IO, RawSentence], track: TrackMetaShort): IO[Long] =
+  def save(source: Stream[F, RawSentence], track: TrackMetaShort): F[Long] =
     val describe = s"track ${track.trackName} with boat ${track.boatName} by ${track.username}"
     val start = System.currentTimeMillis()
     val task = source
@@ -51,41 +53,41 @@ class TrackImporter(inserts: TrackInsertsDatabase) extends TrackStreams:
 
     task.compile.toList.map(_.head)
 
-  private def processor: Pipe[IO, SentencesEvent, InsertedPoint] =
+  private def processor: Pipe[F, SentencesEvent, InsertedPoint] =
     _.through(sentenceInserter)
       .through(sentenceCompiler)
       .through(pointInserter)
 
-  private def sentenceInserter: Pipe[IO, SentencesEvent, Seq[KeyedSentence]] =
+  private def sentenceInserter: Pipe[F, SentencesEvent, Seq[KeyedSentence]] =
     _.evalMap(e => inserts.saveSentences(e))
 
-  private def sentenceCompiler: Pipe[IO, Seq[KeyedSentence], FullCoord] =
+  private def sentenceCompiler: Pipe[F, Seq[KeyedSentence], FullCoord] =
     val state = TrackManager()
     _.flatMap { sentences =>
       Stream.emits(BoatParser.parseMulti(sentences).flatMap(parsed => state.update(parsed)))
     }
 
-  private def pointInserter: Pipe[IO, FullCoord, InsertedPoint] =
+  private def pointInserter: Pipe[F, FullCoord, InsertedPoint] =
     _.mapAsync(1)(coord => inserts.saveCoords(coord))
 
-  private def pointInserterFast: Pipe[IO, FullCoord, TrackPointId] =
+  private def pointInserterFast: Pipe[F, FullCoord, TrackPointId] =
     _.mapAsync(1)(coord => inserts.saveCoordsFast(coord))
 
-class TrackStreams:
-  def sentencesForDay(file: Path, day: LocalDate): Stream[IO, RawSentence] =
+class TrackStreams[F[_]: Files]:
+  def sentencesForDay(file: Path, day: LocalDate): Stream[F, RawSentence] =
     fileByDate(file).collect { case (date, chunk) if date == day => chunk }.flatMap { chunk =>
       Stream.chunk(chunk)
     }
 
-  def fileByDate(file: Path): Stream[IO, (LocalDate, Chunk[RawSentence])] =
+  def fileByDate(file: Path): Stream[F, (LocalDate, Chunk[RawSentence])] =
     byDateGrouped(sentences(file))
 
-  def byDate(source: Stream[IO, RawSentence]): Stream[IO, Chunk[RawSentence]] =
+  def byDate(source: Stream[F, RawSentence]): Stream[F, Chunk[RawSentence]] =
     byDateGrouped(source).map(_._2)
 
   def byDateGrouped(
-    source: Stream[IO, RawSentence]
-  ): Stream[IO, (LocalDate, Chunk[RawSentence])] =
+    source: Stream[F, RawSentence]
+  ): Stream[F, (LocalDate, Chunk[RawSentence])] =
     source
       .zipWithScan1(LocalDate.of(1980, 1, 1)) { (date, sentence) =>
         zdaDate(sentence).getOrElse(date)
@@ -101,7 +103,7 @@ class TrackStreams:
 
   def lines(file: Path) =
     fs2.io.file
-      .Files[IO]
+      .Files[F]
       .readAll(file)
       .through(text.utf8.decode)
       .through(text.lines)

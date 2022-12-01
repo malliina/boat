@@ -1,7 +1,7 @@
 package com.malliina.boat.db
 
 import cats.data.NonEmptyList
-import cats.effect.IO
+import cats.effect.{Async, IO}
 import cats.implicits.*
 import com.malliina.boat.InviteState.accepted
 import com.malliina.boat.http.{BoatQuery, SortOrder, TrackQuery}
@@ -16,8 +16,6 @@ import scala.concurrent.duration.{DurationInt, DurationLong, FiniteDuration}
 
 object DoobieTracksDatabase:
   private val log = AppLogger(getClass)
-
-  def apply(db: DoobieDatabase): DoobieTracksDatabase = new DoobieTracksDatabase(db)
 
   private def collectRows(
     rows: Seq[SentenceCoord2],
@@ -63,7 +61,9 @@ object DoobieTracksDatabase:
     if duration > 500.millis then log.warn(s"Collected ${rows.length} in ${duration.toMillis} ms")
     result
 
-class DoobieTracksDatabase(val db: DoobieDatabase) extends TracksSource with StatsSource:
+class DoobieTracksDatabase[F[_]: Async](val db: DoobieDatabase[F])
+  extends TracksSource[F]
+  with StatsSource[F]:
   import DoobieMappings.*
   import db.logHandler
 
@@ -112,7 +112,7 @@ class DoobieTracksDatabase(val db: DoobieDatabase) extends TracksSource with Sta
   val boatsView = sql.boats.query[JoinedBoat].to[List]
   val topView = sql.topRows.query[TrackPointRow].to[List]
 
-  def hm: IO[Option[SpeedM]] = run {
+  def hm: F[Option[SpeedM]] = run {
     sql"select avg(boat_speed) from points p where p.boat_speed >= 100 having avg(boat_speed) is not null"
       .query[SpeedM]
       .option
@@ -121,7 +121,7 @@ class DoobieTracksDatabase(val db: DoobieDatabase) extends TracksSource with Sta
   def boats = run { boatsView }
   def topRows = run { topView }
 
-  def tracksBundle(user: MinimalUserInfo, filter: TrackQuery, lang: Lang): IO[TracksBundle] =
+  def tracksBundle(user: MinimalUserInfo, filter: TrackQuery, lang: Lang): F[TracksBundle] =
     run {
       for
         ts <- tracksForIO(user, filter)
@@ -129,7 +129,7 @@ class DoobieTracksDatabase(val db: DoobieDatabase) extends TracksSource with Sta
       yield TracksBundle(ts.tracks, ss)
     }
 
-  def stats(user: MinimalUserInfo, filter: TrackQuery, lang: Lang): IO[StatsResponse] = run {
+  def stats(user: MinimalUserInfo, filter: TrackQuery, lang: Lang): F[StatsResponse] = run {
     statsIO(user, filter, lang)
   }
 
@@ -218,20 +218,20 @@ class DoobieTracksDatabase(val db: DoobieDatabase) extends TracksSource with Sta
         )
       )
 
-  def ref(track: TrackName, language: Language): IO[TrackRef] =
+  def ref(track: TrackName, language: Language): F[TrackRef] =
     single(sql.trackByName(track), language)
 
-  def canonical(trackCanonical: TrackCanonical, language: Language): IO[TrackRef] =
+  def canonical(trackCanonical: TrackCanonical, language: Language): F[TrackRef] =
     single(sql.tracksByCanonicals(NonEmptyList.of(trackCanonical)), language)
 
-  def track(track: TrackName, user: Username, query: TrackQuery): IO[TrackInfo] = run {
+  def track(track: TrackName, user: Username, query: TrackQuery): F[TrackInfo] = run {
     for
       points <- sql.pointsByTime(track).query[CombinedCoord].to[List]
       top <- sql.topPointByTrack(track).query[CombinedCoord].option
     yield TrackInfo(points, top)
   }
 
-  def full(track: TrackName, language: Language, query: TrackQuery): IO[FullTrack] = run {
+  def full(track: TrackName, language: Language, query: TrackQuery): F[FullTrack] = run {
     val rows = sql.pointsByTrack(track)
     val limited =
       sql"""$rows order by p.boat_time asc, p.id asc, p.added asc limit ${query.limit} offset ${query.offset}"""
@@ -250,7 +250,7 @@ class DoobieTracksDatabase(val db: DoobieDatabase) extends TracksSource with Sta
     yield FullTrack(stats.strip(formatter), DoobieTracksDatabase.collectRows(coords, formatter))
   }
 
-  def history(user: MinimalUserInfo, limits: BoatQuery): IO[Seq[CoordsEvent]] = run {
+  def history(user: MinimalUserInfo, limits: BoatQuery): F[Seq[CoordsEvent]] = run {
     val eligible = limits.neTracks
       .map(names => sql.tracksByNames(names))
       .orElse(limits.neCanonicals.map(cs => sql.tracksByCanonicals(cs)))
@@ -289,7 +289,7 @@ class DoobieTracksDatabase(val db: DoobieDatabase) extends TracksSource with Sta
     }
   }
 
-  def tracksFor(user: MinimalUserInfo, filter: TrackQuery): IO[Tracks] = run {
+  def tracksFor(user: MinimalUserInfo, filter: TrackQuery): F[Tracks] = run {
     tracksForIO(user, filter)
   }
 
@@ -303,4 +303,4 @@ class DoobieTracksDatabase(val db: DoobieDatabase) extends TracksSource with Sta
         Tracks(list.map(_.strip(formatter)))
       }
 
-  def run[T](io: ConnectionIO[T]): IO[T] = db.run(io)
+  def run[T](io: ConnectionIO[T]): F[T] = db.run(io)

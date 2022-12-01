@@ -1,7 +1,7 @@
 package com.malliina.boat.db
 
 import cats.data.NonEmptyList
-import cats.effect.IO
+import cats.effect.{Async, IO}
 import cats.implicits.*
 import com.malliina.boat.db.DoobieFairwayService.collect
 import com.malliina.boat.{CoordHash, FairwayInfo}
@@ -18,7 +18,7 @@ object DoobieFairwayService:
       else acc :+ CoordFairways(cf.coord, Seq(cf.fairway))
     }
 
-class DoobieFairwayService(db: DoobieDatabase) extends FairwaySource:
+class DoobieFairwayService[F[_]: Async](db: DoobieDatabase[F]) extends FairwaySource[F]:
   import DoobieMappings.*
   def byCoords(coords: NonEmptyList[CoordHash]) =
     val inClause = Fragments.in(fr"fc.coord_hash", coords)
@@ -28,11 +28,11 @@ class DoobieFairwayService(db: DoobieDatabase) extends FairwaySource:
       .query[CoordFairway]
       .to[List]
 
-  def fairways(at: CoordHash): IO[Seq[FairwayRow]] = db.run {
+  def fairways(at: CoordHash): F[Seq[FairwayRow]] = db.run {
     byCoords(NonEmptyList(at, Nil)).map(_.map(_.fairway))
   }
 
-  def fairwaysAt(route: Seq[CoordHash]): IO[Seq[CoordFairways]] = db.run {
+  def fairwaysAt(route: Seq[CoordHash]): F[Seq[CoordFairways]] = db.run {
     route.toList.toNel.map { routes =>
       byCoords(routes).map { cs => collect(cs) }
     }.getOrElse {

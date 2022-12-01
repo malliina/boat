@@ -6,11 +6,11 @@ import org.http4s.Headers
 
 import java.time.Instant
 
-trait EmailAuth:
+trait EmailAuth[F[_]]:
 
   /** Fails with [[com.malliina.boat.db.IdentityException]] if authentication fails.
     *
     * @return
     *   the authenticated user's email address
     */
-  def authEmail(headers: Headers, now: Instant): IO[Email]
+  def authEmail(headers: Headers, now: Instant): F[Email]

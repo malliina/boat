@@ -38,7 +38,7 @@ class TracksImporter extends MUnitSuite:
 
   test("split by date".ignore) {
     val what: IO[List[(LocalDate, Chunk[RawSentence])]] =
-      TrackStreams().fileByDate(file).compile.toList
+      TrackStreams[IO]().fileByDate(file).compile.toList
     what.map { list =>
       list.sortBy(_._1).foreach { case (date, chunk) =>
         println(s"$date: ${chunk.size}")
@@ -46,7 +46,7 @@ class TracksImporter extends MUnitSuite:
     }
   }
 
-  private def importByDay(file: Path, day: LocalDate, db: DoobieDatabase): IO[Long] =
+  private def importByDay(file: Path, day: LocalDate, db: DoobieDatabase[IO]): IO[Long] =
     val inserts = TrackInserter(db)
     val importer = TrackImporter(inserts)
     val trackName = TrackNames.random()
@@ -57,7 +57,7 @@ class TracksImporter extends MUnitSuite:
       importer.save(importer.sentencesForDay(file, day), track.short)
     }
 
-  def splitTracksByDate(oldTrack: TrackId, db: TrackInserter) =
+  def splitTracksByDate(oldTrack: TrackId, db: TrackInserter[IO]) =
     def createAndUpdateTrack(date: DateVal) =
       val in = TrackInput.empty(TrackNames.random(), DeviceId(14))
       for

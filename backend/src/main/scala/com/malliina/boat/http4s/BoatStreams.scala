@@ -1,7 +1,8 @@
 package com.malliina.boat.http4s
 
 import cats.effect.kernel.Resource
-import cats.effect.IO
+import cats.effect.{Async, Concurrent, IO, Sync}
+import cats.syntax.all.{catsSyntaxApplicativeError, toFlatMapOps, toFunctorOps}
 import com.malliina.boat.ais.AISSource
 import com.malliina.boat.db.TrackInsertsDatabase
 import com.malliina.boat.http4s.BoatStreams.{log, rights}
@@ -14,27 +15,32 @@ import fs2.Stream
 object BoatStreams:
   private val log = AppLogger(getClass)
 
-  def resource(db: TrackInsertsDatabase, ais: AISSource): Resource[IO, BoatStreams] =
+  def resource[F[_]: Async](
+    db: TrackInsertsDatabase[F],
+    ais: AISSource[F]
+  ): Resource[F, BoatStreams[F]] =
     for
-      streams <- Resource.eval(build(db, ais))
+      streams <- Resource.eval(build[F](db, ais))
       _ <- Stream.emit(()).concurrently(streams.publisher).compile.resource.lastOrError
     yield streams
 
-  def build(db: TrackInsertsDatabase, ais: AISSource): IO[BoatStreams] = for
-    in <- Topic[IO, InputEvent]
-    saved <- Topic[IO, SavedEvent]
-  yield BoatStreams(db, ais, in, saved)
+  def build[F[_]: Async](db: TrackInsertsDatabase[F], ais: AISSource[F]): F[BoatStreams[F]] =
+    for
+      in <- Topic[F, InputEvent]
+      saved <- Topic[F, SavedEvent]
+    yield BoatStreams(db, ais, in, saved)
 
-  def rights[L, R](src: fs2.Stream[IO, Either[L, R]]): fs2.Stream[IO, R] = src.flatMap { e =>
+  def rights[F[_], L, R](src: fs2.Stream[F, Either[L, R]]): fs2.Stream[F, R] = src.flatMap { e =>
     e.fold(l => fs2.Stream.empty, r => fs2.Stream(r))
   }
 
-class BoatStreams(
-  db: TrackInsertsDatabase,
-  ais: AISSource,
-  val boatIn: Topic[IO, InputEvent],
-  saved: Topic[IO, SavedEvent]
+class BoatStreams[F[_]: Async](
+  db: TrackInsertsDatabase[F],
+  ais: AISSource[F],
+  val boatIn: Topic[F, InputEvent],
+  saved: Topic[F, SavedEvent]
 ):
+  val F = Sync[F]
   private val trackState = TrackManager()
   private val sentencesSource = boatIn
     .subscribe(maxQueued = 100)
@@ -71,7 +77,7 @@ class BoatStreams(
     saved.publish1(i)
   }
 
-  def clientEvents(formatter: TimeFormatter): Stream[IO, FrontEvent] =
+  def clientEvents(formatter: TimeFormatter): Stream[F, FrontEvent] =
     val boatEvents = saved
       .subscribe(100)
       .collect { case i @ Inserted(_, _) =>
@@ -84,10 +90,10 @@ class BoatStreams(
         )
       }
     val aisEvents = ais.slow.map { pairs => VesselMessages(pairs.map(_.toInfo(formatter))) }
-    boatEvents.mergeHaltBoth[IO, FrontEvent](aisEvents)
+    boatEvents.mergeHaltBoth[F, FrontEvent](aisEvents)
 
-  private def saveRecovered(coord: FullCoord): IO[List[Inserted]] =
+  private def saveRecovered(coord: FullCoord): F[List[Inserted]] =
     db.saveCoords(coord).map { inserted => List(Inserted(coord, inserted)) }.handleErrorWith { t =>
       log.error(s"Unable to save coords.", t)
-      IO.pure(Nil)
+      F.pure(Nil)
     }

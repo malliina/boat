@@ -14,7 +14,7 @@ import doobie.implicits.*
 object DoobieUserManager:
   private val log = AppLogger(getClass)
 
-  def collectUsers(rows: Seq[JoinedUser]): Vector[UserInfo] =
+  private def collectUsers(rows: Seq[JoinedUser]): Vector[UserInfo] =
     rows.foldLeft(Vector.empty[UserInfo]) { case (acc, ub) =>
       val user = ub.user
       val idx = acc.indexWhere(_.id == user.id)
@@ -80,7 +80,7 @@ object DoobieUserManager:
         )
     }
 
-class DoobieUserManager(db: DoobieDatabase) extends IdentityManager with DoobieSQL:
+class DoobieUserManager[F[_]](db: DoobieDatabase[F]) extends IdentityManager[F] with DoobieSQL:
   object sql extends CommonSql
   import db.run
   implicit val logger: LogHandler = db.logHandler
@@ -91,16 +91,16 @@ class DoobieUserManager(db: DoobieDatabase) extends IdentityManager with DoobieS
   def userByEmail(email: Email) = sql"$selectUsers where u.email = $email".query[UserRow]
   def userByName(name: Username) = sql"$selectUsers where u.user = $name"
   def userByEmailIO(email: Email) = userByEmail(email).unique
-  def userMeta(email: Email): IO[UserRow] = run {
+  def userMeta(email: Email): F[UserRow] = run {
     userByEmailIO(email)
   }
-  def register(email: Email): IO[UserRow] = run {
+  def register(email: Email): F[UserRow] = run {
     for
       id <- getOrCreate(email)
       user <- userByEmailIO(email)
     yield user
   }
-  def userInfo(email: Email): IO[UserInfo] = run {
+  def userInfo(email: Email): F[UserInfo] = run {
     def by(id: UserId) =
       sql"""select u.id, 
                    u.user, 
@@ -149,7 +149,7 @@ class DoobieUserManager(db: DoobieDatabase) extends IdentityManager with DoobieS
     }
   }
 
-  def authBoat(token: BoatToken): IO[JoinedBoat] = run {
+  def authBoat(token: BoatToken): F[JoinedBoat] = run {
     CommonSql.boatsByToken(token).flatMap { opt =>
       opt.map { b =>
         pure(b)
@@ -179,7 +179,7 @@ class DoobieUserManager(db: DoobieDatabase) extends IdentityManager with DoobieS
       UserBoats(user.user, user.language, bs ++ gpsDevices)
   }
 
-  def initUser(user: Username = Usernames.anon): IO[NewUser] = run {
+  def initUser(user: Username = Usernames.anon): F[NewUser] = run {
     val anon = NewUser(user, None, UserToken.random(), enabled = true)
     for
       exists <- userByName(user).query[UserRow].option
@@ -187,7 +187,7 @@ class DoobieUserManager(db: DoobieDatabase) extends IdentityManager with DoobieS
     yield anon
   }
 
-  def addUser(user: NewUser): IO[Either[AlreadyExists, UserRow]] = run {
+  def addUser(user: NewUser): F[Either[AlreadyExists, UserRow]] = run {
     val email = user.email.fold("no email")(_.value)
     val describe = s"user '${user.user}' with $email"
     log.info(s"Adding $describe...")
@@ -202,7 +202,7 @@ class DoobieUserManager(db: DoobieDatabase) extends IdentityManager with DoobieS
     }
   }
 
-  def deleteUser(user: Username): IO[Either[UserDoesNotExist, Unit]] = run {
+  def deleteUser(user: Username): F[Either[UserDoesNotExist, Unit]] = run {
     sql"""delete from users where user = $user""".update(logger).run.map { changed =>
       if changed > 0 then
         log.info(s"Deleted user '$user'.")
@@ -211,7 +211,7 @@ class DoobieUserManager(db: DoobieDatabase) extends IdentityManager with DoobieS
     }
   }
 
-  def changeLanguage(user: UserId, to: Language): IO[Boolean] = run {
+  def changeLanguage(user: UserId, to: Language): F[Boolean] = run {
     sql"""update users set language = $to where id = $user""".update.run.map { changed =>
       val wasChanged = changed > 0
       if wasChanged then log.info(s"Changed language of user ID '$user' to '$to'.")
@@ -219,7 +219,7 @@ class DoobieUserManager(db: DoobieDatabase) extends IdentityManager with DoobieS
     }
   }
 
-  def save(token: RefreshToken, user: UserId): IO[RefreshRow] = run {
+  def save(token: RefreshToken, user: UserId): F[RefreshRow] = run {
     log.info(s"Saving refresh token for '$user'...")
     val tokenId = RefreshTokenId.random()
     val insertion =
@@ -233,13 +233,13 @@ class DoobieUserManager(db: DoobieDatabase) extends IdentityManager with DoobieS
     }
   }
 
-  def remove(token: RefreshTokenId): IO[Int] = run {
+  def remove(token: RefreshTokenId): F[Int] = run {
     sql"""delete from refresh_tokens where id = $token""".update(logger).run
   }
 
-  def load(token: RefreshTokenId): IO[RefreshRow] = run { loadTokenIO(token) }
+  def load(token: RefreshTokenId): F[RefreshRow] = run { loadTokenIO(token) }
 
-  def updateValidation(token: RefreshTokenId): IO[RefreshRow] = run {
+  def updateValidation(token: RefreshTokenId): F[RefreshRow] = run {
     val up =
       sql"""update refresh_tokens set last_verification = now() where id = $token"""
         .update(logger)
@@ -247,7 +247,7 @@ class DoobieUserManager(db: DoobieDatabase) extends IdentityManager with DoobieS
     up.flatMap { _ => loadTokenIO(token) }
   }
 
-  def refreshTokens(user: UserId): IO[List[RefreshToken]] = run {
+  def refreshTokens(user: UserId): F[List[RefreshToken]] = run {
     sql"""select refresh_token from refresh_tokens where owner = $user"""
       .query[RefreshToken]
       .to[List]
@@ -260,7 +260,7 @@ class DoobieUserManager(db: DoobieDatabase) extends IdentityManager with DoobieS
           where id = $id
        """.query[RefreshRow].unique
 
-  def invite(i: InviteInfo): IO[InviteResult] = run {
+  def invite(i: InviteInfo): F[InviteResult] = run {
     userByEmail(i.email).option.flatMap { invitee =>
       invitee.map { user =>
         addInviteIO(i.boat, user.id, i.principal)
@@ -270,11 +270,11 @@ class DoobieUserManager(db: DoobieDatabase) extends IdentityManager with DoobieS
     }
   }
 
-  def grantAccess(boat: DeviceId, to: UserId, principal: UserId): IO[InviteResult] = run {
+  def grantAccess(boat: DeviceId, to: UserId, principal: UserId): F[InviteResult] = run {
     addInviteIO(boat, to, principal)
   }
 
-  def revokeAccess(boat: DeviceId, from: UserId, principal: UserId): IO[AccessResult] = run {
+  def revokeAccess(boat: DeviceId, from: UserId, principal: UserId): F[AccessResult] = run {
     manageGroups(boat, from, principal) { existed =>
       if existed then
         sql"delete from users_boats where boat = $boat and user = $from"
@@ -288,7 +288,7 @@ class DoobieUserManager(db: DoobieDatabase) extends IdentityManager with DoobieS
     }
   }
 
-  def updateInvite(boat: DeviceId, user: UserId, state: InviteState): IO[Long] = run {
+  def updateInvite(boat: DeviceId, user: UserId, state: InviteState): F[Long] = run {
     sql"update users_boats set state = ${state.name} where boat = $boat and user = $user"
       .update(logger)
       .run

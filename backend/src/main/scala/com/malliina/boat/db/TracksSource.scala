@@ -6,12 +6,12 @@ import com.malliina.boat.http.{BoatQuery, TrackQuery}
 import com.malliina.boat.parsing.FullCoord
 import com.malliina.values.{UserId, Username}
 
-trait TrackInsertsDatabase:
-  def updateTitle(track: TrackName, title: TrackTitle, user: UserId): IO[JoinedTrack]
-  def updateComments(track: TrackId, comments: String, user: UserId): IO[JoinedTrack]
-  def addBoat(boat: BoatName, user: UserId): IO[BoatRow]
-  def removeDevice(device: DeviceId, user: UserId): IO[Int]
-  def renameBoat(boat: DeviceId, newName: BoatName, user: UserId): IO[BoatRow]
+trait TrackInsertsDatabase[F[_]]:
+  def updateTitle(track: TrackName, title: TrackTitle, user: UserId): F[JoinedTrack]
+  def updateComments(track: TrackId, comments: String, user: UserId): F[JoinedTrack]
+  def addBoat(boat: BoatName, user: UserId): F[BoatRow]
+  def removeDevice(device: DeviceId, user: UserId): F[Int]
+  def renameBoat(boat: DeviceId, newName: BoatName, user: UserId): F[BoatRow]
 
   /** If the given track and boat exist and are owned by the user, returns the track info.
     *
@@ -27,20 +27,20 @@ trait TrackInsertsDatabase:
     * @return
     *   track specs, or failure if there is a naming clash
     */
-  def joinAsBoat(meta: DeviceMeta): IO[TrackMeta]
-  def joinAsDevice(meta: DeviceMeta): IO[JoinedBoat]
-  def saveSentences(sentences: SentencesEvent): IO[Seq[KeyedSentence]]
-  def saveCoords(coords: FullCoord): IO[InsertedPoint]
-  def saveCoordsFast(coords: FullCoord): IO[TrackPointId]
+  def joinAsBoat(meta: DeviceMeta): F[TrackMeta]
+  def joinAsDevice(meta: DeviceMeta): F[JoinedBoat]
+  def saveSentences(sentences: SentencesEvent): F[Seq[KeyedSentence]]
+  def saveCoords(coords: FullCoord): F[InsertedPoint]
+  def saveCoordsFast(coords: FullCoord): F[TrackPointId]
 
-trait StatsSource:
-  def stats(user: MinimalUserInfo, limits: TrackQuery, lang: Lang): IO[StatsResponse]
+trait StatsSource[F[_]]:
+  def stats(user: MinimalUserInfo, limits: TrackQuery, lang: Lang): F[StatsResponse]
 
-trait TracksSource:
-  def tracksFor(user: MinimalUserInfo, filter: TrackQuery): IO[Tracks]
-  def tracksBundle(user: MinimalUserInfo, filter: TrackQuery, lang: Lang): IO[TracksBundle]
-  def ref(track: TrackName, language: Language): IO[TrackRef]
-  def canonical(track: TrackCanonical, language: Language): IO[TrackRef]
-  def track(track: TrackName, user: Username, query: TrackQuery): IO[TrackInfo]
-  def full(track: TrackName, language: Language, query: TrackQuery): IO[FullTrack]
-  def history(user: MinimalUserInfo, limits: BoatQuery): IO[Seq[CoordsEvent]]
+trait TracksSource[F[_]]:
+  def tracksFor(user: MinimalUserInfo, filter: TrackQuery): F[Tracks]
+  def tracksBundle(user: MinimalUserInfo, filter: TrackQuery, lang: Lang): F[TracksBundle]
+  def ref(track: TrackName, language: Language): F[TrackRef]
+  def canonical(track: TrackCanonical, language: Language): F[TrackRef]
+  def track(track: TrackName, user: Username, query: TrackQuery): F[TrackInfo]
+  def full(track: TrackName, language: Language, query: TrackQuery): F[FullTrack]
+  def history(user: MinimalUserInfo, limits: BoatQuery): F[Seq[CoordsEvent]]

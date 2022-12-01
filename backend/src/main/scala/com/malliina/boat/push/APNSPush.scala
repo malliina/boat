@@ -1,6 +1,7 @@
 package com.malliina.boat.push
 
-import cats.effect.IO
+import cats.{Applicative, Monad}
+import cats.syntax.all.toFunctorOps
 import com.malliina.boat.push.APNSPush.log
 import com.malliina.boat.{APNSConf, PushToken}
 import com.malliina.http.HttpClient
@@ -10,17 +11,17 @@ import io.circe.syntax.EncoderOps
 
 import java.nio.file.Paths
 
-trait APNS:
-  def push(notification: BoatNotification, to: APNSToken): IO[PushSummary]
+trait APNS[F[_]]:
+  def push(notification: BoatNotification, to: APNSToken): F[PushSummary]
 
-object NoopAPNS extends APNS:
-  override def push(notification: BoatNotification, to: APNSToken): IO[PushSummary] =
-    IO.pure(PushSummary.empty)
+class NoopAPNS[F[_]: Applicative] extends APNS[F]:
+  override def push(notification: BoatNotification, to: APNSToken): F[PushSummary] =
+    Applicative[F].pure(PushSummary.empty)
 
 object APNSPush:
   private val log = AppLogger(getClass)
 
-  def fromConf(conf: APNSConf, http: HttpClient[IO]): APNS =
+  def fromConf[F[+_]: Monad](conf: APNSConf, http: HttpClient[F]): APNS[F] =
     if conf.enabled then
       val confModel = APNSTokenConf(Paths.get(conf.privateKey), conf.keyId, conf.teamId)
       log.info(
@@ -32,21 +33,21 @@ object APNSPush:
       APNSPush(sandbox, prod)
     else
       log.info(s"APNS is disabled.")
-      NoopAPNS
+      NoopAPNS[F]
 
-class APNSPush(sandbox: APNSHttpClientF[IO], prod: APNSHttpClientF[IO])
-  extends PushClient[APNSToken]
-  with APNS:
+class APNSPush[F[+_]: Monad](sandbox: APNSHttpClientF[F], prod: APNSHttpClientF[F])
+  extends PushClient[F, APNSToken]
+  with APNS[F]:
   val topic = APNSTopic("com.malliina.BoatTracker")
 
-  def push(notification: BoatNotification, to: APNSToken): IO[PushSummary] =
+  def push(notification: BoatNotification, to: APNSToken): F[PushSummary] =
     val message = APNSMessage
       .simple(notification.message)
       .copy(data = Map("meta" -> notification.asJson))
     val request = APNSRequest.withTopic(topic, message)
     push(to, request, isProd = true)
 
-  def push(to: APNSToken, request: APNSRequest, isProd: Boolean): IO[PushSummary] =
+  def push(to: APNSToken, request: APNSRequest, isProd: Boolean): F[PushSummary] =
     val service = if isProd then prod else sandbox
     service.push(to, request).map(loggedMap(_, to, useLog = isProd)).map { result =>
       if isProd then

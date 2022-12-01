@@ -1,6 +1,8 @@
 package com.malliina.boat.push
 
+import cats.{Functor, Monad}
 import cats.effect.IO
+import cats.syntax.all.toFunctorOps
 import com.malliina.boat.push.FCMPush.log
 import com.malliina.boat.{BoatName, FCMConf, PushToken}
 import com.malliina.http.HttpClient
@@ -11,12 +13,13 @@ import com.malliina.util.AppLogger
 object FCMPush:
   private val log = AppLogger(getClass)
 
-  def apply(conf: FCMConf, http: HttpClient[IO]): FCMPush = apply(FCMClientF(conf.apiKey, http))
+  def build[F[+_]: Monad](conf: FCMConf, http: HttpClient[F]): FCMPush[F] =
+    FCMPush(FCMClientF(conf.apiKey, http))
 
-  def apply(fcm: GoogleClientF[IO]): FCMPush = new FCMPush(fcm)
+  def client[F[+_]: Monad](fcm: GoogleClientF[F]): FCMPush[F] = FCMPush(fcm)
 
-class FCMPush(fcm: GoogleClientF[IO]) extends PushClient[GCMToken]:
-  override def push(notification: BoatNotification, to: GCMToken): IO[PushSummary] =
+class FCMPush[F[+_]: Functor](fcm: GoogleClientF[F]) extends PushClient[F, GCMToken]:
+  override def push(notification: BoatNotification, to: GCMToken): F[PushSummary] =
     val message = GCMMessage(
       Map(
         BoatName.Key -> notification.boatName.name,

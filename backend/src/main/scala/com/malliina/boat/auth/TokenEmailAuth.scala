@@ -1,6 +1,7 @@
 package com.malliina.boat.auth
 
-import cats.effect.IO
+import cats.effect.{IO, Sync}
+import cats.syntax.all.{toFlatMapOps, toFunctorOps}
 import com.malliina.boat.db.{CustomJwt, IdentityException, JWTError, MissingCredentials}
 import com.malliina.boat.http4s.Auth
 import com.malliina.http.HttpClient
@@ -19,51 +20,52 @@ object TokenEmailAuth:
     * @param iosClientId
     *   ios apps
     */
-  def apply(
+  def default[F[_]: Sync](
     webClientId: ClientId,
     iosClientId: ClientId,
     microsoftClientId: ClientId,
-    http: HttpClient[IO],
+    http: HttpClient[F],
     custom: CustomJwt
-  ): TokenEmailAuth =
+  ): TokenEmailAuth[F] =
     val google = GoogleAuthFlow.keyClient(Seq(webClientId, iosClientId), http)
     val microsoft = MicrosoftAuthFlow.keyClient(Seq(microsoftClientId), http)
-    new TokenEmailAuth(google, microsoft, custom)
+    TokenEmailAuth(google, microsoft, custom)
 
 /** Validates tokens and extracts the email address.
   */
-class TokenEmailAuth(google: KeyClient[IO], microsoft: KeyClient[IO], custom: CustomJwt)
-  extends EmailAuth:
+class TokenEmailAuth[F[_]: Sync](google: KeyClient[F], microsoft: KeyClient[F], custom: CustomJwt)
+  extends EmailAuth[F]:
   val EmailKey = "email"
   val EmailVerified = "email_verified"
+  val F = Sync[F]
 
-  def authEmail(headers: Headers, now: Instant): IO[Email] =
+  def authEmail(headers: Headers, now: Instant): F[Email] =
     Auth
       .token(headers)
       .map { token =>
         validateAny(token, now).flatMap { e =>
           e.fold(
-            err => IO.raiseError(IdentityException(JWTError(err, headers))),
-            email => IO.pure(email)
+            err => F.raiseError(IdentityException(JWTError(err, headers))),
+            email => F.pure(email)
           )
         }
       }
       .getOrElse {
-        IO.raiseError(IdentityException(MissingCredentials(headers)))
+        F.raiseError(IdentityException(MissingCredentials(headers)))
       }
 
-  private def validateAny(token: IdToken, now: Instant): IO[Either[AuthError, Email]] =
+  private def validateAny(token: IdToken, now: Instant): F[Either[AuthError, Email]] =
     validateGoogle(token, now).flatMap { e =>
       e.fold(
         err =>
           validateMicrosoft(token, now).flatMap { e2 =>
-            e2.fold(err => IO.pure(custom.email(token, now)), ok => IO.pure(Right(ok)))
+            e2.fold(err => F.pure(custom.email(token, now)), ok => F.pure(Right(ok)))
           },
-        ok => IO.pure(Right(ok))
+        ok => F.pure(Right(ok))
       )
     }
 
-  private def validateGoogle(token: IdToken, now: Instant): IO[Either[AuthError, Email]] =
+  private def validateGoogle(token: IdToken, now: Instant): F[Either[AuthError, Email]] =
     google.validate(token, now).map { outcome =>
       outcome.flatMap { v =>
         val parsed = v.parsed
@@ -75,7 +77,7 @@ class TokenEmailAuth(google: KeyClient[IO], microsoft: KeyClient[IO], custom: Cu
       }
     }
 
-  private def validateMicrosoft(token: IdToken, now: Instant): IO[Either[AuthError, Email]] =
+  private def validateMicrosoft(token: IdToken, now: Instant): F[Either[AuthError, Email]] =
     microsoft.validate(token, now).map { outcome =>
       outcome.flatMap { v =>
         v.readString(EmailKey).map(Email.apply)

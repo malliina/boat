@@ -25,7 +25,7 @@ class ServiceTests extends MUnitSuite with Http4sSuite:
     val init = for
       _ <- service.userMgmt.deleteUser(user)
       _ <- service.userMgmt.addUser(
-        NewUser(user, Option(TestEmailAuth.testEmail), UserToken.random(), enabled = true)
+        NewUser(user, Option(TestEmailAuth[IO].testEmail), UserToken.random(), enabled = true)
       )
       track <- inserts.joinAsBoat(BoatUser(TrackNames.random(), BoatNames.random(), user))
       coord = FullCoord(

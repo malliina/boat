@@ -33,12 +33,12 @@ object Auth:
     .map(h => h.credentials)
     .toRight(MissingCredentials(noCredentials, hs))
 
-case class AuthComps(
-  google: EmailAuth,
-  web: Http4sAuth,
-  googleFlow: GoogleAuthFlow[IO],
-  microsoftFlow: EmailAuthFlow[IO],
-  appleWebFlow: AppleAuthFlow,
-  appleAppFlow: AppleAuthFlow,
+case class AuthComps[F[_]: Sync](
+  google: EmailAuth[F],
+  web: Http4sAuth[F],
+  googleFlow: GoogleAuthFlow[F],
+  microsoftFlow: EmailAuthFlow[F],
+  appleWebFlow: AppleAuthFlow[F],
+  appleAppFlow: AppleAuthFlow[F],
   customJwt: CustomJwt
 )

@@ -1,10 +1,9 @@
 package com.malliina.boat.db
 
 import com.malliina.boat.*
-
 import doobie.*
 import doobie.implicits.*
-import cats.effect.IO
+import cats.effect.{Async, IO}
 import cats.implicits.*
 import com.malliina.boat.parsing.GPSCoord
 import com.malliina.measure.DistanceM
@@ -22,13 +21,13 @@ object DoobieGPSDatabase:
       else acc :+ GPSCoordsEvent(List(coord), device.strip)
     }
 
-class DoobieGPSDatabase(db: DoobieDatabase) extends GPSSource with DoobieSQL:
+class DoobieGPSDatabase[F[_]: Async](db: DoobieDatabase[F]) extends GPSSource[F] with DoobieSQL:
   import DoobieMappings.*
 
   val pointColumns =
     fr0"p.id, p.longitude, p.latitude, p.coord, p.satellites, p.fix, p.point_index, p.gps_time, p.diff, p.device, p.added"
 
-  def history(user: MinimalUserInfo): IO[Seq[GPSCoordsEvent]] = db.run {
+  def history(user: MinimalUserInfo): F[Seq[GPSCoordsEvent]] = db.run {
     sql"""select $pointColumns, b.id, b.name, b.token, b.uid, b.user, b.email, b.language
           from (${CommonSql.boats} and u.user = ${user.username}) b, gps_points p, (select device, max(point_index) pointIndex from gps_points group by device) l
           where p.device = b.id and p.device = l.device and p.point_index = l.pointIndex"""
@@ -39,18 +38,20 @@ class DoobieGPSDatabase(db: DoobieDatabase) extends GPSSource with DoobieSQL:
       }
   }
 
-  def saveSentences(sentences: GPSSentencesEvent): IO[Seq[GPSKeyedSentence]] = db.run {
-    val from = sentences.from
-    sentences.sentences.toList.traverse { s =>
-      sql"insert into gps_sentences(sentence, device) values ($s, ${from.device})".update
-        .withUniqueGeneratedKeys[GPSSentenceKey]("id")
-        .map { id =>
-          GPSKeyedSentence(id, s, from.device)
-        }
+  def saveSentences(sentences: GPSSentencesEvent): F[List[GPSKeyedSentence]] =
+    db.run[List[GPSKeyedSentence]] {
+      val from = sentences.from
+      import cats.implicits.*
+      sentences.sentences.toList.traverse { s =>
+        sql"insert into gps_sentences(sentence, device) values ($s, ${from.device})".update
+          .withUniqueGeneratedKeys[GPSSentenceKey]("id")
+          .map { id =>
+            GPSKeyedSentence(id, s, from.device)
+          }
+      }
     }
-  }
 
-  def saveCoords(coord: GPSCoord): IO[GPSInsertedPoint] = db.run {
+  def saveCoords(coord: GPSCoord): F[GPSInsertedPoint] = db.run {
     val device = coord.device
     val previous =
       sql"select $pointColumns from gps_points where device = $device order by point_index desc limit 1"

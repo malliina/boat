@@ -18,6 +18,6 @@ class JsonException(val error: DecodingFailure, val json: Json) extends DecodeFa
       JsonInstances.jsonEncoderOf[F, Errors]
     )
 
-class InvalidRequest(val req: Request[IO], val errors: Errors)
+class InvalidRequest(val req: Request[?], val errors: Errors)
   extends Exception(s"Invalid request to '${req.uri}'. ${errors.message}."):
   def message = getMessage

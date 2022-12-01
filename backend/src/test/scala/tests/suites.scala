@@ -32,7 +32,7 @@ object WrappedTestConf:
 
 trait MUnitSuite extends munit.CatsEffectSuite:
   val userHome: Path = Paths.get(sys.props("user.home"))
-  def databaseFixture(conf: => Conf) = resource(DoobieDatabase.resource(conf))
+  def databaseFixture(conf: => Conf) = resource(DoobieDatabase.resource[IO](conf))
   def resource[T](res: Resource[IO, T]) = ResourceFixture(res)
 
 object TestConf:
@@ -79,7 +79,7 @@ trait MUnitDatabaseSuite extends DoobieSQL:
 
   override def munitFixtures: Seq[Fixture[?]] = Seq(confFixture)
 
-case class AppComponents(service: Service) //, routes: HttpApp[IO])
+case class AppComponents(service: Service[IO]) //, routes: HttpApp[IO])
 
 // https://github.com/typelevel/munit-cats-effect
 trait Http4sSuite extends MUnitDatabaseSuite:
@@ -87,7 +87,7 @@ trait Http4sSuite extends MUnitDatabaseSuite:
 
   val appResource: Resource[IO, AppComponents] = for
     conf <- Resource.eval(IO(confFixture()))
-    service <- Server.appService(
+    service <- Server.appService[IO](
       BoatConf.parse().copy(db = conf, ais = AisAppConf(false)),
       TestComps.builder
     )
@@ -96,7 +96,7 @@ trait Http4sSuite extends MUnitDatabaseSuite:
 
   override def munitFixtures: Seq[Fixture[?]] = Seq(confFixture, app)
 
-case class ServerTools(server: ServerComponents, client: HttpClient[IO]):
+case class ServerTools(server: ServerComponents[IO], client: HttpClient[IO]):
   def port = server.server.address.getPort
   def baseHttpUrl = FullUrl("http", s"localhost:$port", "")
   def baseWsUrl = FullUrl("ws", s"localhost:$port", "")
@@ -112,7 +112,7 @@ trait ServerSuite extends MUnitDatabaseSuite with JsonInstances:
   def testServerResource: Resource[IO, ServerTools] =
     for
       conf <- Resource.eval(IO(confFixture()))
-      service <- Server.server(
+      service <- Server.server[IO](
         BoatConf.parse().copy(db = conf, ais = AisAppConf(false)),
         TestComps.builder,
         port = port"0"

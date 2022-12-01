@@ -22,7 +22,7 @@ trait BoatRequest[T, U]:
   def query: T
   def headers: Headers
 
-case class UserRequest[U](user: U, req: Request[IO]):
+case class UserRequest[F[_], U](user: U, req: Request[F]):
 //  def body: B = req.body
   def headers = req.headers
 

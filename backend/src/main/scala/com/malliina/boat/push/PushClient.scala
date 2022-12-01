@@ -48,8 +48,8 @@ case class PushSummary(
 object PushSummary:
   val empty = PushSummary(Nil, Nil, Nil)
 
-trait PushClient[T <: Token]:
-  def push(notification: BoatNotification, to: T): IO[PushSummary]
+trait PushClient[F[_], T <: Token]:
+  def push(notification: BoatNotification, to: T): F[PushSummary]
 
-trait PushEndpoint:
-  def push(notification: BoatNotification, to: PushDevice): IO[PushSummary]
+trait PushEndpoint[F[_]]:
+  def push(notification: BoatNotification, to: PushDevice): F[PushSummary]

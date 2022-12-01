@@ -1,7 +1,8 @@
 package com.malliina.boat.http4s
 
 import cats.effect.kernel.Resource
-import cats.effect.IO
+import cats.effect.{Async, IO, Sync}
+import cats.syntax.all.{catsSyntaxApplicativeError, toFlatMapOps, toFunctorOps}
 import com.malliina.boat.db.GPSSource
 import com.malliina.boat.http4s.BoatStreams.rights
 import com.malliina.boat.http4s.GPSStreams.log
@@ -14,20 +15,25 @@ import fs2.Stream
 object GPSStreams:
   private val log = AppLogger(getClass)
 
-  def resource(db: GPSSource): Resource[IO, GPSStreams] =
+  def resource[F[_]: Async](db: GPSSource[F]): Resource[F, GPSStreams[F]] =
     for
       gps <- Resource.eval(build(db))
       _ <- Stream.emit(()).concurrently(gps.publisher).compile.resource.lastOrError
     yield gps
 
-  private def build(db: GPSSource): IO[GPSStreams] =
+  private def build[F[_]: Async](db: GPSSource[F]): F[GPSStreams[F]] =
     for
-      in <- Topic[IO, InputEvent]
-      saved <- Topic[IO, SavedEvent]
+      in <- Topic[F, InputEvent]
+      saved <- Topic[F, SavedEvent]
     yield GPSStreams(db, in, saved)
 
-class GPSStreams(val db: GPSSource, val in: Topic[IO, InputEvent], saved: Topic[IO, SavedEvent]):
-  val deviceState = GPSManager()
+class GPSStreams[F[_]: Async](
+  val db: GPSSource[F],
+  val in: Topic[F, InputEvent],
+  saved: Topic[F, SavedEvent]
+):
+  val F = Sync[F]
+  private val deviceState = GPSManager()
   val sentencesSource = in
     .subscribe(100)
     .collect { case be @ DeviceEvent(_, _) =>
@@ -60,7 +66,7 @@ class GPSStreams(val db: GPSSource, val in: Topic[IO, InputEvent], saved: Topic[
     saved.publish1(i)
   }
 
-  def clientEvents(formatter: TimeFormatter): Stream[IO, FrontEvent] =
+  def clientEvents(formatter: TimeFormatter): Stream[F, FrontEvent] =
     saved
       .subscribe(100)
       .collect { case i @ GPSInserted(_, _) =>
@@ -73,9 +79,9 @@ class GPSStreams(val db: GPSSource, val in: Topic[IO, InputEvent], saved: Topic[
         )
       }
 
-  private def saveRecovered(coord: GPSCoord): IO[List[GPSInserted]] =
+  private def saveRecovered(coord: GPSCoord): F[List[GPSInserted]] =
     db.saveCoords(coord).map { inserted => List(GPSInserted(coord, inserted)) }.handleErrorWith {
       t =>
         log.error(s"Unable to save coords.", t)
-        IO.pure(Nil)
+        F.pure(Nil)
     }
