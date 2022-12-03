@@ -667,7 +667,7 @@ object MapConf:
 
   def apply(styleId: String): MapConf = MapConf(
     styleId,
-    s"mapbox://styles/malliina/$styleId",
+    s"mapbox://styles/skogberglabs/$styleId",
     IconsConf("boat-resized-opt-30", "trophy-gold-path")
   )
 
