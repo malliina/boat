@@ -10,9 +10,10 @@ object MapboxStyles:
   val AisVesselIcon = "boat-resized-opt-30"
 
   val aisLayers = Seq(AisVesselLayer, AisTrailLayer)
-  val fairwayLayers = Seq("vaylat")
+  val fairwayLayers = Seq("vaylat", "fairways")
 
   val marksLayers = Seq(
+    "marks",
     "marks-turvavesi",
     "marks-kummeli",
     "marks-sektoriloisto",

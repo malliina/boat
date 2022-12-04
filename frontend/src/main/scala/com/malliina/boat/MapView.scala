@@ -38,7 +38,7 @@ class MapView(
     zoom = initialSettings.zoom,
     hash = true
   )
-  val map = new MapboxMap(mapOptions)
+  val map = MapboxMap(mapOptions)
   val geocoder = MapboxGeocoder.finland(accessToken)
   val pathFinder = PathFinder(map)
   val settings = MapSettings

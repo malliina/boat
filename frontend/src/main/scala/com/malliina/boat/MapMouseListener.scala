@@ -34,7 +34,7 @@ class MapMouseListener(
   var isTrackHover: Boolean = false
   private var isPopupOpen: Boolean = false
 
-  def parseClick(e: MapMouseEvent): Option[Either[JsonError, ClickType]] =
+  private def parseClick(e: MapMouseEvent): Option[Either[JsonError, ClickType]] =
     if isPopupOpen then
       popup.remove()
       isPopupOpen = false
@@ -44,7 +44,7 @@ class MapMouseListener(
         log.info(s"Failed to parse features '${err.error}' in '${err.json}'.")
         Nil
       }
-//      features foreach println
+//      features foreach (f => log.info(s"$f"))
       val symbol: Option[Feature] = features.find { f =>
         f.geometry.typeName == PointGeometry.Key &&
         f.layer.exists(l => l.`type` == LayerType.Symbol || l.`type` == LayerType.Circle)
