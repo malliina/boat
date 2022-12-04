@@ -31,6 +31,7 @@ case class Layers(
   marks: Seq[String],
   fairways: Seq[String],
   fairwayAreas: Seq[String],
+  depthAreas: Seq[String],
   limits: Seq[String],
   ais: AisConf
 )
@@ -42,7 +43,8 @@ object Layers:
   val default = Layers(
     marksLayers,
     fairwayLayers,
-    Seq(FairwayAreaId),
+    FairwayAreaLayers,
+    DepthAreaLayers,
     LimitLayerIds,
     AisConf(AisVesselLayer, AisTrailLayer, AisVesselIcon)
   )
