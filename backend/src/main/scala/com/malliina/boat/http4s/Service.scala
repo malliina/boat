@@ -28,12 +28,13 @@ import fs2.{Pipe, Stream}
 import io.circe.parser.parse
 import io.circe.syntax.EncoderOps
 import io.circe.{Decoder, Json}
-import org.http4s.headers.{Location, `WWW-Authenticate`}
+import org.http4s.headers.{Location, `Content-Type`, `WWW-Authenticate`}
 import org.http4s.server.websocket.WebSocketBuilder
 import org.http4s.server.websocket.WebSocketBuilder2
 import org.http4s.websocket.WebSocketFrame
 import org.http4s.websocket.WebSocketFrame.Text
 import org.http4s.{Callback as _, *}
+import org.typelevel.ci.CIStringSyntax
 
 import java.time.Instant
 import scala.concurrent.duration.DurationInt
@@ -526,24 +527,22 @@ class Service[F[_]: Async](comps: BoatComps[F]) extends BasicService[F]:
     code: (T, UserInfo) => F[Response[F]]
   )(implicit decoder: EntityDecoder[F, UrlForm]): F[Response[F]] =
     auth.profile(req).flatMap { user =>
-      val decoded = req.decodeJson[T].handleErrorWith { t =>
-        decoder
-          .decode(req, strict = false)
-          .foldF(
-            fail =>
-              log.warn(
-                s"Both JSON and form decode failed for ${req.method} '${req.uri.renderString}'. $fail",
-                t
-              )
-              F.raiseError(fail)
-            ,
-            form =>
-              readForm(new FormReader(form)).fold(
-                err => F.raiseError(err.asException),
-                F.pure
-              )
-          )
-      }
+      val isForm = req.headers
+        .get(ci"Content-Type")
+        .exists(_.head.value == "application/x-www-form-urlencoded")
+      val decoded =
+        if isForm then
+          decoder
+            .decode(req, strict = false)
+            .foldF(
+              fail => F.raiseError(fail),
+              form =>
+                readForm(new FormReader(form)).fold(
+                  err => F.raiseError(err.asException),
+                  F.pure
+                )
+            )
+        else req.decodeJson[T]
       decoded.flatMap { t =>
         code(t, user)
       }.handleErrorWith { err =>
