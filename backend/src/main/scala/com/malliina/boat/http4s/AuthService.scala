@@ -42,12 +42,6 @@ class AuthService[F[_]: Sync](val users: IdentityManager[F], comps: AuthComps[F]
           web <- comps.appleWebFlow.revoke(token)
         yield List(app, web)
       }
-//      revocations <- F.parTraverseN(1)(tokens) { token =>
-//        for
-//          app <- comps.appleAppFlow.revoke(token)
-//          web <- comps.appleWebFlow.revoke(token)
-//        yield List(app, web)
-//      }
       _ <- users.deleteUser(user.username)
     yield revocations.flatten
 

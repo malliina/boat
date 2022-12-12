@@ -158,6 +158,10 @@ Refresh your ID token using this endpoint. Returns a refreshed ID token:
 
 Call this endpoint if other endpoints respond with HTTP 403.
 
+## POST /users/me/delete
+
+Deletes the user and revokes any Sign in with Apple refresh tokens.
+
 ## PATCH /boats/:boat_id
 
 Changes the name of the given boat:
