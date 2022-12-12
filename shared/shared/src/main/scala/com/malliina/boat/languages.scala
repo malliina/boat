@@ -17,6 +17,7 @@ case class TrafficSignTypeLang(
 
 object TrafficSignTypeLang:
   implicit val json: Codec[TrafficSignTypeLang] = deriveCodec[TrafficSignTypeLang]
+
 case class TrafficSignLimitsLang(
   unknown: String,
   noAnchoring: String,
@@ -615,7 +616,9 @@ case class ProfileLang(
   chooseLanguage: String,
   finnish: String,
   swedish: String,
-  english: String
+  english: String,
+  deleteAccount: String,
+  deleteAccountConfirmation: String
 )
 
 object ProfileLang:
@@ -1153,7 +1156,9 @@ object Lang:
       "Choose Language",
       "Suomeksi",
       "Svenska",
-      "English"
+      "English",
+      "Delete account",
+      "Are you sure you want to delete your account?"
     ),
     MessagesLang("Loading...", "Failed to load profile,", "No saved tracks.", "N/A"),
     SettingsLang(
@@ -1308,7 +1313,9 @@ object Lang:
       "Valitse kieli",
       "Suomeksi",
       "Svenska",
-      "English"
+      "English",
+      "Poista tili",
+      "Haluatko varmasti poistaa tilisi?"
     ),
     MessagesLang(
       "Laddar...",
@@ -1468,7 +1475,9 @@ object Lang:
       "Välj språk",
       "Suomeksi",
       "Svenska",
-      "English"
+      "English",
+      "Radera konto",
+      "Är du säker att du vill radera ditt konto?"
     ),
     MessagesLang("Laddar...", "Laddning av profildata misslyckades.", "Inga sparade spår.", "N/A"),
     SettingsLang(

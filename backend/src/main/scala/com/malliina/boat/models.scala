@@ -56,7 +56,7 @@ object ClientConf:
   val default = withMap(MapConf.active)
   val old = withMap(MapConf.old)
 
-  def withMap(map: MapConf) =
+  private def withMap(map: MapConf) =
     ClientConf(map, Languages(Lang.fi, Lang.se, Lang.en), Layers.default)
 
 /** Alternative to LocalDate because according to its Javadoc reference equality and other
