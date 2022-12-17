@@ -6,11 +6,11 @@ import scalatags.JsDom.all.*
 class Popups(lang: Lang) extends BoatModels:
   val empty = modifier()
   val trackLang = lang.track
-  val markLang = lang.mark
-  val fairwayLang = lang.fairway
-  val aisLang = lang.ais
+  private val markLang = lang.mark
+  private val fairwayLang = lang.fairway
+  private val aisLang = lang.ais
   val specialWords = lang.specialWords
-  val limitsLang = lang.limits
+  private val limitsLang = lang.limits
 
   def track(point: PointProps) =
     titledTable(point.boatName.name)(
@@ -61,6 +61,10 @@ class Popups(lang: Lang) extends BoatModels:
 
   def minimalMark(symbol: MinimalMarineSymbol) =
     titledTable(symbol.name(lang).fold("")(identity))(
+      symbol.trafficMarkType.fold(empty)(tmt =>
+        row(markLang.markType, tmt.translate(limitsLang.types))
+      ),
+      symbol.speed.fold(empty)(speed => row(limitsLang.magnitude, s"${speed.toKmh.toInt} km/h")),
       symbol.location(lang).fold(empty)(l => row(markLang.location, l)),
       row(markLang.influence, symbol.influence.translate(fairwayLang.zones)),
       row(markLang.owner, symbol.ownerName(specialWords))

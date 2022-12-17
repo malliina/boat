@@ -22,12 +22,12 @@ class MapSocket(
 
   val lang = Lang(language)
   val trackLang = lang.track
-  val emptyTrack = lineForTrack(Nil)
-  val trackPopup = MapboxPopup(PopupOptions())
+  private val emptyTrack = lineForTrack(Nil)
+  private val trackPopup = MapboxPopup(PopupOptions())
   val boatPopup = MapboxPopup(PopupOptions(className = Option("popup-boat")))
   val ais = AISRenderer(map)
   val html = Popups(lang)
-  val popups = MapMouseListener(map, pathFinder, ais, html)
+  private val popups = MapMouseListener(map, pathFinder, ais, html)
 
   private var mapMode: MapMode = mode
   private var boats = Map.empty[String, FeatureCollection]
@@ -42,7 +42,7 @@ class MapSocket(
     )
   )
 
-  def initImage(file: String, iconId: String): Future[Unit] =
+  private def initImage(file: String, iconId: String): Future[Unit] =
     map.initImage(s"/assets/img/$file", iconId).recover { case t =>
       log.error("Unable to initialize image.", t)
     }
@@ -54,7 +54,7 @@ class MapSocket(
     * @param id
     *   layer ID
     */
-  def lineLayer(id: String) =
+  private def lineLayer(id: String) =
     trackLineLayer(id, LinePaint(LinePaint.blackColor, 1, 1))
 //  trackLineLayer(id, LinePaint(PropertyValue.Custom(Styles.colorBySpeed), 1, 1))
 

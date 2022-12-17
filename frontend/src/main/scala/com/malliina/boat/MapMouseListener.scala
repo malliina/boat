@@ -19,10 +19,6 @@ case class LimitClick(limit: LimitArea, target: LngLatLike) extends ClickType
 case class LimitedFairwayClick(limit: LimitArea, area: FairwayArea, target: LngLatLike)
   extends ClickType
 
-object MapMouseListener:
-  def apply(map: MapboxMap, pathFinder: PathFinder, ais: AISRenderer, html: Popups) =
-    new MapMouseListener(map, pathFinder, ais, html)
-
 class MapMouseListener(
   map: MapboxMap,
   pathFinder: PathFinder,
@@ -71,8 +67,12 @@ class MapMouseListener(
           normalSymbol.left.flatMap(_ => minimalSymbol)
       }.orElse {
         if !isTrackHover then
-          val limitInfo =
-            features.flatMap(_.props.as[LimitArea].toOption).headOption.map(LimitClick(_, e.lngLat))
+          val limitAreas = features
+            .flatMap(_.props.as[LimitArea].toOption)
+            .toList
+          val limitInfo = LimitArea
+            .merge(limitAreas)
+            .map(area => LimitClick(area, e.lngLat))
           val fairwayInfo =
             features
               .flatMap(_.props.as[FairwayInfo].toOption)

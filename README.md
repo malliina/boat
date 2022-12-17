@@ -62,11 +62,11 @@ therefore it is currently a separate step from the release process.
 
 Use mysqldump:
 
-    ./mysqldump -u boat@malliinadatalake -p --no-tablespaces -h malliinadatalake.mysql.database.azure.com boat > boat.sql
+    ./mysqldump -u boat -p --no-tablespaces -h database-nuqmhn2cxlhle.mysql.database.azure.com boat > boat.sql
 
 ### IntelliJ
 
-If using BSP, exclude folder [project/target/node-modules](project/target/node-modules) in the 
+If using BSP, exclude folder [node-modules](frontend/target/scala-3.1.1/scalajs-bundler/main/node_modules) in the 
 project structure settings to reduce excessive indexing.
 
 ## License

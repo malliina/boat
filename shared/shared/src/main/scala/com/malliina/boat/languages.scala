@@ -701,8 +701,8 @@ case class SettingsLang(
 
 object SettingsLang:
   val modern = deriveCodec[SettingsLang]
-  val encoder: Encoder[SettingsLang] = new Encoder[SettingsLang]:
-    final def apply(sl: SettingsLang): Json = modern(sl).deepMerge(BoatLang.json(sl.boatLang))
+  val encoder: Encoder[SettingsLang] = (sl: SettingsLang) =>
+    modern(sl).deepMerge(BoatLang.json(sl.boatLang))
   implicit val codec: Codec[SettingsLang] = Codec.from(modern, encoder)
 
 case class LanguageInfo(name: String, code: String)
@@ -721,7 +721,8 @@ case class LimitTypes(
   noAttachment: String,
   noOvertaking: String,
   noRendezVous: String,
-  speedRecommendation: String
+  speedRecommendation: String,
+  unknown: String
 )
 
 object LimitTypes:
@@ -741,7 +742,7 @@ case class LimitLang(
 object LimitLang:
   implicit val json: Codec[LimitLang] = deriveCodec[LimitLang]
 
-  val limitsFi = LimitTypes(
+  private val limitsFi = LimitTypes(
     "Nopeusrajoitus",
     "Aallokon aiheuttamisen kielto",
     "Purjelautailukielto",
@@ -752,7 +753,8 @@ object LimitLang:
     "Kiinnittymiskielto",
     "Ohittamiskielto",
     "Kohtaamiskielto",
-    "Nopeussuositus"
+    "Nopeussuositus",
+    "Tuntematon"
   )
   val fi = LimitLang(
     "Rajoitukset",
@@ -804,7 +806,7 @@ object LimitLang:
       )
     )
   )
-  val limitsSe = LimitTypes(
+  private val limitsSe = LimitTypes(
     "Hastighetsbegränsning",
     "Förbjudet att orsaka vågor",
     "Vindsurfing förbjudet",
@@ -815,7 +817,8 @@ object LimitLang:
     "Förbjudet att stanna",
     "Förbjudet att passera",
     "Mötesförbud",
-    "Hastighetsrekommendation"
+    "Hastighetsrekommendation",
+    "Okänd"
   )
   val se = LimitLang(
     "Begränsningar",
@@ -867,7 +870,7 @@ object LimitLang:
       )
     )
   )
-  val limitsEn = LimitTypes(
+  private val limitsEn = LimitTypes(
     "Speed limit",
     "No waves",
     "No windsurfing",
@@ -878,7 +881,8 @@ object LimitLang:
     "No stopping",
     "No passing",
     "No meeting",
-    "Speed recommendation"
+    "Speed recommendation",
+    "Unknown"
   )
   val en = LimitLang(
     "Limits",

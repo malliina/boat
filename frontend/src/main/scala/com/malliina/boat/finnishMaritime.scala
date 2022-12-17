@@ -1,7 +1,7 @@
 package com.malliina.boat
 
 import com.malliina.boat.MaritimeJson.{nonEmptyOpt, partialReader}
-import com.malliina.measure.{DistanceM, SpeedM}
+import com.malliina.measure.{DistanceM, SpeedM, DistanceDoubleM, SpeedDoubleM}
 import io.circe.*
 import io.circe.generic.semiauto.*
 
@@ -159,7 +159,7 @@ object AidType:
   case object SignatureLighthouse extends AidType
   case object Cairn extends AidType
 
-  val fromInt: PartialFunction[Int, AidType] = {
+  private val fromInt: PartialFunction[Int, AidType] = {
     case 0  => Unknown
     case 1  => Lighthouse
     case 2  => SectorLight
@@ -221,6 +221,25 @@ trait SymbolLike extends NameLike:
   def location(lang: Lang): Option[String] =
     if lang == Lang.se then locationSe.orElse(locationFi) else locationFi.orElse(locationSe)
 
+sealed trait TrafficMarkType:
+  def translate(lang: LimitTypes) = this match
+    case TrafficMarkType.SpeedLimit => lang.speedLimit
+    case TrafficMarkType.NoWaves    => lang.noWaves
+    case TrafficMarkType.Other      => lang.unknown
+
+object TrafficMarkType:
+  private val fromInt: PartialFunction[Int, TrafficMarkType] = {
+    case 6  => NoWaves
+    case 11 => SpeedLimit
+    case _  => Other
+  }
+  implicit val reader: Decoder[TrafficMarkType] = Decoder.decodeInt.emap { int =>
+    fromInt.lift(int).toRight(s"Unknown traffic mark type: '$int'.")
+  }
+  case object SpeedLimit extends TrafficMarkType
+  case object NoWaves extends TrafficMarkType
+  case object Other extends TrafficMarkType
+
 case class MarineSymbol(
   owner: String,
   exteriorLight: Boolean,
@@ -244,12 +263,12 @@ case class MarineSymbol(
   *   https://vayla.fi/documents/20473/38174/Vesiv%C3%A4yl%C3%A4aineistojen+tietosis%C3%A4ll%C3%B6n+kuvaus/68b5f496-19a3-4b3d-887c-971e3366f01e
   */
 object MarineSymbol:
-  val boolNum: Decoder[Boolean] = Decoder.decodeInt.emap {
+  private val boolNum: Decoder[Boolean] = Decoder.decodeInt.emap {
     case 0     => Right(false)
     case 1     => Right(true)
     case other => Left(s"Unexpected integer, must be 1 or 0: '$other'.")
   }
-  val boolString: Decoder[Boolean] = Decoder.decodeString.emap {
+  private val boolString: Decoder[Boolean] = Decoder.decodeString.emap {
     case "K"   => Right(true)
     case "E"   => Right(false)
     case other => Left(s"Unexpected string, must be K or E: '$other'.")
@@ -294,9 +313,14 @@ case class MinimalMarineSymbol(
   nameSe: Option[String],
   locationFi: Option[String],
   locationSe: Option[String],
-  influence: ZoneOfInfluence
+  influence: ZoneOfInfluence,
+  trafficMarkType: Option[TrafficMarkType],
+  limit: Option[Double]
 ) extends SymbolLike
-  with Owned
+  with Owned:
+  def speed: Option[SpeedM] =
+    if trafficMarkType.contains(TrafficMarkType.SpeedLimit) then limit.map(_.kmh)
+    else None
 
 object MinimalMarineSymbol:
   implicit val decoder: Decoder[MinimalMarineSymbol] = (c: HCursor) =>
@@ -307,7 +331,18 @@ object MinimalMarineSymbol:
       locationFi <- c.downField("SIJAINTIS").as[Option[String]](nonEmptyOpt)
       locationSe <- c.downField("SIJAINTIR").as[Option[String]](nonEmptyOpt)
       influence <- c.downField("VAIKUTUSAL").as[ZoneOfInfluence]
-    yield MinimalMarineSymbol(owner, nameFi, nameSe, locationFi, locationSe, influence)
+      markType <- c.downField("VLM_LAJI").as[Option[TrafficMarkType]]
+      limit <- c.downField("RA_ARVO").as[Option[Double]]
+    yield MinimalMarineSymbol(
+      owner,
+      nameFi,
+      nameSe,
+      locationFi,
+      locationSe,
+      influence,
+      markType,
+      limit
+    )
 
 case class DepthArea(minDepth: DistanceM, maxDepth: DistanceM)
 
@@ -416,7 +451,7 @@ sealed trait MarkType:
     case Cardinal => in.cardinal
 
 object MarkType:
-  val fromInt: PartialFunction[Int, MarkType] = {
+  private val fromInt: PartialFunction[Int, MarkType] = {
     case 0 => Unknown
     case 1 => Lateral
     case 2 => Cardinal
@@ -452,27 +487,26 @@ case class FairwayArea(
 ) extends Owned
 
 object FairwayArea:
-  implicit val decoder: Decoder[FairwayArea] = new Decoder[FairwayArea]:
-    final def apply(c: HCursor): Decoder.Result[FairwayArea] =
-      for
-        owner <- c.downField("OMISTAJA").as[String]
-        quality <- c.downField("LAATULK").as[QualityClass]
-        fairwayType <- c.downField("VAYALUE_TY").as[FairwayType]
-        fairwayDepth <- c.downField("VAYALUE_SY").as[DistanceM]
-        harrowDepth <- c.downField("HARAUS_SYV").as[DistanceM]
-        comparison <- c.downField("VERT_TASO").as[String]
-        state <- c.downField("TILA").as[FairwayState]
-        mark <- c.downField("MERK_LAJI").as[Option[MarkType]]
-      yield FairwayArea(
-        owner,
-        quality,
-        fairwayType,
-        fairwayDepth,
-        harrowDepth,
-        comparison,
-        state,
-        mark
-      )
+  implicit val decoder: Decoder[FairwayArea] = (c: HCursor) =>
+    for
+      owner <- c.downField("OMISTAJA").as[String]
+      quality <- c.downField("LAATULK").as[QualityClass]
+      fairwayType <- c.downField("VAYALUE_TY").as[FairwayType]
+      fairwayDepth <- c.downField("VAYALUE_SY").as[DistanceM]
+      harrowDepth <- c.downField("HARAUS_SYV").as[DistanceM]
+      comparison <- c.downField("VERT_TASO").as[String]
+      state <- c.downField("TILA").as[FairwayState]
+      mark <- c.downField("MERK_LAJI").as[Option[MarkType]]
+    yield FairwayArea(
+      owner,
+      quality,
+      fairwayType,
+      fairwayDepth,
+      harrowDepth,
+      comparison,
+      state,
+      mark
+    )
 
 sealed trait ZoneOfInfluence:
   import ZoneOfInfluence.*
@@ -549,7 +583,7 @@ object LimitType:
     }
     jsonSeq(results)
 
-  def jsonSeq[T](results: Seq[Either[String, T]]): Either[String, Seq[T]] =
+  private def jsonSeq[T](results: Seq[Either[String, T]]): Either[String, Seq[T]] =
     results.foldLeft[Either[String, Seq[T]]](Right(Nil)) { (acc, t) =>
       t.fold(
         err => Left(err),
@@ -574,9 +608,17 @@ case class LimitArea(
   def describeTypes(lang: LimitTypes) = types.map(lt => lt.describe(lang))
   def describe(lang: LimitTypes): String = describeTypes(lang).mkString(", ")
 
-object LimitArea:
-  import com.malliina.measure.{DistanceDoubleM, SpeedDoubleM}
+  def merge(other: LimitArea): LimitArea = LimitArea(
+    (types ++ other.types).distinct,
+    (limit.toList ++ other.limit.toList).minByOption(_.toKmh),
+    length.orElse(other.length),
+    responsible.orElse(other.responsible),
+    location.orElse(other.location),
+    fairwayName.orElse(other.fairwayName),
+    publishDate
+  )
 
+object LimitArea:
   implicit val decoder: Decoder[LimitArea] = (c: HCursor) =>
     for
       types <-
@@ -590,3 +632,7 @@ object LimitArea:
       fairwayName <- c.downField("VAY_NIMISU").as[Option[String]](nonEmptyOpt)
       publishDate <- c.downField("IRROTUS_PV").as[String]
     yield LimitArea(types, limit, length, responsible, location, fairwayName, publishDate)
+
+  def merge(ls: List[LimitArea]): Option[LimitArea] = ls match
+    case head :: next => Option(next.fold(head)((acc, more) => acc.merge(more)))
+    case Nil          => None

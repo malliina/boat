@@ -10,7 +10,7 @@ import scala.scalajs.js.JSON
 object Parsing extends Parsing
 
 trait Parsing:
-  val printer = Printer.noSpaces.copy(dropNullValues = true)
+  private val printer = Printer.noSpaces.copy(dropNullValues = true)
 
   def toJson[T: Encoder](t: T): js.Dynamic =
     JSON.parse(t.asJson.printWith(printer))
@@ -18,7 +18,7 @@ trait Parsing:
   def asJson[T: Decoder](in: js.Any): Either[JsonError, T] =
     decode[T](stringifyAny(in)).left.map(err => JsonError(err))
 
-  def stringifyAny(any: js.Any) = JSON.stringify(any)
+  private def stringifyAny(any: js.Any) = JSON.stringify(any)
 
   def stringify[T: Encoder](t: T) = t.asJson.printWith(printer)
 
