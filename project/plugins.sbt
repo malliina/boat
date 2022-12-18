@@ -2,7 +2,7 @@ scalaVersion := "2.12.17"
 
 libraryDependencies += "com.amazonaws" % "aws-java-sdk-s3" % "1.12.347"
 
-val utilsVersion = "1.3.0"
+val utilsVersion = "1.4.0"
 
 Seq(
   "com.malliina" %% "sbt-utils-maven" % utilsVersion,

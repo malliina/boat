@@ -10,7 +10,7 @@ import io.circe.*
 import io.circe.generic.semiauto.*
 import io.circe.syntax.EncoderOps
 
-import scala.concurrent.duration.Duration
+import scala.concurrent.duration.{Duration, FiniteDuration}
 import scala.language.implicitConversions
 import scala.math.Ordering.Double.TotalOrdering
 
@@ -571,11 +571,12 @@ object SentencesEvent:
   val Key = "sentences"
   implicit val json: Codec[SentencesEvent] = keyValued(Key, deriveCodec[SentencesEvent])
 
-case class PingEvent(sent: Long) extends FrontEvent:
+case class PingEvent(sent: Long, age: Duration) extends FrontEvent:
   override def isIntendedFor(user: MinimalUserInfo) = true
 
 object PingEvent:
   val Key = "ping"
+  implicit val durationFormat: Codec[Duration] = PrimitiveFormats.durationCodec
   implicit val json: Codec[PingEvent] = keyValued(Key, deriveCodec[PingEvent])
 
 case class VesselMessages(vessels: Seq[VesselInfo]) extends FrontEvent:
@@ -615,7 +616,7 @@ object FrontEvent:
       case se @ SentencesEvent(_, _)  => se.asJson
       case ce @ CoordsEvent(_, _)     => ce.asJson
       case cb @ CoordsBatch(_)        => cb.asJson
-      case pe @ PingEvent(_)          => pe.asJson
+      case pe @ PingEvent(_, _)       => pe.asJson
       case vs @ VesselMessages(_)     => vs.asJson
       case gce @ GPSCoordsEvent(_, _) => gce.asJson
 

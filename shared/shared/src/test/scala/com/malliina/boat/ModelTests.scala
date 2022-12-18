@@ -4,8 +4,9 @@ import io.circe.{Codec, Printer}
 import io.circe.generic.semiauto.deriveCodec
 import io.circe.parser.{decode, parse}
 import io.circe.syntax.EncoderOps
+import concurrent.duration.DurationInt
 
-class ModelTests extends munit.FunSuite {
+class ModelTests extends munit.FunSuite:
   test("coord cheap hash") {
     val c = Coord(Longitude(12.1), Latitude(13.412456789))
     assertEquals(c.approx, "12.10000,13.41245")
@@ -43,7 +44,7 @@ class ModelTests extends munit.FunSuite {
         |}
       """.stripMargin
     val result = decode[VesselLocation](in)(VesselLocation.readerGeoJson)
-    //println(result)
+    // println(result)
     assert(result.isRight)
   }
 
@@ -69,12 +70,11 @@ class ModelTests extends munit.FunSuite {
       """.stripMargin
 
     val result = decode[VesselMetadata](in)(VesselMetadata.readerGeoJson)
-    //println(result)
+    // println(result)
     assert(result.isRight)
   }
 
   test("PingEvent JSON") {
-    val string = PingEvent(123).asJson.noSpaces
-    assertEquals(string, """{"event":"ping","body":{"sent":123}}""")
+    val string = PingEvent(123, 1.seconds).asJson.noSpaces
+    assertEquals(string, """{"event":"ping","body":{"sent":123,"age":1}}""")
   }
-}

@@ -140,7 +140,10 @@ object Server extends IOApp:
       )
       Service(comps)
 
-  def makeHandler[F[_]: Async](service: Service[F], sockets: WebSocketBuilder2[F]): Http[F, F] =
+  private def makeHandler[F[_]: Async](
+    service: Service[F],
+    sockets: WebSocketBuilder2[F]
+  ): Http[F, F] =
     GZip {
       HSTS {
         CSP.when(AppMode.fromBuild.isProd) {
@@ -154,7 +157,7 @@ object Server extends IOApp:
       }
     }
 
-  def orNotFound[F[_]: Sync](rs: HttpRoutes[F]): Kleisli[F, Request[F], Response[F]] =
+  private def orNotFound[F[_]: Sync](rs: HttpRoutes[F]): Kleisli[F, Request[F], Response[F]] =
     Kleisli { req =>
       rs.run(req)
         .getOrElseF(BasicService[F].notFoundReq(req))

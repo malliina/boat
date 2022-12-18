@@ -195,20 +195,20 @@ val backend = Project("boat", file("backend"))
     Compile / packageDoc / publishArtifact := false,
     packageDoc / publishArtifact := false,
     Compile / doc / sources := Seq.empty,
-    start := Def.taskIf {
-      if (start.inputFileChanges.hasChanges) {
-        refreshBrowsers.value
-      } else {
-        Def.task(streams.value.log.info("No backend changes."))
-      }
-    }.dependsOn(start).value,
-    (frontend / Compile / start) := Def.taskIf {
-      if ((frontend / Compile / start).inputFileChanges.hasChanges) {
-        refreshBrowsers.value
-      } else {
-        Def.task(streams.value.log.info("No frontend changes.")).value
-      }
-    }.dependsOn(frontend / start).value,
+//    start := Def.taskIf {
+//      if (start.inputFileChanges.hasChanges) {
+//        refreshBrowsers.value
+//      } else {
+//        Def.task(streams.value.log.info("No backend changes."))
+//      }
+//    }.dependsOn(start).value,
+//    (frontend / Compile / start) := Def.taskIf {
+//      if ((frontend / Compile / start).inputFileChanges.hasChanges) {
+//        refreshBrowsers.value
+//      } else {
+//        Def.task(streams.value.log.info("No frontend changes.")).value
+//      }
+//    }.dependsOn(frontend / start).value,
     Compile / unmanagedResourceDirectories ++= {
       val prodAssets =
         if ((frontend / isProd).value) List((frontend / Compile / assetsRoot).value.getParent.toFile)

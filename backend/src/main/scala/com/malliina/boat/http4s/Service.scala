@@ -72,11 +72,10 @@ class Service[F[_]: Async](comps: BoatComps[F]) extends BasicService[F]:
   val cookieNames = web.cookieNames
   val reverse = Reverse
   val g = Graph.all
-  val NoChange = "No change."
+  private val NoChange = "No change."
 
-  val toClients: Stream[F, WebSocketFrame] = Stream.never[F].map { _ =>
-    Text(PingEvent(System.currentTimeMillis()).asJson.noSpaces)
-  }
+  private val toClients: Stream[F, WebSocketFrame] = Stream.never[F]
+  val pings = Stream.awakeEvery(30.seconds).map(d => PingEvent(System.currentTimeMillis(), d))
 
   def routes(sockets: WebSocketBuilder2[F]): HttpRoutes[F] = HttpRoutes.of[F] {
     case req @ GET -> Root      => index(req)
@@ -287,6 +286,7 @@ class Service[F[_]: Async](comps: BoatComps[F]) extends BasicService[F]:
           val deviceUpdates = deviceStreams.clientEvents(formatter)
           val eventSource =
             ((deviceHistory ++ gpsHistory) ++ updates.mergeHaltBoth(deviceUpdates))
+              .mergeHaltBoth(pings)
               .filter(_.isIntendedFor(user))
               .map(message => Text(message.asJson.noSpaces))
           webSocket(
@@ -574,7 +574,7 @@ class Service[F[_]: Async](comps: BoatComps[F]) extends BasicService[F]:
     if rs.exists(_.satisfies(MediaType.text.html)) && !qp.contains("json") then html
     else json(rs)
 
-  def fileFromPublicResources(file: String, req: Request[F]): F[Response[F]] =
+  private def fileFromPublicResources(file: String, req: Request[F]): F[Response[F]] =
     StaticFile
       .fromResource(
         s"${HashedAssets.prefix}/$file",
@@ -584,7 +584,7 @@ class Service[F[_]: Async](comps: BoatComps[F]) extends BasicService[F]:
       .fold(notFoundReq(req))(res => F.pure(res.putHeaders(cached(1.hour))))
       .flatten
 
-  def docsRedirect(name: String) = SeeOther(
+  private def docsRedirect(name: String) = SeeOther(
     Location(uri"https://docs.boat-tracker.com/".addPath(s"$name/"))
   )
 
