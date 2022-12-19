@@ -5,8 +5,8 @@ import io.circe.*
 import io.circe.syntax.EncoderOps
 
 trait GeoUtils:
-  val boatIconId = "boat-icon"
-  val trophyIconId = "trophy-icon"
+  val boatIconId = "boat-resized-opt-30"
+  val trophyIconId = "trophy-gold-path"
   val deviceIconId = "device-icon"
 
   def map: MapboxMap
@@ -61,5 +61,5 @@ trait GeoUtils:
   def pointForProps[T: Encoder](coord: Coord, props: T) =
     pointFor(coord, props.asJson.asObject.map(_.toMap).getOrElse(Map.empty))
 
-  def collectionFor(geo: Geometry, props: Map[String, Json]): FeatureCollection =
+  private def collectionFor(geo: Geometry, props: Map[String, Json]): FeatureCollection =
     FeatureCollection(Seq(Feature(geo, props)))

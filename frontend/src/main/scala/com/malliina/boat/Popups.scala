@@ -56,7 +56,8 @@ class Popups(lang: Lang) extends BoatModels:
       if symbol.navMark == NavMark.NotApplicable then empty
       else row(markLang.navigation, symbol.navMark.translate(markLang.navTypes)),
       symbol.location(lang).fold(empty)(l => row(markLang.location, l)),
-      row(markLang.owner, symbol.ownerName(specialWords))
+      row(markLang.owner, symbol.ownerName(specialWords)),
+      row(markLang.lit, if symbol.lit then markLang.yes else markLang.no)
     )
 
   def minimalMark(symbol: MinimalMarineSymbol) =

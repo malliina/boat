@@ -129,7 +129,7 @@ object LineLayout:
 
 case class ImageLayout(
   `icon-image`: String,
-  `icon-size`: Int,
+  `icon-size`: Double, // Scale, I guess
   `icon-rotate`: Option[Seq[String]] = None,
   `icon-rotation-alignment`: IconRotationAlignment = IconRotationAlignment.Map
 ) extends Layout

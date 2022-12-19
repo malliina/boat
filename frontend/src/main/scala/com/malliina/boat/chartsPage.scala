@@ -27,17 +27,17 @@ class ChartsView(canvas: HTMLCanvasElement) extends BaseFront:
 class ChartSocket(ctx: CanvasRenderingContext2D, track: TrackName, sample: Option[Int])
   extends BoatSocket(Name(track), sample):
 
-  val seaBlue = "#006994"
-  val red = "red"
+  private val seaBlue = "#006994"
+  private val red = "red"
 
-  val depthLabel = "Depth"
-  val speedLabel = "Speed"
+  private val depthLabel = "Depth"
+  private val speedLabel = "Speed"
 
-  val depths = dataSet(depthLabel, seaBlue)
-  val speeds = dataSet(speedLabel, red)
-  val chartData = ChartData(Nil, Seq(depths, speeds))
+  private val depths = dataSet(depthLabel, seaBlue)
+  private val speeds = dataSet(speedLabel, red)
+  private val chartData = ChartData(Nil, Seq(depths, speeds))
   ChartObj.register(CategoryScale, LineController, LineElement, PointElement, LinearScale, Title)
-  val chart = Chart(ctx, ChartSpecs.line(chartData))
+  private val chart = Chart(ctx, ChartSpecs.line(chartData))
 
   private def dataSet(label: String, color: String) = DataSet(
     label = label,

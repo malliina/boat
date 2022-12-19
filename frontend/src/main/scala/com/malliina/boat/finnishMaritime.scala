@@ -5,6 +5,12 @@ import com.malliina.measure.{DistanceM, SpeedM, DistanceDoubleM, SpeedDoubleM}
 import io.circe.*
 import io.circe.generic.semiauto.*
 
+/** @see
+  *   Vesiväyläaineistojen tietosisällön kuvaus
+  * @see
+  *   https://vayla.fi/documents/20473/38174/Vesiv%C3%A4yl%C3%A4aineistojen+tietosis%C3%A4ll%C3%B6n+kuvaus/68b5f496-19a3-4b3d-887c-971e3366f01e
+  */
+
 /** Navigointilaji (NAVL_TYYP)
   */
 sealed trait NavMark:
@@ -35,7 +41,7 @@ object NavMark:
   case object Special extends NavMark
   case object NotApplicable extends NavMark
 
-  val fromInt: PartialFunction[Int, NavMark] = {
+  private val fromInt: PartialFunction[Int, NavMark] = {
     case 0  => Unknown
     case 1  => Left
     case 2  => Right
@@ -100,7 +106,7 @@ object ConstructionInfo:
   case object ChannelEdgeLight extends ConstructionInfo
   case object Tower extends ConstructionInfo
 
-  val fromInt: PartialFunction[Int, ConstructionInfo] = {
+  private val fromInt: PartialFunction[Int, ConstructionInfo] = {
     case 1  => BuoyBeacon
     case 2  => IceBuoy
     case 4  => BeaconBuoy
@@ -179,6 +185,7 @@ object AidType:
   }
 
 sealed trait Flotation:
+  def floatingOrSolid = this == Flotation.Solid || this == Flotation.Floating
   def translate(in: FlotationLang) = this match
     case Flotation.Floating => in.floating
     case Flotation.Solid    => in.solid
@@ -215,9 +222,7 @@ trait Owned:
 
 trait SymbolLike extends NameLike:
   def locationFi: Option[String]
-
   def locationSe: Option[String]
-
   def location(lang: Lang): Option[String] =
     if lang == Lang.se then locationSe.orElse(locationFi) else locationFi.orElse(locationSe)
 
@@ -257,11 +262,6 @@ case class MarineSymbol(
 ) extends SymbolLike
   with Owned
 
-/** @see
-  *   Vesiväyläaineistojen tietosisällön kuvaus
-  * @see
-  *   https://vayla.fi/documents/20473/38174/Vesiv%C3%A4yl%C3%A4aineistojen+tietosis%C3%A4ll%C3%B6n+kuvaus/68b5f496-19a3-4b3d-887c-971e3366f01e
-  */
 object MarineSymbol:
   private val boolNum: Decoder[Boolean] = Decoder.decodeInt.emap {
     case 0     => Right(false)
@@ -388,7 +388,7 @@ sealed trait FairwayType:
     case Pilot          => in.pilot
 
 object FairwayType:
-  val fromInt: PartialFunction[Int, FairwayType] = {
+  private val fromInt: PartialFunction[Int, FairwayType] = {
     case 1  => Navigation
     case 2  => Anchoring
     case 3  => Meetup
@@ -424,7 +424,7 @@ object FairwayType:
 sealed trait FairwayState
 
 object FairwayState:
-  val fromInt: PartialFunction[Int, FairwayState] = {
+  private val fromInt: PartialFunction[Int, FairwayState] = {
     case 1 => Confirmed
     case 2 => Aihio
     case 3 => MayChange

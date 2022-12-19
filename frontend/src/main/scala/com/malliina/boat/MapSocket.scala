@@ -36,8 +36,6 @@ class MapSocket(
 
   val imageInits = Future.sequence(
     Seq(
-      initImage("boat-resized-opt-20.png", boatIconId),
-      initImage("trophy-color-12.png", trophyIconId),
       initImage("satellite-dish-20.png", deviceIconId)
     )
   )
@@ -58,7 +56,8 @@ class MapSocket(
     trackLineLayer(id, LinePaint(LinePaint.blackColor, 1, 1))
 //  trackLineLayer(id, LinePaint(PropertyValue.Custom(Styles.colorBySpeed), 1, 1))
 
-  def trackLineLayer(id: String, paint: LinePaint): Layer = Layer.line(id, emptyTrack, paint, None)
+  private def trackLineLayer(id: String, paint: LinePaint): Layer =
+    Layer.line(id, emptyTrack, paint, None)
 
   override def onCoords(event: CoordsEvent): Unit =
     val from = event.from
@@ -220,7 +219,7 @@ class MapSocket(
       case MapMode.Stay =>
         ()
 
-  val devicePopup = MapboxPopup(PopupOptions(className = Option("popup-device")))
+  private val devicePopup = MapboxPopup(PopupOptions(className = Option("popup-device")))
 
   override def onGps(event: GPSCoordsEvent): Unit =
     val from = event.from
@@ -264,7 +263,7 @@ class MapSocket(
   override def onAIS(messages: Seq[VesselInfo]): Unit =
     ais.onAIS(messages)
 
-  def nearest[T](fromCoord: Coord, on: Seq[T])(c: T => Coord): Either[ErrorMessage, T] =
+  private def nearest[T](fromCoord: Coord, on: Seq[T])(c: T => Coord): Either[ErrorMessage, T] =
     val all = GeoLineString(on.map(c))
     val turfPoint = GeoPoint(fromCoord)
     val nearestResult = nearestPointOnLine(all, turfPoint)
@@ -273,7 +272,7 @@ class MapSocket(
     else Left(ErrorMessage(s"No trail at $fromCoord."))
 
   // https://www.movable-type.co.uk/scripts/latlong.html
-  def bearing(from: Coord, to: Coord): Double =
+  private def bearing(from: Coord, to: Coord): Double =
     val dLon = to.lng.lng - from.lng.lng
     val y = Math.sin(dLon) * Math.cos(to.lat.lat)
     val x = Math.cos(from.lat.lat) * Math.sin(to.lat.lat) - Math.sin(from.lat.lat) * Math.cos(
@@ -283,18 +282,18 @@ class MapSocket(
     360 - ((brng + 360) % 360)
 
   def toRad(deg: Double) = deg * Math.PI / 180
-  def toDeg(rad: Double) = rad * 180 / Math.PI
+  private def toDeg(rad: Double) = rad * 180 / Math.PI
 
   def trackName(boat: BoatName) = s"track-$boat"
-  def pointName(boat: BoatName) = s"boat-$boat"
+  private def pointName(boat: BoatName) = s"boat-$boat"
   def deviceName(device: BoatName) = s"$DevicePrefix-$device"
-  def trophyName(track: TrackName) = s"$TrophyPrefix-$track"
+  private def trophyName(track: TrackName) = s"$TrophyPrefix-$track"
 
-  def boatSymbolLayer(id: String, coord: Coord) =
-    Layer.symbol(id, pointFor(coord), ImageLayout(boatIconId, `icon-size` = 1))
+  private def boatSymbolLayer(id: String, coord: Coord) =
+    Layer.symbol(id, pointFor(coord), ImageLayout(boatIconId, `icon-size` = 0.7))
 
-  def deviceSymbolLayer(id: String, coord: Coord, props: DeviceProps) =
+  private def deviceSymbolLayer(id: String, coord: Coord, props: DeviceProps) =
     Layer.symbol(id, pointForProps(coord, props), ImageLayout(deviceIconId, `icon-size` = 1))
 
-  def trophySymbolLayer(id: String, coord: Coord) =
+  private def trophySymbolLayer(id: String, coord: Coord) =
     Layer.symbol(id, pointFor(coord), ImageLayout(trophyIconId, `icon-size` = 1))

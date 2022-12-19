@@ -129,7 +129,7 @@ object ZonesLang:
 
 case class FlotationLang(floating: String, solid: String, other: String)
 
-object FloationLang:
+object FlotationLang:
   implicit val json: Codec[FlotationLang] = deriveCodec[FlotationLang]
 
   val fi = FlotationLang("Kelluva", "Kiinteä", "Muu")
@@ -540,7 +540,11 @@ case class MarkLang(
   types: MarkTypeLang,
   navTypes: NavMarkLang,
   structures: ConstructionLang,
-  aidTypes: AidTypeLang
+  aidTypes: AidTypeLang,
+  flotation: FlotationLang,
+  lit: String,
+  yes: String,
+  no: String
 )
 
 object MarkLang:
@@ -1052,7 +1056,7 @@ case class Lang(
 object Lang:
   implicit val json: Codec[Lang] = deriveCodec[Lang]
 
-  val appName = "Boat-Tracker"
+  private val appName = "Boat-Tracker"
 
   def apply(language: Language): Lang = language match
     case Language.swedish => se
@@ -1142,7 +1146,11 @@ object Lang:
       types = MarkTypeLang("Unknown", "Lateral", "Cardinal"),
       navTypes = NavMarkLang.en,
       structures = ConstructionLang.en,
-      aidTypes = AidTypeLang.en
+      aidTypes = AidTypeLang.en,
+      flotation = FlotationLang.en,
+      lit = "Lit",
+      yes = "Yes",
+      no = "No"
     ),
     ais = AisLang(
       draft = "Draft",
@@ -1299,7 +1307,11 @@ object Lang:
       types = MarkTypeLang("Tuntematon", "Lateraali", "Kardinaali"),
       navTypes = NavMarkLang.fi,
       structures = ConstructionLang.fi,
-      aidTypes = AidTypeLang.fi
+      aidTypes = AidTypeLang.fi,
+      flotation = FlotationLang.fi,
+      lit = "Valaistu",
+      yes = "Kyllä",
+      no = "Ei"
     ),
     ais = AisLang(
       draft = "Syväys",
@@ -1461,7 +1473,11 @@ object Lang:
       types = MarkTypeLang("Okänd", "Lateral", "Kardinal"),
       navTypes = NavMarkLang.se,
       structures = ConstructionLang.se,
-      aidTypes = AidTypeLang.se
+      aidTypes = AidTypeLang.se,
+      flotation = FlotationLang.se,
+      lit = "Belyst",
+      yes = "Ja",
+      no = "Nej"
     ),
     ais = AisLang(
       draft = "Djupgående",
