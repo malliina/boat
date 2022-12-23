@@ -14,10 +14,10 @@ import com.malliina.boat.html.BoatHtml
 import com.malliina.boat.http4s.Implicits.circeJsonEncoder
 import com.malliina.boat.http4s.Service.BoatComps
 import com.malliina.boat.push.{BoatPushService, PushEndpoint}
-import com.malliina.boat.{AppMeta, AppMode, BoatConf, Errors, S3Client, SingleError}
+import com.malliina.boat.{AppMeta, AppMode, BoatConf, BuildInfo, Errors, S3Client, SingleError}
 import com.malliina.http.HttpClient
 import com.malliina.http.io.HttpClientIO
-import com.malliina.logback.{LogstreamsUtils, LogbackUtils}
+import com.malliina.logback.{LogbackUtils, LogstreamsUtils}
 import com.malliina.util.AppLogger
 import com.malliina.web.*
 import org.http4s.ember.server.EmberServerBuilder
@@ -60,6 +60,7 @@ class ProdAppComps[F[+_]: Sync](conf: BoatConf, http: HttpClient[F]) extends App
     )
 
 object Server extends IOApp:
+  LogstreamsUtils.prepLogging()
   private val log = AppLogger(getClass)
 
   private val port: Port =
