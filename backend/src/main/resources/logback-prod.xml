@@ -4,15 +4,8 @@
             <pattern>%d{HH:mm:ss.SSS} %-5level %logger{36} %msg%n</pattern>
         </encoder>
     </appender>
-    <appender name="LOGSTREAMS" class="com.malliina.logstreams.client.FS2Appender">
-        <endpoint>${LOGSTREAMS_HOST:-wss://logs.malliina.com/ws/sources}</endpoint>
-        <username>${LOGSTREAMS_USER:-boat}</username>
-        <password>${LOGSTREAMS_PASS}</password>
-        <enabled>${LOGSTREAMS_ENABLED:-true}</enabled>
-    </appender>
     <logger name="org.http4s.ember.server.EmberServerBuilderCompanionPlatform" level="OFF"/>
     <root level="INFO">
         <appender-ref ref="STDOUT"/>
-        <appender-ref ref="LOGSTREAMS"/>
     </root>
 </configuration>

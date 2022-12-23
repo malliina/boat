@@ -17,6 +17,7 @@ import com.malliina.boat.push.{BoatPushService, PushEndpoint}
 import com.malliina.boat.{AppMeta, AppMode, BoatConf, Errors, S3Client, SingleError}
 import com.malliina.http.HttpClient
 import com.malliina.http.io.HttpClientIO
+import com.malliina.logback.{LogstreamsUtils, LogbackUtils}
 import com.malliina.util.AppLogger
 import com.malliina.web.*
 import org.http4s.ember.server.EmberServerBuilder
@@ -89,6 +90,8 @@ object Server extends IOApp:
   def appService[F[+_]: Async](conf: BoatConf, builder: AppCompsBuilder): Resource[F, Service[F]] =
     for
       dispatcher <- Dispatcher[F]
+      http <- HttpClientIO.resource[F]
+      _ <- Resource.eval(LogstreamsUtils.install(dispatcher, http))
       db <- DoobieDatabase.init(conf.db)
       users = DoobieUserManager(db)
       _ <- Resource.eval(users.initUser())
@@ -97,7 +100,6 @@ object Server extends IOApp:
       ais <- BoatMqttClient.build(conf.ais.enabled, AppMode.fromBuild, dispatcher)
       streams <- BoatStreams.resource(trackInserts, ais)
       deviceStreams <- GPSStreams.resource(gps)
-      http <- HttpClientIO.resource[F]
     yield
       val appComps = builder.build(conf, http)
       val jwt = JWT(conf.secret)
