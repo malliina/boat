@@ -15,22 +15,20 @@ import com.malliina.logstreams.client.FS2Appender
 
 object LogstreamsUtils:
   def install[F[_]: Async](d: Dispatcher[F], http: HttpClientF2[F]): F[Unit] =
-//    val enabled = sys.env.get("LOGSTREAMS_ENABLED").contains("true")
-    val enabled = true
+    val enabled = sys.env.get("LOGSTREAMS_ENABLED").contains("true")
     if enabled then
       FS2Appender
         .default(
           d,
           http,
-          Map("User-Agent" -> s"Boat-Tracker/${BuildInfo.version}(${BuildInfo.gitHash.take(7)})")
+          Map("User-Agent" -> s"Boat-Tracker/${BuildInfo.version} (${BuildInfo.gitHash.take(7)})")
         )
         .flatMap { appender =>
           Async[F].delay {
             appender.setName("LOGSTREAMS")
-//            appender.setEndpoint("wss://logs.malliina.com/ws/sources")
-            appender.setEndpoint("ws://localhost:9001/ws/sources")
-            appender.setUsername(sys.env.getOrElse("LOGSTREAMS_USER", "test"))
-            appender.setPassword(sys.env.getOrElse("LOGSTREAMS_PASS", "test123"))
+            appender.setEndpoint("wss://logs.malliina.com/ws/sources")
+            appender.setUsername(sys.env.getOrElse("LOGSTREAMS_USER", "boat"))
+            appender.setPassword(sys.env.getOrElse("LOGSTREAMS_PASS", ""))
             appender.setEnabled(enabled)
             LogbackUtils.installAppender(appender)
           }
