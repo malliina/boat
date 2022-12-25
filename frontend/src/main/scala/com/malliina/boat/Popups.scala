@@ -67,8 +67,10 @@ class Popups(lang: Lang) extends BoatModels:
       ),
       symbol.speed.fold(empty)(speed => row(limitsLang.magnitude, s"${speed.toKmh.toInt} km/h")),
       symbol.location(lang).fold(empty)(l => row(markLang.location, l)),
-      row(markLang.influence, symbol.influence.translate(fairwayLang.zones)),
-      row(markLang.owner, symbol.ownerName(specialWords))
+      symbol.influence.fold(empty)(i => row(markLang.influence, i.translate(fairwayLang.zones))),
+      row(markLang.owner, symbol.ownerName(specialWords)),
+      symbol.extraInfo1.fold(empty)(e1 => row(markLang.extraInfo1, e1)),
+      symbol.extraInfo2.fold(empty)(e2 => row(markLang.extraInfo2, e2))
     )
 
   def fairway(fairway: FairwayArea, more: Modifier*) =

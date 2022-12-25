@@ -313,9 +313,11 @@ case class MinimalMarineSymbol(
   nameSe: Option[String],
   locationFi: Option[String],
   locationSe: Option[String],
-  influence: ZoneOfInfluence,
+  influence: Option[ZoneOfInfluence],
   trafficMarkType: Option[TrafficMarkType],
-  limit: Option[Double]
+  limit: Option[Double],
+  extraInfo1: Option[String],
+  extraInfo2: Option[String]
 ) extends SymbolLike
   with Owned:
   def speed: Option[SpeedM] =
@@ -330,9 +332,11 @@ object MinimalMarineSymbol:
       nameSe <- c.downField("NIMIR").as[Option[String]](nonEmptyOpt)
       locationFi <- c.downField("SIJAINTIS").as[Option[String]](nonEmptyOpt)
       locationSe <- c.downField("SIJAINTIR").as[Option[String]](nonEmptyOpt)
-      influence <- c.downField("VAIKUTUSAL").as[ZoneOfInfluence]
+      influence <- c.downField("VAIKUTUSAL").as[Option[ZoneOfInfluence]]
       markType <- c.downField("VLM_LAJI").as[Option[TrafficMarkType]]
       limit <- c.downField("RA_ARVO").as[Option[Double]]
+      extraInfo1 <- c.downField("LISATIETOS").as[Option[String]](nonEmptyOpt)
+      extraInfo2 <- c.downField("LISATIETOR").as[Option[String]](nonEmptyOpt)
     yield MinimalMarineSymbol(
       owner,
       nameFi,
@@ -341,7 +345,9 @@ object MinimalMarineSymbol:
       locationSe,
       influence,
       markType,
-      limit
+      limit,
+      extraInfo1,
+      extraInfo2
     )
 
 case class DepthArea(minDepth: DistanceM, maxDepth: DistanceM)

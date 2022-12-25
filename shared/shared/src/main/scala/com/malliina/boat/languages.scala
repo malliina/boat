@@ -544,7 +544,9 @@ case class MarkLang(
   flotation: FlotationLang,
   lit: String,
   yes: String,
-  no: String
+  no: String,
+  extraInfo1: String,
+  extraInfo2: String
 )
 
 object MarkLang:
@@ -1150,7 +1152,9 @@ object Lang:
       flotation = FlotationLang.en,
       lit = "Lit",
       yes = "Yes",
-      no = "No"
+      no = "No",
+      extraInfo1 = "Extra info 1",
+      extraInfo2 = "Extra info 2"
     ),
     ais = AisLang(
       draft = "Draft",
@@ -1311,7 +1315,9 @@ object Lang:
       flotation = FlotationLang.fi,
       lit = "Valaistu",
       yes = "Kyllä",
-      no = "Ei"
+      no = "Ei",
+      extraInfo1 = "Lisätieto 1",
+      extraInfo2 = "Lisätieto 2"
     ),
     ais = AisLang(
       draft = "Syväys",
@@ -1477,7 +1483,9 @@ object Lang:
       flotation = FlotationLang.se,
       lit = "Belyst",
       yes = "Ja",
-      no = "Nej"
+      no = "Nej",
+      extraInfo1 = "Extra info 1",
+      extraInfo2 = "Extra info 2"
     ),
     ais = AisLang(
       draft = "Djupgående",
