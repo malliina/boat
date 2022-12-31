@@ -21,7 +21,13 @@ class AISRenderer(val map: MapboxMap, val log: BaseLogger = BaseLogger.console)
   def info(mmsi: Mmsi): Either[ErrorMessage, VesselInfo] =
     vessels.get(mmsi).flatMap(_.headOption).toRight(ErrorMessage(s"MMSI not found: '$mmsi'."))
 
-  def locationData = FeatureCollection(
+  def search(text: String): List[VesselInfo] =
+    vessels.values
+      .flatMap(_.headOption)
+      .filter(_.name.name.toLowerCase.contains(text.toLowerCase))
+      .toList
+
+  private def locationData = FeatureCollection(
     vessels.values
       .flatMap(_.headOption)
       .map { v =>
@@ -32,7 +38,7 @@ class AISRenderer(val map: MapboxMap, val log: BaseLogger = BaseLogger.console)
       .toList
   )
 
-  def trailData = FeatureCollection(
+  private def trailData = FeatureCollection(
     vessels.values
       .map(_.drop(1))
       .map { trail =>
@@ -58,7 +64,7 @@ class AISRenderer(val map: MapboxMap, val log: BaseLogger = BaseLogger.console)
       Layer.line(AisTrailLayer, trailData, minzoom = Option(10))
     )
 
-  def initHover(id: String): Unit = map.onHover(id)(
+  private def initHover(id: String): Unit = map.onHover(id)(
     in =>
       map
         .queryRendered(in.point, QueryOptions.layer(id))

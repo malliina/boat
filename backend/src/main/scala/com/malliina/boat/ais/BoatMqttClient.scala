@@ -6,7 +6,7 @@ import cats.effect.std.Dispatcher
 import cats.effect.syntax.all.*
 import cats.syntax.all.{toFlatMapOps, toFunctorOps}
 import com.malliina.boat.ais.BoatMqttClient.{AisPair, log, pass, user}
-import com.malliina.boat.{AISMessage, AppMode, Locations, Metadata, Mmsi, StatusTopic, TimeFormatter, VesselLocation, VesselMetadata, VesselStatus}
+import com.malliina.boat.{AISMessage, AppMode, Locations, Metadata, Mmsi, StatusTopic, TimeFormatter, VesselInfo, VesselLocation, VesselMetadata, VesselStatus}
 import com.malliina.http.FullUrl
 import com.malliina.util.AppLogger
 import fs2.Stream
@@ -55,13 +55,15 @@ object BoatMqttClient:
   def test[F[_]: Async](d: Dispatcher[F]): Resource[F, BoatMqttClient[F]] =
     url(TestUrl, AllDataTopic, d)
 
-  def silent[F[_]: Async]: F[AISSource[F]] = Sync[F].delay {
+  private def silent[F[_]: Async]: F[AISSource[F]] = Sync[F].delay {
     log.info("AIS is disabled.")
     SilentAISSource[F]
   }
 
-  def url[F[_]: Async](url: FullUrl, topic: String, d: Dispatcher[F])(implicit
-    t: Temporal[F]
+  def url[F[_]: Async](
+    url: FullUrl,
+    topic: String,
+    d: Dispatcher[F]
   ): Resource[F, BoatMqttClient[F]] =
     val build: F[BoatMqttClient[F]] = for
       interrupter <- SignallingRef[F, Boolean](false)
@@ -75,7 +77,7 @@ object BoatMqttClient:
 
   case class AisPair(location: VesselLocation, meta: VesselMetadata):
     def when = Instant.ofEpochMilli(location.timestamp)
-    def toInfo(formatter: TimeFormatter) = location.toInfo(meta, formatter.timing(when))
+    def toInfo(formatter: TimeFormatter): VesselInfo = location.toInfo(meta, formatter.timing(when))
 
 /** Locally caches vessel metadata, then merges it with location data as it is received.
   *
@@ -90,8 +92,7 @@ class BoatMqttClient[F[_]: Async](
   messagesTopic: Topic[F, List[AisPair]],
   interrupter: SignallingRef[F, Boolean],
   d: Dispatcher[F]
-)(implicit t: Temporal[F])
-  extends AISSource[F]:
+) extends AISSource[F]:
   val F = Sync[F]
   private val metadata = TrieMap.empty[Mmsi, VesselMetadata]
 

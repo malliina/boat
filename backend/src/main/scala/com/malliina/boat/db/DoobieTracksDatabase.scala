@@ -6,6 +6,7 @@ import cats.implicits.*
 import com.malliina.boat.InviteState.accepted
 import com.malliina.boat.http.{BoatQuery, SortOrder, TrackQuery}
 import com.malliina.boat.*
+import com.malliina.boat.db.DoobieTracksDatabase.log
 import com.malliina.measure.{DistanceM, SpeedM}
 import com.malliina.util.AppLogger
 import com.malliina.values.Username
@@ -32,7 +33,7 @@ object DoobieTracksDatabase:
       else acc :+ sc.c.toFull(Seq(sc.s), formatter)
     }
 
-  def collectTrackCoords(rows: Seq[TrackCoord], language: Language): Seq[CoordsEvent] =
+  private def collectTrackCoords(rows: Seq[TrackCoord], language: Language): Seq[CoordsEvent] =
     val start = System.currentTimeMillis()
     val formatter = TimeFormatter(language)
     val result = rows.foldLeft(Vector.empty[CoordsEvent]) { case (acc, tc) =>
@@ -66,17 +67,12 @@ class DoobieTracksDatabase[F[_]: Async](val db: DoobieDatabase[F])
   with StatsSource[F]:
   import DoobieMappings.*
   import db.logHandler
-
+  val F = Async[F]
   object sql extends CommonSql:
     def pointsByTrack(name: TrackName) =
       sql"""select $pointColumns
             from points p, tracks t 
             where p.track = t.id and t.name = $name"""
-
-    def pointsByTrackId(id: TrackId) =
-      sql"""select $pointColumns
-            from points p
-            where p.track = $id"""
     def pointsByTime(name: TrackName) =
       val selectPoints = pointsByTrack(name)
       sql"""$selectPoints order by p.boat_time asc"""
@@ -109,8 +105,8 @@ class DoobieTracksDatabase[F[_]: Async](val db: DoobieDatabase[F])
       val limits = filter.limits
       sql"""$unsorted order by $sortColumns limit ${limits.limit} offset ${limits.offset}"""
 
-  val boatsView = sql.boats.query[JoinedBoat].to[List]
-  val topView = sql.topRows.query[TrackPointRow].to[List]
+  private val boatsView = sql.boats.query[JoinedBoat].to[List]
+  private val topView = sql.topRows.query[TrackPointRow].to[List]
 
   def hm: F[Option[SpeedM]] = run {
     sql"select avg(boat_speed) from points p where p.boat_speed >= 100 having avg(boat_speed) is not null"
@@ -133,7 +129,7 @@ class DoobieTracksDatabase[F[_]: Async](val db: DoobieDatabase[F])
     statsIO(user, filter, lang)
   }
 
-  def statsIO(user: MinimalUserInfo, filter: TrackQuery, lang: Lang) =
+  private def statsIO(user: MinimalUserInfo, filter: TrackQuery, lang: Lang) =
     val tracks = sql.tracksByUser(user.username)
     val zeroDistance = DistanceM.zero
     val zeroDuration: FiniteDuration = 0.seconds
@@ -261,25 +257,28 @@ class DoobieTracksDatabase[F[_]: Async](val db: DoobieDatabase[F])
       .query[JoinedTrack]
       .to[List]
     eligible.flatMap { ts =>
-      val conditions = Fragments.whereAndOpt(
-        ts.map(_.track).distinct.toNel.map(ids => Fragments.in(fr"p.track", ids)),
-        limits.from.map(f => fr"p.added >= $f"),
-        limits.to.map(t => fr"p.added <= $t")
-      )
-      sql"""${sql.selectAllPoints} 
-             $conditions 
-             order by p.track_index desc 
-             limit ${limits.limit} 
-             offset ${limits.offset}"""
-        .query[TrackPointRow]
-        .to[List]
-        .map { ps =>
-          val tracksById = ts.groupBy(_.track)
-          val coords = ps.flatMap { pointRow =>
-            tracksById.get(pointRow.track).map { ts => TrackCoord(ts.head, pointRow) }
+      if ts.isEmpty then List.empty[CoordsEvent].pure[ConnectionIO]
+      else
+        val conditions = Fragments.whereAndOpt(
+          ts.map(_.track).distinct.toNel.map(ids => Fragments.in(fr"p.track", ids)),
+          limits.from.map(f => fr"p.added >= $f"),
+          limits.to.map(t => fr"p.added <= $t")
+        )
+        sql"""${sql.selectAllPoints}
+               $conditions
+               order by p.track_index desc
+               limit ${limits.limit}
+               offset ${limits.offset}"""
+          .query[TrackPointRow]
+          .to[List]
+          .map { ps =>
+            val tracksById = ts.groupBy(_.track)
+            val coords = ps.flatMap { pointRow =>
+              tracksById.get(pointRow.track).map { ts => TrackCoord(ts.head, pointRow) }
+            }
+            DoobieTracksDatabase.collectTrackCoords(coords, user.language)
           }
-          DoobieTracksDatabase.collectTrackCoords(coords, user.language)
-        }
+
     }
   }
 
@@ -293,7 +292,7 @@ class DoobieTracksDatabase[F[_]: Async](val db: DoobieDatabase[F])
     tracksForIO(user, filter)
   }
 
-  def tracksForIO(user: MinimalUserInfo, filter: TrackQuery) =
+  private def tracksForIO(user: MinimalUserInfo, filter: TrackQuery) =
     val formatter = TimeFormatter(user.language)
     sql
       .tracksFor(user.username, filter)

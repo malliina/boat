@@ -1,21 +1,21 @@
 package com.malliina.boat
 
-import com.malliina.boat.ShipType._
+import com.malliina.boat.ShipType.*
 import com.malliina.json.PrimitiveFormats
 import com.malliina.measure.{DistanceM, SpeedM}
 import com.malliina.values.{IdCompanion, StringCompanion, WrappedId, WrappedString}
 
-import io.circe._
-import io.circe.generic.semiauto._
+import io.circe.*
+import io.circe.generic.semiauto.*
 import scala.concurrent.duration.{Duration, FiniteDuration}
 
-/**
-  * @see https://help.marinetraffic.com/hc/en-us/articles/205579997-What-is-the-significance-of-the-AIS-Shiptype-number-
+/** @see
+  *   https://help.marinetraffic.com/hc/en-us/articles/205579997-What-is-the-significance-of-the-AIS-Shiptype-number-
   */
-sealed abstract class ShipType(val code: Int) {
-  def name(lang: ShipTypesLang): String = {
+sealed abstract class ShipType(val code: Int):
+  def name(lang: ShipTypesLang): String =
     val special = lang.special
-    this match {
+    this match
       case WingInGround(_)         => lang.wingInGround
       case SearchAndRescueAircraft => lang.searchAndRescueAircraft
       case Fishing                 => special.fishing
@@ -39,11 +39,8 @@ sealed abstract class ShipType(val code: Int) {
       case Tanker(_)               => lang.tanker
       case Other(_)                => lang.other
       case Unknown(_)              => lang.unknown
-    }
-  }
-}
 
-object ShipType {
+object ShipType:
   val MaxKnown = 89
 
   implicit val json: Codec[ShipType] = Codec.from(
@@ -75,7 +72,7 @@ object ShipType {
   case class Other(n: Int) extends ShipType(n)
   case class Unknown(n: Int) extends ShipType(n)
 
-  def apply(i: Int): ShipType = i match {
+  def apply(i: Int): ShipType = i match
     case n if n >= 20 && n <= 28              => WingInGround(n)
     case 29                                   => SearchAndRescueAircraft
     case 30                                   => Fishing
@@ -99,13 +96,10 @@ object ShipType {
     case n if n >= 80 && n <= 89              => Tanker(n)
     case n if n >= 90 && n <= 99              => Other(n)
     case n                                    => Unknown(n)
-  }
-}
 
 sealed abstract class PosType(val name: String)
 
-object PosType {
-
+object PosType:
   case object Undefined extends PosType("Undefined")
   case object Gps extends PosType("GPS")
   case object Glonass extends PosType("GLONASS")
@@ -118,7 +112,7 @@ object PosType {
   case object InternalGNSS extends PosType("Internal GNSS")
   case class Other(i: Int) extends PosType(s"Pos $i")
 
-  def apply(i: Int): PosType = i match {
+  def apply(i: Int): PosType = i match
     case 0  => Undefined
     case 1  => Gps
     case 2  => Glonass
@@ -130,14 +124,11 @@ object PosType {
     case 8  => Galileo
     case 15 => InternalGNSS
     case n  => Other(n)
-  }
-}
 
 case class Mmsi(id: Long) extends WrappedId
 
-object Mmsi extends IdCompanion[Mmsi] {
+object Mmsi extends IdCompanion[Mmsi]:
   val Key = "mmsi"
-}
 
 case class VesselInfo(
   mmsi: Mmsi,
@@ -155,19 +146,17 @@ case class VesselInfo(
   time: Timing
 )
 
-object VesselInfo {
+object VesselInfo:
   val HeadingKey = "heading"
   implicit val df: Codec[Duration] = PrimitiveFormats.durationCodec
   implicit val json: Codec[VesselInfo] = deriveCodec[VesselInfo]
-}
 
 sealed trait AISMessage
 
-sealed trait VesselMessage extends AISMessage {
+sealed trait VesselMessage extends AISMessage:
   def mmsi: Mmsi
 
   def timestamp: Long
-}
 
 case class VesselLocation(
   mmsi: Mmsi,
@@ -176,7 +165,7 @@ case class VesselLocation(
   cog: Double,
   heading: Option[Int],
   timestamp: Long
-) extends VesselMessage {
+) extends VesselMessage:
   def toInfo(meta: VesselMetadata, time: Timing) = VesselInfo(
     mmsi,
     meta.name,
@@ -192,36 +181,30 @@ case class VesselLocation(
     time.dateTime,
     time
   )
-}
 
-object VesselLocation {
+object VesselLocation:
 
   import com.malliina.measure.{SpeedDoubleM, DistanceDoubleM}
   import MaritimeJson.nonEmptyOpt
   implicit val json: Codec[VesselLocation] = deriveCodec[VesselLocation]
-  val readerGeoJson: Decoder[VesselLocation] = new Decoder[VesselLocation] {
-    final def apply(c: HCursor): Decoder.Result[VesselLocation] =
-      for {
-        mmsi <- c.downField("mmsi").as[Mmsi]
-        coord <- c.downField("geometry").downField("coordinates").as[Coord](Coord.jsonArray)
-        props <- c.downField("properties").as[Json]
-        propsCursor = props.hcursor
-        sog <- propsCursor.downField("sog").as[Double].map(_.knots)
-        cog <- propsCursor.downField("cog").as[Double]
-        heading <-
-          propsCursor.downField("heading").as[Int].map { h => if (h == 511) None else Option(h) }
-        timestamp <- propsCursor.downField("timestampExternal").as[Long]
-      } yield VesselLocation(mmsi, coord, sog, cog, heading, timestamp)
-  }
-}
+  val readerGeoJson: Decoder[VesselLocation] = (c: HCursor) =>
+    for
+      mmsi <- c.downField("mmsi").as[Mmsi]
+      coord <- c.downField("geometry").downField("coordinates").as[Coord](Coord.jsonArray)
+      props <- c.downField("properties").as[Json]
+      propsCursor = props.hcursor
+      sog <- propsCursor.downField("sog").as[Double].map(_.knots)
+      cog <- propsCursor.downField("cog").as[Double]
+      heading <-
+        propsCursor.downField("heading").as[Int].map { h => if h == 511 then None else Option(h) }
+      timestamp <- propsCursor.downField("timestampExternal").as[Long]
+    yield VesselLocation(mmsi, coord, sog, cog, heading, timestamp)
 
-case class VesselName(name: String) extends WrappedString {
+case class VesselName(name: String) extends WrappedString:
   override def value = name
-}
 
-object VesselName extends StringCompanion[VesselName] {
+object VesselName extends StringCompanion[VesselName]:
   val Key = "name"
-}
 
 case class VesselMetadata(
   name: VesselName,
@@ -235,64 +218,54 @@ case class VesselMetadata(
   callSign: String
 ) extends VesselMessage
 
-object VesselMetadata {
+object VesselMetadata:
   implicit val df: Codec[Duration] = PrimitiveFormats.durationCodec
   implicit val json: Codec[VesselMetadata] = deriveCodec[VesselMetadata]
-  val readerGeoJson: Decoder[VesselMetadata] = new Decoder[VesselMetadata] {
-    final def apply(c: HCursor): Decoder.Result[VesselMetadata] =
-      for {
-        name <- c.downField("name").as[VesselName]
-        mmsi <- c.downField("mmsi").as[Mmsi]
-        timestamp <- c.downField("timestamp").as[Long]
-        imo <- c.downField("imo").as[Long]
-        eta <- c.downField("eta").as[Long]
-        draft <- c.downField("draught").as[Int].map { int =>
-          DistanceM(int.toDouble / 10)
-        }
-        destination <- c.downField("destination").as[String].map { s =>
-          if (s.trim.nonEmpty) Option(s.trim) else None
-        }
-        shipType <- c.downField("shipType").as[Int].map { int => ShipType(int) }
-        callSign <- c.downField("callSign").as[String]
-      } yield VesselMetadata(
-        name,
-        mmsi,
-        timestamp,
-        imo,
-        eta,
-        draft,
-        destination,
-        shipType,
-        callSign
-      )
-  }
-}
+  val readerGeoJson: Decoder[VesselMetadata] = (c: HCursor) =>
+    for
+      name <- c.downField("name").as[VesselName]
+      mmsi <- c.downField("mmsi").as[Mmsi]
+      timestamp <- c.downField("timestamp").as[Long]
+      imo <- c.downField("imo").as[Long]
+      eta <- c.downField("eta").as[Long]
+      draft <- c.downField("draught").as[Int].map { int =>
+        DistanceM(int.toDouble / 10)
+      }
+      destination <- c.downField("destination").as[String].map { s =>
+        if s.trim.nonEmpty then Option(s.trim) else None
+      }
+      shipType <- c.downField("shipType").as[Int].map { int => ShipType(int) }
+      callSign <- c.downField("callSign").as[String]
+    yield VesselMetadata(
+      name,
+      mmsi,
+      timestamp,
+      imo,
+      eta,
+      draft,
+      destination,
+      shipType,
+      callSign
+    )
 
 case class VesselStatus(json: Json) extends AISMessage
 
-object VesselStatus {
+object VesselStatus:
   implicit val decoder: Decoder[VesselStatus] = Decoder.decodeJson.map { json =>
     VesselStatus(json)
   }
-}
 
-object Locations {
-  def unapply(in: String): Boolean = {
-    if (in.startsWith("vessels/") && in.endsWith("/locations")) true
+object Locations:
+  def unapply(in: String): Boolean =
+    if in.startsWith("vessels/") && in.endsWith("/locations") then true
     else false
-  }
-}
 
-object Metadata {
-  def unapply(in: String): Boolean = {
-    if (in.startsWith("vessels/") && in.endsWith("/metadata")) true
+object Metadata:
+  def unapply(in: String): Boolean =
+    if in.startsWith("vessels/") && in.endsWith("/metadata") then true
     else false
-  }
-}
 
-object StatusTopic {
-  def unapply(in: String): Boolean = {
-    if (in == "vessels/status") true
+object StatusTopic:
+  def unapply(in: String): Boolean =
+    if in == "vessels/status" then true
     else false
-  }
-}

@@ -14,7 +14,7 @@ trait CommonSql:
           where b.owner = u.id"""
   def boatsByToken(token: BoatToken) = sql"""$boats and b.token = $token""".query[JoinedBoat].option
   def boatsById(id: DeviceId) = sql"$boats and b.id = $id".query[JoinedBoat].unique
-  val topPoints =
+  private val topPoints =
     sql"""select winners.track track, min(winners.id) point
           from (select p.id, p.track
                 from points p,
@@ -26,7 +26,7 @@ trait CommonSql:
           from points p"""
   val topRows =
     sql"""$selectAllPoints where p.id in (select point from ($topPoints) fastestPoints)"""
-  val minMaxTimes =
+  private val minMaxTimes =
     sql"""select track,
                  min(boat_time)                                        start,
                  max(boat_time)                                        end,
