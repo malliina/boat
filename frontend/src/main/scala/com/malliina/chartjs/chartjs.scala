@@ -24,28 +24,100 @@ object StackedAxes:
     literal(stacked = stacked).asInstanceOf[StackedAxes]
 
 @js.native
+trait ChartTitle extends js.Object:
+  def display: Boolean = js.native
+  def text: String = js.native
+
+object ChartTitle:
+  def apply(display: Boolean, text: String): ChartTitle =
+    literal(display = display, text = text).asInstanceOf[ChartTitle]
+
+@js.native
 trait Axes extends js.Object:
+  def title: ChartTitle = js.native
   def ticks: TickOptions = js.native
 
 object Axes:
-  def apply(ticks: TickOptions): Axes =
-    literal(ticks = ticks).asInstanceOf[Axes]
+  def apply(title: ChartTitle, ticks: TickOptions): Axes =
+    literal(title = title, ticks = ticks).asInstanceOf[Axes]
 
 @js.native
 trait Scales extends js.Object:
-  def yAxes: js.Array[Axes] = js.native
+  def y: js.UndefOr[Axes] = js.native
 
 object Scales:
-  def apply(yAxes: Seq[Axes]): Scales =
-    literal(yAxes = yAxes.toJSArray).asInstanceOf[Scales]
+  def apply(y: Option[Axes]): Scales =
+    y.fold(literal())(spec => literal(y = spec)).asInstanceOf[Scales]
+
+@js.native
+trait ChartLegend extends js.Object:
+  def display: Boolean = js.native
+
+object ChartLegend:
+  def apply(display: Boolean): ChartLegend = literal(display = display).asInstanceOf[ChartLegend]
+
+@js.native
+trait TooltipContext extends js.Object:
+  def chart: js.Any = js.native
+  def tooltip: js.Any = js.native
+
+@js.native
+trait ChartTooltip extends js.Object:
+  def enabled: Boolean = js.native
+  def position: String = js.native
+  def external: js.Function1[TooltipContext, Any] = js.native
+
+object ChartTooltip:
+  val Average = "average"
+  val Nearest = "nearest"
+
+  def apply(
+    enabled: Boolean,
+    external: TooltipContext => Any,
+    position: String = Nearest
+  ): ChartTooltip =
+    literal(enabled = enabled, external = external, position = position).asInstanceOf[ChartTooltip]
+
+@js.native
+trait ChartPlugins extends js.Object:
+  def title: ChartTitle
+  def legend: ChartLegend
+  def tooltip: ChartTooltip
+
+object ChartPlugins:
+  def configure(
+    title: ChartTitle,
+    legend: Boolean,
+    tooltip: Boolean,
+    external: TooltipContext => Any
+  ): ChartPlugins =
+    apply(title, ChartLegend(legend), ChartTooltip(tooltip, external))
+
+  def apply(title: ChartTitle, legend: ChartLegend, tooltip: ChartTooltip): ChartPlugins =
+    literal(title = title, legend = legend, tooltip = tooltip).asInstanceOf[ChartPlugins]
 
 @js.native
 trait ChartOptions extends js.Object:
   def scales: Scales = js.native
+  def responsive: Boolean = js.native
+  def maintainAspectRatio: Boolean = js.native
+  def plugins: ChartPlugins = js.native
 
 object ChartOptions:
-  def apply(scales: Scales = Scales(Nil)): ChartOptions =
-    literal(scales = scales).asInstanceOf[ChartOptions]
+  def apply(
+    plugins: ChartPlugins,
+//    scales: Scales = Scales(Option(Axes(AxesTitle(true, "Knots or Depth"), TickOptions()))),
+    scales: Scales = Scales(None),
+    responsive: Boolean = true,
+    maintainAspectRatio: Boolean = true
+  ): ChartOptions =
+    literal(
+      plugins = plugins,
+      scales = scales,
+      responsive = responsive,
+      maintainAspectRatio = maintainAspectRatio
+    )
+      .asInstanceOf[ChartOptions]
 
 @js.native
 trait DataSet extends js.Object:
@@ -111,7 +183,14 @@ object ChartSpecs:
   def apply(
     typeValue: String,
     data: ChartData,
-    options: ChartOptions = ChartOptions()
+    options: ChartOptions = ChartOptions(
+      ChartPlugins.configure(
+        ChartTitle(false, ""),
+        true,
+        true,
+        ctx => {}
+      )
+    )
   ): ChartSpecs =
     literal(`type` = typeValue, data = data, options = options).asInstanceOf[ChartSpecs]
 
@@ -153,3 +232,7 @@ object PointElement extends js.Object
 @js.native
 @JSImport("chart.js", "CategoryScale")
 object CategoryScale extends js.Object
+
+@js.native
+@JSImport("chart.js", "Tooltip")
+object Tooltip extends js.Object

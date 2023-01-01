@@ -36,7 +36,15 @@ class ChartSocket(ctx: CanvasRenderingContext2D, track: TrackName, sample: Optio
   private val depths = dataSet(depthLabel, seaBlue)
   private val speeds = dataSet(speedLabel, red)
   private val chartData = ChartData(Nil, Seq(depths, speeds))
-  ChartObj.register(CategoryScale, LineController, LineElement, PointElement, LinearScale, Title)
+  ChartObj.register(
+    CategoryScale,
+    LineController,
+    LineElement,
+    PointElement,
+    LinearScale,
+    Title,
+    Tooltip
+  )
   private val chart = Chart(ctx, ChartSpecs.line(chartData))
 
   private def dataSet(label: String, color: String) = DataSet(

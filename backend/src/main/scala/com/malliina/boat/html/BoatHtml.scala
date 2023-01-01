@@ -199,4 +199,4 @@ class BoatHtml(
       )
     )
 
-  def versioned(file: String): Uri = assets.at(file)
+  private def versioned(file: String): Uri = assets.at(file)

@@ -75,7 +75,8 @@ class Service[F[_]: Async](comps: BoatComps[F]) extends BasicService[F]:
   private val NoChange = "No change."
 
   private val toClients: Stream[F, WebSocketFrame] = Stream.never[F]
-  val pings = Stream.awakeEvery(30.seconds).map(d => PingEvent(System.currentTimeMillis(), d))
+  private val pings =
+    Stream.awakeEvery(30.seconds).map(d => PingEvent(System.currentTimeMillis(), d))
 
   def routes(sockets: WebSocketBuilder2[F]): HttpRoutes[F] = HttpRoutes.of[F] {
     case req @ GET -> Root      => index(req)
