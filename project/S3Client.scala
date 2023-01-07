@@ -15,24 +15,24 @@ trait FileStore {
 object S3Client extends FileStore {
   val bucketName = "agent.boat-tracker.com"
 
-  val builder = AmazonS3ClientBuilder.standard().withCredentials(
-    new AWSCredentialsProviderChain(
-      new ProfileCredentialsProvider("pimp"),
-      DefaultAWSCredentialsProviderChain.getInstance()
+  val builder = AmazonS3ClientBuilder
+    .standard()
+    .withCredentials(
+      new AWSCredentialsProviderChain(
+        new ProfileCredentialsProvider("pimp"),
+        DefaultAWSCredentialsProviderChain.getInstance()
+      )
     )
-  )
   val aws = builder.withRegion(Regions.EU_WEST_1).build()
 
-  def download(key: String): S3Object = {
+  def download(key: String): S3Object =
     aws.getObject(new GetObjectRequest(bucketName, key))
-  }
 
   def upload(file: Path): String = {
     aws.putObject(new PutObjectRequest(bucketName, file.getFileName.toString, file.toFile))
     file.getFileName.toString
   }
 
-  def files(): Seq[S3ObjectSummary] = {
+  def files(): Seq[S3ObjectSummary] =
     aws.listObjects(bucketName).getObjectSummaries.asScala.toList
-  }
 }

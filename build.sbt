@@ -44,9 +44,9 @@ inThisBuild(
     Compile / doc / sources := Seq.empty,
     assemblyMergeStrategy := {
       case PathList("META-INF", "io.netty.versions.properties") => MergeStrategy.rename
-      case PathList("META-INF", "versions", xs @ _*) => MergeStrategy.first
-      case PathList("com", "malliina", xs @ _*) => MergeStrategy.first
-      case PathList("module-info.class") => MergeStrategy.first
+      case PathList("META-INF", "versions", xs @ _*)            => MergeStrategy.first
+      case PathList("com", "malliina", xs @ _*)                 => MergeStrategy.first
+      case PathList("module-info.class")                        => MergeStrategy.first
       case x =>
         val oldStrategy = (ThisBuild / assemblyMergeStrategy).value
         oldStrategy(x)
@@ -197,7 +197,8 @@ val backend = Project("boat", file("backend"))
     Compile / doc / sources := Seq.empty,
     Compile / unmanagedResourceDirectories ++= {
       val prodAssets =
-        if ((frontend / isProd).value) List((frontend / Compile / assetsRoot).value.getParent.toFile)
+        if ((frontend / isProd).value)
+          List((frontend / Compile / assetsRoot).value.getParent.toFile)
         else Nil
       (baseDirectory.value / "public") +: prodAssets
     },
