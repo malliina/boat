@@ -14,8 +14,8 @@ import tests.MUnitSuite
 import java.time.Instant
 
 class AISTests extends MUnitSuite:
-  val prodFixture = resource(Dispatcher[IO].flatMap { d => BoatMqttClient.prod(d) })
-  val testFixture = resource(Dispatcher[IO].flatMap { d =>
+  val prodFixture = resource(Dispatcher.parallel[IO].flatMap { d => BoatMqttClient.prod(d) })
+  val testFixture = resource(Dispatcher.parallel[IO].flatMap { d =>
     BoatMqttClient.url(TestUrl, MetadataTopic, d)
   })
   prodFixture.test("MqttSource".ignore) { client =>

@@ -203,7 +203,7 @@ class MapSocket(
             case e: Exception =>
               log.error(
                 s"Unable to fit using ${bs.getSouthWest()} ${bs.getNorthWest()} ${bs
-                  .getNorthEast()} ${bs.getSouthEast()}",
+                    .getNorthEast()} ${bs.getSouthEast()}",
                 e
               )
         }

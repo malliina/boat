@@ -7,9 +7,7 @@ import com.malliina.boat.http4s.Reverse
 import com.malliina.boat.{BoatIds, BoatNames, BoatRef, Emails, Forms, InviteState, UserInfo}
 import com.malliina.values.WrappedId
 import scalatags.Text
-//import scalatags.Text.tags._
-//import scalatags.Text.attrs.{Modifier => _, _}
-import scalatags.Text.all._
+import scalatags.Text.all.*
 import scalatags.text.Builder
 
 import scala.language.implicitConversions

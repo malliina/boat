@@ -14,10 +14,11 @@ import com.malliina.boat.html.BoatHtml
 import com.malliina.boat.http4s.Implicits.circeJsonEncoder
 import com.malliina.boat.http4s.Service.BoatComps
 import com.malliina.boat.push.{BoatPushService, PushEndpoint}
-import com.malliina.boat.{AppMeta, AppMode, BoatConf, BuildInfo, Errors, S3Client, SingleError}
+import com.malliina.boat.{AppMeta, AppMode, BoatConf, BuildInfo, Errors, Logging, S3Client, SingleError}
 import com.malliina.http.HttpClient
 import com.malliina.http.io.HttpClientIO
-import com.malliina.logback.{LogbackUtils, LogstreamsUtils}
+import com.malliina.logback.LogbackUtils
+import com.malliina.logstreams.client.LogstreamsUtils
 import com.malliina.util.AppLogger
 import com.malliina.web.*
 import org.http4s.ember.server.EmberServerBuilder
@@ -60,7 +61,7 @@ class ProdAppComps[F[+_]: Sync](conf: BoatConf, http: HttpClient[F]) extends App
     )
 
 object Server extends IOApp:
-  LogstreamsUtils.prepLogging()
+  Logging.init()
   private val log = AppLogger(getClass)
 
   private val port: Port =
@@ -90,9 +91,9 @@ object Server extends IOApp:
 
   def appService[F[+_]: Async](conf: BoatConf, builder: AppCompsBuilder): Resource[F, Service[F]] =
     for
-      dispatcher <- Dispatcher[F]
+      dispatcher <- Dispatcher.parallel[F]
       http <- HttpClientIO.resource[F]
-      _ <- Resource.eval(LogstreamsUtils.install(dispatcher, http))
+      _ <- Resource.eval(Logging.install(dispatcher, http))
       db <- DoobieDatabase.init(conf.db)
       users = DoobieUserManager(db)
       _ <- Resource.eval(users.initUser())

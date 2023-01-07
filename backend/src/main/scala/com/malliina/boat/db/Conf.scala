@@ -14,5 +14,5 @@ object Conf:
   val UserKey = "user"
   val PassKey = "pass"
   val DriverKey = "driver"
-  val MySQLDriver = "com.mysql.jdbc.Driver"
+  val MySQLDriver = "com.mysql.cj.jdbc.Driver"
   val DefaultDriver = MySQLDriver
