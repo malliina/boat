@@ -12,7 +12,7 @@ val testContainersScalaVersion = "0.40.12"
 val scalaTagsVersion = "0.12.0"
 val primitiveVersion = "3.4.0"
 val logstreamsVersion = "2.5.0"
-val http4sVersion = "0.23.17"
+val http4sVersion = "0.23.18"
 val logbackVersion = "1.4.5"
 val circeVersion = "0.14.3"
 // Do not upgrade to 11.0.2 because it depends on slf4j-api alpha versions, breaking logging
@@ -94,7 +94,7 @@ val frontend = project
   .settings(boatSettings)
   .settings(
     libraryDependencies ++= Seq(
-      "org.scala-js" %%% "scalajs-dom" % "2.1.0",
+      "org.scala-js" %%% "scalajs-dom" % "2.3.0",
       "org.scalameta" %%% "munit" % munitVersion % Test
     ),
     Compile / npmDependencies ++= Seq(
