@@ -339,12 +339,13 @@ object TrackInput:
       TrackCanonical.fromName(name)
     )
 
-case class SentenceKey(id: Long) extends AnyVal with WrappedId
+case class VesselRowId(id: Long) extends AnyVal with WrappedId
+object VesselRowId extends BoatIdCompanion[VesselRowId]
 
+case class SentenceKey(id: Long) extends AnyVal with WrappedId
 object SentenceKey extends BoatIdCompanion[SentenceKey]
 
 case class GPSSentenceKey(id: Long) extends AnyVal with WrappedId
-
 object GPSSentenceKey extends BoatIdCompanion[GPSSentenceKey]
 
 case class GPSKeyedSentence(key: GPSSentenceKey, sentence: RawSentence, from: DeviceId)

@@ -7,7 +7,7 @@ import cats.effect.syntax.all.*
 import cats.syntax.all.{toFlatMapOps, toFunctorOps}
 import com.malliina.boat.ais.BoatMqttClient.{AisPair, log, pass, user}
 import com.malliina.boat.ais.MqttStream.MqttPayload
-import com.malliina.boat.{AISMessage, AppMode, Locations, Metadata, Mmsi, StatusTopic, TimeFormatter, VesselInfo, VesselLocation, VesselMetadata, VesselStatus}
+import com.malliina.boat.{AISMessage, AppMode, Locations, LocationsV2, Metadata, MetadataV2, Mmsi, MmsiVesselLocation, MmsiVesselMetadata, StatusTopic, TimeFormatter, VesselInfo, VesselLocation, VesselLocationV2, VesselMetadata, VesselMetadataV2, VesselStatus}
 import com.malliina.http.FullUrl
 import com.malliina.util.AppLogger
 import fs2.Stream
@@ -34,7 +34,7 @@ object BoatMqttClient:
   val user = "digitraffic"
   val pass = "digitrafficPassword"
 
-  val AllDataTopic = "vessels/#"
+  val AllDataTopic = "vessels-v2/#"
   val MetadataTopic = "vessels/+/metadata"
 
   val TestUrl = FullUrl.wss("meri-test.digitraffic.fi:61619", "/mqtt")
@@ -76,7 +76,7 @@ object BoatMqttClient:
       _ <- Stream.emit(()).concurrently(client.publisher).compile.resource.lastOrError
     yield client
 
-  case class AisPair(location: VesselLocation, meta: VesselMetadata):
+  case class AisPair(location: MmsiVesselLocation, meta: MmsiVesselMetadata):
     def when = Instant.ofEpochMilli(location.timestamp)
     def toInfo(formatter: TimeFormatter): VesselInfo = location.toInfo(meta, formatter.timing(when))
 
@@ -95,7 +95,7 @@ class BoatMqttClient[F[_]: Async](
   d: Dispatcher[F]
 ) extends AISSource[F]:
   val F = Sync[F]
-  private val metadata = TrieMap.empty[Mmsi, VesselMetadata]
+  private val metadata = TrieMap.empty[Mmsi, MmsiVesselMetadata]
   private val maxBatchSize = 300
   private val sendTimeWindow = 5.seconds
   private val backoffTime = 30.seconds
@@ -128,7 +128,12 @@ class BoatMqttClient[F[_]: Async](
   private val parsed: Stream[F, Either[Error, AISMessage]] =
     exponential.map { msg =>
       val str = msg.payloadString
+      val mmsiResult = msg.mmsi.left.map(e => DecodingFailure(e.message, Nil))
       msg.topic match
+        case LocationsV2() =>
+          decode[VesselLocationV2](str).flatMap(loc => mmsiResult.map(mmsi => loc.withMmsi(mmsi)))
+        case MetadataV2() =>
+          decode[VesselMetadataV2](str).flatMap(meta => mmsiResult.map(mmsi => meta.withMmsi(mmsi)))
         case Locations()   => decode[VesselLocation](str)(VesselLocation.readerGeoJson)
         case Metadata()    => decode[VesselMetadata](str)(VesselMetadata.readerGeoJson)
         case StatusTopic() => decode[VesselStatus](str)
@@ -137,20 +142,19 @@ class BoatMqttClient[F[_]: Async](
   val vesselMessages: Stream[F, AisPair] = parsed.flatMap {
     case Right(msg) =>
       msg match
-        case loc: VesselLocation =>
-          metadata
-            .get(loc.mmsi)
-            .map { meta => Stream(AisPair(loc, meta)) }
-            .getOrElse {
-              // Drops location updates for which there is no vessel metadata
-              Stream.empty
-            }
-        case vm: VesselMetadata =>
-          metadata.update(vm.mmsi, vm)
+        case locv2: MmsiVesselLocation =>
+          // Drops location updates for which there is no vessel metadata
+          metadata.get(locv2.mmsi).map(meta => Stream(AisPair(locv2, meta))).getOrElse(Stream.empty)
+        case meta: MmsiVesselMetadata =>
+          metadata.update(meta.mmsi, meta)
           Stream.empty
-        case _ =>
+        case VesselStatus(_) => Stream.empty
+        case other =>
+          log.info(s"Ignoring $other.")
           Stream.empty
-    case Left(_) => Stream.empty
+    case Left(e) =>
+      log.warn(s"Failed to decode AIS JSON.", e)
+      Stream.empty
   }
   private val internalMessages =
     vesselMessages.groupWithin(maxBatchSize, sendTimeWindow).map(_.toList)

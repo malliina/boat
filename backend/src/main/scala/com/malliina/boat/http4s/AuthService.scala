@@ -28,7 +28,7 @@ class AuthService[F[_]: Sync](val users: IdentityManager[F], comps: AuthComps[F]
   val googleFlow = comps.googleFlow
   val microsoftFlow = comps.microsoftFlow
   val appleWebFlow = comps.appleWebFlow
-  val appSiwa: SIWADatabase[F] = SIWADatabase(comps.appleAppFlow, users, comps.customJwt)
+  private val appSiwa: SIWADatabase[F] = SIWADatabase(comps.appleAppFlow, users, comps.customJwt)
   val webSiwa: SIWADatabase[F] = SIWADatabase(comps.appleWebFlow, users, comps.customJwt)
 
   def delete(headers: Headers, now: Instant): F[List[RevokeResult]] =
@@ -49,7 +49,7 @@ class AuthService[F[_]: Sync](val users: IdentityManager[F], comps: AuthComps[F]
 
   def profile(req: Request[F]): F[UserInfo] = profile(req.headers)
 
-  def profileMini(headers: Headers): F[MinimalUserInfo] =
+  private def profileMini(headers: Headers): F[MinimalUserInfo] =
     profile(headers).map(ui => ui: MinimalUserInfo)
 
   def profile(headers: Headers, now: Instant = Instant.now()): F[UserInfo] =
@@ -75,7 +75,7 @@ class AuthService[F[_]: Sync](val users: IdentityManager[F], comps: AuthComps[F]
 
   def typical(headers: Headers) = minimal(headers, mce => F.raiseError(mce))
 
-  def minimal(headers: Headers, onFail: MissingCredentialsException => F[MinimalUserInfo]) =
+  private def minimal(headers: Headers, onFail: MissingCredentialsException => F[MinimalUserInfo]) =
     profileMini(headers).handleErrorWith {
       case mce: MissingCredentialsException => settings(headers).map(F.pure).getOrElse(onFail(mce))
       case other                            => F.raiseError(other)
@@ -105,7 +105,7 @@ class AuthService[F[_]: Sync](val users: IdentityManager[F], comps: AuthComps[F]
       F.pure(SimpleBoatMeta(Usernames.anon, boatName): DeviceMeta)
     }
 
-  def boatToken(headers: Headers): Option[F[JoinedBoat]] =
+  private def boatToken(headers: Headers): Option[F[JoinedBoat]] =
     headers.get(CIString(BoatTokenHeader)).map { h =>
       users.authBoat(BoatToken(h.head.value))
     }

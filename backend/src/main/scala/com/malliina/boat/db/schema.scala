@@ -1,11 +1,12 @@
 package com.malliina.boat.db
 
 import java.time.Instant
-import com.malliina.boat.{Boat, BoatName, BoatPrimitives, BoatRef, BoatToken, CombinedCoord, DateVal, DeviceId, FormattedDateTime, FriendInvite, FriendRef, GPSPointRow, InviteState, JoinedBoat, JoinedTrack, Language, MonthVal, TimeFormatter, TimedCoord, TrackCanonical, TrackId, TrackName, TrackPointId, TrackPointRow, TrackTitle, UserToken, YearVal}
+import com.malliina.boat.{Boat, BoatName, BoatPrimitives, BoatRef, BoatToken, CombinedCoord, Coord, DateVal, DeviceId, FormattedDateTime, FriendInvite, FriendRef, GPSPointRow, InviteState, JoinedBoat, JoinedTrack, Language, Mmsi, MonthVal, TimeFormatter, TimedCoord, TrackCanonical, TrackId, TrackName, TrackPointId, TrackPointRow, TrackTitle, UserToken, VesselName, VesselRowId, YearVal}
 import com.malliina.measure.{DistanceM, SpeedM, Temperature}
 import com.malliina.values.{Email, UserId, Username}
 import io.circe.*
 import io.circe.generic.semiauto.*
+
 import scala.concurrent.duration.FiniteDuration
 
 case class BoatRow(id: DeviceId, name: BoatName, token: BoatToken, owner: UserId, added: Instant):
@@ -147,3 +148,19 @@ case class JoinedUser(
 )
 
 case class JoinedGPS(point: GPSPointRow, device: JoinedBoat)
+
+case class VesselRow(
+  id: VesselRowId,
+  mmsi: Mmsi,
+  name: VesselName,
+  coord: Coord,
+  sog: SpeedM,
+  cog: Double,
+  draft: DistanceM,
+  destination: Option[String],
+  heading: Option[Int],
+  eta: Long,
+  added: Instant
+)
+object VesselRow:
+  implicit val json: Codec[VesselRow] = deriveCodec[VesselRow]

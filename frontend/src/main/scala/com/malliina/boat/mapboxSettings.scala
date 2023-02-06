@@ -1,5 +1,6 @@
 package com.malliina.boat
 
+import org.scalajs.dom.document
 import org.scalajs.dom.window.localStorage
 import io.circe.*
 import io.circe.generic.semiauto.*
@@ -14,18 +15,28 @@ case class MapCamera(center: Coord, zoom: Double, timestampMs: Double = Date.now
 object MapCamera:
   implicit val json: Codec[MapCamera] = deriveCodec[MapCamera]
 
-  def default: MapCamera = MapCamera(Coord(lng = Longitude(24.9), lat = Latitude(60.14)), 13)
+  private val center =
+    for
+      center <- Option(document.getElementById(FrontKeys.Center))
+      lng <- Option(center.getAttribute(s"data-${FrontKeys.Lng}")).flatMap(_.toDoubleOption)
+      lat <- Option(center.getAttribute(s"data-${FrontKeys.Lat}")).flatMap(_.toDoubleOption)
+    yield Coord(Longitude(lng), Latitude(lat))
+  private val defaultCenter = Coord(lng = Longitude(24.9), lat = Latitude(60.14))
 
-  def apply(): MapCamera = MapSettings.load().getOrElse(default)
+  private def default: MapCamera = MapCamera(center.getOrElse(defaultCenter), 13)
+  def apply(): MapCamera = MapSettings.load(center).getOrElse(default)
 
 object MapSettings:
-  val settingsKey = "map-settings"
+  private val settingsKey = "map-settings"
 
-  def load(): Either[Object, MapCamera] = for
+  def load(center: Option[Coord]): Either[Object, MapCamera] = for
     str <- Option(localStorage.getItem(settingsKey)).toRight(s"Item not found: '$settingsKey'.")
     json <- parse(str)
     settings <- json.as[MapCamera]
-  yield settings
+  yield settings.copy(
+    center = center.getOrElse(settings.center),
+    zoom = center.map(_ => 12d).getOrElse(settings.zoom)
+  )
 
   def save(settings: MapCamera): Unit =
     localStorage.setItem(settingsKey, settings.asJson.noSpaces)

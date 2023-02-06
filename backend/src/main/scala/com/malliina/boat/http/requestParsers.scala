@@ -3,8 +3,10 @@ package com.malliina.boat.http
 import cats.effect.IO
 import cats.implicits.*
 import com.malliina.boat.http4s.QueryParsers
-import com.malliina.boat.{Constants, Coord, Errors, Latitude, Longitude, RouteRequest, SingleError, TrackCanonical, TrackName}
+import com.malliina.boat.{Constants, Coord, Errors, Latitude, Longitude, Mmsi, RouteRequest, SingleError, TrackCanonical, TrackName, VesselName}
 import com.malliina.values.{Email, ErrorMessage}
+import io.circe.Codec
+import io.circe.generic.semiauto.deriveCodec
 import org.http4s.{Headers, Query, QueryParamDecoder, Request}
 
 import java.time.Instant
@@ -90,6 +92,34 @@ abstract class EnumLike[T <: Named]:
         )
       }
 
+case class VesselQuery(
+  names: Seq[VesselName],
+  mmsis: Seq[Mmsi],
+  time: TimeRange,
+  limits: Limits
+):
+  private def describeNames = if names.isEmpty then "" else s"names ${names.mkString(", ")} "
+  private def describeMmsis = if mmsis.isEmpty then "" else s"mmsis ${mmsis.mkString(", ")} "
+  private def describeTime = if time.isEmpty then "" else s"time ${time.describe} "
+  private def describeLimits = s"limit ${limits.limit} offset ${limits.offset}"
+  def describe =
+    s"$describeNames$describeMmsis$describeTime$describeLimits"
+object VesselQuery:
+  implicit val json: Codec[VesselQuery] = deriveCodec[VesselQuery]
+
+  implicit val mmsiDecoder: QueryParamDecoder[Mmsi] =
+    QueryParsers.decoder[Mmsi](Mmsi.parse)
+  implicit val nameDecoder: QueryParamDecoder[VesselName] =
+    QueryParsers.decoder[VesselName](VesselName.build)
+
+  def query(q: Query): Either[Errors, VesselQuery] =
+    for
+      name <- QueryParsers.list[VesselName](VesselName.Key, q)
+      mmsi <- QueryParsers.list[Mmsi](Mmsi.Key, q)
+      limits <- Limits(q)
+      time <- TimeRange(q)
+    yield VesselQuery(name, mmsi, time, limits)
+
 /** @param tracks
   *   tracks to return
   * @param newest
@@ -113,9 +143,9 @@ case class BoatQuery(
   def to = timeRange.to
 
 object BoatQuery:
-  val NewestKey = "newest"
-  val SampleKey = "sample"
-  val DefaultSample = Constants.DefaultSample
+  private val NewestKey = "newest"
+  private val SampleKey = "sample"
+  private val DefaultSample = Constants.DefaultSample
   implicit val bindTrack: QueryParamDecoder[TrackName] =
     QueryParamDecoder.stringQueryParamDecoder.map(s => TrackName(s))
   implicit val bindCanonical: QueryParamDecoder[TrackCanonical] =
@@ -155,13 +185,13 @@ object BoatQuery:
       newest <- bindNewest(q, default = true)
     yield BoatQuery(limits, timeRange, tracks, canonicals, route, sample, newest)
 
-  def bindSeq[T: QueryParamDecoder](key: String, q: Query) =
+  private def bindSeq[T: QueryParamDecoder](key: String, q: Query) =
     QueryParsers.list[T](key, q)
 
-  def bindNewest(q: Query, default: Boolean) =
+  private def bindNewest(q: Query, default: Boolean) =
     QueryParsers.parseOrDefault[Boolean](q, NewestKey, default)
 
-  def bindRouteRequest(q: Query): Either[Errors, Option[RouteRequest]] =
+  private def bindRouteRequest(q: Query): Either[Errors, Option[RouteRequest]] =
     val optEither = for
       lng1 <- readLongitude("lng1", q)
       lat1 <- readLatitude("lat1", q)
@@ -179,13 +209,13 @@ object BoatQuery:
       Right(None)
     }
 
-  def readLongitude(key: String, q: Query) =
+  private def readLongitude(key: String, q: Query) =
     transformDouble(key, q)(Longitude.build)
 
-  def readLatitude(key: String, q: Query) =
+  private def readLatitude(key: String, q: Query) =
     transformDouble(key, q)(Latitude.build)
 
-  def transformDouble[T](key: String, q: Query)(
+  private def transformDouble[T](key: String, q: Query)(
     transform: Double => Either[ErrorMessage, T]
   ) =
     readDouble(key, q).map { e =>
@@ -196,7 +226,7 @@ object BoatQuery:
       }
     }
 
-  def readDouble(key: String, q: Query): Option[Either[Errors, Double]] =
+  private def readDouble(key: String, q: Query): Option[Either[Errors, Double]] =
     QueryParsers.parseOpt[Double](q, key)
 
 trait LimitLike:
@@ -211,7 +241,7 @@ object Limits:
   val Offset = "offset"
 
   val DefaultLimit = 100000
-  val DefaultOffset = 0
+  private val DefaultOffset = 0
 
   val default = Limits(DefaultLimit, DefaultOffset)
 
@@ -224,11 +254,17 @@ object Limits:
       offset <- QueryParsers.parseOrDefault(q, Offset, DefaultOffset)
     yield Limits(limit, offset)
 
-case class TimeRange(from: Option[Instant], to: Option[Instant])
+case class TimeRange(from: Option[Instant], to: Option[Instant]):
+  def isEmpty = from.isEmpty && to.isEmpty
+  def describe = (from, to) match
+    case (Some(f), Some(t)) => s"$f - $t"
+    case (None, Some(t))    => s"- $t"
+    case (Some(f), None)    => s"$f -"
+    case other              => ""
 
 object TimeRange:
-  val From = "from"
-  val To = "to"
+  private val From = "from"
+  private val To = "to"
 
   val none = TimeRange(None, None)
 
@@ -244,9 +280,10 @@ object TimeRange:
       to <- bindInstant(To, q)
     yield TimeRange(from, to)
 
-  val instantDecoder = QueryParamDecoder.instantQueryParamDecoder(DateTimeFormatter.ISO_INSTANT)
+  private val instantDecoder =
+    QueryParamDecoder.instantQueryParamDecoder(DateTimeFormatter.ISO_INSTANT)
 
-  def bindInstant(key: String, q: Query): Either[Errors, Option[Instant]] =
+  private def bindInstant(key: String, q: Query): Either[Errors, Option[Instant]] =
     QueryParsers.parseOptE[Instant](q, key)(instantDecoder)
 
   def parseInstant(in: String): Either[SingleError, Instant] =

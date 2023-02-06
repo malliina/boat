@@ -2,7 +2,7 @@ package com.malliina.boat.db
 
 import java.time.{Instant, LocalDate}
 import com.malliina.boat.parsing.GPSFix
-import com.malliina.boat.{BoatName, BoatToken, Coord, CoordHash, DateVal, DeviceId, FairwayLighting, GPSPointId, GPSSentenceKey, InviteState, Language, Latitude, Longitude, MobileDevice, MonthVal, PushId, PushToken, RawSentence, SeaArea, SentenceKey, TrackCanonical, TrackId, TrackName, TrackPointId, TrackTitle, UserToken, YearVal}
+import com.malliina.boat.{BoatName, BoatToken, Coord, CoordHash, DateVal, DeviceId, FairwayLighting, GPSPointId, GPSSentenceKey, InviteState, Language, Latitude, Longitude, MobileDevice, MonthVal, PushId, PushToken, RawSentence, SeaArea, SentenceKey, TrackCanonical, TrackId, TrackName, TrackPointId, TrackTitle, UserToken, VesselRowId, YearVal}
 import com.malliina.measure.{DistanceM, SpeedDoubleM, SpeedM, Temperature}
 import com.malliina.values.*
 import com.vividsolutions.jts.geom.Point
@@ -30,6 +30,7 @@ trait DoobieMappings:
     Meta[Int].timap(FairwayLighting.fromInt)(FairwayLighting.toInt)
   implicit val rs: Meta[RawSentence] = wrapped(RawSentence.apply)
   implicit val ti: Meta[TrackId] = wrappedId(TrackId.apply)
+  implicit val vr: Meta[VesselRowId] = wrappedId(VesselRowId.apply)
   implicit val fi: Meta[FairwayId] = wrappedId(FairwayId.apply)
   implicit val fci: Meta[FairwayCoordId] = wrappedId(FairwayCoordId.apply)
   implicit val tn: Meta[TrackName] = wrapped(TrackName.apply)

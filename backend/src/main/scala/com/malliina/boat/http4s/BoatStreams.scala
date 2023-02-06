@@ -3,8 +3,9 @@ package com.malliina.boat.http4s
 import cats.effect.kernel.Resource
 import cats.effect.{Async, Concurrent, IO, Sync}
 import cats.syntax.all.{catsSyntaxApplicativeError, toFlatMapOps, toFunctorOps}
+import cats.syntax.all.catsSyntaxFlatMapOps
 import com.malliina.boat.ais.AISSource
-import com.malliina.boat.db.TrackInsertsDatabase
+import com.malliina.boat.db.{TrackInsertsDatabase, VesselDatabase}
 import com.malliina.boat.http4s.BoatStreams.{log, rights}
 import com.malliina.boat.parsing.*
 import com.malliina.boat.{BoatEvent, BoatJsonError, CoordsEvent, EmptyEvent, FrontEvent, InputEvent, PingEvent, SentencesMessage, TimeFormatter, VesselMessages}
@@ -17,18 +18,24 @@ object BoatStreams:
 
   def resource[F[_]: Async](
     db: TrackInsertsDatabase[F],
+    aisDb: VesselDatabase[F],
     ais: AISSource[F]
   ): Resource[F, BoatStreams[F]] =
     for
-      streams <- Resource.eval(build[F](db, ais))
+      streams <- Resource.eval(build[F](db, aisDb, ais))
       _ <- Stream.emit(()).concurrently(streams.publisher).compile.resource.lastOrError
+      _ <- Stream.emit(()).concurrently(streams.saveableAis).compile.resource.lastOrError
     yield streams
 
-  def build[F[_]: Async](db: TrackInsertsDatabase[F], ais: AISSource[F]): F[BoatStreams[F]] =
+  def build[F[_]: Async](
+    db: TrackInsertsDatabase[F],
+    aisDb: VesselDatabase[F],
+    ais: AISSource[F]
+  ): F[BoatStreams[F]] =
     for
       in <- Topic[F, InputEvent]
       saved <- Topic[F, SavedEvent]
-    yield BoatStreams(db, ais, in, saved)
+    yield BoatStreams(db, aisDb, ais, in, saved)
 
   def rights[F[_], L, R](src: fs2.Stream[F, Either[L, R]]): fs2.Stream[F, R] = src.flatMap { e =>
     e.fold(l => fs2.Stream.empty, r => fs2.Stream(r))
@@ -36,6 +43,7 @@ object BoatStreams:
 
 class BoatStreams[F[_]: Async](
   db: TrackInsertsDatabase[F],
+  aisDb: VesselDatabase[F],
   ais: AISSource[F],
   val boatIn: Topic[F, InputEvent],
   saved: Topic[F, SavedEvent]
@@ -58,7 +66,7 @@ class BoatStreams[F[_]: Async](
         }
     }
   val sentences = rights(sentencesSource)
-  val emittable = sentences
+  private val emittable = sentences
     .mapAsync(1) { s =>
       db.saveSentences(s).map { keyed =>
         BoatParser.parseMulti(keyed).toList.flatMap { s =>
@@ -68,11 +76,21 @@ class BoatStreams[F[_]: Async](
       }
     }
     .flatMap { list => Stream.emits(list) }
-  val inserted = emittable
+  private val inserted = emittable
     .mapAsync(1) { coord =>
       saveRecovered(coord)
     }
     .flatMap { list => Stream.emits(list) }
+  val saveableAis = ais.slow.map { pairs =>
+    VesselMessages(pairs.map(_.toInfo(TimeFormatter.en)))
+  }.mapAsync(1) { batch =>
+    F.delay(log.debug(s"Handling batch of ${batch.vessels.length} vessel events.")) >> aisDb.save(
+      batch.vessels
+    )
+  }.flatMap { list => Stream.emits(list) }
+    .handleErrorWith { t =>
+      Stream.eval(F.delay(log.error(s"Failed to insert AIS batch. Aborting.", t))) >> Stream.empty
+    }
   val publisher = inserted.evalMap { i =>
     saved.publish1(i)
   }

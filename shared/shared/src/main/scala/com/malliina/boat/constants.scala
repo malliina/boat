@@ -46,6 +46,10 @@ trait FrontKeys extends BodyClasses with ListKeys with NavKeys with AboutKeys:
   val Invisible = "invisible"
   val Visible = "visible"
 
+  val Center = "center"
+  val Lng = "lng"
+  val Lat = "lat"
+
 trait AboutKeys:
   val LanguageRadios = "language-radios"
 

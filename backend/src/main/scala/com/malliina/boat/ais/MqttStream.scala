@@ -4,8 +4,10 @@ import cats.effect.kernel.Resource
 import cats.effect.std.Dispatcher
 import cats.effect.{Async, Concurrent, Sync}
 import cats.syntax.all.*
+import com.malliina.boat.Mmsi
 import com.malliina.boat.ais.MqttStream.{MqttPayload, log}
 import com.malliina.util.AppLogger
+import com.malliina.values.ErrorMessage
 import fs2.concurrent.{SignallingRef, Topic}
 import fs2.Stream
 import org.eclipse.paho.client.mqttv3.*
@@ -26,6 +28,13 @@ object MqttStream:
 
   case class MqttPayload(topic: String, payload: Array[Byte]):
     lazy val payloadString = new String(payload, StandardCharsets.UTF_8)
+    private val prefix = "vessels-v2/"
+    private val suffixes = Seq("/location", "/metadata")
+    val mmsi = suffixes
+      .find(s => topic.endsWith(s) && topic.startsWith(prefix))
+      .map(s => topic.drop(prefix.length).dropRight(s.length))
+      .toRight(ErrorMessage(s"No Mmsi in '$topic'."))
+      .flatMap(str => Mmsi.parse(str))
 
 private class MqttStream[F[_]: Async](
   settings: MqttSettings,
@@ -50,7 +59,7 @@ private class MqttStream[F[_]: Async](
         (),
         new IMqttActionListener:
           override def onSuccess(asyncActionToken: IMqttToken): Unit =
-            log.info(s"Connected to '$broker'.")
+            log.info(s"Connected to '$broker'. Subscribing to '${settings.topic}'...")
             client.subscribe(settings.topic, settings.qos.level)
             cb(Right(asyncActionToken))
 

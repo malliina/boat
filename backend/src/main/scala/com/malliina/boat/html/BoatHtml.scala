@@ -4,12 +4,13 @@ import com.malliina.boat.FrontKeys.*
 import com.malliina.boat.html.BoatHtml.ScriptAssets
 import com.malliina.boat.http.{Limits, TrackQuery}
 import com.malliina.boat.http4s.Reverse
-import com.malliina.boat.{AppConf, AppMode, BuildInfo, FullTrack, Lang, TrackRef, TracksBundle, UserBoats, UserInfo, Usernames}
+import com.malliina.boat.{AppConf, AppMode, BuildInfo, Coord, FrontKeys, FullTrack, Lang, TrackRef, TracksBundle, UserBoats, UserInfo, Usernames}
 import com.malliina.html.HtmlTags.{cssLink, deviceWidthViewport, fullUrl, titleTag}
 import com.malliina.html.{Bootstrap, HtmlTags}
 import com.malliina.http.FullUrl
 import com.malliina.live.LiveReload
 import com.malliina.measure.DistanceM
+import com.malliina.util.AppLogger
 import com.malliina.values.WrappedString
 import org.http4s.Uri
 import scalatags.Text.all.*
@@ -64,7 +65,7 @@ class BoatHtml(
   def chart(track: TrackRef, lang: BoatLang) =
     page(Charts.chart(track, lang))
 
-  def map(ub: UserBoats) =
+  def map(ub: UserBoats, center: Option[Coord] = None) =
     val lang = BoatLang(ub.language)
     val about = About(lang.web, lang.lang.profile)
     val user = ub.user
@@ -73,6 +74,13 @@ class BoatHtml(
     page(
       PageConf(
         modifier(
+          center.fold(modifier()) { coord =>
+            span(
+              id := FrontKeys.Center,
+              data(FrontKeys.Lng) := coord.lng.lng,
+              data(FrontKeys.Lat) := coord.lat.lat
+            )
+          },
           ub.boats.headOption.map { b =>
             modifier(
               div(id := "navbar", `class` := "navbar navbar-boat py-1")(
@@ -135,7 +143,7 @@ class BoatHtml(
       )
     )
 
-  def routeContainer = div(id := RoutesContainer, `class` := RoutesContainer)(
+  private def routeContainer = div(id := RoutesContainer, `class` := RoutesContainer)(
     span(id := RouteLength, `class` := "nav-text route-length")(""),
     span(id := RouteText, `class` := "nav-text route-text")("")
   )
@@ -145,13 +153,13 @@ class BoatHtml(
     else if d.toMeters >= 10 then s"${d.toMeters.toInt} m"
     else s"${d.toMillis.toInt} mm"
 
-  def standaloneQuestion(cls: String) =
+  private def standaloneQuestion(cls: String) =
     fontAwesomeLink(span, Question, "question", cls, "About")
 
-  def personIcon(cls: String) =
+  private def personIcon(cls: String) =
     fontAwesomeLink(a, PersonLink, "user", cls, "Sign in", href := reverse.signIn)
 
-  def fontAwesomeLink(
+  private def fontAwesomeLink(
     tag: ConcreteHtmlTag[String],
     idValue: String,
     faIcon: String,

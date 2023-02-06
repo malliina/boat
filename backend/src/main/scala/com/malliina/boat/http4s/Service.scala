@@ -45,6 +45,7 @@ object Service:
   case class BoatComps[F[_]](
     html: BoatHtml,
     db: TracksSource[F],
+    vessels: VesselDatabase[F],
     inserts: TrackInsertsDatabase[F],
     stats: StatsSource[F],
     auth: AuthService[F],
@@ -234,12 +235,21 @@ class Service[F[_]: Async](comps: BoatComps[F]) extends BasicService[F]:
         }
       }
     case req @ GET -> Root / "tracks" / TrackNameVar(trackName) / "chart" =>
-      authedLimited(req).flatMap { authed =>
-        val lang = authed.user.language
-        db.ref(trackName, lang).flatMap { ref =>
-          ok(html.chart(ref, BoatLang(lang)))
-        }
-      }
+      for
+        authed <- authedLimited(req)
+        lang = authed.user.language
+        ref <- db.ref(trackName, lang)
+        response <- ok(html.chart(ref, BoatLang(lang)))
+      yield response
+    case req @ GET -> Root / "vessels" =>
+      for
+        authed <- authedQuery(req, VesselQuery.query)
+        rows <- comps.vessels.load(authed.query)
+        response <- respond(req)(
+          json = ok(rows),
+          html = ok(html.map(authed.user.userBoats, rows.headOption.map(_.coord)))
+        )
+      yield response
     case req @ GET -> Root / "stats" =>
       authedQuery(req, TrackQuery.apply).flatMap { authed =>
         comps.stats.stats(authed.user, authed.query, BoatLang(authed.user.language).lang).flatMap {
@@ -434,10 +444,10 @@ class Service[F[_]: Async](comps: BoatComps[F]) extends BasicService[F]:
       )
   }
 
-  def parseUnsafe(message: String) =
+  private def parseUnsafe(message: String) =
     parse(message).fold(err => throw Exception(s"Not JSON: '$message'."), identity)
 
-  object forms:
+  private object forms:
     import Readables.*
     def invite(form: FormReader) = for
       boat <- form.read[DeviceId](Forms.Boat)
@@ -595,7 +605,7 @@ class Service[F[_]: Async](comps: BoatComps[F]) extends BasicService[F]:
   private def authedTrackQuery(req: Request[F]): F[BoatRequest[TrackQuery, MinimalUserInfo]] =
     authedAndParsed(req, auth.typical, TrackQuery.apply)
 
-  private def authedQuery[T, U](
+  private def authedQuery[T](
     req: Request[F],
     query: Query => Either[Errors, T]
   ): F[BoatRequest[T, UserInfo]] =
@@ -762,8 +772,8 @@ class Service[F[_]: Async](comps: BoatComps[F]) extends BasicService[F]:
     log.warn(error.message.message)
     unauthorized(Errors(s"Unauthorized."))
 
-  def unauthorized(errors: Errors) = redirectToLogin
-  def redirectToLogin = SeeOther(Location(reverse.signIn))
+  private def unauthorized(errors: Errors) = redirectToLogin
+  private def redirectToLogin = SeeOther(Location(reverse.signIn))
 
   def unauthorizedEnd(errors: Errors) =
     Unauthorized(

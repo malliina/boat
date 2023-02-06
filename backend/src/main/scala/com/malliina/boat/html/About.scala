@@ -86,7 +86,7 @@ class About(lang: WebLang, profile: ProfileLang) extends AboutKeys:
 
   case class RadioOptions(id: String, value: String, label: String, checked: Boolean)
 
-  def radios(groupName: String, rs: Seq[RadioOptions]) =
+  private def radios(groupName: String, rs: Seq[RadioOptions]) =
     div(`class` := "language-form")(rs.map { radio =>
       div(`class` := "form-check form-check-inline")(
         input(

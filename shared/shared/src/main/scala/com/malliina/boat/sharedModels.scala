@@ -418,6 +418,7 @@ case class UserInfo(
   friends: Seq[FriendInvite]
 ) extends EmailUser:
   override val authorized: Seq[BoatName] = boats.map(_.name) ++ invites.map(_.boat.name)
+  def userBoats = UserBoats(username, language, Nil) // Nil is wrong, but fine for now
 
 object UserInfo:
   implicit val json: Codec[UserInfo] = deriveCodec[UserInfo]

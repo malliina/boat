@@ -14,25 +14,20 @@ trait QueryParsers:
     parseOpt[T](q, key)
       .getOrElse(Left(Errors(s"Query key not found: '$key'.")))
 
-  def parseOpt[T](q: Query, key: String)(implicit
-    dec: QueryParamDecoder[T]
-  ): Option[Either[Errors, T]] =
+  def parseOpt[T: QueryParamDecoder](q: Query, key: String): Option[Either[Errors, T]] =
     q.params.get(key).map { g =>
       parseValue[T](g)
     }
 
-  def parseOptE[T](q: Query, key: String)(implicit
-    dec: QueryParamDecoder[T]
-  ): Either[Errors, Option[T]] = parseOpt(q, key).map { e => e.map { t => Option(t) } }.getOrElse {
-    Right(None)
-  }
+  def parseOptE[T: QueryParamDecoder](q: Query, key: String): Either[Errors, Option[T]] =
+    parseOpt(q, key).map(e => e.map(t => Option(t))).getOrElse(Right(None))
 
   def decoder[T](validate: String => Either[ErrorMessage, T]): QueryParamDecoder[T] =
     QueryParamDecoder.stringQueryParamDecoder.emap { s =>
       validate(s).left.map { err => parseFailure(err.message) }
     }
 
-  def list[T](key: String, q: Query)(implicit dec: QueryParamDecoder[T]): Either[Errors, Seq[T]] = {
+  def list[T: QueryParamDecoder](key: String, q: Query): Either[Errors, Seq[T]] = {
     q.multiParams.get(key).map { list =>
       val results = list.map { s =>
         parseValue[T](s)
@@ -51,4 +46,4 @@ trait QueryParsers:
       elem.flatMap { ok => acc.map(rs => rs :+ ok) }
     }
 
-  def parseFailure(message: String) = ParseFailure(message, message)
+  private def parseFailure(message: String) = ParseFailure(message, message)

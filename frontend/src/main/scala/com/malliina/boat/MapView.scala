@@ -15,7 +15,7 @@ object MapView extends CookieNames:
   def readCookie(key: String): Either[NotFound, String] =
     cookies.get(key).toRight(NotFound(key))
 
-  def cookies: Map[String, String] = URIUtils
+  private def cookies: Map[String, String] = URIUtils
     .decodeURIComponent(document.cookie)
     .split(";")
     .toList
@@ -30,8 +30,8 @@ class MapView(
 ) extends BaseFront:
   mapboxGl.accessToken = accessToken.token
 
-  val initialSettings = MapCamera()
-  val mapOptions = MapOptions(
+  private val initialSettings = MapCamera()
+  private val mapOptions = MapOptions(
     container = MapId,
     style = MapConf.active.styleUrl,
     center = initialSettings.center,
@@ -39,11 +39,11 @@ class MapView(
     hash = true
   )
   val map = MapboxMap(mapOptions)
-  val geocoder = MapboxGeocoder.finland(accessToken)
+  private val geocoder = MapboxGeocoder.finland(accessToken)
   val pathFinder = PathFinder(map)
   val settings = MapSettings
-  val SearchKey = "s"
-  val DirectionsKey = "d"
+  private val SearchKey = "s"
+  private val DirectionsKey = "d"
   private var isGeocoderVisible = false
 
   elemAs[HTMLDivElement](MapId).toOption.get.onkeypress = (e: KeyboardEvent) =>
@@ -98,7 +98,7 @@ class MapView(
     val prefix = if queryString.isEmpty then "" else "&"
     s"$prefix$SampleKey=${Constants.DefaultSample}"
 
-  def initModal(modal: Element): Unit =
+  private def initModal(modal: Element): Unit =
     window.addOnClick { e =>
       if e.target == modal then modal.hide()
     }
@@ -109,7 +109,7 @@ class MapView(
       q.onclick = _ => modal.show()
     }
 
-  def initNavDropdown(): Unit =
+  private def initNavDropdown(): Unit =
     initDropdown(DropdownLinkId, DropdownContentId)
     initDropdown(BoatDropdownId, BoatDropdownContentId)
     initDeviceDropdown()
@@ -136,11 +136,11 @@ class MapView(
     }
   }
 
-  def toggleClass(e: HTMLElement, className: String): Unit =
+  private def toggleClass(e: HTMLElement, className: String): Unit =
     val classList = e.classList
     if classList.contains(className) then classList.remove(className)
     else classList.add(className)
 
-  def htmlElem(id: String) = elemAs[HTMLElement](id)
+  private def htmlElem(id: String) = elemAs[HTMLElement](id)
 
   def parse[T: Encoder](t: T) = JSON.parse(t.asJson.noSpaces)

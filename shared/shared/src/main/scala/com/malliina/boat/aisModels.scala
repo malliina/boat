@@ -3,10 +3,10 @@ package com.malliina.boat
 import com.malliina.boat.ShipType.*
 import com.malliina.json.PrimitiveFormats
 import com.malliina.measure.{DistanceM, SpeedM}
-import com.malliina.values.{IdCompanion, StringCompanion, WrappedId, WrappedString}
-
+import com.malliina.values.{ErrorMessage, IdCompanion, StringCompanion, WrappedId, WrappedString}
 import io.circe.*
 import io.circe.generic.semiauto.*
+
 import scala.concurrent.duration.{Duration, FiniteDuration}
 
 /** @see
@@ -130,10 +130,13 @@ case class Mmsi(id: Long) extends WrappedId
 object Mmsi extends IdCompanion[Mmsi]:
   val Key = "mmsi"
 
+  def parse(str: String): Either[ErrorMessage, Mmsi] =
+    str.toLongOption.toRight(ErrorMessage(s"Invalid Mmsi: '$str'.")).flatMap(build)
+
 case class VesselInfo(
   mmsi: Mmsi,
   name: VesselName,
-  shipType: ShipType,
+//  shipType: ShipType,
   coord: Coord,
   sog: SpeedM,
   cog: Double,
@@ -155,8 +158,45 @@ sealed trait AISMessage
 
 sealed trait VesselMessage extends AISMessage:
   def mmsi: Mmsi
-
   def timestamp: Long
+
+case class VesselLocationV2(
+  time: Long,
+  sog: SpeedM,
+  cog: Double,
+  heading: Option[Int],
+  lon: Longitude,
+  lat: Latitude
+) extends AISMessage:
+  def coord = Coord(lon, lat)
+  def withMmsi(mmsi: Mmsi) = MmsiVesselLocation(mmsi, sog, cog, heading, coord, time * 1000)
+
+object VesselLocationV2:
+  implicit val json: Codec[VesselLocationV2] = deriveCodec[VesselLocationV2]
+
+case class MmsiVesselLocation(
+  mmsi: Mmsi,
+  sog: SpeedM,
+  cog: Double,
+  heading: Option[Int],
+  coord: Coord,
+  timestamp: Long
+) extends VesselMessage:
+  def toInfo(meta: MmsiVesselMetadata, time: Timing) = VesselInfo(
+    mmsi,
+    meta.name,
+//    meta.shipType,
+    coord,
+    sog,
+    cog,
+    meta.draft,
+    meta.destination,
+    heading,
+    meta.eta,
+    timestamp,
+    time.dateTime,
+    time
+  )
 
 case class VesselLocation(
   mmsi: Mmsi,
@@ -169,7 +209,7 @@ case class VesselLocation(
   def toInfo(meta: VesselMetadata, time: Timing) = VesselInfo(
     mmsi,
     meta.name,
-    meta.shipType,
+//    meta.shipType,
     coord,
     sog,
     cog,
@@ -183,7 +223,6 @@ case class VesselLocation(
   )
 
 object VesselLocation:
-
   import com.malliina.measure.{SpeedDoubleM, DistanceDoubleM}
   import MaritimeJson.nonEmptyOpt
   implicit val json: Codec[VesselLocation] = deriveCodec[VesselLocation]
@@ -205,6 +244,32 @@ case class VesselName(name: String) extends WrappedString:
 
 object VesselName extends StringCompanion[VesselName]:
   val Key = "name"
+
+case class VesselMetadataV2(
+  name: VesselName,
+  timestamp: Long,
+  imo: Long,
+  eta: Long,
+  draught: Double,
+  destination: Option[String],
+//  shipType: ShipType,
+  callSign: String
+) extends AISMessage:
+  private def draft = DistanceM(draught / 10d)
+  private def destinationTrimmed = destination.map(_.trim).filter(_.nonEmpty)
+  def withMmsi(mmsi: Mmsi) = MmsiVesselMetadata(mmsi, name, draft, destinationTrimmed, eta)
+
+object VesselMetadataV2:
+  implicit val json: Codec[VesselMetadataV2] = deriveCodec[VesselMetadataV2]
+
+case class MmsiVesselMetadata(
+  mmsi: Mmsi,
+  name: VesselName,
+//  shipType: ShipType,
+  draft: DistanceM,
+  destination: Option[String],
+  eta: Long
+) extends AISMessage
 
 case class VesselMetadata(
   name: VesselName,
@@ -255,6 +320,16 @@ object VesselStatus:
     VesselStatus(json)
   }
 
+object LocationsV2:
+  def unapply(in: String): Boolean =
+    if in.startsWith("vessels-v2/") && in.endsWith("/location") then true
+    else false
+
+object MetadataV2:
+  def unapply(in: String): Boolean =
+    if in.startsWith("vessels-v2/") && in.endsWith("/metadata") then true
+    else false
+
 object Locations:
   def unapply(in: String): Boolean =
     if in.startsWith("vessels/") && in.endsWith("/locations") then true
@@ -262,10 +337,10 @@ object Locations:
 
 object Metadata:
   def unapply(in: String): Boolean =
-    if in.startsWith("vessels/") && in.endsWith("/metadata") then true
+    if in.startsWith("vessels-v2/") && in.endsWith("/metadata") then true
     else false
 
 object StatusTopic:
   def unapply(in: String): Boolean =
-    if in == "vessels/status" then true
+    if in == "vessels-v2/status" then true
     else false
