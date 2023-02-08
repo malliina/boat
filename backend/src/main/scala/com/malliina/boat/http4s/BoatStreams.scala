@@ -87,7 +87,7 @@ class BoatStreams[F[_]: Async](
     F.delay(log.debug(s"Handling batch of ${batch.vessels.length} vessel events.")) >> aisDb.save(
       batch.vessels
     )
-  }.flatMap { list => Stream.emits(list) }
+  }.flatMap { list => Stream.emit(list) }
     .handleErrorWith { t =>
       Stream.eval(F.delay(log.error(s"Failed to insert AIS batch. Aborting.", t))) >> Stream.empty
     }

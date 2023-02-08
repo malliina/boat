@@ -17,7 +17,7 @@ import java.time.OffsetDateTime
 
 trait VesselDatabase[F[_]]:
   def load(query: VesselQuery): F[List[VesselRow]]
-  def save(messages: Seq[VesselInfo]): F[List[VesselRowId]]
+  def save(messages: Seq[VesselInfo]): F[Int]
 
 object BoatVesselDatabase:
   private val log = AppLogger(getClass)
@@ -51,7 +51,7 @@ class BoatVesselDatabase[F[_]: Async](db: DoobieDatabase[F])
       }
   }
 
-  override def save(messages: Seq[VesselInfo]): F[List[VesselRowId]] = db.run {
+  def save2(messages: Seq[VesselInfo]): F[List[VesselRowId]] = db.run {
     val start = System.currentTimeMillis()
     if messages.nonEmpty then
       saveStream(messages).compile.toList.map { ids =>
@@ -60,6 +60,12 @@ class BoatVesselDatabase[F[_]: Async](db: DoobieDatabase[F])
         ids
       }
     else pure(Nil)
+  }
+
+  def save(messages: Seq[VesselInfo]): F[Int] = db.run {
+    val mmsis = messages.distinctBy(msg => msg.mmsi).map(v => MmsiRow(v.mmsi, v.name, v.draft))
+    val sql = s"insert ignore into mmsis(mmsi, name, draft) values(?,?,?)"
+    Update[MmsiRow](sql).updateMany(mmsis)
   }
 
   private def saveStream(messages: Seq[VesselInfo]): fs2.Stream[ConnectionIO, VesselRowId] =
