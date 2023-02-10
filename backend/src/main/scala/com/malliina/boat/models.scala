@@ -342,6 +342,9 @@ object TrackInput:
 case class VesselRowId(id: Long) extends AnyVal with WrappedId
 object VesselRowId extends BoatIdCompanion[VesselRowId]
 
+case class AisUpdateId(id: Long) extends AnyVal with WrappedId
+object AisUpdateId extends BoatIdCompanion[AisUpdateId]
+
 case class SentenceKey(id: Long) extends AnyVal with WrappedId
 object SentenceKey extends BoatIdCompanion[SentenceKey]
 

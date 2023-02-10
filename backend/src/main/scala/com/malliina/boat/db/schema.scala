@@ -164,3 +164,33 @@ case class VesselRow(
 )
 object VesselRow:
   implicit val json: Codec[VesselRow] = deriveCodec[VesselRow]
+
+case class VesselUpdate(
+  coord: Coord,
+  sog: SpeedM,
+  cog: Double,
+  destination: Option[String],
+  heading: Option[Int],
+  eta: Long,
+  added: Instant
+)
+object VesselUpdate:
+  implicit val json: Codec[VesselUpdate] = deriveCodec[VesselUpdate]
+  def from(row: VesselRow): VesselUpdate =
+    VesselUpdate(row.coord, row.sog, row.cog, row.destination, row.heading, row.eta, row.added)
+
+case class VesselHistory(mmsi: Mmsi, name: VesselName, draft: DistanceM, updates: Seq[VesselUpdate])
+object VesselHistory:
+  implicit val json: Codec[VesselHistory] = deriveCodec[VesselHistory]
+
+object Values:
+  opaque type RowsChanged = Int
+
+  object RowsChanged:
+    def apply(i: Int): RowsChanged = i
+  extension (rc: RowsChanged) def +(other: RowsChanged): RowsChanged = RowsChanged(rc + other)
+
+  opaque type VesselUpdateId = Long
+  object VesselUpdateId:
+    def apply(id: Long): VesselUpdateId = id
+  extension (u: VesselUpdateId) def raw: Long = u

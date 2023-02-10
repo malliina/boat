@@ -1,7 +1,7 @@
 package com.malliina.boat.db
 
-import com.malliina.boat.{CoordHash, Mmsi, MobileDevice, PushId, PushToken, UserToken, Utils, VesselName}
-import com.malliina.measure.{DistanceM, Temperature}
+import com.malliina.boat.{Coord, CoordHash, Mmsi, MobileDevice, PushId, PushToken, UserToken, Utils, VesselName}
+import com.malliina.measure.{DistanceM, SpeedM, Temperature}
 import com.malliina.values.{Email, IdCompanion, RefreshToken, StringCompanion, UserId, Username, WrappedId, WrappedString}
 import com.sun.jdi.PrimitiveValue
 
@@ -45,3 +45,13 @@ case class RefreshRow(
 )
 
 case class MmsiRow(mmsi: Mmsi, name: VesselName, draft: DistanceM)
+case class MmsiUpdateRow(
+  mmsi: Mmsi,
+  coord: Coord,
+  sog: SpeedM,
+  cog: Double,
+  destination: Option[String],
+  heading: Option[Int],
+  eta: Long,
+  timestampMillis: Long
+)

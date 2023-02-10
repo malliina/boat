@@ -1,9 +1,9 @@
 create table mmsis
 (
-    mmsi        varchar(128)                              not null primary key,
-    name        varchar(191)                              not null,
-    draft       double                                    not null,
-    added       timestamp(3) default CURRENT_TIMESTAMP(3) not null
+    mmsi  varchar(128)                              not null primary key,
+    name  varchar(191)                              not null,
+    draft double                                    not null,
+    added timestamp(3) default CURRENT_TIMESTAMP(3) not null
 ) charset = utf8mb4;
 
 create index mmsis_mmsi_idx on mmsis (mmsi);
@@ -11,6 +11,7 @@ create index mmsis_name_idx on mmsis (name);
 
 create table mmsi_updates
 (
+    id          bigint auto_increment primary key,
     mmsi        varchar(128)                              not null,
     coord       point                                     not null,
     sog         double                                    not null,
