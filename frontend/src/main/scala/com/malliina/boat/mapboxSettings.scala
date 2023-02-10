@@ -10,7 +10,12 @@ import io.circe.parser.{decode, parse}
 import scala.scalajs.js.Date
 import scala.util.Try
 
-case class MapCamera(center: Coord, zoom: Double, timestampMs: Double = Date.now())
+case class MapCamera(
+  center: Coord,
+  zoom: Double,
+  customCenter: Boolean,
+  timestampMs: Double = Date.now()
+)
 
 object MapCamera:
   implicit val json: Codec[MapCamera] = deriveCodec[MapCamera]
@@ -23,7 +28,7 @@ object MapCamera:
     yield Coord(Longitude(lng), Latitude(lat))
   private val defaultCenter = Coord(lng = Longitude(24.9), lat = Latitude(60.14))
 
-  private def default: MapCamera = MapCamera(center.getOrElse(defaultCenter), 13)
+  private def default: MapCamera = MapCamera(center.getOrElse(defaultCenter), 13, false)
   def apply(): MapCamera = MapSettings.load(center).getOrElse(default)
 
 object MapSettings:
@@ -35,8 +40,9 @@ object MapSettings:
     settings <- json.as[MapCamera]
   yield settings.copy(
     center = center.getOrElse(settings.center),
-    zoom = center.map(_ => 12d).getOrElse(settings.zoom)
+    zoom = center.map(_ => 12d).getOrElse(settings.zoom),
+    customCenter = center.isDefined
   )
 
   def save(settings: MapCamera): Unit =
-    localStorage.setItem(settingsKey, settings.asJson.noSpaces)
+    localStorage.setItem(settingsKey, settings.copy(customCenter = false).asJson.noSpaces)
