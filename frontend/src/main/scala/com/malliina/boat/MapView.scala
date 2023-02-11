@@ -69,7 +69,14 @@ class MapView(
       val sample = queryInt(SampleKey).getOrElse(Constants.DefaultSample)
       socket = Option(MapSocket(map, pathFinder, readTrack, Option(sample), mode, language))
       if initialSettings.customCenter then
-        MapboxMarker(span(`class` := "marker start"), initialSettings.center, map)
+        map.putLayer(
+          Layer.symbol(
+            "custom-center",
+            pathFinder.pointFor(initialSettings.center),
+            ImageLayout("border-dot-13", `icon-size` = 1)
+          )
+        )
+//        MapboxMarker(span(`class` := "marker start"), initialSettings.center, map)
   )
 
   map.on(
