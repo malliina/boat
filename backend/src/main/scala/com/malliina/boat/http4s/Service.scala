@@ -242,7 +242,7 @@ class Service[F[_]: Async](comps: BoatComps[F]) extends BasicService[F]:
         response <- ok(html.chart(ref, BoatLang(lang)))
       yield response
     case req @ GET -> Root / "vessels" =>
-      for
+      val handler = for
         authed <- authedQuery(req, VesselQuery.query)
         rows <- comps.vessels.load(authed.query)
         response <- respond(req)(
@@ -250,6 +250,9 @@ class Service[F[_]: Async](comps: BoatComps[F]) extends BasicService[F]:
           html = ok(html.map(authed.user.userBoats, rows.headOption.map(_.coord)))
         )
       yield response
+      handler.recoverWith { case t =>
+        redirectToLogin
+      }
     case req @ GET -> Root / "stats" =>
       authedQuery(req, TrackQuery.apply).flatMap { authed =>
         comps.stats.stats(authed.user, authed.query, BoatLang(authed.user.language).lang).flatMap {

@@ -67,7 +67,15 @@ class MapView(
     () =>
       val mode = if Option(href.getFragment).isDefined then MapMode.Stay else MapMode.Fit
       val sample = queryInt(SampleKey).getOrElse(Constants.DefaultSample)
-      socket = Option(new MapSocket(map, pathFinder, readTrack, Option(sample), mode, language))
+      socket = Option(MapSocket(map, pathFinder, readTrack, Option(sample), mode, language))
+      if true then
+        map.putLayer(
+          Layer.symbol(
+            "custom-center",
+            pathFinder.pointFor(initialSettings.center),
+            ImageLayout("border-dot-13", `icon-size` = 1)
+          )
+        )
   )
 
   map.on(

@@ -18,7 +18,7 @@ class Http4sAuth[F[_]](
   val jwt: JWT,
   val cookieNames: CookieConf = CookieConf.prefixed("boat")
 ):
-  val cookiePath = Option("/")
+  private val cookiePath = Option("/")
 
   def authenticate(headers: Headers): Either[IdentityError, Username] =
     readUser(cookieNames.user, headers)
@@ -57,7 +57,7 @@ class Http4sAuth[F[_]](
     .addCookie(responseCookie(cookieNames.lastId, user.username.name))
     .addCookie(responseCookie(cookieNames.provider, provider.name))
 
-  def withUser[T: Encoder](t: T, isSecure: Boolean, res: Response[F]): res.Self =
+  private def withUser[T: Encoder](t: T, isSecure: Boolean, res: Response[F]): res.Self =
     withJwt(cookieNames.user, t, isSecure, res)
 
   def withJwt[T: Encoder](
@@ -77,7 +77,7 @@ class Http4sAuth[F[_]](
       )
     )
 
-  def responseCookie(name: String, value: String) = ResponseCookie(
+  private def responseCookie(name: String, value: String) = ResponseCookie(
     name,
     value,
     Option(HttpDate.MaxValue),
@@ -101,7 +101,7 @@ class Http4sAuth[F[_]](
       }
     yield t
 
-  def readToken(cookieName: String, headers: Headers) =
+  private def readToken(cookieName: String, headers: Headers) =
     for
       header <- headers.get[Cookie].toRight(MissingCredentials("Cookie parsing error.", headers))
       idToken <-

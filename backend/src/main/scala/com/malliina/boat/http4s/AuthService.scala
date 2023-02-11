@@ -142,5 +142,3 @@ class AuthService[F[_]: Sync](val users: IdentityManager[F], comps: AuthComps[F]
     web
       .authenticate(headers)
       .map(user => Email(user.name))
-
-  private def authOrRenewSession(headers: Headers) = authSession(headers)
