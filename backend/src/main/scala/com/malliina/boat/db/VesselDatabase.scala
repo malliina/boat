@@ -3,9 +3,10 @@ package com.malliina.boat.db
 import cats.effect.Async
 import cats.effect.syntax.all.*
 import cats.implicits.*
-import com.malliina.boat.db.BoatVesselDatabase.log
+import com.malliina.boat.db.BoatVesselDatabase.{collect, log}
+import com.malliina.boat.db.Values.{RowsChanged, VesselUpdateId}
 import com.malliina.boat.http.{Limits, TimeRange, VesselQuery}
-import com.malliina.boat.{Mmsi, VesselInfo, VesselRowId}
+import com.malliina.boat.{AisUpdateId, Mmsi, VesselInfo, VesselRowId}
 import com.malliina.util.AppLogger
 import doobie.*
 import doobie.free.preparedstatement.PreparedStatementIO
@@ -16,29 +17,40 @@ import io.circe.generic.semiauto.deriveCodec
 import java.time.OffsetDateTime
 
 trait VesselDatabase[F[_]]:
-  def load(query: VesselQuery): F[List[VesselRow]]
-  def save(messages: Seq[VesselInfo]): F[List[VesselRowId]]
+  def load(query: VesselQuery): F[List[VesselHistory]]
+  def save(messages: Seq[VesselInfo]): F[List[VesselUpdateId]]
 
 object BoatVesselDatabase:
   private val log = AppLogger(getClass)
 
+  def collect(rows: List[VesselRow]): List[VesselHistory] =
+    rows
+      .foldLeft(Vector.empty[VesselHistory]) { (acc, row) =>
+        val idx = acc.indexWhere(_.mmsi == row.mmsi)
+        val entry = VesselUpdate.from(row)
+        if idx >= 0 then
+          val old = acc(idx)
+          acc.updated(idx, old.copy(updates = old.updates :+ entry))
+        else acc :+ VesselHistory(row.mmsi, row.name, row.draft, List(entry))
+      }
+      .toList
+
 class BoatVesselDatabase[F[_]: Async](db: DoobieDatabase[F])
   extends VesselDatabase[F]
   with DoobieSQL:
-
-  override def load(query: VesselQuery): F[List[VesselRow]] = db.run {
+  override def load(query: VesselQuery): F[List[VesselHistory]] = db.run {
     val time = query.time
     val limits = query.limits
     val conditions = Fragments.whereAndOpt(
       query.names.toList.toNel.map(ns => Fragments.in(fr"v.name", ns)),
       query.mmsis.toList.toNel.map(ms => Fragments.in(fr"v.mmsi", ms)),
-      time.from.map(f => fr"v.added >= $f"),
-      time.to.map(t => fr"v.added <= $t")
+      time.from.map(f => fr"u.added >= $f"),
+      time.to.map(t => fr"u.added <= $t")
     )
     val start = System.currentTimeMillis()
-    sql"""select id, mmsi, name, coord, sog, cog, draft, destination, heading, eta, added
-          from vessels v $conditions
-          order by v.added desc
+    sql"""select u.id, v.mmsi, v.name, u.coord, u.sog, u.cog, v.draft, u.destination, u.heading, u.eta, u.added
+          from mmsis v join mmsi_updates u on v.mmsi = u.mmsi $conditions
+          order by u.added desc
           limit ${limits.limit} offset ${limits.offset}"""
       .query[VesselRow]
       .to[List]
@@ -47,20 +59,43 @@ class BoatVesselDatabase[F[_]: Async](db: DoobieDatabase[F])
         log.info(
           s"Searched for vessels with ${query.describe}. Got ${rows.length} rows in $durationMs ms."
         )
-        rows
+        collect(rows)
       }
   }
 
-  override def save(messages: Seq[VesselInfo]): F[List[VesselRowId]] = db.run {
-    val start = System.currentTimeMillis()
-    if messages.nonEmpty then
-      saveStream(messages).compile.toList.map { ids =>
-        val durationMs = System.currentTimeMillis() - start
-        log.info(s"Inserted ${ids.length} vessel rows in $durationMs ms.")
-        ids
-      }
-    else pure(Nil)
-  }
+  def save(messages: Seq[VesselInfo]): F[List[VesselUpdateId]] =
+    val io = for
+      rowCount <- saveVessels(messages)
+      ids <- saveUpdates(messages)
+    yield ids
+    db.run(io)
+
+  private def saveVessels(messages: Seq[VesselInfo]): ConnectionIO[RowsChanged] =
+    val mmsis = messages.distinctBy(msg => msg.mmsi).map(v => MmsiRow(v.mmsi, v.name, v.draft))
+    val sql = s"insert ignore into mmsis(mmsi, name, draft) values(?, ?, ?)"
+    Update[MmsiRow](sql).updateMany(mmsis).map { rows =>
+      RowsChanged(rows)
+    }
+
+  private def saveUpdates(messages: Seq[VesselInfo]): ConnectionIO[List[VesselUpdateId]] =
+    val sql =
+      s"insert into mmsi_updates(mmsi, coord, sog, cog, destination, heading, eta, vessel_time) values(?, ?, ?, ?, ?, ?, ?, ?)"
+    val rows = messages.map { msg =>
+      MmsiUpdateRow(
+        msg.mmsi,
+        msg.coord,
+        msg.sog,
+        msg.cog,
+        msg.destination,
+        msg.heading,
+        msg.eta,
+        msg.timestampMillis
+      )
+    }
+    Update[MmsiUpdateRow](sql)
+      .updateManyWithGeneratedKeys[VesselUpdateId]("id")(rows)
+      .compile
+      .toList
 
   private def saveStream(messages: Seq[VesselInfo]): fs2.Stream[ConnectionIO, VesselRowId] =
     val oneRow = (1 to 10).map(_ => "?").mkString("(", ",", ")")

@@ -1,10 +1,10 @@
 package com.malliina.boat
 
-import com.malliina.mapbox.{LngLat, MapOptions, MapboxGeocoder, MapboxMap, mapboxGl}
+import com.malliina.mapbox.{LngLat, MapOptions, MapboxGeocoder, MapboxMap, MapboxMarker, MarkerOptions, mapboxGl}
 import org.scalajs.dom.*
 import io.circe.*
 import io.circe.syntax.EncoderOps
-
+import scalatags.JsDom.all.{`class`, span, stringAttr}
 import scala.scalajs.js.{JSON, URIUtils}
 
 object MapView extends CookieNames:
@@ -68,7 +68,7 @@ class MapView(
       val mode = if Option(href.getFragment).isDefined then MapMode.Stay else MapMode.Fit
       val sample = queryInt(SampleKey).getOrElse(Constants.DefaultSample)
       socket = Option(MapSocket(map, pathFinder, readTrack, Option(sample), mode, language))
-      if true then
+      if initialSettings.customCenter then
         map.putLayer(
           Layer.symbol(
             "custom-center",
@@ -81,7 +81,7 @@ class MapView(
   map.on(
     "moveend",
     () =>
-      val camera = MapCamera(LngLat.coord(map.getCenter()), map.getZoom())
+      val camera = MapCamera(LngLat.coord(map.getCenter()), map.getZoom(), false)
       settings.save(camera)
   )
 

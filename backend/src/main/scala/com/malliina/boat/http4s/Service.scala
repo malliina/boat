@@ -247,7 +247,12 @@ class Service[F[_]: Async](comps: BoatComps[F]) extends BasicService[F]:
         rows <- comps.vessels.load(authed.query)
         response <- respond(req)(
           json = ok(rows),
-          html = ok(html.map(authed.user.userBoats, rows.headOption.map(_.coord)))
+          html = ok(
+            html.map(
+              authed.user.userBoats,
+              rows.headOption.flatMap(_.updates.headOption.map(_.coord))
+            )
+          )
         )
       yield response
       handler.recoverWith { case t =>
