@@ -1,8 +1,10 @@
 package com.malliina.boat.db
 
+import com.malliina.boat.db.Values.VesselUpdateId
+
 import java.time.{Instant, LocalDate}
 import com.malliina.boat.parsing.GPSFix
-import com.malliina.boat.{BoatName, BoatToken, Coord, CoordHash, DateVal, DeviceId, FairwayLighting, GPSPointId, GPSSentenceKey, InviteState, Language, Latitude, Longitude, MobileDevice, MonthVal, PushId, PushToken, RawSentence, SeaArea, SentenceKey, TrackCanonical, TrackId, TrackName, TrackPointId, TrackTitle, UserToken, VesselRowId, YearVal}
+import com.malliina.boat.{AisUpdateId, BoatName, BoatToken, Coord, CoordHash, DateVal, DeviceId, FairwayLighting, GPSPointId, GPSSentenceKey, InviteState, Language, Latitude, Longitude, MobileDevice, MonthVal, PushId, PushToken, RawSentence, SeaArea, SentenceKey, TrackCanonical, TrackId, TrackName, TrackPointId, TrackTitle, UserToken, VesselRowId, YearVal}
 import com.malliina.measure.{DistanceM, SpeedDoubleM, SpeedM, Temperature}
 import com.malliina.values.*
 import com.vividsolutions.jts.geom.Point
@@ -31,6 +33,8 @@ trait DoobieMappings:
   implicit val rs: Meta[RawSentence] = wrapped(RawSentence.apply)
   implicit val ti: Meta[TrackId] = wrappedId(TrackId.apply)
   implicit val vr: Meta[VesselRowId] = wrappedId(VesselRowId.apply)
+  implicit val aui: Meta[AisUpdateId] = wrappedId(AisUpdateId.apply)
+  implicit val ui: Meta[VesselUpdateId] = Meta[Long].timap(VesselUpdateId.apply)(_.raw)
   implicit val fi: Meta[FairwayId] = wrappedId(FairwayId.apply)
   implicit val fci: Meta[FairwayCoordId] = wrappedId(FairwayCoordId.apply)
   implicit val tn: Meta[TrackName] = wrapped(TrackName.apply)
@@ -62,10 +66,10 @@ trait DoobieMappings:
   implicit val sk: Meta[SentenceKey] = wrappedId(SentenceKey.apply)
   implicit val gsk: Meta[GPSSentenceKey] = wrappedId(GPSSentenceKey.apply)
 
-  def wrapped[T <: WrappedString](build: String => T): Meta[T] =
+  private def wrapped[T <: WrappedString](build: String => T): Meta[T] =
     Meta[String].timap(build)(_.value)
 
-  def wrappedId[T <: WrappedId](build: Long => T): Meta[T] =
+  private def wrappedId[T <: WrappedId](build: Long => T): Meta[T] =
     Meta[Long].timap(build)(_.id)
 
   private def toCoord(point: Point): Coord =
