@@ -9,10 +9,10 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
-      - name: Set up Scala
-        uses: olafurpg/setup-scala@v11
+      - uses: actions/setup-java@v3
         with:
-          java-version: "adopt@1.11"
+          distribution: 'zulu'
+          java-version: '11'
       - name: Run utils tests
         run: sbt utils/test
       - name: Run agent tests
