@@ -106,16 +106,16 @@ val frontend = project
       "mapbox-gl" -> mapboxVersion
     ),
     Compile / npmDevDependencies ++= Seq(
-      "autoprefixer" -> "10.4.1",
-      "cssnano" -> "5.0.14",
-      "css-loader" -> "6.5.1",
-      "less" -> "4.1.2",
-      "less-loader" -> "10.2.0",
-      "mini-css-extract-plugin" -> "2.4.5",
-      "postcss" -> "8.4.5",
-      "postcss-import" -> "14.0.2",
-      "postcss-loader" -> "6.2.1",
-      "postcss-preset-env" -> "7.2.0",
+      "autoprefixer" -> "10.4.13",
+      "cssnano" -> "5.1.15",
+      "css-loader" -> "6.7.3",
+      "less" -> "4.1.3",
+      "less-loader" -> "11.1.0",
+      "mini-css-extract-plugin" -> "2.7.2",
+      "postcss" -> "8.4.21",
+      "postcss-import" -> "15.1.0",
+      "postcss-loader" -> "7.0.2",
+      "postcss-preset-env" -> "8.0.1",
       "style-loader" -> "3.3.1",
       "webpack-merge" -> "5.8.0",
       "npm-check-updates" -> "13.1.1"
@@ -160,10 +160,10 @@ val backend = Project("boat", file("backend"))
       "org.eclipse.jetty" % s"jetty-alpn-java-$m" % alpnVersion
     } ++ Seq(
       "com.vividsolutions" % "jts" % "1.13",
-      "mysql" % "mysql-connector-java" % "8.0.31",
+      "mysql" % "mysql-connector-java" % "8.0.32",
       "org.flywaydb" % "flyway-core" % "7.15.0",
       "org.apache.commons" % "commons-text" % "1.10.0",
-      "com.amazonaws" % "aws-java-sdk-s3" % "1.12.376",
+      "com.amazonaws" % "aws-java-sdk-s3" % "1.12.409",
       "com.malliina" %% "logstreams-client" % logstreamsVersion,
       "com.malliina" %% "mobile-push-io" % "3.7.1",
       "org.eclipse.paho" % "org.eclipse.paho.client.mqttv3" % "1.2.5",
@@ -234,7 +234,7 @@ val agent = project
       } ++ Seq("generic", "parser").map { m =>
         "io.circe" %% s"circe-$m" % circeVersion
       } ++ Seq(
-        "co.fs2" %% "fs2-io" % "3.3.0",
+        "co.fs2" %% "fs2-io" % "3.5.0",
         "com.malliina" %% "primitives" % primitiveVersion,
         "com.malliina" %% "logstreams-client" % logstreamsVersion,
         "com.lihaoyi" %% "scalatags" % scalaTagsVersion,

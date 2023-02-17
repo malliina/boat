@@ -1,6 +1,6 @@
 scalaVersion := "2.12.17"
 
-libraryDependencies += "com.amazonaws" % "aws-java-sdk-s3" % "1.12.380"
+libraryDependencies += "com.amazonaws" % "aws-java-sdk-s3" % "1.12.409"
 
 val utilsVersion = "1.4.0"
 
@@ -16,5 +16,5 @@ Seq(
   "io.spray" % "sbt-revolver" % "0.9.1",
   "org.scalameta" % "sbt-scalafmt" % "2.5.0",
   "com.eed3si9n" % "sbt-buildinfo" % "0.11.0",
-  "com.eed3si9n" % "sbt-assembly" % "2.1.0"
+  "com.eed3si9n" % "sbt-assembly" % "2.1.1"
 ) map addSbtPlugin
