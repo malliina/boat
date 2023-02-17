@@ -48,7 +48,7 @@ const WebApp = merge(ScalaJS, {
         test: /\.(png|svg)$/,
         type: 'asset', // automatically chooses between exporting a data URI and emitting a separate file
         include: [
-          path.resolve(rootDir, 'src/main/resources')
+          resourcesDir
         ],
         generator: {
           filename: 'static/img/[name]-[hash][ext]'
@@ -58,7 +58,7 @@ const WebApp = merge(ScalaJS, {
         test: /\.(png|svg)$/,
         type: 'asset/resource',
         include: [
-          path.resolve(rootDir, 'src/main/resources/images')
+          path.resolve(resourcesDir, 'images')
         ],
         generator: {
           filename: 'img/[name][ext]'
