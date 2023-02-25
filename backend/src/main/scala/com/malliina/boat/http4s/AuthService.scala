@@ -5,7 +5,7 @@ import cats.effect.syntax.all.concurrentParTraverseOps
 import cats.syntax.all.{catsSyntaxApplicativeError, toFlatMapOps, toFunctorOps}
 import com.malliina.boat.Constants.{BoatNameHeader, BoatTokenHeader}
 import com.malliina.boat.auth.{BoatJwt, SettingsPayload}
-import com.malliina.boat.db.{IdentityManager, MissingCredentials, MissingCredentialsException, SIWADatabase, UserManager}
+import com.malliina.boat.db.{IdentityException, IdentityManager, MissingCredentials, MissingCredentialsException, SIWADatabase, UserManager}
 import com.malliina.boat.http.UserRequest
 import com.malliina.boat.http4s.AuthService.GoogleCookie
 import com.malliina.boat.{BoatName, BoatNames, BoatToken, DeviceMeta, JoinedBoat, MinimalUserInfo, SimpleBoatMeta, UserBoats, UserInfo, Usernames}

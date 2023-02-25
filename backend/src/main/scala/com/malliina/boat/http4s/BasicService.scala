@@ -44,7 +44,6 @@ class BasicService[F[_]: Sync] extends Implicits[F]:
     NotFound(a, noCache)
   def serverError[A](a: A)(implicit w: EntityEncoder[F, A]): F[Response[F]] =
     InternalServerError(a, noCache)
-
   def errorHandler(t: Throwable): F[Response[F]] = t match
     case ir: InvalidRequest =>
       Sync[F].delay(log.warn(ir.message, ir)).flatMap { _ =>

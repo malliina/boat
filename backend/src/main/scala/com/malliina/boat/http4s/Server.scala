@@ -1,7 +1,7 @@
 package com.malliina.boat.http4s
 
 import cats.Monad
-import cats.data.Kleisli
+import cats.data.{Kleisli, NonEmptyList}
 import cats.effect.kernel.{Async, Resource}
 import cats.effect.{ExitCode, IO, IOApp, Sync}
 import cats.effect.std.Dispatcher
@@ -12,7 +12,7 @@ import com.malliina.boat.auth.{EmailAuth, JWT, TokenEmailAuth}
 import com.malliina.boat.db.*
 import com.malliina.boat.html.BoatHtml
 import com.malliina.boat.http4s.Implicits.circeJsonEncoder
-import com.malliina.boat.http4s.Service.BoatComps
+import com.malliina.boat.http4s.BoatComps
 import com.malliina.boat.push.{BoatPushService, PushEndpoint}
 import com.malliina.boat.{AppMeta, AppMode, BoatConf, BuildInfo, Errors, Logging, S3Client, SingleError}
 import com.malliina.http.HttpClient
@@ -21,11 +21,13 @@ import com.malliina.logback.LogbackUtils
 import com.malliina.logstreams.client.LogstreamsUtils
 import com.malliina.util.AppLogger
 import com.malliina.web.*
+import org.http4s.Status.Unauthorized
 import org.http4s.ember.server.EmberServerBuilder
+import org.http4s.headers.{Location, `Content-Type`, `WWW-Authenticate`}
 import org.http4s.server.middleware.{GZip, HSTS}
 import org.http4s.server.websocket.WebSocketBuilder2
 import org.http4s.server.{Router, Server, ServiceErrorHandler}
-import org.http4s.{Http, HttpApp, HttpRoutes, Request, Response}
+import org.http4s.{Challenge, Http, HttpApp, HttpRoutes, Request, Response}
 
 import java.time.Instant
 import scala.concurrent.ExecutionContext
@@ -170,7 +172,15 @@ object Server extends IOApp:
         .handleErrorWith(BasicService[F].errorHandler)
     }
 
+  import org.http4s.dsl.impl.Responses.UnauthorizedOps
+
   private def errorHandler[F[_]: Sync]: PartialFunction[Throwable, F[Response[F]]] = {
+    case ie: IdentityException =>
+      log.warn(s"Identity error.", ie)
+      UnauthorizedOps(Unauthorized).apply(
+        `WWW-Authenticate`(NonEmptyList.of(Challenge("myscheme", "myrealm"))),
+        Errors(SingleError("Unauthorized.", "auth"))
+      )
     case NonFatal(t) =>
       log.error(s"Server error.", t)
       BasicService[F].serverError(Errors(SingleError("Server error.", "server")))

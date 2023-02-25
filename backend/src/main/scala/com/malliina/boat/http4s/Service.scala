@@ -16,7 +16,7 @@ import com.malliina.boat.html.{BoatHtml, BoatLang}
 import com.malliina.boat.http.InviteResult.{AlreadyInvited, Invited, UnknownEmail}
 import com.malliina.boat.http.*
 import com.malliina.boat.http4s.BasicService.{cached, noCache, ranges}
-import com.malliina.boat.http4s.Service.{BoatComps, RequestOps, log}
+import com.malliina.boat.http4s.Service.{RequestOps, log}
 import com.malliina.boat.push.{BoatState, PushService}
 import com.malliina.util.AppLogger
 import com.malliina.values.{Email, Readable, UserId, Username}
@@ -29,6 +29,7 @@ import io.circe.parser.parse
 import io.circe.syntax.EncoderOps
 import io.circe.{Decoder, Json}
 import org.http4s.headers.{Location, `Content-Type`, `WWW-Authenticate`}
+import org.http4s.implicits.uri
 import org.http4s.server.websocket.WebSocketBuilder
 import org.http4s.server.websocket.WebSocketBuilder2
 import org.http4s.websocket.WebSocketFrame
@@ -41,20 +42,6 @@ import scala.concurrent.duration.DurationInt
 
 object Service:
   private val log = AppLogger(getClass)
-
-  case class BoatComps[F[_]](
-    html: BoatHtml,
-    db: TracksSource[F],
-    vessels: VesselDatabase[F],
-    inserts: TrackInsertsDatabase[F],
-    stats: StatsSource[F],
-    auth: AuthService[F],
-    mapboxToken: AccessToken,
-    s3: S3Client,
-    push: PushService[F],
-    streams: BoatStreams[F],
-    devices: GPSStreams[F]
-  )
 
   implicit class RequestOps[F[_]](val req: Request[F]) extends AnyVal:
     def isSecured: Boolean = Urls.isSecure(req)
@@ -101,7 +88,7 @@ class Service[F[_]: Async](comps: BoatComps[F]) extends BasicService[F]:
     case req @ PUT -> Root / "users" / "me" =>
       jsonAction[ChangeLanguage](req) { (newLanguage, user) =>
         userMgmt.changeLanguage(user.id, newLanguage.language).flatMap { changed =>
-          val msg = if changed then s"Changed language to $newLanguage." else NoChange
+          val msg = if changed then s"Changed language to ${newLanguage.language}." else NoChange
           ok(SimpleMessage(msg))
         }
       }
@@ -781,7 +768,7 @@ class Service[F[_]: Async](comps: BoatComps[F]) extends BasicService[F]:
     unauthorized(Errors(s"Unauthorized."))
 
   private def unauthorized(errors: Errors) = redirectToLogin
-  private def redirectToLogin = SeeOther(Location(reverse.signIn))
+  private def redirectToLogin: F[Response[F]] = SeeOther(Location(reverse.signIn))
 
   def unauthorizedEnd(errors: Errors) =
     Unauthorized(
