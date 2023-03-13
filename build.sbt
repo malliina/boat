@@ -31,7 +31,7 @@ ThisBuild / parallelExecution := false
 Global / concurrentRestrictions += Tags.limit(Tags.Test, 1)
 
 val scala213 = "2.13.6"
-val scala3 = "3.2.1"
+val scala3 = "3.2.2"
 
 inThisBuild(
   Seq(
@@ -88,7 +88,7 @@ val isProd = settingKey[Boolean]("isProd")
 
 val frontend = project
   .in(file("frontend"))
-  .enablePlugins(NodeJsPlugin, ClientPlugin)
+  .enablePlugins(NodeJsPlugin, RollupPlugin)
   .disablePlugins(RevolverPlugin)
   .dependsOn(crossJs)
   .settings(boatSettings)
@@ -97,30 +97,6 @@ val frontend = project
       "org.scala-js" %%% "scalajs-dom" % "2.3.0",
       "org.scalameta" %%% "munit" % munitVersion % Test
     ),
-    Compile / npmDependencies ++= Seq(
-      "@mapbox/mapbox-gl-geocoder" -> "5.0.1",
-      "@popperjs/core" -> "2.11.5",
-      "@turf/turf" -> "6.5.0",
-      "bootstrap" -> "5.1.3",
-      "chart.js" -> "3.8.0",
-      "mapbox-gl" -> mapboxVersion
-    ),
-    Compile / npmDevDependencies ++= Seq(
-      "autoprefixer" -> "10.4.13",
-      "cssnano" -> "5.1.15",
-      "css-loader" -> "6.7.3",
-      "less" -> "4.1.3",
-      "less-loader" -> "11.1.0",
-      "mini-css-extract-plugin" -> "2.7.2",
-      "postcss" -> "8.4.21",
-      "postcss-import" -> "15.1.0",
-      "postcss-loader" -> "7.0.2",
-      "postcss-preset-env" -> "8.0.1",
-      "style-loader" -> "3.3.1",
-      "webpack-merge" -> "5.8.0",
-      "npm-check-updates" -> "13.1.1"
-    ),
-    webpackBundlingMode := BundlingMode.LibraryOnly(),
     Compile / fullOptJS / scalaJSLinkerConfig ~= { _.withSourceMap(false) },
     isProd := (Global / scalaJSStage).value == FullOptStage
   )
@@ -175,13 +151,15 @@ val backend = Project("boat", file("backend"))
       "org.typelevel" %% "munit-cats-effect-3" % "1.0.7" % Test
     ),
     clientProject := frontend,
+    hashRoot := Def.settingDyn { clientProject.value / assetsRoot }.value,
+    hashPackage := "com.malliina.assets",
     buildInfoKeys := Seq[BuildInfoKey](
       name,
       version,
       scalaVersion,
       "gitHash" -> gitHash,
       "mapboxVersion" -> mapboxVersion,
-      "assetsDir" -> (frontend / assetsRoot).value,
+      "assetsDir" -> (frontend / assetsRoot).value.toFile,
       "publicDir" -> (Compile / resourceDirectory).value.toPath.resolve("public"),
       "publicFolder" -> (frontend / assetsPrefix).value,
       "mode" -> (if ((frontend / isProd).value) "prod" else "dev"),
@@ -195,6 +173,15 @@ val backend = Project("boat", file("backend"))
     Compile / packageDoc / publishArtifact := false,
     packageDoc / publishArtifact := false,
     Compile / doc / sources := Seq.empty,
+    (frontend / Compile / build) := Def.taskIf {
+      if ((frontend / Compile / build).inputFileChanges.hasChanges) {
+        refreshBrowsers.value
+      } else {
+        Def.task(streams.value.log.info("No frontend changes.")).value
+      }
+    }.dependsOn(frontend / Compile / build).value,
+    start := start.dependsOn(frontend / Compile / build).value,
+    copyFolders += ((Compile / resourceDirectory).value / "public").toPath,
     Compile / unmanagedResourceDirectories ++= {
       val prodAssets =
         if ((frontend / isProd).value)

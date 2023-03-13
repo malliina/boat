@@ -44,7 +44,7 @@ class MapboxGeocoder(options: GeocoderOptions) extends js.Object:
 
 object MapboxGeocoder:
   def finland(accessToken: AccessToken): MapboxGeocoder =
-    new MapboxGeocoder(GeocoderOptions(accessToken.token, Seq("fi"), Option(mapboxGl)))
+    MapboxGeocoder(GeocoderOptions(accessToken.token, Seq("fi"), Option(mapboxGl)))
 
 @js.native
 trait MarkerOptions extends js.Object:
@@ -87,9 +87,7 @@ object MapboxMarker:
 @js.native
 trait PopupOptions extends js.Object:
   def className: js.UndefOr[String] = js.native
-
   def offset: js.UndefOr[Double] = js.native
-
   def closeButton: Boolean = js.native
 
 object PopupOptions:
@@ -121,10 +119,8 @@ object MapboxPopup:
   implicit class PopupExt(val self: MapboxPopup) extends AnyVal:
     def show[T <: dom.Element](htmlPayload: TypedTag[T], coord: LngLatLike, on: MapboxMap): Unit =
       html(htmlPayload).setLngLat(coord).setMaxWidth("none").addTo(on)
-
     def html[T <: dom.Element](html: TypedTag[T]): MapboxPopup =
       self.setHTML(html.render.outerHTML)
-
     def showText(text: String, coord: LngLatLike, on: MapboxMap): Unit =
       self.setText(text).setLngLat(coord).addTo(on)
 
@@ -134,10 +130,8 @@ trait QueryOptions extends js.Object:
 
 object QueryOptions:
   def layer(id: String) = apply(Seq(id))
-
   def apply(layers: Seq[String]): QueryOptions =
     literal(layers = layers.toJSArray).asInstanceOf[QueryOptions]
-
   def all: QueryOptions = literal().asInstanceOf[QueryOptions]
 
 @js.native
@@ -298,9 +292,7 @@ trait GeoJsonSource extends js.Object:
   def setData(data: js.Any): Unit = js.native
 
 object GeoJsonSource:
-
   implicit class GeoJsonSourceExt(val source: GeoJsonSource) extends AnyVal:
-
     def updateData(data: FeatureCollection): Unit =
       source.setData(Parsing.toJson(data))
 

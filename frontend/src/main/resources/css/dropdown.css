@@ -1,6 +1,6 @@
-@import 'boat';
-
-@dropdown-padding: 16px;
+:root {
+  --dropdown-padding: 16px;
+}
 
 .dropdown {
   position: relative;
@@ -48,7 +48,7 @@
     display: block;
     text-decoration: none;
 
-    padding: 2px @dropdown-padding;
+    padding: 2px var(--dropdown-padding);
 
     &:hover {
       background-color: #f1f1f1;

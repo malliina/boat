@@ -129,7 +129,7 @@ object SentencesPage extends BoatImplicits:
       )
     )
 
-  def editIcon(editId: String, titleText: String) =
+  private def editIcon(editId: String, titleText: String) =
     span(
       id := editId,
       `class` := s"fas fa-edit icon-link edit-icon tight",

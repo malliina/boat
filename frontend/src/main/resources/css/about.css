@@ -1,5 +1,3 @@
-@import "general";
-
 /* https://www.w3schools.com/howto/howto_css_modals.asp */
 
 .modal {
@@ -61,7 +59,7 @@
 }
 
 .badges-title {
-  @media @phones {
+  @media screen and (min-width: 540px) {
     text-align: center;
   }
 }
@@ -71,7 +69,7 @@
   justify-content: center;
   flex-direction: column;
 
-  @media @phones {
+  @media screen and (min-width: 540px) {
     flex-direction: row;
   }
 }

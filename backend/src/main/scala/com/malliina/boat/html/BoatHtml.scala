@@ -1,5 +1,6 @@
 package com.malliina.boat.html
 
+import com.malliina.assets.HashedAssets
 import com.malliina.boat.FrontKeys.*
 import com.malliina.boat.html.BoatHtml.ScriptAssets
 import com.malliina.boat.http.{Limits, TrackQuery}
@@ -24,17 +25,12 @@ object BoatHtml:
   val faviconPath = "assets/img/favicon.png"
 
   def apply(isProd: Boolean): BoatHtml =
-    val name = "frontend"
-    val opt = if isProd then "opt" else "fastopt"
-    val assetPrefix = s"$name-$opt"
     val externalScripts = if isProd then Nil else FullUrl.build(LiveReload.script).toSeq
-    val appScripts =
-      if isProd then Seq(s"$assetPrefix-bundle.js")
-      else Seq(s"$assetPrefix-library.js", s"$assetPrefix-loader.js", s"$assetPrefix.js")
+    val appScripts = Seq("frontend.js")
     new BoatHtml(
       appScripts,
       externalScripts,
-      Seq(s"$assetPrefix.css", "fonts.css", "styles.css"),
+      Seq("frontend.css", "fonts.css", "styles.css"),
       AssetsSource(isProd)
     )
 
@@ -191,7 +187,7 @@ class BoatHtml(
         deviceWidthViewport,
         StructuredData.appStructuredData,
         StructuredData.appLinkMetadata,
-        link(rel := "icon", `type` := "image/png", href := versioned("img/favicon.png")),
+        link(rel := "icon", `type` := "image/png", href := inlineOrAsset("img/favicon.png")),
         cssFiles.map { file =>
           cssLink(versioned(file))
         }
@@ -207,4 +203,6 @@ class BoatHtml(
       )
     )
 
+  private def inlineOrAsset(file: String) =
+    HashedAssets.dataUris.getOrElse(file, versioned(file).toString)
   private def versioned(file: String): Uri = assets.at(file)
