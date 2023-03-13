@@ -1,11 +1,9 @@
-@import 'general';
-
 .navbar {
   display: none;
   background-color: #DEDEDE;
   flex-direction: row;
 
-  @media @tablets {
+  @media only screen and (min-width: 1000px) {
     display: flex;
   }
 
@@ -14,7 +12,7 @@
 }
 
 .icon-link {
-  color: @default-color;
+  color: var(--default-color);
   margin: 0 16px;
   width: 16px;
   height: 16px;
@@ -52,7 +50,7 @@
 
 .navbar-boat {
   background-color: skyblue !important;
-  height: @navbar-height;
+  height: var(--navbar-height);
   padding-left: 1rem;
   padding-right: 1rem;
 }
@@ -61,7 +59,7 @@
   display: block;
   text-decoration: none;
   font-size: 18px;
-  padding: @navbar-padding 0;
+  padding: var(--navbar-padding) 0;
   margin: 0 16px;
   line-height: 1;
 
@@ -94,7 +92,7 @@
   }
 
   &.show {
-    @media @desktops {
+    @media screen and (min-width: 1400px) {
       display: block;
       max-width: 300px;
     }

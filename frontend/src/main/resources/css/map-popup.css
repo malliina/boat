@@ -1,5 +1,3 @@
-@import 'general';
-
 #map {
   position: absolute;
   top: 0;
@@ -8,17 +6,17 @@
   z-index: 100;
 
   &.auth {
-    @media @tablets {
-      top: @navbar-height;
+    @media only screen and (min-width: 1000px) {
+      top: var(--navbar-height);
     }
   }
 
   &.routes {
-    @media @tablets {
-      top: @navbar-routes-height;
+    @media only screen and (min-width: 1000px) {
+      top: var(--navbar-routes-height);
 
       &:not(.auth) {
-        top: @navbar-height;
+        top: var(--navbar-height);
       }
     }
   }

@@ -1,11 +1,11 @@
 package com.malliina.http
 
 import com.malliina.boat.http.CSRFConf
-import io.circe.*
 import io.circe.parser.{decode, parse}
 import io.circe.syntax.EncoderOps
+import io.circe.{Decoder, Encoder}
 import org.scalajs.dom
-import org.scalajs.dom.*
+import org.scalajs.dom.{Headers, HttpMethod, RequestCredentials, RequestInit}
 
 import scala.concurrent.Future
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
@@ -64,7 +64,7 @@ class HttpClient extends CSRFConf:
     req.body = data
     req.credentials = credentials
     val hs = new Headers()
-    headers.map { case (name, value) => hs.append(name, value) }
+    headers.foreach { case (name, value) => hs.append(name, value) }
     req.headers = hs
     dom.fetch(url, req)
 

@@ -11,5 +11,5 @@ class AboutPage extends BaseFront:
     }
   }
 
-  def langChanged(to: Language): Unit =
+  private def langChanged(to: Language): Unit =
     HttpClient.put[ChangeLanguage, SimpleMessage]("/users/me", ChangeLanguage(to))

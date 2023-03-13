@@ -3,7 +3,7 @@ package com.malliina.boat.html
 import com.malliina.boat.AppConf
 import io.circe.Json
 import io.circe.syntax.EncoderOps
-import scalatags.Text.all.*
+import scalatags.Text.all.{Frag, `type`, attr, content, meta, modifier, raw, script, stringAttr}
 
 import scala.language.implicitConversions
 

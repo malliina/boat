@@ -23,7 +23,7 @@ class StaticService[F[_]: Async] extends BasicService[F]:
   private val supportedStaticExtensions =
     List(".html", ".js", ".map", ".css", ".png", ".ico", ".svg", ".map") ++ fontExtensions
 
-  private val assetsDir = fs2.io.file.Path(BuildInfo.assetsDir)
+  private val assetsDir = fs2.io.file.Path(BuildInfo.assetsDir.getAbsolutePath)
   private val publicDir = fs2.io.file.Path(BuildInfo.publicDir)
   private val allowAllOrigins = Header.Raw(ci"Access-Control-Allow-Origin", "*")
 

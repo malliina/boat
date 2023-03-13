@@ -15,14 +15,14 @@ object FormHandlers extends BaseFront:
       form <- elemAs[HTMLFormElement](EditTitleFormId)
       editIcon <- elem(EditTitleId)
       cancelButton <- elemAs[HTMLButtonElement](CancelEditTrackId)
-    yield new TitleHandler(form, editIcon, cancelButton)
+    yield TitleHandler(form, editIcon, cancelButton)
 
   def comments(): Either[NotFound, CommentsHandler] =
     for
       form <- elemAs[HTMLFormElement](EditCommentsFormId)
       editIcon <- elem(EditCommentsId)
       cancelButton <- elemAs[HTMLButtonElement](CancelEditCommentsId)
-    yield new CommentsHandler(form, editIcon, cancelButton)
+    yield CommentsHandler(form, editIcon, cancelButton)
 
   def inviteOthers() = for
     parent <- elemsByClass[Element](FormParent)
@@ -30,7 +30,7 @@ object FormHandlers extends BaseFront:
     open <- parent.getElementsByClassName(InviteFormOpen).headOption
     cancel <- parent.getElementsByClassName(FormCancel).headOption
     delete <- parent.getElementsByClassName(DeleteForm).headOption
-  yield new InviteHandler(form, open, cancel, delete)
+  yield InviteHandler(form, open, cancel, delete)
 
 class InviteHandler(
   form: HTMLFormElement,

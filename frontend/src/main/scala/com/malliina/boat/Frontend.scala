@@ -18,10 +18,15 @@ object MapboxCss extends js.Object
 @JSImport("@mapbox/mapbox-gl-geocoder/dist/mapbox-gl-geocoder.css", JSImport.Namespace)
 object MapboxGlCss extends js.Object
 
+@js.native
+@JSImport("@fortawesome/fontawesome-free/css/all.min.css", JSImport.Namespace)
+object FontAwesomeCss extends js.Object
+
 object Frontend extends BodyClasses:
   private val bootstrapCss = BootstrapCss
   private val mapboxCss = MapboxCss
   private val mapboxGlCss = MapboxGlCss
+  private val fontAwesomeCss = FontAwesomeCss
   val log: BaseLogger = BaseLogger.console
 
   def main(args: Array[String]): Unit =
