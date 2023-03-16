@@ -29,8 +29,8 @@ jobs:
       - name: Build with sbt
         run: |
           ls -al
-          sbt "set scalaJSStage in Global := FullOptStage" compile
-          sbt "set scalaJSStage in Global := FullOptStage" boat/assembly
+          sbt "mode prod" compile
+          sbt "mode prod" boat/assembly
           ls -al
       - name: Deploy to Azure WebApp
         uses: azure/webapps-deploy@v2

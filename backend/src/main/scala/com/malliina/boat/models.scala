@@ -101,12 +101,12 @@ object UserToken extends BoatStringCompanion[UserToken]:
 
   def random(): UserToken = UserToken(Utils.randomString(length = 8))
 
-case class AppMeta(name: String, version: String, gitHash: String, mapboxVersion: String)
+case class AppMeta(name: String, version: String, gitHash: String)
 
 object AppMeta:
   implicit val json: Codec[AppMeta] = deriveCodec[AppMeta]
   val default =
-    AppMeta(BuildInfo.name, BuildInfo.version, BuildInfo.gitHash, BuildInfo.mapboxVersion)
+    AppMeta(BuildInfo.name, BuildInfo.version, BuildInfo.gitHash)
 
 case class JoinedTrack(
   track: TrackId,

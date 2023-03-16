@@ -3,9 +3,7 @@ import sbtrelease.ReleasePlugin.autoImport.{ReleaseStep, releaseProcess}
 import sbtrelease.ReleaseStateTransformations._
 
 import scala.sys.process.Process
-import scala.util.Try
 
-val mapboxVersion = "2.10.0"
 val webAuthVersion = "6.5.0"
 val munitVersion = "0.7.29"
 val testContainersScalaVersion = "0.40.12"
@@ -84,8 +82,6 @@ val cross = portableProject(JSPlatform, JVMPlatform)
 val crossJvm = cross.jvm
 val crossJs = cross.js
 
-val isProd = settingKey[Boolean]("isProd")
-
 val frontend = project
   .in(file("frontend"))
   .enablePlugins(NodeJsPlugin, RollupPlugin)
@@ -94,11 +90,9 @@ val frontend = project
   .settings(boatSettings)
   .settings(
     libraryDependencies ++= Seq(
-      "org.scala-js" %%% "scalajs-dom" % "2.3.0",
+      "org.scala-js" %%% "scalajs-dom" % "2.4.0",
       "org.scalameta" %%% "munit" % munitVersion % Test
-    ),
-    Compile / fullOptJS / scalaJSLinkerConfig ~= { _.withSourceMap(false) },
-    isProd := (Global / scalaJSStage).value == FullOptStage
+    )
   )
 
 val config = project
@@ -113,12 +107,8 @@ val config = project
 
 val backend = Project("boat", file("backend"))
   .enablePlugins(
-    LiveRevolverPlugin,
     ServerPlugin,
-    FileTreePlugin,
-    JavaServerAppPackaging,
-    SystemdPlugin,
-    BuildInfoPlugin
+    FileTreePlugin
   )
   .dependsOn(crossJvm, config)
   .settings(jvmSettings ++ boatSettings)
@@ -151,19 +141,11 @@ val backend = Project("boat", file("backend"))
       "org.typelevel" %% "munit-cats-effect-3" % "1.0.7" % Test
     ),
     clientProject := frontend,
-    hashRoot := Def.settingDyn { clientProject.value / assetsRoot }.value,
     hashPackage := "com.malliina.assets",
-    buildInfoKeys := Seq[BuildInfoKey](
+    buildInfoKeys ++= Seq[BuildInfoKey](
       name,
       version,
-      scalaVersion,
-      "gitHash" -> gitHash,
-      "mapboxVersion" -> mapboxVersion,
-      "assetsDir" -> (frontend / assetsRoot).value.toFile,
-      "publicDir" -> (Compile / resourceDirectory).value.toPath.resolve("public"),
-      "publicFolder" -> (frontend / assetsPrefix).value,
-      "mode" -> (if ((frontend / isProd).value) "prod" else "dev"),
-      "isProd" -> (frontend / isProd).value
+      scalaVersion
     ),
     buildInfoPackage := "com.malliina.boat",
     releaseProcess := Seq[ReleaseStep](
@@ -173,22 +155,6 @@ val backend = Project("boat", file("backend"))
     Compile / packageDoc / publishArtifact := false,
     packageDoc / publishArtifact := false,
     Compile / doc / sources := Seq.empty,
-    (frontend / Compile / build) := Def.taskIf {
-      if ((frontend / Compile / build).inputFileChanges.hasChanges) {
-        refreshBrowsers.value
-      } else {
-        Def.task(streams.value.log.info("No frontend changes.")).value
-      }
-    }.dependsOn(frontend / Compile / build).value,
-    start := start.dependsOn(frontend / Compile / build).value,
-    copyFolders += ((Compile / resourceDirectory).value / "public").toPath,
-    Compile / unmanagedResourceDirectories ++= {
-      val prodAssets =
-        if ((frontend / isProd).value)
-          List((frontend / Compile / assetsRoot).value.getParent.toFile)
-        else Nil
-      (baseDirectory.value / "public") +: prodAssets
-    },
     assembly / assemblyJarName := "app.jar"
   )
 
@@ -281,11 +247,5 @@ val boatRoot = project
   .in(file("."))
   .aggregate(backend, frontend, agent, it, utils)
   .settings(boatSettings)
-
-def gitHash: String =
-  sys.env
-    .get("GITHUB_SHA")
-    .orElse(Try(Process("git rev-parse HEAD").lineStream.head).toOption)
-    .getOrElse("unknown")
 
 Global / onChangedBuildSource := ReloadOnSourceChanges
