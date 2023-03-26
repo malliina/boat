@@ -1,7 +1,6 @@
 import sbtcrossproject.CrossPlugin.autoImport.{CrossType => PortableType, crossProject => portableProject}
 import sbtrelease.ReleasePlugin.autoImport.{ReleaseStep, releaseProcess}
 import sbtrelease.ReleaseStateTransformations._
-
 import scala.sys.process.Process
 
 val webAuthVersion = "6.5.0"
@@ -19,7 +18,6 @@ val webAuthDep = "com.malliina" %% "web-auth" % webAuthVersion
 val utilHtmlDep = "com.malliina" %% "util-html" % webAuthVersion
 val webAuthTestDep = webAuthDep % Test classifier "tests"
 val munitDep = "org.scalameta" %% "munit" % munitVersion % Test
-val circeModules = Seq("generic", "parser")
 
 val buildAndUpload = taskKey[String]("Uploads to S3, returns a URL")
 val upFiles = taskKey[Seq[String]]("lists")

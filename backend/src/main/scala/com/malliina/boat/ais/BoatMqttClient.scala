@@ -37,8 +37,8 @@ object BoatMqttClient:
   val AllDataTopic = "vessels-v2/#"
   val MetadataTopic = "vessels/+/metadata"
 
-  val TestUrl = FullUrl.wss("meri-test.digitraffic.fi:61619", "/mqtt")
-  val ProdUrl = FullUrl.wss("meri.digitraffic.fi:61619", "/mqtt")
+  val TestUrl = FullUrl.wss("meri-test.digitraffic.fi:443", "/mqtt")
+  val ProdUrl = FullUrl.wss("meri.digitraffic.fi:443", "/mqtt")
 
   def build[F[_]: Async](
     enabled: Boolean,
