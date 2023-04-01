@@ -32,6 +32,7 @@ trait TrackInsertsDatabase[F[_]]:
   def saveSentences(sentences: SentencesEvent): F[Seq[KeyedSentence]]
   def saveCoords(coords: FullCoord): F[InsertedPoint]
   def saveCoordsFast(coords: FullCoord): F[TrackPointId]
+  def saveLocations(locs: List[LocationUpdate]): F[List[Long]]
 
 trait StatsSource[F[_]]:
   def stats(user: MinimalUserInfo, limits: TrackQuery, lang: Lang): F[StatsResponse]

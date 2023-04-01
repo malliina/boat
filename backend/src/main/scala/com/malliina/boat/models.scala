@@ -2,7 +2,7 @@ package com.malliina.boat
 
 import cats.data.NonEmptyList
 
-import java.time.{Instant, LocalDate, LocalTime, ZoneOffset}
+import java.time.{Instant, LocalDate, LocalTime, OffsetDateTime, ZoneOffset}
 import com.malliina.boat.BoatPrimitives.durationFormat
 import com.malliina.boat.parsing.{FullCoord, GPSCoord, GPSFix}
 import com.malliina.measure.{DistanceM, SpeedM, Temperature}
@@ -14,6 +14,23 @@ import io.circe.generic.semiauto.*
 import io.circe.syntax.EncoderOps
 
 import scala.concurrent.duration.FiniteDuration
+
+case class LocationUpdate(
+  longitude: Longitude,
+  latitude: Latitude,
+  altitudeMeters: Option[DistanceM],
+  accuracyMeters: Option[DistanceM],
+  bearing: Option[Float],
+  bearingAccuracyDegrees: Option[Float],
+  date: OffsetDateTime
+):
+  val coord = Coord(longitude, latitude)
+object LocationUpdate:
+  implicit val json: Codec[LocationUpdate] = deriveCodec[LocationUpdate]
+
+case class LocationUpdates(updates: List[LocationUpdate])
+object LocationUpdates:
+  implicit val json: Codec[LocationUpdates] = deriveCodec[LocationUpdates]
 
 case class CSRFToken(token: String) extends AnyVal
 

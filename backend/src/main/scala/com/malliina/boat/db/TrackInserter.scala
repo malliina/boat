@@ -174,6 +174,19 @@ class TrackInserter[F[_]: Async](val db: DoobieDatabase[F])
     val prep = makeParams(pairs.toList)
     HC.updateWithGeneratedKeys[SentenceKey](List("id"))(sql, prep, 512)
 
+  def saveLocations(locs: List[LocationUpdate]): F[List[Long]] = run {
+    import cats.implicits.*
+    val boat = 1319
+    locs.traverse { loc =>
+      sql"""insert into car_points(longitude, latitude, coord, device)
+            values(${loc.longitude}, ${loc.latitude}, ${loc.coord}, $boat)
+         """.update.withUniqueGeneratedKeys[Long]("id")
+    }.map { ids =>
+      log.info(s"Inserted to boat $boat IDs ${ids.mkString(", ")}.")
+      ids
+    }
+  }
+
   @tailrec
   private def makeParams(
     pairs: List[(RawSentence, TrackId)],
@@ -190,8 +203,8 @@ class TrackInserter[F[_]: Async](val db: DoobieDatabase[F])
   def saveCoords(coord: FullCoord): F[InsertedPoint] = run {
     val track = coord.from.track
     val trail =
-      sql"""select id, longitude, latitude, coord, boat_speed, water_temp, depthm, depth_offsetm, boat_time, track, track_index, diff, added 
-            from points p 
+      sql"""select id, longitude, latitude, coord, boat_speed, water_temp, depthm, depth_offsetm, boat_time, track, track_index, diff, added
+            from points p
             where p.track = $track"""
     val previous = sql"$trail order by p.track_index desc limit 1".query[TrackPointRow].option
     for
@@ -199,16 +212,16 @@ class TrackInserter[F[_]: Async](val db: DoobieDatabase[F])
       diff <- prev.map(p => computeDistance(p.coord, coord.coord)).getOrElse(pure(DistanceM.zero))
       point <- insertPoint(coord, prev.map(_.trackIndex).getOrElse(0) + 1, diff)
       avgSpeed <-
-        sql"""select avg(boat_speed) 
-              from points p 
-              where p.track = $track and p.boat_speed >= $minSpeed 
+        sql"""select avg(boat_speed)
+              from points p
+              where p.track = $track and p.boat_speed >= $minSpeed
               having avg(boat_speed) is not null"""
           .query[SpeedM]
           .option
       info <-
-        sql"""select avg(water_temp), sum(diff), count(*) 
-              from points p 
-              where p.track = $track 
+        sql"""select avg(water_temp), sum(diff), count(*)
+              from points p
+              where p.track = $track
               having avg(water_temp) is not null"""
           .query[DbTrackInfo]
           .option
@@ -216,8 +229,8 @@ class TrackInserter[F[_]: Async](val db: DoobieDatabase[F])
         val avgTemp = info.map(_.avgTemp)
         val points = info.map(_.points).getOrElse(0)
         val distance = info.map(_.distance).getOrElse(DistanceM.zero)
-        sql"""update tracks 
-              set avg_water_temp = $avgTemp, avg_speed = $avgSpeed, points = $points, distance = $distance 
+        sql"""update tracks
+              set avg_water_temp = $avgTemp, avg_speed = $avgSpeed, points = $points, distance = $distance
               where id = $track""".update.run
       }
       _ <- insertSentencePoints(coord.parts.map { key => (key, point) }.toList)
@@ -266,16 +279,16 @@ class TrackInserter[F[_]: Async](val db: DoobieDatabase[F])
       .withUniqueGeneratedKeys[TrackPointId]("id")
 
   def dates(track: TrackId): ConnectionIO[List[DateVal]] =
-    sql"""select distinct(date(boat_time)) 
-          from points p 
+    sql"""select distinct(date(boat_time))
+          from points p
           where p.track = $track""".query[DateVal].to[List]
 
   def changeTrack(old: TrackId, date: DateVal, newTrack: TrackId): ConnectionIO[Int] =
-    sql"""update points set track = $newTrack 
+    sql"""update points set track = $newTrack
           where track = $old and date(boat_time) = $date""".update.run
 
   def insertTrack(in: TrackInput): ConnectionIO[TrackMeta] =
-    sql"""insert into tracks(name, boat, avg_speed, avg_water_temp, points, distance, canonical) 
+    sql"""insert into tracks(name, boat, avg_speed, avg_water_temp, points, distance, canonical)
           values(${in.name}, ${in.boat}, ${in.avgSpeed}, ${in.avgWaterTemp}, ${in.points}, ${in.distance}, ${in.canonical})""".update
       .withUniqueGeneratedKeys[TrackId]("id")
       .flatMap { id =>

@@ -368,6 +368,13 @@ class Service[F[_]: Async](comps: BoatComps[F]) extends BasicService[F]:
           )
         }
       }
+    case req @ POST -> Root / "cars" / "locations" =>
+      jsonAction[LocationUpdates](req) { (body, user) =>
+        log.info(s"User ${user.email} POSTs ${body.updates.size} car location updates...")
+        inserts.saveLocations(body.updates).flatMap { ids =>
+          ok(SimpleMessage(s"Got ${body.updates.size} locations, saved IDs ${ids.mkString(", ")}."))
+        }
+      }
     case req @ GET -> Root / "sign-in" =>
       val now = Instant.now()
       req.cookies
