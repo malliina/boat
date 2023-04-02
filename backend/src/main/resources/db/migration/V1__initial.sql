@@ -57,7 +57,7 @@ create table points
     boat_time     timestamp(3) default CURRENT_TIMESTAMP(3) not null,
     track         bigint                                    not null,
     added         timestamp(3) default CURRENT_TIMESTAMP(3) not null,
-    coord         point                                     null,
+    coord         point                                     not null,
     track_index   int          default 0                    not null,
     depthm        double       default 0                    null,
     depth_offsetm double       default 0                    null,
@@ -76,7 +76,6 @@ create index points_depthm_idx on points (depthm);
 create index points_track_boat_speed_idx on points (track, boat_speed);
 create index points_track_boat_speed_time_idx on points (track, boat_time, boat_speed);
 create index points_track_boat_time_idx on points (track, boat_time);
-create index points_track_coord_idx on points (track, coord);
 create index points_track_depth_idx on points (track, depthm);
 create index points_track_diff_idx on points (track, diff);
 create index points_track_index_idx on points (track_index);

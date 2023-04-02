@@ -10,6 +10,7 @@ import com.malliina.boat.http4s.BasicService.{log, noCache}
 import com.malliina.util.AppLogger
 import com.malliina.http.ResponseException
 import org.http4s.CacheDirective.*
+import org.http4s.headers.{Location, `Content-Type`, `WWW-Authenticate`}
 import org.http4s.*
 import org.http4s.headers.{Accept, Location, `Cache-Control`}
 
@@ -50,7 +51,7 @@ class BasicService[F[_]: Sync] extends Implicits[F]:
         badRequest(ir.errors)
       }
     case mce: MissingCredentialsException =>
-      notFound(Errors(mce.error.message))
+      unauthorizedNoCache(Errors(mce.error.message))
     case re: ResponseException =>
       serverErrorResponse(s"${re.getMessage} Response: '${re.response.asString}'.", re)
     case other =>
@@ -60,3 +61,10 @@ class BasicService[F[_]: Sync] extends Implicits[F]:
     Sync[F].delay(log.error(msg, t)).flatMap { _ =>
       serverError(Errors("Server error."))
     }
+
+  def unauthorizedNoCache(errors: Errors) =
+    Unauthorized(
+      `WWW-Authenticate`(NonEmptyList.of(Challenge("myscheme", "myrealm"))),
+      errors,
+      noCache
+    )

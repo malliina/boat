@@ -369,6 +369,7 @@ class Service[F[_]: Async](comps: BoatComps[F]) extends BasicService[F]:
         }
       }
     case req @ POST -> Root / "cars" / "locations" =>
+      log.info("hello")
       jsonAction[LocationUpdates](req) { (body, user) =>
         log.info(s"User ${user.email} POSTs ${body.updates.size} car location updates...")
         inserts.saveLocations(body.updates).flatMap { ids =>
@@ -590,7 +591,7 @@ class Service[F[_]: Async](comps: BoatComps[F]) extends BasicService[F]:
   private def fileFromPublicResources(file: String, req: Request[F]): F[Response[F]] =
     StaticFile
       .fromResource(
-        s"${HashedAssets.prefix}/$file",
+        s"public/$file",
         Option(req),
         preferGzipped = true
       )
@@ -778,7 +779,4 @@ class Service[F[_]: Async](comps: BoatComps[F]) extends BasicService[F]:
   private def redirectToLogin: F[Response[F]] = SeeOther(Location(reverse.signIn))
 
   def unauthorizedEnd(errors: Errors) =
-    Unauthorized(
-      `WWW-Authenticate`(NonEmptyList.of(Challenge("myscheme", "myrealm"))),
-      errors
-    ).map(r => web.clearSession(r))
+    unauthorizedNoCache(errors).map(r => web.clearSession(r))
