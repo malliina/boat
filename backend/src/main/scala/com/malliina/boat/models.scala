@@ -28,7 +28,7 @@ case class LocationUpdate(
 object LocationUpdate:
   implicit val json: Codec[LocationUpdate] = deriveCodec[LocationUpdate]
 
-case class LocationUpdates(updates: List[LocationUpdate])
+case class LocationUpdates(updates: List[LocationUpdate], carId: DeviceId)
 object LocationUpdates:
   implicit val json: Codec[LocationUpdates] = deriveCodec[LocationUpdates]
 

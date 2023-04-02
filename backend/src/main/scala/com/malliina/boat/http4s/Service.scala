@@ -369,10 +369,9 @@ class Service[F[_]: Async](comps: BoatComps[F]) extends BasicService[F]:
         }
       }
     case req @ POST -> Root / "cars" / "locations" =>
-      log.info("hello")
       jsonAction[LocationUpdates](req) { (body, user) =>
         log.info(s"User ${user.email} POSTs ${body.updates.size} car location updates...")
-        inserts.saveLocations(body.updates).flatMap { ids =>
+        inserts.saveLocations(body, user.id).flatMap { ids =>
           ok(SimpleMessage(s"Got ${body.updates.size} locations, saved IDs ${ids.mkString(", ")}."))
         }
       }

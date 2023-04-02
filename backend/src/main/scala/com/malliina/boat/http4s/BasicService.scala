@@ -5,7 +5,7 @@ import cats.data.NonEmptyList
 import cats.effect.{IO, Sync}
 import cats.implicits.*
 import com.malliina.boat.Errors
-import com.malliina.boat.db.MissingCredentialsException
+import com.malliina.boat.db.{BoatNotFoundException, IdentityException, MissingCredentialsException}
 import com.malliina.boat.http4s.BasicService.{log, noCache}
 import com.malliina.util.AppLogger
 import com.malliina.http.ResponseException
@@ -50,8 +50,12 @@ class BasicService[F[_]: Sync] extends Implicits[F]:
       Sync[F].delay(log.warn(ir.message, ir)).flatMap { _ =>
         badRequest(ir.errors)
       }
-    case mce: MissingCredentialsException =>
-      unauthorizedNoCache(Errors(mce.error.message))
+    case ie: IdentityException =>
+      unauthorizedNoCache(Errors(ie.error.message))
+    case bnfe: BoatNotFoundException =>
+      Sync[F].delay(log.error(bnfe.message, t)).flatMap { _ =>
+        notFound(Errors(bnfe.message))
+      }
     case re: ResponseException =>
       serverErrorResponse(s"${re.getMessage} Response: '${re.response.asString}'.", re)
     case other =>

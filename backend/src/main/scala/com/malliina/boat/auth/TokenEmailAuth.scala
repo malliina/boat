@@ -2,9 +2,11 @@ package com.malliina.boat.auth
 
 import cats.effect.{IO, Sync}
 import cats.syntax.all.{toFlatMapOps, toFunctorOps}
+import com.malliina.boat.auth.TokenEmailAuth.log
 import com.malliina.boat.db.{CustomJwt, IdentityException, JWTError, MissingCredentials}
 import com.malliina.boat.http4s.Auth
 import com.malliina.http.HttpClient
+import com.malliina.util.AppLogger
 import com.malliina.values.{Email, ErrorMessage, IdToken}
 import com.malliina.web.*
 import org.http4s.Headers
@@ -12,6 +14,7 @@ import org.http4s.Headers
 import java.time.Instant
 
 object TokenEmailAuth:
+  private val log = AppLogger(getClass)
 
   /** The Android app uses the web client ID while the iOS app uses the iOS client ID.
     *
@@ -45,7 +48,11 @@ class TokenEmailAuth[F[_]: Sync](google: KeyClient[F], microsoft: KeyClient[F], 
       .map { token =>
         validateAny(token, now).flatMap { e =>
           e.fold(
-            err => F.raiseError(IdentityException(JWTError(err, headers))),
+            err =>
+              val ex = IdentityException(JWTError(err, headers))
+              log.warn(s"Token failed validation. $err", ex)
+              F.raiseError(ex)
+            ,
             email => F.pure(email)
           )
         }

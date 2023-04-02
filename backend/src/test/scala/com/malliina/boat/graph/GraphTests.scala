@@ -109,9 +109,13 @@ class GraphTests extends munit.FunSuite:
   )
 
   def fromResource(filename: String) =
-    val file = Graph.file(filename, Graph.graphLocalFile)
+    val file = Graph.file(filename, LocalConf.appDir.resolve(filename))
     val result = decode[FeatureCollection](Files.readString(file))
-    val es = result.toOption.get.features.flatMap { f =>
+    val coll = result.fold(
+      err => throw Exception(s"Failed to decode $file: $err"),
+      identity
+    )
+    val es = coll.features.flatMap { f =>
       f.geometry match
         case MultiLineGeometry(_, coordinates) => coordinates.flatMap(edges)
         case LineGeometry(_, coordinates)      => edges(coordinates)

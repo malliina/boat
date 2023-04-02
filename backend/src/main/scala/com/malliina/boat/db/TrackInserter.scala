@@ -71,7 +71,7 @@ class TrackInserter[F[_]: Async](val db: DoobieDatabase[F])
   }
 
   def removeDevice(device: DeviceId, user: UserId): F[Int] = run {
-    sql"delete from boats where owner = $user and id = $device".update.run.map { rows =>
+    sql"delete from boats b where b.id = $device and b.owner = $user".update.run.map { rows =>
       if rows == 1 then log.info(s"Deleted boat '$device' owned by '$user'.")
       else log.warn(s"Boat '$device' owned by '$user' not found.")
       rows
@@ -80,12 +80,12 @@ class TrackInserter[F[_]: Async](val db: DoobieDatabase[F])
 
   def renameBoat(boat: DeviceId, newName: BoatName, user: UserId): F[BoatRow] = run {
     val ownershipCheck =
-      sql"select exists(${CommonSql.boats} and b.id = $boat and b.owner = $user)"
+      sql"select exists(select b.id from boats b where b.id = $boat and b.owner = $user)"
         .query[Boolean]
         .unique
     for
       exists <- ownershipCheck
-      _ <- if exists then pure(42) else fail(new BoatNotFoundException(boat, user))
+      _ <- if exists then pure(()) else fail(BoatNotFoundException(boat, user))
       _ <- sql"update boats set name = $newName where id = $boat".update.run
       updated <- boatById(boat)
     yield
@@ -174,17 +174,25 @@ class TrackInserter[F[_]: Async](val db: DoobieDatabase[F])
     val prep = makeParams(pairs.toList)
     HC.updateWithGeneratedKeys[SentenceKey](List("id"))(sql, prep, 512)
 
-  def saveLocations(locs: List[LocationUpdate]): F[List[Long]] = run {
+  def saveLocations(locs: LocationUpdates, user: UserId): F[List[Long]] = run {
+    val carId = locs.carId
+    val ownershipCheck =
+      sql"select exists(select b.id from boats b where b.id = $carId and b.owner = $user)"
+        .query[Boolean]
+        .unique
     import cats.implicits.*
-    val boat = 1319
-    locs.traverse { loc =>
-      sql"""insert into car_points(longitude, latitude, coord, device)
-            values(${loc.longitude}, ${loc.latitude}, ${loc.coord}, $boat)
+    val insertion = locs.updates.traverse { loc =>
+      sql"""insert into car_points(longitude, latitude, coord, device, altitude, accuracy, bearing, bearing_accuracy)
+            values(${loc.longitude}, ${loc.latitude}, ${loc.coord}, $carId, ${loc.altitudeMeters}, ${loc.accuracyMeters}, ${loc.bearing}, ${loc.bearingAccuracyDegrees})
          """.update.withUniqueGeneratedKeys[Long]("id")
-    }.map { ids =>
-      log.info(s"Inserted to boat $boat IDs ${ids.mkString(", ")}.")
-      ids
     }
+    for
+      exists <- ownershipCheck
+      _ <- if exists then pure(()) else fail(BoatNotFoundException(carId, user))
+      ids <- insertion
+    yield
+      if ids.nonEmpty then log.info(s"Inserted to car $carId IDs ${ids.mkString(", ")}.")
+      ids
   }
 
   @tailrec
@@ -261,6 +269,7 @@ class TrackInserter[F[_]: Async](val db: DoobieDatabase[F])
       List.empty[(SentenceKey, TrackPointId)].pure[ConnectionIO]
     }
 
+  @tailrec
   private def makeSpParams(
     pairs: List[(SentenceKey, TrackPointId)],
     acc: PreparedStatementIO[Unit] = ().pure[PreparedStatementIO],
