@@ -9,6 +9,7 @@ import com.malliina.boat.db.{BoatNotFoundException, IdentityException, MissingCr
 import com.malliina.boat.http4s.BasicService.{log, noCache}
 import com.malliina.util.AppLogger
 import com.malliina.http.ResponseException
+import com.malliina.web.AuthException
 import org.http4s.CacheDirective.*
 import org.http4s.headers.{Location, `Content-Type`, `WWW-Authenticate`}
 import org.http4s.*
@@ -52,6 +53,8 @@ class BasicService[F[_]: Sync] extends Implicits[F]:
       }
     case ie: IdentityException =>
       unauthorizedNoCache(Errors(ie.error.message))
+    case ae: AuthException =>
+      unauthorizedNoCache(Errors(ae.singleError))
     case bnfe: BoatNotFoundException =>
       Sync[F].delay(log.error(bnfe.message, t)).flatMap { _ =>
         notFound(Errors(bnfe.message))
