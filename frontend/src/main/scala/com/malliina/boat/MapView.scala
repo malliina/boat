@@ -1,14 +1,14 @@
 package com.malliina.boat
 
 import com.malliina.http.HttpClient
-import com.malliina.mapbox.{LngLat, MapOptions, MapboxGeocoder, MapboxMap, MapboxMarker, MarkerOptions, mapboxGl}
-import org.scalajs.dom.*
+import com.malliina.mapbox.*
 import io.circe.*
 import io.circe.syntax.EncoderOps
+import org.scalajs.dom.*
 import scalatags.JsDom.all.{`class`, span, stringAttr}
 
-import scala.scalajs.js.{JSON, URIUtils}
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
+import scala.scalajs.js.{JSON, URIUtils}
 
 object MapView extends CookieNames:
   def default: Either[NotFound, MapView] =

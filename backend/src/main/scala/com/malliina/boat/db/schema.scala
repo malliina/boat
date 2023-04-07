@@ -22,8 +22,6 @@ case class UserRow(
   added: Instant
 )
 
-case class UserBoatRow(user: UserId, boat: DeviceId, state: InviteState, added: Instant)
-
 case class TrackRow(
   id: TrackId,
   name: TrackName,
@@ -37,48 +35,6 @@ case class TrackRow(
   comments: Option[String],
   added: Instant
 )
-
-case class TrackOut(
-  id: TrackId,
-  name: TrackName,
-  title: Option[TrackTitle],
-  top: Option[SpeedM],
-  min: Option[FormattedDateTime],
-  max: Option[FormattedDateTime],
-  coord: TimedCoord
-)
-
-object TrackOut:
-  implicit val json: Codec[TrackOut] = deriveCodec[TrackOut]
-
-case class Partial(
-  device: DeviceId,
-  id: TrackId,
-  start: Instant,
-  end: Instant,
-  coord: CombinedCoord
-):
-  def strip =
-    StrippedPartial(
-      device,
-      id,
-      Option(start),
-      Option(end),
-      coord.timed(TimeFormatter.se),
-      None
-    )
-
-case class StrippedPartial(
-  device: DeviceId,
-  id: TrackId,
-  start: Option[Instant],
-  end: Option[Instant],
-  coord: TimedCoord,
-  date: Option[DateVal]
-)
-
-object StrippedPartial:
-  implicit val json: Codec[StrippedPartial] = deriveCodec[StrippedPartial]
 
 case class TrackTimes(
   track: TrackId,
@@ -133,10 +89,6 @@ object AllTimeAggregates:
   val empty = AllTimeAggregates(None, None, None, None, 0L, 0L)
 
 case class TrackCoord(track: JoinedTrack, row: TrackPointRow)
-case class TopTrack(track: TrackRow, times: TrackTimes, coord: CombinedCoord)
-case class TrackTime(track: TrackRow, times: TrackTimes)
-case class TrackTop(track: TrackId, top: Option[TrackPointId])
-
 case class InviteRow(boat: BoatRef, state: InviteState, added: Instant)
 case class FriendRow(boat: BoatRef, friend: FriendRef, state: InviteState, added: Instant)
 

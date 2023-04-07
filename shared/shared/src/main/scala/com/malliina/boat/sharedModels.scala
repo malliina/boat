@@ -5,10 +5,10 @@ import com.malliina.boat.BoatJson.keyValued
 import com.malliina.json.PrimitiveFormats
 import com.malliina.measure.{DistanceM, SpeedM, Temperature}
 import com.malliina.values.*
-import scalatags.generic.Bundle
 import io.circe.*
 import io.circe.generic.semiauto.*
 import io.circe.syntax.EncoderOps
+import scalatags.generic.Bundle
 
 import java.time.OffsetDateTime
 import scala.concurrent.duration.{Duration, FiniteDuration}
@@ -144,11 +144,9 @@ object Coord:
     val trunc = (d * 100000).toInt.toDouble / 100000
     "%1.5f".format(trunc).replace(',', '.')
 
-case class RouteRequest(from: Coord, to: Coord)
+case class RouteRequest(from: Coord, to: Coord) derives Codec.AsObject
 
 object RouteRequest:
-  implicit val json: Codec[RouteRequest] = deriveCodec[RouteRequest]
-
   def apply(
     srcLat: Double,
     srcLng: Double,
@@ -191,10 +189,7 @@ object TimedCoord:
       modern(tc).deepMerge(Json.obj("depth" -> tc.depthMeters.toMillis.toLong.asJson))
   )
 
-case class GPSTimedCoord(id: GPSPointId, coord: Coord, time: Timing)
-
-object GPSTimedCoord:
-  implicit val json: Codec[GPSTimedCoord] = deriveCodec[GPSTimedCoord]
+case class GPSTimedCoord(id: GPSPointId, coord: Coord, time: Timing) derives Codec.AsObject
 
 case class AccessToken(token: String) extends AnyVal with WrappedString:
   override def value = token
@@ -220,18 +215,12 @@ object TrackTitle extends StringCompanion[TrackTitle]:
   val Key = "title"
   val MaxLength = 191
 
-case class ChangeTrackTitle(title: TrackTitle)
-
-object ChangeTrackTitle:
-  implicit val json: Codec[ChangeTrackTitle] = deriveCodec[ChangeTrackTitle]
+case class ChangeTrackTitle(title: TrackTitle) derives Codec.AsObject
 
 object TrackComments:
   val Key = "comments"
 
-case class ChangeComments(comments: String)
-
-object ChangeComments:
-  implicit val json: Codec[ChangeComments] = deriveCodec[ChangeComments]
+case class ChangeComments(comments: String) derives Codec.AsObject
 
 case class TrackCanonical(name: String) extends AnyVal with WrappedString:
   override def value = name
@@ -282,15 +271,9 @@ object Language extends StringCompanion[Language]:
   val swedish = Language("sv-SE")
   val default = finnish
 
-case class ChangeLanguage(language: Language)
+case class ChangeLanguage(language: Language) derives Codec.AsObject
 
-object ChangeLanguage:
-  implicit val json: Codec[ChangeLanguage] = deriveCodec[ChangeLanguage]
-
-case class SimpleMessage(message: String)
-
-object SimpleMessage:
-  implicit val json: Codec[SimpleMessage] = deriveCodec[SimpleMessage]
+case class SimpleMessage(message: String) derives Codec.AsObject
 
 trait BoatTrackMeta extends DeviceMeta:
   def track: TrackName
@@ -349,9 +332,7 @@ object MobileDevice extends ValidatingCompanion[String, MobileDevice]:
   case class Unknown(s: String) extends MobileDevice(s)
 
 case class Boat(id: DeviceId, name: BoatName, token: BoatToken, addedMillis: Long)
-
-object Boat:
-  implicit val json: Codec[Boat] = deriveCodec[Boat]
+  derives Codec.AsObject
 
 trait MinimalUserInfo:
   def username: Username
@@ -374,30 +355,18 @@ case class SimpleEmailUser(
   authorized: Seq[BoatName]
 ) extends EmailUser
 
-case class BoatRef(id: DeviceId, name: BoatName)
+case class BoatRef(id: DeviceId, name: BoatName) derives Codec.AsObject
 
-object BoatRef:
-  implicit val json: Codec[BoatRef] = deriveCodec[BoatRef]
+case class Invite(boat: BoatRef, state: InviteState, addedMillis: Long) derives Codec.AsObject
 
-case class Invite(boat: BoatRef, state: InviteState, addedMillis: Long)
-
-case class FriendRef(id: UserId, email: Email)
-
-object FriendRef:
-  implicit val json: Codec[FriendRef] = deriveCodec[FriendRef]
+case class FriendRef(id: UserId, email: Email) derives Codec.AsObject
 
 case class FriendInvite(
   boat: BoatRef,
   friend: FriendRef,
   state: InviteState,
   addedMillis: Long
-)
-
-object FriendInvite:
-  implicit val json: Codec[FriendInvite] = deriveCodec[FriendInvite]
-
-object Invite:
-  implicit val json: Codec[Invite] = deriveCodec[Invite]
+) derives Codec.AsObject
 
 case class UserInfo(
   id: UserId,
@@ -409,17 +378,12 @@ case class UserInfo(
   addedMillis: Long,
   invites: Seq[Invite],
   friends: Seq[FriendInvite]
-) extends EmailUser:
+) extends EmailUser
+  derives Codec.AsObject:
   override val authorized: Seq[BoatName] = boats.map(_.name) ++ invites.map(_.boat.name)
   def userBoats = UserBoats(username, language, Nil) // Nil is wrong, but fine for now
 
-object UserInfo:
-  implicit val json: Codec[UserInfo] = deriveCodec[UserInfo]
-
-case class UserContainer(user: UserInfo)
-
-object UserContainer:
-  implicit val json: Codec[UserContainer] = deriveCodec[UserContainer]
+case class UserContainer(user: UserInfo) derives Codec.AsObject
 
 trait TrackMetaLike:
   def boatName: BoatName
@@ -436,14 +400,10 @@ case class TrackMetaShort(
   boatName: BoatName,
   username: Username
 ) extends TrackMetaLike
-
-object TrackMetaShort:
-  implicit val json: Codec[TrackMetaShort] = deriveCodec[TrackMetaShort]
+  derives Codec.AsObject
 
 case class DeviceRef(device: DeviceId, deviceName: BoatName, username: Username)
-
-object DeviceRef:
-  implicit val json: Codec[DeviceRef] = deriveCodec[DeviceRef]
+  derives Codec.AsObject
 
 case class TrackRef(
   track: TrackId,
@@ -474,10 +434,7 @@ object TrackRef:
       modern(tr).deepMerge(Json.obj("distance" -> tr.distanceMeters.toMillis.toLong.asJson))
   )
 
-case class TrackResponse(track: TrackRef)
-
-object TrackResponse:
-  implicit val json: Codec[TrackResponse] = deriveCodec[TrackResponse]
+case class TrackResponse(track: TrackRef) derives Codec.AsObject
 
 case class InsertedTrackPoint(point: TrackPointId, track: TrackRef)
 
@@ -497,35 +454,20 @@ case class BoatInfo(
   user: Username,
   language: Language,
   tracks: Seq[TrackRef]
-)
-
-object BoatInfo:
-  implicit val json: Codec[BoatInfo] = deriveCodec[BoatInfo]
+) derives Codec.AsObject
 
 case class UserBoats(user: Username, language: Language, boats: Seq[BoatInfo])
 
 object UserBoats:
   val anon = UserBoats(Usernames.anon, Language.default, Nil)
 
-case class TrackBrief(trackName: TrackName, added: String, addedMillis: Long)
+case class TrackBrief(trackName: TrackName, added: String, addedMillis: Long) derives Codec.AsObject
 
-object TrackBrief:
-  implicit val json: Codec[TrackBrief] = deriveCodec[TrackBrief]
+case class TrackSummary(track: TrackRef) derives Codec.AsObject
 
-case class TrackSummary(track: TrackRef)
+case class TrackSummaries(tracks: Seq[TrackSummary]) derives Codec.AsObject
 
-object TrackSummary:
-  implicit val json: Codec[TrackSummary] = deriveCodec[TrackSummary]
-
-case class TrackSummaries(tracks: Seq[TrackSummary])
-
-object TrackSummaries:
-  implicit val json: Codec[TrackSummaries] = deriveCodec[TrackSummaries]
-
-case class Tracks(tracks: Seq[TrackRef])
-
-object Tracks:
-  implicit val json: Codec[Tracks] = deriveCodec[Tracks]
+case class Tracks(tracks: Seq[TrackRef]) derives Codec.AsObject
 
 case class GPSCoordsEvent(coords: List[GPSTimedCoord], from: DeviceRef) extends DeviceFrontEvent
 
@@ -668,18 +610,6 @@ object MapConf:
     s"mapbox://styles/skogberglabs/$styleId",
     IconsConf("boat-resized-opt-30", "trophy-gold-path")
   )
-
-abstract class Companion[Raw, T](implicit jsonFormat: Codec[Raw], o: Ordering[Raw]):
-  def apply(raw: Raw): T
-
-  def raw(t: T): Raw
-
-  implicit val format: Codec[T] = Codec.from(
-    Decoder[Raw].map(apply),
-    (t: T) => raw(t).asJson
-  )
-
-  implicit val ordering: Ordering[T] = o.on(raw)
 
 abstract class ValidatedDouble[T](implicit d: Decoder[Double], e: Encoder[Double])
   extends ValidatingCompanion[Double, T]()(d, e, TotalOrdering)

@@ -13,10 +13,7 @@ case class TrafficSignTypeLang(
   cableOrWire: String,
   direction: String,
   lightInfo: String
-)
-
-object TrafficSignTypeLang:
-  implicit val json: Codec[TrafficSignTypeLang] = deriveCodec[TrafficSignTypeLang]
+) derives Codec.AsObject
 
 case class TrafficSignLimitsLang(
   unknown: String,
@@ -37,11 +34,9 @@ case class TrafficSignLimitsLang(
   heightLimit: String,
   depthLimit: String,
   widthLimit: String
-)
+) derives Codec.AsObject
 
 object TrafficSignLimitsLang:
-  implicit val json: Codec[TrafficSignLimitsLang] = deriveCodec[TrafficSignLimitsLang]
-
   def apply(
     unknown: String,
     noWaterSkiing: String,
@@ -91,19 +86,13 @@ case class TrafficSignInfoLang(
   wireSign: String,
   directionUpper: String,
   directionLower: String
-)
-
-object TrafficSignInfoLang:
-  implicit val json: Codec[TrafficSignInfoLang] = deriveCodec[TrafficSignInfoLang]
+) derives Codec.AsObject
 
 case class TrafficSignLang(
   limits: TrafficSignLimitsLang,
   infos: TrafficSignInfoLang,
   types: TrafficSignTypeLang
-)
-
-object TrafficSignLang:
-  implicit val json: Codec[TrafficSignLang] = deriveCodec[TrafficSignLang]
+) derives Codec.AsObject
 
 case class FairwayStateLang(
   confirmed: String,
@@ -112,26 +101,15 @@ case class FairwayStateLang(
   changeAihio: String,
   mayBeRemoved: String,
   removed: String
-)
+) derives Codec.AsObject
 
-object FairwayStateLang:
-  implicit val json: Codec[FairwayStateLang] = deriveCodec[FairwayStateLang]
+case class MarkTypeLang(unknown: String, lateral: String, cardinal: String) derives Codec.AsObject
 
-case class MarkTypeLang(unknown: String, lateral: String, cardinal: String)
+case class ZonesLang(area: String, fairway: String, areaAndFairway: String) derives Codec.AsObject
 
-object MarkTypeLang:
-  implicit val json: Codec[MarkTypeLang] = deriveCodec[MarkTypeLang]
-
-case class ZonesLang(area: String, fairway: String, areaAndFairway: String)
-
-object ZonesLang:
-  implicit val json: Codec[ZonesLang] = deriveCodec[ZonesLang]
-
-case class FlotationLang(floating: String, solid: String, other: String)
+case class FlotationLang(floating: String, solid: String, other: String) derives Codec.AsObject
 
 object FlotationLang:
-  implicit val json: Codec[FlotationLang] = deriveCodec[FlotationLang]
-
   val fi = FlotationLang("Kelluva", "Kiinteä", "Muu")
   val se = FlotationLang("Flytande", "Fast", "Annan")
   val en = FlotationLang("Floating", "Solid", "Other")
@@ -150,10 +128,9 @@ case class AidTypeLang(
   beacon: String,
   signatureLighthouse: String,
   cairn: String
-)
+) derives Codec.AsObject
 
 object AidTypeLang:
-  implicit val json: Codec[AidTypeLang] = deriveCodec[AidTypeLang]
   val fi = AidTypeLang(
     "Tuntematon",
     "Merimajakka",
@@ -212,10 +189,9 @@ case class NavMarkLang(
   safeWaters: String,
   special: String,
   notApplicable: String
-)
+) derives Codec.AsObject
 
 object NavMarkLang:
-  implicit val json: Codec[NavMarkLang] = deriveCodec[NavMarkLang]
   val fi = NavMarkLang(
     "Tuntematon",
     "Vasen",
@@ -276,10 +252,9 @@ case class ConstructionLang(
   borderLineMark: String,
   channelEdgeLight: String,
   tower: String
-)
+) derives Codec.AsObject
 
 object ConstructionLang:
-  implicit val json: Codec[ConstructionLang] = deriveCodec[ConstructionLang]
   val fi = ConstructionLang(
     "Poijuviitta",
     "Jääpoiju",
@@ -352,10 +327,7 @@ case class SpecialCategory(
   militaryOps: String,
   sailing: String,
   pleasureCraft: String
-)
-
-object SpecialCategory:
-  implicit val json: Codec[SpecialCategory] = deriveCodec[SpecialCategory]
+) derives Codec.AsObject
 
 case class ShipTypesLang(
   wingInGround: String,
@@ -375,11 +347,9 @@ case class ShipTypesLang(
   tanker: String,
   other: String,
   unknown: String
-)
+) derives Codec.AsObject
 
 object ShipTypesLang:
-  implicit val json: Codec[ShipTypesLang] = deriveCodec[ShipTypesLang]
-
   val fi = ShipTypesLang(
     wingInGround = "Wing in Ground",
     special = SpecialCategory(
@@ -478,10 +448,7 @@ case class FairwayTypeLang(
   confirmedExtra: String,
   helcom: String,
   pilot: String
-)
-
-object FairwayTypeLang:
-  implicit val json: Codec[FairwayTypeLang] = deriveCodec[FairwayTypeLang]
+) derives Codec.AsObject
 
 case class FairwayLang(
   fairwayType: String,
@@ -493,15 +460,9 @@ case class FairwayLang(
   states: FairwayStateLang,
   zones: ZonesLang,
   types: FairwayTypeLang
-)
+) derives Codec.AsObject
 
-object FairwayLang:
-  implicit val json: Codec[FairwayLang] = deriveCodec[FairwayLang]
-
-case class AisLang(draft: String, destination: String, shipType: String)
-
-object AisLang:
-  implicit val json: Codec[AisLang] = deriveCodec[AisLang]
+case class AisLang(draft: String, destination: String, shipType: String) derives Codec.AsObject
 
 case class TrackLang(
   track: String,
@@ -524,10 +485,7 @@ case class TrackLang(
   graph: String,
   coordinate: String,
   comments: String
-)
-
-object TrackLang:
-  implicit val json: Codec[TrackLang] = deriveCodec[TrackLang]
+) derives Codec.AsObject
 
 case class MarkLang(
   markType: String,
@@ -547,10 +505,7 @@ case class MarkLang(
   no: String,
   extraInfo1: String,
   extraInfo2: String
-)
-
-object MarkLang:
-  implicit val json: Codec[MarkLang] = deriveCodec[MarkLang]
+) derives Codec.AsObject
 
 case class SpecialWords(
   transportAgency: String,
@@ -559,30 +514,22 @@ case class SpecialWords(
   portOfHelsinki: String,
   cityOfHelsinki: String,
   cityOfEspoo: String
-)
+) derives Codec.AsObject
 
-object SpecialWords:
-  implicit val json: Codec[SpecialWords] = deriveCodec[SpecialWords]
-
-case class TextLink(text: String, url: FullUrl)
+case class TextLink(text: String, url: FullUrl) derives Codec.AsObject
 
 object TextLink:
-  implicit val json: Codec[TextLink] = deriveCodec[TextLink]
-
   def url(link: FullUrl) = TextLink(link.url, link)
 
 case class Attribution(title: String, text: Option[String], links: Seq[TextLink])
+  derives Codec.AsObject
 
 object Attribution:
-  implicit val json: Codec[Attribution] = deriveCodec[Attribution]
-
   def url(title: String, link: FullUrl) = Attribution(title, None, Seq(TextLink.url(link)))
 
-case class AttributionInfo(title: String, attributions: Seq[Attribution])
+case class AttributionInfo(title: String, attributions: Seq[Attribution]) derives Codec.AsObject
 
 object AttributionInfo:
-  implicit val json: Codec[AttributionInfo] = deriveCodec[AttributionInfo]
-
   val fi = translated(
     "Lisenssit",
     "Merikartta-aineistot",
@@ -599,7 +546,7 @@ object AttributionInfo:
     "Source: Finnish Transport Agency. Not for navigational use. Does not meet the requirements for official nautical charts."
   )
 
-  def translated(title: String, maritimeData: String, chartsLicense: String) =
+  private def translated(title: String, maritimeData: String, chartsLicense: String) =
     AttributionInfo(
       title,
       Seq(
@@ -625,25 +572,17 @@ case class ProfileLang(
   english: String,
   deleteAccount: String,
   deleteAccountConfirmation: String
-)
-
-object ProfileLang:
-  implicit val json: Codec[ProfileLang] = deriveCodec[ProfileLang]
+) derives Codec.AsObject
 
 case class MessagesLang(
   loading: String,
   failedToLoadProfile: String,
   noSavedTracks: String,
   notAvailable: String
-)
-
-object MessagesLang:
-  implicit val json: Codec[MessagesLang] = deriveCodec[MessagesLang]
+) derives Codec.AsObject
 
 case class FormatsLang(date: String, time: String, timeShort: String, dateTime: String)
-
-object FormatsLang:
-  implicit val json: Codec[FormatsLang] = deriveCodec[FormatsLang]
+  derives Codec.AsObject
 
 case class BoatLang(
   boat: String,
@@ -655,7 +594,6 @@ case class BoatLang(
   tokenText: String,
   tokenTextLong: String
 )
-
 object BoatLang:
   implicit val json: Codec[BoatLang] = deriveCodec[BoatLang]
 
@@ -675,12 +613,9 @@ case class InviteLang(
   rejected: String,
   awaiting: String,
   from: String
-):
+) derives Codec.AsObject:
   def confirmRevoke(boat: BoatName, fromEmail: Email) =
     s"$revoke $boat $from $fromEmail?"
-
-object InviteLang:
-  implicit val json: Codec[InviteLang] = deriveCodec[InviteLang]
 
 case class SettingsLang(
   welcome: String,
@@ -711,10 +646,7 @@ object SettingsLang:
     modern(sl).deepMerge(BoatLang.json(sl.boatLang))
   implicit val codec: Codec[SettingsLang] = Codec.from(modern, encoder)
 
-case class LanguageInfo(name: String, code: String)
-
-object LanguageInfo:
-  implicit val json: Codec[LanguageInfo] = deriveCodec[LanguageInfo]
+case class LanguageInfo(name: String, code: String) derives Codec.AsObject
 
 case class LimitTypes(
   speedLimit: String,
@@ -729,10 +661,7 @@ case class LimitTypes(
   noRendezVous: String,
   speedRecommendation: String,
   unknown: String
-)
-
-object LimitTypes:
-  implicit val json: Codec[LimitTypes] = deriveCodec[LimitTypes]
+) derives Codec.AsObject
 
 case class LimitLang(
   limit: String,
@@ -743,11 +672,9 @@ case class LimitLang(
   responsible: String,
   types: LimitTypes,
   signs: TrafficSignLang
-)
+) derives Codec.AsObject
 
 object LimitLang:
-  implicit val json: Codec[LimitLang] = deriveCodec[LimitLang]
-
   private val limitsFi = LimitTypes(
     "Nopeusrajoitus",
     "Aallokon aiheuttamisen kielto",
@@ -942,9 +869,7 @@ object LimitLang:
   )
 
 case class LabelsLang(statistics: String, monthly: String, yearly: String, allTime: String)
-
-object LabelsLang:
-  implicit val json: Codec[LabelsLang] = deriveCodec[LabelsLang]
+  derives Codec.AsObject
 
 case class MonthsLang(
   jan: String,
@@ -959,7 +884,7 @@ case class MonthsLang(
   oct: String,
   nov: String,
   dec: String
-):
+) derives Codec.AsObject:
   def apply(month: MonthVal) = month.value match
     case 1  => jan
     case 2  => feb
@@ -976,8 +901,6 @@ case class MonthsLang(
     case _  => ""
 
 object MonthsLang:
-  implicit val json: Codec[MonthsLang] = deriveCodec[MonthsLang]
-
   val se = apply(
     "Januari",
     "Februari",
@@ -1021,15 +944,9 @@ object MonthsLang:
     "December"
   )
 
-case class CalendarLang(months: MonthsLang)
+case class CalendarLang(months: MonthsLang) derives Codec.AsObject
 
-object CalendarLang:
-  implicit val json: Codec[CalendarLang] = deriveCodec[CalendarLang]
-
-case class AppMetaLang(appName: String, version: String, build: String)
-
-object AppMetaLang:
-  implicit val json: Codec[AppMetaLang] = deriveCodec[AppMetaLang]
+case class AppMetaLang(appName: String, version: String, build: String) derives Codec.AsObject
 
 case class Lang(
   appName: String,
@@ -1053,11 +970,9 @@ case class Lang(
   limits: LimitLang,
   labels: LabelsLang,
   calendar: CalendarLang
-)
+) derives Codec.AsObject
 
 object Lang:
-  implicit val json: Codec[Lang] = deriveCodec[Lang]
-
   private val appName = "Boat-Tracker"
 
   def apply(language: Language): Lang = language match
