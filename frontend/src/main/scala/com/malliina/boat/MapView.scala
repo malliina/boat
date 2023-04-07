@@ -94,11 +94,10 @@ class MapView(
   initNavDropdown()
 
   private def loadCarTracks(): Unit =
-    log.info(s"Loading car tracks...")
-    HttpClient.get[CarHistoryResponse]("/history/cars").map { res =>
+    HttpClient.get[CarHistoryResponse]("/cars/history").map { res =>
       log.info(s"Got ${res.history.size} drives, adding to map...")
       val features = res.history.map { drive =>
-        Feature(LineGeometry(drive.map(_.coord)), Map.empty)
+        Feature(LineGeometry(drive.coords.map(_.coord)), Map.empty)
       }
       val lineLayer = Layer
         .line("car-track", FeatureCollection(features), LinePaint(LinePaint.blackColor, 1, 1), None)

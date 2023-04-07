@@ -548,7 +548,9 @@ object CoordsEvent:
 
 case class CarUpdate(coord: Coord, carTime: Timing, added: Timing) derives Codec.AsObject
 
-case class CarHistoryResponse(history: List[List[CarUpdate]]) derives Codec.AsObject
+case class CarDrive(coords: List[CarUpdate]) derives Codec.AsObject
+
+case class CarHistoryResponse(history: List[CarDrive]) derives Codec.AsObject
 
 case class CoordsBatch(events: Seq[CoordsEvent]) extends FrontEvent:
   override def isIntendedFor(user: MinimalUserInfo): Boolean =

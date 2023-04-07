@@ -193,12 +193,6 @@ class Service[F[_]: Async](comps: BoatComps[F]) extends BasicService[F]:
       authedQuery(req, BoatQuery.apply).flatMap { authed =>
         db.history(authed.user, authed.query).flatMap { ts => ok(ts) }
       }
-    case req @ GET -> Root / "history" / "cars" =>
-      authedQuery(req, BoatQuery.car).flatMap { authed =>
-        db.carHistory(authed.user, authed.query).flatMap { ts =>
-          ok(CarHistoryResponse(ts))
-        }
-      }
     case req @ GET -> Root / "tracks" / TrackNameVar(trackName) =>
       respond(req)(
         json = authedTrackQuery(req).flatMap { authed =>
@@ -374,6 +368,12 @@ class Service[F[_]: Async](comps: BoatComps[F]) extends BasicService[F]:
           )
         }
       }
+    case req @ GET -> Root / "cars" / "history" =>
+      for
+        authed <- authedQuery(req, BoatQuery.car)
+        history <- db.carHistory(authed.user, authed.query)
+        res <- ok(CarHistoryResponse(history.map(CarDrive.apply)))
+      yield res
     case req @ POST -> Root / "cars" / "locations" =>
       jsonAction[LocationUpdates](req) { (body, user) =>
         log.debug(s"User ${user.email} POSTs ${body.updates.size} car location updates...")
