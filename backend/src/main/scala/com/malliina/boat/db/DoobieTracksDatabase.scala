@@ -292,7 +292,7 @@ class DoobieTracksDatabase[F[_]: Async](val db: DoobieDatabase[F])
     )
     val formatter = TimeFormatter(user.language)
     val start = System.currentTimeMillis()
-    sql"""select c.coord, c.added
+    sql"""select c.coord, c.gps_time, c.added
           from car_points c
           join boats b on b.id = c.device
           join users u on b.owner = u.id
@@ -324,7 +324,7 @@ class DoobieTracksDatabase[F[_]: Async](val db: DoobieDatabase[F])
       case head :: tail =>
         acc match
           case accHead :: _
-              if head.time.millis - accHead.time.millis < maxTimeBetweenCarPoints.toMillis =>
+              if head.carTime.millis - accHead.carTime.millis < maxTimeBetweenCarPoints.toMillis =>
             split(tail, previous, head :: acc)
           case _ =>
             split(tail, previous :+ acc.reverse, List(head))

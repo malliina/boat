@@ -146,7 +146,6 @@ case class BoatQuery(
   def offset = limits.offset
   def from = timeRange.from
   def to = timeRange.to
-  def car = CarQuery(limits, timeRange)
 
 object BoatQuery:
   private val NewestKey = "newest"
@@ -190,6 +189,12 @@ object BoatQuery:
       sample <- Limits.readInt(SampleKey, q)
       newest <- bindNewest(q, default = true)
     yield BoatQuery(limits, timeRange, tracks, canonicals, route, sample, newest)
+
+  def car(q: Query): Either[Errors, CarQuery] =
+    for
+      limits <- Limits(q)
+      timeRange <- TimeRange(q)
+    yield CarQuery(limits, timeRange)
 
   private def bindSeq[T: QueryParamDecoder](key: String, q: Query) =
     QueryParsers.list[T](key, q)

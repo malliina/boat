@@ -28,7 +28,7 @@ class TrackInserter[F[_]: Async](val db: DoobieDatabase[F])
   with DoobieSQL:
   import DoobieMappings.*
   import db.{run, logHandler}
-  val minSpeed: SpeedM = 1.kmh
+  private val minSpeed: SpeedM = 1.kmh
 
   private val trackIds = CommonSql.nonEmptyTracksWith(fr0"t.id")
   private def trackById(id: TrackId) =
@@ -182,8 +182,8 @@ class TrackInserter[F[_]: Async](val db: DoobieDatabase[F])
         .unique
     import cats.implicits.*
     val insertion = locs.updates.traverse { loc =>
-      sql"""insert into car_points(longitude, latitude, coord, device, altitude, accuracy, bearing, bearing_accuracy)
-            values(${loc.longitude}, ${loc.latitude}, ${loc.coord}, $carId, ${loc.altitudeMeters}, ${loc.accuracyMeters}, ${loc.bearing}, ${loc.bearingAccuracyDegrees})
+      sql"""insert into car_points(longitude, latitude, coord, gps_time, device, altitude, accuracy, bearing, bearing_accuracy)
+            values(${loc.longitude}, ${loc.latitude}, ${loc.coord}, ${loc.date}, $carId, ${loc.altitudeMeters}, ${loc.accuracyMeters}, ${loc.bearing}, ${loc.bearingAccuracyDegrees})
          """.update.withUniqueGeneratedKeys[CarUpdateId]("id")
     }
     for

@@ -2,10 +2,9 @@ package com.malliina.boat.db
 
 import com.malliina.boat.db.Values.VesselUpdateId
 
-import java.time.{Instant, LocalDate}
+import java.time.{Instant, LocalDate, OffsetDateTime, ZoneOffset}
 import com.malliina.boat.parsing.GPSFix
-import com.malliina.boat.{AisUpdateId, BoatName, BoatToken, CarUpdateId, Coord, CoordHash, DateVal, DeviceId, FairwayLighting, GPSPointId, GPSSentenceKey, InviteState, Language, Latitude, Longitude, MobileDevice, MonthVal, PushId, PushToken, RawSentence, SeaArea, SentenceKey, TrackCanonical, TrackId, TrackName, TrackPointId, TrackTitle, UserToken, VesselRowId, YearVal}
-import com.malliina.boat.long
+import com.malliina.boat.{AisUpdateId, BoatName, BoatToken, CarUpdateId, Coord, CoordHash, DateVal, DeviceId, FairwayLighting, GPSPointId, GPSSentenceKey, InviteState, Language, Latitude, Longitude, MobileDevice, MonthVal, PushId, PushToken, RawSentence, SeaArea, SentenceKey, TimeFormatter, TrackCanonical, TrackId, TrackName, TrackPointId, TrackTitle, UserToken, VesselRowId, YearVal, long}
 import com.malliina.measure.{DistanceM, SpeedDoubleM, SpeedM, Temperature}
 import com.malliina.values.*
 import com.vividsolutions.jts.geom.Point
@@ -17,6 +16,8 @@ object DoobieMappings extends DoobieMappings
 
 trait DoobieMappings:
   implicit val instantMeta: Meta[Instant] = doobie.implicits.legacy.instant.JavaTimeInstantMeta
+  implicit val odtMeta: Meta[OffsetDateTime] =
+    Meta[Instant].imap(_.atOffset(ZoneOffset.UTC))(_.toInstant)
   implicit val localDateMeta: Meta[LocalDate] =
     doobie.implicits.legacy.localdate.JavaTimeLocalDateMeta
 

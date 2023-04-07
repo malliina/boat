@@ -546,7 +546,7 @@ object CoordsEvent:
   implicit val coordJson: Codec[Coord] = Coord.json
   implicit val json: Codec[CoordsEvent] = keyValued(Key, deriveCodec[CoordsEvent])
 
-case class CarUpdate(coord: Coord, time: Timing) derives Codec.AsObject
+case class CarUpdate(coord: Coord, carTime: Timing, added: Timing) derives Codec.AsObject
 
 case class CarHistoryResponse(history: List[List[CarUpdate]]) derives Codec.AsObject
 

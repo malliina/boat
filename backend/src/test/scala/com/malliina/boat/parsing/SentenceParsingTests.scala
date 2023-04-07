@@ -1,9 +1,10 @@
-package tests
+package com.malliina.boat.parsing
 
 import cats.effect.IO
 import com.malliina.boat.parsing.*
 import com.malliina.boat.{Coord, KeyedSentence, RawSentence, SentenceKey}
 import com.malliina.measure.{DistanceIntM, SpeedIntM, TemperatureInt}
+import tests.BaseSuite
 
 import java.time.{LocalDate, LocalTime}
 

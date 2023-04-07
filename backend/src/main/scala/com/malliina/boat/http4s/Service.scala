@@ -194,8 +194,8 @@ class Service[F[_]: Async](comps: BoatComps[F]) extends BasicService[F]:
         db.history(authed.user, authed.query).flatMap { ts => ok(ts) }
       }
     case req @ GET -> Root / "history" / "cars" =>
-      authedQuery(req, BoatQuery.apply).flatMap { authed =>
-        db.carHistory(authed.user, authed.query.car).flatMap { ts =>
+      authedQuery(req, BoatQuery.car).flatMap { authed =>
+        db.carHistory(authed.user, authed.query).flatMap { ts =>
           ok(CarHistoryResponse(ts))
         }
       }
@@ -376,7 +376,7 @@ class Service[F[_]: Async](comps: BoatComps[F]) extends BasicService[F]:
       }
     case req @ POST -> Root / "cars" / "locations" =>
       jsonAction[LocationUpdates](req) { (body, user) =>
-        log.info(s"User ${user.email} POSTs ${body.updates.size} car location updates...")
+        log.debug(s"User ${user.email} POSTs ${body.updates.size} car location updates...")
         inserts.saveLocations(body, user.id).flatMap { ids =>
           ok(SimpleMessage(s"Got ${body.updates.size} locations, saved IDs ${ids.mkString(", ")}."))
         }

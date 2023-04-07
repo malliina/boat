@@ -36,21 +36,13 @@ case class LocationUpdate(
 object LocationUpdate:
   implicit val json: Codec[LocationUpdate] = deriveCodec[LocationUpdate]
 
-case class LocationUpdates(updates: List[LocationUpdate], carId: DeviceId)
-object LocationUpdates:
-  implicit val json: Codec[LocationUpdates] = deriveCodec[LocationUpdates]
+case class LocationUpdates(updates: List[LocationUpdate], carId: DeviceId) derives Codec.AsObject
 
 case class CSRFToken(token: String) extends AnyVal
 
-case class Languages(finnish: Lang, swedish: Lang, english: Lang)
+case class Languages(finnish: Lang, swedish: Lang, english: Lang) derives Codec.AsObject
 
-object Languages:
-  implicit val json: Codec[Languages] = deriveCodec[Languages]
-
-case class AisConf(vessel: String, trail: String, vesselIcon: String)
-
-object AisConf:
-  implicit val json: Codec[AisConf] = deriveCodec[AisConf]
+case class AisConf(vessel: String, trail: String, vesselIcon: String) derives Codec.AsObject
 
 case class Layers(
   marks: Seq[String],
@@ -59,10 +51,9 @@ case class Layers(
   depthAreas: Seq[String],
   limits: Seq[String],
   ais: AisConf
-)
+) derives Codec.AsObject
 
 object Layers:
-  implicit val json: Codec[Layers] = deriveCodec[Layers]
   import MapboxStyles.*
 
   val default = Layers(
@@ -74,10 +65,9 @@ object Layers:
     AisConf(AisVesselLayer, AisTrailLayer, AisVesselIcon)
   )
 
-case class ClientConf(map: MapConf, languages: Languages, layers: Layers)
+case class ClientConf(map: MapConf, languages: Languages, layers: Layers) derives Codec.AsObject
 
 object ClientConf:
-  implicit val json: Codec[ClientConf] = deriveCodec[ClientConf]
   val default = withMap(MapConf.active)
   val old = withMap(MapConf.old)
 
@@ -126,15 +116,15 @@ object UserToken extends BoatStringCompanion[UserToken]:
 
   def random(): UserToken = UserToken(Utils.randomString(length = 8))
 
-case class AppMeta(name: String, version: String, gitHash: String)
+case class AppMeta(name: String, version: String, gitHash: String) derives Codec.AsObject
 
 object AppMeta:
-  implicit val json: Codec[AppMeta] = deriveCodec[AppMeta]
   val default =
     AppMeta(BuildInfo.name, BuildInfo.version, BuildInfo.gitHash)
 
-case class CarRow(coord: Coord, added: Instant):
-  def toUpdate(formatter: TimeFormatter): CarUpdate = CarUpdate(coord, formatter.timing(added))
+case class CarRow(coord: Coord, carTime: Instant, added: Instant):
+  def toUpdate(formatter: TimeFormatter): CarUpdate =
+    CarUpdate(coord, formatter.timing(carTime), formatter.timing(added))
 
 case class JoinedTrack(
   track: TrackId,

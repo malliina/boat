@@ -1,16 +1,17 @@
 package com.malliina.boat.http4s
 
 import cats.effect.IO
-import com.malliina.boat.{DeviceId, Errors, Latitude, LocationUpdate, LocationUpdates, Longitude, SimpleMessage}
+import com.malliina.boat.{CarHistoryResponse, DeviceId, Errors, Latitude, LocationUpdate, LocationUpdates, Longitude, SimpleMessage, TimeFormatter}
 import com.malliina.values.{IdToken, UserId}
 import com.malliina.measure.DistanceIntM
 import com.malliina.values.degrees
 import io.circe.syntax.EncoderOps
 import org.http4s.headers.Authorization
 import org.http4s.{Request, Status}
+import org.http4s.Status.{NotFound, Ok, Unauthorized}
 import tests.{MUnitSuite, ServerSuite, TestEmailAuth}
 
-import java.time.OffsetDateTime
+import java.time.{OffsetDateTime, ZoneOffset}
 
 class ServerTests extends MUnitSuite with ServerSuite:
   val testCarId = DeviceId(1)
@@ -21,68 +22,77 @@ class ServerTests extends MUnitSuite with ServerSuite:
     Option(5.meters),
     Option(128f.degrees),
     None,
-    OffsetDateTime.now()
+    OffsetDateTime.of(2023, 4, 2, 10, 4, 3, 0, ZoneOffset.UTC)
   )
 
-  def carsUrl = baseUrl.append(Reverse.postCars.renderString)
+  def postCarsUrl = baseUrl.append(Reverse.postCars.renderString)
+  def getCarsUrl = baseUrl.append(Reverse.historyCars.renderString)
 
   test("can call server") {
-    assertIO(status("/health"), Status.Ok.code)
+    assertIO(status("/health"), Ok.code)
   }
 
   test("call with no creds") {
     client.get(baseUrl / "my-track").map { res =>
-      assertEquals(res.status, Status.Unauthorized.code)
+      assertEquals(res.status, Unauthorized.code)
       val errors = res.parse[Errors].toOption.get
       assertEquals(errors.message, Auth.noCredentials)
     }
   }
 
   test("POST call with no creds") {
-    client.postJson(carsUrl, LocationUpdates(Nil, testCarId).asJson, Map.empty).map { res =>
-      assertEquals(res.status, Status.Unauthorized.code)
+    client.postJson(postCarsUrl, LocationUpdates(Nil, testCarId).asJson, Map.empty).map { res =>
+      assertEquals(res.status, Unauthorized.code)
     }
   }
 
   test("POST call with bogus jwt") {
     postCars(IdToken("j.w.t")).map { res =>
-      assertEquals(res.status, Status.Unauthorized.code)
+      assertEquals(res.status, Unauthorized.code)
     }
   }
 
   test("POST call with working jwt") {
-    postCars(TestEmailAuth.testToken).map { res =>
-      assertEquals(res.status, Status.Ok.code)
+    postCars().map { res =>
+      assertEquals(res.status, Ok.code)
     }
   }
 
   test("POST car locations") {
-    postCars(TestEmailAuth.testToken, LocationUpdates(List(loc), testCarId)).map { res =>
-      assertEquals(res.status, Status.Ok.code)
-    }
+    for
+      postResponse <- postCars(updates = LocationUpdates(List(loc), testCarId))
+      _ = assertEquals(postResponse.status, Ok.code)
+      history <- getCars()
+    yield
+      println(history.history.size)
+      assertEquals(1, 1)
   }
 
   test("POST car locations for non-owned car fails") {
-    postCars(TestEmailAuth.testToken, LocationUpdates(List(loc), DeviceId(123))).map { res =>
-      assertEquals(res.status, Status.NotFound.code)
+    postCars(updates = LocationUpdates(List(loc), DeviceId(123))).map { res =>
+      assertEquals(res.status, NotFound.code)
     }
   }
 
   test("apple app association") {
-    assertIO(status(".well-known/apple-app-site-association"), Status.Ok.code)
-    assertIO(status(".well-known/assetlinks.json"), Status.Ok.code)
+    assertIO(status(".well-known/apple-app-site-association"), Ok.code)
+    assertIO(status(".well-known/assetlinks.json"), Ok.code)
   }
 
   private def postCars(
-    token: IdToken,
+    token: IdToken = TestEmailAuth.testToken,
     updates: LocationUpdates = LocationUpdates(Nil, testCarId)
   ) =
     client
       .postJson(
-        carsUrl,
+        postCarsUrl,
         updates.asJson,
         Map(Authorization.name.toString -> s"Bearer $token")
       )
+
+  private def getCars(token: IdToken = TestEmailAuth.testToken) =
+    client
+      .getAs[CarHistoryResponse](getCarsUrl, Map(Authorization.name.toString -> s"Bearer $token"))
 
   private def status(path: String): IO[Int] =
     val url = baseUrl / path
