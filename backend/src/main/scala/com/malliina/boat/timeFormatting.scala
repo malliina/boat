@@ -11,6 +11,8 @@ object TimePatterns:
   val en = TimePatterns("dd MMM yyyy", "HH:mm:ss", "dd MMM yyyy HH:mm:ss")
 
 object TimeFormatter:
+  val helsinkiZone = ZoneId.of("Europe/Helsinki")
+
   def apply(patterns: TimePatterns) = new TimeFormatter(patterns)
 
   def apply(language: Language): TimeFormatter = language match
@@ -24,7 +26,7 @@ object TimeFormatter:
   val en = apply(TimePatterns.en)
 
 class TimeFormatter(patterns: TimePatterns):
-  val helsinkiZone = ZoneId.of("Europe/Helsinki")
+  import TimeFormatter.helsinkiZone
   val dateFormatter = DateTimeFormatter
     .ofPattern(patterns.date)
     .withZone(helsinkiZone)
@@ -46,7 +48,7 @@ class TimeFormatter(patterns: TimePatterns):
   def formatRange(start: Instant, end: Instant): String =
     s"${formatDateTime(start)} - ${formatTime(end)}"
 
-  def timing(i: Instant) =
+  def timing(i: Instant): Timing =
     Timing(formatDate(i), formatTime(i), formatDateTime(i), i.toEpochMilli)
 
   def times(start: Instant, end: Instant): Times = Times(

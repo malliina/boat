@@ -3,13 +3,13 @@ package com.malliina.boat.http
 import cats.effect.IO
 import cats.implicits.*
 import com.malliina.boat.http4s.QueryParsers
-import com.malliina.boat.{Constants, Coord, Errors, Latitude, Longitude, Mmsi, RouteRequest, SingleError, TrackCanonical, TrackName, VesselName}
+import com.malliina.boat.{Constants, Coord, Errors, Latitude, Longitude, Mmsi, RouteRequest, SingleError, TimeFormatter, TrackCanonical, TrackName, VesselName}
 import com.malliina.values.{Email, ErrorMessage}
 import io.circe.Codec
 import io.circe.generic.semiauto.deriveCodec
 import org.http4s.{Headers, Query, QueryParamDecoder, Request}
 
-import java.time.Instant
+import java.time.{Instant, LocalDate}
 import java.time.format.{DateTimeFormatter, DateTimeParseException}
 import java.time.temporal.ChronoUnit
 import scala.concurrent.duration.DurationInt
@@ -120,6 +120,11 @@ object VesselQuery:
       time <- TimeRange(q)
     yield VesselQuery(name, mmsi, time, limits)
 
+case class CarQuery(limits: Limits, timeRange: TimeRange):
+  private def timeDescribe = timeRange.describe
+  private def space = if timeDescribe.isEmpty then "" else " "
+  def describe = s"${timeRange.describe}${space}with ${limits.describe}"
+
 /** @param tracks
   *   tracks to return
   * @param newest
@@ -141,6 +146,7 @@ case class BoatQuery(
   def offset = limits.offset
   def from = timeRange.from
   def to = timeRange.to
+  def car = CarQuery(limits, timeRange)
 
 object BoatQuery:
   private val NewestKey = "newest"
@@ -234,7 +240,8 @@ trait LimitLike:
   def offset: Int
   def page = offset / limit + 1
 
-case class Limits(limit: Int, offset: Int) extends LimitLike
+case class Limits(limit: Int, offset: Int) extends LimitLike:
+  def describe = s"limit $limit offset $offset"
 
 object Limits:
   val Limit = "limit"
@@ -282,12 +289,27 @@ object TimeRange:
 
   private val instantDecoder =
     QueryParamDecoder.instantQueryParamDecoder(DateTimeFormatter.ISO_INSTANT)
+  private val localDateEncoder =
+    QueryParamDecoder.localDate(DateTimeFormatter.ISO_LOCAL_DATE)
 
   private def bindInstant(key: String, q: Query): Either[Errors, Option[Instant]] =
-    QueryParsers.parseOptE[Instant](q, key)(instantDecoder)
+    QueryParsers
+      .parseOptE[Instant](q, key)(instantDecoder)
+      .orElse(
+        bindLocalDate(key, q).map(_.map(_.atStartOfDay(TimeFormatter.helsinkiZone).toInstant))
+      )
+
+  private def bindLocalDate(key: String, q: Query): Either[Errors, Option[LocalDate]] =
+    QueryParsers.parseOptE[LocalDate](q, key)(localDateEncoder)
 
   def parseInstant(in: String): Either[SingleError, Instant] =
     try Right(Instant.parse(in))
     catch
       case dte: DateTimeParseException =>
         Left(SingleError.input(s"Invalid instant: '$in'. ${dte.getMessage}"))
+
+  def parseLocalDate(in: String): Either[SingleError, LocalDate] =
+    try Right(LocalDate.parse(in))
+    catch
+      case dte: DateTimeParseException =>
+        Left(SingleError.input(s"Invalid date: '$in'. ${dte.getMessage}"))

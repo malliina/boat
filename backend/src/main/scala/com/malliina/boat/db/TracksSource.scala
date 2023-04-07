@@ -2,7 +2,7 @@ package com.malliina.boat.db
 
 import cats.effect.IO
 import com.malliina.boat.*
-import com.malliina.boat.http.{BoatQuery, TrackQuery}
+import com.malliina.boat.http.{BoatQuery, CarQuery, TrackQuery}
 import com.malliina.boat.parsing.FullCoord
 import com.malliina.values.{UserId, Username}
 
@@ -32,7 +32,7 @@ trait TrackInsertsDatabase[F[_]]:
   def saveSentences(sentences: SentencesEvent): F[Seq[KeyedSentence]]
   def saveCoords(coords: FullCoord): F[InsertedPoint]
   def saveCoordsFast(coords: FullCoord): F[TrackPointId]
-  def saveLocations(locs: LocationUpdates, user: UserId): F[List[Long]]
+  def saveLocations(locs: LocationUpdates, user: UserId): F[List[CarUpdateId]]
 
 trait StatsSource[F[_]]:
   def stats(user: MinimalUserInfo, limits: TrackQuery, lang: Lang): F[StatsResponse]
@@ -45,3 +45,4 @@ trait TracksSource[F[_]]:
   def track(track: TrackName, user: Username, query: TrackQuery): F[TrackInfo]
   def full(track: TrackName, language: Language, query: TrackQuery): F[FullTrack]
   def history(user: MinimalUserInfo, limits: BoatQuery): F[Seq[CoordsEvent]]
+  def carHistory(user: MinimalUserInfo, filters: CarQuery): F[List[List[CarUpdate]]]

@@ -4,6 +4,7 @@ import cats.effect.IO
 import com.malliina.boat.{DeviceId, Errors, Latitude, LocationUpdate, LocationUpdates, Longitude, SimpleMessage}
 import com.malliina.values.{IdToken, UserId}
 import com.malliina.measure.DistanceIntM
+import com.malliina.values.degrees
 import io.circe.syntax.EncoderOps
 import org.http4s.headers.Authorization
 import org.http4s.{Request, Status}
@@ -18,7 +19,7 @@ class ServerTests extends MUnitSuite with ServerSuite:
     Latitude(60),
     Option(1.meters),
     Option(5.meters),
-    Option(128f),
+    Option(128f.degrees),
     None,
     OffsetDateTime.now()
   )

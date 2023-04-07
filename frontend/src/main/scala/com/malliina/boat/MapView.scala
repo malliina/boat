@@ -1,11 +1,14 @@
 package com.malliina.boat
 
+import com.malliina.http.HttpClient
 import com.malliina.mapbox.{LngLat, MapOptions, MapboxGeocoder, MapboxMap, MapboxMarker, MarkerOptions, mapboxGl}
 import org.scalajs.dom.*
 import io.circe.*
 import io.circe.syntax.EncoderOps
 import scalatags.JsDom.all.{`class`, span, stringAttr}
+
 import scala.scalajs.js.{JSON, URIUtils}
+import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 
 object MapView extends CookieNames:
   def default: Either[NotFound, MapView] =
@@ -68,6 +71,7 @@ class MapView(
       val mode = if Option(href.getFragment).isDefined then MapMode.Stay else MapMode.Fit
       val sample = queryInt(SampleKey).getOrElse(Constants.DefaultSample)
       socket = Option(MapSocket(map, pathFinder, readTrack, Option(sample), mode, language))
+      loadCarTracks()
       if initialSettings.customCenter then
         map.putLayer(
           Layer.symbol(
@@ -88,6 +92,18 @@ class MapView(
   elem(ModalId).foreach(initModal)
 
   initNavDropdown()
+
+  private def loadCarTracks(): Unit =
+    log.info(s"Loading car tracks...")
+    HttpClient.get[CarHistoryResponse]("/history/cars").map { res =>
+      log.info(s"Got ${res.history.size} drives, adding to map...")
+      val features = res.history.map { drive =>
+        Feature(LineGeometry(drive.map(_.coord)), Map.empty)
+      }
+      val lineLayer = Layer
+        .line("car-track", FeatureCollection(features), LinePaint(LinePaint.blackColor, 1, 1), None)
+      map.putLayer(lineLayer)
+    }
 
   private def focusSearch(className: String, e: KeyboardEvent) =
     document

@@ -4,7 +4,8 @@ import com.malliina.boat.db.Values.VesselUpdateId
 
 import java.time.{Instant, LocalDate}
 import com.malliina.boat.parsing.GPSFix
-import com.malliina.boat.{AisUpdateId, BoatName, BoatToken, Coord, CoordHash, DateVal, DeviceId, FairwayLighting, GPSPointId, GPSSentenceKey, InviteState, Language, Latitude, Longitude, MobileDevice, MonthVal, PushId, PushToken, RawSentence, SeaArea, SentenceKey, TrackCanonical, TrackId, TrackName, TrackPointId, TrackTitle, UserToken, VesselRowId, YearVal}
+import com.malliina.boat.{AisUpdateId, BoatName, BoatToken, CarUpdateId, Coord, CoordHash, DateVal, DeviceId, FairwayLighting, GPSPointId, GPSSentenceKey, InviteState, Language, Latitude, Longitude, MobileDevice, MonthVal, PushId, PushToken, RawSentence, SeaArea, SentenceKey, TrackCanonical, TrackId, TrackName, TrackPointId, TrackTitle, UserToken, VesselRowId, YearVal}
+import com.malliina.boat.long
 import com.malliina.measure.{DistanceM, SpeedDoubleM, SpeedM, Temperature}
 import com.malliina.values.*
 import com.vividsolutions.jts.geom.Point
@@ -65,6 +66,8 @@ trait DoobieMappings:
     Meta[String].timap(s => InviteState.orOther(s))(_.name)
   implicit val sk: Meta[SentenceKey] = wrappedId(SentenceKey.apply)
   implicit val gsk: Meta[GPSSentenceKey] = wrappedId(GPSSentenceKey.apply)
+  implicit val dg: Meta[Degrees] = Meta[Float].timap(Degrees.unsafe)(_.float)
+  implicit val cuid: Meta[CarUpdateId] = Meta[Long].timap(CarUpdateId.apply)(_.long)
 
   private def wrapped[T <: WrappedString](build: String => T): Meta[T] =
     Meta[String].timap(build)(_.value)

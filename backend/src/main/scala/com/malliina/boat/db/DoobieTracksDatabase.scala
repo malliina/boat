@@ -4,7 +4,7 @@ import cats.data.NonEmptyList
 import cats.effect.{Async, IO}
 import cats.implicits.*
 import com.malliina.boat.InviteState.accepted
-import com.malliina.boat.http.{BoatQuery, SortOrder, TrackQuery}
+import com.malliina.boat.http.{BoatQuery, CarQuery, SortOrder, TrackQuery}
 import com.malliina.boat.*
 import com.malliina.boat.db.DoobieTracksDatabase.log
 import com.malliina.measure.{DistanceM, SpeedM}
@@ -13,6 +13,7 @@ import com.malliina.values.Username
 import doobie.*
 import doobie.implicits.*
 
+import scala.annotation.tailrec
 import scala.concurrent.duration.{DurationInt, DurationLong, FiniteDuration}
 
 object DoobieTracksDatabase:
@@ -71,7 +72,7 @@ class DoobieTracksDatabase[F[_]: Async](val db: DoobieDatabase[F])
   object sql extends CommonSql:
     def pointsByTrack(name: TrackName) =
       sql"""select $pointColumns
-            from points p, tracks t 
+            from points p, tracks t
             where p.track = t.id and t.name = $name"""
     def pointsByTime(name: TrackName) =
       val selectPoints = pointsByTrack(name)
@@ -139,14 +140,14 @@ class DoobieTracksDatabase[F[_]: Async](val db: DoobieDatabase[F])
       fr"sum(t.distance), sum(t.duration), count(t.track), count(distinct(t.startDate))"
     val dailyIO =
       sql"""select t.startDate, $aggregates
-            from ($tracks) t 
+            from ($tracks) t
             group by t.startDate
             order by t.startDate $ord"""
         .query[DailyAggregates]
         .to[List]
     val monthlyIO =
       sql"""select t.startYear, t.startMonth, $aggregates
-            from ($tracks) t 
+            from ($tracks) t
             group by t.startYear, t.startMonth
             order by t.startYear $ord, t.startMonth $ord"""
         .query[MonthlyAggregates]
@@ -233,7 +234,7 @@ class DoobieTracksDatabase[F[_]: Async](val db: DoobieDatabase[F])
       sql"""$rows order by p.boat_time asc, p.id asc, p.added asc limit ${query.limit} offset ${query.offset}"""
     val coordsIO =
       sql"""select ${sql.pointColumns}, s.id, s.sentence, s.added sentenceAdded
-            from ($limited) p, sentence_points sp, sentences s 
+            from ($limited) p, sentence_points sp, sentences s
             where p.id = sp.point and sp.sentence = s.id
             order by p.boat_time, p.id, sentenceAdded"""
         .query[SentenceCoord2]
@@ -278,9 +279,57 @@ class DoobieTracksDatabase[F[_]: Async](val db: DoobieDatabase[F])
             }
             DoobieTracksDatabase.collectTrackCoords(coords, user.language)
           }
-
     }
   }
+
+  def carHistory(user: MinimalUserInfo, filters: CarQuery): F[List[List[CarUpdate]]] = run {
+    val time = filters.timeRange
+    val limits = filters.limits
+    val conditions = Fragments.whereAndOpt(
+      time.from.map(f => fr"c.added >= $f"),
+      time.to.map(t => fr"c.added <= $t"),
+      Option(fr"u.user = ${user.username}")
+    )
+    val formatter = TimeFormatter(user.language)
+    val start = System.currentTimeMillis()
+    sql"""select c.coord, c.added
+          from car_points c
+          join boats b on b.id = c.device
+          join users u on b.owner = u.id
+          $conditions
+          order by c.added
+          limit ${limits.limit} offset ${limits.offset}"""
+      .query[CarRow]
+      .to[List]
+      .map { rows =>
+        val sqlDone = System.currentTimeMillis()
+        val result = split(rows.map(_.toUpdate(formatter))).filter(_.size > 2)
+        val splitDone = System.currentTimeMillis()
+        log.info(
+          s"Car query ${filters.describe} sql ${sqlDone - start} ms, split ${splitDone - sqlDone} ms, total ${splitDone - start} ms."
+        )
+        result
+      }
+  }
+
+  val maxTimeBetweenCarPoints = 60.seconds
+
+  @tailrec
+  private def split(
+    updates: List[CarUpdate],
+    previous: List[List[CarUpdate]] = Nil,
+    acc: List[CarUpdate] = Nil
+  ): List[List[CarUpdate]] =
+    updates match
+      case head :: tail =>
+        acc match
+          case accHead :: _
+              if head.time.millis - accHead.time.millis < maxTimeBetweenCarPoints.toMillis =>
+            split(tail, previous, head :: acc)
+          case _ =>
+            split(tail, previous :+ acc.reverse, List(head))
+      case Nil =>
+        previous :+ acc.reverse
 
   private def single(oneRowSql: Fragment, language: Language) = run {
     oneRowSql.query[JoinedTrack].unique.map { row =>

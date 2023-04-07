@@ -10,6 +10,7 @@ import io.circe.*
 import io.circe.generic.semiauto.*
 import io.circe.syntax.EncoderOps
 
+import java.time.OffsetDateTime
 import scala.concurrent.duration.{Duration, FiniteDuration}
 import scala.language.implicitConversions
 import scala.math.Ordering.Double.TotalOrdering
@@ -64,17 +65,9 @@ case class Timing(
   time: FormattedTime,
   dateTime: FormattedDateTime,
   millis: Long
-)
+) derives Codec.AsObject
 
-object Timing:
-  implicit val json: Codec[Timing] = deriveCodec[Timing]
-
-case class Times(start: Timing, end: Timing, range: String)
-
-object Times:
-  implicit val json: Codec[Times] = deriveCodec[Times]
-
-trait Degree
+case class Times(start: Timing, end: Timing, range: String) derives Codec.AsObject
 
 /** Latitude in decimal degrees.
   *
@@ -542,19 +535,20 @@ object GPSCoordsEvent:
 
 case class CoordsEvent(coords: List[TimedCoord], from: TrackRef) extends BoatFrontEvent:
   def isEmpty = coords.isEmpty
-
   def sample(every: Int): CoordsEvent =
     if every <= 1 then this
     else copy(coords = coords.grouped(every).flatMap(_.headOption).toList, from)
-
   def addCoords(newCoords: Seq[TimedCoord]) = copy(coords = coords ++ newCoords)
-
   def toMap: Map[String, Json] = coords.map(tc => tc.id.toString -> tc.asJson).toMap
 
 object CoordsEvent:
   val Key = "coords"
   implicit val coordJson: Codec[Coord] = Coord.json
   implicit val json: Codec[CoordsEvent] = keyValued(Key, deriveCodec[CoordsEvent])
+
+case class CarUpdate(coord: Coord, time: Timing) derives Codec.AsObject
+
+case class CarHistoryResponse(history: List[List[CarUpdate]]) derives Codec.AsObject
 
 case class CoordsBatch(events: Seq[CoordsEvent]) extends FrontEvent:
   override def isIntendedFor(user: MinimalUserInfo): Boolean =

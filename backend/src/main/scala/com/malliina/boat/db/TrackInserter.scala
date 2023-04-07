@@ -174,7 +174,7 @@ class TrackInserter[F[_]: Async](val db: DoobieDatabase[F])
     val prep = makeParams(pairs.toList)
     HC.updateWithGeneratedKeys[SentenceKey](List("id"))(sql, prep, 512)
 
-  def saveLocations(locs: LocationUpdates, user: UserId): F[List[Long]] = run {
+  def saveLocations(locs: LocationUpdates, user: UserId): F[List[CarUpdateId]] = run {
     val carId = locs.carId
     val ownershipCheck =
       sql"select exists(select b.id from boats b where b.id = $carId and b.owner = $user)"
@@ -184,7 +184,7 @@ class TrackInserter[F[_]: Async](val db: DoobieDatabase[F])
     val insertion = locs.updates.traverse { loc =>
       sql"""insert into car_points(longitude, latitude, coord, device, altitude, accuracy, bearing, bearing_accuracy)
             values(${loc.longitude}, ${loc.latitude}, ${loc.coord}, $carId, ${loc.altitudeMeters}, ${loc.accuracyMeters}, ${loc.bearing}, ${loc.bearingAccuracyDegrees})
-         """.update.withUniqueGeneratedKeys[Long]("id")
+         """.update.withUniqueGeneratedKeys[CarUpdateId]("id")
     }
     for
       exists <- ownershipCheck

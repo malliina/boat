@@ -193,6 +193,12 @@ class Service[F[_]: Async](comps: BoatComps[F]) extends BasicService[F]:
       authedQuery(req, BoatQuery.apply).flatMap { authed =>
         db.history(authed.user, authed.query).flatMap { ts => ok(ts) }
       }
+    case req @ GET -> Root / "history" / "cars" =>
+      authedQuery(req, BoatQuery.apply).flatMap { authed =>
+        db.carHistory(authed.user, authed.query.car).flatMap { ts =>
+          ok(CarHistoryResponse(ts))
+        }
+      }
     case req @ GET -> Root / "tracks" / TrackNameVar(trackName) =>
       respond(req)(
         json = authedTrackQuery(req).flatMap { authed =>
@@ -767,15 +773,5 @@ class Service[F[_]: Async](comps: BoatComps[F]) extends BasicService[F]:
   def stringify(map: Map[String, String]): String =
     map.map { case (key, value) => s"$key=$value" }.mkString("&")
 
-  def buildMessage(req: UserRequest[?, ?], message: String) =
-    s"User '${req.user}' from '${req.req.remoteAddr.getOrElse("unknown")}' $message."
-
-  def onUnauthorized(error: IdentityError): F[Response[F]] =
-    log.warn(error.message.message)
-    unauthorized(Errors(s"Unauthorized."))
-
   private def unauthorized(errors: Errors) = redirectToLogin
   private def redirectToLogin: F[Response[F]] = SeeOther(Location(reverse.signIn))
-
-  def unauthorizedEnd(errors: Errors) =
-    unauthorizedNoCache(errors).map(r => web.clearSession(r))

@@ -6,7 +6,7 @@ import java.time.{Instant, LocalDate, LocalTime, OffsetDateTime, ZoneOffset}
 import com.malliina.boat.BoatPrimitives.durationFormat
 import com.malliina.boat.parsing.{FullCoord, GPSCoord, GPSFix}
 import com.malliina.measure.{DistanceM, SpeedM, Temperature}
-import com.malliina.values.*
+import com.malliina.values.{ValidatingCompanion, *}
 import com.malliina.web.JWTError
 import doobie.Meta
 import io.circe.*
@@ -15,13 +15,21 @@ import io.circe.syntax.EncoderOps
 
 import scala.concurrent.duration.FiniteDuration
 
+opaque type CarUpdateId = Long
+
+object CarUpdateId extends JsonCompanion[Long, CarUpdateId]:
+  override def apply(raw: Long): CarUpdateId = raw
+  override def write(t: CarUpdateId): Long = t
+
+extension (id: CarUpdateId) def long: Long = id
+
 case class LocationUpdate(
   longitude: Longitude,
   latitude: Latitude,
   altitudeMeters: Option[DistanceM],
   accuracyMeters: Option[DistanceM],
-  bearing: Option[Float],
-  bearingAccuracyDegrees: Option[Float],
+  bearing: Option[Degrees],
+  bearingAccuracyDegrees: Option[Degrees],
   date: OffsetDateTime
 ):
   val coord = Coord(longitude, latitude)
@@ -125,6 +133,9 @@ object AppMeta:
   val default =
     AppMeta(BuildInfo.name, BuildInfo.version, BuildInfo.gitHash)
 
+case class CarRow(coord: Coord, added: Instant):
+  def toUpdate(formatter: TimeFormatter): CarUpdate = CarUpdate(coord, formatter.timing(added))
+
 case class JoinedTrack(
   track: TrackId,
   trackName: TrackName,
@@ -167,7 +178,7 @@ case class JoinedTrack(
     boat.device,
     boatName,
     username,
-    points.toInt,
+    points,
     duration,
     distance,
     topSpeed,
