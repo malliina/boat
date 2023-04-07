@@ -9,7 +9,7 @@ import com.malliina.boat.db.{BoatNotFoundException, IdentityException, MissingCr
 import com.malliina.boat.http4s.BasicService.{log, noCache}
 import com.malliina.util.AppLogger
 import com.malliina.http.ResponseException
-import com.malliina.web.AuthException
+import com.malliina.web.{AuthException, WebAuthException}
 import org.http4s.CacheDirective.*
 import org.http4s.headers.{Location, `Content-Type`, `WWW-Authenticate`}
 import org.http4s.*

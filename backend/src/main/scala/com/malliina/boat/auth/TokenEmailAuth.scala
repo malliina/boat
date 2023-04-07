@@ -50,7 +50,7 @@ class TokenEmailAuth[F[_]: Sync](google: KeyClient[F], microsoft: KeyClient[F], 
         validateAny(token, now).flatMap { e =>
           e.fold(
             err =>
-              val ex = AuthException(err, headers)
+              val ex = WebAuthException(err, headers)
               log.warn(s"Token failed validation. $err", ex)
               F.raiseError(ex)
             ,
