@@ -1,10 +1,13 @@
 package com.malliina.boat
 
+import scala.concurrent.duration.{DurationInt, FiniteDuration}
+
 object Constants extends Constants
 
 trait Constants extends CookieNames with BoatHeaders:
   val BoatTokenQuery = "token"
   val DefaultSample = 4
+  val MaxTimeBetweenCarUpdates: FiniteDuration = 60.seconds
   val StyleIdOld = "ck8lhls0r0obm1ilkvglk0ulr"
   val StyleId = "clb7q3k8x000p14tirbrnh1em"
 

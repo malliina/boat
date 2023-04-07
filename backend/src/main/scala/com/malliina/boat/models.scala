@@ -122,7 +122,12 @@ object AppMeta:
   val default =
     AppMeta(BuildInfo.name, BuildInfo.version, BuildInfo.gitHash)
 
-case class CarRow(coord: Coord, carTime: Instant, added: Instant):
+case class CarRow(
+  coord: Coord,
+  carTime: Instant,
+  added: Instant,
+  car: CarInfo
+):
   def toUpdate(formatter: TimeFormatter): CarUpdate =
     CarUpdate(coord, formatter.timing(carTime), formatter.timing(added))
 

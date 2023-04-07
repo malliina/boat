@@ -6,7 +6,7 @@ import cats.implicits.*
 import com.malliina.boat.InviteState.accepted
 import com.malliina.boat.http.{BoatQuery, CarQuery, SortOrder, TrackQuery}
 import com.malliina.boat.*
-import com.malliina.boat.db.DoobieTracksDatabase.log
+import com.malliina.boat.db.DoobieTracksDatabase.{collectCars, log}
 import com.malliina.measure.{DistanceM, SpeedM}
 import com.malliina.util.AppLogger
 import com.malliina.values.Username
@@ -19,11 +19,21 @@ import scala.concurrent.duration.{DurationInt, DurationLong, FiniteDuration}
 object DoobieTracksDatabase:
   private val log = AppLogger(getClass)
 
+  private def collectCars(rows: List[CarRow], formatter: TimeFormatter) =
+    rows.foldLeft(Vector.empty[CarDrive]) { (acc, cr) =>
+      val elem = cr.toUpdate(formatter)
+      val idx = acc.indexWhere(_.car.id == cr.car.id)
+      if idx >= 0 then
+        val old = acc(idx)
+        acc.updated(idx, old.copy(updates = old.updates :+ elem))
+      else acc :+ CarDrive(List(elem), cr.car)
+    }
+
   private def collectRows(
     rows: Seq[SentenceCoord2],
     formatter: TimeFormatter
   ): Seq[CombinedFullCoord] =
-    rows.foldLeft(Vector.empty[CombinedFullCoord]) { case (acc, sc) =>
+    rows.foldLeft(Vector.empty[CombinedFullCoord]) { (acc, sc) =>
       val idx = acc.indexWhere(_.id == sc.c.id)
       if idx >= 0 then
         val old = acc(idx)
@@ -37,7 +47,7 @@ object DoobieTracksDatabase:
   private def collectTrackCoords(rows: Seq[TrackCoord], language: Language): Seq[CoordsEvent] =
     val start = System.currentTimeMillis()
     val formatter = TimeFormatter(language)
-    val result = rows.foldLeft(Vector.empty[CoordsEvent]) { case (acc, tc) =>
+    val result = rows.foldLeft(Vector.empty[CoordsEvent]) { (acc, tc) =>
       val from = tc.track
       val point = tc.row
       val idx = acc.indexWhere(_.from.track == from.track)
@@ -282,7 +292,7 @@ class DoobieTracksDatabase[F[_]: Async](val db: DoobieDatabase[F])
     }
   }
 
-  def carHistory(user: MinimalUserInfo, filters: CarQuery): F[List[List[CarUpdate]]] = run {
+  def carHistory(user: MinimalUserInfo, filters: CarQuery): F[List[CarDrive]] = run {
     val time = filters.timeRange
     val limits = filters.limits
     val conditions = Fragments.whereAndOpt(
@@ -292,7 +302,7 @@ class DoobieTracksDatabase[F[_]: Async](val db: DoobieDatabase[F])
     )
     val formatter = TimeFormatter(user.language)
     val start = System.currentTimeMillis()
-    sql"""select c.coord, c.gps_time, c.added
+    sql"""select c.coord, c.gps_time, c.added, b.id, b.name, u.user
           from car_points c
           join boats b on b.id = c.device
           join users u on b.owner = u.id
@@ -303,7 +313,7 @@ class DoobieTracksDatabase[F[_]: Async](val db: DoobieDatabase[F])
       .to[List]
       .map { rows =>
         val sqlDone = System.currentTimeMillis()
-        val result = split(rows.map(_.toUpdate(formatter))).filter(_.size > 2)
+        val result = collectCars(rows, formatter).flatMap(split).toList
         val splitDone = System.currentTimeMillis()
         log.info(
           s"Car query ${filters.describe} sql ${sqlDone - start} ms, split ${splitDone - sqlDone} ms, total ${splitDone - start} ms."
@@ -312,7 +322,10 @@ class DoobieTracksDatabase[F[_]: Async](val db: DoobieDatabase[F])
       }
   }
 
-  val maxTimeBetweenCarPoints = 60.seconds
+  val maxTimeBetweenCarUpdates = Constants.MaxTimeBetweenCarUpdates
+
+  def split(e: CarDrive): List[CarDrive] =
+    split(e.updates).map(cs => CarDrive(cs, e.car))
 
   @tailrec
   private def split(
@@ -324,7 +337,7 @@ class DoobieTracksDatabase[F[_]: Async](val db: DoobieDatabase[F])
       case head :: tail =>
         acc match
           case accHead :: _
-              if head.carTime.millis - accHead.carTime.millis < maxTimeBetweenCarPoints.toMillis =>
+              if head.carTime.millis - accHead.carTime.millis < maxTimeBetweenCarUpdates.toMillis =>
             split(tail, previous, head :: acc)
           case _ =>
             split(tail, previous :+ acc.reverse, List(head))

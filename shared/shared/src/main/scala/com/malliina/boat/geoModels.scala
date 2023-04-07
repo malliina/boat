@@ -9,12 +9,9 @@ import io.circe.syntax.*
 case class MultiLineGeometry(`type`: String, coordinates: Seq[Seq[Coord]])
   extends Geometry(MultiLineGeometry.Key):
   override type Self = MultiLineGeometry
-
   override def updateCoords(coords: Seq[Coord]): MultiLineGeometry =
     copy(coordinates = coordinates :+ coords)
-
   override def coords: Seq[Coord] = coordinates.flatten
-
   def toLine = LineGeometry(`type`, coords)
 
 object MultiLineGeometry:
@@ -72,9 +69,7 @@ object MultiPolygon:
 
 case class Polygon(`type`: String, coordinates: Seq[Seq[Coord]]) extends Geometry(Polygon.Key):
   override type Self = Polygon
-
   override def updateCoords(cs: Seq[Coord]): Polygon = copy(coordinates = coordinates :+ cs)
-
   override def coords = coordinates.flatten
 
 object Polygon:
@@ -120,11 +115,9 @@ object IconRotationAlignment extends StringEnumCompanion[IconRotationAlignment]:
   case object Viewport extends IconRotationAlignment("viewport")
   case object Auto extends IconRotationAlignment("auto")
 
-case class LineLayout(`line-join`: String, `line-cap`: String) extends Layout
+case class LineLayout(`line-join`: String, `line-cap`: String) extends Layout derives Codec.AsObject
 
 object LineLayout:
-  implicit val json: Codec[LineLayout] = deriveCodec[LineLayout]
-
   def round = LineLayout("round", "round")
 
 case class ImageLayout(
@@ -133,10 +126,9 @@ case class ImageLayout(
   `icon-rotate`: Option[Seq[String]] = None,
   `icon-rotation-alignment`: IconRotationAlignment = IconRotationAlignment.Map
 ) extends Layout
+  derives Codec.AsObject
 
 object ImageLayout:
-  implicit val json: Codec[ImageLayout] = deriveCodec[ImageLayout]
-
   val IconRotate = "icon-rotate"
 
 case class OtherLayout(data: Json) extends Layout
@@ -177,9 +169,7 @@ object PropertyValue:
   case class Custom(value: Json) extends PropertyValue
 
 case class CirclePaint(`circle-radius`: Int, `circle-color`: String) extends BasePaint
-
-object CirclePaint:
-  implicit val json: Codec[CirclePaint] = deriveCodec[CirclePaint]
+  derives Codec.AsObject
 
 case class LinePaint(
   `line-color`: PropertyValue,
@@ -188,14 +178,12 @@ case class LinePaint(
   `line-gap-width`: Double = 0,
   `line-dasharray`: Option[List[Int]] = None
 ) extends BasePaint
+  derives Codec.AsObject
 
 object LinePaint:
-  implicit val json: Codec[LinePaint] = deriveCodec[LinePaint]
   val blackColor = PropertyValue.Literal("#000")
   val darkGray = "#A9A9A9"
-
   def thin(color: PropertyValue = blackColor) = LinePaint(color, 1, 1)
-
   def dashed(color: PropertyValue = blackColor) =
     LinePaint(color, 1, 1, `line-dasharray` = Option(List(2, 4)))
 
@@ -271,11 +259,9 @@ case class Layer(
   paint: Option[BasePaint],
   minzoom: Option[Double] = None,
   maxzoom: Option[Double] = None
-)
+) derives Codec.AsObject
 
 object Layer:
-  implicit val json: Codec[Layer] = deriveCodec[Layer]
-
   def line(
     id: String,
     data: FeatureCollection,
@@ -307,7 +293,7 @@ case class Feature(
   geometry: Geometry,
   properties: Map[String, Json],
   layer: Option[Layer]
-):
+) derives Codec.AsObject:
   def addCoords(coords: Seq[Coord]): Feature = copy(
     geometry = geometry.updateCoords(coords)
   )
@@ -316,28 +302,22 @@ case class Feature(
 
 object Feature:
   val Key = "Feature"
-  implicit val json: Codec[Feature] = deriveCodec[Feature]
 
   def point[W](coord: Coord, props: W)(implicit w: Encoder[W]): Feature =
     Feature(PointGeometry(coord), props.asJson.asObject.map(_.toMap).getOrElse(Map.empty))
-
   def point(coord: Coord): Feature = Feature(PointGeometry(coord), Map.empty)
-
   def line(coords: Seq[Coord]): Feature =
     Feature(LineGeometry(coords), Map.empty)
-
   def apply(geometry: Geometry, properties: Map[String, Json]): Feature =
     Feature(Key, geometry, properties, None)
 
-case class FeatureCollection(`type`: String, features: Seq[Feature]):
+case class FeatureCollection(`type`: String, features: Seq[Feature]) derives Codec.AsObject:
   def addCoords(coords: Seq[Coord]): FeatureCollection = copy(
     features = features.map(_.addCoords(coords))
   )
 
 object FeatureCollection:
   val Key = "FeatureCollection"
-  implicit val json: Codec[FeatureCollection] = deriveCodec[FeatureCollection]
-
   def apply(fs: Seq[Feature]): FeatureCollection = FeatureCollection(Key, fs)
 
 case class StringLayerSource(source: String) extends WrappedString with LayerSource:

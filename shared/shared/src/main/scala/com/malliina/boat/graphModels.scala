@@ -12,10 +12,7 @@ object DurationDoubleFormat:
     Encoder.encodeDouble.contramap(fd => 1.0d * fd.toMillis / 1000)
   )
 
-case class Link(to: Coord, cost: DistanceM)
-
-object Link:
-  implicit val json: Codec[Link] = deriveCodec[Link]
+case class Link(to: Coord, cost: DistanceM) derives Codec.AsObject
 
 case class RouteSpec(links: List[Link], cost: DistanceM):
   def coords = links.map(_.to)

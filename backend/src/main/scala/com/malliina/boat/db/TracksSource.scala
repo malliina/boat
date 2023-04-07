@@ -45,4 +45,4 @@ trait TracksSource[F[_]]:
   def track(track: TrackName, user: Username, query: TrackQuery): F[TrackInfo]
   def full(track: TrackName, language: Language, query: TrackQuery): F[FullTrack]
   def history(user: MinimalUserInfo, limits: BoatQuery): F[Seq[CoordsEvent]]
-  def carHistory(user: MinimalUserInfo, filters: CarQuery): F[List[List[CarUpdate]]]
+  def carHistory(user: MinimalUserInfo, filters: CarQuery): F[List[CarDrive]]

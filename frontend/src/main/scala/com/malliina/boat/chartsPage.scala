@@ -1,6 +1,6 @@
 package com.malliina.boat
 
-import com.malliina.chartjs._
+import com.malliina.chartjs.*
 import org.scalajs.dom.{CanvasRenderingContext2D, HTMLCanvasElement}
 
 object ChartsView extends BaseFront:
@@ -69,7 +69,5 @@ class ChartSocket(ctx: CanvasRenderingContext2D, track: TrackName, sample: Optio
     chart.update()
 
   override def onGps(event: GPSCoordsEvent): Unit = ()
-
   override def onAIS(messages: Seq[VesselInfo]): Unit = ()
-
-case class ChartValue(label: String, value: Double)
+  override def onCarUpdates(drive: CarDrive): Unit = ()

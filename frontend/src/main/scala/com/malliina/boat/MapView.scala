@@ -71,7 +71,7 @@ class MapView(
       val mode = if Option(href.getFragment).isDefined then MapMode.Stay else MapMode.Fit
       val sample = queryInt(SampleKey).getOrElse(Constants.DefaultSample)
       socket = Option(MapSocket(map, pathFinder, readTrack, Option(sample), mode, language))
-      loadCarTracks()
+//      loadCarTracks()
       if initialSettings.customCenter then
         map.putLayer(
           Layer.symbol(
@@ -97,7 +97,7 @@ class MapView(
     HttpClient.get[CarHistoryResponse]("/cars/history").map { res =>
       log.info(s"Got ${res.history.size} drives, adding to map...")
       val features = res.history.map { drive =>
-        Feature(LineGeometry(drive.coords.map(_.coord)), Map.empty)
+        Feature(LineGeometry(drive.updates.map(_.coord)), Map.empty)
       }
       val lineLayer = Layer
         .line("car-track", FeatureCollection(features), LinePaint(LinePaint.blackColor, 1, 1), None)

@@ -27,8 +27,10 @@ abstract class BoatSocket(path: String) extends BaseSocket(path) with BaseFront:
     case SentencesEvent(_, _)                               => ()
     case PingEvent(_, _)                                    => ()
     case VesselMessages(messages)                           => onAIS(messages)
+    case d @ CarDrive(updates, _) if updates.nonEmpty       => onCarUpdates(d)
     case other                                              => log.info(s"Unknown event: '$other'.")
 
   def onCoords(event: CoordsEvent): Unit
   def onGps(event: GPSCoordsEvent): Unit
   def onAIS(messages: Seq[VesselInfo]): Unit
+  def onCarUpdates(drive: CarDrive): Unit

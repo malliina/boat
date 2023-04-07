@@ -37,8 +37,8 @@ object BoatStreams:
       saved <- Topic[F, SavedEvent]
     yield BoatStreams(db, aisDb, ais, in, saved)
 
-  def rights[F[_], L, R](src: fs2.Stream[F, Either[L, R]]): fs2.Stream[F, R] = src.flatMap { e =>
-    e.fold(l => fs2.Stream.empty, r => fs2.Stream(r))
+  def rights[F[_], L, R](src: Stream[F, Either[L, R]]): Stream[F, R] = src.flatMap { e =>
+    e.fold(l => Stream.empty, r => Stream(r))
   }
 
 class BoatStreams[F[_]: Async](
@@ -81,16 +81,17 @@ class BoatStreams[F[_]: Async](
       saveRecovered(coord)
     }
     .flatMap { list => Stream.emits(list) }
-  val saveableAis = ais.slow.map { pairs =>
-    VesselMessages(pairs.map(_.toInfo(TimeFormatter.en)))
-  }.mapAsync(1) { batch =>
-    F.delay(log.debug(s"Handling batch of ${batch.vessels.length} vessel events.")) >> aisDb.save(
-      batch.vessels
-    )
-  }.flatMap { list => Stream.emit(list) }
-    .handleErrorWith { t =>
-      Stream.eval(F.delay(log.error(s"Failed to insert AIS batch. Aborting.", t))) >> Stream.empty
-    }
+  val saveableAis =
+    ais.slow.map { pairs =>
+      VesselMessages(pairs.map(_.toInfo(TimeFormatter.en)))
+    }.mapAsync(1) { batch =>
+      F.delay(log.debug(s"Handling batch of ${batch.vessels.length} vessel events.")) >> aisDb.save(
+        batch.vessels
+      )
+    }.flatMap { list => Stream.emit(list) }
+      .handleErrorWith { t =>
+        Stream.eval(F.delay(log.error(s"Failed to insert AIS batch. Aborting.", t))) >> Stream.empty
+      }
   val publisher = inserted.evalMap { i =>
     saved.publish1(i)
   }

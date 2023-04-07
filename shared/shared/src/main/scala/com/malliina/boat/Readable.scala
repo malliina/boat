@@ -51,12 +51,5 @@ object Readables:
   implicit val userId: Readable[UserId] = from[Long, UserId](UserId.build)
   implicit val trackTitle: Readable[TrackTitle] = from[String, TrackTitle](TrackTitle.build)
 
-//  implicit def option[T: Readable]: Readable[Option[T]] = (opt: Option[String]) =>
-//    opt.fold[Either[Errors, Option[T]]](Right(None))(str =>
-//      Readable[T].apply(Option(str)).map(t => Option(t))
-//    )
-
-//  def apply[T](implicit r: Readable[T]): Readable[T] = r
-
   def from[T, U](build: T => Either[ErrorMessage, U])(implicit tr: Readable[T]): Readable[U] =
     tr.emap(t => build(t))

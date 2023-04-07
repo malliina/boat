@@ -287,11 +287,14 @@ class Service[F[_]: Async](comps: BoatComps[F]) extends BasicService[F]:
           }
           val deviceHistory = Stream.evalSeq(historyIO)
           val gpsHistory = Stream.evalSeq(deviceStreams.db.history(user))
+          val carHistoryIO =
+            db.carHistory(user, CarQuery(historicalLimits.limits, historicalLimits.timeRange))
+          val carHistory = Stream.evalSeq(carHistoryIO)
           val formatter = TimeFormatter(user.language)
           val updates = streams.clientEvents(formatter)
-          val deviceUpdates = deviceStreams.clientEvents(formatter)
+          val gpsUpdates = deviceStreams.clientEvents(formatter)
           val eventSource =
-            ((deviceHistory ++ gpsHistory) ++ updates.mergeHaltBoth(deviceUpdates))
+            ((deviceHistory ++ gpsHistory ++ carHistory) ++ updates.mergeHaltBoth(gpsUpdates))
               .mergeHaltBoth(pings)
               .filter(_.isIntendedFor(user))
               .map(message => Text(message.asJson.noSpaces))
@@ -372,7 +375,7 @@ class Service[F[_]: Async](comps: BoatComps[F]) extends BasicService[F]:
       for
         authed <- authedQuery(req, BoatQuery.car)
         history <- db.carHistory(authed.user, authed.query)
-        res <- ok(CarHistoryResponse(history.map(CarDrive.apply)))
+        res <- ok(CarHistoryResponse(history))
       yield res
     case req @ POST -> Root / "cars" / "locations" =>
       jsonAction[LocationUpdates](req) { (body, user) =>

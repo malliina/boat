@@ -1,5 +1,6 @@
 package com.malliina.boat
 
+import io.circe.syntax.EncoderOps
 import com.malliina.boat.BoatFormats.*
 import com.malliina.geojson.{GeoLineString, GeoPoint}
 import com.malliina.mapbox.*
@@ -9,6 +10,8 @@ import com.malliina.values.ErrorMessage
 
 import scala.concurrent.Future
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
+
+case class NearestResult[T](result: T, distance: Double)
 
 class MapSocket(
   val map: MapboxMap,
@@ -33,6 +36,7 @@ class MapSocket(
   private var boats = Map.empty[String, FeatureCollection]
   private var trails = Map.empty[TrackId, Seq[TimedCoord]]
   private var devices = Map.empty[BoatName, DeviceProps]
+  private var drives = Map.empty[DeviceId, List[CarDrive]]
 
   val imageInits = Future.sequence(
     Seq(
@@ -59,6 +63,71 @@ class MapSocket(
   private def trackLineLayer(id: String, paint: LinePaint): Layer =
     Layer.line(id, emptyTrack, paint, None)
 
+  override def onCarUpdates(event: CarDrive): Unit =
+    val car = event.car
+    val carId = car.id
+    val old = drives.getOrElse(carId, Nil)
+    val idx = old.indexWhere(_.isContinuous(event))
+    val updated =
+      if idx >= 0 then
+        val current = old(idx)
+        old.updated(idx, current.copy(updates = current.updates ++ event.updates))
+      else old :+ event
+    val updatedDrive = if idx >= 0 then updated(idx) else event
+    drives = drives.updated(carId, updated)
+    val driveLayerName = driveName(carId)
+    if map.findSource(driveLayerName).isEmpty then
+      val lineLayer = Layer.line(
+        driveLayerName,
+        FeatureCollection(Nil),
+        LinePaint(LinePaint.blackColor, 1, 1),
+        None
+      )
+      map.putLayer(lineLayer)
+      map.onHover(driveLayerName)(
+        in =>
+          // todo nearest point, on which line?
+          val lngLat = in.lngLat
+          val op = Coord.build(lngLat.lng, lngLat.lat).flatMap { coord =>
+            drives
+              .getOrElse(carId, Nil)
+              .flatMap { drive =>
+                if drive.updates.size > 1 then nearest(coord, drive.updates)(_.coord).toOption
+                else None
+              }
+              .minByOption(_.distance)
+              .toRight(ErrorMessage("Nearest not found."))
+              .map { near =>
+                map.getCanvas().style.cursor = "pointer"
+                trackPopup.show(html.car(car.name, near.result.carTime), in.lngLat, map)
+              }
+          }
+          op.fold(err => log.info(err.message), identity)
+        ,
+        out =>
+          map.getCanvas().style.cursor = ""
+          trackPopup.remove()
+      )
+    map.findSource(driveLayerName).foreach { geoJson =>
+      val features = updated.flatMap { drive =>
+        carFeatures(drive)
+      }
+      geoJson.updateData(FeatureCollection(features))
+    }
+
+  private def carFeatures(drive: CarDrive): Seq[Feature] = drive.updates.length match
+    case 0 => Nil
+    case 1 => Nil
+    case _ =>
+      val coords = drive.updates
+      coords.zip(coords.drop(1)).map { (start, end) =>
+        val time = end.carTime.dateTime
+        Feature(
+          LineGeometry(Seq(start, end).map(_.coord)),
+          Map("car" -> drive.car.name.asJson, "time" -> time.asJson)
+        )
+      }
+
   override def onCoords(event: CoordsEvent): Unit =
     val from = event.from
     val trackId = from.track
@@ -70,12 +139,13 @@ class MapSocket(
     val hoverableTrack = s"$track-thick"
     val point = pointName(boat)
     val oldTrack: FeatureCollection = boats.getOrElse(track, emptyTrack)
-    val latestMeasurement = for
-      latestFeature <- oldTrack.features.lastOption
-      latestCoord <- latestFeature.geometry.coords.headOption
-      speedProp <- latestFeature.properties.get(TimedCoord.SpeedKey)
-      speed <- speedProp.as[SpeedM].toOption
-    yield SimpleCoord(latestCoord, speed)
+    val latestMeasurement =
+      for
+        latestFeature <- oldTrack.features.lastOption
+        latestCoord <- latestFeature.geometry.coords.headOption
+        speedProp <- latestFeature.properties.get(TimedCoord.SpeedKey)
+        speed <- speedProp.as[SpeedM].toOption
+      yield SimpleCoord(latestCoord, speed)
     val newTrack: FeatureCollection =
       oldTrack
         .copy(features = oldTrack.features ++ speedFeatures(latestMeasurement.toSeq ++ coordsInfo))
@@ -120,7 +190,7 @@ class MapSocket(
               nearest(coord, trails.getOrElse(trackId, Nil))(_.coord).map { near =>
                 map.getCanvas().style.cursor = "pointer"
                 popups.isTrackHover = true
-                trackPopup.show(html.track(PointProps(near, from)), in.lngLat, map)
+                trackPopup.show(html.track(PointProps(near.result, from)), in.lngLat, map)
               }
             }
             op.fold(err => log.info(err.message), identity)
@@ -263,12 +333,16 @@ class MapSocket(
   override def onAIS(messages: Seq[VesselInfo]): Unit =
     ais.onAIS(messages)
 
-  private def nearest[T](fromCoord: Coord, on: Seq[T])(c: T => Coord): Either[ErrorMessage, T] =
-    val all = GeoLineString(on.map(c))
+  private def nearest[T](fromCoord: Coord, on: Seq[T])(
+    c: T => Coord
+  ): Either[ErrorMessage, NearestResult[T]] =
+    val coords = on.map(c)
+    val all = GeoLineString(coords)
+    log.debug(s"Searching nearest update among ${coords.size} coords...")
     val turfPoint = GeoPoint(fromCoord)
     val nearestResult = nearestPointOnLine(all, turfPoint)
     val idx = nearestResult.properties.index
-    if on.length > idx then Right(on(idx))
+    if on.length > idx then Right(NearestResult(on(idx), nearestResult.properties.dist))
     else Left(ErrorMessage(s"No trail at $fromCoord."))
 
   // https://www.movable-type.co.uk/scripts/latlong.html
@@ -284,6 +358,7 @@ class MapSocket(
   def toRad(deg: Double) = deg * Math.PI / 180
   private def toDeg(rad: Double) = rad * 180 / Math.PI
 
+  def driveName(car: DeviceId) = s"car-$car"
   def trackName(boat: BoatName) = s"track-$boat"
   private def pointName(boat: BoatName) = s"boat-$boat"
   def deviceName(device: BoatName) = s"$DevicePrefix-$device"

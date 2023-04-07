@@ -461,8 +461,6 @@ case class UserBoats(user: Username, language: Language, boats: Seq[BoatInfo])
 object UserBoats:
   val anon = UserBoats(Usernames.anon, Language.default, Nil)
 
-case class TrackBrief(trackName: TrackName, added: String, addedMillis: Long) derives Codec.AsObject
-
 case class TrackSummary(track: TrackRef) derives Codec.AsObject
 
 case class TrackSummaries(tracks: Seq[TrackSummary]) derives Codec.AsObject
@@ -490,7 +488,21 @@ object CoordsEvent:
 
 case class CarUpdate(coord: Coord, carTime: Timing, added: Timing) derives Codec.AsObject
 
-case class CarDrive(coords: List[CarUpdate]) derives Codec.AsObject
+case class CarInfo(id: DeviceId, name: BoatName, username: Username) derives Codec.AsObject
+
+case class CarDrive(updates: List[CarUpdate], car: CarInfo) extends CarFrontEvent
+  derives Codec.AsObject:
+  def isDistinct(other: CarDrive): Boolean =
+    val tooMuchTimeHasPassed = for
+      thisEnd <- updates.lastOption
+      otherStart <- other.updates.headOption
+    yield otherStart.carTime.millis - thisEnd.carTime.millis > Constants.MaxTimeBetweenCarUpdates.toMillis
+    val notTheSameCar = car.id != other.car.id
+    notTheSameCar || tooMuchTimeHasPassed.getOrElse(false)
+  def isContinuous(other: CarDrive): Boolean = !isDistinct(other)
+object CarDrive:
+  val Key = "car-coords"
+  val eventedJson: Codec[CarDrive] = keyValued(Key, deriveCodec[CarDrive])
 
 case class CarHistoryResponse(history: List[CarDrive]) derives Codec.AsObject
 
@@ -529,35 +541,41 @@ object VesselMessages:
 sealed trait FrontEvent:
   def isIntendedFor(user: MinimalUserInfo): Boolean
 
+sealed trait CarFrontEvent extends FrontEvent:
+  def car: CarInfo
+  override def isIntendedFor(user: MinimalUserInfo): Boolean =
+    user.username == car.username || user.authorized.contains(car.name)
+
 sealed trait DeviceFrontEvent extends FrontEvent:
   def from: DeviceRef
-
   override def isIntendedFor(user: MinimalUserInfo): Boolean =
     user.username == from.username || user.authorized.contains(from.deviceName)
 
 sealed trait BoatFrontEvent extends FrontEvent:
   def from: TrackMetaLike
-
   override def isIntendedFor(user: MinimalUserInfo): Boolean =
     user.username == from.username || user.authorized.contains(from.boatName)
 
 object FrontEvent:
+  implicit val carDriveJson: Codec[CarDrive] = CarDrive.eventedJson
   implicit val decoder: Decoder[FrontEvent] = List[Decoder[FrontEvent]](
     Decoder[VesselMessages].widen,
     Decoder[CoordsEvent].widen,
     Decoder[CoordsBatch].widen,
     Decoder[SentencesEvent].widen,
     Decoder[PingEvent].widen,
-    Decoder[GPSCoordsEvent].widen
+    Decoder[GPSCoordsEvent].widen,
+    Decoder[CarDrive].widen
   ).reduceLeft(_ or _)
-  implicit val encoder: Encoder[FrontEvent] = new Encoder[FrontEvent]:
-    final def apply(fe: FrontEvent): Json = fe match
-      case se @ SentencesEvent(_, _)  => se.asJson
-      case ce @ CoordsEvent(_, _)     => ce.asJson
-      case cb @ CoordsBatch(_)        => cb.asJson
-      case pe @ PingEvent(_, _)       => pe.asJson
-      case vs @ VesselMessages(_)     => vs.asJson
-      case gce @ GPSCoordsEvent(_, _) => gce.asJson
+  implicit val encoder: Encoder[FrontEvent] = {
+    case se @ SentencesEvent(_, _)  => se.asJson
+    case ce @ CoordsEvent(_, _)     => ce.asJson
+    case cb @ CoordsBatch(_)        => cb.asJson
+    case pe @ PingEvent(_, _)       => pe.asJson
+    case vs @ VesselMessages(_)     => vs.asJson
+    case gce @ GPSCoordsEvent(_, _) => gce.asJson
+    case cd @ CarDrive(_, _)        => cd.asJson
+  }
 
 case class SentencesMessage(sentences: Seq[RawSentence]):
   def toTrackEvent(from: TrackMetaShort) = SentencesEvent(sentences, from)

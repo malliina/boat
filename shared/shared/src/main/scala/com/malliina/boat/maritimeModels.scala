@@ -3,20 +3,19 @@ package com.malliina.boat
 import com.malliina.boat.MaritimeJson.partialReader
 import com.malliina.measure.DistanceM
 
-import io.circe._
-import io.circe.generic.semiauto._
+import io.circe.*
+import io.circe.generic.semiauto.*
 
-trait NameLike {
+trait NameLike:
   def nameFi: Option[String]
   def nameSe: Option[String]
 
   def name(lang: Lang): Option[String] =
-    if (lang == Lang.se) nameSe.orElse(nameFi) else nameFi.orElse(nameSe)
-}
+    if lang == Lang.se then nameSe.orElse(nameFi) else nameFi.orElse(nameSe)
 
 sealed trait FairwayLighting
 
-object FairwayLighting {
+object FairwayLighting:
   implicit val reader: Decoder[FairwayLighting] =
     partialReader[Double, FairwayLighting](d => s"Unknown fairway lighting: '$d'.") {
       case 0 => UnknownLighting
@@ -27,22 +26,19 @@ object FairwayLighting {
   case object Lighting extends FairwayLighting
   case object UnknownLighting extends FairwayLighting
 
-  def fromInt(i: Int): FairwayLighting = i match {
+  def fromInt(i: Int): FairwayLighting = i match
     case 1 => Lighting
     case 2 => NoLighting
     case _ => UnknownLighting
-  }
 
-  def toInt(l: FairwayLighting): Int = l match {
+  def toInt(l: FairwayLighting): Int = l match
     case UnknownLighting => 0
     case Lighting        => 1
     case NoLighting      => 2
-  }
-}
 
 sealed trait FairwaySeaType
 
-object FairwaySeaType {
+object FairwaySeaType:
   implicit val reader: Decoder[FairwaySeaType] =
     partialReader[Double, FairwaySeaType](d => s"Unknown fairway sea type: '$d'.") {
       case 1 => SeaFairway
@@ -55,22 +51,19 @@ object FairwaySeaType {
   // Virtual object for db interface
   case object UnknownFairway extends FairwaySeaType
 
-  def toInt(fst: FairwaySeaType) = fst match {
+  def toInt(fst: FairwaySeaType) = fst match
     case SeaFairway     => 1
     case InnerFairway   => 2
     case UnknownFairway => 0
-  }
 
-  def fromInt(i: Int) = i match {
+  def fromInt(i: Int) = i match
     case 1 => SeaFairway
     case 2 => InnerFairway
     case _ => UnknownFairway
-  }
-}
 
 sealed abstract class SeaArea(val value: Int)
 
-object SeaArea {
+object SeaArea:
   implicit val reader: Decoder[SeaArea] = Decoder.decodeDouble.map { d => fromIntOrOther(d.toInt) }
   val all: Seq[SeaArea] = Seq(
     Unknown,
@@ -133,7 +126,6 @@ object SeaArea {
   case object Lohjanjarvi extends SeaArea(25)
 
   case class Other(v: Int) extends SeaArea(v)
-}
 
 case class FairwayInfo(
   nameFi: Option[String],
@@ -147,15 +139,14 @@ case class FairwayInfo(
   classText: String,
   seaArea: SeaArea,
   state: Double
-) extends NameLike {
+) extends NameLike:
   def bestDepth = depth orElse depth2 orElse depth3
-}
 
-object FairwayInfo {
+object FairwayInfo:
   import MaritimeJson.nonEmptyOpt
-  implicit val decoder: Decoder[FairwayInfo] = new Decoder[FairwayInfo] {
+  implicit val decoder: Decoder[FairwayInfo] = new Decoder[FairwayInfo]:
     final def apply(c: HCursor): Decoder.Result[FairwayInfo] =
-      for {
+      for
         fi <- c.downField("VAY_NIMISU").as[Option[String]](nonEmptyOpt)
         se <- c.downField("VAY_NIMIRU").as[Option[String]](nonEmptyOpt)
         start <- c.downField("SELOSTE_AL").as[Option[String]](nonEmptyOpt)
@@ -167,7 +158,7 @@ object FairwayInfo {
         clazz <- c.downField("VAYLA_LK").as[String]
         seaArea <- c.downField("MERIAL_NR").as[SeaArea]
         state <- c.downField("TILA").as[Double]
-      } yield FairwayInfo(
+      yield FairwayInfo(
         fi,
         se,
         start,
@@ -180,39 +171,16 @@ object FairwayInfo {
         seaArea,
         state
       )
-  }
-}
 
-object MaritimeJson {
+object MaritimeJson:
   val nonEmpty: Decoder[String] = Decoder.decodeString.emap { str =>
     val trimmed = str.trim
-    if (trimmed.nonEmpty) Right(trimmed)
+    if trimmed.nonEmpty then Right(trimmed)
     else Left("Empty string. Non-empty required.")
   }
   val nonEmptyOpt: Decoder[Option[String]] = Decoder.decodeOption(nonEmpty)
-//  val nonEmpty = Reads[Option[String]] { json =>
-//    json.validate[String].map(_.trim).map(s => if (s.nonEmpty) Option(s) else None)
-//  }
-
-//  def nonEmptyOpt(lookup: JsLookupResult): JsResult[Option[String]] = lookup match {
-//    case JsDefined(json) => nonEmpty.reads(json)
-//    case _               => JsSuccess(None)
-//  }
-
-//  def doubleReader[T](onError: JsValue => String)(pf: PartialFunction[Int, T]): Reads[T] =
-//    Reads[T] { json =>
-//      json.validate[Double].map(_.toInt).collect(JsonValidationError(onError(json)))(pf)
-//    }
-
-//  def intReader[T](onError: JsValue => String)(pf: PartialFunction[Int, T]): Reads[T] =
-//    partialReader[Int, T](onError)(pf)
-//
-//  def stringReader[T](onError: JsValue => String)(pf: PartialFunction[String, T]): Reads[T] =
-//    partialReader[String, T](onError)(pf)
 
   def partialReader[In: Decoder, Out](
     onError: In => String
-  )(pf: PartialFunction[In, Out]): Decoder[Out] = {
+  )(pf: PartialFunction[In, Out]): Decoder[Out] =
     Decoder[In].emap { in => pf.lift(in).toRight(onError(in)) }
-  }
-}
