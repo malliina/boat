@@ -12,6 +12,7 @@ import com.malliina.values.UserId
 import doobie.*
 import doobie.implicits.*
 import cats.effect.{Async, IO}
+import com.malliina.boat.http.CarQuery
 import com.malliina.util.AppLogger
 import doobie.free.preparedstatement.PreparedStatementIO
 
@@ -173,27 +174,6 @@ class TrackInserter[F[_]: Async](val db: DoobieDatabase[F])
     val sql = s"insert into sentences(sentence, track) values$params"
     val prep = makeParams(pairs.toList)
     HC.updateWithGeneratedKeys[SentenceKey](List("id"))(sql, prep, 512)
-
-  def saveLocations(locs: LocationUpdates, user: UserId): F[List[CarUpdateId]] = run {
-    val carId = locs.carId
-    val ownershipCheck =
-      sql"select exists(select b.id from boats b where b.id = $carId and b.owner = $user)"
-        .query[Boolean]
-        .unique
-    import cats.implicits.*
-    val insertion = locs.updates.traverse { loc =>
-      sql"""insert into car_points(longitude, latitude, coord, gps_time, device, altitude, accuracy, bearing, bearing_accuracy)
-            values(${loc.longitude}, ${loc.latitude}, ${loc.coord}, ${loc.date}, $carId, ${loc.altitudeMeters}, ${loc.accuracyMeters}, ${loc.bearing}, ${loc.bearingAccuracyDegrees})
-         """.update.withUniqueGeneratedKeys[CarUpdateId]("id")
-    }
-    for
-      exists <- ownershipCheck
-      _ <- if exists then pure(()) else fail(BoatNotFoundException(carId, user))
-      ids <- insertion
-    yield
-      if ids.nonEmpty then log.info(s"Inserted to car $carId IDs ${ids.mkString(", ")}.")
-      ids
-  }
 
   @tailrec
   private def makeParams(

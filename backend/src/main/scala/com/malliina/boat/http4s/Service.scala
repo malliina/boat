@@ -55,6 +55,7 @@ class Service[F[_]: Async](comps: BoatComps[F]) extends BasicService[F]:
   val inserts = comps.inserts
   val streams = comps.streams
   val deviceStreams = comps.devices
+  val cars = comps.cars
   val push = comps.push
   val web = auth.web
   val cookieNames = web.cookieNames
@@ -285,16 +286,19 @@ class Service[F[_]: Async](comps: BoatComps[F]) extends BasicService[F]:
             )
             F.pure(es.toList.map(_.sample(actualSample)))
           }
-          val deviceHistory = Stream.evalSeq(historyIO)
+          val boatHistory = Stream.evalSeq(historyIO)
           val gpsHistory = Stream.evalSeq(deviceStreams.db.history(user))
           val carHistoryIO =
-            db.carHistory(user, CarQuery(historicalLimits.limits, historicalLimits.timeRange))
+            cars.history(CarQuery(historicalLimits.limits, historicalLimits.timeRange, Nil), user)
           val carHistory = Stream.evalSeq(carHistoryIO)
           val formatter = TimeFormatter(user.language)
-          val updates = streams.clientEvents(formatter)
+          val boatUpdates = streams.clientEvents(formatter)
           val gpsUpdates = deviceStreams.clientEvents(formatter)
+          val carUpdates = cars.insertions.subscribe(100)
           val eventSource =
-            ((deviceHistory ++ gpsHistory ++ carHistory) ++ updates.mergeHaltBoth(gpsUpdates))
+            ((boatHistory ++ gpsHistory ++ carHistory) ++ boatUpdates
+              .mergeHaltBoth(gpsUpdates)
+              .mergeHaltBoth(carUpdates))
               .mergeHaltBoth(pings)
               .filter(_.isIntendedFor(user))
               .map(message => Text(message.asJson.noSpaces))
@@ -374,13 +378,13 @@ class Service[F[_]: Async](comps: BoatComps[F]) extends BasicService[F]:
     case req @ GET -> Root / "cars" / "history" =>
       for
         authed <- authedQuery(req, BoatQuery.car)
-        history <- db.carHistory(authed.user, authed.query)
+        history <- cars.history(authed.query, authed.user)
         res <- ok(CarHistoryResponse(history))
       yield res
     case req @ POST -> Root / "cars" / "locations" =>
       jsonAction[LocationUpdates](req) { (body, user) =>
         log.debug(s"User ${user.email} POSTs ${body.updates.size} car location updates...")
-        inserts.saveLocations(body, user.id).flatMap { ids =>
+        cars.save(body, user, user.id).flatMap { ids =>
           ok(SimpleMessage(s"Got ${body.updates.size} locations, saved IDs ${ids.mkString(", ")}."))
         }
       }

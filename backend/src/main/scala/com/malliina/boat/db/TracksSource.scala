@@ -32,7 +32,6 @@ trait TrackInsertsDatabase[F[_]]:
   def saveSentences(sentences: SentencesEvent): F[Seq[KeyedSentence]]
   def saveCoords(coords: FullCoord): F[InsertedPoint]
   def saveCoordsFast(coords: FullCoord): F[TrackPointId]
-  def saveLocations(locs: LocationUpdates, user: UserId): F[List[CarUpdateId]]
 
 trait StatsSource[F[_]]:
   def stats(user: MinimalUserInfo, limits: TrackQuery, lang: Lang): F[StatsResponse]
@@ -45,4 +44,7 @@ trait TracksSource[F[_]]:
   def track(track: TrackName, user: Username, query: TrackQuery): F[TrackInfo]
   def full(track: TrackName, language: Language, query: TrackQuery): F[FullTrack]
   def history(user: MinimalUserInfo, limits: BoatQuery): F[Seq[CoordsEvent]]
+
+trait CarOps[F[_]]:
+  def save(locs: LocationUpdates, user: UserId): F[List[CarUpdateId]]
   def carHistory(user: MinimalUserInfo, filters: CarQuery): F[List[CarDrive]]

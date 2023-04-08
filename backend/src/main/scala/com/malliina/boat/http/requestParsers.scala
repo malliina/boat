@@ -3,7 +3,7 @@ package com.malliina.boat.http
 import cats.effect.IO
 import cats.implicits.*
 import com.malliina.boat.http4s.QueryParsers
-import com.malliina.boat.{Constants, Coord, Errors, Latitude, Longitude, Mmsi, RouteRequest, SingleError, TimeFormatter, TrackCanonical, TrackName, VesselName}
+import com.malliina.boat.{CarUpdateId, Constants, Coord, Errors, Latitude, Longitude, Mmsi, RouteRequest, SingleError, TimeFormatter, TrackCanonical, TrackName, VesselName}
 import com.malliina.values.{Email, ErrorMessage}
 import io.circe.Codec
 import io.circe.generic.semiauto.deriveCodec
@@ -120,10 +120,12 @@ object VesselQuery:
       time <- TimeRange(q)
     yield VesselQuery(name, mmsi, time, limits)
 
-case class CarQuery(limits: Limits, timeRange: TimeRange):
+case class CarQuery(limits: Limits, timeRange: TimeRange, ids: List[CarUpdateId]):
   private def timeDescribe = timeRange.describe
   private def space = if timeDescribe.isEmpty then "" else " "
   def describe = s"${timeRange.describe}${space}with ${limits.describe}"
+object CarQuery:
+  def ids(list: List[CarUpdateId]) = CarQuery(Limits.default, TimeRange.none, list)
 
 /** @param tracks
   *   tracks to return
@@ -194,7 +196,7 @@ object BoatQuery:
     for
       limits <- Limits(q)
       timeRange <- TimeRange(q)
-    yield CarQuery(limits, timeRange)
+    yield CarQuery(limits, timeRange, Nil)
 
   private def bindSeq[T: QueryParamDecoder](key: String, q: Query) =
     QueryParsers.list[T](key, q)

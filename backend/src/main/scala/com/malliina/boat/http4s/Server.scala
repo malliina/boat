@@ -14,7 +14,7 @@ import com.malliina.boat.html.BoatHtml
 import com.malliina.boat.http4s.Implicits.circeJsonEncoder
 import com.malliina.boat.http4s.BoatComps
 import com.malliina.boat.push.{BoatPushService, PushEndpoint}
-import com.malliina.boat.{AppMeta, AppMode, BoatConf, BuildInfo, Errors, Logging, S3Client, SingleError}
+import com.malliina.boat.{AppMeta, AppMode, BoatConf, BuildInfo, CarDrive, Errors, Logging, S3Client, SingleError}
 import com.malliina.http.HttpClient
 import com.malliina.http.io.HttpClientIO
 import com.malliina.logback.LogbackUtils
@@ -28,7 +28,7 @@ import org.http4s.server.middleware.{GZip, HSTS}
 import org.http4s.server.websocket.WebSocketBuilder2
 import org.http4s.server.{Router, Server, ServiceErrorHandler}
 import org.http4s.{Challenge, Http, HttpApp, HttpRoutes, Request, Response}
-
+import fs2.concurrent.Topic
 import java.time.Instant
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.DurationInt
@@ -105,6 +105,7 @@ object Server extends IOApp:
       ais <- BoatMqttClient.build(conf.ais.enabled, AppMode.fromBuild, dispatcher)
       streams <- BoatStreams.resource(trackInserts, vesselDb, ais)
       deviceStreams <- GPSStreams.resource(gps)
+      carInsertions <- Resource.eval(Topic[F, CarDrive])
     yield
       val appComps = builder.build(conf, http)
       val jwt = JWT(conf.secret)
@@ -144,7 +145,8 @@ object Server extends IOApp:
         S3Client.build(),
         push,
         streams,
-        deviceStreams
+        deviceStreams,
+        CarDatabase(db, carInsertions)
       )
       Service(comps)
 
