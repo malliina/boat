@@ -39,6 +39,7 @@ class CarDatabase[F[_]: Async](val db: DoobieDatabase[F], val insertions: Topic[
       inserted <- saveToDatabase(locs, userInfo, user)
       _ <- Async[F].parTraverseN(1)(inserted)(i => insertions.publish1(i))
     yield inserted
+
   def saveToDatabase(
     locs: LocationUpdates,
     userInfo: MinimalUserInfo,
@@ -53,7 +54,7 @@ class CarDatabase[F[_]: Async](val db: DoobieDatabase[F], val insertions: Topic[
       import cats.implicits.*
       val insertion = locs.updates.traverse { loc =>
         sql"""insert into car_points(longitude, latitude, coord, gps_time, device, altitude, accuracy, bearing, bearing_accuracy)
-            values(${loc.longitude}, ${loc.latitude}, ${loc.coord}, ${loc.date}, $carId, ${loc.altitudeMeters}, ${loc.accuracyMeters}, ${loc.bearing}, ${loc.bearingAccuracyDegrees})
+              values(${loc.longitude}, ${loc.latitude}, ${loc.coord}, ${loc.date}, $carId, ${loc.altitudeMeters}, ${loc.accuracyMeters}, ${loc.bearing}, ${loc.bearingAccuracyDegrees})
          """.update.withUniqueGeneratedKeys[CarUpdateId]("id")
       }
       for

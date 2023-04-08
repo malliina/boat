@@ -29,6 +29,8 @@ import org.http4s.server.websocket.WebSocketBuilder2
 import org.http4s.server.{Router, Server, ServiceErrorHandler}
 import org.http4s.{Challenge, Http, HttpApp, HttpRoutes, Request, Response}
 import fs2.concurrent.Topic
+
+import java.io.IOException
 import java.time.Instant
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.DurationInt
@@ -175,10 +177,15 @@ object Server extends IOApp:
     }
 
   private def errorHandler[F[_]: Sync]: PartialFunction[Throwable, F[Response[F]]] = {
+    case ioe: IOException if ioe.getMessage == BasicService.noisyErrorMessage =>
+      serverErrorResponse("Generic server IO error.")
     case NonFatal(t) =>
       log.error(s"Server error.", t)
-      BasicService[F].serverError(Errors(SingleError("Server error.", "server")))
+      serverErrorResponse("Generic server error.")
   }
+
+  def serverErrorResponse[F[_]: Sync](msg: String) =
+    BasicService[F].serverError(Errors(SingleError(msg, "server")))
 
   override def run(args: List[String]): IO[ExitCode] =
     server[IO](BoatConf.parse(), AppCompsBuilder.prod).use(_ => IO.never).as(ExitCode.Success)

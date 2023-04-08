@@ -15,10 +15,13 @@ import org.http4s.headers.{Location, `Content-Type`, `WWW-Authenticate`}
 import org.http4s.*
 import org.http4s.headers.{Accept, Location, `Cache-Control`}
 
+import java.io.IOException
 import scala.concurrent.duration.FiniteDuration
 
 object BasicService:
   private val log = AppLogger(getClass)
+  
+  val noisyErrorMessage = "The specified network name is no longer available."
 
   val noCache = `Cache-Control`(`no-cache`(), `no-store`, `must-revalidate`)
 
@@ -61,6 +64,9 @@ class BasicService[F[_]: Sync] extends Implicits[F]:
       }
     case re: ResponseException =>
       serverErrorResponse(s"${re.getMessage} Response: '${re.response.asString}'.", re)
+    case ioe: IOException
+        if ioe.getMessage == BasicService.noisyErrorMessage =>
+      serverError(Errors("Server IO error."))
     case other =>
       serverErrorResponse("Server error.", other)
 
