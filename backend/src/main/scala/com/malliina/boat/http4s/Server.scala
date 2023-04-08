@@ -174,15 +174,7 @@ object Server extends IOApp:
         .handleErrorWith(BasicService[F].errorHandler)
     }
 
-  import org.http4s.dsl.impl.Responses.UnauthorizedOps
-
   private def errorHandler[F[_]: Sync]: PartialFunction[Throwable, F[Response[F]]] = {
-    case ie: IdentityException =>
-      log.warn(s"Identity error.", ie)
-      UnauthorizedOps(Unauthorized).apply(
-        `WWW-Authenticate`(NonEmptyList.of(Challenge("myscheme", "myrealm"))),
-        Errors(SingleError("Unauthorized.", "auth"))
-      )
     case NonFatal(t) =>
       log.error(s"Server error.", t)
       BasicService[F].serverError(Errors(SingleError("Server error.", "server")))

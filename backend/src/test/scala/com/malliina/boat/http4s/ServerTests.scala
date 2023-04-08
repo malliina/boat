@@ -2,18 +2,21 @@ package com.malliina.boat.http4s
 
 import cats.effect.IO
 import com.malliina.boat.{CarHistoryResponse, DeviceId, Errors, Latitude, LocationUpdate, LocationUpdates, Longitude, SimpleMessage, TimeFormatter}
-import com.malliina.http.FullUrl
+import com.malliina.http.io.HttpClientIO
+import com.malliina.http.{FullUrl, HttpClient, OkClient}
 import com.malliina.values.{IdToken, UserId}
 import com.malliina.measure.DistanceIntM
 import com.malliina.values.degrees
 import io.circe.Decoder
 import io.circe.syntax.EncoderOps
+import okhttp3.{Interceptor, OkHttpClient, Protocol}
 import org.http4s.headers.Authorization
 import org.http4s.{Request, Status}
 import org.http4s.Status.{NotFound, Ok, Unauthorized}
 import tests.{MUnitSuite, ServerSuite, TestEmailAuth}
 
 import java.time.{OffsetDateTime, ZoneOffset}
+import java.util
 
 class ServerTests extends MUnitSuite with ServerSuite:
   val testCarId = DeviceId(1)
@@ -91,20 +94,22 @@ class ServerTests extends MUnitSuite with ServerSuite:
 
   private def postCars(
     token: IdToken = TestEmailAuth.testToken,
-    updates: LocationUpdates = LocationUpdates(Nil, testCarId)
+    updates: LocationUpdates = LocationUpdates(Nil, testCarId),
+    url: FullUrl = postCarsUrl
   ) =
     client
       .postJson(
-        postCarsUrl,
+        url,
         updates.asJson,
-        Map(Authorization.name.toString -> s"Bearer $token")
+        headers(token)
       )
 
   private def headers(token: IdToken = TestEmailAuth.testToken) = Map(
-    Authorization.name.toString -> s"Bearer $token"
+    Authorization.name.toString -> s"Bearer $token",
+    "Accept" -> "application/json"
   )
 
-  private def status(path: String): IO[Int] =
+  private def status(path: String) =
     val url = baseUrl / path
     client.get(url).map(r => r.code)
 

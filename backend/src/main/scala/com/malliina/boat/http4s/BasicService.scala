@@ -71,7 +71,7 @@ class BasicService[F[_]: Sync] extends Implicits[F]:
 
   def unauthorizedNoCache(errors: Errors) =
     Unauthorized(
-      `WWW-Authenticate`(NonEmptyList.of(Challenge("myscheme", "myrealm"))),
+      `WWW-Authenticate`(NonEmptyList.of(Challenge("Bearer", "Social login"))),
       errors,
       noCache
     )
