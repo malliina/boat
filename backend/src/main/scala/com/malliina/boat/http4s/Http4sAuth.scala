@@ -101,7 +101,7 @@ class Http4sAuth[F[_]](
       }
     yield t
 
-  private def readToken(cookieName: String, headers: Headers) =
+  private def readToken(cookieName: String, headers: Headers): Either[MissingCredentials, IdToken] =
     for
       header <- headers.get[Cookie].toRight(MissingCredentials("Cookie parsing error.", headers))
       idToken <-

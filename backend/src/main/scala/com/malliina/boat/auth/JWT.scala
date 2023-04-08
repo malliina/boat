@@ -70,8 +70,12 @@ object JWT:
       val signatureVerification =
         try
           val verified = parsed.jwt.verify(verifier)
+          log.info(s"Verified $verified")
           if verified then Right(()) else Left(InvalidSignature(parsed.token))
-        catch case _: JOSEException => Left(InvalidSignature(parsed.token))
+        catch
+          case je: JOSEException =>
+            log.warn(s"JWT exception", je)
+            Left(InvalidSignature(parsed.token))
       for
         _ <- signatureVerification
         _ <- parsed.checkExpiration(now).toLeft(())

@@ -1,7 +1,8 @@
 package com.malliina.boat.auth
 
 import cats.effect.{IO, Sync}
-import cats.syntax.all.{toFlatMapOps, toFunctorOps}
+//import cats.syntax.all.{toFlatMapOps, toFunctorOps, err}
+import cats.syntax.all.*
 import com.malliina.boat.{Errors, SingleError}
 import com.malliina.boat.auth.TokenEmailAuth.log
 import com.malliina.boat.db.{CustomJwt, IdentityException, JWTError, MissingCredentials}
@@ -63,12 +64,27 @@ class TokenEmailAuth[F[_]: Sync](google: KeyClient[F], microsoft: KeyClient[F], 
       }
 
   private def validateAny(token: IdToken, now: Instant): F[Either[AuthError, Email]] =
-    validateGoogle(token, now).flatMap { e =>
-      e.fold(
-        err =>
-          validateMicrosoft(token, now).flatMap { e2 =>
-            e2.fold(err => F.pure(custom.email(token, now)), ok => F.pure(Right(ok)))
-          },
+    validateGoogle(token, now).flatMap { googleResult =>
+      googleResult.fold(
+        {
+          case e @ Expired(_, _, _) => F.pure(Left(e))
+          case googleError =>
+            validateMicrosoft(token, now).flatMap { microsoftResult =>
+              microsoftResult.fold(
+                {
+                  case e @ Expired(_, _, _) => F.pure(Left(e))
+                  case microsoftError =>
+                    F.pure(custom.email(token, now).left.map { customError =>
+                      log.info(
+                        s"\nGoogle $googleError\nMicrosoft $microsoftError\nCustom $customError"
+                      )
+                      customError
+                    })
+                },
+                ok => F.pure(Right(ok))
+              )
+            }
+        },
         ok => F.pure(Right(ok))
       )
     }

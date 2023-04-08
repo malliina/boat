@@ -49,6 +49,6 @@ object Reverse:
   val legal = uri"/legal/privacy"
   val files = uri"/files"
   val postCars = uri"/cars/locations"
-  val historyCars = uri"/history/cars"
+  val historyCars = uri"/cars/history"
   def file(id: String) = Uri.unsafeFromString(s"/files/$id")
   def canonical(id: TrackCanonical) = Uri.unsafeFromString(s"/$id")

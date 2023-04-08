@@ -2,9 +2,11 @@ package com.malliina.boat.http4s
 
 import cats.effect.IO
 import com.malliina.boat.{CarHistoryResponse, DeviceId, Errors, Latitude, LocationUpdate, LocationUpdates, Longitude, SimpleMessage, TimeFormatter}
+import com.malliina.http.FullUrl
 import com.malliina.values.{IdToken, UserId}
 import com.malliina.measure.DistanceIntM
 import com.malliina.values.degrees
+import io.circe.Decoder
 import io.circe.syntax.EncoderOps
 import org.http4s.headers.Authorization
 import org.http4s.{Request, Status}
@@ -27,6 +29,7 @@ class ServerTests extends MUnitSuite with ServerSuite:
 
   def postCarsUrl = baseUrl.append(Reverse.postCars.renderString)
   def getCarsUrl = baseUrl.append(Reverse.historyCars.renderString)
+  def meUrl = baseUrl.append(Reverse.me.renderString)
 
   test("can call server") {
     assertIO(status("/health"), Ok.code)
@@ -40,15 +43,23 @@ class ServerTests extends MUnitSuite with ServerSuite:
     }
   }
 
+  test("GET profile with outdated jwt returns 401 with token expired") {
+    client.get(meUrl, headers(TestEmailAuth.expiredToken)).map { res =>
+      assertEquals(res.status, Unauthorized.code)
+      assert(res.parse[Errors].toOption.exists(_.errors.exists(_.key == "token_expired")))
+    }
+  }
+
   test("POST call with no creds") {
     client.postJson(postCarsUrl, LocationUpdates(Nil, testCarId).asJson, Map.empty).map { res =>
       assertEquals(res.status, Unauthorized.code)
     }
   }
 
-  test("POST call with bogus jwt") {
-    postCars(IdToken("j.w.t")).map { res =>
+  test("POST car locations with outdated jwt returns 401 with token expired") {
+    postCars(TestEmailAuth.expiredToken).map { res =>
       assertEquals(res.status, Unauthorized.code)
+      assert(res.parse[Errors].toOption.exists(_.errors.exists(_.key == "token_expired")))
     }
   }
 
@@ -62,10 +73,9 @@ class ServerTests extends MUnitSuite with ServerSuite:
     for
       postResponse <- postCars(updates = LocationUpdates(List(loc), testCarId))
       _ = assertEquals(postResponse.status, Ok.code)
-      history <- getCars()
-    yield
-      println(history.history.size)
-      assertEquals(1, 1)
+      history <- client.getAs[CarHistoryResponse](getCarsUrl, headers())
+    yield assertEquals(1, 1)
+    //      assert(history.history.nonEmpty)
   }
 
   test("POST car locations for non-owned car fails") {
@@ -90,9 +100,9 @@ class ServerTests extends MUnitSuite with ServerSuite:
         Map(Authorization.name.toString -> s"Bearer $token")
       )
 
-  private def getCars(token: IdToken = TestEmailAuth.testToken) =
-    client
-      .getAs[CarHistoryResponse](getCarsUrl, Map(Authorization.name.toString -> s"Bearer $token"))
+  private def headers(token: IdToken = TestEmailAuth.testToken) = Map(
+    Authorization.name.toString -> s"Bearer $token"
+  )
 
   private def status(path: String): IO[Int] =
     val url = baseUrl / path

@@ -9,11 +9,12 @@ import com.malliina.boat.push.{BoatNotification, PushEndpoint, PushSummary}
 import com.malliina.http.HttpClient
 import com.malliina.values.{Email, IdToken, TokenValue}
 import com.malliina.web
-import com.malliina.web.{AuthError, InvalidSignature, JWTError, KeyConf, ParsedJWT, TokenVerifier, Verified}
+import com.malliina.web.{AuthError, Expired, InvalidSignature, JWTError, KeyConf, ParsedJWT, TokenVerifier, Verified, WebAuthException}
 import org.http4s.Headers
-import tests.TestEmailAuth.testToken
+import tests.TestEmailAuth.{expiredToken, testToken}
 
 import java.time.Instant
+import java.time.temporal.ChronoUnit
 
 class NoopPushEndpoint[F[_]: Sync] extends PushEndpoint[F]:
   override def push(notification: BoatNotification, to: PushDevice): F[PushSummary] =
@@ -21,6 +22,7 @@ class NoopPushEndpoint[F[_]: Sync] extends PushEndpoint[F]:
 
 object TestEmailAuth:
   val testToken = IdToken("header.payload.signature")
+  val expiredToken = IdToken("header.payload.expired")
 
 class TestEmailAuth[F[_]: Sync] extends EmailAuth[F]:
   val F = Sync[F]
@@ -33,6 +35,10 @@ class TestEmailAuth[F[_]: Sync] extends EmailAuth[F]:
         mc => F.raiseError(IdentityException(mc)),
         ok =>
           if ok == testToken then F.pure(testEmail)
+          else if ok == expiredToken then
+            F.raiseError(
+              WebAuthException(Expired(ok, now.minus(10, ChronoUnit.MINUTES), now), headers)
+            )
           else F.raiseError(IdentityException(JWTError(InvalidSignature(ok), headers)))
       )
 
