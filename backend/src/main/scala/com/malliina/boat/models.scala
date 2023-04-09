@@ -191,10 +191,7 @@ case class Stats(
   distance: DistanceM,
   duration: FiniteDuration,
   days: Long
-)
-
-object Stats:
-  implicit val json: Codec[Stats] = deriveCodec[Stats]
+) derives Codec.AsObject
 
 case class MonthlyStats(
   label: String,
@@ -204,10 +201,7 @@ case class MonthlyStats(
   distance: DistanceM,
   duration: FiniteDuration,
   days: Long
-)
-
-object MonthlyStats:
-  implicit val json: Codec[MonthlyStats] = deriveCodec[MonthlyStats]
+) derives Codec.AsObject
 
 case class YearlyStats(
   label: String,
@@ -217,35 +211,18 @@ case class YearlyStats(
   duration: FiniteDuration,
   days: Long,
   monthly: Seq[MonthlyStats]
-)
-
-object YearlyStats:
-  implicit val json: Codec[YearlyStats] = deriveCodec[YearlyStats]
+) derives Codec.AsObject
 
 case class StatsResponse(daily: Seq[Stats], yearly: Seq[YearlyStats], allTime: Stats)
+  derives Codec.AsObject
 
-object StatsResponse:
-  implicit val json: Codec[StatsResponse] = deriveCodec[StatsResponse]
-
-case class TracksBundle(tracks: Seq[TrackRef], stats: StatsResponse)
-
-object TracksBundle:
-  implicit val json: Codec[TracksBundle] = deriveCodec[TracksBundle]
+case class TracksBundle(tracks: Seq[TrackRef], stats: StatsResponse) derives Codec.AsObject
 
 case class InsertedPoint(point: TrackPointId, track: JoinedTrack):
   def strip(formatter: TimeFormatter) =
     InsertedTrackPoint(point, track.strip(formatter))
 
-case class JoinedDevice(id: DeviceId, username: Username)
-
 case class GPSInsertedPoint(point: GPSPointId, from: JoinedBoat)
-
-case class TrackNumbers(
-  track: TrackId,
-  start: Option[Instant],
-  end: Option[Instant],
-  topSpeed: Option[SpeedM]
-)
 
 case class TrackMeta(
   track: TrackId,
@@ -266,7 +243,6 @@ case class TrackMeta(
   email: Option[Email]
 ) extends UserDevice:
   override def deviceName = boatName
-
   def short = TrackMetaShort(track, trackName, boat, boatName, username)
 
 sealed trait InputEvent
@@ -278,39 +254,18 @@ case class DeviceEvent(message: Json, from: IdentifiedDeviceMeta) extends InputE
 case class BoatJsonError(error: DecodingFailure, boat: BoatEvent)
 case class DeviceJsonError(error: DecodingFailure, boat: DeviceEvent)
 
-object SingleErrors:
-  def forJWT(error: JWTError): SingleError =
-    SingleError(error.message, error.key)
-
 object BoatNames:
   val Key = "boatName"
   val BoatKey = "boat"
 
   def random() = BoatName(Utils.randomString(6))
 
-case class SingleToken(token: PushToken)
+case class PushPayload(token: PushToken, device: MobileDevice) derives Codec.AsObject
 
-object SingleToken:
-  implicit val json: Codec[SingleToken] = deriveCodec[SingleToken]
-
-case class PushPayload(token: PushToken, device: MobileDevice)
-
-object PushPayload:
-  implicit val json: Codec[PushPayload] = deriveCodec[PushPayload]
-
-case class DisablePush(token: PushToken)
-
-object DisablePush:
-  implicit val json: Codec[DisablePush] = deriveCodec[DisablePush]
+case class DisablePush(token: PushToken) derives Codec.AsObject
 
 object TrackNames:
   def random() = TrackName(Utils.randomString(6))
-
-  def apply(title: TrackTitle): TrackName =
-    TrackName(Utils.normalize(title.title).take(50))
-
-object TrackTitles:
-  val MaxLength = 191
 
 object UserUtils:
   def random() = Username(Utils.randomString(6))
@@ -318,12 +273,7 @@ object UserUtils:
 object BoatTokens:
   def random() = BoatToken(Utils.randomString(8))
 
-case class BoatInput(name: BoatName, token: BoatToken, owner: UserId)
-
-case class BoatResponse(boat: Boat)
-
-object BoatResponse:
-  implicit val json: Codec[BoatResponse] = deriveCodec[BoatResponse]
+case class BoatResponse(boat: Boat) derives Codec.AsObject
 
 case class JoinedBoat(
   device: DeviceId,
@@ -376,28 +326,19 @@ object GPSSentenceKey extends BoatIdCompanion[GPSSentenceKey]
 
 case class GPSKeyedSentence(key: GPSSentenceKey, sentence: RawSentence, from: DeviceId)
 
-case class GPSSentenceInput(sentence: RawSentence, boat: DeviceId)
-
-case class SentenceInput(sentence: RawSentence, track: TrackId)
-
 case class KeyedSentence(key: SentenceKey, sentence: RawSentence, from: TrackMetaShort)
 
-case class SentenceRow(id: SentenceKey, sentence: RawSentence, track: TrackId, added: Instant):
+case class SentenceRow(id: SentenceKey, sentence: RawSentence, track: TrackId, added: Instant)
+  derives Codec.AsObject:
   def timed(formatter: TimeFormatter) =
     TimedSentence(id, sentence, track, added, formatter.timing(added))
-
-object SentenceRow:
-  implicit val json: Codec[SentenceRow] = deriveCodec[SentenceRow]
 
 case class GPSSentenceRow(
   id: GPSSentenceKey,
   sentence: RawSentence,
   device: DeviceId,
   added: Instant
-)
-
-object GPSSentenceRow:
-  implicit val json: Codec[GPSSentenceRow] = deriveCodec[GPSSentenceRow]
+) derives Codec.AsObject
 
 case class GPSPointInput(
   lon: Longitude,
@@ -445,16 +386,12 @@ case class TimedSentence(
   track: TrackId,
   added: Instant,
   time: Timing
-)
+) derives Codec.AsObject
 
-object TimedSentence:
-  implicit val json: Codec[TimedSentence] = deriveCodec[TimedSentence]
-
-case class Sentences(sentences: Seq[RawSentence])
+case class Sentences(sentences: Seq[RawSentence]) derives Codec.AsObject
 
 object Sentences:
   val Key = SentencesEvent.Key
-  implicit val json: Codec[Sentences] = deriveCodec[Sentences]
 
 case class TrackPointInput(
   lon: Longitude,
@@ -586,7 +523,7 @@ case class CombinedFullCoord(
 )
 
 object CombinedFullCoord:
-  val modern: Codec[CombinedFullCoord] = deriveCodec[CombinedFullCoord]
+  private val modern: Codec[CombinedFullCoord] = deriveCodec[CombinedFullCoord]
   implicit val json: Codec[CombinedFullCoord] = Codec.from(
     modern,
     (c: CombinedFullCoord) =>
@@ -598,11 +535,8 @@ object CombinedFullCoord:
       )
   )
 
-case class FullTrack(track: TrackRef, coords: Seq[CombinedFullCoord]):
+case class FullTrack(track: TrackRef, coords: Seq[CombinedFullCoord]) derives Codec.AsObject:
   def name = track.trackName
-
-object FullTrack:
-  implicit val json: Codec[FullTrack] = deriveCodec[FullTrack]
 
 case class TrackPointRow(
   id: TrackPointId,
@@ -641,28 +575,16 @@ case class TrackPointRow(
       added
     )
 
-case class SentencePointLink(sentence: SentenceKey, point: TrackPointId)
-
-case class GPSSentencePointLink(sentence: GPSSentenceKey, point: GPSPointId)
-
 case class TrackPoint(coord: Coord, time: Instant, waterTemp: Temperature, wind: Double)
+  derives Codec.AsObject
 
-object TrackPoint:
-  implicit val json: Codec[TrackPoint] = deriveCodec[TrackPoint]
-
-case class Track(id: TrackId, name: TrackName, points: Seq[TrackPoint])
-
-object Track:
-  implicit val json: Codec[Track] = deriveCodec[Track]
+case class Track(id: TrackId, name: TrackName, points: Seq[TrackPoint]) derives Codec.AsObject
 
 case class RouteId(id: Long) extends WrappedId
 
 object RouteId extends IdCompanion[RouteId]
 
-case class Route(id: RouteId, name: String, points: Seq[Coord])
-
-object Route:
-  implicit val json: Codec[Route] = deriveCodec[Route]
+case class Route(id: RouteId, name: String, points: Seq[Coord]) derives Codec.AsObject
 
 abstract class BoatStringCompanion[T <: WrappedString] extends StringCompanion[T]:
   val db: Meta[T] = Meta[String].timap[T](apply)(_.value)

@@ -31,15 +31,15 @@ class AzureHttpTests extends MUnitSuite:
 
   test("POST car locations with outdated jwt returns 401 with token expired prod".ignore) {
     val b = new OkHttpClient.Builder()
-      .addInterceptor(LoggingInterceptor())
+      .addNetworkInterceptor(LoggingInterceptor())
       .build()
     val http = HttpClientIO(b)
-    val expired = IdToken("j.w.t")
+    val expired = IdToken("changeme")
     http
       .postJson(
-        url = FullUrl.https("api.boat-tracker.com", "/cars/locations"),
+        url = FullUrl.https("www.boat-tracker.com", "/cars/locations"),
         json = LocationUpdates(List(loc), DeviceId(1234)).asJson,
-        headers = headers(expired)
+        headers = headers(expired) ++ Map("Accept-Encoding" -> "identity")
       )
       .map { res =>
         assertEquals(res.status, Unauthorized.code)
@@ -57,7 +57,9 @@ class LoggingInterceptor extends Interceptor:
     val request = chain.request
     println(s"Sending ${request.method()} ${request.url()}\n${request.headers()}")
     val response = chain.proceed(request)
+
     println(
-      s"Received response ${response.code()} for ${response.request().url()} with \n${response.headers()}"
+      s"Received response ${response.code()} for ${response.request().url()} with \n${response
+          .headers()}\nbody was\n${response.body().string()}"
     )
     response

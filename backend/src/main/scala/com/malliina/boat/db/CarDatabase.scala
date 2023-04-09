@@ -1,21 +1,21 @@
 package com.malliina.boat.db
 
-import com.malliina.boat.LocationUpdates
-import com.malliina.boat.db.TrackInserter.log
-import com.malliina.boat.http.CarQuery
-import com.malliina.values.UserId
-import doobie.*
-import doobie.implicits.*
-import com.malliina.boat.*
-import cats.implicits.*
 import cats.data.NonEmptyList
 import cats.effect.Async
 import cats.effect.kernel.implicits.monadCancelOps_
+import cats.implicits.*
+import com.malliina.boat.*
+import com.malliina.boat.db.CarDatabase.{collectCars, log}
+import com.malliina.boat.db.TrackInserter.log
+import com.malliina.boat.http.CarQuery
 import com.malliina.util.AppLogger
-import CarDatabase.{collectCars, log}
+import com.malliina.values.UserId
+import doobie.*
+import doobie.implicits.*
 import fs2.concurrent.Topic
 
 import scala.annotation.tailrec
+import scala.concurrent.duration.DurationInt
 
 object CarDatabase:
   private val log = AppLogger(getClass)
@@ -32,7 +32,7 @@ object CarDatabase:
 
 class CarDatabase[F[_]: Async](val db: DoobieDatabase[F], val insertions: Topic[F, CarDrive])
   extends DoobieSQL:
-  import db.{run, logHandler}
+  import db.{logHandler, run}
 
   def save(locs: LocationUpdates, userInfo: MinimalUserInfo, user: UserId): F[List[CarDrive]] =
     for
@@ -95,9 +95,11 @@ class CarDatabase[F[_]: Async](val db: DoobieDatabase[F], val insertions: Topic[
         val sqlDone = System.currentTimeMillis()
         val result = collectCars(rows, formatter).flatMap(split).toList
         val splitDone = System.currentTimeMillis()
-        log.info(
-          s"Car query ${filters.describe} sql ${sqlDone - start} ms, split ${splitDone - sqlDone} ms, total ${splitDone - start} ms."
-        )
+        val total = splitDone - start
+        if total > 500.millis.toMillis then
+          log.info(
+            s"Car query ${filters.describe} sql ${sqlDone - start} ms, split ${splitDone - sqlDone} ms, total $total ms."
+          )
         result
       }
 
