@@ -70,7 +70,6 @@ object JWT:
       val signatureVerification =
         try
           val verified = parsed.jwt.verify(verifier)
-          log.info(s"Verified $verified")
           if verified then Right(()) else Left(InvalidSignature(parsed.token))
         catch
           case je: JOSEException =>
