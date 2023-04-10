@@ -21,8 +21,8 @@ class DoobiePushDatabase[F[_]: Async](db: DoobieDatabase[F], push: PushEndpoint[
   val F = Sync[F]
 
   def enable(input: PushInput): F[PushId] = db.run {
-    val existing = sql"""select id 
-                         from push_clients 
+    val existing = sql"""select id
+                         from push_clients
                          where token = ${input.token} and device = ${input.device}"""
       .query[PushId]
       .option
@@ -31,7 +31,7 @@ class DoobiePushDatabase[F[_]: Async](db: DoobieDatabase[F], push: PushEndpoint[
         log.info(s"${input.device} token ${input.token} already registered for push notifications.")
         pure(id)
       }.getOrElse {
-        sql"""insert into push_clients(token, device, user) 
+        sql"""insert into push_clients(token, device, user)
               values(${input.token}, ${input.device}, ${input.user})""".update
           .withUniqueGeneratedKeys[PushId]("id")
           .map { id =>
@@ -56,15 +56,28 @@ class DoobiePushDatabase[F[_]: Async](db: DoobieDatabase[F], push: PushEndpoint[
   def push(device: UserDevice, state: BoatState): F[PushSummary] =
     val notification = BoatNotification(device.deviceName, state)
     val devices = db.run {
-      sql"select id, token, device, user, added from push_clients where user = ${device.userId}"
+      // pushes at most once every five minutes as per the "not exists" clause
+      sql"""select id, token, device, user, added
+            from push_clients
+            where user = ${device.userId} and
+            not exists(select timestampdiff(SECOND, max(h.added), now())
+                       from push_history h
+                       where h.device = ${device.device}
+                       having timestampdiff(SECOND, max(h.added), now()) < 300)"""
         .query[PushDevice]
         .to[List]
+    }
+    val bookkeeping = db.run {
+      sql"""insert into push_history(device) values(${device.device})""".update.run.map { _ =>
+        log.info(s"Recorded push history for device '${device.device}' (${device.deviceName}).")
+      }
     }
     for
       tokens <- devices
       results <- tokens.traverse(token => push.push(notification, token))
       summary = results.fold(PushSummary.empty)(_ ++ _)
       _ <- handle(summary)
+      _ <- if tokens.nonEmpty then bookkeeping else F.unit
     yield summary
 
   private def handle(summary: PushSummary): F[Int] =

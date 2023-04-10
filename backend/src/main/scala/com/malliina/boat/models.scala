@@ -257,6 +257,7 @@ case class TrackMeta(
   email: Option[Email]
 ) extends UserDevice:
   override def deviceName = boatName
+  override def device = boat
   def short = TrackMetaShort(track, trackName, boat, boatName, username)
 
 sealed trait InputEvent

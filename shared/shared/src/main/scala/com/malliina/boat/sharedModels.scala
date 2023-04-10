@@ -280,6 +280,7 @@ trait BoatTrackMeta extends DeviceMeta:
 
 trait UserDevice:
   def userId: UserId
+  def device: DeviceId
   def deviceName: BoatName
 
 trait DeviceMeta:
