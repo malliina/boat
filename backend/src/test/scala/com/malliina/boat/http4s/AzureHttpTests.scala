@@ -38,7 +38,7 @@ class AzureHttpTests extends MUnitSuite:
     http
       .postJson(
         url = FullUrl.https("www.boat-tracker.com", "/cars/locations"),
-        json = LocationUpdates(List(loc), DeviceId(1234)).asJson,
+        json = LocationUpdates(List(loc), DeviceId(1234), None).asJson,
         headers = headers(expired) ++ Map("Accept-Encoding" -> "identity")
       )
       .map { res =>

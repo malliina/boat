@@ -383,9 +383,9 @@ class Service[F[_]: Async](comps: BoatComps[F]) extends BasicService[F]:
       yield res
     case req @ POST -> Root / "cars" / "locations" =>
       jsonAction[LocationUpdates](req) { (body, user) =>
-        log.debug(s"User ${user.email} POSTs ${body.updates.size} car location updates...")
+        log.info(s"User ${user.email} POSTs car updates $body...")
         cars.save(body, user, user.id).flatMap { inserteds =>
-          ok(SimpleMessage(s"Got ${body.updates.size} locations."))
+          ok(SimpleMessage(s"Saved ${inserteds.flatMap(_.updates).size} updates."))
         }
       }
     case req @ GET -> Root / "sign-in" =>

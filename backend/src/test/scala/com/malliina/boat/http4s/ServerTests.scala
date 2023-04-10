@@ -54,8 +54,9 @@ class ServerTests extends MUnitSuite with ServerSuite:
   }
 
   test("POST call with no creds") {
-    client.postJson(postCarsUrl, LocationUpdates(Nil, testCarId).asJson, Map.empty).map { res =>
-      assertEquals(res.status, Unauthorized.code)
+    client.postJson(postCarsUrl, LocationUpdates(Nil, testCarId, None).asJson, Map.empty).map {
+      res =>
+        assertEquals(res.status, Unauthorized.code)
     }
   }
 
@@ -74,7 +75,7 @@ class ServerTests extends MUnitSuite with ServerSuite:
 
   test("POST car locations") {
     for
-      postResponse <- postCars(updates = LocationUpdates(List(loc), testCarId))
+      postResponse <- postCars(updates = LocationUpdates(List(loc), testCarId, None))
       _ = assertEquals(postResponse.status, Ok.code)
       history <- client.getAs[CarHistoryResponse](getCarsUrl, headers())
     yield assertEquals(1, 1)
@@ -82,7 +83,7 @@ class ServerTests extends MUnitSuite with ServerSuite:
   }
 
   test("POST car locations for non-owned car fails") {
-    postCars(updates = LocationUpdates(List(loc), DeviceId(123))).map { res =>
+    postCars(updates = LocationUpdates(List(loc), DeviceId(123), None)).map { res =>
       assertEquals(res.status, NotFound.code)
     }
   }
@@ -94,7 +95,7 @@ class ServerTests extends MUnitSuite with ServerSuite:
 
   private def postCars(
     token: IdToken = TestEmailAuth.testToken,
-    updates: LocationUpdates = LocationUpdates(Nil, testCarId),
+    updates: LocationUpdates = LocationUpdates(Nil, testCarId, None),
     url: FullUrl = postCarsUrl
   ) =
     client

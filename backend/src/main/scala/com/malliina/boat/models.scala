@@ -16,12 +16,27 @@ import io.circe.syntax.EncoderOps
 import scala.concurrent.duration.FiniteDuration
 
 opaque type CarUpdateId = Long
-
 object CarUpdateId extends JsonCompanion[Long, CarUpdateId]:
   override def apply(raw: Long): CarUpdateId = raw
   override def write(t: CarUpdateId): Long = t
-
 extension (id: CarUpdateId) def long: Long = id
+
+// Watt hours
+opaque type Energy = Double
+object Energy extends JsonCompanion[Double, Energy]:
+  override def apply(raw: Double): Energy = raw
+  override def write(t: Energy): Double = t
+extension (e: Energy) def wattHours: Double = e
+
+case class CarState(
+  outsideTemperature: Option[Temperature],
+  batteryLevel: Option[Energy],
+  batteryCapacity: Option[Energy],
+  speed: Option[SpeedM],
+  rangeRemaining: Option[DistanceM],
+  gear: Option[Int],
+  nightMode: Option[Boolean]
+) derives Codec.AsObject
 
 case class LocationUpdate(
   longitude: Longitude,
@@ -31,12 +46,11 @@ case class LocationUpdate(
   bearing: Option[Degrees],
   bearingAccuracyDegrees: Option[Degrees],
   date: OffsetDateTime
-):
+) derives Codec.AsObject:
   val coord = Coord(longitude, latitude)
-object LocationUpdate:
-  implicit val json: Codec[LocationUpdate] = deriveCodec[LocationUpdate]
 
-case class LocationUpdates(updates: List[LocationUpdate], carId: DeviceId) derives Codec.AsObject
+case class LocationUpdates(updates: List[LocationUpdate], carId: DeviceId, car: Option[CarState])
+  derives Codec.AsObject
 
 case class CSRFToken(token: String) extends AnyVal
 
