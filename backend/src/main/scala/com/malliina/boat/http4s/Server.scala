@@ -180,7 +180,7 @@ object Server extends IOApp:
     case ioe: IOException if ioe.getMessage == BasicService.noisyErrorMessage =>
       serverErrorResponse("Generic server IO error.")
     case NonFatal(t) =>
-      log.error(s"Server error.", t)
+      log.error(s"Server error: '${t.getMessage}'.", t)
       serverErrorResponse("Generic server error.")
   }
 

@@ -20,7 +20,7 @@ import scala.concurrent.duration.FiniteDuration
 
 object BasicService:
   private val log = AppLogger(getClass)
-  
+
   val noisyErrorMessage = "The specified network name is no longer available."
 
   val noCache = `Cache-Control`(`no-cache`(), `no-store`, `must-revalidate`)
@@ -64,15 +64,14 @@ class BasicService[F[_]: Sync] extends Implicits[F]:
       }
     case re: ResponseException =>
       serverErrorResponse(s"${re.getMessage} Response: '${re.response.asString}'.", re)
-    case ioe: IOException
-        if ioe.getMessage == BasicService.noisyErrorMessage =>
-      serverError(Errors("Server IO error."))
+    case ioe: IOException if ioe.getMessage == BasicService.noisyErrorMessage =>
+      serverError(Errors("Service IO error."))
     case other =>
-      serverErrorResponse("Server error.", other)
+      serverErrorResponse(s"Service error: '${other.getMessage}'.", other)
 
   private def serverErrorResponse(msg: String, t: Throwable) =
     Sync[F].delay(log.error(msg, t)).flatMap { _ =>
-      serverError(Errors("Server error."))
+      serverError(Errors(s"Server error: '${t.getMessage}'."))
     }
 
   def unauthorizedNoCache(errors: Errors) =
