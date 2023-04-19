@@ -21,6 +21,7 @@ import com.malliina.logback.LogbackUtils
 import com.malliina.logstreams.client.LogstreamsUtils
 import com.malliina.util.AppLogger
 import com.malliina.web.*
+import com.malliina.boat.message
 import org.http4s.Status.Unauthorized
 import org.http4s.ember.server.EmberServerBuilder
 import org.http4s.headers.{Location, `Content-Type`, `WWW-Authenticate`}
@@ -177,7 +178,7 @@ object Server extends IOApp:
     }
 
   private def errorHandler[F[_]: Sync]: PartialFunction[Throwable, F[Response[F]]] = {
-    case ioe: IOException if ioe.getMessage == BasicService.noisyErrorMessage =>
+    case ioe: IOException if ioe.message.exists(_.startsWith(BasicService.noisyErrorMessage)) =>
       serverErrorResponse("Generic server IO error.")
     case NonFatal(t) =>
       log.error(s"Server error: '${t.getMessage}'.", t)

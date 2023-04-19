@@ -383,7 +383,8 @@ class Service[F[_]: Async](comps: BoatComps[F]) extends BasicService[F]:
       yield res
     case req @ POST -> Root / "cars" / "locations" =>
       jsonAction[LocationUpdates](req) { (body, user) =>
-        log.info(s"User ${user.email} POSTs car updates $body...")
+        val count = body.updates.size
+        log.debug(s"User ${user.email} POSTs $count car updates...")
         cars.save(body, user, user.id).flatMap { inserteds =>
           ok(SimpleMessage(s"Saved ${inserteds.flatMap(_.updates).size} updates."))
         }

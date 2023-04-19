@@ -61,7 +61,7 @@ class CarDatabase[F[_]: Async](val db: DoobieDatabase[F], val insertions: Topic[
         exists <- ownershipCheck
         _ <- if exists then pure(()) else fail(BoatNotFoundException(carId, user))
         ids <- insertion
-        inserted <- historyQuery(CarQuery.ids(ids), userInfo)
+        inserted <- if ids.isEmpty then pure(Nil) else historyQuery(CarQuery.ids(ids), userInfo)
       yield
         if ids.nonEmpty then log.info(s"Inserted to car $carId IDs ${ids.mkString(", ")}.")
         inserted
@@ -98,12 +98,12 @@ class CarDatabase[F[_]: Async](val db: DoobieDatabase[F], val insertions: Topic[
         val total = splitDone - start
         if total > 500.millis.toMillis then
           log.info(
-            s"Car query ${filters.describe} sql ${sqlDone - start} ms, split ${splitDone - sqlDone} ms, total $total ms."
+            s"Car query ${filters.describe} rows ${rows.size}, sql ${sqlDone - start} ms, split ${splitDone - sqlDone} ms, total $total ms."
           )
         result
       }
 
-  val maxTimeBetweenCarUpdates = Constants.MaxTimeBetweenCarUpdates
+  private val maxTimeBetweenCarUpdates = Constants.MaxTimeBetweenCarUpdates
 
   def split(e: CarDrive): List[CarDrive] =
     split(e.updates).map(cs => CarDrive(cs, e.car))

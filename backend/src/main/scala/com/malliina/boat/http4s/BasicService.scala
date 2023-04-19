@@ -10,6 +10,7 @@ import com.malliina.boat.http4s.BasicService.{log, noCache}
 import com.malliina.util.AppLogger
 import com.malliina.http.ResponseException
 import com.malliina.web.{AuthException, WebAuthException}
+import com.malliina.boat.message
 import org.http4s.CacheDirective.*
 import org.http4s.headers.{Location, `Content-Type`, `WWW-Authenticate`}
 import org.http4s.*
@@ -64,7 +65,7 @@ class BasicService[F[_]: Sync] extends Implicits[F]:
       }
     case re: ResponseException =>
       serverErrorResponse(s"${re.getMessage} Response: '${re.response.asString}'.", re)
-    case ioe: IOException if ioe.getMessage == BasicService.noisyErrorMessage =>
+    case ioe: IOException if ioe.message.exists(_.startsWith(BasicService.noisyErrorMessage)) =>
       serverError(Errors("Service IO error."))
     case other =>
       serverErrorResponse(s"Service error: '${other.getMessage}'.", other)
