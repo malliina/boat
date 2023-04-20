@@ -21,23 +21,6 @@ object CarUpdateId extends JsonCompanion[Long, CarUpdateId]:
   override def write(t: CarUpdateId): Long = t
 extension (id: CarUpdateId) def long: Long = id
 
-// Watt hours
-opaque type Energy = Double
-object Energy extends JsonCompanion[Double, Energy]:
-  override def apply(raw: Double): Energy = raw
-  override def write(t: Energy): Double = t
-extension (e: Energy) def wattHours: Double = e
-
-case class CarState(
-  outsideTemperature: Option[Temperature],
-  batteryLevel: Option[Energy],
-  batteryCapacity: Option[Energy],
-  speed: Option[SpeedM],
-  rangeRemaining: Option[DistanceM],
-  gear: Option[Int],
-  nightMode: Option[Boolean]
-) derives Codec.AsObject
-
 case class LocationUpdate(
   longitude: Longitude,
   latitude: Latitude,
@@ -45,12 +28,17 @@ case class LocationUpdate(
   accuracyMeters: Option[DistanceM],
   bearing: Option[Degrees],
   bearingAccuracyDegrees: Option[Degrees],
+  speed: Option[SpeedM],
+  batteryLevel: Option[Energy],
+  batteryCapacity: Option[Energy],
+  rangeRemaining: Option[DistanceM],
+  outsideTemperature: Option[Temperature],
+  nightMode: Option[Boolean],
   date: OffsetDateTime
 ) derives Codec.AsObject:
   val coord = Coord(longitude, latitude)
 
-case class LocationUpdates(updates: List[LocationUpdate], carId: DeviceId, car: Option[CarState])
-  derives Codec.AsObject
+case class LocationUpdates(updates: List[LocationUpdate], carId: DeviceId) derives Codec.AsObject
 
 case class CSRFToken(token: String) extends AnyVal
 
@@ -138,12 +126,18 @@ object AppMeta:
 
 case class CarRow(
   coord: Coord,
+  speed: Option[SpeedM],
+  batteryLevel: Option[Energy],
+  batteryCapacity: Option[Energy],
+  rangeRemaining: Option[DistanceM],
+  outsideTemperature: Option[Temperature],
+  nightMode: Option[Boolean],
   carTime: Instant,
   added: Instant,
   car: CarInfo
 ):
   def toUpdate(formatter: TimeFormatter): CarUpdate =
-    CarUpdate(coord, formatter.timing(carTime), formatter.timing(added))
+    CarUpdate(coord, speed, batteryLevel, batteryCapacity, rangeRemaining, outsideTemperature, nightMode, formatter.timing(carTime), formatter.timing(added))
 
 case class JoinedTrack(
   track: TrackId,

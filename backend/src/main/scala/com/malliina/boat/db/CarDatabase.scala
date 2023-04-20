@@ -40,7 +40,7 @@ class CarDatabase[F[_]: Async](val db: DoobieDatabase[F], val insertions: Topic[
       _ <- Async[F].parTraverseN(1)(inserted)(i => insertions.publish1(i))
     yield inserted
 
-  def saveToDatabase(
+  private def saveToDatabase(
     locs: LocationUpdates,
     userInfo: MinimalUserInfo,
     user: UserId
@@ -53,8 +53,14 @@ class CarDatabase[F[_]: Async](val db: DoobieDatabase[F], val insertions: Topic[
           .unique
       import cats.implicits.*
       val insertion = locs.updates.traverse { loc =>
-        sql"""insert into car_points(longitude, latitude, coord, gps_time, device, altitude, accuracy, bearing, bearing_accuracy)
-              values(${loc.longitude}, ${loc.latitude}, ${loc.coord}, ${loc.date}, $carId, ${loc.altitudeMeters}, ${loc.accuracyMeters}, ${loc.bearing}, ${loc.bearingAccuracyDegrees})
+        sql"""insert into car_points(longitude, latitude, coord, gps_time, device, altitude, accuracy, bearing, bearing_accuracy, speed, battery, capacity, car_range, outside_temperature, night_mode)
+              values(${loc.longitude}, ${loc.latitude}, ${loc.coord}, ${loc.date}, $carId, ${loc.altitudeMeters}, ${loc.accuracyMeters}, ${loc.bearing}, ${loc.bearingAccuracyDegrees},
+                ${loc.speed},
+                ${loc.batteryLevel},
+                ${loc.batteryCapacity},
+                ${loc.rangeRemaining},
+                ${loc.outsideTemperature},
+                ${loc.nightMode})
          """.update.withUniqueGeneratedKeys[CarUpdateId]("id")
       }
       for
@@ -82,7 +88,7 @@ class CarDatabase[F[_]: Async](val db: DoobieDatabase[F], val insertions: Topic[
     )
     val formatter = TimeFormatter(user.language)
     val start = System.currentTimeMillis()
-    sql"""select c.coord, c.gps_time, c.added, b.id, b.name, u.user
+    sql"""select c.coord, c.speed, c.battery, c.capacity, c.car_range, c.outside_temperature, c.night_mode, c.gps_time, c.added, b.id, b.name, u.user
           from car_points c
           join boats b on b.id = c.device
           join users u on b.owner = u.id

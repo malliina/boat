@@ -487,7 +487,25 @@ object CoordsEvent:
   implicit val coordJson: Codec[Coord] = Coord.json
   implicit val json: Codec[CoordsEvent] = keyValued(Key, deriveCodec[CoordsEvent])
 
-case class CarUpdate(coord: Coord, carTime: Timing, added: Timing) derives Codec.AsObject
+// Watt hours
+opaque type Energy = Double
+object Energy extends JsonCompanion[Double, Energy]:
+  override def apply(raw: Double): Energy = raw
+  override def write(t: Energy): Double = t
+extension (e: Energy) def wattHours: Double = e
+extension (e: Double) def wh: Energy = Energy(e)
+
+case class CarUpdate(
+  coord: Coord,
+  speed: Option[SpeedM],
+  batteryLevel: Option[Energy],
+  batteryCapacity: Option[Energy],
+  rangeRemaining: Option[DistanceM],
+  outsideTemperature: Option[Temperature],
+  nightMode: Option[Boolean],
+  carTime: Timing,
+  added: Timing
+) derives Codec.AsObject
 
 case class CarInfo(id: DeviceId, name: BoatName, username: Username) derives Codec.AsObject
 

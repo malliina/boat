@@ -26,6 +26,12 @@ class AzureHttpTests extends MUnitSuite:
     Option(5.meters),
     Option(128f.degrees),
     None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
     OffsetDateTime.of(2023, 4, 2, 10, 4, 3, 0, ZoneOffset.UTC)
   )
 
@@ -38,7 +44,7 @@ class AzureHttpTests extends MUnitSuite:
     http
       .postJson(
         url = FullUrl.https("www.boat-tracker.com", "/cars/locations"),
-        json = LocationUpdates(List(loc), DeviceId(1234), None).asJson,
+        json = LocationUpdates(List(loc), DeviceId(1234)).asJson,
         headers = headers(expired) ++ Map("Accept-Encoding" -> "identity")
       )
       .map { res =>
