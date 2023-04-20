@@ -606,14 +606,14 @@ object SentencesMessage:
 
 object BoatJson:
   val EventKey = "event"
-  val BodyKey = "body"
+  private val BodyKey = "body"
 
   def empty[T](build: => T): Codec[T] = Codec.from(
     Decoder.const(42).map(_ => build),
     Encoder.encodeJson.contramap(t => Json.fromJsonObject(JsonObject.empty))
   )
 
-  val eventDecoder = Decoder.decodeString.at(EventKey)
+  private val eventDecoder = Decoder.decodeString.at(EventKey)
 
   /** A JSON format for objects of type T that contains a top-level "event" key and further data in
     * "body".
@@ -652,8 +652,7 @@ abstract class ValidatedDouble[T](implicit d: Decoder[Double], e: Encoder[Double
   extends ValidatingCompanion[Double, T]()(d, e, TotalOrdering)
 
 class ModelHtml[Builder, Output <: FragT, FragT](val bundle: Bundle[Builder, Output, FragT]):
-
-  import bundle.all.*
+  import bundle.all.{stringFrag, Frag}
 
   implicit def wrappedFrag[T <: WrappedString](t: T): Frag = stringFrag(t.value)
 

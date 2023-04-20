@@ -13,17 +13,15 @@ object TimePatterns:
 object TimeFormatter:
   val helsinkiZone = ZoneId.of("Europe/Helsinki")
 
-  def apply(patterns: TimePatterns) = new TimeFormatter(patterns)
-
-  def apply(language: Language): TimeFormatter = language match
+  def lang(language: Language): TimeFormatter = language match
     case Language.finnish => fi
     case Language.swedish => se
     case Language.english => en
     case _                => en
 
-  val fi = apply(TimePatterns.fi)
-  val se = apply(TimePatterns.se)
-  val en = apply(TimePatterns.en)
+  val fi = TimeFormatter(TimePatterns.fi)
+  val se = TimeFormatter(TimePatterns.se)
+  val en = TimeFormatter(TimePatterns.en)
 
 class TimeFormatter(patterns: TimePatterns):
   import TimeFormatter.helsinkiZone
@@ -39,17 +37,22 @@ class TimeFormatter(patterns: TimePatterns):
     .ofPattern(patterns.dateTime)
     .withZone(helsinkiZone)
 
-  def formatDate(i: Instant) = FormattedDate(dateFormatter.format(i))
+  def formatDate(i: Instant) =
+    FormattedDate(dateFormatter.format(i))
 
-  def formatTime(i: Instant) = FormattedTime(timeFormatter.format(i))
+  def formatTime(i: Instant) =
+    FormattedTime(timeFormatter.format(i))
 
-  def formatDateTime(i: Instant): FormattedDateTime = FormattedDateTime(dateTimeFormatter.format(i))
+  def formatDateTime(i: Instant): FormattedDateTime =
+    FormattedDateTime(dateTimeFormatter.format(i))
 
   def formatRange(start: Instant, end: Instant): String =
     s"${formatDateTime(start)} - ${formatTime(end)}"
 
   def timing(i: Instant): Timing =
-    Timing(formatDate(i), formatTime(i), formatDateTime(i), i.toEpochMilli)
+    val ret = Timing(formatDate(i), formatTime(i), formatDateTime(i), i.toEpochMilli)
+    println(s"Formatted $i to ${ret.dateTime} epoch ${i.toEpochMilli}")
+    ret
 
   def times(start: Instant, end: Instant): Times = Times(
     timing(start),

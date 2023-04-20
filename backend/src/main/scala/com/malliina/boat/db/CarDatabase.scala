@@ -21,7 +21,7 @@ object CarDatabase:
   private val log = AppLogger(getClass)
 
   private def collectCars(rows: List[CarRow], formatter: TimeFormatter) =
-    rows.foldLeft(Vector.empty[CarDrive]) { (acc, cr) =>
+    rows.reverse.foldLeft(Vector.empty[CarDrive]) { (acc, cr) =>
       val elem = cr.toUpdate(formatter)
       val idx = acc.indexWhere(_.car.id == cr.car.id)
       if idx >= 0 then
@@ -86,14 +86,14 @@ class CarDatabase[F[_]: Async](val db: DoobieDatabase[F], val insertions: Topic[
       filters.ids.toNel.map(ids => Fragments.in(fr"c.id", ids)),
       Option(fr"u.user = ${user.username}")
     )
-    val formatter = TimeFormatter(user.language)
+    val formatter = TimeFormatter.lang(user.language)
     val start = System.currentTimeMillis()
     sql"""select c.coord, c.speed, c.battery, c.capacity, c.car_range, c.outside_temperature, c.night_mode, c.gps_time, c.added, b.id, b.name, u.user
           from car_points c
           join boats b on b.id = c.device
           join users u on b.owner = u.id
           $conditions
-          order by c.added
+          order by c.added desc
           limit ${limits.limit} offset ${limits.offset}"""
       .query[CarRow]
       .to[List]

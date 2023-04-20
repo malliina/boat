@@ -38,6 +38,7 @@ import org.http4s.{Callback as _, *}
 import org.typelevel.ci.CIStringSyntax
 
 import java.time.Instant
+import java.time.temporal.ChronoUnit
 import scala.concurrent.duration.DurationInt
 
 object Service:
@@ -288,10 +289,10 @@ class Service[F[_]: Async](comps: BoatComps[F]) extends BasicService[F]:
           }
           val boatHistory = Stream.evalSeq(historyIO)
           val gpsHistory = Stream.evalSeq(deviceStreams.db.history(user))
-          val carHistoryIO =
-            cars.history(CarQuery(historicalLimits.limits, historicalLimits.timeRange, Nil), user)
+          val recentTime = TimeRange.recent(Instant.now().minus(48, ChronoUnit.HOURS))
+          val carHistoryIO = cars.history(CarQuery(historicalLimits.limits, recentTime, Nil), user)
           val carHistory = Stream.evalSeq(carHistoryIO)
-          val formatter = TimeFormatter(user.language)
+          val formatter = TimeFormatter.lang(user.language)
           val boatUpdates = streams.clientEvents(formatter)
           val gpsUpdates = deviceStreams.clientEvents(formatter)
           val carUpdates = cars.insertions.subscribe(100)
@@ -529,7 +530,7 @@ class Service[F[_]: Async](comps: BoatComps[F]) extends BasicService[F]:
   ) =
     formAction[T](req, readForm) { (t, user) =>
       code(t, user).flatMap { track =>
-        val formatter = TimeFormatter(user.language)
+        val formatter = TimeFormatter.lang(user.language)
         ok(TrackResponse(track.strip(formatter)))
       }
     }

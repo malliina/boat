@@ -34,7 +34,7 @@ class DoobieGPSDatabase[F[_]: Async](db: DoobieDatabase[F]) extends GPSSource[F]
       .query[JoinedGPS]
       .to[List]
       .map { joined =>
-        DoobieGPSDatabase.collect(joined, TimeFormatter(user.language))
+        DoobieGPSDatabase.collect(joined, TimeFormatter.lang(user.language))
       }
   }
 

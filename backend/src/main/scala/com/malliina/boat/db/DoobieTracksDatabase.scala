@@ -36,7 +36,7 @@ object DoobieTracksDatabase:
 
   private def collectTrackCoords(rows: Seq[TrackCoord], language: Language): Seq[CoordsEvent] =
     val start = System.currentTimeMillis()
-    val formatter = TimeFormatter(language)
+    val formatter = TimeFormatter.lang(language)
     val result = rows.foldLeft(Vector.empty[CoordsEvent]) { (acc, tc) =>
       val from = tc.track
       val point = tc.row
@@ -240,7 +240,7 @@ class DoobieTracksDatabase[F[_]: Async](val db: DoobieDatabase[F])
         .query[SentenceCoord2]
         .to[List]
     val trackIO = sql.trackByName(track).query[JoinedTrack].unique
-    val formatter = TimeFormatter(language)
+    val formatter = TimeFormatter.lang(language)
     for
       stats <- trackIO
       coords <- coordsIO
@@ -284,7 +284,7 @@ class DoobieTracksDatabase[F[_]: Async](val db: DoobieDatabase[F])
 
   private def single(oneRowSql: Fragment, language: Language) = run {
     oneRowSql.query[JoinedTrack].unique.map { row =>
-      row.strip(TimeFormatter(language))
+      row.strip(TimeFormatter.lang(language))
     }
   }
 
@@ -293,7 +293,7 @@ class DoobieTracksDatabase[F[_]: Async](val db: DoobieDatabase[F])
   }
 
   private def tracksForIO(user: MinimalUserInfo, filter: TrackQuery) =
-    val formatter = TimeFormatter(user.language)
+    val formatter = TimeFormatter.lang(user.language)
     sql
       .tracksFor(user.username, filter)
       .query[JoinedTrack]

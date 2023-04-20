@@ -174,7 +174,7 @@ class DoobieUserManager[F[_]](db: DoobieDatabase[F]) extends IdentityManager[F] 
       userTracks <- boatRowsIO(id)
       devices <- deviceRowsIO(email)
     yield
-      val bs = DoobieUserManager.collectBoats(userTracks, TimeFormatter(user.language))
+      val bs = DoobieUserManager.collectBoats(userTracks, TimeFormatter.lang(user.language))
       val gpsDevices = devices.map(d => BoatInfo(d.device, d.boatName, d.username, d.language, Nil))
       UserBoats(user.user, user.language, bs ++ gpsDevices)
   }

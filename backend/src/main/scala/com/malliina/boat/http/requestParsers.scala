@@ -254,7 +254,8 @@ object Limits:
   val Limit = "limit"
   val Offset = "offset"
 
-  val DefaultLimit = 100000
+  val DefaultLimit2 = 100000
+  val DefaultLimit = 100
   private val DefaultOffset = 0
 
   val default = Limits(DefaultLimit, DefaultOffset)

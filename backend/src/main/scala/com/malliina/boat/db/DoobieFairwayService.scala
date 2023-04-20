@@ -4,6 +4,7 @@ import cats.data.NonEmptyList
 import cats.effect.{Async, IO}
 import cats.implicits.*
 import com.malliina.boat.db.DoobieFairwayService.collect
+import com.malliina.boat.db.DoobieMappings.*
 import com.malliina.boat.{CoordHash, FairwayInfo}
 import doobie.*
 import doobie.implicits.*
@@ -19,11 +20,10 @@ object DoobieFairwayService:
     }
 
 class DoobieFairwayService[F[_]: Async](db: DoobieDatabase[F]) extends FairwaySource[F]:
-  import DoobieMappings.*
   def byCoords(coords: NonEmptyList[CoordHash]) =
     val inClause = Fragments.in(fr"fc.coord_hash", coords)
     sql"""select fc.coord_hash, f.id, f.name_fi, f.name_se, f.start, f.end, f.depth, f.depth2, f.depth3, f.lighting, f.class_text, f.sea_area, f.state
-          from fairways f, fairway_coords fc 
+          from fairways f, fairway_coords fc
           where f.id = fc.fairway and $inClause"""
       .query[CoordFairway]
       .to[List]
@@ -41,7 +41,7 @@ class DoobieFairwayService[F[_]: Async](db: DoobieDatabase[F]) extends FairwaySo
   }
 
   def insert(in: FairwayInfo): ConnectionIO[FairwayId] =
-    sql"""insert into fairways(name_fi, name_se, start, end, depth, depth2, depth3, lighting, class_text, sea_area, state) 
+    sql"""insert into fairways(name_fi, name_se, start, end, depth, depth2, depth3, lighting, class_text, sea_area, state)
           values (${in.nameFi}, ${in.nameSe}, ${in.start}, ${in.end}, ${in.depth}, ${in.depth2}, ${in.depth3}, ${in.lighting}, ${in.classText}, ${in.seaArea}, ${in.state})""".update
       .withUniqueGeneratedKeys[FairwayId]("id")
 
