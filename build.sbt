@@ -127,7 +127,7 @@ val backend = Project("boat", file("backend"))
       "mysql" % "mysql-connector-java" % "8.0.32",
       "org.flywaydb" % "flyway-core" % "7.15.0",
       "org.apache.commons" % "commons-text" % "1.10.0",
-      "com.amazonaws" % "aws-java-sdk-s3" % "1.12.409",
+      "software.amazon.awssdk" % "s3" % "2.20.51",
       "com.malliina" %% "logstreams-client" % logstreamsVersion,
       "com.malliina" %% "mobile-push-io" % "3.7.1",
       "org.eclipse.paho" % "org.eclipse.paho.client.mqttv3" % "1.2.5",
@@ -139,6 +139,7 @@ val backend = Project("boat", file("backend"))
       "org.typelevel" %% "munit-cats-effect-3" % "1.0.7" % Test
     ),
     clientProject := frontend,
+//    dependentModule := crossJvm,
     hashPackage := "com.malliina.assets",
     buildInfoKeys ++= Seq[BuildInfoKey](
       name,

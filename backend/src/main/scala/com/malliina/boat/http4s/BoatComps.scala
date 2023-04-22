@@ -13,7 +13,7 @@ case class BoatComps[F[_]](
   stats: StatsSource[F],
   auth: AuthService[F],
   mapboxToken: AccessToken,
-  s3: S3Client,
+  s3: S3Client[F],
   push: PushService[F],
   streams: BoatStreams[F],
   devices: GPSStreams[F],

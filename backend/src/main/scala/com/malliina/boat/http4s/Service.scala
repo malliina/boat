@@ -437,9 +437,12 @@ class Service[F[_]: Async](comps: BoatComps[F]) extends BasicService[F]:
       }
       ok(Json.obj("files" -> urls.asJson))(jsonEncoder[F])
     case GET -> Root / "files" / file =>
-      val obj = comps.s3.download(file)
-      val stream = fs2.io.readInputStream[F](F.pure(obj.getObjectContent), 8192)
-      Ok(stream)
+      comps.s3.download(file).flatMap { file =>
+        val stream = fs2.io.file.Files[F].readAll(file)
+//        val stream = fs2.io.readInputStream[F](F.pure(obj.getObjectContent), 8192)
+        Ok(stream)
+      }
+
     case req @ GET -> Root / ".well-known" / "apple-app-site-association" =>
       fileFromPublicResources("apple-app-site-association.json", req)
     case req @ GET -> Root / ".well-known" / "assetlinks.json" =>
