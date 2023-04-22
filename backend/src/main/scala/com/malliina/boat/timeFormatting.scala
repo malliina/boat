@@ -51,7 +51,6 @@ class TimeFormatter(patterns: TimePatterns):
 
   def timing(i: Instant): Timing =
     val ret = Timing(formatDate(i), formatTime(i), formatDateTime(i), i.toEpochMilli)
-    println(s"Formatted $i to ${ret.dateTime} epoch ${i.toEpochMilli}")
     ret
 
   def times(start: Instant, end: Instant): Times = Times(

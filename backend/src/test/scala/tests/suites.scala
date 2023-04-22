@@ -2,6 +2,7 @@ package tests
 
 import cats.effect.*
 import cats.effect.kernel.Resource
+import ch.qos.logback.classic.Level
 import com.comcast.ip4s.port
 import com.dimafeng.testcontainers.MySQLContainer
 import com.malliina.boat.db.{Conf, DoobieDatabase, DoobieSQL}
@@ -9,6 +10,7 @@ import com.malliina.boat.http4s.{JsonInstances, Server, ServerComponents, Servic
 import com.malliina.boat.{AisAppConf, BoatConf, Errors, LocalConf}
 import com.malliina.http.{FullUrl, HttpClient}
 import com.malliina.http.io.HttpClientIO
+import com.malliina.logback.LogbackUtils
 import com.malliina.util.AppLogger
 import com.typesafe.config.Config
 import munit.FunSuite
@@ -34,6 +36,7 @@ trait MUnitSuite extends munit.CatsEffectSuite:
   val userHome: Path = Paths.get(sys.props("user.home"))
   def databaseFixture(conf: => Conf) = resource(DoobieDatabase.resource[IO](conf))
   def resource[T](res: Resource[IO, T]) = ResourceFixture(res)
+  LogbackUtils.init(rootLevel = Level.WARN)
 
 object TestConf:
   def apply(container: MySQLContainer): Conf = Conf(
@@ -60,7 +63,7 @@ trait MUnitDatabaseSuite extends DoobieSQL:
       val testDb = readTestConf().fold(
         e =>
           log.warn(s"Failed to read test conf. Falling back to Docker...", e)
-          val c = MySQLContainer(mysqlImageVersion = DockerImageName.parse("mysql:5.7.29"))
+          val c = MySQLContainer(mysqlImageVersion = DockerImageName.parse("mysql:8.0.33"))
           c.start()
           container = Option(c)
           TestConf(c)
