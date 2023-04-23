@@ -5,12 +5,12 @@ import scala.sys.process.Process
 
 val webAuthVersion = "6.5.0"
 val munitVersion = "0.7.29"
-val testContainersScalaVersion = "0.40.12"
+val testContainersScalaVersion = "0.40.15"
 val scalaTagsVersion = "0.12.0"
 val primitiveVersion = "3.4.0"
 val logstreamsVersion = "2.5.0"
 val http4sVersion = "0.23.18"
-val logbackVersion = "1.4.5"
+val logbackVersion = "1.4.7"
 val circeVersion = "0.14.3"
 // Do not upgrade to 11.0.2 because it depends on slf4j-api alpha versions, breaking logging
 val alpnVersion = "9.4.40.v20210413"
@@ -127,7 +127,6 @@ val backend = Project("boat", file("backend"))
       "mysql" % "mysql-connector-java" % "8.0.32",
       "org.flywaydb" % "flyway-core" % "7.15.0",
       "org.apache.commons" % "commons-text" % "1.10.0",
-      "com.amazonaws" % "aws-java-sdk-s3" % "1.12.409",
       "software.amazon.awssdk" % "s3" % "2.20.51",
       "com.malliina" %% "logstreams-client" % logstreamsVersion,
       "com.malliina" %% "mobile-push-io" % "3.7.1",
@@ -155,7 +154,8 @@ val backend = Project("boat", file("backend"))
     Compile / packageDoc / publishArtifact := false,
     packageDoc / publishArtifact := false,
     Compile / doc / sources := Seq.empty,
-    assembly / assemblyJarName := "app.jar"
+    assembly / assemblyJarName := "app.jar",
+    Compile / resourceDirectories += io.Path.userHome / ".boat"
   )
 
 val agent = project
