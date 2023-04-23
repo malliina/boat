@@ -104,7 +104,7 @@ class CarDatabase[F[_]: Async](val db: DoobieDatabase[F], val insertions: Topic[
         val total = splitDone - start
         if total > 500.millis.toMillis then
           log.info(
-            s"Car query ${filters.describe} rows ${rows.size}, sql ${sqlDone - start} ms, split ${splitDone - sqlDone} ms, total $total ms."
+            s"Car query for ${user.username} ${filters.describe} rows ${rows.size}, sql ${sqlDone - start} ms, split ${splitDone - sqlDone} ms, total $total ms."
           )
         result
       }

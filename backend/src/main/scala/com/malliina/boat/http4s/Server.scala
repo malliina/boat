@@ -109,6 +109,7 @@ object Server extends IOApp:
       streams <- BoatStreams.resource(trackInserts, vesselDb, ais)
       deviceStreams <- GPSStreams.resource(gps)
       carInsertions <- Resource.eval(Topic[F, CarDrive])
+      s3 <- S3Client.build[F]()
     yield
       val appComps = builder.build(conf, http)
       val jwt = JWT(conf.secret)
@@ -145,7 +146,7 @@ object Server extends IOApp:
         tracksDatabase,
         auths,
         conf.mapbox.token,
-        S3Client.build(),
+        s3,
         push,
         streams,
         deviceStreams,
