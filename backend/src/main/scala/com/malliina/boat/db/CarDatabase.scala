@@ -69,7 +69,7 @@ class CarDatabase[F[_]: Async](val db: DoobieDatabase[F], val insertions: Topic[
         ids <- insertion
         inserted <- if ids.isEmpty then pure(Nil) else historyQuery(CarQuery.ids(ids), userInfo)
       yield
-        if ids.nonEmpty then log.info(s"Inserted to car $carId IDs ${ids.mkString(", ")}.")
+        if ids.nonEmpty then log.debug(s"Inserted to car $carId IDs ${ids.mkString(", ")}.")
         inserted
     }
 
