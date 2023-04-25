@@ -40,8 +40,6 @@ case class LocationUpdate(
 
 case class LocationUpdates(updates: List[LocationUpdate], carId: DeviceId) derives Codec.AsObject
 
-case class CSRFToken(token: String) extends AnyVal
-
 case class Languages(finnish: Lang, swedish: Lang, english: Lang) derives Codec.AsObject
 
 case class AisConf(vessel: String, trail: String, vesselIcon: String) derives Codec.AsObject
@@ -137,7 +135,17 @@ case class CarRow(
   car: CarInfo
 ):
   def toUpdate(formatter: TimeFormatter): CarUpdate =
-    CarUpdate(coord, speed, batteryLevel, batteryCapacity, rangeRemaining, outsideTemperature, nightMode, formatter.timing(carTime), formatter.timing(added))
+    CarUpdate(
+      coord,
+      speed,
+      batteryLevel,
+      batteryCapacity,
+      rangeRemaining,
+      outsideTemperature,
+      nightMode,
+      formatter.timing(carTime),
+      formatter.timing(added)
+    )
 
 case class JoinedTrack(
   track: TrackId,
