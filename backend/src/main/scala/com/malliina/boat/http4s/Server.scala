@@ -34,7 +34,7 @@ import fs2.concurrent.Topic
 import java.io.IOException
 import java.time.Instant
 import scala.concurrent.ExecutionContext
-import scala.concurrent.duration.DurationInt
+import scala.concurrent.duration.{Duration, DurationInt}
 import scala.util.control.NonFatal
 
 case class ServerComponents[F[_]](app: Service[F], server: Server)
@@ -66,6 +66,8 @@ class ProdAppComps[F[+_]: Sync](conf: BoatConf, http: HttpClient[F]) extends App
     )
 
 object Server extends IOApp:
+  override def runtimeConfig =
+    super.runtimeConfig.copy(cpuStarvationCheckInitialDelay = Duration.Inf)
   Logging.init()
   private val log = AppLogger(getClass)
 
