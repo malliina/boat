@@ -35,8 +35,15 @@ case class LocationUpdate(
   outsideTemperature: Option[Temperature],
   nightMode: Option[Boolean],
   date: OffsetDateTime
-) derives Codec.AsObject:
+):
   val coord = Coord(longitude, latitude)
+
+object LocationUpdate:
+  implicit val speedReader: Codec[SpeedM] = Codec.from(
+    Decoder.decodeDouble.map(mps => SpeedM(mps)),
+    Encoder.encodeDouble.contramap(_.toMps)
+  )
+  implicit val json: Codec[LocationUpdate] = deriveCodec[LocationUpdate]
 
 case class LocationUpdates(updates: List[LocationUpdate], carId: DeviceId) derives Codec.AsObject
 

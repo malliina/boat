@@ -25,9 +25,10 @@ class Popups(lang: Lang) extends BoatModels:
       tr(td(colspan := 2)(point.dateTime))
     )
 
-  def car(name: BoatName, timing: Timing) =
+  def car(name: BoatName, info: CarUpdate) =
     titledTable(name.name)(
-      tr(td(colspan := 2)(timing.dateTime))
+      info.speed.fold(empty)(s => row(trackLang.speed, formatSpeedKph(s))),
+      tr(td(colspan := 2)(info.carTime.dateTime))
     )
 
   def ais(vessel: VesselInfo) =
@@ -42,6 +43,7 @@ class Popups(lang: Lang) extends BoatModels:
     )
 
   def formatSpeed(s: SpeedM) = "%.2f kn".format(s.toKnots)
+  def formatSpeedKph(s: SpeedM) = "%.2f km/h".format(s.toKmh)
 
   def formatDistance(d: DistanceM) = "%.1f m".format(d.toMeters)
 

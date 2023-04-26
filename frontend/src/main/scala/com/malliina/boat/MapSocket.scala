@@ -99,7 +99,7 @@ class MapSocket(
               .toRight(ErrorMessage("Nearest not found."))
               .map { near =>
                 map.getCanvas().style.cursor = "pointer"
-                trackPopup.show(html.car(car.name, near.result.carTime), in.lngLat, map)
+                trackPopup.show(html.car(car.name, near.result), in.lngLat, map)
               }
           }
           op.fold(err => log.info(err.message), identity)
