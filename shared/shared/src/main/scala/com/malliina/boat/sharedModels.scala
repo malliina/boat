@@ -492,7 +492,9 @@ opaque type Energy = Double
 object Energy extends JsonCompanion[Double, Energy]:
   override def apply(raw: Double): Energy = raw
   override def write(t: Energy): Double = t
-extension (e: Energy) def wattHours: Double = e
+extension (e: Energy)
+  def wattHours: Double = e
+  def -(other: Energy): Energy = Energy(e.wattHours - other.wattHours)
 extension (e: Double) def wh: Energy = Energy(e)
 
 case class CarUpdate(

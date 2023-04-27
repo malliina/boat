@@ -379,8 +379,11 @@ class Service[F[_]: Async](comps: BoatComps[F]) extends BasicService[F]:
     case req @ GET -> Root / "cars" / "history" =>
       for
         authed <- authedQuery(req, BoatQuery.car)
-        history <- cars.history(authed.query, authed.user)
-        res <- ok(CarHistoryResponse(history))
+        drives <- cars.history(authed.query, authed.user)
+        res <- respond(req)(
+          json = ok(CarHistoryResponse(drives)),
+          html = ok(html.carHistory(drives))
+        )
       yield res
     case req @ POST -> Root / "cars" / "locations" =>
       jsonAction[LocationUpdates](req) { (body, user) =>
