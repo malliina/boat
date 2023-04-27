@@ -45,11 +45,11 @@
 }
 
 .boat-popup {
-  td {
+  & td {
     padding-bottom: 8px;
   }
 
-  tr:last-child td {
+  & tr:last-child td {
     padding-bottom: 0;
   }
 }
