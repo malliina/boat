@@ -131,6 +131,7 @@ object AppMeta:
 
 case class CarRow(
   coord: Coord,
+  diff: DistanceM,
   speed: Option[SpeedM],
   batteryLevel: Option[Energy],
   batteryCapacity: Option[Energy],
@@ -144,6 +145,7 @@ case class CarRow(
   def toUpdate(formatter: TimeFormatter): CarUpdate =
     CarUpdate(
       coord,
+      diff,
       speed,
       batteryLevel,
       batteryCapacity,

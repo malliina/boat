@@ -8,6 +8,7 @@ import com.malliina.boat.*
 import com.malliina.boat.db.CarDatabase.{collectCars, log}
 import com.malliina.boat.db.TrackInserter.log
 import com.malliina.boat.http.CarQuery
+import com.malliina.measure.DistanceM
 import com.malliina.util.AppLogger
 import com.malliina.values.UserId
 import doobie.*
@@ -32,6 +33,7 @@ object CarDatabase:
 
 class CarDatabase[F[_]: Async](val db: DoobieDatabase[F], val insertions: Topic[F, CarDrive])
   extends DoobieSQL:
+  private val maxTimeBetweenCarUpdates = Constants.MaxTimeBetweenCarUpdates
   import db.{logHandler, run}
 
   def save(locs: LocationUpdates, userInfo: MinimalUserInfo, user: UserId): F[List[CarDrive]] =
@@ -53,15 +55,28 @@ class CarDatabase[F[_]: Async](val db: DoobieDatabase[F], val insertions: Topic[
           .unique
       import cats.implicits.*
       val insertion = locs.updates.traverse { loc =>
-        sql"""insert into car_points(longitude, latitude, coord, gps_time, device, altitude, accuracy, bearing, bearing_accuracy, speed, battery, capacity, car_range, outside_temperature, night_mode)
-              values(${loc.longitude}, ${loc.latitude}, ${loc.coord}, ${loc.date}, $carId, ${loc.altitudeMeters}, ${loc.accuracyMeters}, ${loc.bearing}, ${loc.bearingAccuracyDegrees},
-                ${loc.speed},
-                ${loc.batteryLevel},
-                ${loc.batteryCapacity},
-                ${loc.rangeRemaining},
-                ${loc.outsideTemperature},
-                ${loc.nightMode})
-         """.update.withUniqueGeneratedKeys[CarUpdateId]("id")
+        for
+          prev <-
+            sql"""select p.coord
+                  from car_points p
+                  where p.device = ${locs.carId} and timestampdiff(SECOND, p.gps_time, ${loc.date}) < $maxTimeBetweenCarUpdates
+                  order by p.added desc limit 1"""
+              .query[Coord]
+              .option
+          diff <- prev
+            .map(p => computeDistance(p, loc.coord))
+            .getOrElse(pure(DistanceM.zero))
+          insertion <-
+            sql"""insert into car_points(longitude, latitude, coord, gps_time, diff, device, altitude, accuracy, bearing, bearing_accuracy, speed, battery, capacity, car_range, outside_temperature, night_mode)
+                  values(${loc.longitude}, ${loc.latitude}, ${loc.coord}, ${loc.date}, $diff, $carId, ${loc.altitudeMeters}, ${loc.accuracyMeters}, ${loc.bearing}, ${loc.bearingAccuracyDegrees},
+                    ${loc.speed},
+                    ${loc.batteryLevel},
+                    ${loc.batteryCapacity},
+                    ${loc.rangeRemaining},
+                    ${loc.outsideTemperature},
+                    ${loc.nightMode})
+           """.update.withUniqueGeneratedKeys[CarUpdateId]("id")
+        yield insertion
       }
       for
         exists <- ownershipCheck
@@ -88,7 +103,7 @@ class CarDatabase[F[_]: Async](val db: DoobieDatabase[F], val insertions: Topic[
     )
     val formatter = TimeFormatter.lang(user.language)
     val start = System.currentTimeMillis()
-    sql"""select c.coord, c.speed, c.battery, c.capacity, c.car_range, c.outside_temperature, c.night_mode, c.gps_time, c.added, b.id, b.name, u.user
+    sql"""select c.coord, c.diff, c.speed, c.battery, c.capacity, c.car_range, c.outside_temperature, c.night_mode, c.gps_time, c.added, b.id, b.name, u.user
           from car_points c
           join boats b on b.id = c.device
           join users u on b.owner = u.id
@@ -108,8 +123,6 @@ class CarDatabase[F[_]: Async](val db: DoobieDatabase[F], val insertions: Topic[
           )
         result
       }
-
-  private val maxTimeBetweenCarUpdates = Constants.MaxTimeBetweenCarUpdates
 
   def split(e: CarDrive): List[CarDrive] =
     split(e.updates).map(cs => CarDrive(cs, e.car))

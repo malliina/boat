@@ -35,6 +35,12 @@ class CarServerTests extends MUnitSuite with ServerSuite:
     Option(true),
     OffsetDateTime.of(2023, 4, 2, 10, 4, 3, 0, ZoneOffset.UTC)
   )
+  val loc2 = loc.copy(
+    longitude = Longitude(24.2),
+    latitude = Latitude(60.3),
+    speed = Option(80.kmh),
+    date = loc.date.plusSeconds(10)
+  )
 
   def postCarsUrl = baseUrl.append(Reverse.postCars.renderString)
   def getCarsUrl = baseUrl.append(Reverse.historyCars.renderString)
@@ -61,17 +67,20 @@ class CarServerTests extends MUnitSuite with ServerSuite:
 
   test("POST car locations") {
     for
-      postResponse <- postCars(updates = LocationUpdates(List(loc), testCarId))
+      postResponse <- postCars(updates = LocationUpdates(List(loc, loc2), testCarId))
       _ = assertEquals(postResponse.status, Ok.code)
       history <- client.getAs[CarHistoryResponse](getCarsUrl, headers())
     yield
       val drives = history.history
       assert(drives.nonEmpty)
       val expected = loc.outsideTemperature.map(_.celsius.toInt)
-      val hasTemp = drives.lastOption.toList
+      val latestDrive = drives.lastOption.toList
         .flatMap(_.updates)
+      val hasTemp = latestDrive
         .exists(u => u.outsideTemperature.map(_.celsius.toInt) == expected)
       assert(hasTemp)
+      // Distance between the two test coordinates is around 35 km
+      assert(latestDrive.exists(_.diff > 30.km))
   }
 
   test("POST car locations for non-owned car fails".ignore) {

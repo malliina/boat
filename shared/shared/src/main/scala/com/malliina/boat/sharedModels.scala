@@ -499,6 +499,7 @@ extension (e: Double) def wh: Energy = Energy(e)
 
 case class CarUpdate(
   coord: Coord,
+  diff: DistanceM,
   speed: Option[SpeedM],
   batteryLevel: Option[Energy],
   batteryCapacity: Option[Energy],

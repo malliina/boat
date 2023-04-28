@@ -2,7 +2,6 @@ package com.malliina.boat.html
 
 import com.malliina.assets.HashedAssets
 import com.malliina.boat.FrontKeys.*
-import com.malliina.boat.html.BoatHtml.ScriptAssets
 import com.malliina.boat.http.{Limits, TrackQuery}
 import com.malliina.boat.http4s.Reverse
 import com.malliina.boat.{AppConf, AppMode, BuildInfo, CarDrive, Coord, FrontKeys, FullTrack, Lang, TrackRef, TracksBundle, UserBoats, UserInfo, Usernames}
@@ -33,8 +32,6 @@ object BoatHtml:
       Seq("frontend.css", "fonts.css", "styles.css"),
       AssetsSource(isProd)
     )
-
-  case class ScriptAssets(library: String, loader: String, app: String)
 
 class BoatHtml(
   jsFiles: Seq[String],
