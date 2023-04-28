@@ -191,7 +191,7 @@ class TrackInserter[F[_]: Async](val db: DoobieDatabase[F])
   def saveCoords(coord: FullCoord): F[InsertedPoint] = run {
     val track = coord.from.track
     val trail =
-      sql"""select id, longitude, latitude, coord, boat_speed, water_temp, depthm, depth_offsetm, boat_time, track, track_index, diff, added
+      sql"""select id, longitude, latitude, coord, speed, water_temp, depthm, depth_offsetm, source_time, track, track_index, diff, added
             from points p
             where p.track = $track"""
     val previous = sql"$trail order by p.track_index desc limit 1".query[TrackPointRow].option
@@ -200,10 +200,10 @@ class TrackInserter[F[_]: Async](val db: DoobieDatabase[F])
       diff <- prev.map(p => computeDistance(p.coord, coord.coord)).getOrElse(pure(DistanceM.zero))
       point <- insertPoint(coord, prev.map(_.trackIndex).getOrElse(0) + 1, diff)
       avgSpeed <-
-        sql"""select avg(boat_speed)
+        sql"""select avg(speed)
               from points p
-              where p.track = $track and p.boat_speed >= $minSpeed
-              having avg(boat_speed) is not null"""
+              where p.track = $track and p.speed >= $minSpeed
+              having avg(speed) is not null"""
           .query[SpeedM]
           .option
       info <-
@@ -263,18 +263,18 @@ class TrackInserter[F[_]: Async](val db: DoobieDatabase[F])
         acc
 
   private def insertPoint(c: FullCoord, atIndex: Int, diff: DistanceM): ConnectionIO[TrackPointId] =
-    sql"""insert into points(longitude, latitude, coord, boat_speed, water_temp, depthm, depth_offsetm, boat_time, track, track_index, diff)
+    sql"""insert into points(longitude, latitude, coord, speed, water_temp, depthm, depth_offsetm, source_time, track, track_index, diff)
           values(${c.lng}, ${c.lat}, ${c.coord}, ${c.boatSpeed}, ${c.waterTemp}, ${c.depth}, ${c.depthOffset}, ${c.boatTime}, ${c.from.track}, $atIndex, $diff)""".update
       .withUniqueGeneratedKeys[TrackPointId]("id")
 
   def dates(track: TrackId): ConnectionIO[List[DateVal]] =
-    sql"""select distinct(date(boat_time))
+    sql"""select distinct(date(source_time))
           from points p
           where p.track = $track""".query[DateVal].to[List]
 
   def changeTrack(old: TrackId, date: DateVal, newTrack: TrackId): ConnectionIO[Int] =
     sql"""update points set track = $newTrack
-          where track = $old and date(boat_time) = $date""".update.run
+          where track = $old and date(source_time) = $date""".update.run
 
   def insertTrack(in: TrackInput): ConnectionIO[TrackMeta] =
     sql"""insert into tracks(name, boat, avg_speed, avg_water_temp, points, distance, canonical)

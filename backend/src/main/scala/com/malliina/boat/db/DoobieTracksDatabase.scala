@@ -76,10 +76,10 @@ class DoobieTracksDatabase[F[_]: Async](val db: DoobieDatabase[F])
             where p.track = t.id and t.name = $name"""
     def pointsByTime(name: TrackName) =
       val selectPoints = pointsByTrack(name)
-      sql"""$selectPoints order by p.boat_time asc"""
+      sql"""$selectPoints order by p.source_time asc"""
     def topPointByTrack(name: TrackName) =
       val selectPoints = pointsByTrack(name)
-      sql"$selectPoints order by p.boat_speed desc limit 1"
+      sql"$selectPoints order by p.speed desc limit 1"
     def tracksByUser(user: Username) =
       sql"$nonEmptyTracks and (b.user = $user or b.id in (select ub2.boat from users u2, users_boats ub2 where u2.id = ub2.user and u2.user = $user and ub2.state = $accepted))"
     def trackByName(name: TrackName) = sql"$nonEmptyTracks and t.name = $name"
@@ -110,7 +110,7 @@ class DoobieTracksDatabase[F[_]: Async](val db: DoobieDatabase[F])
   private val topView = sql.topRows.query[TrackPointRow].to[List]
 
   def hm: F[Option[SpeedM]] = run {
-    sql"select avg(boat_speed) from points p where p.boat_speed >= 100 having avg(boat_speed) is not null"
+    sql"select avg(boat_speed) from points p where p.speed >= 100 having avg(boat_speed) is not null"
       .query[SpeedM]
       .option
   }
@@ -231,12 +231,12 @@ class DoobieTracksDatabase[F[_]: Async](val db: DoobieDatabase[F])
   def full(track: TrackName, language: Language, query: TrackQuery): F[FullTrack] = run {
     val rows = sql.pointsByTrack(track)
     val limited =
-      sql"""$rows order by p.boat_time asc, p.id asc, p.added asc limit ${query.limit} offset ${query.offset}"""
+      sql"""$rows order by p.source_time asc, p.id asc, p.added asc limit ${query.limit} offset ${query.offset}"""
     val coordsIO =
       sql"""select ${sql.pointColumns}, s.id, s.sentence, s.added sentenceAdded
             from ($limited) p, sentence_points sp, sentences s
             where p.id = sp.point and sp.sentence = s.id
-            order by p.boat_time, p.id, sentenceAdded"""
+            order by p.source_time, p.id, sentenceAdded"""
         .query[SentenceCoord2]
         .to[List]
     val trackIO = sql.trackByName(track).query[JoinedTrack].unique
