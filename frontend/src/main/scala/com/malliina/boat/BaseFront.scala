@@ -22,7 +22,7 @@ trait BaseFront extends FrontKeys:
       (k, v.map { case (_, vv) => vv })
     }
 
-  def readTrack: PathState = href.getPath.split('/').toList match
+  def parseUri: PathState = href.getPath.split('/').toList match
     case _ :: "tracks" :: track :: _ => Name(TrackName(track))
     case _ :: "routes" :: srcLat :: srcLng :: destLat :: destLng :: _ =>
       val result = for
@@ -33,7 +33,13 @@ trait BaseFront extends FrontKeys:
       yield RouteRequest(srcLatD, srcLngD, destLatD, destLngD)
       result.map(e => e.fold(_ => NoTrack, req => Route(req))).getOrElse(NoTrack)
     case _ :: canonical :: Nil => Canonical(TrackCanonical(canonical))
-    case _                     => NoTrack
+    case _ =>
+      val qs = QueryString.parse
+      val timed = for
+        f <- qs.get("from")
+        t <- qs.get("to")
+      yield Timed(f, t)
+      timed.getOrElse(NoTrack)
 
   def toDouble(s: String) = Try(s.toDouble).toOption
   def queryDouble(key: String) = query(key).flatMap(s => Try(s.toDouble).toOption)
@@ -57,6 +63,7 @@ sealed trait PathState:
 case class Canonical(track: TrackCanonical) extends PathState
 case class Name(track: TrackName) extends PathState
 case class Route(req: RouteRequest) extends PathState
+case class Timed(from: String, to: String) extends PathState
 case object NoTrack extends PathState
 
 case class NotFound(id: String) extends AnyVal:

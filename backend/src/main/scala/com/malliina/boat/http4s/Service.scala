@@ -272,16 +272,17 @@ class Service[F[_]: Async](comps: BoatComps[F]) extends BasicService[F]:
       auth.authOrAnon(req.headers).flatMap { user =>
         val username = user.username
         log.info(s"Viewer '${user.username}' joined.")
-        BoatQuery(req.uri.query).map { limits =>
+        BoatQuery(req.uri.query).map { boatQuery =>
+          log.info(s"Got $boatQuery")
           val historicalLimits =
-            if limits.tracks.nonEmpty && username == Usernames.anon then
-              BoatQuery.tracks(limits.tracks)
+            if boatQuery.tracks.nonEmpty && username == Usernames.anon then
+              BoatQuery.tracks(boatQuery.tracks)
             else if username == Usernames.anon then BoatQuery.empty
-            else limits
+            else boatQuery
           val historyIO = db.history(user, historicalLimits).flatMap { es =>
             // unless a sample is specified, return about 300 historical points - this optimization is for charts
             val intelligentSample = math.max(1, es.map(_.coords.length).sum / 300)
-            val actualSample = limits.sample.getOrElse(intelligentSample)
+            val actualSample = boatQuery.sample.getOrElse(intelligentSample)
             log.debug(
               s"Points ${es.map(_.coords.length).sum} intelligent $intelligentSample actual $actualSample"
             )
@@ -290,7 +291,10 @@ class Service[F[_]: Async](comps: BoatComps[F]) extends BasicService[F]:
           val boatHistory = Stream.evalSeq(historyIO)
           val gpsHistory = Stream.evalSeq(deviceStreams.db.history(user))
           val recentTime = TimeRange.recent(Instant.now().minus(48, ChronoUnit.HOURS))
-          val carHistoryIO = cars.history(CarQuery(historicalLimits.limits, recentTime, Nil), user)
+          val carTime =
+            if historicalLimits.timeRange == TimeRange.none then recentTime
+            else historicalLimits.timeRange
+          val carHistoryIO = cars.history(CarQuery(historicalLimits.limits, carTime, Nil), user)
           val carHistory = Stream.evalSeq(carHistoryIO)
           val formatter = TimeFormatter.lang(user.language)
           val boatUpdates = streams.clientEvents(formatter)

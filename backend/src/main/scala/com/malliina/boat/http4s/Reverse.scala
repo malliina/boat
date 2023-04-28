@@ -1,10 +1,14 @@
 package com.malliina.boat.http4s
 
 import com.malliina.boat.auth.AuthProvider
-import com.malliina.boat.{DeviceId, TrackCanonical, TrackId, TrackName}
+import com.malliina.boat.http.CarQuery
+import com.malliina.boat.{DeviceId, Timings, TrackCanonical, TrackId, TrackName}
 import com.malliina.values.UserId
 import org.http4s.Uri
 import org.http4s.implicits.*
+
+import java.time.ZoneOffset
+import java.time.format.DateTimeFormatter
 
 object Reverse:
   val root = uri"/"
@@ -50,5 +54,12 @@ object Reverse:
   val files = uri"/files"
   val postCars = uri"/cars/locations"
   val historyCars = uri"/cars/history"
+  def history(q: CarQuery) =
+    val t = q.timeRange
+    val iso = DateTimeFormatter.ISO_OFFSET_DATE_TIME
+    val params =
+      t.from.map(i => Seq(Timings.From -> iso.format(i.atOffset(ZoneOffset.UTC)))).getOrElse(Nil) ++
+        t.to.map(i => Seq(Timings.To -> iso.format(i.atOffset(ZoneOffset.UTC)))).getOrElse(Nil)
+    uri"/".withQueryParams(params.toMap)
   def file(id: String) = Uri.unsafeFromString(s"/files/$id")
   def canonical(id: TrackCanonical) = Uri.unsafeFromString(s"/$id")

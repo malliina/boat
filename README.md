@@ -64,6 +64,20 @@ Use mysqldump:
 
     ./mysqldump -u boat -p --no-tablespaces -h database-nuqmhn2cxlhle.mysql.database.azure.com boat > boat.sql
 
+### SQL
+
+To recompute the distances between points, use
+
+    update car_points p,
+        (select p2.id, st_distance_sphere(p1.coord, p2.coord) d
+         from car_points p1,
+              car_points p2
+         where p2.id = p1.id + 1
+           and p2.diff = 0
+           and timestampdiff(SECOND, p1.gps_time, p2.gps_time) < 60) computed
+    set p.diff = computed.d
+    where p.id = computed.id
+
 ### IntelliJ
 
 If using BSP, exclude folder [node-modules](frontend/target/scala-3.1.1/scalajs-bundler/main/node_modules) in the 

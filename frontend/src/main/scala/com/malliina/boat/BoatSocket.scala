@@ -2,15 +2,19 @@ package com.malliina.boat
 
 import io.circe.*
 
+import scala.scalajs.js.URIUtils
+
 object BoatSocket:
   def query(track: PathState, sample: Option[Int]): String =
     val params = track match
       case Name(name)           => Seq(TrackName.Key -> name.name)
       case Canonical(canonical) => Seq(TrackCanonical.Key -> canonical.name)
       case Route(req)           => Nil
+      case Timed(from, to)      => Seq(Timings.From -> from, Timings.To -> to)
       case NoTrack              => Nil
     val allParams = params ++ sample.map(s => FrontKeys.SampleKey -> s"$s").toList
-    val kvs = allParams.map { case (k, v) => s"$k=$v" }.mkString("&")
+
+    val kvs = allParams.map { (k, v) => s"$k=${URIUtils.encodeURIComponent(v)}" }.mkString("&")
     if kvs.nonEmpty then s"?$kvs" else ""
 
 abstract class BoatSocket(path: String) extends BaseSocket(path) with BaseFront:

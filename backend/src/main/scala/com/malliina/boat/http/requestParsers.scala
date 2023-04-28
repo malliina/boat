@@ -3,7 +3,7 @@ package com.malliina.boat.http
 import cats.effect.IO
 import cats.implicits.*
 import com.malliina.boat.http4s.QueryParsers
-import com.malliina.boat.{CarUpdateId, Constants, Coord, Errors, Latitude, Longitude, Mmsi, RouteRequest, SingleError, TimeFormatter, TrackCanonical, TrackName, VesselName}
+import com.malliina.boat.{CarUpdateId, Constants, Coord, Errors, Latitude, Longitude, Mmsi, RouteRequest, SingleError, TimeFormatter, Timings, TrackCanonical, TrackName, VesselName}
 import com.malliina.values.{Email, ErrorMessage}
 import io.circe.Codec
 import io.circe.generic.semiauto.deriveCodec
@@ -277,8 +277,8 @@ case class TimeRange(from: Option[Instant], to: Option[Instant]):
     case other              => ""
 
 object TimeRange:
-  private val From = "from"
-  private val To = "to"
+  private val From = Timings.From
+  private val To = Timings.To
 
   val none = TimeRange(None, None)
 

@@ -685,3 +685,7 @@ object Forms:
   val Boat = BoatIds.Key
   val Email = Emails.Key
   val User = "user"
+
+object Timings:
+  val From = "from"
+  val To = "to"

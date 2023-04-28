@@ -70,7 +70,7 @@ class MapView(
     () =>
       val mode = if Option(href.getFragment).isDefined then MapMode.Stay else MapMode.Fit
       val sample = queryInt(SampleKey).getOrElse(Constants.DefaultSample)
-      socket = Option(MapSocket(map, pathFinder, readTrack, Option(sample), mode, language))
+      socket = Option(MapSocket(map, pathFinder, parseUri, Option(sample), mode, language))
 //      loadCarTracks()
       if initialSettings.customCenter then
         map.putLayer(

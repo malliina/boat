@@ -10,7 +10,7 @@ object ChartsView extends BaseFront:
 
 class ChartsView(canvas: HTMLCanvasElement) extends BaseFront:
   val ctx = canvas.getContext("2d").asInstanceOf[CanvasRenderingContext2D]
-  readTrack.toOption.foreach { track =>
+  parseUri.toOption.foreach { track =>
     val sample = queryInt(SampleKey)
     ChartSocket(ctx, track, sample)
   }
