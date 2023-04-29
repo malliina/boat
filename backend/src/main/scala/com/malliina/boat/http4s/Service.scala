@@ -24,6 +24,7 @@ import com.malliina.web.OAuthKeys.{Nonce, State}
 import com.malliina.web.Utils.randomString
 import com.malliina.web.*
 import com.malliina.boat.auth.BoatJwt
+import com.malliina.boat.parsing.{CarCoord, CarStats}
 import fs2.{Pipe, Stream}
 import io.circe.parser.parse
 import io.circe.syntax.EncoderOps
@@ -391,11 +392,25 @@ class Service[F[_]: Async](comps: BoatComps[F]) extends BasicService[F]:
       yield res
     case req @ POST -> Root / "cars" / "locations" =>
       jsonAction[LocationUpdates](req) { (body, user) =>
-        val count = body.updates.size
-        log.debug(s"User ${user.email} POSTs $count car updates...")
-        cars.save(body, user, user.id).flatMap { inserteds =>
-          ok(SimpleMessage(s"Saved ${inserteds.flatMap(_.updates).size} updates."))
-        }
+        user.boats
+          .find(_.id == body.carId)
+          .map { device =>
+            import cats.implicits.*
+            val meta = SimpleBoatMeta(user.username, device.name)
+            inserts.joinAsBoat(meta).flatMap { meta =>
+              val count = body.updates.size
+              log.debug(s"User ${user.email} POSTs $count car updates...")
+              body.updates.traverse { loc =>
+                val in = CarCoord.fromUpdate(loc, meta.track)
+                inserts.saveCoords(in)
+              }.flatMap { inserteds =>
+                ok(SimpleMessage(s"Saved ${inserteds.size} updates."))
+              }
+            }
+          }
+          .getOrElse {
+            badRequest(Errors(SingleError.input(s"Invalid car ID: '${body.carId}'.")))
+          }
       }
     case req @ GET -> Root / "sign-in" =>
       val now = Instant.now()
@@ -474,7 +489,7 @@ class Service[F[_]: Async](comps: BoatComps[F]) extends BasicService[F]:
   }
 
   private def parseUnsafe(message: String) =
-    parse(message).fold(err => throw Exception(s"Not JSON: '$message'."), identity)
+    parse(message).fold(err => throw Exception(s"Not JSON: '$message'. $err"), identity)
 
   private object forms:
     import Readables.*

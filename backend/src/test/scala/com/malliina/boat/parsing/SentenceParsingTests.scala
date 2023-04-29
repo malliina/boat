@@ -36,11 +36,13 @@ class SentenceParsingTests extends BaseSuite:
         time,
         date,
         testSpeed.speed,
-        testTemp.temp,
-        testDepth.depth,
-        testDepth.offset,
-        from,
-        keys.map(SentenceKey.apply)
+        BoatStats(
+          testTemp.temp,
+          testDepth.depth,
+          testDepth.offset,
+          keys.map(SentenceKey.apply)
+        ),
+        from
       )
 
     val expected = List(

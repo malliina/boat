@@ -70,9 +70,6 @@ class TrackImporter[F[_]: Files: Temporal](inserts: TrackInsertsDatabase[F])
   private def pointInserter: Pipe[F, FullCoord, InsertedPoint] =
     _.mapAsync(1)(coord => inserts.saveCoords(coord))
 
-  private def pointInserterFast: Pipe[F, FullCoord, TrackPointId] =
-    _.mapAsync(1)(coord => inserts.saveCoordsFast(coord))
-
 class TrackStreams[F[_]: Files]:
   def sentencesForDay(file: Path, day: LocalDate): Stream[F, RawSentence] =
     fileByDate(file).collect { case (date, chunk) if date == day => chunk }.flatMap { chunk =>

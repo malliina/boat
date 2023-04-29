@@ -5,7 +5,7 @@ import cats.data.NonEmptyList
 import java.time.{Instant, LocalDate, LocalTime, OffsetDateTime, ZoneOffset}
 import com.malliina.boat.BoatPrimitives.durationFormat
 import com.malliina.boat.parsing.{FullCoord, GPSCoord, GPSFix}
-import com.malliina.measure.{DistanceM, SpeedM, Temperature}
+import com.malliina.measure.{DistanceIntM, DistanceM, SpeedM, Temperature, TemperatureInt}
 import com.malliina.values.{ValidatingCompanion, *}
 import com.malliina.web.JWTError
 import doobie.Meta
@@ -276,6 +276,7 @@ sealed trait InputEvent
 case object EmptyEvent extends InputEvent
 case class BoatEvent(message: Json, from: TrackMeta) extends InputEvent
 case class DeviceEvent(message: Json, from: IdentifiedDeviceMeta) extends InputEvent
+case class CarEvent(body: LocationUpdates, meta: DeviceMeta) extends InputEvent
 
 case class BoatJsonError(error: DecodingFailure, boat: BoatEvent)
 case class DeviceJsonError(error: DecodingFailure, boat: DeviceEvent)
@@ -433,22 +434,6 @@ case class TrackPointInput(
   diff: DistanceM
 )
 
-object TrackPointInput:
-  def forCoord(c: FullCoord, trackIndex: Int, diff: DistanceM): TrackPointInput =
-    TrackPointInput(
-      c.lng,
-      c.lat,
-      c.coord,
-      c.boatSpeed,
-      c.waterTemp,
-      c.depth,
-      c.depthOffset,
-      c.boatTime,
-      c.from.track,
-      trackIndex,
-      diff
-    )
-
 case class SentenceCoord2(
   id: TrackPointId,
   lon: Longitude,
@@ -471,10 +456,10 @@ case class SentenceCoord2(
     lon,
     lat,
     coord,
-    boatSpeed,
-    waterTemp,
-    depth,
-    depthOffset,
+    Option(boatSpeed),
+    Option(waterTemp),
+    Option(depth),
+    Option(depthOffset),
     boatTime,
     date,
     track,
@@ -487,45 +472,44 @@ case class CombinedCoord(
   lon: Longitude,
   lat: Latitude,
   coord: Coord,
-  boatSpeed: SpeedM,
-  waterTemp: Temperature,
-  depth: DistanceM,
-  depthOffset: DistanceM,
-  boatTime: Instant,
+  speed: Option[SpeedM],
+  waterTemp: Option[Temperature],
+  depth: Option[DistanceM],
+  depthOffset: Option[DistanceM],
+  sourceTime: Instant,
   date: DateVal,
   track: TrackId,
   added: Instant
 ):
-
   def toFull(sentences: Seq[SentenceRow], formatter: TimeFormatter): CombinedFullCoord =
     CombinedFullCoord(
       id,
       lon,
       lat,
       coord,
-      boatSpeed,
-      waterTemp,
-      depth,
-      depthOffset,
-      boatTime,
+      speed.getOrElse(SpeedM.zero),
+      waterTemp.getOrElse(Temperature.zeroCelsius),
+      depth.getOrElse(DistanceM.zero),
+      depthOffset.getOrElse(DistanceM.zero),
+      sourceTime,
       date,
       track,
       added,
       sentences.map(_.timed(formatter)),
-      formatter.timing(boatTime)
+      formatter.timing(sourceTime)
     )
 
   def timed(formatter: TimeFormatter): TimedCoord =
-    val instant = boatTime
+    val instant = sourceTime
     TimedCoord(
       id,
       coord,
       formatter.formatDateTime(instant),
       instant.toEpochMilli,
       formatter.formatTime(instant),
-      boatSpeed,
-      waterTemp,
-      depth,
+      speed.getOrElse(SpeedM.zero),
+      waterTemp.getOrElse(Temperature.zeroCelsius),
+      depth.getOrElse(DistanceM.zero),
       formatter.timing(instant)
     )
 
@@ -569,11 +553,11 @@ case class TrackPointRow(
   longitude: Longitude,
   latitude: Latitude,
   coord: Coord,
-  boatSpeed: SpeedM,
-  waterTemp: Temperature,
-  depthm: DistanceM,
-  depthOffsetm: DistanceM,
-  boatTime: Instant,
+  speed: Option[SpeedM],
+  waterTemp: Option[Temperature],
+  depthm: Option[DistanceM],
+  depthOffsetm: Option[DistanceM],
+  sourceTime: Instant,
   track: TrackId,
   trackIndex: Int,
   diff: DistanceM,
@@ -581,25 +565,9 @@ case class TrackPointRow(
 ):
   def depth = depthm
   def depthOffset = depthOffsetm
-  def dateTimeUtc = boatTime.atOffset(ZoneOffset.UTC)
+  def dateTimeUtc = sourceTime.atOffset(ZoneOffset.UTC)
   def time = LocalTime.from(dateTimeUtc)
   def date = LocalDate.from(dateTimeUtc)
-
-  def combined(date: DateVal) =
-    CombinedCoord(
-      id,
-      longitude,
-      latitude,
-      coord,
-      boatSpeed,
-      waterTemp,
-      depth,
-      depthOffset,
-      boatTime,
-      date,
-      track,
-      added
-    )
 
 case class TrackPoint(coord: Coord, time: Instant, waterTemp: Temperature, wind: Double)
   derives Codec.AsObject

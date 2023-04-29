@@ -115,12 +115,12 @@ trait ServerSuite extends MUnitDatabaseSuite with JsonInstances:
   def testServerResource: Resource[IO, ServerTools] =
     for
       conf <- Resource.eval(IO(confFixture()))
+      client <- HttpClientIO.resource[IO]
       service <- Server.server[IO](
         BoatConf.parse().copy(db = conf, ais = AisAppConf(false)),
         TestComps.builder,
         port = port"0"
       )
-      client <- HttpClientIO.resource[IO]
     yield ServerTools(service, client)
   val server: Fixture[ServerTools] =
     ResourceSuiteLocalFixture("munit-server", testServerResource)
