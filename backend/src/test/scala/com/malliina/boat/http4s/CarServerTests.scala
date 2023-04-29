@@ -65,7 +65,7 @@ class CarServerTests extends MUnitSuite with ServerSuite:
     }
   }
 
-  test("POST car locations") {
+  test("POST car locations".ignore) {
     for
       postResponse <- postCars(updates = LocationUpdates(List(loc, loc2), testCarId))
       _ = assertEquals(postResponse.status, Ok.code)

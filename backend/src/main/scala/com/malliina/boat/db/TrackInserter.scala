@@ -1,24 +1,24 @@
 package com.malliina.boat.db
 
-import cats.implicits.*
 import cats.data.NonEmptyList
 import cats.effect.kernel.implicits.monadCancelOps_
+import cats.effect.{Async, IO}
+import cats.implicits.*
 import cats.syntax.all.{toFlatMapOps, toFunctorOps}
-import com.malliina.boat.db.TrackInserter.log
-import com.malliina.boat.parsing.{FullCoord, PointInsert}
 import com.malliina.boat.*
+import com.malliina.boat.db.TrackInserter.log
+import com.malliina.boat.http.CarQuery
+import com.malliina.boat.parsing.{FullCoord, PointInsert}
 import com.malliina.measure.{DistanceM, SpeedIntM, SpeedM}
+import com.malliina.util.AppLogger
 import com.malliina.values.UserId
 import doobie.*
-import doobie.implicits.*
-import cats.effect.{Async, IO}
-import com.malliina.boat.http.CarQuery
-import com.malliina.util.AppLogger
 import doobie.free.preparedstatement.PreparedStatementIO
+import doobie.implicits.*
 
-import concurrent.duration.DurationLong
 import java.time.temporal.ChronoUnit
 import scala.annotation.tailrec
+import scala.concurrent.duration.DurationLong
 import scala.util.Random
 
 object TrackInserter:
@@ -27,7 +27,7 @@ object TrackInserter:
 class TrackInserter[F[_]: Async](val db: DoobieDatabase[F])
   extends TrackInsertsDatabase[F]
   with DoobieSQL:
-  import db.{run, logHandler}
+  import db.{logHandler, run}
   private val minSpeed: SpeedM = 1.kmh
 
   private val trackIds = CommonSql.nonEmptyTracksWith(fr0"t.id")
@@ -72,8 +72,8 @@ class TrackInserter[F[_]: Async](val db: DoobieDatabase[F])
 
   def removeDevice(device: DeviceId, user: UserId): F[Int] = run {
     sql"delete from boats b where b.id = $device and b.owner = $user".update.run.map { rows =>
-      if rows == 1 then log.info(s"Deleted boat '$device' owned by '$user'.")
-      else log.warn(s"Boat '$device' owned by '$user' not found.")
+      if rows == 1 then log.info(s"Deleted device '$device' owned by '$user'.")
+      else log.warn(s"Device '$device' owned by '$user' not found.")
       rows
     }
   }
@@ -89,7 +89,7 @@ class TrackInserter[F[_]: Async](val db: DoobieDatabase[F])
       _ <- sql"update boats set name = $newName where id = $boat".update.run
       updated <- boatById(boat)
     yield
-      log.info(s"Renamed boat '$boat' to '$newName'.")
+      log.info(s"Renamed device '$boat' to '$newName'.")
       updated
   }
 
@@ -103,9 +103,7 @@ class TrackInserter[F[_]: Async](val db: DoobieDatabase[F])
         .reverse
         .headOption
         .map { t =>
-          log.info(
-            s"Resuming track ${t.track} for source '${meta.boat}' by '${meta.user}'."
-          )
+          log.debug(s"Resuming track ${t.track} for device '${meta.boat}' by '${meta.user}'.")
           pure(t)
         }
         .getOrElse {
@@ -339,7 +337,7 @@ class TrackInserter[F[_]: Async](val db: DoobieDatabase[F])
     sql"""insert into boats(name, owner, token) values($name, $user, $token)""".update
       .withUniqueGeneratedKeys[DeviceId]("id")
       .map { id =>
-        log.info(s"Registered boat '$name' with ID '$id' owned by '$user'.")
+        log.info(s"Registered device '$name' with ID '$id' owned by '$user'.")
         id
       }
 
