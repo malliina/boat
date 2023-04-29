@@ -2,10 +2,10 @@ package com.malliina.boat.db
 
 import cats.effect.IO
 import com.malliina.boat.db.TestData.{london, sanfran}
-import com.malliina.boat.parsing.FullCoord
+import com.malliina.boat.parsing.{BoatStats, FullCoord}
 import com.malliina.boat.{BoatNames, BoatUser, Coord, DeviceId, Language, TrackId, TrackMetaShort, TrackNames, TrackRef, UserToken, UserUtils}
 import com.malliina.measure.{DistanceIntM, SpeedIntM, SpeedM, Temperature}
-import com.malliina.values.{Email, Username, RefreshToken}
+import com.malliina.values.{Email, RefreshToken, Username}
 import tests.{MUnitDatabaseSuite, MUnitSuite}
 
 import java.time.{LocalDate, LocalTime}
@@ -76,9 +76,11 @@ class TracksDatabaseTests extends MUnitSuite with MUnitDatabaseSuite:
       LocalTime.now(),
       LocalDate.now(),
       speed,
-      Temperature.zeroCelsius,
-      1.meters,
-      0.meters,
+      BoatStats(
+        Temperature.zeroCelsius,
+        1.meters,
+        0.meters
+      ),
       TrackMetaShort(
         track,
         TrackNames.random(),

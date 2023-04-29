@@ -7,7 +7,7 @@ import com.malliina.boat.InviteState.accepted
 import com.malliina.boat.http.{BoatQuery, CarQuery, SortOrder, TrackQuery}
 import com.malliina.boat.*
 import com.malliina.boat.db.DoobieTracksDatabase.log
-import com.malliina.measure.{DistanceM, SpeedM}
+import com.malliina.measure.{DistanceM, SpeedM, Temperature}
 import com.malliina.util.AppLogger
 import com.malliina.values.Username
 import doobie.*
@@ -41,16 +41,16 @@ object DoobieTracksDatabase:
       val from = tc.track
       val point = tc.row
       val idx = acc.indexWhere(_.from.track == from.track)
-      val instant = point.boatTime
+      val instant = point.sourceTime
       val coord = TimedCoord(
         point.id,
         point.coord,
         formatter.formatDateTime(instant),
         instant.toEpochMilli,
         formatter.formatTime(instant),
-        point.boatSpeed,
-        point.waterTemp,
-        point.depth,
+        point.speed.getOrElse(SpeedM.zero),
+        point.waterTemp.getOrElse(Temperature.zeroCelsius),
+        point.depth.getOrElse(DistanceM.zero),
         formatter.timing(instant)
       )
       if idx >= 0 then
@@ -110,7 +110,7 @@ class DoobieTracksDatabase[F[_]: Async](val db: DoobieDatabase[F])
   private val topView = sql.topRows.query[TrackPointRow].to[List]
 
   def hm: F[Option[SpeedM]] = run {
-    sql"select avg(boat_speed) from points p where p.speed >= 100 having avg(boat_speed) is not null"
+    sql"select avg(speed) from points p where p.speed >= 100 having avg(speed) is not null"
       .query[SpeedM]
       .option
   }

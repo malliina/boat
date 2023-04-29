@@ -1,9 +1,9 @@
 package com.malliina.boat.parsing
 
-import java.time.{LocalDate, LocalTime, ZoneOffset}
-import com.malliina.boat.{Coord, DeviceId, GPSInsertedPoint, GPSKeyedSentence, GPSPointId, GPSSentenceKey, GPSTimedCoord, InsertedPoint, KeyedSentence, RawSentence, SentenceKey, TimeFormatter, TimedCoord, TrackId, TrackMetaShort, TrackPointId}
+import java.time.{Instant, LocalDate, LocalTime, ZoneOffset}
+import com.malliina.boat.{Coord, DeviceId, Energy, GPSInsertedPoint, GPSKeyedSentence, GPSPointId, GPSSentenceKey, GPSTimedCoord, InsertedPoint, KeyedSentence, Latitude, LocationUpdate, Longitude, RawSentence, SentenceKey, TimeFormatter, TimedCoord, TrackId, TrackMetaShort, TrackPointId}
 import com.malliina.measure.{DistanceM, SpeedM, Temperature}
-import com.malliina.values.ErrorMessage
+import com.malliina.values.{Degrees, ErrorMessage}
 
 trait ParsedGPSSentence:
   def sentence: GPSKeyedSentence
@@ -48,7 +48,7 @@ case class ParsedCoord(coord: Coord, ggaTime: LocalTime, sentence: KeyedSentence
     depthOffset: DistanceM,
     parts: Seq[SentenceKey]
   ): FullCoord =
-    FullCoord(coord, time, date, boatSpeed, waterTemp, depth, depthOffset, from, parts)
+    FullCoord(coord, time, date, boatSpeed, BoatStats(waterTemp, depth, depthOffset, parts), from)
 
 case class ParsedDateTime(date: LocalDate, time: LocalTime, sentence: KeyedSentence)
   extends ParsedSentence
@@ -83,34 +83,88 @@ case class GPSCoord(
     formatter.timing(gpsTime)
   )
 
+case class BoatStats(
+  waterTemp: Temperature,
+  depth: DistanceM,
+  depthOffset: DistanceM,
+  parts: Seq[SentenceKey] = Nil
+)
+
+case class CarStats(
+  batteryLevel: Option[Energy],
+  rangeRemaining: Option[DistanceM],
+  altitude: Option[DistanceM],
+  accuracy: Option[DistanceM],
+  bearing: Option[Degrees],
+  bearingAccuracyDegrees: Option[Degrees],
+  outsideTemperature: Option[Temperature],
+  nightMode: Option[Boolean]
+)
+
+trait PointInsert:
+  def coord: Coord
+  def lng = coord.lng
+  def lat = coord.lat
+  def speedOpt: Option[SpeedM]
+  def boatStats: Option[BoatStats]
+  def carStats: Option[CarStats]
+  def sourceTime: Instant
+  def track: TrackId
+
+case class CarCoord(
+  coord: Coord,
+  speed: Option[SpeedM],
+  stats: CarStats,
+  sourceTime: Instant,
+  track: TrackId
+) extends PointInsert:
+  override def speedOpt: Option[SpeedM] = speed
+  override def boatStats: Option[BoatStats] = None
+  override def carStats: Option[CarStats] = Option(stats)
+
+object CarCoord:
+  def fromUpdate(loc: LocationUpdate, track: TrackId) = CarCoord(
+    loc.coord,
+    loc.speed,
+    CarStats(
+      loc.batteryLevel,
+      loc.rangeRemaining,
+      loc.altitudeMeters,
+      loc.accuracyMeters,
+      loc.bearing,
+      loc.bearingAccuracyDegrees,
+      loc.outsideTemperature,
+      loc.nightMode
+    ),
+    loc.date.toInstant,
+    track
+  )
+
 case class FullCoord(
   coord: Coord,
   time: LocalTime,
   date: LocalDate,
-  boatSpeed: SpeedM,
-  waterTemp: Temperature,
-  depth: DistanceM,
-  depthOffset: DistanceM,
-  from: TrackMetaShort,
-  parts: Seq[SentenceKey] = Nil
-):
+  speed: SpeedM,
+  boat: BoatStats,
+  from: TrackMetaShort
+) extends PointInsert:
   val dateTime = date.atTime(time)
-  val boatTime = dateTime.toInstant(ZoneOffset.UTC)
-
-  def lng = coord.lng
-
-  def lat = coord.lat
+  val sourceTime = dateTime.toInstant(ZoneOffset.UTC)
+  override def speedOpt: Option[SpeedM] = Option(speed)
+  override def boatStats: Option[BoatStats] = Option(boat)
+  override def carStats: Option[CarStats] = None
+  override def track: TrackId = from.track
 
   def timed(id: TrackPointId, formatter: TimeFormatter): TimedCoord = TimedCoord(
     id,
     coord,
-    formatter.formatDateTime(boatTime),
-    boatTime.toEpochMilli,
-    formatter.formatTime(boatTime),
-    boatSpeed,
-    waterTemp,
-    depth,
-    formatter.timing(boatTime)
+    formatter.formatDateTime(sourceTime),
+    sourceTime.toEpochMilli,
+    formatter.formatTime(sourceTime),
+    speed,
+    boat.waterTemp,
+    boat.depth,
+    formatter.timing(sourceTime)
   )
 
 sealed trait SentenceError:

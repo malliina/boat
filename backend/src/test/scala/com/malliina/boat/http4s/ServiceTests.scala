@@ -3,7 +3,7 @@ package com.malliina.boat.http4s
 import cats.effect.IO
 import com.malliina.boat.db.NewUser
 import com.malliina.boat.http.ContentVersions
-import com.malliina.boat.parsing.FullCoord
+import com.malliina.boat.parsing.{BoatStats, FullCoord}
 import com.malliina.boat.{BoatNames, BoatUser, Coord, TrackNames, TrackSummaries, Tracks, UserToken}
 import com.malliina.measure.{DistanceIntM, SpeedIntM, TemperatureInt}
 import com.malliina.values.Username
@@ -33,9 +33,11 @@ class ServiceTests extends MUnitSuite with Http4sSuite:
         LocalTime.now(),
         LocalDate.now(),
         10.knots,
-        10.celsius,
-        10.meters,
-        0.meters,
+        BoatStats(
+          10.celsius,
+          10.meters,
+          0.meters
+        ),
         track.short
       )
       p <- inserts.saveCoords(coord)

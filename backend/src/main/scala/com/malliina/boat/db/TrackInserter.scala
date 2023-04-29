@@ -5,7 +5,7 @@ import cats.data.NonEmptyList
 import cats.effect.kernel.implicits.monadCancelOps_
 import cats.syntax.all.{toFlatMapOps, toFunctorOps}
 import com.malliina.boat.db.TrackInserter.log
-import com.malliina.boat.parsing.FullCoord
+import com.malliina.boat.parsing.{FullCoord, PointInsert}
 import com.malliina.boat.*
 import com.malliina.measure.{DistanceM, SpeedIntM, SpeedM}
 import com.malliina.values.UserId
@@ -27,7 +27,6 @@ object TrackInserter:
 class TrackInserter[F[_]: Async](val db: DoobieDatabase[F])
   extends TrackInsertsDatabase[F]
   with DoobieSQL:
-  import DoobieMappings.*
   import db.{run, logHandler}
   private val minSpeed: SpeedM = 1.kmh
 
@@ -59,7 +58,7 @@ class TrackInserter[F[_]: Async](val db: DoobieDatabase[F])
       sql"""$trackIds and t.id = $track and b.uid = $user"""
         .query[TrackId]
         .option
-        .flatMap { opt => opt.map(pure).getOrElse(fail(new TrackIdNotFoundException(track))) }
+        .flatMap { opt => opt.map(pure).getOrElse(fail(TrackIdNotFoundException(track))) }
     def updateIO(tid: TrackId) =
       sql"""update tracks set comments = $comments
             where id = $tid""".update.run
@@ -105,7 +104,7 @@ class TrackInserter[F[_]: Async](val db: DoobieDatabase[F])
         .headOption
         .map { t =>
           log.info(
-            s"Resuming track ${t.track} for boat '${meta.boat}' by '${meta.user}'. There was probably a temporary connection glitch."
+            s"Resuming track ${t.track} for source '${meta.boat}' by '${meta.user}'."
           )
           pure(t)
         }
@@ -117,7 +116,7 @@ class TrackInserter[F[_]: Async](val db: DoobieDatabase[F])
               opt =>
                 opt.map(pure).getOrElse {
                   insertTrack(TrackInput.empty(trackMeta.track, boat.id)).map { meta =>
-                    log.info(s"Registered track with ID '${meta.track}' for boat '${boat.id}'.")
+                    log.info(s"Registered track with ID '${meta.track}' for source '${boat.id}'.")
                     meta
                   }
                 }
@@ -143,7 +142,7 @@ class TrackInserter[F[_]: Async](val db: DoobieDatabase[F])
                     .query[Boolean]
                     .unique
                     .flatMap[JoinedBoat] { alreadyExists =>
-                      if alreadyExists then fail(new BoatNameNotAvailableException(boat, user))
+                      if alreadyExists then fail(BoatNameNotAvailableException(boat, user))
                       else insertBoat(boat, id, BoatTokens.random())
                     }
                 }
@@ -188,8 +187,8 @@ class TrackInserter[F[_]: Async](val db: DoobieDatabase[F])
       case Nil =>
         acc
 
-  def saveCoords(coord: FullCoord): F[InsertedPoint] = run {
-    val track = coord.from.track
+  def saveCoords(coord: PointInsert): F[InsertedPoint] = run {
+    val track = coord.track
     val trail =
       sql"""select id, longitude, latitude, coord, speed, water_temp, depthm, depth_offsetm, source_time, track, track_index, diff, added
             from points p
@@ -221,16 +220,11 @@ class TrackInserter[F[_]: Async](val db: DoobieDatabase[F])
               set avg_water_temp = $avgTemp, avg_speed = $avgSpeed, points = $points, distance = $distance
               where id = $track""".update.run
       }
-      _ <- insertSentencePoints(coord.parts.map { key => (key, point) }.toList)
+      _ <- insertSentencePoints(
+        coord.boatStats.toList.flatMap(_.parts).map { key => (key, point) }
+      )
       ref <- trackById(track)
     yield InsertedPoint(point, ref)
-  }
-
-  def saveCoordsFast(coord: FullCoord): F[TrackPointId] = run {
-    for
-      point <- insertPoint(coord, Random.between(1, 1000000), DistanceM.zero)
-      _ <- insertSentencePoints(coord.parts.map { key => (key, point) }.toList)
-    yield point
   }
 
   private def insertSentencePoints(
@@ -262,9 +256,33 @@ class TrackInserter[F[_]: Async](val db: DoobieDatabase[F])
       case Nil =>
         acc
 
-  private def insertPoint(c: FullCoord, atIndex: Int, diff: DistanceM): ConnectionIO[TrackPointId] =
-    sql"""insert into points(longitude, latitude, coord, speed, water_temp, depthm, depth_offsetm, source_time, track, track_index, diff)
-          values(${c.lng}, ${c.lat}, ${c.coord}, ${c.boatSpeed}, ${c.waterTemp}, ${c.depth}, ${c.depthOffset}, ${c.boatTime}, ${c.from.track}, $atIndex, $diff)""".update
+  private def insertPoint(
+    c: PointInsert,
+    atIndex: Int,
+    diff: DistanceM
+  ): ConnectionIO[TrackPointId] =
+    val b = c.boatStats
+    val car = c.carStats
+    sql"""insert into points(longitude, latitude, coord, speed, water_temp, depthm, depth_offsetm, altitude, accuracy, bearing, bearing_accuracy, battery, car_range, outside_temperature, night_mode, source_time, track, track_index, diff)
+          values(${c.lng},
+            ${c.lat},
+            ${c.coord},
+            ${c.speedOpt},
+            ${b.map(_.waterTemp)},
+            ${b.map(_.depth)},
+            ${b.map(_.depthOffset)},
+            ${car.flatMap(_.altitude)},
+            ${car.flatMap(_.accuracy)},
+            ${car.flatMap(_.bearing)},
+            ${car.flatMap(_.bearingAccuracyDegrees)},
+            ${car.flatMap(_.batteryLevel)},
+            ${car.flatMap(_.rangeRemaining)},
+            ${car.flatMap(_.outsideTemperature)},
+            ${car.flatMap(_.nightMode)},
+            ${c.sourceTime},
+            ${c.track},
+            $atIndex,
+            $diff)""".update
       .withUniqueGeneratedKeys[TrackPointId]("id")
 
   def dates(track: TrackId): ConnectionIO[List[DateVal]] =
