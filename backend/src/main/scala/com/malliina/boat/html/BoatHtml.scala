@@ -101,7 +101,7 @@ class BoatHtml(
                 div(`class` := "dropdown nav-text tracks", id := DropdownLinkId)(
                   span(`class` := "dropdown-button", lang.lang.track.tracks),
                   div(`class` := "dropdown-content", id := DropdownContentId)(
-                    b.tracks.map { t =>
+                    ub.boats.flatMap(_.tracks).sortBy(_.times.start.millis).reverse.map { t =>
                       a(`class` := "track-link", href := reverse.canonical(t.canonical))(
                         span(t.describe),
                         span(short(t.distanceMeters)),

@@ -66,7 +66,7 @@ object DoobieTracksDatabase:
 class DoobieTracksDatabase[F[_]: Async](val db: DoobieDatabase[F])
   extends TracksSource[F]
   with StatsSource[F]:
-  import DoobieMappings.*
+  import Mappings.*
   import db.logHandler
   val F = Async[F]
   object sql extends CommonSql:
@@ -106,7 +106,7 @@ class DoobieTracksDatabase[F[_]: Async](val db: DoobieDatabase[F])
       val limits = filter.limits
       sql"""$unsorted order by $sortColumns limit ${limits.limit} offset ${limits.offset}"""
 
-  private val boatsView = sql.boats.query[JoinedBoat].to[List]
+  private val boatsView = sql.boats.query[JoinedSource].to[List]
   private val topView = sql.topRows.query[TrackPointRow].to[List]
 
   def hm: F[Option[SpeedM]] = run {

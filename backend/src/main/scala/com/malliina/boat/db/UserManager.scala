@@ -2,7 +2,7 @@ package com.malliina.boat.db
 
 import cats.effect.IO
 import com.malliina.boat.http.{AccessResult, InviteInfo, InviteResult}
-import com.malliina.boat.{BoatToken, DeviceId, InviteState, JoinedBoat, Language, UserBoats, UserInfo}
+import com.malliina.boat.{BoatToken, DeviceId, InviteState, JoinedSource, Language, UserBoats, UserInfo}
 import com.malliina.values.*
 import org.apache.commons.codec.digest.DigestUtils
 
@@ -24,7 +24,7 @@ trait UserManager[F[_]]:
     *   user info for `email`
     */
   def userInfo(email: Email): F[UserInfo]
-  def authBoat(token: BoatToken): F[JoinedBoat]
+  def authBoat(token: BoatToken): F[JoinedSource]
   def boats(user: Email): F[UserBoats]
   def addUser(user: NewUser): F[Either[AlreadyExists, UserRow]]
   def deleteUser(user: Username): F[Either[UserDoesNotExist, Unit]]

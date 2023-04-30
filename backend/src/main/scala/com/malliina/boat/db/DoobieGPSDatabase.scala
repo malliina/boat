@@ -22,7 +22,7 @@ object DoobieGPSDatabase:
     }
 
 class DoobieGPSDatabase[F[_]: Async](db: DoobieDatabase[F]) extends GPSSource[F] with DoobieSQL:
-  import DoobieMappings.*
+  import Mappings.*
 
   val pointColumns =
     fr0"p.id, p.longitude, p.latitude, p.coord, p.satellites, p.fix, p.point_index, p.gps_time, p.diff, p.device, p.added"

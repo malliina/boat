@@ -4,7 +4,7 @@ import com.malliina.boat.db.Values.VesselUpdateId
 
 import java.time.{Instant, LocalDate, OffsetDateTime, ZoneOffset}
 import com.malliina.boat.parsing.GPSFix
-import com.malliina.boat.{AisUpdateId, BoatName, BoatToken, CarUpdateId, Coord, CoordHash, DateVal, DeviceId, Energy, FairwayLighting, GPSPointId, GPSSentenceKey, InviteState, Language, Latitude, Longitude, MobileDevice, MonthVal, PushId, PushToken, RawSentence, SeaArea, SentenceKey, TimeFormatter, TrackCanonical, TrackId, TrackName, TrackPointId, TrackTitle, UserToken, VesselRowId, YearVal, long}
+import com.malliina.boat.{AisUpdateId, BoatName, BoatToken, CarUpdateId, Coord, CoordHash, DateVal, DeviceId, Energy, FairwayLighting, GPSPointId, GPSSentenceKey, InviteState, Language, Latitude, Longitude, MobileDevice, MonthVal, PushId, PushToken, RawSentence, SeaArea, SentenceKey, SourceType, TimeFormatter, TrackCanonical, TrackId, TrackName, TrackPointId, TrackTitle, UserToken, VesselRowId, YearVal, long}
 import com.malliina.measure.{DistanceM, SpeedDoubleM, SpeedM, Temperature}
 import com.malliina.values.*
 import com.vividsolutions.jts.geom.Point
@@ -12,9 +12,9 @@ import doobie.*
 
 import scala.concurrent.duration.{DurationDouble, FiniteDuration}
 
-object DoobieMappings extends DoobieMappings
+object Mappings extends Mappings
 
-trait DoobieMappings:
+trait Mappings:
   implicit val instantMeta: Meta[Instant] = doobie.implicits.legacy.instant.JavaTimeInstantMeta
   implicit val odtMeta: Meta[OffsetDateTime] =
     Meta[Instant].imap(_.atOffset(ZoneOffset.UTC))(_.toInstant)
@@ -65,6 +65,7 @@ trait DoobieMappings:
   implicit val month: Meta[MonthVal] = Meta[Int].timap(m => MonthVal(m))(_.month)
   implicit val isMapping: Meta[InviteState] =
     Meta[String].timap(s => InviteState.orOther(s))(_.name)
+  implicit val st: Meta[SourceType] = Meta[String].timap(s => SourceType.orOther(s))(_.name)
   implicit val sk: Meta[SentenceKey] = wrappedId(SentenceKey.apply)
   implicit val gsk: Meta[GPSSentenceKey] = wrappedId(GPSSentenceKey.apply)
   implicit val dg: Meta[Degrees] = Meta[Float].timap(Degrees.unsafe)(_.float)

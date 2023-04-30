@@ -175,7 +175,7 @@ case class JoinedTrack(
   duration: FiniteDuration,
   topSpeed: Option[SpeedM],
   tip: CombinedCoord,
-  boat: JoinedBoat
+  boat: JoinedSource
 ) extends TrackLike:
   def boatId = boat.device
   def language = boat.language
@@ -197,6 +197,7 @@ case class JoinedTrack(
     comments,
     boat.device,
     boatName,
+    boat.sourceType,
     username,
     points,
     duration,
@@ -247,7 +248,7 @@ case class InsertedPoint(point: TrackPointId, track: JoinedTrack):
   def strip(formatter: TimeFormatter) =
     InsertedTrackPoint(point, track.strip(formatter))
 
-case class GPSInsertedPoint(point: GPSPointId, from: JoinedBoat)
+case class GPSInsertedPoint(point: GPSPointId, from: JoinedSource)
 
 case class TrackMeta(
   track: TrackId,
@@ -302,9 +303,10 @@ object BoatTokens:
 
 case class BoatResponse(boat: Boat) derives Codec.AsObject
 
-case class JoinedBoat(
+case class JoinedSource(
   device: DeviceId,
   boatName: BoatName,
+  sourceType: SourceType,
   boatToken: BoatToken,
   userId: UserId,
   username: Username,

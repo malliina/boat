@@ -45,7 +45,7 @@ class TrackInserter[F[_]: Async](val db: DoobieDatabase[F])
       sql"""$trackIds and t.name = $track and b.uid = $user"""
         .query[TrackId]
         .option
-        .flatMap { opt => opt.map(pure).getOrElse(fail(new TrackNameNotFoundException(track))) }
+        .flatMap { opt => opt.map(pure).getOrElse(fail(TrackNameNotFoundException(track))) }
     val canonical = TrackCanonical(Utils.normalize(title.title))
     def updateIO(tid: TrackId) =
       sql"""update tracks set canonical = $canonical, title = $title
@@ -124,22 +124,24 @@ class TrackInserter[F[_]: Async](val db: DoobieDatabase[F])
     }
   }
 
-  def joinAsDevice(from: DeviceMeta): F[JoinedBoat] = run {
+  def joinAsDevice(from: DeviceMeta): F[JoinedSource] = run {
     val user = from.user
     val boat = from.boat
-    sql"${CommonSql.boats} and b.name = $boat and u.user = $user".query[JoinedBoat].option.flatMap {
-      opt =>
+    sql"${CommonSql.boats} and b.name = $boat and u.user = $user"
+      .query[JoinedSource]
+      .option
+      .flatMap { opt =>
         opt.map(pure).getOrElse {
           sql"select id from users u where u.user = $user".query[UserId].unique.flatMap { id =>
             sql"${CommonSql.boats} and b.name = $boat and u.id = $id"
-              .query[JoinedBoat]
+              .query[JoinedSource]
               .option
               .flatMap { optB =>
                 optB.map(pure).getOrElse {
                   sql"select exists(select id from boats b where b.name = $boat)"
                     .query[Boolean]
                     .unique
-                    .flatMap[JoinedBoat] { alreadyExists =>
+                    .flatMap[JoinedSource] { alreadyExists =>
                       if alreadyExists then fail(BoatNameNotAvailableException(boat, user))
                       else insertBoat(boat, id, BoatTokens.random())
                     }
@@ -147,7 +149,7 @@ class TrackInserter[F[_]: Async](val db: DoobieDatabase[F])
               }
           }
         }
-    }
+      }
   }
 
   def saveSentences(sentences: SentencesEvent): F[Seq[KeyedSentence]] = run {
@@ -304,7 +306,7 @@ class TrackInserter[F[_]: Async](val db: DoobieDatabase[F])
     boatName: BoatName,
     owner: UserId,
     withToken: BoatToken
-  ): ConnectionIO[JoinedBoat] =
+  ): ConnectionIO[JoinedSource] =
     saveNewBoat(boatName, owner, withToken).flatMap { id =>
       CommonSql.boatsById(id)
     }

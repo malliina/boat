@@ -24,7 +24,7 @@ class SIWADatabase[F[_]: Sync](
   siwa: AppleAuthFlow[F],
   users: TokenManager[F],
   jwt: CustomJwt
-) extends DoobieMappings:
+) extends Mappings:
   val F = Sync[F]
   private val tokenValidator = siwa.validator
 

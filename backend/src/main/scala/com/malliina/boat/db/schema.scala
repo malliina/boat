@@ -1,7 +1,7 @@
 package com.malliina.boat.db
 
 import java.time.Instant
-import com.malliina.boat.{Boat, BoatName, BoatPrimitives, BoatRef, BoatToken, CombinedCoord, Coord, DateVal, DeviceId, FormattedDateTime, FriendInvite, FriendRef, GPSPointRow, InviteState, JoinedBoat, JoinedTrack, Language, Mmsi, MonthVal, TimeFormatter, TimedCoord, TrackCanonical, TrackId, TrackName, TrackPointId, TrackPointRow, TrackTitle, UserToken, VesselName, VesselRowId, YearVal}
+import com.malliina.boat.{Boat, BoatName, BoatPrimitives, BoatRef, BoatToken, CombinedCoord, Coord, DateVal, DeviceId, FormattedDateTime, FriendInvite, FriendRef, GPSPointRow, InviteState, JoinedSource, JoinedTrack, Language, Mmsi, MonthVal, TimeFormatter, TimedCoord, TrackCanonical, TrackId, TrackName, TrackPointId, TrackPointRow, TrackTitle, UserToken, VesselName, VesselRowId, YearVal}
 import com.malliina.measure.{DistanceM, SpeedM, Temperature}
 import com.malliina.values.{Email, UserId, Username}
 import io.circe.*
@@ -99,7 +99,7 @@ case class JoinedUser(
   friend: Option[FriendRow]
 )
 
-case class JoinedGPS(point: GPSPointRow, device: JoinedBoat)
+case class JoinedGPS(point: GPSPointRow, device: JoinedSource)
 
 case class VesselRow(
   id: VesselRowId,

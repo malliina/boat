@@ -2,10 +2,10 @@ package com.malliina.boat.db
 
 import cats.effect.IO
 import com.malliina.boat.InviteState.accepted
-import com.malliina.boat.db.DoobieUserManager.log
+import com.malliina.boat.db.DoobieUserManager.{collectBoats, log}
 import com.malliina.boat.http.InviteResult.{AlreadyInvited, Invited, UnknownEmail}
 import com.malliina.boat.http.{AccessResult, InviteInfo, InviteResult}
-import com.malliina.boat.{Boat, BoatInfo, BoatNames, BoatToken, BoatTokens, DeviceId, FriendInvite, Invite, InviteState, JoinedBoat, JoinedTrack, Language, TimeFormatter, UserBoats, UserInfo, UserToken, Usernames}
+import com.malliina.boat.{Boat, BoatInfo, BoatNames, BoatToken, BoatTokens, DeviceId, FriendInvite, Invite, InviteState, JoinedSource, JoinedTrack, Language, TimeFormatter, UserBoats, UserInfo, UserToken, Usernames}
 import com.malliina.util.AppLogger
 import com.malliina.values.{Email, RefreshToken, UserId, Username}
 import doobie.*
@@ -62,7 +62,7 @@ object DoobieUserManager:
         }
     }
 
-  def collectBoats(rows: Seq[JoinedTrack], formatter: TimeFormatter): Seq[BoatInfo] =
+  private def collectBoats(rows: Seq[JoinedTrack], formatter: TimeFormatter): Seq[BoatInfo] =
     rows.foldLeft(Vector.empty[BoatInfo]) { (acc, row) =>
       val boatIdx =
         acc.indexWhere(b => b.user == row.username && b.boatId == row.boatId)
@@ -84,13 +84,13 @@ class DoobieUserManager[F[_]](db: DoobieDatabase[F]) extends IdentityManager[F] 
   object sql extends CommonSql
   import db.run
   implicit val logger: LogHandler = db.logHandler
-  val userColumns = fr"u.id, u.user, u.email, u.token, u.language, u.enabled, u.added"
-  val selectUsers = sql"select $userColumns from users u"
+  private val userColumns = fr"u.id, u.user, u.email, u.token, u.language, u.enabled, u.added"
+  private val selectUsers = sql"select $userColumns from users u"
 
-  def userById(id: UserId) = sql"$selectUsers where u.id = $id"
-  def userByEmail(email: Email) = sql"$selectUsers where u.email = $email".query[UserRow]
-  def userByName(name: Username) = sql"$selectUsers where u.user = $name"
-  def userByEmailIO(email: Email) = userByEmail(email).unique
+  private def userById(id: UserId) = sql"$selectUsers where u.id = $id"
+  private def userByEmail(email: Email) = sql"$selectUsers where u.email = $email".query[UserRow]
+  private def userByName(name: Username) = sql"$selectUsers where u.user = $name"
+  private def userByEmailIO(email: Email) = userByEmail(email).unique
   def userMeta(email: Email): F[UserRow] = run {
     userByEmailIO(email)
   }
@@ -102,27 +102,27 @@ class DoobieUserManager[F[_]](db: DoobieDatabase[F]) extends IdentityManager[F] 
   }
   def userInfo(email: Email): F[UserInfo] = run {
     def by(id: UserId) =
-      sql"""select u.id, 
-                   u.user, 
-                   u.email, 
-                   u.token, 
-                   u.language, 
-                   u.enabled, 
-                   u.added, 
+      sql"""select u.id,
+                   u.user,
+                   u.email,
+                   u.token,
+                   u.language,
+                   u.enabled,
+                   u.added,
                    b.id boatId,
-                   b.name boatName, 
-                   b.token boatToken, 
-                   b.owner boatOwner, 
-                   b.added boatAdded, 
-                   ub.boat as ubBoat, 
-                   ubb.name as ubbName, 
+                   b.name boatName,
+                   b.token boatToken,
+                   b.owner boatOwner,
+                   b.added boatAdded,
+                   ub.boat as ubBoat,
+                   ubb.name as ubbName,
                    ub.state as ubState,
                    ub.added as ubAdded,
                    fubb.id as fubbBoat,
-                   fubb.name as fubbName, 
-                   fu.id as fuId, 
-                   fu.email as fuEmail, 
-                   fub.state as fubState, 
+                   fubb.name as fubbName,
+                   fu.id as fuId,
+                   fu.email as fuEmail,
+                   fub.state as fubState,
                    fub.added as fubAdded
             from users u
             left join boats b on b.owner = u.id
@@ -149,7 +149,7 @@ class DoobieUserManager[F[_]](db: DoobieDatabase[F]) extends IdentityManager[F] 
     }
   }
 
-  def authBoat(token: BoatToken): F[JoinedBoat] = run {
+  def authBoat(token: BoatToken): F[JoinedSource] = run {
     CommonSql.boatsByToken(token).flatMap { opt =>
       opt.map { b =>
         pure(b)
@@ -160,21 +160,21 @@ class DoobieUserManager[F[_]](db: DoobieDatabase[F]) extends IdentityManager[F] 
   }
 
   def boats(email: Email) = run {
-    def boatRowsIO(id: UserId) =
+    def tracksIO(id: UserId) =
       sql"""${sql.nonEmptyTracks} and (b.uid = $id or b.id in (select ub.boat from users_boats ub where ub.user = $id and ub.state = $accepted)) and t.points > 10"""
         .query[JoinedTrack]
         .to[List]
     def deviceRowsIO(email: Email) =
       sql"""${sql.boats} and u.email = $email and b.id not in (select boat from tracks)"""
-        .query[JoinedBoat]
+        .query[JoinedSource]
         .to[List]
     for
       id <- getOrCreate(email)
       user <- userById(id).query[UserRow].unique
-      userTracks <- boatRowsIO(id)
+      userTracks <- tracksIO(id)
       devices <- deviceRowsIO(email)
     yield
-      val bs = DoobieUserManager.collectBoats(userTracks, TimeFormatter.lang(user.language))
+      val bs = collectBoats(userTracks, TimeFormatter.lang(user.language))
       val gpsDevices = devices.map(d => BoatInfo(d.device, d.boatName, d.username, d.language, Nil))
       UserBoats(user.user, user.language, bs ++ gpsDevices)
   }
@@ -223,7 +223,7 @@ class DoobieUserManager[F[_]](db: DoobieDatabase[F]) extends IdentityManager[F] 
     log.info(s"Saving refresh token for '$user'...")
     val tokenId = RefreshTokenId.random()
     val insertion =
-      sql"""insert into refresh_tokens(id, refresh_token, owner) 
+      sql"""insert into refresh_tokens(id, refresh_token, owner)
             values($tokenId, $token, $user)"""
         .update(logger)
         .run
@@ -296,7 +296,7 @@ class DoobieUserManager[F[_]](db: DoobieDatabase[F]) extends IdentityManager[F] 
   }
 
   private def linkInvite(boat: DeviceId, to: UserId): ConnectionIO[Int] =
-    sql"""insert into users_boats(user, boat, state) 
+    sql"""insert into users_boats(user, boat, state)
           values($to, $boat, ${InviteState.awaiting})""".update(logger).run
 
   private def userInsertion(user: NewUser): ConnectionIO[UserId] =
@@ -346,7 +346,7 @@ class DoobieUserManager[F[_]](db: DoobieDatabase[F]) extends IdentityManager[F] 
       boatId <-
         owns
           .map(pure)
-          .getOrElse(fail(new PermissionException(principal, boat, from)))
+          .getOrElse(fail(PermissionException(principal, boat, from)))
       link <-
         sql"select ub.user, u.email from users_boats ub, users u where ub.user = u.id and ub.boat = $boat and ub.user = $from"
           .query[UserId]

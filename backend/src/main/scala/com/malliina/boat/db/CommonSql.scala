@@ -1,19 +1,19 @@
 package com.malliina.boat.db
 
-import com.malliina.boat.{BoatToken, DeviceId, JoinedBoat}
+import com.malliina.boat.{BoatToken, DeviceId, JoinedSource}
 import doobie.*
 import doobie.implicits.*
-import com.malliina.boat.db.DoobieMappings.*
+import com.malliina.boat.db.Mappings.*
 
 object CommonSql extends CommonSql
 
 trait CommonSql:
   val boats =
-    sql"""select b.id, b.name, b.token, u.id uid, u.user, u.email, u.language
+    sql"""select b.id, b.name, b.source_type, b.token, u.id uid, u.user, u.email, u.language
           from boats b, users u
           where b.owner = u.id"""
-  def boatsByToken(token: BoatToken) = sql"""$boats and b.token = $token""".query[JoinedBoat].option
-  def boatsById(id: DeviceId) = sql"$boats and b.id = $id".query[JoinedBoat].unique
+  def boatsByToken(token: BoatToken) = sql"""$boats and b.token = $token""".query[JoinedSource].option
+  def boatsById(id: DeviceId) = sql"$boats and b.id = $id".query[JoinedSource].unique
   private val topPoints =
     sql"""select winners.track track, min(winners.id) point
           from (select p.id, p.track
@@ -46,7 +46,7 @@ trait CommonSql:
           from ($topRows) top, ($timedTracks) t
           where top.track = t.id"""
   private val trackColumns =
-    fr0"t.id tid, t.name, t.title, t.canonical, t.comments, t.added, t.points, t.avg_speed, t.avg_water_temp, t.distance, t.start, t.startDate, t.startMonth, t.startYear, t.end, t.secs duration, t.speed maxBoatspeed, t.pointId, t.longitude, t.latitude, t.coord, t.speed topSpeed, t.water_temp, t.depthm, t.depth_offsetm, t.source_time, t.trackDate, t.track, t.topAdded, b.id boatId, b.name boatName, b.token, b.uid, b.user owner, b.email, b.language"
+    fr0"t.id tid, t.name, t.title, t.canonical, t.comments, t.added, t.points, t.avg_speed, t.avg_water_temp, t.distance, t.start, t.startDate, t.startMonth, t.startYear, t.end, t.secs duration, t.speed maxBoatspeed, t.pointId, t.longitude, t.latitude, t.coord, t.speed topSpeed, t.water_temp, t.depthm, t.depth_offsetm, t.source_time, t.trackDate, t.track, t.topAdded, b.id boatId, b.name boatName, b.source_type, b.token, b.uid, b.user owner, b.email, b.language"
   val nonEmptyTracks = nonEmptyTracksWith(trackColumns)
   def nonEmptyTracksWith(cols: Fragment) =
     sql"""select $cols

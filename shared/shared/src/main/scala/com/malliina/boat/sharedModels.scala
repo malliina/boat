@@ -15,6 +15,9 @@ import scala.concurrent.duration.{Duration, FiniteDuration}
 import scala.language.implicitConversions
 import scala.math.Ordering.Double.TotalOrdering
 
+enum DeviceType:
+  case Vehicle, Boat, Other
+
 case class DayVal(day: Int) extends AnyVal with WrappedInt:
   override def value = day
 
@@ -414,6 +417,7 @@ case class TrackRef(
   comments: Option[String],
   boat: DeviceId,
   boatName: BoatName,
+  sourceType: SourceType,
   username: Username,
   points: Int,
   duration: Duration,
@@ -658,6 +662,15 @@ class ModelHtml[Builder, Output <: FragT, FragT](val bundle: Bundle[Builder, Out
   import bundle.all.{stringFrag, Frag}
 
   implicit def wrappedFrag[T <: WrappedString](t: T): Frag = stringFrag(t.value)
+
+sealed abstract class SourceType(val name: String)
+object SourceType extends StringEnumCompanion[SourceType]:
+  case object Vehicle extends SourceType("vehicle")
+  case object Boat extends SourceType("boat")
+  case class Other(n: String) extends SourceType(n)
+  def orOther(in: String): SourceType = build(in).getOrElse(Other(in))
+  override def all = Seq(Vehicle, Boat)
+  override def write(t: SourceType) = t.name
 
 sealed abstract class InviteState(val name: String)
 

@@ -14,9 +14,9 @@ class DoobieTracksDatabaseTests extends MUnitSuite with MUnitDatabaseSuite:
     assertEquals(res, None)
   }
 
-class DoobieTests extends MUnitSuite with DoobieMappings:
+class DoobieTests extends MUnitSuite with Mappings:
   val conf = Conf(
-    "jdbc:mysql://localhost:3306/boat?useSSL=false",
+    "jdbc:mysql://localhost:3306/boat",
     "changeme",
     "changeme",
     Conf.MySQLDriver,
@@ -37,7 +37,7 @@ class DoobieTests extends MUnitSuite with DoobieMappings:
   }
 
   dbResource.test("measure distance".ignore) { doobie =>
-    implicit val coordMeta = DoobieMappings.coordMeta
+    implicit val coordMeta = Mappings.coordMeta
     val db = DoobieTracksDatabase(doobie)
     val c1 = Coord.buildOrFail(60, 30)
     val c2 = Coord.buildOrFail(70, 13)

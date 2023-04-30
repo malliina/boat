@@ -2,6 +2,7 @@ package com.malliina.boat
 
 import io.circe.syntax.EncoderOps
 import com.malliina.boat.BoatFormats.*
+import com.malliina.boat.SourceType.Vehicle
 import com.malliina.geojson.{GeoLineString, GeoPoint}
 import com.malliina.mapbox.*
 import com.malliina.measure.SpeedM
@@ -237,14 +238,18 @@ class MapSocket(
     }
     elem(TopSpeedId).foreach { e =>
       from.topSpeed.foreach { top =>
-        e.innerHTML = s"${trackLang.top} ${formatSpeed(top)} kn"
+        val formatted = from.sourceType match
+          case Vehicle => s"${formatSpeedKph(top)} km/h"
+          case _       => s"${formatSpeed(top)} kn"
+        e.innerHTML = s"${trackLang.top} $formatted"
       }
     }
-    elem(WaterTempId).foreach { e =>
-      coordsInfo.lastOption.map(_.waterTemp).foreach { temp =>
-        e.innerHTML = s"${trackLang.water} ${formatTemp(temp)} ℃"
+    if from.sourceType == SourceType.Boat then
+      elem(WaterTempId).foreach { e =>
+        coordsInfo.lastOption.map(_.waterTemp).foreach { temp =>
+          e.innerHTML = s"${trackLang.water} ${formatTemp(temp)} ℃"
+        }
       }
-    }
     anchor(FullLinkId).foreach { e =>
       e.show()
       e.href = s"/tracks/${from.trackName}/full"

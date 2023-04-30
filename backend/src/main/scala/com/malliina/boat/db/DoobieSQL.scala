@@ -8,7 +8,7 @@ import doobie.ConnectionIO
 import doobie.implicits.*
 
 trait DoobieSQL:
-  export DoobieMappings.*
+  export Mappings.*
   def boatById(id: DeviceId): ConnectionIO[BoatRow] =
     sql"select id, name, token, owner, added from boats b where b.id = $id".query[BoatRow].unique
   def computeDistance(from: Coord, to: Coord): ConnectionIO[DistanceM] =

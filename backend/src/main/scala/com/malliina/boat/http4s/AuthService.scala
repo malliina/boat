@@ -8,7 +8,7 @@ import com.malliina.boat.auth.{BoatJwt, SettingsPayload}
 import com.malliina.boat.db.{IdentityException, IdentityManager, MissingCredentials, MissingCredentialsException, SIWADatabase, UserManager}
 import com.malliina.boat.http.UserRequest
 import com.malliina.boat.http4s.AuthService.GoogleCookie
-import com.malliina.boat.{BoatName, BoatNames, BoatToken, DeviceMeta, JoinedBoat, MinimalUserInfo, SimpleBoatMeta, UserBoats, UserInfo, Usernames}
+import com.malliina.boat.{BoatName, BoatNames, BoatToken, DeviceMeta, JoinedSource, MinimalUserInfo, SimpleBoatMeta, UserBoats, UserInfo, Usernames}
 import com.malliina.values.{Email, IdToken}
 import org.http4s.headers.Cookie
 import org.http4s.{Headers, Request, Response}
@@ -105,7 +105,7 @@ class AuthService[F[_]: Sync](val users: IdentityManager[F], comps: AuthComps[F]
       F.pure(SimpleBoatMeta(Usernames.anon, boatName): DeviceMeta)
     }
 
-  private def boatToken(headers: Headers): Option[F[JoinedBoat]] =
+  private def boatToken(headers: Headers): Option[F[JoinedSource]] =
     headers.get(CIString(BoatTokenHeader)).map { h =>
       users.authBoat(BoatToken(h.head.value))
     }
