@@ -368,12 +368,9 @@ class MapSocket(
   private def pointName(boat: BoatName) = s"boat-$boat"
   def deviceName(device: BoatName) = s"$DevicePrefix-$device"
   private def trophyName(track: TrackName) = s"$TrophyPrefix-$track"
-
   private def boatSymbolLayer(id: String, coord: Coord) =
     Layer.symbol(id, pointFor(coord), ImageLayout(boatIconId, `icon-size` = 0.7))
-
   private def deviceSymbolLayer(id: String, coord: Coord, props: DeviceProps) =
     Layer.symbol(id, pointForProps(coord, props), ImageLayout(deviceIconId, `icon-size` = 1))
-
   private def trophySymbolLayer(id: String, coord: Coord) =
     Layer.symbol(id, pointFor(coord), ImageLayout(trophyIconId, `icon-size` = 1))

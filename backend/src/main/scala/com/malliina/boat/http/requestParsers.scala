@@ -170,17 +170,6 @@ object BoatQuery:
       newest = false
     )
 
-  def recent(now: Instant): BoatQuery =
-    BoatQuery(
-      Limits.default,
-      TimeRange.recent(now),
-      Nil,
-      Nil,
-      None,
-      Option(DefaultSample),
-      newest = false
-    )
-
   def apply(q: Query): Either[Errors, BoatQuery] =
     for
       limits <- Limits(q)

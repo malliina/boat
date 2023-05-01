@@ -69,9 +69,8 @@ class MapView(
     "load",
     () =>
       val mode = if Option(href.getFragment).isDefined then MapMode.Stay else MapMode.Fit
-      val sample = queryInt(SampleKey).getOrElse(Constants.DefaultSample)
+      val sample = queryInt(SampleKey).getOrElse(1)
       socket = Option(MapSocket(map, pathFinder, parseUri, Option(sample), mode, language))
-//      loadCarTracks()
       if initialSettings.customCenter then
         map.putLayer(
           Layer.symbol(
@@ -93,17 +92,6 @@ class MapView(
 
   initNavDropdown()
 
-  private def loadCarTracks(): Unit =
-    HttpClient.get[CarHistoryResponse]("/cars/history").map { res =>
-      log.info(s"Got ${res.history.size} drives, adding to map...")
-      val features = res.history.map { drive =>
-        Feature(LineGeometry(drive.updates.map(_.coord)), Map.empty)
-      }
-      val lineLayer = Layer
-        .line("car-track", FeatureCollection(features), LinePaint(LinePaint.blackColor, 1, 1), None)
-      map.putLayer(lineLayer)
-    }
-
   private def focusSearch(className: String, e: KeyboardEvent) =
     document
       .getElementsByClassName(className)
@@ -116,10 +104,6 @@ class MapView(
             in.focus()
           }
       )
-
-  def craftSampleQuery =
-    val prefix = if queryString.isEmpty then "" else "&"
-    s"$prefix$SampleKey=${Constants.DefaultSample}"
 
   private def initModal(modal: Element): Unit =
     window.addOnClick { e =>

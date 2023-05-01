@@ -274,7 +274,7 @@ class Service[F[_]: Async](comps: BoatComps[F]) extends BasicService[F]:
         val username = user.username
         log.info(s"Viewer '${user.username}' joined.")
         BoatQuery(req.uri.query).map { boatQuery =>
-          log.info(s"Got $boatQuery")
+          log.debug(s"Got $boatQuery")
           val historicalLimits =
             if boatQuery.tracks.nonEmpty && username == Usernames.anon then
               BoatQuery.tracks(boatQuery.tracks)
@@ -288,31 +288,14 @@ class Service[F[_]: Async](comps: BoatComps[F]) extends BasicService[F]:
               s"Points ${es.map(_.coords.length).sum} intelligent $intelligentSample actual $actualSample"
             )
             F.pure(es.toList.map(_.sample(actualSample)))
-//            F.pure(es.toList)
           }
           val boatHistory = Stream.evalSeq(historyIO)
-          val gpsHistory = Stream.evalSeq(deviceStreams.db.history(user))
-//          val recentTime = TimeRange.recent(Instant.now().minus(48, ChronoUnit.HOURS))
-//          val carTime =
-//            if historicalLimits.timeRange == TimeRange.none then recentTime
-//            else historicalLimits.timeRange
-//          val carHistoryIO = cars.history(CarQuery(historicalLimits.limits, carTime, Nil), user)
-//          val carHistory = Stream.evalSeq(carHistoryIO)
           val formatter = TimeFormatter.lang(user.language)
           val boatUpdates = streams.clientEvents(formatter)
-          val gpsUpdates = deviceStreams.clientEvents(formatter)
-//          val carUpdates = cars.insertions.subscribe(100)
           val eventSource = (boatHistory ++ boatUpdates)
             .mergeHaltBoth(pings)
             .filter(_.isIntendedFor(user))
             .map(message => Text(message.asJson.noSpaces))
-          val eventSource3 =
-            ((boatHistory ++ gpsHistory) ++ boatUpdates
-              .mergeHaltBoth(gpsUpdates))
-//              .mergeHaltBoth(carUpdates))
-              .mergeHaltBoth(pings)
-              .filter(_.isIntendedFor(user))
-              .map(message => Text(message.asJson.noSpaces))
           webSocket(
             sockets,
             eventSource,
