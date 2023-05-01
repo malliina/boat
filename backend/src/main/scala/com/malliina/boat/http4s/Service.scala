@@ -284,11 +284,11 @@ class Service[F[_]: Async](comps: BoatComps[F]) extends BasicService[F]:
             // unless a sample is specified, return about 300 historical points - this optimization is for charts
             val intelligentSample = math.max(1, es.map(_.coords.length).sum / 300)
             val actualSample = boatQuery.sample.getOrElse(intelligentSample)
-            log.debug(
+            log.info(
               s"Points ${es.map(_.coords.length).sum} intelligent $intelligentSample actual $actualSample"
             )
-//            F.pure(es.toList.map(_.sample(actualSample)))
-            F.pure(es.toList)
+            F.pure(es.toList.map(_.sample(actualSample)))
+//            F.pure(es.toList)
           }
           val boatHistory = Stream.evalSeq(historyIO)
           val gpsHistory = Stream.evalSeq(deviceStreams.db.history(user))
