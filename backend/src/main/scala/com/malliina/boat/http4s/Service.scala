@@ -302,7 +302,11 @@ class Service[F[_]: Async](comps: BoatComps[F]) extends BasicService[F]:
           val boatUpdates = streams.clientEvents(formatter)
           val gpsUpdates = deviceStreams.clientEvents(formatter)
 //          val carUpdates = cars.insertions.subscribe(100)
-          val eventSource =
+          val eventSource = (boatHistory ++ boatUpdates)
+            .mergeHaltBoth(pings)
+            .filter(_.isIntendedFor(user))
+            .map(message => Text(message.asJson.noSpaces))
+          val eventSource3 =
             ((boatHistory ++ gpsHistory) ++ boatUpdates
               .mergeHaltBoth(gpsUpdates))
 //              .mergeHaltBoth(carUpdates))
