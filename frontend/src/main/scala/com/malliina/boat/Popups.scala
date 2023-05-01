@@ -13,10 +13,20 @@ class Popups(lang: Lang) extends BoatModels:
   private val limitsLang = lang.limits
 
   def track(point: PointProps) =
+    val isBoat = point.sourceType == SourceType.Boat
     titledTable(point.boatName.name)(
-      row(trackLang.speed, formatSpeed(point.speed)),
-      row(trackLang.water, point.waterTemp.formatCelsius),
-      row(trackLang.depth, point.depth.short),
+      row(
+        trackLang.speed,
+        if isBoat then formatSpeed(point.speed)
+        else formatSpeedKph(point.speed)
+      ),
+      if isBoat then
+        modifier(
+          row(trackLang.water, point.waterTemp.formatCelsius),
+          row(trackLang.depth, point.depth.short)
+        )
+      else empty,
+      point.outsideTemp.fold(empty)(ot => row(trackLang.water, ot.formatCelsius)),
       tr(td(colspan := 2)(point.dateTime))
     )
 

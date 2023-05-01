@@ -208,12 +208,11 @@ class TrackInserter[F[_]: Async](val db: DoobieDatabase[F])
       info <-
         sql"""select avg(water_temp), sum(diff), count(*)
               from points p
-              where p.track = $track
-              having avg(water_temp) is not null"""
+              where p.track = $track"""
           .query[DbTrackInfo]
           .option
       rows <- {
-        val avgTemp = info.map(_.avgTemp)
+        val avgTemp = info.flatMap(_.avgTemp)
         val points = info.map(_.points).getOrElse(0)
         val distance = info.map(_.distance).getOrElse(DistanceM.zero)
         sql"""update tracks

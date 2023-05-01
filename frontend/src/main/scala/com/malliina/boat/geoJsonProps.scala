@@ -18,15 +18,26 @@ case class PointProps(
   trackName: TrackName,
   speed: SpeedM,
   waterTemp: Temperature,
+  outsideTemp: Option[Temperature],
   depth: DistanceM,
-  dateTime: FormattedDateTime
+  dateTime: FormattedDateTime,
+  sourceType: SourceType
 )
 
 object PointProps:
   implicit val json: Codec[PointProps] = deriveCodec[PointProps]
 
   def apply(c: TimedCoord, ref: TrackRef): PointProps =
-    PointProps(ref.boatName, ref.trackName, c.speed, c.waterTemp, c.depthMeters, c.time.dateTime)
+    PointProps(
+      ref.boatName,
+      ref.trackName,
+      c.speed,
+      c.waterTemp,
+      c.outsideTemp,
+      c.depthMeters,
+      c.time.dateTime,
+      ref.sourceType
+    )
 
 case class DeviceProps(
   deviceName: BoatName,

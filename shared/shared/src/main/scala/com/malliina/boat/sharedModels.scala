@@ -174,6 +174,7 @@ case class TimedCoord(
   boatTimeMillis: Long,
   boatTimeOnly: FormattedTime,
   speed: SpeedM,
+  outsideTemp: Option[Temperature],
   waterTemp: Temperature,
   depthMeters: DistanceM,
   time: Timing

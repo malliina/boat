@@ -49,6 +49,7 @@ object DoobieTracksDatabase:
         instant.toEpochMilli,
         formatter.formatTime(instant),
         point.speed.getOrElse(SpeedM.zero),
+        point.outsideTemp,
         point.waterTemp.getOrElse(Temperature.zeroCelsius),
         point.depth.getOrElse(DistanceM.zero),
         formatter.timing(instant)
