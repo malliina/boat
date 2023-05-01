@@ -26,7 +26,7 @@ class Popups(lang: Lang) extends BoatModels:
           row(trackLang.depth, point.depth.short)
         )
       else empty,
-      point.outsideTemp.fold(empty)(ot => row(trackLang.water, ot.formatCelsius)),
+      point.outsideTemp.fold(empty)(ot => row(trackLang.temperature, ot.formatCelsius)),
       tr(td(colspan := 2)(point.dateTime))
     )
 
