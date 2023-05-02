@@ -162,6 +162,7 @@ case class FullCoord(
     sourceTime.toEpochMilli,
     formatter.formatTime(sourceTime),
     speed,
+    carStats.flatMap(_.altitude),
     carStats.flatMap(_.outsideTemperature),
     boat.waterTemp,
     boat.depth,

@@ -174,6 +174,7 @@ case class TimedCoord(
   boatTimeMillis: Long,
   boatTimeOnly: FormattedTime,
   speed: SpeedM,
+  altitude: Option[DistanceM],
   outsideTemp: Option[Temperature],
   waterTemp: Temperature,
   depthMeters: DistanceM,
@@ -501,19 +502,6 @@ extension (e: Energy)
   def wattHours: Double = e
   def -(other: Energy): Energy = Energy(e.wattHours - other.wattHours)
 extension (e: Double) def wh: Energy = Energy(e)
-
-case class CarUpdate(
-  coord: Coord,
-  diff: DistanceM,
-  speed: Option[SpeedM],
-  batteryLevel: Option[Energy],
-  batteryCapacity: Option[Energy],
-  rangeRemaining: Option[DistanceM],
-  outsideTemperature: Option[Temperature],
-  nightMode: Option[Boolean],
-  carTime: Timing,
-  added: Timing
-) derives Codec.AsObject
 
 case class CarInfo(id: DeviceId, name: BoatName, username: Username) derives Codec.AsObject
 

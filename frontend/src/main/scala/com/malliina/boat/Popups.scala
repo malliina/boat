@@ -27,18 +27,13 @@ class Popups(lang: Lang) extends BoatModels:
         )
       else empty,
       point.outsideTemp.fold(empty)(ot => row(trackLang.temperature, ot.formatCelsius)),
+      point.altitude.fold(empty)(a => row(trackLang.env.altitude, formatDistance(a))),
       tr(td(colspan := 2)(point.dateTime))
     )
 
   def device(point: DeviceProps) =
     titledTable(point.deviceName.name)(
       tr(td(colspan := 2)(point.dateTime))
-    )
-
-  def car(name: BoatName, info: CarUpdate) =
-    titledTable(name.name)(
-      info.speed.fold(empty)(s => row(trackLang.speed, formatSpeedKph(s))),
-      tr(td(colspan := 2)(info.carTime.dateTime))
     )
 
   def ais(vessel: VesselInfo) =

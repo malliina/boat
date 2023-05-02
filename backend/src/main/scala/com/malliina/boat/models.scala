@@ -133,6 +133,7 @@ case class CarRow(
   coord: Coord,
   diff: DistanceM,
   speed: Option[SpeedM],
+  altitude: Option[DistanceM],
   batteryLevel: Option[Energy],
   batteryCapacity: Option[Energy],
   rangeRemaining: Option[DistanceM],
@@ -141,20 +142,7 @@ case class CarRow(
   carTime: Instant,
   added: Instant,
   car: CarInfo
-):
-  def toUpdate(formatter: TimeFormatter): CarUpdate =
-    CarUpdate(
-      coord,
-      diff,
-      speed,
-      batteryLevel,
-      batteryCapacity,
-      rangeRemaining,
-      outsideTemperature,
-      nightMode,
-      formatter.timing(carTime),
-      formatter.timing(added)
-    )
+)
 
 case class JoinedTrack(
   track: TrackId,
@@ -442,6 +430,7 @@ case class SentenceCoord2(
   lat: Latitude,
   coord: Coord,
   boatSpeed: SpeedM,
+  altitude: Option[DistanceM],
   outsideTemp: Option[Temperature],
   waterTemp: Temperature,
   depth: DistanceM,
@@ -460,6 +449,7 @@ case class SentenceCoord2(
     lat,
     coord,
     Option(boatSpeed),
+    altitude,
     outsideTemp,
     Option(waterTemp),
     Option(depth),
@@ -477,6 +467,7 @@ case class CombinedCoord(
   lat: Latitude,
   coord: Coord,
   speed: Option[SpeedM],
+  altitude: Option[DistanceM],
   outsideTemp: Option[Temperature],
   waterTemp: Option[Temperature],
   depth: Option[DistanceM],
@@ -504,6 +495,7 @@ case class CombinedCoord(
       formatter.timing(sourceTime)
     )
 
+  // TODO Fix the getOrElses, they're lies
   def timed(formatter: TimeFormatter): TimedCoord =
     val instant = sourceTime
     TimedCoord(
@@ -513,6 +505,7 @@ case class CombinedCoord(
       instant.toEpochMilli,
       formatter.formatTime(instant),
       speed.getOrElse(SpeedM.zero),
+      altitude,
       outsideTemp,
       waterTemp.getOrElse(Temperature.zeroCelsius),
       depth.getOrElse(DistanceM.zero),
@@ -560,6 +553,7 @@ case class TrackPointRow(
   latitude: Latitude,
   coord: Coord,
   speed: Option[SpeedM],
+  altitude: Option[DistanceM],
   outsideTemp: Option[Temperature],
   waterTemp: Option[Temperature],
   depthm: Option[DistanceM],

@@ -464,6 +464,8 @@ case class FairwayLang(
 
 case class AisLang(draft: String, destination: String, shipType: String) derives Codec.AsObject
 
+case class EnvLang(altitude: String) derives Codec.AsObject
+
 case class TrackLang(
   track: String,
   boats: String,
@@ -485,7 +487,8 @@ case class TrackLang(
   trackHistory: String,
   graph: String,
   coordinate: String,
-  comments: String
+  comments: String,
+  env: EnvLang
 ) derives Codec.AsObject
 
 case class MarkLang(
@@ -1052,7 +1055,8 @@ object Lang:
       "Track History",
       "Graph",
       "Coordinates",
-      "Comments"
+      "Comments",
+      EnvLang("Altitude")
     ),
     mark = MarkLang(
       markType = "Mark",
@@ -1216,7 +1220,8 @@ object Lang:
       "Edelliset",
       "Käyrät",
       "Koordinaatit",
-      "Kommentit"
+      "Kommentit",
+      EnvLang("Korkeus")
     ),
     mark = MarkLang(
       markType = "Merkin laji",
@@ -1385,7 +1390,8 @@ object Lang:
       "Tidigare",
       "Visualisering",
       "Koordinater",
-      "Kommentarer"
+      "Kommentarer",
+      EnvLang("Höjd")
     ),
     mark = MarkLang(
       markType = "Märke",

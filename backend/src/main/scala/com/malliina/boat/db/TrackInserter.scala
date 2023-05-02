@@ -190,10 +190,10 @@ class TrackInserter[F[_]: Async](val db: DoobieDatabase[F])
   def saveCoords(coord: PointInsert): F[InsertedPoint] = run {
     val track = coord.track
     val trail =
-      sql"""select id, longitude, latitude, coord, speed, outside_temperature, water_temp, depthm, depth_offsetm, source_time, track, track_index, diff, added
+      sql"""select coord, track_index
             from points p
             where p.track = $track"""
-    val previous = sql"$trail order by p.track_index desc limit 1".query[TrackPointRow].option
+    val previous = sql"$trail order by p.track_index desc limit 1".query[PreviousPoint].option
     for
       prev <- previous
       diff <- prev.map(p => computeDistance(p.coord, coord.coord)).getOrElse(pure(DistanceM.zero))

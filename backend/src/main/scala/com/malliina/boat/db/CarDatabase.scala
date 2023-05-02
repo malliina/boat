@@ -83,7 +83,7 @@ class CarDatabase[F[_]: Async](val db: DoobieDatabase[F]) extends DoobieSQL:
       filters.ids.toNel.map(ids => Fragments.in(fr"c.id", ids)),
       Option(fr"u.user = ${user.username}")
     )
-    sql"""select c.coord, c.diff, c.speed, c.battery, c.capacity, c.car_range, c.outside_temperature, c.night_mode, c.gps_time, c.added, b.id, b.name, u.user
+    sql"""select c.coord, c.diff, c.speed, c.altitude, c.battery, c.capacity, c.car_range, c.outside_temperature, c.night_mode, c.gps_time, c.added, b.id, b.name, u.user
           from car_points c
           join boats b on b.id = c.device
           join users u on b.owner = u.id

@@ -20,6 +20,8 @@ case class PushInput(token: PushToken, device: MobileDevice, user: UserId)
 
 case class DbTrackInfo(avgTemp: Option[Temperature], distance: Option[DistanceM], points: Int)
 
+case class PreviousPoint(coord: Coord, trackIndex: Int)
+
 case class CoordFairway(coord: CoordHash, fairway: FairwayRow)
 case class CoordFairways(coord: CoordHash, fairways: Seq[FairwayRow])
 
