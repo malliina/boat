@@ -14,7 +14,7 @@ import com.malliina.boat.html.BoatHtml
 import com.malliina.boat.http4s.Implicits.circeJsonEncoder
 import com.malliina.boat.http4s.BoatComps
 import com.malliina.boat.push.{BoatPushService, PushEndpoint}
-import com.malliina.boat.{AppMeta, AppMode, BoatConf, BuildInfo, CarDrive, Errors, Logging, S3Client, SingleError}
+import com.malliina.boat.{AppMeta, AppMode, BoatConf, BuildInfo, Errors, Logging, S3Client, SingleError}
 import com.malliina.http.HttpClient
 import com.malliina.http.io.HttpClientIO
 import com.malliina.logback.LogbackUtils
@@ -110,7 +110,6 @@ object Server extends IOApp:
       ais <- BoatMqttClient.build(conf.ais.enabled, AppMode.fromBuild, dispatcher)
       streams <- BoatStreams.resource(trackInserts, vesselDb, ais)
       deviceStreams <- GPSStreams.resource(gps)
-      carInsertions <- Resource.eval(Topic[F, CarDrive])
       s3 <- S3Client.build[F]()
     yield
       val appComps = builder.build(conf, http)
@@ -152,7 +151,7 @@ object Server extends IOApp:
         push,
         streams,
         deviceStreams,
-        CarDatabase(db, carInsertions)
+        CarDatabase(db)
       )
       Service(comps)
 

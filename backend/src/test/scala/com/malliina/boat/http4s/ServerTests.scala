@@ -1,7 +1,7 @@
 package com.malliina.boat.http4s
 
 import cats.effect.IO
-import com.malliina.boat.{CarHistoryResponse, DeviceId, Errors, Latitude, LocationUpdate, LocationUpdates, Longitude, SimpleMessage, TimeFormatter, wh}
+import com.malliina.boat.{DeviceId, Errors, Latitude, LocationUpdate, LocationUpdates, Longitude, SimpleMessage, TimeFormatter, wh}
 import com.malliina.http.io.HttpClientIO
 import com.malliina.http.{FullUrl, HttpClient, OkClient}
 import com.malliina.measure.*

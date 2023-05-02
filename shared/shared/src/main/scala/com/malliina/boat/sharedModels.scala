@@ -517,22 +517,6 @@ case class CarUpdate(
 
 case class CarInfo(id: DeviceId, name: BoatName, username: Username) derives Codec.AsObject
 
-case class CarDrive(updates: List[CarUpdate], car: CarInfo) extends CarFrontEvent
-  derives Codec.AsObject:
-  def isDistinct(other: CarDrive): Boolean =
-    val tooMuchTimeHasPassed = for
-      thisEnd <- updates.lastOption
-      otherStart <- other.updates.headOption
-    yield otherStart.carTime.millis - thisEnd.carTime.millis > Constants.MaxTimeBetweenCarUpdates.toMillis
-    val notTheSameCar = car.id != other.car.id
-    notTheSameCar || tooMuchTimeHasPassed.getOrElse(false)
-  def isContinuous(other: CarDrive): Boolean = !isDistinct(other)
-object CarDrive:
-  val Key = "car-coords"
-  val eventedJson: Codec[CarDrive] = keyValued(Key, deriveCodec[CarDrive])
-
-case class CarHistoryResponse(history: List[CarDrive]) derives Codec.AsObject
-
 case class CoordsBatch(events: Seq[CoordsEvent]) extends FrontEvent:
   override def isIntendedFor(user: MinimalUserInfo): Boolean =
     events.forall(_.isIntendedFor(user))
@@ -584,15 +568,13 @@ sealed trait BoatFrontEvent extends FrontEvent:
     user.username == from.username || user.authorized.contains(from.boatName)
 
 object FrontEvent:
-  implicit val carDriveJson: Codec[CarDrive] = CarDrive.eventedJson
   implicit val decoder: Decoder[FrontEvent] = List[Decoder[FrontEvent]](
     Decoder[VesselMessages].widen,
     Decoder[CoordsEvent].widen,
     Decoder[CoordsBatch].widen,
     Decoder[SentencesEvent].widen,
     Decoder[PingEvent].widen,
-    Decoder[GPSCoordsEvent].widen,
-    Decoder[CarDrive].widen
+    Decoder[GPSCoordsEvent].widen
   ).reduceLeft(_ or _)
   implicit val encoder: Encoder[FrontEvent] = {
     case se @ SentencesEvent(_, _)  => se.asJson
@@ -601,7 +583,6 @@ object FrontEvent:
     case pe @ PingEvent(_, _)       => pe.asJson
     case vs @ VesselMessages(_)     => vs.asJson
     case gce @ GPSCoordsEvent(_, _) => gce.asJson
-    case cd @ CarDrive(_, _)        => cd.asJson
   }
 
 case class SentencesMessage(sentences: Seq[RawSentence]):

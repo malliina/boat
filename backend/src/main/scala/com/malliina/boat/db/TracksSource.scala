@@ -46,4 +46,4 @@ trait TracksSource[F[_]]:
 
 trait CarOps[F[_]]:
   def save(locs: LocationUpdates, user: UserId): F[List[CarUpdateId]]
-  def carHistory(user: MinimalUserInfo, filters: CarQuery): F[List[CarDrive]]
+  def carHistory(user: MinimalUserInfo, filters: CarQuery): F[List[CarRow]]

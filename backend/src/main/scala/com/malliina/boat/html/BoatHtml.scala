@@ -4,7 +4,7 @@ import com.malliina.assets.HashedAssets
 import com.malliina.boat.FrontKeys.*
 import com.malliina.boat.http.{Limits, TrackQuery}
 import com.malliina.boat.http4s.Reverse
-import com.malliina.boat.{AppConf, AppMode, BuildInfo, CarDrive, Coord, FrontKeys, FullTrack, Lang, TrackRef, TracksBundle, UserBoats, UserInfo, Usernames}
+import com.malliina.boat.{AppConf, AppMode, BuildInfo, Coord, FrontKeys, FullTrack, Lang, TrackRef, TracksBundle, UserBoats, UserInfo, Usernames}
 import com.malliina.html.HtmlTags.{cssLink, deviceWidthViewport, fullUrl, titleTag}
 import com.malliina.html.{Bootstrap, HtmlTags}
 import com.malliina.http.FullUrl
@@ -43,9 +43,6 @@ class BoatHtml(
 
   implicit def wrapFrag[T <: WrappedString](w: T): Modifier = stringFrag(w.value)
   implicit def wrapAttr[T <: WrappedString]: AttrValue[T] = BoatImplicits.boatStringAttr(_.value)
-
-  def carHistory(drives: List[CarDrive]) =
-    page(PageConf(CarHistoryPage(drives)))
 
   def devices(user: UserInfo) =
     page(PageConf(BoatsPage(user), bodyClasses = Seq(BoatsClass)))

@@ -1,7 +1,7 @@
 package com.malliina.boat.http4s
 
 import cats.effect.IO
-import com.malliina.boat.{CarHistoryResponse, DeviceId, Errors, Latitude, LocationUpdate, LocationUpdates, Longitude, SimpleMessage, TimeFormatter, wh}
+import com.malliina.boat.{DeviceId, Errors, Latitude, LocationUpdate, LocationUpdates, Longitude, SimpleMessage, TimeFormatter, wh}
 import com.malliina.http.io.HttpClientIO
 import com.malliina.http.{FullUrl, HttpClient, OkClient}
 import com.malliina.measure.*
@@ -66,21 +66,21 @@ class CarServerTests extends MUnitSuite with ServerSuite:
   }
 
   test("POST car locations".ignore) {
-    for
-      postResponse <- postCars(updates = LocationUpdates(List(loc, loc2), testCarId))
-      _ = assertEquals(postResponse.status, Ok.code)
-      history <- client.getAs[CarHistoryResponse](getCarsUrl, headers())
-    yield
-      val drives = history.history
-      assert(drives.nonEmpty)
-      val expected = loc.outsideTemperature.map(_.celsius.toInt)
-      val latestDrive = drives.lastOption.toList
-        .flatMap(_.updates)
-      val hasTemp = latestDrive
-        .exists(u => u.outsideTemperature.map(_.celsius.toInt) == expected)
-      assert(hasTemp)
-      // Distance between the two test coordinates is around 35 km
-      assert(latestDrive.exists(_.diff > 30.km))
+//    for
+//      postResponse <- postCars(updates = LocationUpdates(List(loc, loc2), testCarId))
+//      _ = assertEquals(postResponse.status, Ok.code)
+//      history <- client.getAs[CarHistoryResponse](getCarsUrl, headers())
+//    yield
+//      val drives = history.history
+//      assert(drives.nonEmpty)
+//      val expected = loc.outsideTemperature.map(_.celsius.toInt)
+//      val latestDrive = drives.lastOption.toList
+//        .flatMap(_.updates)
+//      val hasTemp = latestDrive
+//        .exists(u => u.outsideTemperature.map(_.celsius.toInt) == expected)
+//      assert(hasTemp)
+//      // Distance between the two test coordinates is around 35 km
+//      assert(latestDrive.exists(_.diff > 30.km))
   }
 
   test("POST car locations for non-owned car fails".ignore) {

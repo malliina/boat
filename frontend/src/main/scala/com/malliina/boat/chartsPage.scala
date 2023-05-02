@@ -70,4 +70,3 @@ class ChartSocket(ctx: CanvasRenderingContext2D, track: TrackName, sample: Optio
 
   override def onGps(event: GPSCoordsEvent): Unit = ()
   override def onAIS(messages: Seq[VesselInfo]): Unit = ()
-  override def onCarUpdates(drive: CarDrive): Unit = ()
