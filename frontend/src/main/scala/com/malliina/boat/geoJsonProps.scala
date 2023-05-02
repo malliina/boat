@@ -8,10 +8,7 @@ import io.circe.generic.semiauto.*
   *
   * Use simple JSON primitives only as values (no objects), nested objects do not seem to work.
   */
-case class VesselProps(mmsi: Mmsi, name: VesselName, heading: Int)
-
-object VesselProps:
-  implicit val json: Codec[VesselProps] = deriveCodec[VesselProps]
+case class VesselProps(mmsi: Mmsi, name: VesselName, heading: Int) derives Codec.AsObject
 
 case class PointProps(
   boatName: BoatName,
@@ -23,11 +20,9 @@ case class PointProps(
   depth: DistanceM,
   dateTime: FormattedDateTime,
   sourceType: SourceType
-)
+) derives Codec.AsObject
 
 object PointProps:
-  implicit val json: Codec[PointProps] = deriveCodec[PointProps]
-
   def apply(c: TimedCoord, ref: TrackRef): PointProps =
     PointProps(
       ref.boatName,
@@ -46,11 +41,9 @@ case class DeviceProps(
   lng: Longitude,
   lat: Latitude,
   dateTime: FormattedDateTime
-):
+) derives Codec.AsObject:
   def coord = Coord(lng, lat)
 
 object DeviceProps:
-  implicit val json: Codec[DeviceProps] = deriveCodec[DeviceProps]
-
   def apply(c: GPSTimedCoord, ref: DeviceRef): DeviceProps =
     DeviceProps(ref.deviceName, c.coord.lng, c.coord.lat, c.time.dateTime)

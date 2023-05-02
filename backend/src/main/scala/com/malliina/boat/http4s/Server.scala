@@ -105,11 +105,9 @@ object Server extends IOApp:
       users = DoobieUserManager(db)
       _ <- Resource.eval(users.initUser())
       trackInserts = TrackInserter(db)
-      gps = DoobieGPSDatabase(db)
       vesselDb = BoatVesselDatabase(db)
       ais <- BoatMqttClient.build(conf.ais.enabled, AppMode.fromBuild, dispatcher)
       streams <- BoatStreams.resource(trackInserts, vesselDb, ais)
-      deviceStreams <- GPSStreams.resource(gps)
       s3 <- S3Client.build[F]()
     yield
       val appComps = builder.build(conf, http)
@@ -150,7 +148,6 @@ object Server extends IOApp:
         s3,
         push,
         streams,
-        deviceStreams,
         CarDatabase(db)
       )
       Service(comps)

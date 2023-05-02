@@ -56,7 +56,6 @@ class Service[F[_]: Async](comps: BoatComps[F]) extends BasicService[F]:
   val db = comps.db
   val inserts = comps.inserts
   val streams = comps.streams
-  val deviceStreams = comps.devices
   val cars = comps.cars
   val push = comps.push
   val web = auth.web
@@ -350,25 +349,6 @@ class Service[F[_]: Async](comps: BoatComps[F]) extends BasicService[F]:
               }
           }
         }
-    case req @ GET -> Root / "ws" / "devices" =>
-      auth.authDevice(req.headers).flatMap { meta =>
-        inserts.joinAsDevice(meta).flatMap { boat =>
-          webSocket(
-            sockets,
-            toClients,
-            message =>
-              deviceStreams.in
-                .publish1(DeviceEvent(parseUnsafe(message), boat))
-                .map(
-                  _.fold(
-                    err => log.warn(s"Failed to publish '$message', topic closed."),
-                    identity
-                  )
-                ),
-            onClose = F.delay(log.info(s"Device '${boat.boatName}' by '${boat.username}' left."))
-          )
-        }
-      }
     case req @ POST -> Root / "cars" / "locations" =>
       jsonAction[LocationUpdates](req) { (body, user) =>
         user.boats

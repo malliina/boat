@@ -16,6 +16,5 @@ case class BoatComps[F[_]](
   s3: S3Client[F],
   push: PushService[F],
   streams: BoatStreams[F],
-  devices: GPSStreams[F],
   cars: CarDatabase[F]
 )
