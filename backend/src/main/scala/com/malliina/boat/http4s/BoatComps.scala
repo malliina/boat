@@ -15,6 +15,5 @@ case class BoatComps[F[_]](
   mapboxToken: AccessToken,
   s3: S3Client[F],
   push: PushService[F],
-  streams: BoatStreams[F],
-  cars: CarDatabase[F]
+  streams: BoatStreams[F]
 )

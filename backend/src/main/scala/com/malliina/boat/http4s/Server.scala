@@ -147,8 +147,7 @@ object Server extends IOApp:
         conf.mapbox.token,
         s3,
         push,
-        streams,
-        CarDatabase(db)
+        streams
       )
       Service(comps)
 

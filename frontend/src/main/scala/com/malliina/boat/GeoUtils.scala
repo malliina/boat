@@ -6,6 +6,7 @@ import io.circe.syntax.EncoderOps
 
 trait GeoUtils:
   val boatIconId = "boat-resized-opt-30"
+  val carIconId = "car4"
   val trophyIconId = "trophy-gold-path"
   val deviceIconId = "device-icon"
 

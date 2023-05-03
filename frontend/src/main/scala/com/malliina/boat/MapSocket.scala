@@ -65,6 +65,7 @@ class MapSocket(
 
   override def onCoords(event: CoordsEvent): Unit =
     val from = event.from
+    val isBoat = from.sourceType == SourceType.Boat
     val trackId = from.track
     val coordsInfo = event.coords
     val coords = coordsInfo.map(_.coord)
@@ -94,7 +95,8 @@ class MapSocket(
       map.putLayer(trackLineLayer(hoverableTrack, LinePaint(LinePaint.blackColor, 5, 0)))
       coords.lastOption.foreach { coord =>
         // adds boat icon
-        map.putLayer(boatSymbolLayer(point, coord))
+        val layer = if isBoat then boatSymbolLayer(point, coord) else carSymbolLayer(point, coord)
+        map.putLayer(layer)
         map.onHover(point)(
           in =>
             map.getCanvas().style.cursor = "pointer"
@@ -135,7 +137,7 @@ class MapSocket(
           popups.isTrackHover = false
           trackPopup.remove()
       )
-    // updates the boat icon
+    // updates the source icon
     map.findSource(point).foreach { geoJson =>
       coords.lastOption.foreach { coord =>
         // updates placement
@@ -143,7 +145,10 @@ class MapSocket(
         // updates bearing
         newTrack.features.flatMap(_.geometry.coords).takeRight(2).toList match
           case prev :: last :: _ =>
-            map.setLayoutProperty(point, ImageLayout.IconRotate, bearing(prev, last).toInt)
+            val spin = bearing(prev, last).toInt
+            // The car SVG icon is pointing left, so this rotates by 90 degrees
+            val rotation = if isBoat then spin else (spin + 90) % 360
+            map.setLayoutProperty(point, ImageLayout.IconRotate, rotation)
           case _ =>
             ()
       }
@@ -304,6 +309,8 @@ class MapSocket(
   private def trophyName(track: TrackName) = s"$TrophyPrefix-$track"
   private def boatSymbolLayer(id: String, coord: Coord) =
     Layer.symbol(id, pointFor(coord), ImageLayout(boatIconId, `icon-size` = 0.7))
+  private def carSymbolLayer(id: String, coord: Coord) =
+    Layer.symbol(id, pointFor(coord), ImageLayout(carIconId, `icon-size` = 0.5))
   private def deviceSymbolLayer(id: String, coord: Coord, props: DeviceProps) =
     Layer.symbol(id, pointForProps(coord, props), ImageLayout(deviceIconId, `icon-size` = 1))
   private def trophySymbolLayer(id: String, coord: Coord) =

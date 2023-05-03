@@ -56,7 +56,6 @@ class Service[F[_]: Async](comps: BoatComps[F]) extends BasicService[F]:
   val db = comps.db
   val inserts = comps.inserts
   val streams = comps.streams
-  val cars = comps.cars
   val push = comps.push
   val web = auth.web
   val cookieNames = web.cookieNames
