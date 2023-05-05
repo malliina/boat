@@ -17,7 +17,7 @@ import com.malliina.boat.http.InviteResult.{AlreadyInvited, Invited, UnknownEmai
 import com.malliina.boat.http.*
 import com.malliina.boat.http4s.BasicService.{cached, noCache, ranges}
 import com.malliina.boat.http4s.Service.{RequestOps, log}
-import com.malliina.boat.push.{BoatState, PushService}
+import com.malliina.boat.push.{SourceState, PushService}
 import com.malliina.util.AppLogger
 import com.malliina.values.{Email, Readable, UserId, Username}
 import com.malliina.web.OAuthKeys.{Nonce, State}
@@ -309,43 +309,37 @@ class Service[F[_]: Async](comps: BoatComps[F]) extends BasicService[F]:
         .authBoat(req.headers)
         .flatMap { boat =>
           log.info(s"Boat '${boat.boat}' by '${boat.user}' connected.")
-          inserts.joinAsBoat(boat).flatMap { meta =>
-            push
-              .push(meta, BoatState.Connected)
-              .as[Unit](())
-              .handleErrorWith { t =>
-                F.delay(log.error(s"Failed to push all device notifications.", t))
-              }
-              .flatMap { _ =>
-                webSocket(
-                  sockets,
-                  toClients,
-                  message =>
-                    log.debug(s"Boat '${boat.boat}' by '${boat.user}' says '$message'.")
-                    val parsed = parseUnsafe(message)
-                    streams.boatIn
-                      .publish1(BoatEvent(parsed, meta))
-                      .map(e =>
-                        e.fold(
-                          err =>
-                            log
-                              .warn(s"Failed to publish '$message' by ${boat.boat}, topic closed."),
-                          identity
-                        )
+          inserts.joinAsSource(boat).flatMap { meta =>
+            pushNotification(meta).flatMap { _ =>
+              webSocket(
+                sockets,
+                toClients,
+                message =>
+                  log.debug(s"Boat '${boat.boat}' by '${boat.user}' says '$message'.")
+                  val parsed = parseUnsafe(message)
+                  streams.boatIn
+                    .publish1(BoatEvent(parsed, meta))
+                    .map(e =>
+                      e.fold(
+                        err =>
+                          log
+                            .warn(s"Failed to publish '$message' by ${boat.boat}, topic closed."),
+                        identity
                       )
-                  ,
-                  onClose =
-                    F.delay(log.info(s"Boat '${boat.boat}' by '${boat.user}' left.")).flatMap { _ =>
-                      push.push(meta, BoatState.Disconnected).map(_ => ())
-                    }
-                ).onError { t =>
-                  F.delay(
-                    log.info(s"Boat '${boat.boat}' by '${boat.user}' left exceptionally.", t)
-                  ).flatMap { _ =>
-                    push.push(meta, BoatState.Disconnected).map(_ => ())
+                    )
+                ,
+                onClose =
+                  F.delay(log.info(s"Boat '${boat.boat}' by '${boat.user}' left.")).flatMap { _ =>
+                    push.push(meta, SourceState.Disconnected).map(_ => ())
                   }
+              ).onError { t =>
+                F.delay(
+                  log.info(s"Boat '${boat.boat}' by '${boat.user}' left exceptionally.", t)
+                ).flatMap { _ =>
+                  push.push(meta, SourceState.Disconnected).map(_ => ())
                 }
               }
+            }
           }
         }
     case req @ POST -> Root / "cars" / "locations" =>
@@ -354,16 +348,17 @@ class Service[F[_]: Async](comps: BoatComps[F]) extends BasicService[F]:
           .find(_.id == body.carId)
           .map { device =>
             import cats.implicits.*
-            val meta = SimpleBoatMeta(user.username, device.name)
-            inserts.joinAsBoat(meta).flatMap { meta =>
+            val deviceMeta = SimpleBoatMeta(user.username, device.name)
+            inserts.joinAsSource(deviceMeta).flatMap { meta =>
               val count = body.updates.size
               log.debug(s"User ${user.email} POSTs $count car updates...")
-              body.updates.traverse { loc =>
+              val insertion = body.updates.traverse { loc =>
                 val in = CarCoord.fromUpdate(loc, meta.track)
                 inserts.saveCoords(in)
               }.flatMap { inserteds =>
                 ok(SimpleMessage(s"Saved ${inserteds.size} updates."))
               }
+              pushNotification(meta) >> insertion
             }
           }
           .getOrElse {
@@ -445,6 +440,14 @@ class Service[F[_]: Async](comps: BoatComps[F]) extends BasicService[F]:
         html = index(req)
       )
   }
+
+  private def pushNotification(meta: UserDevice) =
+    push
+      .push(meta, SourceState.Connected)
+      .as[Unit](())
+      .handleErrorWith { t =>
+        F.delay(log.error(s"Failed to push all device notifications for '${meta.deviceName}'.", t))
+      }
 
   private def parseUnsafe(message: String) =
     parse(message).fold(err => throw Exception(s"Not JSON: '$message'. $err"), identity)

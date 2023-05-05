@@ -2,16 +2,15 @@ package com.malliina.boat.http4s
 
 import cats.effect.kernel.Resource
 import cats.effect.{Async, Concurrent, IO, Sync}
-import cats.syntax.all.{catsSyntaxApplicativeError, toFlatMapOps, toFunctorOps}
-import cats.syntax.all.catsSyntaxFlatMapOps
+import cats.syntax.all.{catsSyntaxApplicativeError, catsSyntaxFlatMapOps, toFlatMapOps, toFunctorOps}
 import com.malliina.boat.ais.AISSource
 import com.malliina.boat.db.{TrackInsertsDatabase, VesselDatabase}
 import com.malliina.boat.http4s.BoatStreams.{log, rights}
 import com.malliina.boat.parsing.*
 import com.malliina.boat.{BoatEvent, BoatJsonError, CoordsEvent, EmptyEvent, FrontEvent, InputEvent, PingEvent, SentencesMessage, TimeFormatter, VesselMessages}
 import com.malliina.util.AppLogger
-import fs2.concurrent.Topic
 import fs2.Stream
+import fs2.concurrent.Topic
 
 object BoatStreams:
   private val log = AppLogger(getClass)

@@ -6,7 +6,6 @@ import cats.effect.kernel.implicits.monadCancelOps_
 import cats.implicits.*
 import com.malliina.boat.*
 import com.malliina.boat.db.CarDatabase.log
-import com.malliina.boat.db.TrackInserter.log
 import com.malliina.boat.http.CarQuery
 import com.malliina.measure.DistanceM
 import com.malliina.util.AppLogger

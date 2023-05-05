@@ -4,17 +4,15 @@ import cats.Applicative
 import cats.data.NonEmptyList
 import cats.effect.{IO, Sync}
 import cats.implicits.*
-import com.malliina.boat.Errors
 import com.malliina.boat.db.{BoatNotFoundException, IdentityException, MissingCredentialsException}
 import com.malliina.boat.http4s.BasicService.{log, noCache}
-import com.malliina.util.AppLogger
+import com.malliina.boat.{Errors, message}
 import com.malliina.http.ResponseException
+import com.malliina.util.AppLogger
 import com.malliina.web.{AuthException, WebAuthException}
-import com.malliina.boat.message
-import org.http4s.CacheDirective.*
-import org.http4s.headers.{Location, `Content-Type`, `WWW-Authenticate`}
 import org.http4s.*
-import org.http4s.headers.{Accept, Location, `Cache-Control`}
+import org.http4s.CacheDirective.*
+import org.http4s.headers.*
 
 import java.io.IOException
 import scala.concurrent.duration.FiniteDuration

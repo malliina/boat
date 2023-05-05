@@ -53,8 +53,11 @@ class DoobiePushDatabase[F[_]: Async](db: DoobieDatabase[F], push: PushEndpoint[
     }
   }
 
-  def push(device: UserDevice, state: BoatState): F[PushSummary] =
-    val notification = BoatNotification(device.deviceName, state)
+  /** Pushes at most once every five minutes to a given device.
+    */
+  def push(device: UserDevice, state: SourceState): F[PushSummary] =
+    val notification = SourceNotification(device.deviceName, state)
+    val deviceId = device.device
     val devices = db.run {
       // pushes at most once every five minutes as per the "not exists" clause
       sql"""select id, token, device, user, added
@@ -62,14 +65,14 @@ class DoobiePushDatabase[F[_]: Async](db: DoobieDatabase[F], push: PushEndpoint[
             where user = ${device.userId} and
             not exists(select timestampdiff(SECOND, max(h.added), now())
                        from push_history h
-                       where h.device = ${device.device}
+                       where h.device = $deviceId
                        having timestampdiff(SECOND, max(h.added), now()) < 300)"""
         .query[PushDevice]
         .to[List]
     }
     val bookkeeping = db.run {
-      sql"""insert into push_history(device) values(${device.device})""".update.run.map { _ =>
-        log.info(s"Recorded push history for device '${device.device}' (${device.deviceName}).")
+      sql"""insert into push_history(device) values($deviceId)""".update.run.map { _ =>
+        log.info(s"Recorded push history for device '$deviceId' (${device.deviceName}).")
       }
     }
     for

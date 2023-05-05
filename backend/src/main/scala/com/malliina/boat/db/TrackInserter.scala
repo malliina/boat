@@ -93,7 +93,7 @@ class TrackInserter[F[_]: Async](val db: DoobieDatabase[F])
       updated
   }
 
-  def joinAsBoat(meta: DeviceMeta): F[TrackMeta] = run {
+  def joinAsSource(meta: DeviceMeta): F[TrackMeta] = run {
     val existing: ConnectionIO[List[TrackMeta]] = trackMetas(
       fr"and u.user = ${meta.user} and b.name = ${meta.boat} and t.id in (select p.track from points p where p.added > now() - interval 10 minute)"
     ).to[List]

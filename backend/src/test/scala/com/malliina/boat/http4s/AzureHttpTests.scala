@@ -4,15 +4,14 @@ import cats.effect.IO
 import com.malliina.boat.{DeviceId, Errors, Latitude, LocationUpdate, LocationUpdates, Longitude, SimpleMessage, TimeFormatter}
 import com.malliina.http.io.HttpClientIO
 import com.malliina.http.{FullUrl, HttpClient, OkClient}
-import com.malliina.values.{IdToken, UserId}
 import com.malliina.measure.DistanceIntM
-import com.malliina.values.degrees
+import com.malliina.values.{IdToken, UserId, degrees}
 import io.circe.Decoder
 import io.circe.syntax.EncoderOps
 import okhttp3.{Interceptor, OkHttpClient, Protocol}
+import org.http4s.Status.{NotFound, Ok, Unauthorized}
 import org.http4s.headers.Authorization
 import org.http4s.{Request, Status}
-import org.http4s.Status.{NotFound, Ok, Unauthorized}
 import tests.{MUnitSuite, ServerSuite, TestEmailAuth}
 
 import java.time.{OffsetDateTime, ZoneOffset}

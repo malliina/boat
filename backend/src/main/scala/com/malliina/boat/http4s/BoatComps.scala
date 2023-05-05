@@ -1,9 +1,9 @@
 package com.malliina.boat.http4s
 
-import com.malliina.boat.{AccessToken, S3Client}
-import com.malliina.boat.db.{CarDatabase, StatsSource, TrackInsertsDatabase, TracksSource, VesselDatabase}
+import com.malliina.boat.db.*
 import com.malliina.boat.html.BoatHtml
 import com.malliina.boat.push.PushService
+import com.malliina.boat.{AccessToken, S3Client}
 
 case class BoatComps[F[_]](
   html: BoatHtml,

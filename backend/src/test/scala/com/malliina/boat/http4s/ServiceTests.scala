@@ -27,7 +27,7 @@ class ServiceTests extends MUnitSuite with Http4sSuite:
       _ <- service.userMgmt.addUser(
         NewUser(user, Option(TestEmailAuth[IO].testEmail), UserToken.random(), enabled = true)
       )
-      track <- inserts.joinAsBoat(BoatUser(TrackNames.random(), BoatNames.random(), user))
+      track <- inserts.joinAsSource(BoatUser(TrackNames.random(), BoatNames.random(), user))
       coord = FullCoord(
         Coord.buildOrFail(60, 24),
         LocalTime.now(),

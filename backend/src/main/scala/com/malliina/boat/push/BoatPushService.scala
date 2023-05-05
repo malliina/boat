@@ -20,7 +20,7 @@ object BoatPushService:
 class BoatPushService[F[_]: Applicative](ios: APNS[F], android: PushClient[F, GCMToken])
   extends PushEndpoint[F]:
   val F = Applicative[F]
-  override def push(notification: BoatNotification, to: PushDevice): F[PushSummary] =
+  override def push(notification: SourceNotification, to: PushDevice): F[PushSummary] =
     to.device match
       case IOS =>
         ios.push(notification, APNSToken(to.token.token))

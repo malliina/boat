@@ -19,13 +19,13 @@ object FCMPush:
   def client[F[+_]: Monad](fcm: GoogleClientF[F]): FCMPush[F] = FCMPush(fcm)
 
 class FCMPush[F[+_]: Functor](fcm: GoogleClientF[F]) extends PushClient[F, GCMToken]:
-  override def push(notification: BoatNotification, to: GCMToken): F[PushSummary] =
+  override def push(notification: SourceNotification, to: GCMToken): F[PushSummary] =
     val message = GCMMessage(
       Map(
         BoatName.Key -> notification.boatName.name,
-        BoatState.Key -> notification.state.name,
-        BoatNotification.Message -> notification.message,
-        BoatNotification.Title -> notification.title
+        SourceState.Key -> notification.state.name,
+        SourceNotification.Message -> notification.message,
+        SourceNotification.Title -> notification.title
       )
     )
     fcm.push(to, message).map { r =>

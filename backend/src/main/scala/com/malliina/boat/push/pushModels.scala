@@ -4,33 +4,29 @@ import com.malliina.boat.BoatName
 import com.malliina.boat.http.Named
 import com.malliina.push.apns.{APNSError, APNSIdentifier, APNSToken}
 import com.malliina.values.{ErrorMessage, ValidatingCompanion}
-import io.circe.*
-import io.circe.generic.semiauto.*
+import io.circe.Codec
 
-sealed abstract class BoatState(val name: String) extends Named
+sealed abstract class SourceState(val name: String) extends Named
 
-object BoatState extends ValidatingCompanion[String, BoatState]:
+object SourceState extends ValidatingCompanion[String, SourceState]:
   val Key = "state"
   val all = Seq(Connected, Disconnected)
 
-  override def build(input: String): Either[ErrorMessage, BoatState] =
+  override def build(input: String): Either[ErrorMessage, SourceState] =
     all.find(_.name == input).toRight(ErrorMessage(s"Unknown boat state: '$input"))
 
-  override def write(t: BoatState): String = t.name
+  override def write(t: SourceState): String = t.name
 
-  case object Connected extends BoatState("connected")
-  case object Disconnected extends BoatState("disconnected")
+  case object Connected extends SourceState("connected")
+  case object Disconnected extends SourceState("disconnected")
 
-case class BoatNotification(boatName: BoatName, state: BoatState):
+case class SourceNotification(boatName: BoatName, state: SourceState) derives Codec.AsObject:
   def message = s"$boatName $state"
   def title = "Boat-Tracker"
 
-object BoatNotification:
-  implicit val json: Codec[BoatNotification] = deriveCodec[BoatNotification]
+object SourceNotification:
   val Message = "message"
   val Title = "title"
 
 case class APNSHttpResult(token: APNSToken, id: Option[APNSIdentifier], error: Option[APNSError])
-
-object APNSHttpResult:
-  implicit val json: Codec[APNSHttpResult] = deriveCodec[APNSHttpResult]
+  derives Codec.AsObject

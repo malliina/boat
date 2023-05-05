@@ -53,7 +53,7 @@ class TracksImporter extends MUnitSuite:
     val user = BoatUser(trackName, BoatName("Amina"), Username("mle"))
 //    val user = BoatUser(trackName, BoatName("xrxmjq"), Username("santa@example.com"))
 //    val user = BoatUser(trackName, BoatName("hzghbu"), Username("santa@example.com"))
-    inserts.joinAsBoat(user).flatMap { track =>
+    inserts.joinAsSource(user).flatMap { track =>
       importer.save(importer.sentencesForDay(file, day), track.short)
     }
 

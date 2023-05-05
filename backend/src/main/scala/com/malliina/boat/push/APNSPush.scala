@@ -12,10 +12,10 @@ import io.circe.syntax.EncoderOps
 import java.nio.file.Paths
 
 trait APNS[F[_]]:
-  def push(notification: BoatNotification, to: APNSToken): F[PushSummary]
+  def push(notification: SourceNotification, to: APNSToken): F[PushSummary]
 
 class NoopAPNS[F[_]: Applicative] extends APNS[F]:
-  override def push(notification: BoatNotification, to: APNSToken): F[PushSummary] =
+  override def push(notification: SourceNotification, to: APNSToken): F[PushSummary] =
     Applicative[F].pure(PushSummary.empty)
 
 object APNSPush:
@@ -40,7 +40,7 @@ class APNSPush[F[+_]: Monad](sandbox: APNSHttpClientF[F], prod: APNSHttpClientF[
   with APNS[F]:
   val topic = APNSTopic("com.malliina.BoatTracker")
 
-  def push(notification: BoatNotification, to: APNSToken): F[PushSummary] =
+  def push(notification: SourceNotification, to: APNSToken): F[PushSummary] =
     val message = APNSMessage
       .simple(notification.message)
       .copy(data = Map("meta" -> notification.asJson))

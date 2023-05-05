@@ -46,21 +46,22 @@ class CarServerTests extends MUnitSuite with ServerSuite:
   def getCarsUrl = baseUrl.append(Reverse.historyCars.renderString)
 
   // No reason to ignore other than unresolved CI failures
-  test("POST call with no creds".ignore) {
-    client.postJson(postCarsUrl, LocationUpdates(Nil, testCarId).asJson, Map.empty).map { res =>
+  client.test("POST call with no creds".ignore) { http =>
+    http.postJson(postCarsUrl, LocationUpdates(Nil, testCarId).asJson, Map.empty).map { res =>
       assertEquals(res.status, Unauthorized.code)
     }
   }
 
-  test("POST car locations with outdated jwt returns 401 with token expired".ignore) {
-    postCars(TestEmailAuth.expiredToken).map { res =>
-      assertEquals(res.status, Unauthorized.code)
-      assert(res.parse[Errors].toOption.exists(_.errors.exists(_.key == "token_expired")))
-    }
+  client.test("POST car locations with outdated jwt returns 401 with token expired".ignore) {
+    http =>
+      postCars(http, TestEmailAuth.expiredToken).map { res =>
+        assertEquals(res.status, Unauthorized.code)
+        assert(res.parse[Errors].toOption.exists(_.errors.exists(_.key == "token_expired")))
+      }
   }
 
-  test("POST call with working jwt") {
-    postCars().map { res =>
+  client.test("POST call with working jwt") { http =>
+    postCars(http).map { res =>
       assertEquals(res.status, Ok.code)
     }
   }
@@ -83,26 +84,22 @@ class CarServerTests extends MUnitSuite with ServerSuite:
 //      assert(latestDrive.exists(_.diff > 30.km))
   }
 
-  test("POST car locations for non-owned car fails".ignore) {
-    postCars(updates = LocationUpdates(List(loc), DeviceId(123))).map { res =>
+  client.test("POST car locations for non-owned car fails".ignore) { http =>
+    postCars(http, updates = LocationUpdates(List(loc), DeviceId(123))).map { res =>
       assertEquals(res.status, NotFound.code)
     }
   }
 
   private def postCars(
+    client: HttpClient[IO],
     token: IdToken = TestEmailAuth.testToken,
     updates: LocationUpdates = LocationUpdates(Nil, testCarId),
     url: FullUrl = postCarsUrl
   ) =
-    client
-      .postJson(
-        url,
-        updates.asJson,
-        headers(token)
-      )
+    client.postJson(url, updates.asJson, headers(token))
   private def headers(token: IdToken = TestEmailAuth.testToken) = Map(
     Authorization.name.toString -> s"Bearer $token",
     "Accept" -> "application/json"
   )
   def baseUrl = server().baseHttpUrl
-  def client = server().client
+//  def client = server().client

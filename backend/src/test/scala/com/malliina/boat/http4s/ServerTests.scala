@@ -20,28 +20,28 @@ import java.util
 class ServerTests extends MUnitSuite with ServerSuite:
   def meUrl = baseUrl.append(Reverse.me.renderString)
 
-  test("can call server") {
-    assertIO(status("/health"), Ok.code)
+  client.test("can call server") { http =>
+    assertIO(status(http, "/health"), Ok.code)
   }
 
-  test("call with no creds") {
-    client.get(baseUrl / "my-track").map { res =>
+  client.test("call with no creds") { http =>
+    http.get(baseUrl / "my-track").map { res =>
       assertEquals(res.status, Unauthorized.code)
       val errors = res.parse[Errors].toOption.get
       assertEquals(errors.message, Auth.noCredentials)
     }
   }
 
-  test("GET profile with outdated jwt returns 401 with token expired") {
-    client.get(meUrl, headers(TestEmailAuth.expiredToken)).map { res =>
+  client.test("GET profile with outdated jwt returns 401 with token expired") { http =>
+    http.get(meUrl, headers(TestEmailAuth.expiredToken)).map { res =>
       assertEquals(res.status, Unauthorized.code)
       assert(res.parse[Errors].toOption.exists(_.errors.exists(_.key == "token_expired")))
     }
   }
 
-  test("apple app association") {
-    assertIO(status(".well-known/apple-app-site-association"), Ok.code)
-    assertIO(status(".well-known/assetlinks.json"), Ok.code)
+  client.test("apple app association") { http =>
+    assertIO(status(http, ".well-known/apple-app-site-association"), Ok.code)
+    assertIO(status(http, ".well-known/assetlinks.json"), Ok.code)
   }
 
   private def headers(token: IdToken = TestEmailAuth.testToken) = Map(
@@ -49,9 +49,8 @@ class ServerTests extends MUnitSuite with ServerSuite:
     "Accept" -> "application/json"
   )
 
-  private def status(path: String) =
+  private def status(http: HttpClient[IO], path: String) =
     val url = baseUrl / path
-    client.get(url).map(r => r.code)
+    http.get(url).map(r => r.code)
 
   def baseUrl = server().baseHttpUrl
-  def client = server().client

@@ -8,4 +8,4 @@ import com.malliina.values.UserId
 trait PushService[F[_]]:
   def enable(input: PushInput): F[PushId]
   def disable(token: PushToken, user: UserId): F[Boolean]
-  def push(device: UserDevice, state: BoatState): F[PushSummary]
+  def push(device: UserDevice, state: SourceState): F[PushSummary]

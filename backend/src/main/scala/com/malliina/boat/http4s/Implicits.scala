@@ -1,11 +1,11 @@
 package com.malliina.boat.http4s
 
-import cats.effect.kernel.{Sync, Concurrent}
 import cats.effect.IO
+import cats.effect.kernel.{Concurrent, Sync}
 import com.malliina.boat.{DeviceId, TrackCanonical, TrackId, TrackName}
 import com.malliina.values.Username
-import io.circe.{Decoder, Encoder, Printer}
 import io.circe.syntax.EncoderOps
+import io.circe.{Decoder, Encoder, Printer}
 import org.http4s.circe.CirceInstances
 import org.http4s.dsl.Http4sDsl
 import org.http4s.headers.`Content-Type`

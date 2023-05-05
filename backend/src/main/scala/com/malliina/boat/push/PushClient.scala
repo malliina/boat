@@ -49,7 +49,7 @@ object PushSummary:
   val empty = PushSummary(Nil, Nil, Nil)
 
 trait PushClient[F[_], T <: Token]:
-  def push(notification: BoatNotification, to: T): F[PushSummary]
+  def push(notification: SourceNotification, to: T): F[PushSummary]
 
 trait PushEndpoint[F[_]]:
-  def push(notification: BoatNotification, to: PushDevice): F[PushSummary]
+  def push(notification: SourceNotification, to: PushDevice): F[PushSummary]
