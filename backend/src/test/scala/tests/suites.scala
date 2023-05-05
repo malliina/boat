@@ -60,21 +60,28 @@ trait MUnitDatabaseSuite extends DoobieSQL:
     var conf: Option[Conf] = None
     def apply() = conf.get
     override def beforeAll(): Unit =
-      val testDb = readTestConf().fold(
-        e =>
-          log.warn(s"Failed to read test conf. Falling back to Docker...", e)
-          val c = MySQLContainer(mysqlImageVersion = DockerImageName.parse("mysql:8.0.33"))
-          c.start()
-          container = Option(c)
-          TestConf(c)
-        ,
-        ok => ok
-      )
+      val isCi = sys.env.get("CI").contains("true")
+      val testDb =
+        if isCi then dockerConf()
+        else
+          readTestConf().fold(
+            e =>
+              log.warn(s"Failed to read test conf. Falling back to Docker...", e)
+              dockerConf()
+            ,
+            ok => ok
+          )
       conf = Option(testDb)
     override def afterAll(): Unit =
       container.foreach(_.stop())
 
     def readTestConf(): Try[Conf] = WrappedTestConf.parse().map(_.boat.testdb)
+
+    def dockerConf() =
+      val c = MySQLContainer(mysqlImageVersion = DockerImageName.parse("mysql:8.0.33"))
+      c.start()
+      container = Option(c)
+      TestConf(c)
 
   val dbFixture = ResourceFixture(
     Resource.eval(IO(confFixture())).flatMap(c => DoobieDatabase.withMigrations(c))

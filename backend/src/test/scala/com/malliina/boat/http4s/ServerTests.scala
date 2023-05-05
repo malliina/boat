@@ -20,11 +20,11 @@ import java.util
 class ServerTests extends MUnitSuite with ServerSuite:
   def meUrl = baseUrl.append(Reverse.me.renderString)
 
-  client.test("can call server".ignore) { http =>
+  client.test("can call server") { http =>
     assertIO(status(http, "/health"), Ok.code)
   }
 
-  client.test("call with no creds".ignore) { http =>
+  client.test("call with no creds") { http =>
     http.get(baseUrl / "my-track").map { res =>
       assertEquals(res.status, Unauthorized.code)
       val errors = res.parse[Errors].toOption.get
@@ -32,7 +32,7 @@ class ServerTests extends MUnitSuite with ServerSuite:
     }
   }
 
-  client.test("GET profile with outdated jwt returns 401 with token expired".ignore) { http =>
+  client.test("GET profile with outdated jwt returns 401 with token expired") { http =>
     http.get(meUrl, headers(TestEmailAuth.expiredToken)).map { res =>
       assertEquals(res.status, Unauthorized.code)
       assert(res.parse[Errors].toOption.exists(_.errors.exists(_.key == "token_expired")))
