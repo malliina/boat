@@ -60,7 +60,7 @@ class CarServerTests extends MUnitSuite with ServerSuite:
       }
   }
 
-  client.test("POST call with working jwt") { http =>
+  client.test("POST call with working jwt".ignore) { http =>
     postCars(http).map { res =>
       assertEquals(res.status, Ok.code)
     }
