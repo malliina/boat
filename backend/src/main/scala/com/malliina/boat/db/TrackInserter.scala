@@ -35,7 +35,7 @@ class TrackInserter[F[_]: Async](val db: DoobieDatabase[F])
     sql"${CommonSql.nonEmptyTracks} and t.id = $id".query[JoinedTrack].unique
 
   private def trackMetas(more: Fragment): Query0[TrackMeta] =
-    sql"""select t.id, t.name, t.title, t.canonical, t.comments, t.added, t.avg_speed, t.avg_water_temp, t.points, t.distance, b.id boatId, b.name boatName, b.token boatToken, u.id userId, u.user, u.email
+    sql"""select t.id, t.name, t.title, t.canonical, t.comments, t.added, t.avg_speed, t.avg_water_temp, t.avg_outside_temp, t.points, t.distance, b.id boatId, b.name boatName, b.token boatToken, u.id userId, u.user, u.email
           from tracks t, boats b, users u
           where t.boat = b.id and b.owner = u.id $more""".query[TrackMeta]
 
@@ -206,17 +206,15 @@ class TrackInserter[F[_]: Async](val db: DoobieDatabase[F])
           .query[SpeedM]
           .option
       info <-
-        sql"""select avg(water_temp), sum(diff), count(*)
+        sql"""select avg(water_temp), avg(outside_temperature), ifnull(sum(diff), 0), count(*)
               from points p
               where p.track = $track"""
           .query[DbTrackInfo]
           .option
+          .map(_.getOrElse(DbTrackInfo(None, None, DistanceM.zero, 0)))
       rows <- {
-        val avgTemp = info.flatMap(_.avgTemp)
-        val points = info.map(_.points).getOrElse(0)
-        val distance = info.flatMap(_.distance).getOrElse(DistanceM.zero)
         sql"""update tracks
-              set avg_water_temp = $avgTemp, avg_speed = $avgSpeed, points = $points, distance = $distance
+              set avg_water_temp = ${info.avgWaterTemp}, avg_outside_temp = ${info.avgOutsideTemp}, avg_speed = $avgSpeed, points = ${info.points}, distance = ${info.distance}
               where id = $track""".update.run
       }
       _ <- insertSentencePoints(

@@ -427,6 +427,7 @@ case class TrackRef(
   topSpeed: Option[SpeedM],
   avgSpeed: Option[SpeedM],
   avgWaterTemp: Option[Temperature],
+  avgOutsideTemp: Option[Temperature],
   topPoint: TimedCoord,
   times: Times
 ) extends TrackLike:

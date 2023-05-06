@@ -38,16 +38,16 @@ trait CommonSql:
           from points p
           group by track"""
   private val timedTracks =
-    sql"""select t.id, t.name, t.title, t.canonical, t.comments, t.added, t.points, t.avg_speed, t.avg_water_temp, t.distance, times.secs secs, times.start, times.end, times.startDate, times.startMonth, times.startYear, t.boat
+    sql"""select t.id, t.name, t.title, t.canonical, t.comments, t.added, t.points, t.avg_speed, t.avg_water_temp, t.avg_outside_temp, t.distance, times.secs secs, times.start, times.end, times.startDate, times.startMonth, times.startYear, t.boat
            from tracks t,
            ($minMaxTimes) times
            where t.id = times.track"""
   private val trackHighlights =
-    sql"""select t.id, t.name, t.title, t.canonical, t.comments, t.added, t.points, t.avg_speed, t.avg_water_temp, t.distance, t.start, t.end, t.secs, t.startDate, t.startMonth, t.startYear, t.boat, top.id pointId, top.longitude, top.latitude, top.coord, top.speed, top.altitude, top.outside_temperature, top.water_temp, top.depthm, top.depth_offsetm, top.source_time, date(top.source_time) trackDate, top.track, top.added topAdded
+    sql"""select t.id, t.name, t.title, t.canonical, t.comments, t.added, t.points, t.avg_speed, t.avg_water_temp, t.avg_outside_temp, t.distance, t.start, t.end, t.secs, t.startDate, t.startMonth, t.startYear, t.boat, top.id pointId, top.longitude, top.latitude, top.coord, top.speed, top.altitude, top.outside_temperature, top.water_temp, top.depthm, top.depth_offsetm, top.source_time, date(top.source_time) trackDate, top.track, top.added topAdded
           from ($topRows) top, ($timedTracks) t
           where top.track = t.id"""
   private val trackColumns =
-    fr0"t.id tid, t.name, t.title, t.canonical, t.comments, t.added, t.points, t.avg_speed, t.avg_water_temp, t.distance, t.start, t.startDate, t.startMonth, t.startYear, t.end, t.secs duration, t.speed maxBoatspeed, t.pointId, t.longitude, t.latitude, t.coord, t.speed topSpeed, t.altitude, t.outside_temperature, t.water_temp, t.depthm, t.depth_offsetm, t.source_time, t.trackDate, t.track, t.topAdded, b.id boatId, b.name boatName, b.source_type, b.token, b.uid, b.user owner, b.email, b.language"
+    fr0"t.id tid, t.name, t.title, t.canonical, t.comments, t.added, t.points, t.avg_speed, t.avg_water_temp, t.avg_outside_temp, t.distance, t.start, t.startDate, t.startMonth, t.startYear, t.end, t.secs duration, t.speed maxBoatspeed, t.pointId, t.longitude, t.latitude, t.coord, t.speed topSpeed, t.altitude, t.outside_temperature, t.water_temp, t.depthm, t.depth_offsetm, t.source_time, t.trackDate, t.track, t.topAdded, b.id boatId, b.name boatName, b.source_type, b.token, b.uid, b.user owner, b.email, b.language"
   val nonEmptyTracks = nonEmptyTracksWith(trackColumns)
   def nonEmptyTracksWith(cols: Fragment) =
     sql"""select $cols

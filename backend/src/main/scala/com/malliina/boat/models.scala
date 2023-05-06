@@ -154,6 +154,7 @@ case class JoinedTrack(
   points: Int,
   avgSpeed: Option[SpeedM],
   avgWaterTemp: Option[Temperature],
+  avgOutsideTemp: Option[Temperature],
   distance: DistanceM,
   start: Option[Instant],
   startDate: DateVal,
@@ -193,6 +194,7 @@ case class JoinedTrack(
     topSpeed,
     avgSpeed,
     avgWaterTemp,
+    avgOutsideTemp,
     tip.timed(formatter),
     formatter.times(startOrNow, endOrNow)
   )
@@ -247,6 +249,7 @@ case class TrackMeta(
   trackAdded: Instant,
   avgSpeed: Option[SpeedM],
   avgWaterTemp: Option[Temperature],
+  avgOutsideTemp: Option[Temperature],
   points: Int,
   distance: DistanceM,
   boat: DeviceId,
