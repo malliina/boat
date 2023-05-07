@@ -20,7 +20,7 @@ import scala.concurrent.duration.FiniteDuration
 object BasicService:
   private val log = AppLogger(getClass)
 
-  val noisyErrorMessage = "The specified network name is no longer available."
+  val noisyErrorMessage = "The specified network name is no longer available"
 
   val noCache = `Cache-Control`(`no-cache`(), `no-store`, `must-revalidate`)
 
