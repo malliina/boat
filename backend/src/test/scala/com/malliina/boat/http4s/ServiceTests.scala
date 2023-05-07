@@ -38,7 +38,7 @@ class ServiceTests extends MUnitSuite with Http4sSuite:
           10.meters,
           0.meters
         ),
-        track.short
+        track.track.short
       )
       p <- inserts.saveCoords(coord)
     yield p

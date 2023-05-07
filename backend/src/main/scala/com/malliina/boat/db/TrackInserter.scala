@@ -93,7 +93,7 @@ class TrackInserter[F[_]: Async](val db: DoobieDatabase[F])
       updated
   }
 
-  def joinAsSource(meta: DeviceMeta): F[TrackMeta] = run {
+  def joinAsSource(meta: DeviceMeta): F[JoinResult] = run {
     val existing: ConnectionIO[List[TrackMeta]] = trackMetas(
       fr"and u.user = ${meta.user} and b.name = ${meta.boat} and t.id in (select p.track from points p where p.added > now() - interval 10 minute)"
     ).to[List]
@@ -104,7 +104,7 @@ class TrackInserter[F[_]: Async](val db: DoobieDatabase[F])
         .headOption
         .map { t =>
           log.debug(s"Resuming track ${t.track} for device '${meta.boat}' by '${meta.user}'.")
-          pure(t)
+          pure(JoinResult(t, true))
         }
         .getOrElse {
           val trackMeta = meta.withTrack(TrackNames.random())
@@ -112,10 +112,10 @@ class TrackInserter[F[_]: Async](val db: DoobieDatabase[F])
             // Is this necessary?
             trackMetas(fr"and t.name = ${trackMeta.track} and b.id = ${boat.id}").option.flatMap {
               opt =>
-                opt.map(pure).getOrElse {
+                opt.map(m => pure(JoinResult(m, false))).getOrElse {
                   insertTrack(TrackInput.empty(trackMeta.track, boat.id)).map { meta =>
                     log.info(s"Registered track with ID '${meta.track}' for source '${boat.id}'.")
-                    meta
+                    JoinResult(meta, false)
                   }
                 }
             }

@@ -309,7 +309,8 @@ class Service[F[_]: Async](comps: BoatComps[F]) extends BasicService[F]:
         .authBoat(req.headers)
         .flatMap { boat =>
           log.info(s"Boat '${boat.boat}' by '${boat.user}' connected.")
-          inserts.joinAsSource(boat).flatMap { meta =>
+          inserts.joinAsSource(boat).flatMap { result =>
+            val meta = result.track
             pushNotification(meta).flatMap { _ =>
               webSocket(
                 sockets,
@@ -349,7 +350,8 @@ class Service[F[_]: Async](comps: BoatComps[F]) extends BasicService[F]:
           .map { device =>
             import cats.implicits.*
             val deviceMeta = SimpleBoatMeta(user.username, device.name)
-            inserts.joinAsSource(deviceMeta).flatMap { meta =>
+            inserts.joinAsSource(deviceMeta).flatMap { result =>
+              val meta = result.track
               val count = body.updates.size
               log.debug(s"User ${user.email} POSTs $count car updates...")
               val insertion = body.updates.traverse { loc =>
@@ -358,7 +360,8 @@ class Service[F[_]: Async](comps: BoatComps[F]) extends BasicService[F]:
               }.flatMap { inserteds =>
                 ok(SimpleMessage(s"Saved ${inserteds.size} updates."))
               }
-              pushNotification(meta) >> insertion
+              val pushTask = if result.isResumed then F.pure(()) else pushNotification(meta)
+              pushTask >> insertion
             }
           }
           .getOrElse {

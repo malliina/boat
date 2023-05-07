@@ -263,6 +263,8 @@ case class TrackMeta(
   override def device = boat
   def short = TrackMetaShort(track, trackName, boat, boatName, username)
 
+case class JoinResult(track: TrackMeta, isResumed: Boolean)
+
 sealed trait InputEvent
 
 case object EmptyEvent extends InputEvent
