@@ -343,6 +343,8 @@ class Service[F[_]: Async](comps: BoatComps[F]) extends BasicService[F]:
             }
           }
         }
+    case GET -> Root / "cars" / "conf" =>
+      ok(CarsConf.default)
     case req @ POST -> Root / "cars" / "locations" =>
       jsonAction[LocationUpdates](req) { (body, user) =>
         user.boats
