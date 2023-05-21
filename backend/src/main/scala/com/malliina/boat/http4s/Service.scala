@@ -3,7 +3,7 @@ package com.malliina.boat.http4s
 import cats.data.NonEmptyList
 import cats.effect.kernel.Async
 import cats.effect.{IO, Sync}
-import cats.implicits.catsSyntaxFlatten
+import cats.implicits.*
 import cats.syntax.all.{catsSyntaxApplicativeError, toFlatMapOps, toFunctorOps}
 import com.malliina.assets.HashedAssets
 import com.malliina.boat.Constants.{LanguageName, TokenCookieName}
@@ -350,15 +350,13 @@ class Service[F[_]: Async](comps: BoatComps[F]) extends BasicService[F]:
         user.boats
           .find(_.id == body.carId)
           .map { device =>
-            import cats.implicits.*
             val deviceMeta = SimpleBoatMeta(user.username, device.name)
             inserts.joinAsSource(deviceMeta).flatMap { result =>
               val meta = result.track
               val count = body.updates.size
               log.debug(s"User ${user.email} POSTs $count car updates...")
               val insertion = body.updates.traverse { loc =>
-                val in = CarCoord.fromUpdate(loc, meta.track)
-                inserts.saveCoords(in)
+                inserts.saveCoords(CarCoord.fromUpdate(loc, meta.track))
               }.flatMap { inserteds =>
                 ok(SimpleMessage(s"Saved ${inserteds.size} updates."))
               }

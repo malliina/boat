@@ -37,9 +37,10 @@ case class PermissionsLang(
 ) derives Codec.AsObject
 case class CarSettingsLang(title: String, openSettings: String, selectCar: String, noCars: String)
   derives Codec.AsObject
+case class CarLanguage(code: Language, name: String) derives Codec.AsObject
 case class CarLang(
   appName: String,
-  language: Language,
+  language: CarLanguage,
   profile: CarProfileLang,
   settings: CarSettingsLang,
   permissions: PermissionsLang,
@@ -50,7 +51,7 @@ object CarLanguages:
   val default = CarLanguages(
     CarLang(
       "Car-Tracker",
-      Language.finnish,
+      CarLanguage(Language.finnish, "Suomeksi"),
       CarProfileLang(
         "Käyttäjätunnus",
         "Ajat autoa",
@@ -88,7 +89,7 @@ object CarLanguages:
     ),
     CarLang(
       "Car-Tracker",
-      Language.swedish,
+      CarLanguage(Language.swedish, "Svenska"),
       CarProfileLang(
         "Inloggad som",
         "Du kör",
@@ -126,7 +127,7 @@ object CarLanguages:
     ),
     CarLang(
       "Car-Tracker",
-      Language.english,
+      CarLanguage(Language.english, "English"),
       CarProfileLang(
         "Signed in as",
         "Driving",
