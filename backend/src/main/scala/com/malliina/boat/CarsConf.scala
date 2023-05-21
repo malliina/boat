@@ -1,5 +1,6 @@
 package com.malliina.boat
 
+import cats.data.NonEmptyList
 import io.circe.Codec
 
 case class CarProfileLang(
@@ -16,7 +17,7 @@ case class CarProfileLang(
 ) derives Codec.AsObject
 case class CarStatsLang(
   speed: String,
-  height: String,
+  altitude: String,
   nightMode: String,
   dayMode: String,
   bearing: String,
@@ -46,45 +47,44 @@ case class CarLang(
   permissions: PermissionsLang,
   stats: CarStatsLang
 ) derives Codec.AsObject
-case class CarLanguages(finnish: CarLang, swedish: CarLang, english: CarLang) derives Codec.AsObject
 object CarLanguages:
-  val default = CarLanguages(
+  val default = NonEmptyList.of(
     CarLang(
       "Car-Tracker",
-      CarLanguage(Language.finnish, "Suomeksi"),
+      CarLanguage(Language.english, "English"),
       CarProfileLang(
-        "Käyttäjätunnus",
-        "Ajat autoa",
-        "Valitse kieli",
-        "Kirjaudu palvelulla",
-        "Kirjaudu ulos",
-        "Käyttäjätietojen lataus epäonnistui.",
-        "Kirjautuminen epäonnistui.",
-        "Kartta",
+        "Signed in as",
+        "Driving",
+        "Select language",
+        "Sign in with",
+        "Sign out",
+        "Failed to load profile.",
+        "Failed to sign in.",
+        "Go to map",
         "Version",
-        "Täällä ei ole mitään."
+        "Nothing to see here."
       ),
-      CarSettingsLang("Asetukset", "Avaa asetukset", "Valitse auto", "Ei autoja."),
+      CarSettingsLang("Settings", "Open Settings", "Select car", "No cars."),
       PermissionsLang(
-        "Anna oikeuksia",
-        "Anna sovellukselle oikeudet lukea auton sijainti ja muut tiedot",
-        "Sovellus tarvitsee oikeuksia tallentaakseen sijainti- ja muut tiedot Car-Tracker-tilillesi.",
-        "Kokeile uudelleen",
-        "Avaa asetukset ja anna sovellukselle oikeuksia."
+        "Grant permissions",
+        "Grant app access to location and car",
+        "This app needs access to location and car properties in order to store them to your Car-Tracker account.",
+        "Try again",
+        "Please open Settings and grant app-level permissions for this app."
       ),
       CarStatsLang(
-        "Nopeus",
-        "Korkeus",
-        "Yötila",
-        "Päivätila",
-        "Suunta",
-        "Tarkkuus",
-        "astetta",
-        "metriä",
-        "Akun varaus",
-        "Kapasiteetti",
-        "Toimintamatka",
-        "Ulkolämpötila"
+        "Speed",
+        "Altitude",
+        "Night mode",
+        "Day mode",
+        "Bearing",
+        "Accuracy",
+        "degrees",
+        "meters",
+        "Battery level",
+        "Capacity",
+        "Range",
+        "Temperature outside"
       )
     ),
     CarLang(
@@ -127,44 +127,44 @@ object CarLanguages:
     ),
     CarLang(
       "Car-Tracker",
-      CarLanguage(Language.english, "English"),
+      CarLanguage(Language.finnish, "Suomeksi"),
       CarProfileLang(
-        "Signed in as",
-        "Driving",
-        "Select language",
-        "Sign in with",
-        "Sign out",
-        "Failed to load profile.",
-        "Failed to sign in.",
-        "Go to map",
+        "Käyttäjätunnus",
+        "Ajat autoa",
+        "Valitse kieli",
+        "Kirjaudu palvelulla",
+        "Kirjaudu ulos",
+        "Käyttäjätietojen lataus epäonnistui.",
+        "Kirjautuminen epäonnistui.",
+        "Kartta",
         "Version",
-        "Nothing to see here."
+        "Täällä ei ole mitään."
       ),
-      CarSettingsLang("Settings", "Open Settings", "Select car", "No cars."),
+      CarSettingsLang("Asetukset", "Avaa asetukset", "Valitse auto", "Ei autoja."),
       PermissionsLang(
-        "Grant permissions",
-        "Grant app access to location and car",
-        "This app needs access to location and car properties in order to store them to your Car-Tracker account.",
-        "Try again",
-        "Please open Settings and grant app-level permissions for this app."
+        "Anna oikeuksia",
+        "Anna sovellukselle oikeudet lukea auton sijainti ja muut tiedot",
+        "Sovellus tarvitsee oikeuksia tallentaakseen sijainti- ja muut tiedot Car-Tracker-tilillesi.",
+        "Kokeile uudelleen",
+        "Avaa asetukset ja anna sovellukselle oikeuksia."
       ),
       CarStatsLang(
-        "Speed",
-        "Height",
-        "Night mode",
-        "Day mode",
-        "Bearing",
-        "Accuracy",
-        "degrees",
-        "meters",
-        "Battery level",
-        "Capacity",
-        "Range",
-        "Temperature outside"
+        "Nopeus",
+        "Korkeus",
+        "Yötila",
+        "Päivätila",
+        "Suunta",
+        "Tarkkuus",
+        "astetta",
+        "metriä",
+        "Akun varaus",
+        "Kapasiteetti",
+        "Toimintamatka",
+        "Ulkolämpötila"
       )
     )
   )
 
-case class CarsConf(languages: CarLanguages) derives Codec.AsObject
+case class CarsConf(languages: NonEmptyList[CarLang]) derives Codec.AsObject
 object CarsConf:
   val default = CarsConf(CarLanguages.default)
