@@ -32,9 +32,9 @@ object AppMode:
     case other  => Left(ErrorMessage(s"Invalid mode: '$other'. Must be 'prod' or 'dev'."))
 
 object LocalConf:
-  val homeDir = FileUtils.userHome
+  private val homeDir = FileUtils.userHome
   val appDir = homeDir.resolve(".boat")
-  val localConfFile = appDir.resolve("boat.conf")
+  private val localConfFile = appDir.resolve("boat.conf")
   val isProd = BuildInfo.mode == "prod"
   val localConf = ConfigFactory.parseFile(localConfFile.toFile).withFallback(ConfigFactory.load())
   val conf = if isProd then ConfigFactory.load("application-prod.conf") else localConf

@@ -36,7 +36,6 @@ inThisBuild(
     scalacOptions := Seq("-unchecked", "-deprecation"),
     deployDocs := Process("mkdocs gh-deploy").run(streams.value.log).exitValue(),
     Compile / packageDoc / publishArtifact := false,
-    packageDoc / publishArtifact := false,
     Compile / doc / sources := Seq.empty,
     assemblyMergeStrategy := {
       case PathList("META-INF", "io.netty.versions.properties") => MergeStrategy.rename
@@ -152,7 +151,6 @@ val backend = Project("boat", file("backend"))
       checkSnapshotDependencies
     ),
     Compile / packageDoc / publishArtifact := false,
-    packageDoc / publishArtifact := false,
     Compile / doc / sources := Seq.empty,
     assembly / assemblyJarName := "app.jar",
     Compile / resourceDirectories += io.Path.userHome / ".boat"
