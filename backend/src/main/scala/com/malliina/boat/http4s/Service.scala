@@ -347,6 +347,7 @@ class Service[F[_]: Async](comps: BoatComps[F]) extends BasicService[F]:
       ok(CarsConf.default)
     case req @ POST -> Root / "cars" / "locations" =>
       jsonAction[LocationUpdates](req) { (body, user) =>
+        val start = System.currentTimeMillis()
         user.boats
           .find(_.id == body.carId)
           .map { device =>
@@ -354,11 +355,15 @@ class Service[F[_]: Async](comps: BoatComps[F]) extends BasicService[F]:
             inserts.joinAsSource(deviceMeta).flatMap { result =>
               val meta = result.track
               val count = body.updates.size
-              log.debug(s"User ${user.email} POSTs $count car updates...")
+              val time = System.currentTimeMillis() - start
+              log.info(
+                s"User ${user.email} POSTs $count car updates for ${meta.boatName}, join took $time ms..."
+              )
               val insertion = body.updates.traverse { loc =>
                 inserts.saveCoords(CarCoord.fromUpdate(loc, meta.track))
               }.flatMap { inserteds =>
-                ok(SimpleMessage(s"Saved ${inserteds.size} updates."))
+                val duration = System.currentTimeMillis() - start
+                ok(SimpleMessage(s"Saved ${inserteds.size} updates in $duration ms."))
               }
               val pushTask = if result.isResumed then F.pure(()) else pushNotification(meta)
               pushTask >> insertion
