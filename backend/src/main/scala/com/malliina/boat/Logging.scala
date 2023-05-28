@@ -15,7 +15,7 @@ import com.malliina.http.HttpClient
 import com.malliina.http.io.HttpClientF2
 import com.malliina.logback.LogbackUtils
 import com.malliina.logback.fs2.FS2AppenderComps
-import com.malliina.logstreams.client.{FS2Appender, LogstreamsUtils}
+import com.malliina.logstreams.client.{FS2Appender, LogstreamsConf, LogstreamsUtils}
 
 object Logging:
   private val defaultLevel = if BuildInfo.mode == "test" then Level.OFF else Level.INFO
@@ -26,4 +26,4 @@ object Logging:
   def init() = LogbackUtils.init(rootLevel = defaultLevel, levelsByLogger = levels)
 
   def install[F[_]: Async](d: Dispatcher[F], http: HttpClientF2[F]) =
-    LogstreamsUtils.install("boat", userAgent, d, http)
+    LogstreamsUtils.installIfEnabled("boat", userAgent, d, http)

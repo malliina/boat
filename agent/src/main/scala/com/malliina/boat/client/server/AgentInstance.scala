@@ -1,6 +1,6 @@
 package com.malliina.boat.client.server
 
-import cats.syntax.all.{toFunctorOps, toFlatMapOps}
+import cats.syntax.all.{toFlatMapOps, toFunctorOps}
 import cats.effect.kernel.{Resource, Temporal}
 import cats.effect.Async
 import com.malliina.boat.client.DeviceAgent
@@ -9,9 +9,10 @@ import com.malliina.http.FullUrl
 import okhttp3.OkHttpClient
 import fs2.concurrent.{SignallingRef, Topic}
 import fs2.Stream
+import fs2.io.net.Network
 
 object AgentInstance:
-  def resource[F[_]: Async](
+  def resource[F[_]: Async: Network](
     url: FullUrl,
     http: OkHttpClient
   ): Resource[F, AgentInstance[F]] =
@@ -20,13 +21,13 @@ object AgentInstance:
       _ <- agent.connections.compile.resource.lastOrError
     yield agent
 
-  def io[F[_]: Async](url: FullUrl, http: OkHttpClient): F[AgentInstance[F]] =
+  def io[F[_]: Async: Network](url: FullUrl, http: OkHttpClient): F[AgentInstance[F]] =
     for
       topic <- Topic[F, BoatConf]
       interrupter <- SignallingRef[F, Boolean](false)
     yield AgentInstance(url, http, topic, interrupter)
 
-class AgentInstance[F[_]: Async](
+class AgentInstance[F[_]: Async: Network](
   url: FullUrl,
   http: OkHttpClient,
   confs: Topic[F, BoatConf],

@@ -8,6 +8,7 @@ import com.malliina.boat.BuildInfo
 import com.malliina.boat.http4s.StaticService.log
 import com.malliina.util.AppLogger
 import com.malliina.values.UnixPath
+import fs2.io.file.Files
 import org.http4s.CacheDirective.*
 import org.http4s.headers.`Cache-Control`
 import org.http4s.{Header, HttpRoutes, Request, StaticFile}
@@ -18,7 +19,7 @@ import scala.concurrent.duration.DurationInt
 object StaticService:
   private val log = AppLogger(getClass)
 
-class StaticService[F[_]: Async] extends BasicService[F]:
+class StaticService[F[_]: Async: Files] extends BasicService[F]:
   private val fontExtensions = List(".woff", ".woff2", ".eot", ".ttf")
   private val supportedStaticExtensions =
     List(".html", ".js", ".map", ".css", ".png", ".ico", ".svg", ".map") ++ fontExtensions
