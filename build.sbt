@@ -8,10 +8,10 @@ val munitVersion = "0.7.29"
 val testContainersScalaVersion = "0.40.15"
 val scalaTagsVersion = "0.12.0"
 val primitiveVersion = "3.4.0"
-val logstreamsVersion = "2.5.0"
-val http4sVersion = "0.23.18"
+val logstreamsVersion = "2.6.0"
+val http4sVersion = "0.23.19"
 val logbackVersion = "1.4.7"
-val circeVersion = "0.14.3"
+val circeVersion = "0.14.5"
 // Do not upgrade to 11.0.2 because it depends on slf4j-api alpha versions, breaking logging
 val alpnVersion = "9.4.40.v20210413"
 val webAuthDep = "com.malliina" %% "web-auth" % webAuthVersion
@@ -185,7 +185,7 @@ val agent = project
       } ++ Seq("generic", "parser").map { m =>
         "io.circe" %% s"circe-$m" % circeVersion
       } ++ Seq(
-        "co.fs2" %% "fs2-io" % "3.5.0",
+        "co.fs2" %% "fs2-io" % "3.7.0",
         "com.malliina" %% "primitives" % primitiveVersion,
         "com.malliina" %% "logstreams-client" % logstreamsVersion,
         "com.lihaoyi" %% "scalatags" % scalaTagsVersion,

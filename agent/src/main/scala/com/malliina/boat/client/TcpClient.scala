@@ -37,14 +37,14 @@ object TcpClient:
   val watchMessage =
     s"${GpsDevice.watchCommand}$linefeed".getBytes(charset)
 
-  def default[F[_]: Async](host: Host, port: Port)(implicit
+  def default[F[_]: Async: Network](host: Host, port: Port)(implicit
     t: Temporal[F]
   ): F[TcpClient[F]] = for
     topic <- Topic[F, SentencesMessage]
     signal <- SignallingRef[F, Boolean](false)
   yield TcpClient[F](host, port, topic, signal)
 
-class TcpClient[F[_]: Async](
+class TcpClient[F[_]: Async: Network](
   host: Host,
   port: Port,
   topic: Topic[F, SentencesMessage],

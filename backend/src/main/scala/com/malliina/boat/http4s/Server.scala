@@ -22,6 +22,7 @@ import com.malliina.logstreams.client.LogstreamsUtils
 import com.malliina.util.AppLogger
 import com.malliina.web.*
 import com.malliina.boat.message
+import fs2.compression.Compression
 import org.http4s.Status.Unauthorized
 import org.http4s.ember.server.EmberServerBuilder
 import org.http4s.headers.{Location, `Content-Type`, `WWW-Authenticate`}
@@ -30,6 +31,8 @@ import org.http4s.server.websocket.WebSocketBuilder2
 import org.http4s.server.{Router, Server, ServiceErrorHandler}
 import org.http4s.{Challenge, Http, HttpApp, HttpRoutes, Request, Response}
 import fs2.concurrent.Topic
+import fs2.io.file.Files
+import fs2.io.net.Network
 
 import java.io.IOException
 import java.time.Instant
@@ -74,7 +77,7 @@ object Server extends IOApp:
   private val port: Port =
     sys.env.get("SERVER_PORT").flatMap(s => Port.fromString(s)).getOrElse(port"9000")
 
-  def server[F[+_]: Async](
+  def server[F[+_]: Async: Network: Files: Compression](
     conf: BoatConf,
     builder: AppCompsBuilder,
     port: Port = port
@@ -96,7 +99,10 @@ object Server extends IOApp:
         .build
     yield ServerComponents(service, server)
 
-  def appService[F[+_]: Async](conf: BoatConf, builder: AppCompsBuilder): Resource[F, Service[F]] =
+  def appService[F[+_]: Async: Files](
+    conf: BoatConf,
+    builder: AppCompsBuilder
+  ): Resource[F, Service[F]] =
     for
       dispatcher <- Dispatcher.parallel[F]
       http <- HttpClientIO.resource[F]
@@ -151,7 +157,7 @@ object Server extends IOApp:
       )
       Service(comps)
 
-  private def makeHandler[F[_]: Async](
+  private def makeHandler[F[_]: Async: Compression: Files](
     service: Service[F],
     sockets: WebSocketBuilder2[F]
   ): Http[F, F] =

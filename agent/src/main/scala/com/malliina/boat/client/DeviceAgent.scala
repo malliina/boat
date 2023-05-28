@@ -12,6 +12,7 @@ import com.malliina.http.io.{SocketEvent, WebSocketF}
 import com.malliina.util.AppLogger
 import fs2.Stream
 import fs2.concurrent.SignallingRef
+import fs2.io.net.Network
 import okhttp3.OkHttpClient
 
 object DeviceAgent:
@@ -22,7 +23,7 @@ object DeviceAgent:
   val BoatUrl: FullUrl = Host / "/ws/boats"
   val DeviceUrl: FullUrl = Host / "/ws/devices"
 
-  def fromConf[F[_]: Async](
+  def fromConf[F[_]: Async: Network](
     conf: BoatConf,
     url: FullUrl,
     http: OkHttpClient

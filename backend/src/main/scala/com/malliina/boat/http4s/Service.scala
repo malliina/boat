@@ -17,7 +17,7 @@ import com.malliina.boat.http.InviteResult.{AlreadyInvited, Invited, UnknownEmai
 import com.malliina.boat.http.*
 import com.malliina.boat.http4s.BasicService.{cached, noCache, ranges}
 import com.malliina.boat.http4s.Service.{RequestOps, log}
-import com.malliina.boat.push.{SourceState, PushService}
+import com.malliina.boat.push.{PushService, SourceState}
 import com.malliina.util.AppLogger
 import com.malliina.values.{Email, Readable, UserId, Username}
 import com.malliina.web.OAuthKeys.{Nonce, State}
@@ -25,6 +25,7 @@ import com.malliina.web.Utils.randomString
 import com.malliina.web.*
 import com.malliina.boat.auth.BoatJwt
 import com.malliina.boat.parsing.{CarCoord, CarStats}
+import fs2.io.file.Files
 import fs2.{Pipe, Stream}
 import io.circe.parser.parse
 import io.circe.syntax.EncoderOps
@@ -48,7 +49,7 @@ object Service:
   implicit class RequestOps[F[_]](val req: Request[F]) extends AnyVal:
     def isSecured: Boolean = Urls.isSecure(req)
 
-class Service[F[_]: Async](comps: BoatComps[F]) extends BasicService[F]:
+class Service[F[_]: Async: Files](comps: BoatComps[F]) extends BasicService[F]:
   val F = Sync[F]
   val auth = comps.auth
   val userMgmt = auth.users
