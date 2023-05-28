@@ -116,7 +116,7 @@ object CarLanguages:
         "Nattläge",
         "Dagläge",
         "Riktning",
-        "Accuracy",
+        "Noggrannhet",
         "grader",
         "meter",
         "Batterinivå",
