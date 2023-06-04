@@ -66,7 +66,7 @@ class Service[F[_]: Async: Files](comps: BoatComps[F]) extends BasicService[F]:
   private val pings =
     Stream.awakeEvery(30.seconds).map(d => PingEvent(System.currentTimeMillis(), d))
 
-  def routes(sockets: WebSocketBuilder2[F]): HttpRoutes[F] = HttpRoutes.of[F] {
+  val normalRoutes: HttpRoutes[F] = HttpRoutes.of[F] {
     case req @ GET -> Root      => index(req)
     case GET -> Root / "health" => ok(AppMeta.default)
     case GET -> Root / "favicon.ico" =>
@@ -203,12 +203,14 @@ class Service[F[_]: Async: Files](comps: BoatComps[F]) extends BasicService[F]:
     case req @ PUT -> Root / "tracks" / TrackNameVar(trackName) =>
       def readTitle(form: FormReader) =
         form.read[TrackTitle](TrackTitle.Key).map(ChangeTrackTitle.apply)
+
       trackAction[ChangeTrackTitle](req, readTitle) { (title, user) =>
         inserts.updateTitle(trackName, title.title, user.id)
       }
     case req @ PATCH -> Root / "tracks" / TrackIdVar(trackId) =>
       def readComments(form: FormReader) =
         form.read[String](TrackComments.Key).map(ChangeComments.apply)
+
       trackAction[ChangeComments](req, readComments) { (comments, user) =>
         inserts.updateComments(trackId, comments.comments, user.id)
       }
@@ -266,82 +268,6 @@ class Service[F[_]: Async: Files](comps: BoatComps[F]) extends BasicService[F]:
       }.recover { err =>
         badRequest(Errors(err.message))
       }
-    case req @ GET -> Root / "ws" / "updates" =>
-      auth.authOrAnon(req.headers).flatMap { user =>
-        val username = user.username
-        log.info(s"Viewer '${user.username}' joined.")
-        BoatQuery(req.uri.query).map { boatQuery =>
-          log.debug(s"Got $boatQuery")
-          val historicalLimits =
-            if boatQuery.tracks.nonEmpty && username == Usernames.anon then
-              BoatQuery.tracks(boatQuery.tracks)
-            else if username == Usernames.anon then BoatQuery.empty
-            else boatQuery
-          val historyIO = db.history(user, historicalLimits).flatMap { es =>
-            // unless a sample is specified, return about 300 historical points - this optimization is for charts
-            val intelligentSample = math.max(1, es.map(_.coords.length).sum / 300)
-            val actualSample = boatQuery.sample.getOrElse(intelligentSample)
-            log.debug(
-              s"Points ${es.map(_.coords.length).sum} intelligent sample $intelligentSample actual $actualSample"
-            )
-            F.pure(es.toList.map(_.sample(actualSample)))
-          }
-          val boatHistory = Stream.evalSeq(historyIO)
-          val formatter = TimeFormatter.lang(user.language)
-          val boatUpdates = streams.clientEvents(formatter)
-          val eventSource = (boatHistory ++ boatUpdates)
-            .mergeHaltBoth(pings)
-            .filter(_.isIntendedFor(user))
-            .map(message => Text(message.asJson.noSpaces))
-          webSocket(
-            sockets,
-            eventSource,
-            message => F.delay(log.info(message)),
-            onClose = F.delay(log.info(s"Viewer '$username' left."))
-          )
-        }.recover { errors =>
-          badRequest(errors)
-        }
-      }
-    case req @ GET -> Root / "ws" / "boats" =>
-      auth
-        .authBoat(req.headers)
-        .flatMap { boat =>
-          log.info(s"Boat '${boat.boat}' by '${boat.user}' connected.")
-          inserts.joinAsSource(boat).flatMap { result =>
-            val meta = result.track
-            pushNotification(meta).flatMap { _ =>
-              webSocket(
-                sockets,
-                toClients,
-                message =>
-                  log.debug(s"Boat '${boat.boat}' by '${boat.user}' says '$message'.")
-                  val parsed = parseUnsafe(message)
-                  streams.boatIn
-                    .publish1(BoatEvent(parsed, meta))
-                    .map(e =>
-                      e.fold(
-                        err =>
-                          log
-                            .warn(s"Failed to publish '$message' by ${boat.boat}, topic closed."),
-                        identity
-                      )
-                    )
-                ,
-                onClose =
-                  F.delay(log.info(s"Boat '${boat.boat}' by '${boat.user}' left.")).flatMap { _ =>
-                    push.push(meta, SourceState.Disconnected).map(_ => ())
-                  }
-              ).onError { t =>
-                F.delay(
-                  log.info(s"Boat '${boat.boat}' by '${boat.user}' left exceptionally.", t)
-                ).flatMap { _ =>
-                  push.push(meta, SourceState.Disconnected).map(_ => ())
-                }
-              }
-            }
-          }
-        }
     case GET -> Root / "cars" / "conf" =>
       ok(CarsConf.default)
     case req @ POST -> Root / "cars" / "locations" =>
@@ -423,7 +349,7 @@ class Service[F[_]: Async: Files](comps: BoatComps[F]) extends BasicService[F]:
     case GET -> Root / "files" / file =>
       comps.s3.download(file).flatMap { file =>
         val stream = fs2.io.file.Files[F].readAll(fs2.io.file.Path.fromNioPath(file))
-//        val stream = fs2.io.readInputStream[F](F.pure(obj.getObjectContent), 8192)
+        //        val stream = fs2.io.readInputStream[F](F.pure(obj.getObjectContent), 8192)
         Ok(stream)
       }
 
@@ -447,6 +373,88 @@ class Service[F[_]: Async: Files](comps: BoatComps[F]) extends BasicService[F]:
         html = index(req)
       )
   }
+
+  def socketRoutes(sockets: WebSocketBuilder2[F]): HttpRoutes[F] = HttpRoutes.of[F] {
+    case req @ GET -> Root / "ws" / "updates" =>
+      auth.authOrAnon(req.headers).flatMap { user =>
+        val username = user.username
+        log.info(s"Viewer '${user.username}' joined.")
+        BoatQuery(req.uri.query).map { boatQuery =>
+          log.debug(s"Got $boatQuery")
+          val historicalLimits =
+            if boatQuery.tracks.nonEmpty && username == Usernames.anon then
+              BoatQuery.tracks(boatQuery.tracks)
+            else if username == Usernames.anon then BoatQuery.empty
+            else boatQuery
+          val historyIO = db.history(user, historicalLimits).flatMap { es =>
+            // unless a sample is specified, return about 300 historical points - this optimization is for charts
+            val intelligentSample = math.max(1, es.map(_.coords.length).sum / 300)
+            val actualSample = boatQuery.sample.getOrElse(intelligentSample)
+            log.debug(
+              s"Points ${es.map(_.coords.length).sum} intelligent sample $intelligentSample actual $actualSample"
+            )
+            F.pure(es.toList.map(_.sample(actualSample)))
+          }
+          val boatHistory = Stream.evalSeq(historyIO)
+          val formatter = TimeFormatter.lang(user.language)
+          val boatUpdates = streams.clientEvents(formatter)
+          val eventSource = (boatHistory ++ boatUpdates)
+            .mergeHaltBoth(pings)
+            .filter(_.isIntendedFor(user))
+            .map(message => Text(message.asJson.noSpaces))
+          webSocket(
+            sockets,
+            eventSource,
+            message => F.delay(log.info(message)),
+            onClose = F.delay(log.info(s"Viewer '$username' left."))
+          )
+        }.recover { errors =>
+          badRequest(errors)
+        }
+      }
+    case req @ GET -> Root / "ws" / "boats" =>
+      auth
+        .authBoat(req.headers)
+        .flatMap { boat =>
+          log.info(s"Boat '${boat.boat}' by '${boat.user}' connected.")
+          inserts.joinAsSource(boat).flatMap { result =>
+            val meta = result.track
+            pushNotification(meta).flatMap { _ =>
+              webSocket(
+                sockets,
+                toClients,
+                message =>
+                  log.debug(s"Boat '${boat.boat}' by '${boat.user}' says '$message'.")
+                  val parsed = parseUnsafe(message)
+                  streams.boatIn
+                    .publish1(BoatEvent(parsed, meta))
+                    .map(e =>
+                      e.fold(
+                        err =>
+                          log
+                            .warn(s"Failed to publish '$message' by ${boat.boat}, topic closed."),
+                        identity
+                      )
+                    )
+                ,
+                onClose =
+                  F.delay(log.info(s"Boat '${boat.boat}' by '${boat.user}' left.")).flatMap { _ =>
+                    push.push(meta, SourceState.Disconnected).map(_ => ())
+                  }
+              ).onError { t =>
+                F.delay(
+                  log.info(s"Boat '${boat.boat}' by '${boat.user}' left exceptionally.", t)
+                ).flatMap { _ =>
+                  push.push(meta, SourceState.Disconnected).map(_ => ())
+                }
+              }
+            }
+          }
+        }
+  }
+
+  def routes(sockets: WebSocketBuilder2[F]): HttpRoutes[F] =
+    normalRoutes <+> socketRoutes(sockets)
 
   private def pushNotification(meta: UserDevice) =
     push
@@ -536,9 +544,9 @@ class Service[F[_]: Async: Files](comps: BoatComps[F]) extends BasicService[F]:
   private def boatFormAction(req: Request[F])(code: (BoatName, UserInfo) => F[BoatRow]) =
     formAction(
       req,
-      form => form.read[BoatName](BoatNames.Key)
-    ) { (boatName, user) =>
-      code(boatName, user).flatMap { row =>
+      form => form.read[BoatName](BoatNames.Key).map(n => ChangeBoatName(n))
+    ) { (change, user) =>
+      code(change.boatName, user).flatMap { row =>
         respond(req)(
           json = ok(BoatResponse(row.toBoat)),
           html = SeeOther(Location(reverse.boats))

@@ -107,7 +107,7 @@ val backend = Project("boat", file("backend"))
     Compile / unmanagedResourceDirectories ++= Seq(
       baseDirectory.value / "docs"
     ),
-    libraryDependencies ++= Seq("ember-server", "dsl", "circe").map { m =>
+    libraryDependencies ++= Seq("ember-server", "ember-client", "dsl", "circe").map { m =>
       "org.http4s" %% s"http4s-$m" % http4sVersion
     } ++ Seq("core", "hikari").map { d =>
       "org.tpolecat" %% s"doobie-$d" % "1.0.0-RC2"

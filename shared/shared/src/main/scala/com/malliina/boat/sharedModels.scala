@@ -277,6 +277,8 @@ object Language extends StringCompanion[Language]:
 
 case class ChangeLanguage(language: Language) derives Codec.AsObject
 
+case class ChangeBoatName(boatName: BoatName) derives Codec.AsObject
+
 case class SimpleMessage(message: String) derives Codec.AsObject
 
 trait BoatTrackMeta extends DeviceMeta:

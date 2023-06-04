@@ -5,15 +5,53 @@ import com.malliina.boat.db.NewUser
 import com.malliina.boat.http.ContentVersions
 import com.malliina.boat.http4s.JsonInstances.jsonBody
 import com.malliina.boat.parsing.{BoatStats, FullCoord}
-import com.malliina.boat.{BoatNames, BoatUser, Coord, TrackNames, TrackSummaries, Tracks, UserToken}
+import com.malliina.boat.{BoatNames, BoatResponse, BoatUser, Coord, TrackNames, TrackSummaries, Tracks, UserToken}
 import com.malliina.measure.{DistanceIntM, SpeedIntM, TemperatureInt}
 import com.malliina.values.Username
+import io.circe.Json
+import io.circe.syntax.EncoderOps
 import org.http4s.*
+import org.http4s.circe.*
+import org.http4s.circe.CirceEntityDecoder.circeEntityDecoder
+import org.http4s.client.*
+import org.http4s.client.dsl.io.*
+import org.http4s.headers.{Accept, Authorization}
+import org.http4s.implicits.{mediaType, uri}
 import tests.{Http4sSuite, MUnitSuite, TestEmailAuth}
 
 import java.time.{LocalDate, LocalTime}
 
 class ServiceTests extends MUnitSuite with Http4sSuite:
+  test("can change name of boat") {
+    val comps = app()
+    val service = comps.service
+    val user = Username("test@example.com")
+    val userEmail = TestEmailAuth[IO].testEmail
+    val userInfo = for
+      _ <- service.userMgmt.deleteUser(user)
+      _ <- service.userMgmt.register(userEmail)
+      user <- service.userMgmt.userInfo(userEmail)
+    yield user
+    val newName = BoatNames.random()
+    userInfo.flatMap { user =>
+      val bid = user.boats.head.id
+      val req = Method.PATCH(
+        Json.obj("boatName" -> newName.asJson),
+        uri"/boats".addSegment(bid.id),
+        headers = Headers(
+          Authorization(Credentials.Token(AuthScheme.Basic, TestEmailAuth.testToken.token)),
+          Accept(mediaType"application/json")
+        )
+      )
+      service.normalRoutes.orNotFound.run(req)
+    }.flatMap { res =>
+      assertEquals(res.status, Status.Ok)
+      res.as[BoatResponse]
+    }.map { res =>
+      assert(res.boat.name == newName)
+    }
+  }
+
   // Ignored because I don't know how to create access an HttpApp for testing purposes with WebSocketBuilder2
   test("tracks endpoint supports versioning based on Accept header".ignore) {
     val comps = app()

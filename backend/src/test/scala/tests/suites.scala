@@ -92,13 +92,15 @@ case class AppComponents(service: Service[IO]) //, routes: HttpApp[IO])
 trait Http4sSuite extends MUnitDatabaseSuite:
   self: MUnitSuite =>
 
-  val appResource: Resource[IO, AppComponents] = for
-    conf <- Resource.eval(IO(confFixture()))
-    service <- Server.appService[IO](
-      BoatConf.parse().copy(db = conf, ais = AisAppConf(false)),
-      TestComps.builder
-    )
-  yield AppComponents(service)
+  val appResource: Resource[IO, AppComponents] =
+    for
+      conf <- Resource.eval(IO(confFixture()))
+      service <- Server.appService[IO](
+        BoatConf.parse().copy(db = conf, ais = AisAppConf(false)),
+        TestComps.builder
+      )
+    yield AppComponents(service)
+
   val app = ResourceSuiteLocalFixture("munit-boat-app", appResource)
 
   override def munitFixtures: Seq[Fixture[?]] = Seq(confFixture, app)
