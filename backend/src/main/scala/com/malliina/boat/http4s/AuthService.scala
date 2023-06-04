@@ -1,7 +1,6 @@
 package com.malliina.boat.http4s
 
-import cats.effect.syntax.all.concurrentParTraverseOps
-import cats.effect.{IO, Sync}
+import cats.effect.Sync
 import cats.syntax.all.{catsSyntaxApplicativeError, toFlatMapOps, toFunctorOps}
 import com.malliina.boat.Constants.{BoatNameHeader, BoatTokenHeader}
 import com.malliina.boat.auth.{BoatJwt, SettingsPayload}
@@ -9,7 +8,7 @@ import com.malliina.boat.db.*
 import com.malliina.boat.http.UserRequest
 import com.malliina.boat.http4s.AuthService.GoogleCookie
 import com.malliina.boat.{BoatName, BoatNames, BoatToken, DeviceMeta, JoinedSource, MinimalUserInfo, SimpleBoatMeta, UserBoats, UserInfo, Usernames}
-import com.malliina.values.{Email, IdToken}
+import com.malliina.values.Email
 import com.malliina.web.{Code, RevokeResult}
 import org.http4s.headers.Cookie
 import org.http4s.{Headers, Request, Response}

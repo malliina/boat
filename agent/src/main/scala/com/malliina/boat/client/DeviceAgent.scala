@@ -1,7 +1,7 @@
 package com.malliina.boat.client
 
-import cats.effect.{Async, IO, Sync}
-import cats.effect.kernel.{Resource, Temporal}
+import cats.effect.{Async, Sync}
+import cats.effect.kernel.Resource
 import cats.syntax.all.catsSyntaxFlatMapOps
 import com.malliina.boat.Constants.BoatTokenHeader
 import com.malliina.boat.client.DeviceAgent.log

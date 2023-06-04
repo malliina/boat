@@ -183,6 +183,7 @@ object SentencesPage extends BoatImplicits:
     val params = Map(Limits.Limit -> s"${to.limit}", Limits.Offset -> s"${to.offset}")
     val call = reverse.trackFull(track).withQueryParams(params)
     val liClass = if isDisabled then "disabled" else ""
+    val _ = if isActive then "todo" else "todo"
     li(`class` := classes("page-item", liClass))(a(`class` := "page-link", href := call)(text))
 
   def classes(cs: String*) = cs.filter(_.nonEmpty).mkString(" ")

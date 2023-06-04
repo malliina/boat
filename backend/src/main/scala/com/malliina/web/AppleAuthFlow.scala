@@ -1,6 +1,6 @@
 package com.malliina.web
 
-import cats.effect.{IO, Sync}
+import cats.effect.Sync
 import cats.syntax.all.{toFlatMapOps, toFunctorOps}
 import com.malliina.http.{FullUrl, HttpClient}
 import com.malliina.oauth.TokenResponse
@@ -8,17 +8,9 @@ import com.malliina.util.AppLogger
 import com.malliina.values.*
 import com.malliina.web.*
 import com.malliina.web.AppleAuthFlow.{RefreshTokenValue, log, revokeUrl, staticConf}
-import com.malliina.web.AppleTokenValidator.appleIssuer
 import com.malliina.web.OAuthKeys.*
-import com.nimbusds.jose.crypto.ECDSASigner
-import com.nimbusds.jose.{JWSAlgorithm, JWSHeader}
-import com.nimbusds.jwt.{JWTClaimsSet, SignedJWT}
-import io.circe.Codec
-import io.circe.generic.semiauto.deriveCodec
-import org.http4s.UrlForm
 
 import java.time.Instant
-import java.time.temporal.ChronoUnit
 
 object AppleAuthFlow:
   private val log = AppLogger(getClass)

@@ -1,6 +1,6 @@
 package com.malliina.boat.html
 
-import com.malliina.boat.{Lang, SettingsLang}
+import com.malliina.boat.SettingsLang
 import com.malliina.boat.auth.AuthProvider
 import com.malliina.boat.http4s.Reverse
 import scalatags.Text.all.*

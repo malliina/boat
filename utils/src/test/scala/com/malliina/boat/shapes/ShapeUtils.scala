@@ -54,10 +54,10 @@ class ShapeUtils extends FunSuite:
 
   test("read shape file".ignore) {
     val file = userHome.resolve(".boat/vaylat/vaylat.shp")
-    val fileOut = userHome.resolve(".boat/vaylat/vaylat.json")
+//    val fileOut = userHome.resolve(".boat/vaylat/vaylat.json")
     val store = DataStoreFinder.getDataStore(Map("url" -> file.toUri.toString).asJava)
 //    println(store)
-    val writer = new FeatureJSON()
+//    val writer = new FeatureJSON()
     val collections = store.getTypeNames.map(store.getFeatureSource).map(_.getFeatures).toList
     collections.map { coll =>
       val srcCrs = coll.getSchema.getCoordinateReferenceSystem

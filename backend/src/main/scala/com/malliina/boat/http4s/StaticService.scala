@@ -3,7 +3,6 @@ package com.malliina.boat.http4s
 import cats.data.NonEmptyList
 import cats.effect.{Async, Sync}
 import cats.implicits.*
-import com.malliina.assets.HashedAssets
 import com.malliina.boat.BuildInfo
 import com.malliina.boat.http4s.StaticService.log
 import com.malliina.util.AppLogger

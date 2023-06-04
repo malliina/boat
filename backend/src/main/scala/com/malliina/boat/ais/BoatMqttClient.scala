@@ -1,7 +1,7 @@
 package com.malliina.boat.ais
 
-import cats.effect.kernel.{Resource, Temporal}
-import cats.effect.{Async, IO, Sync}
+import cats.effect.kernel.Resource
+import cats.effect.{Async, Sync}
 import cats.effect.std.Dispatcher
 import cats.effect.syntax.all.*
 import cats.syntax.all.{toFlatMapOps, toFunctorOps}

@@ -2,7 +2,6 @@ package com.malliina.boat.db
 
 import cats.data.NonEmptyList
 import cats.effect.Async
-import cats.effect.kernel.implicits.monadCancelOps_
 import cats.implicits.*
 import com.malliina.boat.*
 import com.malliina.boat.db.CarDatabase.log
@@ -12,10 +11,6 @@ import com.malliina.util.AppLogger
 import com.malliina.values.UserId
 import doobie.*
 import doobie.implicits.*
-import fs2.concurrent.Topic
-
-import scala.annotation.tailrec
-import scala.concurrent.duration.DurationInt
 
 object CarDatabase:
   private val log = AppLogger(getClass)

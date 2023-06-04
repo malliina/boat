@@ -1,6 +1,5 @@
 package com.malliina.boat.it
 
-import cats.effect.IO
 import com.malliina.boat.{RawSentence, SentencesMessage}
 import com.malliina.http.FullUrl
 import tests.BaseSuite

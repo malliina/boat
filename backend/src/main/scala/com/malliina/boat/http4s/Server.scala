@@ -1,53 +1,44 @@
 package com.malliina.boat.http4s
 
-import cats.Monad
-import cats.data.{Kleisli, NonEmptyList}
+import cats.data.Kleisli
 import cats.effect.kernel.{Async, Resource}
-import cats.effect.{ExitCode, IO, IOApp, Sync}
 import cats.effect.std.Dispatcher
+import cats.effect.{ExitCode, IO, IOApp, Sync}
 import cats.syntax.all.catsSyntaxApplicativeError
 import com.comcast.ip4s.{Port, host, port}
 import com.malliina.boat.ais.BoatMqttClient
 import com.malliina.boat.auth.{EmailAuth, JWT, TokenEmailAuth}
 import com.malliina.boat.db.*
 import com.malliina.boat.html.BoatHtml
-import com.malliina.boat.http4s.Implicits.circeJsonEncoder
-import com.malliina.boat.http4s.BoatComps
+import com.malliina.boat.http4s.JsonInstances.circeJsonEncoder
 import com.malliina.boat.push.{BoatPushService, PushEndpoint}
-import com.malliina.boat.{AppMeta, AppMode, BoatConf, BuildInfo, Errors, Logging, S3Client, SingleError}
+import com.malliina.boat.{AppMeta, AppMode, BoatConf, Errors, Logging, S3Client, SingleError, message}
 import com.malliina.http.HttpClient
 import com.malliina.http.io.HttpClientIO
-import com.malliina.logback.LogbackUtils
-import com.malliina.logstreams.client.LogstreamsUtils
 import com.malliina.util.AppLogger
 import com.malliina.web.*
-import com.malliina.boat.message
 import fs2.compression.Compression
-import org.http4s.Status.Unauthorized
-import org.http4s.ember.server.EmberServerBuilder
-import org.http4s.headers.{Location, `Content-Type`, `WWW-Authenticate`}
-import org.http4s.server.middleware.{GZip, HSTS}
-import org.http4s.server.websocket.WebSocketBuilder2
-import org.http4s.server.{Router, Server, ServiceErrorHandler}
-import org.http4s.{Challenge, Http, HttpApp, HttpRoutes, Request, Response}
-import fs2.concurrent.Topic
 import fs2.io.file.Files
 import fs2.io.net.Network
+import org.http4s.ember.server.EmberServerBuilder
+import org.http4s.server.middleware.{GZip, HSTS}
+import org.http4s.server.websocket.WebSocketBuilder2
+import org.http4s.server.{Router, Server}
+import org.http4s.{Http, HttpRoutes, Request, Response}
 
 import java.io.IOException
 import java.time.Instant
-import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.{Duration, DurationInt}
 import scala.util.control.NonFatal
 
 case class ServerComponents[F[_]](app: Service[F], server: Server)
 
 trait AppCompsBuilder:
-  def build[F[+_]: Sync](conf: BoatConf, http: HttpClient[F]): AppComps[F]
+  def build[F[_]: Sync](conf: BoatConf, http: HttpClient[F]): AppComps[F]
 
 object AppCompsBuilder:
   def prod: AppCompsBuilder = new AppCompsBuilder:
-    override def build[F[+_]: Sync](conf: BoatConf, http: HttpClient[F]): AppComps[F] =
+    override def build[F[_]: Sync](conf: BoatConf, http: HttpClient[F]): AppComps[F] =
       ProdAppComps(conf, http)
 
 // Put modules that have different implementations in dev, prod or tests here.
@@ -56,7 +47,7 @@ trait AppComps[F[_]]:
   def pushService: PushEndpoint[F]
   def emailAuth: EmailAuth[F]
 
-class ProdAppComps[F[+_]: Sync](conf: BoatConf, http: HttpClient[F]) extends AppComps[F]:
+class ProdAppComps[F[_]: Sync](conf: BoatConf, http: HttpClient[F]) extends AppComps[F]:
   override val customJwt: CustomJwt = CustomJwt(JWT(conf.secret))
   override val pushService: PushEndpoint[F] = BoatPushService.fromConf(conf.push, http)
   override val emailAuth: EmailAuth[F] =

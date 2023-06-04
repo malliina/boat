@@ -1,19 +1,17 @@
 package com.malliina.boat.db
 
 import cats.data.NonEmptyList
-import cats.effect.{Async, IO}
+import cats.effect.Async
 import cats.implicits.*
 import com.malliina.boat.InviteState.accepted
-import com.malliina.boat.http.{BoatQuery, CarQuery, SortOrder, TrackQuery}
+import com.malliina.boat.http.{BoatQuery, SortOrder, TrackQuery}
 import com.malliina.boat.*
-import com.malliina.boat.db.DoobieTracksDatabase.log
 import com.malliina.measure.{DistanceM, SpeedM, Temperature}
 import com.malliina.util.AppLogger
 import com.malliina.values.Username
 import doobie.*
 import doobie.implicits.*
 
-import scala.annotation.tailrec
 import scala.concurrent.duration.{DurationInt, DurationLong, FiniteDuration}
 
 object DoobieTracksDatabase:

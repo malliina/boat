@@ -3,7 +3,7 @@ package com.malliina.boat.db
 import cats.effect.kernel.Resource
 import cats.effect.{Async, Sync}
 import com.malliina.util.AppLogger
-import com.zaxxer.hikari.{HikariConfig, HikariDataSource}
+import com.zaxxer.hikari.HikariConfig
 import doobie.*
 import doobie.hikari.HikariTransactor
 import doobie.implicits.*

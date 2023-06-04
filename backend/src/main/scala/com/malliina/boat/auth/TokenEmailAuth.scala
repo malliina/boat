@@ -1,11 +1,9 @@
 package com.malliina.boat.auth
 
-import cats.effect.{IO, Sync}
-//import cats.syntax.all.{toFlatMapOps, toFunctorOps, err}
+import cats.effect.Sync
 import cats.syntax.all.*
-import com.malliina.boat.{Errors, SingleError}
 import com.malliina.boat.auth.TokenEmailAuth.log
-import com.malliina.boat.db.{CustomJwt, IdentityException, JWTError, MissingCredentials}
+import com.malliina.boat.db.{CustomJwt, IdentityException, MissingCredentials}
 import com.malliina.boat.http4s.Auth
 import com.malliina.http.HttpClient
 import com.malliina.util.AppLogger

@@ -1,21 +1,11 @@
 package com.malliina.boat
 
-import cats.effect.IO
-import cats.effect.kernel.Async
+import cats.effect.Async
 import cats.effect.std.Dispatcher
-import cats.syntax.all.toFlatMapOps
-import com.malliina.util.AppLogger
-import org.slf4j.LoggerFactory
-import ch.qos.logback.classic.{Level, Logger, LoggerContext}
-import ch.qos.logback.classic.encoder.PatternLayoutEncoder
-import ch.qos.logback.classic.spi.ILoggingEvent
-import ch.qos.logback.core.ConsoleAppender
-import com.malliina.boat.BuildInfo
-import com.malliina.http.HttpClient
+import ch.qos.logback.classic.Level
 import com.malliina.http.io.HttpClientF2
 import com.malliina.logback.LogbackUtils
-import com.malliina.logback.fs2.FS2AppenderComps
-import com.malliina.logstreams.client.{FS2Appender, LogstreamsConf, LogstreamsUtils}
+import com.malliina.logstreams.client.LogstreamsUtils
 
 object Logging:
   private val defaultLevel = if BuildInfo.mode == "test" then Level.OFF else Level.INFO

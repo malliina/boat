@@ -1,7 +1,7 @@
 package com.malliina.boat.http4s
 
 import com.malliina.boat.auth.AuthProvider.SelectAccount
-import com.malliina.boat.auth.{AuthProvider, BoatJwtClaims, CookieConf, JWT, UserPayload}
+import com.malliina.boat.auth.{AuthProvider, CookieConf, JWT, UserPayload}
 import com.malliina.boat.db.{IdentityError, JWTError, MissingCredentials}
 import com.malliina.values.{IdToken, Username}
 import org.http4s.Credentials.Token
@@ -9,8 +9,6 @@ import org.http4s.headers.{Authorization, Cookie}
 import org.http4s.{Headers, HttpDate, Response, ResponseCookie}
 import io.circe.*
 import io.circe.generic.semiauto.*
-import io.circe.syntax.EncoderOps
-import io.circe.parser.{decode, parse}
 
 import scala.concurrent.duration.DurationInt
 

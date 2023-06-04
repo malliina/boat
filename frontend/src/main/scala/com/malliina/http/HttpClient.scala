@@ -1,7 +1,7 @@
 package com.malliina.http
 
 import com.malliina.boat.http.CSRFConf
-import io.circe.parser.{decode, parse}
+import io.circe.parser.decode
 import io.circe.syntax.EncoderOps
 import io.circe.{Decoder, Encoder}
 import org.scalajs.dom

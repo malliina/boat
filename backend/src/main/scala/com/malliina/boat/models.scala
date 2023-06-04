@@ -1,13 +1,10 @@
 package com.malliina.boat
 
-import cats.data.NonEmptyList
-
 import java.time.{Instant, LocalDate, LocalTime, OffsetDateTime, ZoneOffset}
 import com.malliina.boat.BoatPrimitives.durationFormat
-import com.malliina.boat.parsing.{FullCoord, GPSCoord, GPSFix}
-import com.malliina.measure.{DistanceIntM, DistanceM, SpeedM, Temperature, TemperatureInt}
-import com.malliina.values.{ValidatingCompanion, *}
-import com.malliina.web.JWTError
+import com.malliina.boat.parsing.{GPSCoord, GPSFix}
+import com.malliina.measure.{DistanceM, SpeedM, Temperature}
+import com.malliina.values.*
 import doobie.Meta
 import io.circe.*
 import io.circe.generic.semiauto.*

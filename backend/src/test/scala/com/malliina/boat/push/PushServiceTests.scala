@@ -3,7 +3,7 @@ package com.malliina.boat.push
 import cats.effect.IO
 import com.malliina.boat.{BoatConf, BoatName}
 import com.malliina.push.apns.APNSToken
-import tests.{BaseSuite, MUnitSuite}
+import tests.BaseSuite
 
 class PushServiceTests extends BaseSuite:
   http.test("push".ignore) { client =>

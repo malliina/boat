@@ -2,18 +2,16 @@ package com.malliina.boat.db
 
 import cats.effect.IO
 import cats.implicits.*
-import com.malliina.boat.{BoatConf, BoatName, BoatUser, DateVal, DeviceId, LocalConf, RawSentence, TrackId, TrackInput, TrackMeta, TrackNames}
-import com.malliina.values.{Email, Username}
-import com.zaxxer.hikari.HikariDataSource
+import com.malliina.boat.{BoatName, BoatUser, DateVal, DeviceId, RawSentence, TrackId, TrackInput, TrackNames}
+import com.malliina.values.Username
 import tests.{MUnitSuite, WrappedTestConf}
 import fs2.io.file.Path
-import fs2.{Chunk, Stream}
+import fs2.Chunk
 
-import java.sql.PreparedStatement
-import java.sql.Statement
 import scala.concurrent.duration.Duration
 import scala.concurrent.duration.DurationInt
 import java.time.LocalDate
+import scala.annotation.unused
 
 class TracksImporter extends MUnitSuite:
   def testConf = WrappedTestConf.parse().map(_.boat.testdb).fold(e => throw e, identity)
@@ -46,6 +44,7 @@ class TracksImporter extends MUnitSuite:
     }
   }
 
+  @unused
   private def importByDay(file: Path, day: LocalDate, db: DoobieDatabase[IO]): IO[Long] =
     val inserts = TrackInserter(db)
     val importer = TrackImporter(inserts)

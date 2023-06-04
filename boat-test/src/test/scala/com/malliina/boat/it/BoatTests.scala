@@ -4,11 +4,9 @@ import cats.effect.IO
 import com.malliina.boat.*
 import com.malliina.boat.client.{HttpUtil, KeyValue}
 import com.malliina.http.FullUrl
-import com.malliina.http.io.{HttpClientF2, HttpClientIO, WebSocketF}
+import com.malliina.http.io.{HttpClientF2, WebSocketF}
 import com.malliina.http.io.SocketEvent.Open
-import com.malliina.util.AppLogger
 import com.malliina.values.{Password, Username}
-import io.circe.Encoder
 import org.http4s.Uri
 import tests.{BaseSuite, ServerSuite}
 
@@ -34,9 +32,6 @@ abstract class BoatTests extends BaseSuite with ServerSuite with BoatSockets:
     openSocket(urlFor(path), headers, httpClient)(code)
 
   private def urlFor(call: Uri): FullUrl = server().baseWsUrl.append(call.renderString)
-
-object BoatSockets:
-  private val log = AppLogger(getClass)
 
 trait BoatSockets:
   self: BaseSuite =>

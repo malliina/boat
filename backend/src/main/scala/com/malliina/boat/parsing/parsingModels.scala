@@ -1,7 +1,7 @@
 package com.malliina.boat.parsing
 
 import java.time.{Instant, LocalDate, LocalTime, ZoneOffset}
-import com.malliina.boat.{Coord, DeviceId, Energy, GPSInsertedPoint, GPSKeyedSentence, GPSPointId, GPSSentenceKey, GPSTimedCoord, InsertedPoint, KeyedSentence, Latitude, LocationUpdate, Longitude, RawSentence, SentenceKey, TimeFormatter, TimedCoord, TrackId, TrackMetaShort, TrackPointId}
+import com.malliina.boat.{Coord, DeviceId, Energy, GPSInsertedPoint, GPSKeyedSentence, GPSPointId, GPSSentenceKey, GPSTimedCoord, InsertedPoint, KeyedSentence, LocationUpdate, RawSentence, SentenceKey, TimeFormatter, TimedCoord, TrackId, TrackMetaShort, TrackPointId}
 import com.malliina.measure.{DistanceM, SpeedM, Temperature}
 import com.malliina.values.{Degrees, ErrorMessage}
 

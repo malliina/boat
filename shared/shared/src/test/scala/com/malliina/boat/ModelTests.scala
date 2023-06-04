@@ -2,7 +2,7 @@ package com.malliina.boat
 
 import io.circe.{Codec, Printer}
 import io.circe.generic.semiauto.deriveCodec
-import io.circe.parser.{decode, parse}
+import io.circe.parser.decode
 import io.circe.syntax.EncoderOps
 import concurrent.duration.DurationInt
 

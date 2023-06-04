@@ -1,6 +1,5 @@
 package com.malliina.boat.http
 
-import cats.effect.IO
 import cats.implicits.*
 import com.malliina.boat.http4s.QueryParsers
 import com.malliina.boat.{CarUpdateId, Constants, Coord, Errors, Latitude, Longitude, Mmsi, RouteRequest, SingleError, TimeFormatter, Timings, TrackCanonical, TrackName, VesselName}

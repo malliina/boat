@@ -1,15 +1,13 @@
 package com.malliina.boat.graph
 
-import com.malliina.util.{AppLogger, FileUtils}
+import com.malliina.util.AppLogger
 import com.malliina.boat.*
 import com.malliina.boat.graph.Graph.{intersection, log}
 import com.malliina.measure.DistanceM
 import com.malliina.storage.StorageLong
-import org.slf4j.LoggerFactory
 import io.circe.*
 import io.circe.generic.semiauto.*
-import io.circe.syntax.EncoderOps
-import io.circe.parser.{decode, parse}
+import io.circe.parser.decode
 
 import java.io.{Closeable, FileOutputStream, InputStream}
 import java.nio.file.{Files, Path}

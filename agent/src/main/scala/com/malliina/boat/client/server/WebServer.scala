@@ -1,6 +1,6 @@
 package com.malliina.boat.client.server
 
-import cats.effect.{Async, IO}
+import cats.effect.Async
 import cats.syntax.all.toFlatMapOps
 import com.malliina.boat.client.TcpClient
 import com.malliina.boat.client.{FormReadable, FormReader}
@@ -21,7 +21,7 @@ import org.http4s.server.Router
 import org.http4s.*
 import com.comcast.ip4s.{Host, Port}
 import org.http4s.CacheDirective.*
-import org.http4s.headers.{Accept, Location, `Cache-Control`, `WWW-Authenticate`}
+import org.http4s.headers.`Cache-Control`
 
 import java.nio.charset.StandardCharsets
 

@@ -1,21 +1,17 @@
 package com.malliina.boat.http4s
 
-import cats.effect.IO
-import com.malliina.boat.{DeviceId, Errors, Latitude, LocationUpdate, LocationUpdates, Longitude, SimpleMessage, TimeFormatter}
+import com.malliina.boat.{DeviceId, Errors, Latitude, LocationUpdate, LocationUpdates, Longitude}
 import com.malliina.http.io.HttpClientIO
-import com.malliina.http.{FullUrl, HttpClient, OkClient}
+import com.malliina.http.FullUrl
 import com.malliina.measure.DistanceIntM
-import com.malliina.values.{IdToken, UserId, degrees}
-import io.circe.Decoder
+import com.malliina.values.{IdToken, degrees}
 import io.circe.syntax.EncoderOps
-import okhttp3.{Interceptor, OkHttpClient, Protocol}
-import org.http4s.Status.{NotFound, Ok, Unauthorized}
-import org.http4s.headers.Authorization
-import org.http4s.{Request, Status}
-import tests.{MUnitSuite, ServerSuite, TestEmailAuth}
+import okhttp3.{Interceptor, OkHttpClient}
+import org.http4s.Status.Unauthorized
+import org.http4s.Status
+import tests.{MUnitSuite, TestEmailAuth}
 
 import java.time.{OffsetDateTime, ZoneOffset}
-import java.util
 
 class AzureHttpTests extends MUnitSuite:
   val loc = LocationUpdate(

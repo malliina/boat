@@ -1,6 +1,5 @@
 package com.malliina.boat.db
 
-import cats.effect.IO
 import com.malliina.boat.http.{AccessResult, InviteInfo, InviteResult}
 import com.malliina.boat.{BoatToken, DeviceId, InviteState, JoinedSource, Language, UserBoats, UserInfo}
 import com.malliina.values.*

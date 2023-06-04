@@ -1,21 +1,13 @@
 package com.malliina.boat.http4s
 
 import cats.effect.IO
-import com.malliina.boat.{DeviceId, Errors, Latitude, LocationUpdate, LocationUpdates, Longitude, SimpleMessage, TimeFormatter, wh}
-import com.malliina.http.io.HttpClientIO
-import com.malliina.http.{FullUrl, HttpClient, OkClient}
-import com.malliina.measure.*
-import com.malliina.values.{IdToken, UserId, degrees}
-import io.circe.Decoder
-import io.circe.syntax.EncoderOps
-import okhttp3.{Interceptor, OkHttpClient, Protocol}
-import org.http4s.Status.{NotFound, Ok, Unauthorized}
+import com.malliina.boat.Errors
+import com.malliina.http.HttpClient
+import com.malliina.values.IdToken
+import org.http4s.Status.{Ok, Unauthorized}
 import org.http4s.headers.Authorization
-import org.http4s.{Request, Status}
+import org.http4s.Status
 import tests.{MUnitSuite, ServerSuite, TestEmailAuth}
-
-import java.time.{OffsetDateTime, ZoneOffset}
-import java.util
 
 class ServerTests extends MUnitSuite with ServerSuite:
   def meUrl = baseUrl.append(Reverse.me.renderString)

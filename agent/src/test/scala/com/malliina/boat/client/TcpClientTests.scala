@@ -1,18 +1,15 @@
 package com.malliina.boat.client
 
-import cats.effect.unsafe.implicits.global
+import cats.effect.IO
 import cats.effect.kernel.Resource
-import cats.effect.{IO, Resource}
+import cats.effect.unsafe.implicits.global
 import com.comcast.ip4s.*
-import com.comcast.ip4s.{Host, Port}
 import com.malliina.boat.RawSentence
 import com.malliina.util.AppLogger
-import fs2.{Chunk, Stream}
 import fs2.io.net.{Network, Socket}
+import fs2.{Chunk, Stream}
 
-import java.net.InetSocketAddress
 import java.nio.ByteBuffer
-import java.nio.charset.StandardCharsets
 import scala.concurrent.Promise
 
 class TcpClientTests extends AsyncSuite:

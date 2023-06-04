@@ -1,15 +1,14 @@
 package com.malliina.boat.http4s
 
-import cats.Applicative
 import cats.data.NonEmptyList
-import cats.effect.{IO, Sync}
+import cats.effect.Sync
 import cats.implicits.*
-import com.malliina.boat.db.{BoatNotFoundException, IdentityException, MissingCredentialsException}
+import com.malliina.boat.db.{BoatNotFoundException, IdentityException}
 import com.malliina.boat.http4s.BasicService.{log, noCache}
 import com.malliina.boat.{Errors, message}
 import com.malliina.http.ResponseException
 import com.malliina.util.AppLogger
-import com.malliina.web.{AuthException, WebAuthException}
+import com.malliina.web.AuthException
 import org.http4s.*
 import org.http4s.CacheDirective.*
 import org.http4s.headers.*

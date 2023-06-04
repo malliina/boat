@@ -1,6 +1,6 @@
 package com.malliina.boat.db
 
-import cats.effect.{Async, IO, Sync}
+import cats.effect.{Async, Sync}
 import cats.data.NonEmptyList
 import cats.implicits.*
 import com.malliina.boat.db.DoobiePushDatabase.log

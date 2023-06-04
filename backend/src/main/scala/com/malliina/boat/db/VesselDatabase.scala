@@ -1,20 +1,17 @@
 package com.malliina.boat.db
 
 import cats.effect.Async
-import cats.effect.syntax.all.*
 import cats.implicits.*
 import com.malliina.boat.db.BoatVesselDatabase.{collect, log}
 import com.malliina.boat.db.Values.{RowsChanged, VesselUpdateId}
-import com.malliina.boat.http.{Limits, TimeRange, VesselQuery}
-import com.malliina.boat.{AisUpdateId, Mmsi, VesselInfo, VesselRowId}
+import com.malliina.boat.http.VesselQuery
+import com.malliina.boat.{Mmsi, VesselInfo, VesselRowId}
 import com.malliina.util.AppLogger
 import doobie.*
 import doobie.free.preparedstatement.PreparedStatementIO
 import doobie.implicits.*
-import io.circe.Codec
-import io.circe.generic.semiauto.deriveCodec
 
-import java.time.OffsetDateTime
+import scala.annotation.unused
 
 trait VesselDatabase[F[_]]:
   def load(query: VesselQuery): F[List[VesselHistory]]
@@ -97,6 +94,7 @@ class BoatVesselDatabase[F[_]: Async](db: DoobieDatabase[F])
       .compile
       .toList
 
+  @unused
   private def saveStream(messages: Seq[VesselInfo]): fs2.Stream[ConnectionIO, VesselRowId] =
     val oneRow = (1 to 10).map(_ => "?").mkString("(", ",", ")")
     val params = messages.map(_ => oneRow).mkString(",")

@@ -1,15 +1,15 @@
 package tests
 
-import cats.effect.{IO, Sync}
+import cats.effect.Sync
 import com.malliina.boat.BoatConf
-import com.malliina.boat.auth.{EmailAuth, JWT, SecretKey}
+import com.malliina.boat.auth.{EmailAuth, JWT}
 import com.malliina.boat.db.{CustomJwt, IdentityException, JWTError, PushDevice}
 import com.malliina.boat.http4s.{AppComps, AppCompsBuilder, Auth}
-import com.malliina.boat.push.{SourceNotification, PushEndpoint, PushSummary}
+import com.malliina.boat.push.{PushEndpoint, PushSummary, SourceNotification}
 import com.malliina.http.HttpClient
-import com.malliina.values.{Email, IdToken, TokenValue}
+import com.malliina.values.{Email, IdToken}
 import com.malliina.web
-import com.malliina.web.{AuthError, Expired, InvalidSignature, JWTError, KeyConf, ParsedJWT, TokenVerifier, Verified, WebAuthException}
+import com.malliina.web.{Expired, InvalidSignature, WebAuthException}
 import org.http4s.Headers
 import tests.TestEmailAuth.{expiredToken, testToken}
 
@@ -49,5 +49,5 @@ class TestComps[F[_]: Sync](conf: BoatConf) extends AppComps[F]:
 
 object TestComps:
   val builder: AppCompsBuilder = new AppCompsBuilder:
-    def build[F[+_]: Sync](conf: BoatConf, http: HttpClient[F]): AppComps[F] =
+    def build[F[_]: Sync](conf: BoatConf, http: HttpClient[F]): AppComps[F] =
       TestComps(conf)

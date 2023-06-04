@@ -1,6 +1,5 @@
 package com.malliina.web
 
-import cats.effect.IO
 import com.malliina.values.TokenValue
 
 import java.time.Instant

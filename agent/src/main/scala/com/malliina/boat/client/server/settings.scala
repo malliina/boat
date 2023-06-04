@@ -1,6 +1,5 @@
 package com.malliina.boat.client.server
 
-import cats.effect.IO
 import com.malliina.boat.BoatToken
 import com.malliina.boat.client.server.Device.BoatDevice
 import com.malliina.boat.client.server.WebServer.{boatCharset, defaultHash, hash, log}

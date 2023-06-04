@@ -1,8 +1,8 @@
 package com.malliina.boat
 
 import org.scalajs.dom
-import scala.scalajs.js.Dynamic.literal
-import scala.scalajs.js.JSConverters.*
+
+import scala.annotation.unused
 import scala.scalajs.js
 import scala.scalajs.js.annotation.*
 
@@ -23,9 +23,13 @@ object MapboxGlCss extends js.Object
 object FontAwesomeCss extends js.Object
 
 object Frontend extends BodyClasses:
+  @unused
   private val bootstrapCss = BootstrapCss
+  @unused
   private val mapboxCss = MapboxCss
+  @unused
   private val mapboxGlCss = MapboxGlCss
+  @unused
   private val fontAwesomeCss = FontAwesomeCss
   val log: BaseLogger = BaseLogger.console
 

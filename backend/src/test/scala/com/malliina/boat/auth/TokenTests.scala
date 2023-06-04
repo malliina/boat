@@ -2,13 +2,12 @@ package com.malliina.boat.auth
 
 import cats.effect.IO
 import com.malliina.boat.LocalConf
-import com.malliina.http.{FullUrl, OkHttpResponse}
-import com.malliina.http.io.HttpClientIO
+import com.malliina.http.FullUrl
 import com.malliina.http.HttpClient
 import com.malliina.values.IdToken
 import com.malliina.web.{AppleTokenValidator, ClientId, GoogleAuthFlow, SignInWithApple}
 import tests.BaseSuite
-import com.malliina.config.{ConfigOps, ConfigReadable}
+import com.malliina.config.ConfigOps
 
 import java.time.Instant
 import scala.jdk.CollectionConverters.MapHasAsScala
@@ -61,7 +60,7 @@ class TokenTests extends BaseSuite:
       .copy(clientId = AppleTokenValidator.boatClientId)
     val siwa = SignInWithApple(siwaConf)
     val privateKey = siwa.signInWithAppleToken(Instant.now())
-    val conf = boatConf.getConfig("demo")
+    val _ = boatConf.getConfig("demo")
 //    val code = conf.getString("code")
     client
       .postForm(

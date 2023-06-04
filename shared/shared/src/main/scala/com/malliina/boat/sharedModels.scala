@@ -10,8 +10,7 @@ import io.circe.generic.semiauto.*
 import io.circe.syntax.EncoderOps
 import scalatags.generic.Bundle
 
-import java.time.OffsetDateTime
-import scala.concurrent.duration.{Duration, FiniteDuration}
+import scala.concurrent.duration.Duration
 import scala.language.implicitConversions
 import scala.math.Ordering.Double.TotalOrdering
 

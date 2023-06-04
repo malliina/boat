@@ -7,6 +7,7 @@ import org.scalajs.dom.*
 import io.circe.*
 import io.circe.syntax.EncoderOps
 
+import scala.annotation.unused
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 
 object FormHandlers extends BaseFront:
@@ -37,7 +38,7 @@ class InviteHandler(
   open: Element,
   cancel: Element,
   delete: Element,
-  log: BaseLogger = BaseLogger.console
+  @unused log: BaseLogger = BaseLogger.console
 ) extends BaseFront:
   open.addOnClick { e =>
     form.show()
@@ -55,7 +56,7 @@ class TitleHandler(
   form: HTMLFormElement,
   editIcon: Element,
   cancel: HTMLButtonElement,
-  log: BaseLogger = BaseLogger.console
+  @unused log: BaseLogger = BaseLogger.console
 ) extends AjaxForm(form, editIcon, TrackRow, cancel)
   with CSRFConf:
   form.onsubmit = (e: Event) =>
@@ -76,7 +77,7 @@ class CommentsHandler(
   form: HTMLFormElement,
   editIcon: Element,
   cancel: HTMLButtonElement,
-  log: BaseLogger = BaseLogger.console
+  @unused log: BaseLogger = BaseLogger.console
 ) extends AjaxForm(form, editIcon, CommentsRow, cancel)
   with CSRFConf:
   form.onsubmit = (e: Event) =>

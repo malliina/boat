@@ -3,13 +3,12 @@ package com.malliina.boat.http4s
 import cats.effect.IO
 import com.malliina.boat.db.NewUser
 import com.malliina.boat.http.ContentVersions
+import com.malliina.boat.http4s.JsonInstances.jsonBody
 import com.malliina.boat.parsing.{BoatStats, FullCoord}
 import com.malliina.boat.{BoatNames, BoatUser, Coord, TrackNames, TrackSummaries, Tracks, UserToken}
 import com.malliina.measure.{DistanceIntM, SpeedIntM, TemperatureInt}
 import com.malliina.values.Username
 import org.http4s.*
-import org.http4s.headers.{Accept, Authorization}
-import org.http4s.implicits.*
 import tests.{Http4sSuite, MUnitSuite, TestEmailAuth}
 
 import java.time.{LocalDate, LocalTime}
@@ -44,7 +43,6 @@ class ServiceTests extends MUnitSuite with Http4sSuite:
     yield p
     init.unsafeRunSync()
     val response1 = tracksRequest(ContentVersions.Version1)
-    import com.malliina.boat.http4s.Implicits.*
     implicit val tsBody: EntityDecoder[IO, TrackSummaries] = jsonBody[IO, TrackSummaries]
     val summaries = response1.flatMap(_.as[TrackSummaries]).unsafeRunSync()
     assertEquals(summaries.tracks.length, 1)

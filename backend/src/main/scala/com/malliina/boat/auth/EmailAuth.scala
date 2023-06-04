@@ -1,6 +1,5 @@
 package com.malliina.boat.auth
 
-import cats.effect.IO
 import com.malliina.values.Email
 import org.http4s.Headers
 

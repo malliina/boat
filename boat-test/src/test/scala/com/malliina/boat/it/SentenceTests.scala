@@ -5,7 +5,7 @@ import com.malliina.boat.*
 import com.malliina.boat.db.NewUser
 import com.malliina.values.{Password, Username}
 
-import scala.concurrent.{Await, Promise, TimeoutException}
+import scala.concurrent.TimeoutException
 
 class SentenceTests extends BoatTests:
   // TODO Why is this test ignored?

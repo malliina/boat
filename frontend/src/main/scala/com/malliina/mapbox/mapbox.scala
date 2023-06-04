@@ -2,10 +2,11 @@ package com.malliina.mapbox
 
 import com.malliina.boat.{AccessToken, Coord, Feature, FeatureCollection, JsonError, Latitude, Layer, Longitude, Parsing}
 import org.scalajs.dom
-import org.scalajs.dom.{html, Event, HTMLCanvasElement}
+import org.scalajs.dom.{HTMLCanvasElement, html}
 import scalatags.JsDom.TypedTag
-import com.malliina.{OptionOps, OptionStringOps, OptionDoubleOps}
+import com.malliina.{OptionDoubleOps, OptionOps, OptionStringOps}
 
+import scala.annotation.unused
 import scala.concurrent.{Future, Promise}
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 import scala.scalajs.js
@@ -39,7 +40,7 @@ object GeocoderOptions:
 
 @js.native
 @JSImport("@mapbox/mapbox-gl-geocoder", JSImport.Default)
-class MapboxGeocoder(options: GeocoderOptions) extends js.Object:
+class MapboxGeocoder(@unused options: GeocoderOptions) extends js.Object:
   def clear: Unit = js.native
 
 object MapboxGeocoder:
@@ -59,7 +60,7 @@ object MarkerOptions:
 
 @js.native
 @JSImport("mapbox-gl", "Marker")
-class MapboxMarker(options: MarkerOptions) extends js.Object:
+class MapboxMarker(@unused options: MarkerOptions) extends js.Object:
   def setLngLat(coord: LngLatLike): MapboxMarker = js.native
   def getLngLat(): LngLat = js.native
   def setPopup(popup: MapboxPopup): MapboxMarker = js.native
@@ -104,7 +105,7 @@ object PopupOptions:
 
 @js.native
 @JSImport("mapbox-gl", "Popup")
-class MapboxPopup(options: PopupOptions) extends js.Object:
+class MapboxPopup(@unused options: PopupOptions) extends js.Object:
   def setLngLat(coord: LngLatLike): MapboxPopup = js.native
   def setHTML(html: String): MapboxPopup = js.native
   def setText(text: String): MapboxPopup = js.native
@@ -136,7 +137,7 @@ object QueryOptions:
 
 @js.native
 @JSImport("mapbox-gl", "Map")
-class MapboxMap(options: MapOptions) extends js.Object:
+class MapboxMap(@unused options: MapOptions) extends js.Object:
   def addControl(control: MapboxGeocoder): MapboxMap = js.native
   def removeControl(control: MapboxGeocoder): MapboxMap = js.native
   def flyTo(options: FlyOptions): Unit = js.native
@@ -219,7 +220,7 @@ object MapboxMap:
 
 @js.native
 @JSImport("mapbox-gl", "LngLatBounds")
-class LngLatBounds(sw: LngLatLike, ne: LngLatLike) extends js.Object:
+class LngLatBounds(@unused sw: LngLatLike, @unused ne: LngLatLike) extends js.Object:
   def extend(bounds: LngLatBounds): LngLatBounds = js.native
   def extend(bounds: LngLat): LngLatBounds = js.native
   def isEmpty: Boolean = js.native
@@ -298,7 +299,7 @@ object GeoJsonSource:
 
 @js.native
 @JSImport("mapbox-gl", "LngLat")
-class LngLat(lng: Double, lat: Double) extends LngLatLike
+class LngLat(@unused lng: Double, @unused lat: Double) extends LngLatLike
 
 object LngLat:
   def apply(coord: Coord): LngLat = new LngLat(coord.lng.lng, coord.lat.lat)

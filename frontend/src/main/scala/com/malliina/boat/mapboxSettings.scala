@@ -5,10 +5,9 @@ import org.scalajs.dom.window.localStorage
 import io.circe.*
 import io.circe.generic.semiauto.*
 import io.circe.syntax.EncoderOps
-import io.circe.parser.{decode, parse}
+import io.circe.parser.parse
 
 import scala.scalajs.js.Date
-import scala.util.Try
 
 case class MapCamera(
   center: Coord,

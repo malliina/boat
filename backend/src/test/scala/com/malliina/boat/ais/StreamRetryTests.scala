@@ -1,7 +1,6 @@
 package com.malliina.boat.ais
 
 import cats.effect.IO
-import munit.FunSuite
 import tests.MUnitSuite
 
 import scala.concurrent.duration.DurationInt

@@ -1,7 +1,6 @@
 package com.malliina.boat.http4s
 
-import cats.effect.IO
-import cats.effect.kernel.{Concurrent, Sync}
+import cats.effect.Concurrent
 import com.malliina.boat.{DeviceId, TrackCanonical, TrackId, TrackName}
 import com.malliina.values.Username
 import io.circe.syntax.EncoderOps
@@ -10,7 +9,6 @@ import org.http4s.circe.CirceInstances
 import org.http4s.dsl.Http4sDsl
 import org.http4s.headers.`Content-Type`
 import org.http4s.{Charset, DecodeResult, EntityDecoder, EntityEncoder, MediaType, syntax}
-import scalatags.Text
 import scalatags.generic.Frag
 
 trait Extractors:
@@ -71,5 +69,3 @@ abstract class Implicits[F[_]]
   with HtmlInstances
   with JsonInstances
   with Extractors
-
-object Implicits extends Implicits[IO]

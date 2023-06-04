@@ -7,6 +7,8 @@ import com.malliina.values.Username
 import doobie.implicits.toSqlInterpolator
 import tests.{MUnitDatabaseSuite, MUnitSuite}
 
+import scala.annotation.unused
+
 class DoobieTracksDatabaseTests extends MUnitSuite with MUnitDatabaseSuite:
   dbFixture.test("run doobie query") { doobie =>
     val service = DoobieTracksDatabase(doobie)
@@ -33,10 +35,11 @@ class DoobieTests extends MUnitSuite with Mappings:
       TrackQuery(TrackSort.TopSpeed, SortOrder.Desc, Limits(10, 0)),
       Lang.default
     )
-    val bundle = task.unsafeRunSync()
+    val _ = task.unsafeRunSync()
   }
 
   dbResource.test("measure distance".ignore) { doobie =>
+    @unused
     implicit val coordMeta = Mappings.coordMeta
     val db = DoobieTracksDatabase(doobie)
     val c1 = Coord.buildOrFail(60, 30)

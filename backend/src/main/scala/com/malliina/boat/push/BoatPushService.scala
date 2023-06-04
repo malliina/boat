@@ -1,7 +1,6 @@
 package com.malliina.boat.push
 
 import cats.{Applicative, Monad}
-import cats.effect.IO
 import com.malliina.boat.MobileDevice.{Android, IOS, Unknown}
 import com.malliina.boat.PushConf
 import com.malliina.boat.db.PushDevice
@@ -14,7 +13,7 @@ import com.malliina.util.AppLogger
 object BoatPushService:
   private val log = AppLogger(getClass)
 
-  def fromConf[F[+_]: Monad](c: PushConf, http: HttpClient[F]): BoatPushService[F] =
+  def fromConf[F[_]: Monad](c: PushConf, http: HttpClient[F]): BoatPushService[F] =
     BoatPushService(APNSPush.fromConf(c.apns, http), FCMPush.build(c.fcm, http))
 
 class BoatPushService[F[_]: Applicative](ios: APNS[F], android: PushClient[F, GCMToken])

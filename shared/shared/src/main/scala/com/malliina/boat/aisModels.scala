@@ -3,11 +3,11 @@ package com.malliina.boat
 import com.malliina.boat.ShipType.*
 import com.malliina.json.PrimitiveFormats
 import com.malliina.measure.{DistanceM, SpeedM}
-import com.malliina.values.{ErrorMessage, IdCompanion, StringCompanion, WrappedId, WrappedString}
+import com.malliina.values.*
 import io.circe.*
 import io.circe.generic.semiauto.*
 
-import scala.concurrent.duration.{Duration, FiniteDuration}
+import scala.concurrent.duration.Duration
 
 /** @see
   *   https://help.marinetraffic.com/hc/en-us/articles/205579997-What-is-the-significance-of-the-AIS-Shiptype-number-
@@ -223,8 +223,7 @@ case class VesselLocation(
   )
 
 object VesselLocation:
-  import com.malliina.measure.{SpeedDoubleM, DistanceDoubleM}
-  import MaritimeJson.nonEmptyOpt
+  import com.malliina.measure.SpeedDoubleM
   implicit val json: Codec[VesselLocation] = deriveCodec[VesselLocation]
   val readerGeoJson: Decoder[VesselLocation] = (c: HCursor) =>
     for

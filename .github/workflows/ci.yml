@@ -11,9 +11,9 @@ jobs:
       - uses: actions/checkout@v3
       - uses: actions/setup-java@v3
         with:
-          distribution: 'zulu'
-          java-version: '17'
-          cache: 'sbt'
+          distribution: zulu
+          java-version: 17
+          cache: sbt
       - name: Run utils tests
         run: sbt utils/test
       - name: Run agent tests

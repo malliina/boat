@@ -1,14 +1,11 @@
 package com.malliina.boat.db
 
 import cats.data.NonEmptyList
-import cats.effect.kernel.implicits.monadCancelOps_
-import cats.effect.{Async, IO}
+import cats.effect.Async
 import cats.implicits.*
-import cats.syntax.all.{toFlatMapOps, toFunctorOps}
 import com.malliina.boat.*
 import com.malliina.boat.db.TrackInserter.log
-import com.malliina.boat.http.CarQuery
-import com.malliina.boat.parsing.{FullCoord, PointInsert}
+import com.malliina.boat.parsing.PointInsert
 import com.malliina.measure.{DistanceM, SpeedIntM, SpeedM}
 import com.malliina.util.AppLogger
 import com.malliina.values.UserId
@@ -16,10 +13,7 @@ import doobie.*
 import doobie.free.preparedstatement.PreparedStatementIO
 import doobie.implicits.*
 
-import java.time.temporal.ChronoUnit
 import scala.annotation.tailrec
-import scala.concurrent.duration.DurationLong
-import scala.util.Random
 
 object TrackInserter:
   private val log = AppLogger(getClass)

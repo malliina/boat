@@ -1,6 +1,5 @@
 package com.malliina.boat.db
 
-import cats.effect.IO
 import com.malliina.boat.InviteState.accepted
 import com.malliina.boat.db.DoobieUserManager.{collectBoats, log}
 import com.malliina.boat.http.InviteResult.{AlreadyInvited, Invited, UnknownEmail}

@@ -2,11 +2,9 @@ package com.malliina.boat.db
 
 import com.malliina.boat.{Coord, CoordHash, Mmsi, MobileDevice, PushId, PushToken, UserToken, Utils, VesselName}
 import com.malliina.measure.{DistanceM, SpeedM, Temperature}
-import com.malliina.values.{Email, IdCompanion, RefreshToken, StringCompanion, UserId, Username, WrappedId, WrappedString}
-import com.sun.jdi.PrimitiveValue
+import com.malliina.values.{Email, RefreshToken, StringCompanion, UserId, Username, WrappedString}
 
 import java.time.Instant
-import java.time.temporal.ChronoUnit
 
 case class PushDevice(
   id: PushId,

@@ -7,8 +7,7 @@ import org.scalajs.dom.CloseEvent
 import org.scalajs.dom.{Event, MessageEvent}
 import io.circe.*
 import io.circe.syntax.EncoderOps
-import io.circe.parser.{decode, parse}
-import scala.util.Try
+import io.circe.parser.parse
 
 object BaseSocket:
   val EventKey = "event"

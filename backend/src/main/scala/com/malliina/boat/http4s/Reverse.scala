@@ -3,7 +3,6 @@ package com.malliina.boat.http4s
 import com.malliina.boat.auth.AuthProvider
 import com.malliina.boat.http.CarQuery
 import com.malliina.boat.{DeviceId, Timings, TrackCanonical, TrackId, TrackName}
-import com.malliina.values.UserId
 import org.http4s.Uri
 import org.http4s.implicits.*
 

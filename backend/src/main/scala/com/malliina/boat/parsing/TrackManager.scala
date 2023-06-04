@@ -2,6 +2,8 @@ package com.malliina.boat.parsing
 
 import com.malliina.boat.TrackId
 
+import scala.annotation.unused
+
 /** Combines various NMEA0183 events, returning any complete events of type `FullCoord`.
   */
 object TrackManager:
@@ -10,6 +12,7 @@ object TrackManager:
 class TrackManager extends SentenceAggregator[TrackId, ParsedCoord, FullCoord]:
   private var latestDepth: Map[TrackId, WaterDepth] = Map.empty
   private var latestWaterTemp: Map[TrackId, WaterTemperature] = Map.empty
+  @unused
   private var latestWaterSpeed: Map[TrackId, ParsedWaterSpeed] = Map.empty
   private var latestBoatSpeed: Map[TrackId, ParsedBoatSpeed] = Map.empty
   // latest suitable date, if any

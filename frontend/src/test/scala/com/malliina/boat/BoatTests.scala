@@ -1,12 +1,11 @@
 package com.malliina.boat
 
 import io.circe.*
-import io.circe.syntax.EncoderOps
-import io.circe.parser.{decode, parse}
+import io.circe.parser.decode
 
 class BoatTests extends munit.FunSuite with DemoJson:
   test("serialize GeoJSON") {
-    val geo = LineGeometry("LineString", Seq(Coord.buildOrFail(24, 60)))
+    val _ = LineGeometry("LineString", Seq(Coord.buildOrFail(24, 60)))
     assert(1 == 1)
   }
 
@@ -47,7 +46,7 @@ trait DemoJson:
      |    "PAKO_TYYP": 5,
      |    "PAIV_PVM": "2015-09-27T21:00:00.000+0000",
      |    "VAHV_PVM": "2015-09-27T21:00:00.000+0000"
-     |    
+     |
      |}""".stripMargin
 
   val limitAreaJson =

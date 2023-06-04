@@ -8,18 +8,15 @@ import com.dimafeng.testcontainers.MySQLContainer
 import com.malliina.boat.db.{Conf, DoobieDatabase, DoobieSQL}
 import com.malliina.boat.http4s.{JsonInstances, Server, ServerComponents, Service}
 import com.malliina.boat.{AisAppConf, BoatConf, Errors, LocalConf}
-import com.malliina.http.{FullUrl, HttpClient}
+import com.malliina.http.FullUrl
 import com.malliina.http.io.HttpClientIO
 import com.malliina.logback.LogbackUtils
 import com.malliina.util.AppLogger
 import com.typesafe.config.Config
-import munit.FunSuite
-import org.http4s.server.websocket.WebSocketBuilder2
-import org.http4s.{EntityDecoder, EntityEncoder, HttpApp, Uri}
+import org.http4s.EntityDecoder
 import org.testcontainers.utility.DockerImageName
 
 import java.nio.file.{Path, Paths}
-import java.util.concurrent.atomic.AtomicReference
 import scala.util.Try
 
 case class TestBoatConf(testdb: Conf)
@@ -111,12 +108,8 @@ case class ServerTools(server: ServerComponents[IO]):
   def baseHttpUrl = FullUrl("http", s"localhost:$port", "")
   def baseWsUrl = FullUrl("ws", s"localhost:$port", "")
 
-object ServerSuite:
-  private val log = AppLogger(getClass)
-
 trait ServerSuite extends MUnitDatabaseSuite with JsonInstances:
   self: MUnitSuite =>
-  import ServerSuite.log
   implicit val tsBody: EntityDecoder[IO, Errors] = jsonBody[IO, Errors]
   val client = ResourceFixture(HttpClientIO.resource[IO])
 

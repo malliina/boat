@@ -1,7 +1,7 @@
 package com.malliina.boat
 
 import cats.data.NonEmptyList
-import com.malliina.values.{Email, ErrorMessage, UserId, Readable}
+import com.malliina.values.{ErrorMessage, UserId, Readable}
 import io.circe.{Codec, DecodingFailure}
 import io.circe.generic.semiauto.deriveCodec
 

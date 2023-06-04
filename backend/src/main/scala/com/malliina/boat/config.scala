@@ -9,8 +9,6 @@ import com.malliina.values.ErrorMessage
 import com.malliina.web.{AuthConf, ClientId, ClientSecret, SignInWithApple}
 import com.typesafe.config.{Config, ConfigFactory}
 
-import java.nio.file.Paths
-
 sealed trait AppMode:
   def isProd = this == AppMode.Prod
 

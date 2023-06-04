@@ -1,6 +1,5 @@
 package com.malliina.boat.push
 
-import cats.effect.IO
 import com.malliina.boat.db.PushDevice
 import com.malliina.boat.{MobileDevice, PushToken}
 import com.malliina.push.Token

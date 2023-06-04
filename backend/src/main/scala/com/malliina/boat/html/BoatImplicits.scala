@@ -4,7 +4,7 @@ import com.malliina.boat.BoatFormats.{formatDistance, formatSpeed, formatTemp}
 import com.malliina.boat.{DateVal, WrappedInt}
 import com.malliina.measure.{DistanceM, SpeedM, Temperature}
 import com.malliina.values.WrappedString
-import scalatags.Text.all.{Attr, AttrValue, Frag, StringFrag, intFrag, stringFrag}
+import scalatags.Text.all.{Attr, AttrValue, Frag, intFrag, stringFrag}
 import scalatags.text.Builder
 
 import scala.language.implicitConversions

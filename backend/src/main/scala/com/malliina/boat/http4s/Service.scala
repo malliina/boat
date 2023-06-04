@@ -2,10 +2,9 @@ package com.malliina.boat.http4s
 
 import cats.data.NonEmptyList
 import cats.effect.kernel.Async
-import cats.effect.{IO, Sync}
+import cats.effect.Sync
 import cats.implicits.*
 import cats.syntax.all.{catsSyntaxApplicativeError, toFlatMapOps, toFunctorOps}
-import com.malliina.assets.HashedAssets
 import com.malliina.boat.Constants.{LanguageName, TokenCookieName}
 import com.malliina.boat.*
 import com.malliina.boat.auth.AuthProvider.{PromptKey, SelectAccount}
@@ -17,22 +16,21 @@ import com.malliina.boat.http.InviteResult.{AlreadyInvited, Invited, UnknownEmai
 import com.malliina.boat.http.*
 import com.malliina.boat.http4s.BasicService.{cached, noCache, ranges}
 import com.malliina.boat.http4s.Service.{RequestOps, log}
-import com.malliina.boat.push.{PushService, SourceState}
+import com.malliina.boat.push.SourceState
 import com.malliina.util.AppLogger
 import com.malliina.values.{Email, Readable, UserId, Username}
 import com.malliina.web.OAuthKeys.{Nonce, State}
 import com.malliina.web.Utils.randomString
 import com.malliina.web.*
 import com.malliina.boat.auth.BoatJwt
-import com.malliina.boat.parsing.{CarCoord, CarStats}
+import com.malliina.boat.parsing.CarCoord
 import fs2.io.file.Files
 import fs2.{Pipe, Stream}
 import io.circe.parser.parse
 import io.circe.syntax.EncoderOps
 import io.circe.{Decoder, Json}
-import org.http4s.headers.{Location, `Content-Type`, `WWW-Authenticate`}
+import org.http4s.headers.Location
 import org.http4s.implicits.uri
-import org.http4s.server.websocket.WebSocketBuilder
 import org.http4s.server.websocket.WebSocketBuilder2
 import org.http4s.websocket.WebSocketFrame
 import org.http4s.websocket.WebSocketFrame.Text
@@ -40,7 +38,7 @@ import org.http4s.{Callback as _, *}
 import org.typelevel.ci.CIStringSyntax
 
 import java.time.Instant
-import java.time.temporal.ChronoUnit
+import scala.annotation.unused
 import scala.concurrent.duration.DurationInt
 
 object Service:
@@ -779,5 +777,5 @@ class Service[F[_]: Async: Files](comps: BoatComps[F]) extends BasicService[F]:
   def stringify(map: Map[String, String]): String =
     map.map { case (key, value) => s"$key=$value" }.mkString("&")
 
-  private def unauthorized(errors: Errors) = redirectToLogin
+  private def unauthorized(@unused errors: Errors) = redirectToLogin
   private def redirectToLogin: F[Response[F]] = SeeOther(Location(reverse.signIn))

@@ -1,6 +1,5 @@
 package com.malliina.boat
 
-import io.circe.syntax.EncoderOps
 import com.malliina.boat.BoatFormats.*
 import com.malliina.boat.SourceType.Vehicle
 import com.malliina.geojson.{GeoLineString, GeoPoint}

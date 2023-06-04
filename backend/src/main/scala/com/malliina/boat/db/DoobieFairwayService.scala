@@ -1,10 +1,9 @@
 package com.malliina.boat.db
 
 import cats.data.NonEmptyList
-import cats.effect.{Async, IO}
+import cats.effect.Async
 import cats.implicits.*
 import com.malliina.boat.db.DoobieFairwayService.collect
-import com.malliina.boat.db.Mappings.*
 import com.malliina.boat.{CoordHash, FairwayInfo}
 import doobie.*
 import doobie.implicits.*

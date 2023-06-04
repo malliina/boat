@@ -21,7 +21,7 @@ class NoopAPNS[F[_]: Applicative] extends APNS[F]:
 object APNSPush:
   private val log = AppLogger(getClass)
 
-  def fromConf[F[+_]: Monad](conf: APNSConf, http: HttpClient[F]): APNS[F] =
+  def fromConf[F[_]: Monad](conf: APNSConf, http: HttpClient[F]): APNS[F] =
     if conf.enabled then
       val confModel = APNSTokenConf(Paths.get(conf.privateKey), conf.keyId, conf.teamId)
       log.info(
@@ -35,7 +35,7 @@ object APNSPush:
       log.info(s"APNS is disabled.")
       NoopAPNS[F]
 
-class APNSPush[F[+_]: Monad](sandbox: APNSHttpClientF[F], prod: APNSHttpClientF[F])
+class APNSPush[F[_]: Monad](sandbox: APNSHttpClientF[F], prod: APNSHttpClientF[F])
   extends PushClient[F, APNSToken]
   with APNS[F]:
   val topic = APNSTopic("com.malliina.BoatTracker")

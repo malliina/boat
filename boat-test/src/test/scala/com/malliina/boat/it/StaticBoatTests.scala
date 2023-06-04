@@ -6,8 +6,6 @@ import com.malliina.util.AppLogger
 import fs2.concurrent.SignallingRef
 import fs2.Stream
 
-import scala.concurrent.Promise
-
 class StaticBoatTests extends BoatTests:
   val log = AppLogger(getClass)
 

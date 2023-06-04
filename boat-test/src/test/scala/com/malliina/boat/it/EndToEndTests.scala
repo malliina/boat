@@ -2,19 +2,16 @@ package com.malliina.boat.it
 
 import cats.effect.{IO, Resource}
 import cats.effect.kernel.Deferred
-import com.malliina.boat.{CoordsEvent, SentencesEvent}
+import com.malliina.boat.CoordsEvent
 import com.malliina.boat.client.server.BoatConf
 import com.malliina.boat.client.{DeviceAgent, TcpClient}
 import com.malliina.boat.it.EndToEndTests.log
 import com.malliina.util.AppLogger
 import fs2.Stream
 import fs2.concurrent.SignallingRef
-import fs2.io.net.{Network, Socket}
+import fs2.io.net.Network
 import io.circe.Json
 import com.comcast.ip4s.*
-
-import java.net.InetSocketAddress
-import scala.concurrent.Promise
 
 object EndToEndTests:
   private val log = AppLogger(getClass)

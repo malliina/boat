@@ -7,7 +7,7 @@ import org.apache.commons.codec.digest.DigestUtils
 
 class StringTests extends munit.FunSuite:
   test("create hash") {
-    val hex = DigestUtils.md5Hex("a:b")
+    val _ = DigestUtils.md5Hex("a:b")
   }
 
   test("format") {

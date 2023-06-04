@@ -1,16 +1,15 @@
 package com.malliina.boat.db
 
-import cats.effect.{IO, Temporal}
+import cats.effect.Temporal
 import cats.kernel.Eq
 import cats.syntax.all.toFunctorOps
 import com.malliina.boat.db.TrackImporter.{dateEq, log}
 import com.malliina.boat.parsing.*
-import com.malliina.boat.{InsertedPoint, KeyedSentence, RawSentence, SentencesEvent, TrackMetaShort, TrackPointId}
+import com.malliina.boat.{InsertedPoint, KeyedSentence, RawSentence, SentencesEvent, TrackMetaShort}
 import com.malliina.util.AppLogger
 import fs2.{Chunk, Pipe, Stream, text}
 import fs2.io.file.{Files, Path}
 
-import java.nio.file.Path as JPath
 import java.time.LocalDate
 import concurrent.duration.DurationInt
 

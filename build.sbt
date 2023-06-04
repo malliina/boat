@@ -3,12 +3,12 @@ import sbtrelease.ReleasePlugin.autoImport.{ReleaseStep, releaseProcess}
 import sbtrelease.ReleaseStateTransformations._
 import scala.sys.process.Process
 
-val webAuthVersion = "6.5.0"
+val webAuthVersion = "6.5.1"
 val munitVersion = "0.7.29"
 val testContainersScalaVersion = "0.40.16"
 val scalaTagsVersion = "0.12.0"
-val primitiveVersion = "3.4.0"
-val logstreamsVersion = "2.6.0"
+val primitiveVersion = "3.4.2"
+val logstreamsVersion = "2.6.1"
 val http4sVersion = "0.23.19"
 val logbackVersion = "1.4.7"
 val circeVersion = "0.14.3"
@@ -27,7 +27,7 @@ ThisBuild / parallelExecution := false
 Global / concurrentRestrictions += Tags.limit(Tags.Test, 1)
 
 val scala213 = "2.13.6"
-val scala3 = "3.2.2"
+val scala3 = "3.3.0"
 
 inThisBuild(
   Seq(
@@ -45,7 +45,10 @@ inThisBuild(
       case x =>
         val oldStrategy = (ThisBuild / assemblyMergeStrategy).value
         oldStrategy(x)
-    }
+    },
+    scalacOptions ++= Seq(
+      "-Wunused:all"
+    )
   )
 )
 
@@ -92,22 +95,12 @@ val frontend = project
     )
   )
 
-val config = project
-  .in(file("config"))
-  .settings(jvmSettings)
-  .settings(
-    libraryDependencies ++= Seq(
-      "com.typesafe" % "config" % "1.4.2",
-      "com.malliina" %% "primitives" % primitiveVersion
-    )
-  )
-
 val backend = Project("boat", file("backend"))
   .enablePlugins(
     ServerPlugin,
     FileTreePlugin
   )
-  .dependsOn(crossJvm, config)
+  .dependsOn(crossJvm)
   .settings(jvmSettings ++ boatSettings)
   .settings(
     Compile / unmanagedResourceDirectories ++= Seq(
@@ -123,12 +116,13 @@ val backend = Project("boat", file("backend"))
       "org.eclipse.jetty" % s"jetty-alpn-java-$m" % alpnVersion
     } ++ Seq(
       "com.vividsolutions" % "jts" % "1.13",
-      "mysql" % "mysql-connector-java" % "8.0.32",
+      "mysql" % "mysql-connector-java" % "8.0.33",
       "org.flywaydb" % "flyway-core" % "7.15.0",
       "org.apache.commons" % "commons-text" % "1.10.0",
-      "software.amazon.awssdk" % "s3" % "2.20.51",
+      "software.amazon.awssdk" % "s3" % "2.20.68",
       "com.malliina" %% "logstreams-client" % logstreamsVersion,
-      "com.malliina" %% "mobile-push-io" % "3.7.1",
+      "com.malliina" %% "mobile-push-io" % "3.8.0",
+      "com.malliina" %% "config" % "3.4.2",
       "org.eclipse.paho" % "org.eclipse.paho.client.mqttv3" % "1.2.5",
       utilHtmlDep,
       webAuthDep,

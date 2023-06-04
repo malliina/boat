@@ -1,9 +1,8 @@
 package com.malliina.boat.db
 
-import cats.effect.IO
 import com.malliina.boat.*
 import com.malliina.boat.http.{BoatQuery, CarQuery, TrackQuery}
-import com.malliina.boat.parsing.{FullCoord, PointInsert}
+import com.malliina.boat.parsing.PointInsert
 import com.malliina.values.{UserId, Username}
 
 trait TrackInsertsDatabase[F[_]]:

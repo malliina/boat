@@ -1,7 +1,7 @@
 package com.malliina.boat.client
 
-import cats.effect.kernel.{Concurrent, Resource, Temporal}
-import cats.effect.{Async, Concurrent, IO, MonadCancelThrow, Resource, Sync}
+import cats.effect.kernel.{Resource, Temporal}
+import cats.effect.{Async, Resource, Sync}
 import com.malliina.boat.client.TcpClient.{charset, log}
 import com.malliina.boat.client.server.Device.GpsDevice
 import com.malliina.boat.{RawSentence, Readables, SentencesMessage}
@@ -9,22 +9,18 @@ import com.malliina.util.AppLogger
 import com.malliina.values.Readable
 import fs2.concurrent.{SignallingRef, Topic}
 import fs2.io.net.{Network, Socket}
-import fs2.{Chunk, Pipe, Pull, Stream, text}
+import fs2.{Stream, text}
 import cats.syntax.all.*
 import com.comcast.ip4s.*
-import com.malliina.boat.Readables.from
 import com.malliina.values.ErrorMessage
 
-import java.net.InetSocketAddress
-import java.nio.charset.{Charset, StandardCharsets}
-import java.nio.{ByteBuffer, CharBuffer}
-import java.util.concurrent.atomic.{AtomicBoolean, AtomicReference}
+import java.nio.charset.StandardCharsets
 
 object TcpClient:
   private val log = AppLogger(getClass)
 
   private val crlf = "\r\n"
-  private val lf = "\n"
+//  private val lf = "\n"
   val linefeed: String = crlf
   val charset = StandardCharsets.US_ASCII
 
@@ -49,7 +45,7 @@ class TcpClient[F[_]: Async: Network](
   port: Port,
   topic: Topic[F, SentencesMessage],
   signal: SignallingRef[F, Boolean]
-)(implicit t: Temporal[F]):
+):
   val hostPort = s"tcp://$host:$port"
   // Sends after maxBatchSize sentences have been collected or every sendTimeWindow, whichever comes first
   private val maxBatchSize = 100
