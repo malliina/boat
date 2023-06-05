@@ -5,7 +5,7 @@ import com.malliina.boat.db.NewUser
 import com.malliina.boat.http.ContentVersions
 import com.malliina.boat.http4s.JsonInstances.jsonBody
 import com.malliina.boat.parsing.{BoatStats, FullCoord}
-import com.malliina.boat.{BoatNames, BoatResponse, BoatUser, Coord, TrackNames, TrackSummaries, Tracks, UserToken}
+import com.malliina.boat.{BoatName, BoatNames, BoatResponse, BoatUser, Coord, DeviceId, TrackNames, TrackSummaries, Tracks, UserToken}
 import com.malliina.measure.{DistanceIntM, SpeedIntM, TemperatureInt}
 import com.malliina.values.Username
 import io.circe.Json
@@ -27,29 +27,26 @@ class ServiceTests extends MUnitSuite with Http4sSuite:
     val service = comps.service
     val user = Username("test@example.com")
     val userEmail = TestEmailAuth[IO].testEmail
-    val userInfo = for
-      _ <- service.userMgmt.deleteUser(user)
-      _ <- service.userMgmt.register(userEmail)
-      user <- service.userMgmt.userInfo(userEmail)
-    yield user
     val newName = BoatNames.random()
-    userInfo.flatMap { user =>
-      val bid = user.boats.head.id
+
+    def changeName(of: DeviceId, to: BoatName) =
       val req = Method.PATCH(
-        Json.obj("boatName" -> newName.asJson),
-        uri"/boats".addSegment(bid.id),
+        Json.obj("boatName" -> to.asJson),
+        uri"/boats".addSegment(of.id),
         headers = Headers(
           Authorization(Credentials.Token(AuthScheme.Basic, TestEmailAuth.testToken.token)),
           Accept(mediaType"application/json")
         )
       )
       service.normalRoutes.orNotFound.run(req)
-    }.flatMap { res =>
-      assertEquals(res.status, Status.Ok)
-      res.as[BoatResponse]
-    }.map { res =>
-      assert(res.boat.name == newName)
-    }
+    for
+      _ <- service.userMgmt.deleteUser(user)
+      _ <- service.userMgmt.register(userEmail)
+      user <- service.userMgmt.userInfo(userEmail)
+      res <- changeName(user.boats.head.id, newName)
+      _ = assertEquals(res.status, Status.Ok)
+      res <- res.as[BoatResponse]
+    yield assert(res.boat.name == newName)
   }
 
   // Ignored because I don't know how to create access an HttpApp for testing purposes with WebSocketBuilder2
