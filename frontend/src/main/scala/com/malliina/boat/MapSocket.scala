@@ -232,36 +232,7 @@ class MapSocket(
       case MapMode.Stay =>
         ()
 
-  private val devicePopup = MapboxPopup(PopupOptions(className = Option("popup-device")))
-
-  override def onGps(event: GPSCoordsEvent): Unit =
-    val from = event.from
-    val name = deviceName(from.deviceName)
-    event.coords.lastOption.foreach { coord =>
-      val props = DeviceProps(coord, from)
-      devices = devices.updated(from.deviceName, props)
-      map
-        .findSource(name)
-        .map { geoJson =>
-          geoJson.updateData(pointForProps(coord.coord, props))
-        }
-        .getOrElse {
-          map.putLayer(deviceSymbolLayer(name, coord.coord, props))
-          map.onHover(name)(
-            in =>
-              map.queryRendered(in.point, QueryOptions.layer(name)).map { fs =>
-                fs.flatMap(_.props.as[DeviceProps].toOption).headOption.foreach { device =>
-                  map.getCanvas().style.cursor = "pointer"
-                  if !popups.popup.isOpen() then
-                    devicePopup.showText(device.deviceName.name, in.lngLat, map)
-                }
-              },
-            _ =>
-              map.getCanvas().style.cursor = ""
-              devicePopup.remove()
-          )
-        }
-    }
+  private val _ = MapboxPopup(PopupOptions(className = Option("popup-device")))
 
   def fly(to: BoatName): Unit =
     devices
@@ -310,7 +281,5 @@ class MapSocket(
     Layer.symbol(id, pointFor(coord), ImageLayout(boatIconId, `icon-size` = 0.7))
   private def carSymbolLayer(id: String, coord: Coord) =
     Layer.symbol(id, pointFor(coord), ImageLayout(carIconId, `icon-size` = 0.5))
-  private def deviceSymbolLayer(id: String, coord: Coord, props: DeviceProps) =
-    Layer.symbol(id, pointForProps(coord, props), ImageLayout(deviceIconId, `icon-size` = 1))
   private def trophySymbolLayer(id: String, coord: Coord) =
     Layer.symbol(id, pointFor(coord), ImageLayout(trophyIconId, `icon-size` = 1))

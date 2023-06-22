@@ -1,7 +1,7 @@
 package com.malliina.boat.db
 
 import com.malliina.boat.*
-import com.malliina.boat.http.{BoatQuery, CarQuery, TrackQuery}
+import com.malliina.boat.http.{BoatQuery, TrackQuery}
 import com.malliina.boat.parsing.PointInsert
 import com.malliina.values.{UserId, Username}
 
@@ -42,7 +42,3 @@ trait TracksSource[F[_]]:
   def track(track: TrackName, user: Username, query: TrackQuery): F[TrackInfo]
   def full(track: TrackName, language: Language, query: TrackQuery): F[FullTrack]
   def history(user: MinimalUserInfo, limits: BoatQuery): F[Seq[CoordsEvent]]
-
-trait CarOps[F[_]]:
-  def save(locs: LocationUpdates, user: UserId): F[List[CarUpdateId]]
-  def carHistory(user: MinimalUserInfo, filters: CarQuery): F[List[CarRow]]

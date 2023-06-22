@@ -190,7 +190,7 @@ object TimedCoord:
   implicit val json: Codec[TimedCoord] = Codec.from(
     modern,
     (tc: TimedCoord) =>
-      modern(tc).deepMerge(Json.obj("depth" -> tc.depthMeters.toMillis.toLong.asJson))
+      modern(tc).deepMerge(Json.obj(DepthKey -> tc.depthMeters.toMillis.toLong.asJson))
   )
 
 case class GPSTimedCoord(id: GPSPointId, coord: Coord, time: Timing) derives Codec.AsObject
@@ -476,11 +476,11 @@ case class TrackSummaries(tracks: Seq[TrackSummary]) derives Codec.AsObject
 
 case class Tracks(tracks: Seq[TrackRef]) derives Codec.AsObject
 
-case class GPSCoordsEvent(coords: List[GPSTimedCoord], from: DeviceRef) extends DeviceFrontEvent
+//case class GPSCoordsEvent(coords: List[GPSTimedCoord], from: DeviceRef) extends DeviceFrontEvent
 
-object GPSCoordsEvent:
-  val Key = "gps-coords"
-  implicit val json: Codec[GPSCoordsEvent] = keyValued(Key, deriveCodec[GPSCoordsEvent])
+//object GPSCoordsEvent:
+//  val Key = "gps-coords"
+//  implicit val json: Codec[GPSCoordsEvent] = keyValued(Key, deriveCodec[GPSCoordsEvent])
 
 case class CoordsEvent(coords: List[TimedCoord], from: TrackRef) extends BoatFrontEvent:
   def isEmpty = coords.isEmpty
@@ -542,15 +542,10 @@ object VesselMessages:
 sealed trait FrontEvent:
   def isIntendedFor(user: MinimalUserInfo): Boolean
 
-sealed trait CarFrontEvent extends FrontEvent:
-  def car: CarInfo
-  override def isIntendedFor(user: MinimalUserInfo): Boolean =
-    user.username == car.username || user.authorized.contains(car.name)
-
-sealed trait DeviceFrontEvent extends FrontEvent:
-  def from: DeviceRef
-  override def isIntendedFor(user: MinimalUserInfo): Boolean =
-    user.username == from.username || user.authorized.contains(from.deviceName)
+//sealed trait CarFrontEvent extends FrontEvent:
+//  def car: CarInfo
+//  override def isIntendedFor(user: MinimalUserInfo): Boolean =
+//    user.username == car.username || user.authorized.contains(car.name)
 
 sealed trait BoatFrontEvent extends FrontEvent:
   def from: TrackMetaLike
@@ -563,21 +558,18 @@ object FrontEvent:
     Decoder[CoordsEvent].widen,
     Decoder[CoordsBatch].widen,
     Decoder[SentencesEvent].widen,
-    Decoder[PingEvent].widen,
-    Decoder[GPSCoordsEvent].widen
+    Decoder[PingEvent].widen
   ).reduceLeft(_ or _)
   implicit val encoder: Encoder[FrontEvent] = {
-    case se @ SentencesEvent(_, _)  => se.asJson
-    case ce @ CoordsEvent(_, _)     => ce.asJson
-    case cb @ CoordsBatch(_)        => cb.asJson
-    case pe @ PingEvent(_, _)       => pe.asJson
-    case vs @ VesselMessages(_)     => vs.asJson
-    case gce @ GPSCoordsEvent(_, _) => gce.asJson
+    case se @ SentencesEvent(_, _) => se.asJson
+    case ce @ CoordsEvent(_, _)    => ce.asJson
+    case cb @ CoordsBatch(_)       => cb.asJson
+    case pe @ PingEvent(_, _)      => pe.asJson
+    case vs @ VesselMessages(_)    => vs.asJson
   }
 
 case class SentencesMessage(sentences: Seq[RawSentence]):
   def toTrackEvent(from: TrackMetaShort) = SentencesEvent(sentences, from)
-  def toGpsEvent(from: IdentifiedDeviceMeta) = GPSSentencesEvent(sentences, from)
 
 object SentencesMessage:
   val Key = "sentences"

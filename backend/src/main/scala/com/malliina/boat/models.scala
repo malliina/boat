@@ -235,8 +235,6 @@ case class InsertedPoint(point: TrackPointId, track: JoinedTrack):
   def strip(formatter: TimeFormatter) =
     InsertedTrackPoint(point, track.strip(formatter))
 
-case class GPSInsertedPoint(point: GPSPointId, from: JoinedSource)
-
 case class TrackMeta(
   track: TrackId,
   trackName: TrackName,

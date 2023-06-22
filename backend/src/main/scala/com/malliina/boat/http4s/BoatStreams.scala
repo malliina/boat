@@ -7,7 +7,7 @@ import com.malliina.boat.ais.AISSource
 import com.malliina.boat.db.{TrackInsertsDatabase, VesselDatabase}
 import com.malliina.boat.http4s.BoatStreams.{log, rights}
 import com.malliina.boat.parsing.*
-import com.malliina.boat.{BoatEvent, BoatJsonError, CoordsEvent, FrontEvent, InputEvent, SentencesMessage, TimeFormatter, VesselMessages}
+import com.malliina.boat.{BoatEvent, BoatJsonError, CoordsEvent, FrontEvent, InputEvent, InsertedPoint, SentencesMessage, TimeFormatter, TimedCoord, VesselMessages}
 import com.malliina.util.AppLogger
 import fs2.Stream
 import fs2.concurrent.Topic
@@ -96,22 +96,31 @@ class BoatStreams[F[_]: Async](
   }
 
   def clientEvents(formatter: TimeFormatter): Stream[F, FrontEvent] =
-    val boatEvents = saved
+    val events = saved
       .subscribe(100)
-      .collect { case i @ Inserted(_, _) =>
-        i
-      }
-      .map { ip =>
+      .collect { case InsertedCoord(coord, inserted) =>
         CoordsEvent(
-          List(ip.coord.timed(ip.inserted.point, formatter)),
-          ip.inserted.track.strip(formatter)
+          List(coord.timed(inserted.point, formatter)),
+          inserted.track.strip(formatter)
         )
       }
     val aisEvents = ais.slow.map { pairs => VesselMessages(pairs.map(_.toInfo(formatter))) }
-    boatEvents.mergeHaltBoth[F, FrontEvent](aisEvents)
+    events.mergeHaltBoth[F, FrontEvent](aisEvents)
 
-  private def saveRecovered(coord: FullCoord): F[List[Inserted]] =
-    db.saveCoords(coord).map { inserted => List(Inserted(coord, inserted)) }.handleErrorWith { t =>
-      log.error(s"Unable to save coords.", t)
-      F.pure(Nil)
+  def saveCarCoord(coord: CarCoord): F[List[InsertedPoint]] =
+    for
+      inserted <- db.saveCoords(coord)
+      result <- saved.publish1(InsertedCoord(coord, inserted))
+    yield
+      result.fold(
+        _ => log.warn(s"Topic was closed, could not publish car event."),
+        _ => ()
+      )
+      List(inserted)
+
+  private def saveRecovered(coord: FullCoord): F[List[InsertedCoord]] =
+    db.saveCoords(coord).map { inserted => List(InsertedCoord(coord, inserted)) }.handleErrorWith {
+      t =>
+        log.error(s"Unable to save coords.", t)
+        F.pure(Nil)
     }

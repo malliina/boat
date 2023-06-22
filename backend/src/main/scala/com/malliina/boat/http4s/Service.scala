@@ -281,11 +281,11 @@ class Service[F[_]: Async: Files](comps: BoatComps[F]) extends BasicService[F]:
               val meta = result.track
               val count = body.updates.size
               val time = System.currentTimeMillis() - start
-              log.info(
+              log.debug(
                 s"User ${user.email} POSTs $count car updates for ${meta.boatName}, join took $time ms..."
               )
               val insertion = body.updates.traverse { loc =>
-                inserts.saveCoords(CarCoord.fromUpdate(loc, meta.track))
+                streams.saveCarCoord(CarCoord.fromUpdate(loc, meta.track))
               }.flatMap { inserteds =>
                 val duration = System.currentTimeMillis() - start
                 ok(SimpleMessage(s"Saved ${inserteds.size} updates in $duration ms."))
@@ -374,7 +374,7 @@ class Service[F[_]: Async: Files](comps: BoatComps[F]) extends BasicService[F]:
       )
   }
 
-  def socketRoutes(sockets: WebSocketBuilder2[F]): HttpRoutes[F] = HttpRoutes.of[F] {
+  private def socketRoutes(sockets: WebSocketBuilder2[F]): HttpRoutes[F] = HttpRoutes.of[F] {
     case req @ GET -> Root / "ws" / "updates" =>
       auth.authOrAnon(req.headers).flatMap { user =>
         val username = user.username
@@ -395,10 +395,10 @@ class Service[F[_]: Async: Files](comps: BoatComps[F]) extends BasicService[F]:
             )
             F.pure(es.toList.map(_.sample(actualSample)))
           }
-          val boatHistory = Stream.evalSeq(historyIO)
+          val history = Stream.evalSeq(historyIO)
           val formatter = TimeFormatter.lang(user.language)
-          val boatUpdates = streams.clientEvents(formatter)
-          val eventSource = (boatHistory ++ boatUpdates)
+          val updates = streams.clientEvents(formatter)
+          val eventSource = (history ++ updates)
             .mergeHaltBoth(pings)
             .filter(_.isIntendedFor(user))
             .map(message => Text(message.asJson.noSpaces))

@@ -147,6 +147,3 @@ class Popups(lang: Lang) extends BoatModels:
 
   private def row(title: String, value: Modifier) =
     tr(td(`class` := "popup-label")(title), td(value))
-
-  def trophyMarker(speed: SpeedM) =
-    i(`class` := "fas fa-trophy marker-top-speed")

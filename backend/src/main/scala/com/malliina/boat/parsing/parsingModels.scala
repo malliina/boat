@@ -1,7 +1,7 @@
 package com.malliina.boat.parsing
 
 import java.time.{Instant, LocalDate, LocalTime, ZoneOffset}
-import com.malliina.boat.{Coord, DeviceId, Energy, GPSInsertedPoint, GPSKeyedSentence, GPSPointId, GPSSentenceKey, GPSTimedCoord, InsertedPoint, KeyedSentence, LocationUpdate, RawSentence, SentenceKey, TimeFormatter, TimedCoord, TrackId, TrackMetaShort, TrackPointId}
+import com.malliina.boat.{Coord, DeviceId, Energy, GPSKeyedSentence, GPSPointId, GPSSentenceKey, GPSTimedCoord, InsertedPoint, KeyedSentence, LocationUpdate, RawSentence, SentenceKey, TimeFormatter, TimedCoord, TrackId, TrackMetaShort, TrackPointId}
 import com.malliina.measure.{DistanceM, SpeedM, Temperature}
 import com.malliina.values.{Degrees, ErrorMessage}
 
@@ -110,6 +110,7 @@ trait PointInsert:
   def carStats: Option[CarStats]
   def sourceTime: Instant
   def track: TrackId
+  def timed(id: TrackPointId, formatter: TimeFormatter): TimedCoord
 
 case class CarCoord(
   coord: Coord,
@@ -121,6 +122,21 @@ case class CarCoord(
   override def speedOpt: Option[SpeedM] = speed
   override def boatStats: Option[BoatStats] = None
   override def carStats: Option[CarStats] = Option(stats)
+
+  // Fix the lies
+  def timed(id: TrackPointId, formatter: TimeFormatter) = TimedCoord(
+    id,
+    coord,
+    formatter.formatDateTime(sourceTime),
+    sourceTime.toEpochMilli,
+    formatter.formatTime(sourceTime),
+    speed.getOrElse(SpeedM.zero),
+    carStats.flatMap(_.altitude),
+    carStats.flatMap(_.outsideTemperature),
+    Temperature.zeroCelsius,
+    DistanceM.zero,
+    formatter.timing(sourceTime)
+  )
 
 object CarCoord:
   def fromUpdate(loc: LocationUpdate, track: TrackId) = CarCoord(
@@ -195,5 +211,4 @@ case class IgnoredSentence(sentence: RawSentence) extends SentenceError:
 
 sealed trait SavedEvent
 case object EmptySavedEvent extends SavedEvent
-case class Inserted(coord: FullCoord, inserted: InsertedPoint) extends SavedEvent
-case class GPSInserted(coord: GPSCoord, inserted: GPSInsertedPoint) extends SavedEvent
+case class InsertedCoord(coord: PointInsert, inserted: InsertedPoint) extends SavedEvent
