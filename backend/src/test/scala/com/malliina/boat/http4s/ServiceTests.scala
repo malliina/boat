@@ -49,11 +49,10 @@ class ServiceTests extends MUnitSuite with Http4sSuite:
     yield assert(res.boat.name == newName)
   }
 
-  // Ignored because I don't know how to create access an HttpApp for testing purposes with WebSocketBuilder2
-  test("tracks endpoint supports versioning based on Accept header".ignore) {
+  test("tracks endpoint supports versioning based on Accept header") {
     val comps = app()
     val service = comps.service
-    val user = Username("test")
+    val user = Username("test@example.com")
     val inserts = service.inserts
 
     val init = for
@@ -77,23 +76,23 @@ class ServiceTests extends MUnitSuite with Http4sSuite:
       p <- inserts.saveCoords(coord)
     yield p
     init.unsafeRunSync()
-    val response1 = tracksRequest(ContentVersions.Version1)
+    val response1 = tracksRequest(ContentVersions.Version1, service.normalRoutes)
     implicit val tsBody: EntityDecoder[IO, TrackSummaries] = jsonBody[IO, TrackSummaries]
     val summaries = response1.flatMap(_.as[TrackSummaries]).unsafeRunSync()
     assertEquals(summaries.tracks.length, 1)
-    val response2 = tracksRequest(ContentVersions.Version2)
+    val response2 = tracksRequest(ContentVersions.Version2, service.normalRoutes)
     implicit val tBody: EntityDecoder[IO, Tracks] = jsonBody[IO, Tracks]
     val tracks = response2.flatMap(_.as[Tracks]).unsafeRunSync()
     assertEquals(tracks.tracks.length, 1)
   }
 
-  def tracksRequest(accept: MediaType): IO[Response[IO]] = ???
-//    routes.run(
-//      Request(
-//        uri = uri"/tracks",
-//        headers = Headers(
-//          Authorization(Credentials.Token(AuthScheme.Basic, TestEmailAuth.testToken)),
-//          Accept(accept)
-//        )
-//      )
-//    )
+  def tracksRequest(accept: MediaType, routes: HttpRoutes[IO]): IO[Response[IO]] =
+    routes.orNotFound.run(
+      Request(
+        uri = uri"/tracks",
+        headers = Headers(
+          Authorization(Credentials.Token(AuthScheme.Basic, TestEmailAuth.testToken.token)),
+          Accept(accept)
+        )
+      )
+    )

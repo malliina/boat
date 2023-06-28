@@ -1,8 +1,7 @@
 package com.malliina.boat.http4s
 
-import cats.effect.IO
 import com.malliina.boat.{DeviceId, Errors, Latitude, LocationUpdate, LocationUpdates, Longitude, wh}
-import com.malliina.http.{FullUrl, HttpClient}
+import com.malliina.http.FullUrl
 import com.malliina.measure.*
 import com.malliina.values.{IdToken, degrees}
 import io.circe.syntax.EncoderOps
@@ -13,7 +12,6 @@ import tests.{MUnitSuite, ServerSuite, TestEmailAuth}
 
 import java.time.{OffsetDateTime, ZoneOffset}
 
-// tests are fine, but CI fails, so ignored until CI is resolved
 class CarServerTests extends MUnitSuite with ServerSuite:
   val testCarId = DeviceId(1)
   val loc = LocationUpdate(
@@ -41,23 +39,21 @@ class CarServerTests extends MUnitSuite with ServerSuite:
   def postCarsUrl = baseUrl.append(Reverse.postCars.renderString)
   def getCarsUrl = baseUrl.append(Reverse.historyCars.renderString)
 
-  // No reason to ignore other than unresolved CI failures
-  client.test("POST call with no creds".ignore) { http =>
+  test("POST call with no creds") {
     http.postJson(postCarsUrl, LocationUpdates(Nil, testCarId).asJson, Map.empty).map { res =>
       assertEquals(res.status, Unauthorized.code)
     }
   }
 
-  client.test("POST car locations with outdated jwt returns 401 with token expired".ignore) {
-    http =>
-      postCars(http, TestEmailAuth.expiredToken).map { res =>
-        assertEquals(res.status, Unauthorized.code)
-        assert(res.parse[Errors].toOption.exists(_.errors.exists(_.key == "token_expired")))
-      }
+  test("POST car locations with outdated jwt returns 401 with token expired") {
+    postCars(TestEmailAuth.expiredToken).map { res =>
+      assertEquals(res.status, Unauthorized.code)
+      assert(res.parse[Errors].toOption.exists(_.errors.exists(_.key == "token_expired")))
+    }
   }
 
-  client.test("POST call with working jwt".ignore) { http =>
-    postCars(http).map { res =>
+  test("POST call with working jwt".ignore) {
+    postCars().map { res =>
       assertEquals(res.status, Ok.code)
     }
   }
@@ -80,22 +76,21 @@ class CarServerTests extends MUnitSuite with ServerSuite:
 //      assert(latestDrive.exists(_.diff > 30.km))
   }
 
-  client.test("POST car locations for non-owned car fails".ignore) { http =>
-    postCars(http, updates = LocationUpdates(List(loc), DeviceId(123))).map { res =>
+  test("POST car locations for non-owned car fails".ignore) {
+    postCars(updates = LocationUpdates(List(loc), DeviceId(123))).map { res =>
       assertEquals(res.status, NotFound.code)
     }
   }
 
   private def postCars(
-    client: HttpClient[IO],
     token: IdToken = TestEmailAuth.testToken,
     updates: LocationUpdates = LocationUpdates(Nil, testCarId),
     url: FullUrl = postCarsUrl
   ) =
-    client.postJson(url, updates.asJson, headers(token))
+    http.postJson(url, updates.asJson, headers(token))
   private def headers(token: IdToken = TestEmailAuth.testToken) = Map(
     Authorization.name.toString -> s"Bearer $token",
     "Accept" -> "application/json"
   )
   def baseUrl = server().baseHttpUrl
-//  def client = server().client
+  def http = server().http

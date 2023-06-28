@@ -9,8 +9,6 @@ import com.malliina.values.*
 import com.malliina.http.FullUrl
 import com.malliina.web.OAuthKeys.RedirectUri
 import com.malliina.web.{AppleAuthFlow, Code, Expired, InvalidClaims, JWTError}
-import doobie.*
-import doobie.implicits.*
 
 import java.time.Instant
 import java.time.temporal.ChronoUnit
