@@ -9,7 +9,7 @@ import com.malliina.boat.db.{Conf, DoobieDatabase, DoobieSQL}
 import com.malliina.boat.http4s.{JsonInstances, Server, ServerComponents, Service}
 import com.malliina.boat.{AisAppConf, BoatConf, Errors, LocalConf}
 import com.malliina.http.FullUrl
-import com.malliina.http.io.HttpClientIO
+import com.malliina.http.io.{HttpClientF2, HttpClientIO}
 import com.malliina.logback.LogbackUtils
 import com.malliina.util.AppLogger
 import com.typesafe.config.Config
@@ -105,7 +105,7 @@ trait Http4sSuite extends MUnitDatabaseSuite:
 
   override def munitFixtures: Seq[Fixture[?]] = Seq(confFixture, app)
 
-case class ServerTools(server: ServerComponents[IO]):
+case class ServerTools(server: ServerComponents[IO], val http: HttpClientF2[IO]):
   def port = server.server.address.getPort
   def baseHttpUrl = FullUrl("http", s"localhost:$port", "")
   def baseWsUrl = FullUrl("ws", s"localhost:$port", "")
@@ -123,7 +123,8 @@ trait ServerSuite extends MUnitDatabaseSuite with JsonInstances:
         TestComps.builder,
         port = port"0"
       )
-    yield ServerTools(service)
+      client <- Resource.eval(IO(HttpClientF2[IO]()))
+    yield ServerTools(service, client)
   val server: Fixture[ServerTools] =
     ResourceSuiteLocalFixture("munit-server", testServerResource)
 

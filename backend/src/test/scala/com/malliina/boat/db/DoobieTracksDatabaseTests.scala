@@ -4,6 +4,7 @@ import com.malliina.boat.http.{Limits, SortOrder, TrackQuery, TrackSort}
 import com.malliina.boat.{Coord, Lang, Language, SimpleUserInfo}
 import com.malliina.measure.{DistanceIntM, DistanceM}
 import com.malliina.values.Username
+import doobie.Meta
 import doobie.implicits.toSqlInterpolator
 import tests.{MUnitDatabaseSuite, MUnitSuite}
 
@@ -40,7 +41,7 @@ class DoobieTests extends MUnitSuite with Mappings:
 
   dbResource.test("measure distance".ignore) { doobie =>
     @unused
-    implicit val coordMeta = Mappings.coordMeta
+    implicit val coordMeta: Meta[Coord] = Mappings.coordMeta
     val db = DoobieTracksDatabase(doobie)
     val c1 = Coord.buildOrFail(60, 30)
     val c2 = Coord.buildOrFail(70, 13)

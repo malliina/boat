@@ -1,6 +1,5 @@
 package com.malliina.boat.client
 
-import cats.effect.kernel.{Resource, Temporal}
 import cats.effect.{Async, Resource, Sync}
 import com.malliina.boat.client.TcpClient.{charset, log}
 import com.malliina.boat.client.server.Device.GpsDevice
@@ -33,9 +32,7 @@ object TcpClient:
   val watchMessage =
     s"${GpsDevice.watchCommand}$linefeed".getBytes(charset)
 
-  def default[F[_]: Async: Network](host: Host, port: Port)(implicit
-    t: Temporal[F]
-  ): F[TcpClient[F]] = for
+  def default[F[_]: Async: Network](host: Host, port: Port): F[TcpClient[F]] = for
     topic <- Topic[F, SentencesMessage]
     signal <- SignallingRef[F, Boolean](false)
   yield TcpClient[F](host, port, topic, signal)
