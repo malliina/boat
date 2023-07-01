@@ -3,7 +3,7 @@ package com.malliina.boat.db
 import cats.effect.IO
 import com.malliina.boat.db.TestData.{london, sanfran}
 import com.malliina.boat.parsing.{BoatStats, FullCoord}
-import com.malliina.boat.{BoatNames, BoatUser, Coord, DeviceId, Language, TrackId, TrackMetaShort, TrackNames, TrackRef, UserToken, UserUtils}
+import com.malliina.boat.{BoatNames, BoatUser, Coord, DeviceId, Language, SourceType, TrackId, TrackMetaShort, TrackNames, TrackRef, UserToken, UserUtils}
 import com.malliina.measure.{DistanceIntM, SpeedIntM, SpeedM, Temperature}
 import com.malliina.values.{Email, RefreshToken, Username}
 import tests.{MUnitDatabaseSuite, MUnitSuite}
@@ -33,7 +33,9 @@ class TracksDatabaseTests extends MUnitSuite with MUnitDatabaseSuite:
     val boat = user.boats.head
     val bid = boat.id
     val action: IO[TrackRef] = for
-      result <- inserts.joinAsSource(BoatUser(TrackNames.random(), boat.name, user.username))
+      result <- inserts.joinAsSource(
+        BoatUser(TrackNames.random(), boat.name, SourceType.Boat, user.username)
+      )
       t = result.track
       tid = t.track
       _ <- inserts.saveCoords(fakeCoord(london, 10.kmh, tid, bid))
@@ -63,7 +65,7 @@ class TracksDatabaseTests extends MUnitSuite with MUnitDatabaseSuite:
       uid = u.toOption.get.id
       t <- tdb
         .joinAsSource(
-          BoatUser(trackName, BoatNames.random(), u.toOption.get.user)
+          BoatUser(trackName, BoatNames.random(), SourceType.Boat, u.toOption.get.user)
         )
         .map(_.track)
       _ <- tdb.saveCoords(fakeCoord(london, 10.kmh, t.track, t.boat))

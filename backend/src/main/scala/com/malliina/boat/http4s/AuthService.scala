@@ -7,7 +7,7 @@ import com.malliina.boat.auth.{BoatJwt, SettingsPayload}
 import com.malliina.boat.db.*
 import com.malliina.boat.http.UserRequest
 import com.malliina.boat.http4s.AuthService.GoogleCookie
-import com.malliina.boat.{BoatName, BoatNames, BoatToken, DeviceMeta, JoinedSource, MinimalUserInfo, SimpleBoatMeta, UserBoats, UserInfo, Usernames}
+import com.malliina.boat.{BoatName, BoatNames, BoatToken, DeviceMeta, JoinedSource, MinimalUserInfo, SimpleSourceMeta, SourceType, UserBoats, UserInfo, Usernames}
 import com.malliina.values.Email
 import com.malliina.web.{Code, RevokeResult}
 import org.http4s.headers.Cookie
@@ -18,7 +18,6 @@ import java.time.Instant
 
 object AuthService:
   val GoogleCookie = ci"google"
-  val ProviderCookieName = ci"boatProvider"
 
 class AuthService[F[_]: Sync](val users: IdentityManager[F], comps: AuthComps[F]):
   val F = Sync[F]
@@ -93,15 +92,13 @@ class AuthService[F[_]: Sync](val users: IdentityManager[F], comps: AuthComps[F]
       .toOption
       .filter(_.username != Usernames.anon)
 
-  def authBoat(headers: Headers): F[DeviceMeta] = authDevice(headers)
-
-  def authDevice(headers: Headers): F[DeviceMeta] =
+  def authBoat(headers: Headers): F[DeviceMeta] =
     boatToken(headers).map(e => e.map(jb => jb: DeviceMeta)).getOrElse {
       val boatName = headers
         .get(CIString(BoatNameHeader))
         .map(h => BoatName(h.head.value))
         .getOrElse(BoatNames.random())
-      F.pure(SimpleBoatMeta(Usernames.anon, boatName): DeviceMeta)
+      F.pure(SimpleSourceMeta(Usernames.anon, boatName, SourceType.Boat): DeviceMeta)
     }
 
   private def boatToken(headers: Headers): Option[F[JoinedSource]] =

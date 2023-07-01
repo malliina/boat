@@ -29,7 +29,7 @@ class TrackInserter[F[_]: Async](val db: DoobieDatabase[F])
     sql"${CommonSql.nonEmptyTracks} and t.id = $id".query[JoinedTrack].unique
 
   private def trackMetas(more: Fragment): Query0[TrackMeta] =
-    sql"""select t.id, t.name, t.title, t.canonical, t.comments, t.added, t.avg_speed, t.avg_water_temp, t.avg_outside_temp, t.points, t.distance, b.id boatId, b.name boatName, b.token boatToken, u.id userId, u.user, u.email
+    sql"""select t.id, t.name, t.title, t.canonical, t.comments, t.added, t.avg_speed, t.avg_water_temp, t.avg_outside_temp, t.points, t.distance, b.id boatId, b.name boatName, b.source_type, b.token boatToken, u.id userId, u.user, u.email
           from tracks t, boats b, users u
           where t.boat = b.id and b.owner = u.id $more""".query[TrackMeta]
 
@@ -58,8 +58,8 @@ class TrackInserter[F[_]: Async](val db: DoobieDatabase[F])
             where id = $tid""".update.run
     updateTrack(trackIO, updateIO)
 
-  def addBoat(boat: BoatName, user: UserId): F[BoatRow] = run {
-    saveNewBoat(boat, user, BoatTokens.random()).flatMap { id =>
+  def addSource(boat: BoatName, sourceType: SourceType, user: UserId): F[SourceRow] = run {
+    saveNewSource(boat, sourceType, user, BoatTokens.random()).flatMap { id =>
       boatById(id)
     }
   }
@@ -72,7 +72,7 @@ class TrackInserter[F[_]: Async](val db: DoobieDatabase[F])
     }
   }
 
-  def renameBoat(boat: DeviceId, newName: BoatName, user: UserId): F[BoatRow] = run {
+  def renameBoat(boat: DeviceId, newName: BoatName, user: UserId): F[SourceRow] = run {
     val ownershipCheck =
       sql"select exists(select b.id from boats b where b.id = $boat and b.owner = $user)"
         .query[Boolean]
@@ -102,7 +102,7 @@ class TrackInserter[F[_]: Async](val db: DoobieDatabase[F])
         }
         .getOrElse {
           val trackMeta = meta.withTrack(TrackNames.random())
-          joinBoat(trackMeta).flatMap { boat =>
+          joinSource(trackMeta).flatMap { boat =>
             // Is this necessary?
             trackMetas(fr"and t.name = ${trackMeta.track} and b.id = ${boat.id}").option.flatMap {
               opt =>
@@ -116,34 +116,6 @@ class TrackInserter[F[_]: Async](val db: DoobieDatabase[F])
           }
         }
     }
-  }
-
-  def joinAsDevice(from: DeviceMeta): F[JoinedSource] = run {
-    val user = from.user
-    val boat = from.boat
-    sql"${CommonSql.boats} and b.name = $boat and u.user = $user"
-      .query[JoinedSource]
-      .option
-      .flatMap { opt =>
-        opt.map(pure).getOrElse {
-          sql"select id from users u where u.user = $user".query[UserId].unique.flatMap { id =>
-            sql"${CommonSql.boats} and b.name = $boat and u.id = $id"
-              .query[JoinedSource]
-              .option
-              .flatMap { optB =>
-                optB.map(pure).getOrElse {
-                  sql"select exists(select id from boats b where b.name = $boat)"
-                    .query[Boolean]
-                    .unique
-                    .flatMap[JoinedSource] { alreadyExists =>
-                      if alreadyExists then fail(BoatNameNotAvailableException(boat, user))
-                      else insertBoat(boat, id, BoatTokens.random())
-                    }
-                }
-              }
-          }
-        }
-      }
   }
 
   def saveSentences(sentences: SentencesEvent): F[Seq[KeyedSentence]] = run {
@@ -293,20 +265,11 @@ class TrackInserter[F[_]: Async](val db: DoobieDatabase[F])
         trackMetas(fr"and t.id = $id").unique
       }
 
-  private def insertBoat(
-    boatName: BoatName,
-    owner: UserId,
-    withToken: BoatToken
-  ): ConnectionIO[JoinedSource] =
-    saveNewBoat(boatName, owner, withToken).flatMap { id =>
-      CommonSql.boatsById(id)
-    }
-
-  private def joinBoat(meta: BoatTrackMeta): ConnectionIO[BoatRow] =
+  private def joinSource(meta: SourceTrackMeta): ConnectionIO[SourceRow] =
     val user = sql"select id from users u where u.user = ${meta.user}".query[UserId].unique
     def existingBoat(uid: UserId) =
-      sql"select id, name, token, owner, added from boats b where b.name = ${meta.boat} and b.owner = $uid"
-        .query[BoatRow]
+      sql"select id, name, source_type, token, owner, added from boats b where b.name = ${meta.boat} and b.owner = $uid"
+        .query[SourceRow]
         .option
     user.flatMap { uid =>
       existingBoat(uid).flatMap { opt =>
@@ -316,21 +279,25 @@ class TrackInserter[F[_]: Async](val db: DoobieDatabase[F])
             .unique
             .flatMap { exists =>
               if exists then fail(new BoatNameNotAvailableException(meta.boat, meta.user))
-              else saveNewBoat(meta.boat, uid, BoatTokens.random()).flatMap { id => boatById(id) }
+              else
+                saveNewSource(meta.boat, meta.sourceType, uid, BoatTokens.random()).flatMap { id =>
+                  boatById(id)
+                }
             }
         }
       }
     }
 
-  private def saveNewBoat(
+  private def saveNewSource(
     name: BoatName,
+    sourceType: SourceType,
     user: UserId,
     token: BoatToken
   ): ConnectionIO[DeviceId] =
-    sql"""insert into boats(name, owner, token) values($name, $user, $token)""".update
+    sql"""insert into boats(name, source_type, owner, token) values($name, $sourceType, $user, $token)""".update
       .withUniqueGeneratedKeys[DeviceId]("id")
       .map { id =>
-        log.info(s"Registered device '$name' with ID '$id' owned by '$user'.")
+        log.info(s"Registered ${sourceType.name} '$name' with ID '$id' owned by '$user'.")
         id
       }
 

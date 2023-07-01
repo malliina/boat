@@ -2,7 +2,7 @@ package com.malliina.boat.db
 
 import cats.effect.IO
 import cats.implicits.*
-import com.malliina.boat.{BoatName, BoatUser, DateVal, DeviceId, RawSentence, TrackId, TrackInput, TrackNames}
+import com.malliina.boat.{BoatName, BoatUser, DateVal, DeviceId, RawSentence, SourceType, TrackId, TrackInput, TrackNames}
 import com.malliina.values.Username
 import tests.{MUnitSuite, WrappedTestConf}
 import fs2.io.file.Path
@@ -49,7 +49,7 @@ class TracksImporter extends MUnitSuite:
     val inserts = TrackInserter(db)
     val importer = TrackImporter(inserts)
     val trackName = TrackNames.random()
-    val user = BoatUser(trackName, BoatName("Amina"), Username("mle"))
+    val user = BoatUser(trackName, BoatName("Amina"), SourceType.Boat, Username("mle"))
 //    val user = BoatUser(trackName, BoatName("xrxmjq"), Username("santa@example.com"))
 //    val user = BoatUser(trackName, BoatName("hzghbu"), Username("santa@example.com"))
     inserts.joinAsSource(user).flatMap { track =>

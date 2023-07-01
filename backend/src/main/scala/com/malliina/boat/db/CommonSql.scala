@@ -12,7 +12,7 @@ trait CommonSql:
     sql"""select b.id, b.name, b.source_type, b.token, u.id uid, u.user, u.email, u.language
           from boats b, users u
           where b.owner = u.id"""
-  def boatsByToken(token: BoatToken) =
+  def boatsByToken(token: BoatToken): ConnectionIO[Option[JoinedSource]] =
     sql"""$boats and b.token = $token""".query[JoinedSource].option
   def boatsById(id: DeviceId) = sql"$boats and b.id = $id".query[JoinedSource].unique
   private val topPoints =

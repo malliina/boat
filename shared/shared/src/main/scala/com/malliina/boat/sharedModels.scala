@@ -281,7 +281,7 @@ case class ChangeBoatName(boatName: BoatName) derives Codec.AsObject
 
 case class SimpleMessage(message: String) derives Codec.AsObject
 
-trait BoatTrackMeta extends DeviceMeta:
+trait SourceTrackMeta extends DeviceMeta:
   def track: TrackName
 
 trait UserDevice:
@@ -292,16 +292,14 @@ trait UserDevice:
 trait DeviceMeta:
   def user: Username
   def boat: BoatName
-  def withTrack(track: TrackName) = BoatUser(track, boat, user)
-  def withDevice(id: DeviceId) = IdentifiedDevice(user, boat, id)
+  def sourceType: SourceType
+  def withTrack(track: TrackName) = BoatUser(track, boat, sourceType, user)
 
 trait IdentifiedDeviceMeta extends DeviceMeta:
   def device: DeviceId
 
-case class SimpleBoatMeta(user: Username, boat: BoatName) extends DeviceMeta
-
-case class IdentifiedDevice(user: Username, boat: BoatName, device: DeviceId)
-  extends IdentifiedDeviceMeta
+case class SimpleSourceMeta(user: Username, boat: BoatName, sourceType: SourceType)
+  extends DeviceMeta
 
 case class DeviceId(id: Long) extends AnyVal with WrappedId
 object DeviceId extends IdCompanion[DeviceId]:
@@ -338,8 +336,13 @@ object MobileDevice extends ValidatingCompanion[String, MobileDevice]:
   case object Android extends MobileDevice("android")
   case class Unknown(s: String) extends MobileDevice(s)
 
-case class Boat(id: DeviceId, name: BoatName, token: BoatToken, addedMillis: Long)
-  derives Codec.AsObject
+case class Boat(
+  id: DeviceId,
+  name: BoatName,
+  sourceType: SourceType,
+  token: BoatToken,
+  addedMillis: Long
+) derives Codec.AsObject
 
 trait MinimalUserInfo:
   def username: Username
@@ -354,13 +357,6 @@ case class SimpleUserInfo(username: Username, language: Language, authorized: Se
 
 trait EmailUser extends MinimalUserInfo:
   def email: Email
-
-case class SimpleEmailUser(
-  username: Username,
-  email: Email,
-  language: Language,
-  authorized: Seq[BoatName]
-) extends EmailUser
 
 case class BoatRef(id: DeviceId, name: BoatName) derives Codec.AsObject
 
@@ -455,7 +451,8 @@ case class GPSPointId(id: Long) extends AnyVal with WrappedId
 
 object GPSPointId extends IdCompanion[GPSPointId]
 
-case class BoatUser(track: TrackName, boat: BoatName, user: Username) extends BoatTrackMeta
+case class BoatUser(track: TrackName, boat: BoatName, sourceType: SourceType, user: Username)
+  extends SourceTrackMeta
 
 case class BoatInfo(
   boatId: DeviceId,

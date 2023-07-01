@@ -5,7 +5,7 @@ import com.malliina.boat.db.NewUser
 import com.malliina.boat.http.ContentVersions
 import com.malliina.boat.http4s.JsonInstances.jsonBody
 import com.malliina.boat.parsing.{BoatStats, FullCoord}
-import com.malliina.boat.{BoatName, BoatNames, BoatResponse, BoatUser, Coord, DeviceId, TrackNames, TrackSummaries, Tracks, UserToken}
+import com.malliina.boat.{BoatName, BoatNames, BoatResponse, BoatUser, Coord, DeviceId, SourceType, TrackNames, TrackSummaries, Tracks, UserToken}
 import com.malliina.measure.{DistanceIntM, SpeedIntM, TemperatureInt}
 import com.malliina.values.Username
 import io.circe.Json
@@ -60,7 +60,9 @@ class ServiceTests extends MUnitSuite with Http4sSuite:
       _ <- service.userMgmt.addUser(
         NewUser(user, Option(TestEmailAuth[IO].testEmail), UserToken.random(), enabled = true)
       )
-      track <- inserts.joinAsSource(BoatUser(TrackNames.random(), BoatNames.random(), user))
+      track <- inserts.joinAsSource(
+        BoatUser(TrackNames.random(), BoatNames.random(), SourceType.Boat, user)
+      )
       coord = FullCoord(
         Coord.buildOrFail(60, 24),
         LocalTime.now(),

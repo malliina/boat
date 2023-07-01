@@ -8,26 +8,25 @@ import com.malliina.values.{UserId, Username}
 trait TrackInsertsDatabase[F[_]]:
   def updateTitle(track: TrackName, title: TrackTitle, user: UserId): F[JoinedTrack]
   def updateComments(track: TrackId, comments: String, user: UserId): F[JoinedTrack]
-  def addBoat(boat: BoatName, user: UserId): F[BoatRow]
+  def addSource(boat: BoatName, sourceType: SourceType, user: UserId): F[SourceRow]
   def removeDevice(device: DeviceId, user: UserId): F[Int]
-  def renameBoat(boat: DeviceId, newName: BoatName, user: UserId): F[BoatRow]
+  def renameBoat(boat: DeviceId, newName: BoatName, user: UserId): F[SourceRow]
 
-  /** If the given track and boat exist and are owned by the user, returns the track info.
+  /** If the given track and source exist and are owned by the user, returns the track info.
     *
-    * If the boat exists and is owned by the user but no track with the given name exists, the track
-    * is created.
+    * If the source exists and is owned by the user but no track with the given name exists, the
+    * track is created.
     *
-    * If neither the track nor boat exist, they are created.
+    * If neither the track nor source exist, they are created.
     *
-    * If the track name or boat name is already taken by another user, the returned Future fails.
+    * If the track name or source name is already taken by another user, the returned effect fails.
     *
     * @param meta
-    *   track, boat and user info
+    *   track, source and user info
     * @return
     *   track specs, or failure if there is a naming clash
     */
   def joinAsSource(meta: DeviceMeta): F[JoinResult]
-  def joinAsDevice(meta: DeviceMeta): F[JoinedSource]
   def saveSentences(sentences: SentencesEvent): F[Seq[KeyedSentence]]
   def saveCoords(coords: PointInsert): F[InsertedPoint]
 

@@ -72,7 +72,7 @@ class BasicService[F[_]: Sync] extends Implicits[F]:
       serverError(Errors(s"Server error: '${t.getMessage}'."))
     }
 
-  def unauthorizedNoCache(errors: Errors) =
+  private def unauthorizedNoCache(errors: Errors) =
     Unauthorized(
       `WWW-Authenticate`(NonEmptyList.of(Challenge("Bearer", "Social login"))),
       errors,

@@ -17,7 +17,7 @@ object DoobieUserManager:
     rows.foldLeft(Vector.empty[UserInfo]) { case (acc, ub) =>
       val user = ub.user
       val idx = acc.indexWhere(_.id == user.id)
-      val newBoats = ub.boat.toSeq.map { b => Boat(b.id, b.name, b.token, b.added.toEpochMilli) }
+      val newBoats = ub.boat.toSeq.map { b => Boat(b.id, b.name, b.sourceType, b.token, b.added.toEpochMilli) }
       val newInvites = ub.invite.toList.map { row =>
         Invite(row.boat, row.state, row.added.toEpochMilli)
       }
@@ -110,6 +110,7 @@ class DoobieUserManager[F[_]](db: DoobieDatabase[F]) extends IdentityManager[F] 
                    u.added,
                    b.id boatId,
                    b.name boatName,
+                   b.source_type sourceType,
                    b.token boatToken,
                    b.owner boatOwner,
                    b.added boatAdded,

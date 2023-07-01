@@ -37,7 +37,7 @@ trait MUnitSuite extends munit.CatsEffectSuite:
 
 object TestConf:
   def apply(container: MySQLContainer): Conf = Conf(
-    s"${container.jdbcUrl}?useSSL=false",
+    container.jdbcUrl,
     container.username,
     container.password,
     container.driverClassName,

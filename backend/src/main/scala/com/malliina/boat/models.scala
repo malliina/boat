@@ -249,6 +249,7 @@ case class TrackMeta(
   distance: DistanceM,
   boat: DeviceId,
   boatName: BoatName,
+  sourceType: SourceType,
   boatToken: BoatToken,
   userId: UserId,
   username: Username,

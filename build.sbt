@@ -3,11 +3,11 @@ import sbtrelease.ReleasePlugin.autoImport.{ReleaseStep, releaseProcess}
 import sbtrelease.ReleaseStateTransformations._
 import scala.sys.process.Process
 
-val webAuthVersion = "6.5.1"
+val webAuthVersion = "6.5.2"
 val munitVersion = "0.7.29"
 val testContainersScalaVersion = "0.40.16"
 val scalaTagsVersion = "0.12.0"
-val primitiveVersion = "3.4.2"
+val primitiveVersion = "3.4.3"
 val logstreamsVersion = "2.6.1"
 val http4sVersion = "0.23.22"
 val logbackVersion = "1.4.8"
@@ -122,8 +122,8 @@ val backend = Project("boat", file("backend"))
       "org.apache.commons" % "commons-text" % "1.10.0",
       "software.amazon.awssdk" % "s3" % "2.20.68",
       "com.malliina" %% "logstreams-client" % logstreamsVersion,
-      "com.malliina" %% "mobile-push-io" % "3.8.0",
-      "com.malliina" %% "config" % "3.4.2",
+      "com.malliina" %% "mobile-push-io" % "3.8.2-SNAPSHOT",
+      "com.malliina" %% "config" % primitiveVersion,
       "org.eclipse.paho" % "org.eclipse.paho.client.mqttv3" % "1.2.5",
       utilHtmlDep,
       webAuthDep,

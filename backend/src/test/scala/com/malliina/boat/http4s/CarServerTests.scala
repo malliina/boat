@@ -1,9 +1,11 @@
 package com.malliina.boat.http4s
 
-import com.malliina.boat.{DeviceId, Errors, Latitude, LocationUpdate, LocationUpdates, Longitude, wh}
+import cats.effect.IO
+import com.malliina.boat.db.NewUser
+import com.malliina.boat.{BoatNames, DeviceId, Errors, Latitude, LocationUpdate, LocationUpdates, Longitude, SimpleSourceMeta, SourceType, UserToken, wh}
 import com.malliina.http.FullUrl
 import com.malliina.measure.*
-import com.malliina.values.{IdToken, degrees}
+import com.malliina.values.{IdToken, Username, degrees}
 import io.circe.syntax.EncoderOps
 import org.http4s.Status
 import org.http4s.Status.{NotFound, Ok, Unauthorized}
@@ -46,49 +48,40 @@ class CarServerTests extends MUnitSuite with ServerSuite:
   }
 
   test("POST car locations with outdated jwt returns 401 with token expired") {
-    postCars(TestEmailAuth.expiredToken).map { res =>
-      assertEquals(res.status, Unauthorized.code)
-      assert(res.parse[Errors].toOption.exists(_.errors.exists(_.key == "token_expired")))
+    postCarLocation(LocationUpdates(Nil, testCarId), token = TestEmailAuth.expiredToken).map {
+      res =>
+        assertEquals(res.status, Unauthorized.code)
+        assert(res.parse[Errors].toOption.exists(_.errors.exists(_.key == "token_expired")))
     }
   }
 
-  test("POST call with working jwt".ignore) {
-    postCars().map { res =>
-      assertEquals(res.status, Ok.code)
-    }
+  test("POST call with working jwt") {
+    val user = Username("test@example.com")
+    val service = server().server.app
+    val meta = SimpleSourceMeta(user, BoatNames.random(), SourceType.Vehicle)
+    for
+      _ <- service.userMgmt.deleteUser(user)
+      _ <- service.userMgmt.addUser(
+        NewUser(user, Option(TestEmailAuth[IO].testEmail), UserToken.random(), enabled = true)
+      )
+      car <- service.inserts.joinAsSource(meta)
+      res <- postCarLocation(LocationUpdates(Nil, car.track.device))
+    yield assertEquals(res.status, Ok.code)
   }
 
-  test("POST car locations".ignore) {
-//    for
-//      postResponse <- postCars(updates = LocationUpdates(List(loc, loc2), testCarId))
-//      _ = assertEquals(postResponse.status, Ok.code)
-//      history <- client.getAs[CarHistoryResponse](getCarsUrl, headers())
-//    yield
-//      val drives = history.history
-//      assert(drives.nonEmpty)
-//      val expected = loc.outsideTemperature.map(_.celsius.toInt)
-//      val latestDrive = drives.lastOption.toList
-//        .flatMap(_.updates)
-//      val hasTemp = latestDrive
-//        .exists(u => u.outsideTemperature.map(_.celsius.toInt) == expected)
-//      assert(hasTemp)
-//      // Distance between the two test coordinates is around 35 km
-//      assert(latestDrive.exists(_.diff > 30.km))
-  }
-
-  test("POST car locations for non-owned car fails".ignore) {
-    postCars(updates = LocationUpdates(List(loc), DeviceId(123))).map { res =>
+  test("POST car locations for non-owned car fails") {
+    postCarLocation(LocationUpdates(List(loc), DeviceId(123))).map { res =>
       assertEquals(res.status, NotFound.code)
     }
   }
 
-  private def postCars(
+  private def postCarLocation(
+    updates: LocationUpdates,
     token: IdToken = TestEmailAuth.testToken,
-    updates: LocationUpdates = LocationUpdates(Nil, testCarId),
     url: FullUrl = postCarsUrl
   ) =
     http.postJson(url, updates.asJson, headers(token))
-  private def headers(token: IdToken = TestEmailAuth.testToken) = Map(
+  private def headers(token: IdToken) = Map(
     Authorization.name.toString -> s"Bearer $token",
     "Accept" -> "application/json"
   )

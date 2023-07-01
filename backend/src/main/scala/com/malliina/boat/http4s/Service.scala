@@ -157,7 +157,8 @@ class Service[F[_]: Async: Files](comps: BoatComps[F]) extends BasicService[F]:
       }
     case req @ POST -> Root / "boats" =>
       boatFormAction(req) { (boatName, user) =>
-        inserts.addBoat(boatName, user.id)
+        // TODO add sourceType parameter to forms and APIs
+        inserts.addSource(boatName, SourceType.Boat, user.id)
       }
     case req @ PATCH -> Root / "boats" / DeviceIdVar(device) =>
       boatFormAction(req) { (boatName, user) =>
@@ -276,7 +277,7 @@ class Service[F[_]: Async: Files](comps: BoatComps[F]) extends BasicService[F]:
         user.boats
           .find(_.id == body.carId)
           .map { device =>
-            val deviceMeta = SimpleBoatMeta(user.username, device.name)
+            val deviceMeta = SimpleSourceMeta(user.username, device.name, device.sourceType)
             inserts.joinAsSource(deviceMeta).flatMap { result =>
               val meta = result.track
               val count = body.updates.size
@@ -295,7 +296,7 @@ class Service[F[_]: Async: Files](comps: BoatComps[F]) extends BasicService[F]:
             }
           }
           .getOrElse {
-            badRequest(Errors(SingleError.input(s"Invalid car ID: '${body.carId}'.")))
+            notFound(Errors(SingleError.input(s"Car not found: '${body.carId}'.")))
           }
       }
     case req @ GET -> Root / "sign-in" =>
@@ -541,7 +542,7 @@ class Service[F[_]: Async: Files](comps: BoatComps[F]) extends BasicService[F]:
   implicit val boatNameReader: Readable[BoatName] =
     Readable.string.emap(s => BoatName.build(s.trim))
 
-  private def boatFormAction(req: Request[F])(code: (BoatName, UserInfo) => F[BoatRow]) =
+  private def boatFormAction(req: Request[F])(code: (BoatName, UserInfo) => F[SourceRow]) =
     formAction(
       req,
       form => form.read[BoatName](BoatNames.Key).map(n => ChangeBoatName(n))

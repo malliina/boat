@@ -1,7 +1,7 @@
 package com.malliina.boat.db
 
 import java.time.Instant
-import com.malliina.boat.{Boat, BoatName, BoatPrimitives, BoatRef, BoatToken, Coord, DateVal, DeviceId, FriendRef, GPSPointRow, InviteState, JoinedSource, JoinedTrack, Language, Mmsi, MonthVal, TrackCanonical, TrackId, TrackName, TrackPointRow, TrackTitle, UserToken, VesselName, VesselRowId, YearVal}
+import com.malliina.boat.{Boat, BoatName, BoatPrimitives, BoatRef, BoatToken, Coord, DateVal, DeviceId, FriendRef, GPSPointRow, InviteState, JoinedSource, JoinedTrack, Language, Mmsi, MonthVal, SourceType, TrackCanonical, TrackId, TrackName, TrackPointRow, TrackTitle, UserToken, VesselName, VesselRowId, YearVal}
 import com.malliina.measure.{DistanceM, SpeedM, Temperature}
 import com.malliina.values.{Email, UserId, Username}
 import io.circe.*
@@ -9,8 +9,15 @@ import io.circe.generic.semiauto.*
 
 import scala.concurrent.duration.FiniteDuration
 
-case class BoatRow(id: DeviceId, name: BoatName, token: BoatToken, owner: UserId, added: Instant):
-  def toBoat = Boat(id, name, token, added.toEpochMilli)
+case class SourceRow(
+  id: DeviceId,
+  name: BoatName,
+  sourceType: SourceType,
+  token: BoatToken,
+  owner: UserId,
+  added: Instant
+):
+  def toBoat = Boat(id, name, sourceType, token, added.toEpochMilli)
 
 case class UserRow(
   id: UserId,
@@ -94,7 +101,7 @@ case class FriendRow(boat: BoatRef, friend: FriendRef, state: InviteState, added
 
 case class JoinedUser(
   user: UserRow,
-  boat: Option[BoatRow],
+  boat: Option[SourceRow],
   invite: Option[InviteRow],
   friend: Option[FriendRow]
 )
