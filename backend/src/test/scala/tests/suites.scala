@@ -105,7 +105,7 @@ trait Http4sSuite extends MUnitDatabaseSuite:
 
   override def munitFixtures: Seq[Fixture[?]] = Seq(confFixture, app)
 
-case class ServerTools(server: ServerComponents[IO], val http: HttpClientF2[IO]):
+case class ServerTools(server: ServerComponents[IO], http: HttpClientF2[IO]):
   def port = server.server.address.getPort
   def baseHttpUrl = FullUrl("http", s"localhost:$port", "")
   def baseWsUrl = FullUrl("ws", s"localhost:$port", "")
@@ -117,13 +117,13 @@ trait ServerSuite extends MUnitDatabaseSuite with JsonInstances:
 
   def testServerResource: Resource[IO, ServerTools] =
     for
+      client <- Resource.eval(IO(HttpClientF2[IO]()))
       conf <- Resource.eval(IO(confFixture()))
       service <- Server.server[IO](
         BoatConf.parse().copy(db = conf, ais = AisAppConf(false)),
         TestComps.builder,
         port = port"0"
       )
-      client <- Resource.eval(IO(HttpClientF2[IO]()))
     yield ServerTools(service, client)
   val server: Fixture[ServerTools] =
     ResourceSuiteLocalFixture("munit-server", testServerResource)

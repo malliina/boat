@@ -20,17 +20,20 @@ class StaticBoatTests extends BoatTests:
     "$GPGGA,141209,6009.3630,N,02453.7997,E,1,12,0.60,-3,M,19.6,M,,*4F"
   ).map(RawSentence.apply)
 
-  // Ignored because this is flaky on GitHub Actions. Still relevant though, so TODO fix and unignore.
   test("GPS reporting".ignore) {
     val client = server().http
     val boatName = BoatNames.random()
     SignallingRef[IO, Boolean](false).flatMap { complete =>
       openTestBoat(boatName, client) { boat =>
+        println(s"Opened test boat $boatName")
         Deferred[IO, CoordsEvent].flatMap { coordPromise =>
           val testMessage = SentencesMessage(testTrack.take(6))
           val testCoord = Coord.buildOrFail(24.89171, 60.1532)
           val viewer = openViewerSocket(client, None) { socket =>
+            println(s"Opened viewer anonymous???")
             socket.jsonMessages.evalTap { json =>
+              println(s"Anon received $json")
+              com.malliina.http.io.WebSocketF
               json
                 .as[CoordsEvent]
                 .toOption
