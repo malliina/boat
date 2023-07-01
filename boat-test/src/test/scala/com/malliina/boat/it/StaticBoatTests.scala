@@ -21,7 +21,8 @@ class StaticBoatTests extends BoatTests:
   ).map(RawSentence.apply)
 
   // Ignored because this is flaky on GitHub Actions. Still relevant though, so TODO fix and unignore.
-  http.test("GPS reporting".ignore) { client =>
+  test("GPS reporting".ignore) {
+    val client = server().http
     val boatName = BoatNames.random()
     SignallingRef[IO, Boolean](false).flatMap { complete =>
       openTestBoat(boatName, client) { boat =>
