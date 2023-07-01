@@ -122,7 +122,7 @@ val backend = Project("boat", file("backend"))
       "org.apache.commons" % "commons-text" % "1.10.0",
       "software.amazon.awssdk" % "s3" % "2.20.68",
       "com.malliina" %% "logstreams-client" % logstreamsVersion,
-      "com.malliina" %% "mobile-push-io" % "3.8.2-SNAPSHOT",
+      "com.malliina" %% "mobile-push-io" % "3.8.1",
       "com.malliina" %% "config" % primitiveVersion,
       "org.eclipse.paho" % "org.eclipse.paho.client.mqttv3" % "1.2.5",
       utilHtmlDep,
