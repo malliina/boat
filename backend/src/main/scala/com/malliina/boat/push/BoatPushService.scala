@@ -1,5 +1,6 @@
 package com.malliina.boat.push
 
+import cats.syntax.show.toShow
 import cats.{Applicative, Monad}
 import com.malliina.boat.MobileDevice.{Android, IOS, Unknown}
 import com.malliina.boat.PushConf
@@ -22,9 +23,9 @@ class BoatPushService[F[_]: Applicative](ios: APNS[F], android: PushClient[F, GC
   override def push(notification: SourceNotification, to: PushDevice): F[PushSummary] =
     to.device match
       case IOS =>
-        ios.push(notification, APNSToken(to.token.token))
+        ios.push(notification, APNSToken(to.token.show))
       case Android =>
-        android.push(notification, GCMToken(to.token.token))
+        android.push(notification, GCMToken(to.token.show))
       case Unknown(name) =>
         log.error(s"Unsupported device: '$name'. Ignoring push request.")
         F.pure(PushSummary.empty)

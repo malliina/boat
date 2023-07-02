@@ -15,9 +15,6 @@ import scala.concurrent.duration.Duration
 import scala.language.implicitConversions
 import scala.math.Ordering.Double.TotalOrdering
 
-enum DeviceType:
-  case Vehicle, Boat, Other
-
 case class DayVal(day: Int) extends AnyVal with WrappedInt:
   override def value = day
 
@@ -199,6 +196,9 @@ case class GPSTimedCoord(id: GPSPointId, coord: Coord, time: Timing) derives Cod
 abstract class ShowableCompanion[T] extends JsonCompanion[String, T]:
   given Show[T] = Show.fromToString
 
+abstract class ShowableLong[T] extends JsonCompanion[Long, T]:
+  given Show[T] = Show.fromToString
+
 case class AccessToken(token: String) extends AnyVal with WrappedString:
   override def value = token
 
@@ -305,22 +305,25 @@ case class SimpleSourceMeta(user: Username, boat: BoatName, sourceType: SourceTy
   extends DeviceMeta
 
 opaque type DeviceId = Long
-object DeviceId extends JsonCompanion[Long, DeviceId]:
+object DeviceId extends ShowableLong[DeviceId]:
   val Key = "boat"
   override def apply(raw: Long): DeviceId = raw
   override def write(t: DeviceId): Long = t
-  implicit val show: Show[DeviceId] = Show.fromToString
 
-case class TrackId(id: Long) extends AnyVal with WrappedId
-object TrackId extends IdCompanion[TrackId]
+opaque type TrackId = Long
+object TrackId extends ShowableLong[TrackId]:
+  override def apply(raw: Long): TrackId = raw
+  override def write(t: TrackId): Long = t
 
-case class PushId(id: Long) extends AnyVal with WrappedId
-object PushId extends IdCompanion[PushId]
+opaque type PushId = Long
+object PushId extends ShowableLong[PushId]:
+  override def apply(raw: Long): PushId = raw
+  override def write(t: PushId): Long = t
 
-case class PushToken(token: String) extends AnyVal with WrappedString:
-  override def value = token
-
-object PushToken extends StringCompanion[PushToken]
+opaque type PushToken = String
+object PushToken extends ShowableCompanion[PushToken]:
+  override def apply(raw: String): PushToken = raw
+  override def write(t: PushToken): String = t
 
 sealed abstract class MobileDevice(val name: String):
   override def toString: String = name
