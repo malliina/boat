@@ -14,11 +14,9 @@ case class MapCamera(
   zoom: Double,
   customCenter: Boolean,
   timestampMs: Double = Date.now()
-)
+) derives Codec.AsObject
 
 object MapCamera:
-  implicit val json: Codec[MapCamera] = deriveCodec[MapCamera]
-
   private val center =
     for
       center <- Option(document.getElementById(FrontKeys.Center))

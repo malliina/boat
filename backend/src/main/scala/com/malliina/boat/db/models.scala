@@ -2,7 +2,7 @@ package com.malliina.boat.db
 
 import com.malliina.boat.{Coord, CoordHash, Mmsi, MobileDevice, PushId, PushToken, UserToken, Utils, VesselName}
 import com.malliina.measure.{DistanceM, SpeedM, Temperature}
-import com.malliina.values.{Email, RefreshToken, StringCompanion, UserId, Username, WrappedString}
+import com.malliina.values.{Email, JsonCompanion, RefreshToken, UserId, Username}
 
 import java.time.Instant
 
@@ -36,8 +36,11 @@ object NewUser:
 
 class NotFoundException(val message: String) extends Exception
 
-case class RefreshTokenId(value: String) extends AnyVal with WrappedString
-object RefreshTokenId extends StringCompanion[RefreshTokenId]:
+opaque type RefreshTokenId = String
+object RefreshTokenId extends JsonCompanion[String, RefreshTokenId]:
+  override def apply(raw: String): RefreshTokenId = raw
+  override def write(t: RefreshTokenId): String = t
+
   def random(): RefreshTokenId = RefreshTokenId(Utils.randomString(32))
 
 case class RefreshRow(

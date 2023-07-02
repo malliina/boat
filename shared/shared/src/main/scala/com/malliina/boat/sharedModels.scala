@@ -1,5 +1,6 @@
 package com.malliina.boat
 
+import cats.Show
 import cats.syntax.functor.*
 import com.malliina.boat.BoatJson.keyValued
 import com.malliina.json.PrimitiveFormats
@@ -301,9 +302,12 @@ trait IdentifiedDeviceMeta extends DeviceMeta:
 case class SimpleSourceMeta(user: Username, boat: BoatName, sourceType: SourceType)
   extends DeviceMeta
 
-case class DeviceId(id: Long) extends AnyVal with WrappedId
-object DeviceId extends IdCompanion[DeviceId]:
+opaque type DeviceId = Long
+object DeviceId extends JsonCompanion[Long, DeviceId]:
   val Key = "boat"
+  override def apply(raw: Long): DeviceId = raw
+  override def write(t: DeviceId): Long = t
+  implicit val show: Show[DeviceId] = Show.fromToString
 
 case class TrackId(id: Long) extends AnyVal with WrappedId
 object TrackId extends IdCompanion[TrackId]

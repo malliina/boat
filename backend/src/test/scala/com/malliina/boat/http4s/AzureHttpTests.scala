@@ -1,6 +1,6 @@
 package com.malliina.boat.http4s
 
-import com.malliina.boat.{DeviceId, Errors, Latitude, LocationUpdate, LocationUpdates, Longitude}
+import com.malliina.boat.{DeviceId, Errors, Latitude, LocationUpdate, LocationUpdates, Longitude, SingleError}
 import com.malliina.http.io.HttpClientIO
 import com.malliina.http.FullUrl
 import com.malliina.measure.DistanceIntM
@@ -44,7 +44,7 @@ class AzureHttpTests extends MUnitSuite:
       )
       .map { res =>
         assertEquals(res.status, Unauthorized.code)
-        assert(res.parse[Errors].toOption.exists(_.errors.exists(_.key == "token_expired")))
+        assert(res.parse[Errors].toOption.exists(_.errors.exists(_.key == SingleError.TokenExpiredKey)))
       }
   }
 

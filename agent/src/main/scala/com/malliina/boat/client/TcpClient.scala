@@ -3,7 +3,7 @@ package com.malliina.boat.client
 import cats.effect.{Async, Resource, Sync}
 import com.malliina.boat.client.TcpClient.{charset, log}
 import com.malliina.boat.client.server.Device.GpsDevice
-import com.malliina.boat.{RawSentence, Readables, SentencesMessage}
+import com.malliina.boat.{RawSentence, SentencesMessage}
 import com.malliina.util.AppLogger
 import com.malliina.values.Readable
 import fs2.concurrent.{SignallingRef, Topic}
@@ -24,9 +24,9 @@ object TcpClient:
   val charset = StandardCharsets.US_ASCII
 
   implicit val host: Readable[Host] =
-    Readables.string.emap(s => Host.fromString(s).toRight(ErrorMessage(s"Invalid host: '$s'.")))
+    Readable.string.emap(s => Host.fromString(s).toRight(ErrorMessage(s"Invalid host: '$s'.")))
   implicit val port: Readable[Port] =
-    Readables.int.emap(i => Port.fromInt(i).toRight(ErrorMessage(s"Invalid port: '$i'.")))
+    Readable.int.emap(i => Port.fromInt(i).toRight(ErrorMessage(s"Invalid port: '$i'.")))
 
   // Subscribes to NMEA messages. Depending on device, by default, nothing happens.
   val watchMessage =

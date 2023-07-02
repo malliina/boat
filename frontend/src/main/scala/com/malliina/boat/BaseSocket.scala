@@ -23,10 +23,10 @@ class BaseSocket(wsPath: String, val log: BaseLogger = BaseLogger.console):
   def handleValidated[T: Decoder](json: Json)(process: T => Unit): Unit =
     json.as[T].fold(err => onJsonFailure(DecodingFailure(err.message, Nil), json), process)
 
-  def showConnected(): Unit =
+  private def showConnected(): Unit =
     setFeedback("Connected to socket.")
 
-  def showDisconnected(): Unit =
+  private def showDisconnected(): Unit =
     setFeedback("Connection closed.")
 
   def send[T: Encoder](payload: T): Unit =
@@ -43,13 +43,13 @@ class BaseSocket(wsPath: String, val log: BaseLogger = BaseLogger.console):
         if !isPing then handlePayload(json)
     )
 
-  def onConnected(e: Event): Unit = showConnected()
+  private def onConnected(e: Event): Unit = showConnected()
 
-  def onClosed(e: CloseEvent): Unit = showDisconnected()
+  private def onClosed(e: CloseEvent): Unit = showDisconnected()
 
-  def onError(e: Event): Unit = showDisconnected()
+  private def onError(e: Event): Unit = showDisconnected()
 
-  def openSocket(pathAndQuery: String) =
+  private def openSocket(pathAndQuery: String) =
     val url = wsBaseUrl.append(pathAndQuery)
     val socket = new dom.WebSocket(url.url)
     socket.onopen = (e: Event) => onConnected(e)
@@ -58,15 +58,15 @@ class BaseSocket(wsPath: String, val log: BaseLogger = BaseLogger.console):
     socket.onerror = (e: Event) => onError(e)
     socket
 
-  def wsBaseUrl: FullUrl =
+  private def wsBaseUrl: FullUrl =
     val location = dom.window.location
     val wsProto = if location.protocol == "http:" then "ws" else "wss"
     FullUrl(wsProto, location.host, "")
 
-  def setFeedback(feedback: String): Unit =
+  private def setFeedback(feedback: String): Unit =
     log.debug(feedback)
 
-  def onJsonException(asString: String, e: io.circe.Error): Unit =
+  private def onJsonException(asString: String, e: io.circe.Error): Unit =
     log.info(s"JSON error for '$asString'. $e")
 
   protected def onJsonFailure(result: DecodingFailure, value: Json): Unit =

@@ -2,7 +2,7 @@ package com.malliina.boat.http4s
 
 import cats.effect.IO
 import com.malliina.boat.db.NewUser
-import com.malliina.boat.{BoatNames, DeviceId, Errors, Latitude, LocationUpdate, LocationUpdates, Longitude, SimpleSourceMeta, SourceType, UserToken, wh}
+import com.malliina.boat.{BoatNames, DeviceId, Errors, Latitude, LocationUpdate, LocationUpdates, Longitude, SimpleSourceMeta, SingleError, SourceType, UserToken, wh}
 import com.malliina.http.FullUrl
 import com.malliina.measure.*
 import com.malliina.values.{IdToken, Username, degrees}
@@ -51,7 +51,7 @@ class CarServerTests extends MUnitSuite with ServerSuite:
     postCarLocation(LocationUpdates(Nil, testCarId), token = TestEmailAuth.expiredToken).map {
       res =>
         assertEquals(res.status, Unauthorized.code)
-        assert(res.parse[Errors].toOption.exists(_.errors.exists(_.key == "token_expired")))
+        assert(res.parse[Errors].toOption.exists(_.errors.exists(_.key == SingleError.TokenExpiredKey)))
     }
   }
 

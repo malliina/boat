@@ -1,6 +1,7 @@
 package com.malliina.boat.http4s
 
 import cats.effect.IO
+import cats.syntax.show.toShow
 import com.malliina.boat.db.NewUser
 import com.malliina.boat.http.ContentVersions
 import com.malliina.boat.http4s.JsonInstances.jsonBody
@@ -32,7 +33,7 @@ class ServiceTests extends MUnitSuite with Http4sSuite:
     def changeName(of: DeviceId, to: BoatName) =
       val req = Method.PATCH(
         Json.obj("boatName" -> to.asJson),
-        uri"/boats".addSegment(of.id),
+        uri"/boats".addSegment(of.show),
         headers = Headers(
           Authorization(Credentials.Token(AuthScheme.Basic, TestEmailAuth.testToken.token)),
           Accept(mediaType"application/json")

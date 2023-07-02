@@ -8,7 +8,7 @@ import com.malliina.boat.client.TcpClient.{host, port}
 import com.malliina.boat.client.server.AgentHtml.{asHtml, boatForm}
 import com.malliina.boat.client.server.AgentSettings.{readConf, saveAndReload}
 import com.malliina.boat.client.server.WebServer.settingsUri
-import com.malliina.boat.{BoatToken, Errors, Readables}
+import com.malliina.boat.{BoatToken, Errors}
 import com.malliina.util.AppLogger
 import com.malliina.values.Readable
 import io.circe.syntax.EncoderOps
@@ -63,18 +63,17 @@ class WebServer[F[_]: Async](agentInstance: AgentInstance[F]) extends AppImplici
       static(path, req)
   }
 
-  def static(file: String, request: Request[F]): F[Response[F]] =
+  private def static(file: String, request: Request[F]): F[Response[F]] =
     StaticFile
       .fromResource("/" + file, Some(request))
       .getOrElseF(NotFound(Errors(s"Not found: '$file'.").asJson))
 
   implicit val deviceReadable: Readable[Device] = Readable.string.map(s => Device(s))
   implicit val tokenReadable: Readable[BoatToken] = Readable.string.map(s => BoatToken(s))
-  implicit val boolReadable: Readable[Boolean] = Readables.boolean
 
   val service = Router("/" -> routes).orNotFound
 
-  def readForm(form: FormReader): Either[Errors, BoatConf] = for
+  private def readForm(form: FormReader): Either[Errors, BoatConf] = for
     host <- form.read[Host]("host")
     port <- form.read[Port]("port")
     device <- form.read[Device]("device")
@@ -82,7 +81,7 @@ class WebServer[F[_]: Async](agentInstance: AgentInstance[F]) extends AppImplici
     enabled <- form.read[Boolean]("enabled")
   yield BoatConf(host, port, device, token, enabled)
 
-  def parseForm[T](req: Request[F], read: FormReader => Either[Errors, T])(implicit
+  private def parseForm[T](req: Request[F], read: FormReader => Either[Errors, T])(implicit
     decoder: EntityDecoder[F, UrlForm]
   ): F[T] =
     decoder

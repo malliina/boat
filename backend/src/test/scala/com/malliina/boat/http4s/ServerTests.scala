@@ -1,7 +1,7 @@
 package com.malliina.boat.http4s
 
 import cats.effect.IO
-import com.malliina.boat.Errors
+import com.malliina.boat.{Errors, SingleError}
 import com.malliina.values.IdToken
 import org.http4s.Status
 import org.http4s.Status.{Ok, Unauthorized}
@@ -26,7 +26,7 @@ class ServerTests extends MUnitSuite with ServerSuite:
   test("GET profile with outdated jwt returns 401 with token expired") {
     http.get(meUrl, headers(TestEmailAuth.expiredToken)).map { res =>
       assertEquals(res.status, Unauthorized.code)
-      assert(res.parse[Errors].toOption.exists(_.errors.exists(_.key == "token_expired")))
+      assert(res.parse[Errors].toOption.exists(_.errors.exists(_.key == SingleError.TokenExpiredKey)))
     }
   }
 

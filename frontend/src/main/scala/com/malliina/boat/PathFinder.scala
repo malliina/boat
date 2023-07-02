@@ -16,8 +16,6 @@ object PathFinder:
   val routeLastLayer = "route-last"
   val layerIds = Seq(routeLayer, routeFirstLayer, routeLastLayer)
 
-  def apply(map: MapboxMap): PathFinder = new PathFinder(map)
-
 class PathFinder(val map: MapboxMap) extends GeoUtils with BaseFront:
   val mapContainer = elemGet[HTMLDivElement](MapId)
   val routesContainer = elemGet[HTMLDivElement](RoutesContainer)

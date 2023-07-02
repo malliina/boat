@@ -22,8 +22,8 @@ trait Mappings:
     doobie.implicits.legacy.localdate.JavaTimeLocalDateMeta
 
   implicit val tpi: Meta[TrackPointId] = wrappedId(TrackPointId.apply)
-  implicit val rti: Meta[RefreshTokenId] = wrapped(RefreshTokenId.apply)
-  implicit val di: Meta[DeviceId] = wrappedId(DeviceId.apply)
+  implicit val rti: Meta[RefreshTokenId] = simple(RefreshTokenId)
+  implicit val di: Meta[DeviceId] = simple(DeviceId)
   implicit val gpi: Meta[GPSPointId] = wrappedId(GPSPointId.apply)
   implicit val gpf: Meta[GPSFix] = Meta[String].timap(GPSFix.orOther)(_.value)
   implicit val pi: Meta[PushId] = wrappedId(PushId.apply)
@@ -71,6 +71,9 @@ trait Mappings:
   implicit val dg: Meta[Degrees] = Meta[Float].timap(Degrees.unsafe)(_.float)
   implicit val cuid: Meta[CarUpdateId] = Meta[Long].timap(CarUpdateId.apply)(_.long)
   implicit val energyMeta: Meta[Energy] = Meta[Double].timap(Energy.apply)(Energy.write)
+
+  private def simple[T, R: Meta, C <: JsonCompanion[R, T]](c: C): Meta[T] =
+    Meta[R].timap(c.apply)(c.write)
 
   private def wrapped[T <: WrappedString](build: String => T): Meta[T] =
     Meta[String].timap(build)(_.value)
