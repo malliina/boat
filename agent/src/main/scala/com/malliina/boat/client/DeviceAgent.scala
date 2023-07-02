@@ -3,6 +3,7 @@ package com.malliina.boat.client
 import cats.effect.{Async, Sync}
 import cats.effect.kernel.Resource
 import cats.syntax.all.catsSyntaxFlatMapOps
+import com.malliina.boat.BoatToken
 import com.malliina.boat.Constants.BoatTokenHeader
 import com.malliina.boat.client.DeviceAgent.log
 import com.malliina.boat.client.server.BoatConf
@@ -28,7 +29,7 @@ object DeviceAgent:
     url: FullUrl,
     http: OkHttpClient
   ): Resource[F, DeviceAgent[F]] =
-    val headers = conf.token.toList.map(t => BoatTokenHeader -> t.token).toMap
+    val headers = conf.token.toList.map(t => BoatTokenHeader -> BoatToken.write(t)).toMap
     val isGps = conf.device == GpsDevice
     for
       tcp <- Resource.eval(TcpClient.default(conf.host, conf.port))

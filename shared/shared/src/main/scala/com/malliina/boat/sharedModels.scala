@@ -196,29 +196,32 @@ object TimedCoord:
 
 case class GPSTimedCoord(id: GPSPointId, coord: Coord, time: Timing) derives Codec.AsObject
 
+abstract class ShowableCompanion[T] extends JsonCompanion[String, T]:
+  given Show[T] = Show.fromToString
+
 case class AccessToken(token: String) extends AnyVal with WrappedString:
   override def value = token
 
 object AccessToken extends StringCompanion[AccessToken]
 
-case class BoatName(name: String) extends AnyVal with WrappedString:
-  override def value = name
-
-object BoatName extends StringCompanion[BoatName]:
+opaque type BoatName = String
+object BoatName extends ShowableCompanion[BoatName]:
   val Key = "boatName"
+  override def apply(raw: String): BoatName = raw
+  override def write(t: BoatName): String = t
 
-case class TrackName(name: String) extends AnyVal with WrappedString:
-  override def value = name
-
-object TrackName extends StringCompanion[TrackName]:
+opaque type TrackName = String
+object TrackName extends ShowableCompanion[TrackName]:
   val Key = "track"
+  override def apply(raw: String): TrackName = raw
+  override def write(t: TrackName): String = t
 
-case class TrackTitle(title: String) extends AnyVal with WrappedString:
-  override def value = title
-
-object TrackTitle extends StringCompanion[TrackTitle]:
+opaque type TrackTitle = String
+object TrackTitle extends ShowableCompanion[TrackTitle]:
   val Key = "title"
   val MaxLength = 191
+  override def apply(raw: String): TrackTitle = raw
+  override def write(t: TrackTitle): String = t
 
 case class ChangeTrackTitle(title: TrackTitle) derives Codec.AsObject
 
@@ -227,18 +230,17 @@ object TrackComments:
 
 case class ChangeComments(comments: String) derives Codec.AsObject
 
-case class TrackCanonical(name: String) extends AnyVal with WrappedString:
-  override def value = name
-
-object TrackCanonical extends StringCompanion[TrackCanonical]:
+opaque type TrackCanonical = String
+object TrackCanonical extends ShowableCompanion[TrackCanonical]:
   val Key = "canonical"
+  override def apply(raw: String): TrackCanonical = raw
+  override def write(t: TrackCanonical): String = t
+  def fromName(name: TrackName): TrackCanonical = TrackCanonical(TrackName.write(name))
 
-  def fromName(name: TrackName): TrackCanonical = TrackCanonical(name.name)
-
-case class BoatToken(token: String) extends AnyVal with WrappedString:
-  override def value = token
-
-object BoatToken extends StringCompanion[BoatToken]
+opaque type BoatToken = String
+object BoatToken extends ShowableCompanion[BoatToken]:
+  override def apply(raw: String): BoatToken = raw
+  override def write(t: BoatToken): String = t
 
 /** An NMEA Sentence.
   *
@@ -432,7 +434,7 @@ case class TrackRef(
   topPoint: TimedCoord,
   times: Times
 ) extends TrackLike:
-  def describe = trackTitle.map(_.title).getOrElse(trackName.name)
+  def describe = trackTitle.map(TrackTitle.write).getOrElse(TrackName.write(trackName))
 
 object TrackRef:
   implicit val durationFormat: Codec[Duration] = PrimitiveFormats.durationCodec

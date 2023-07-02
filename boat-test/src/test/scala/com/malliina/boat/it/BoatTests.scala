@@ -44,8 +44,8 @@ trait BoatSockets:
     code: WebSocketF[IO] => IO[T]
   ): IO[T] =
     val headers = boat.fold(
-      name => KeyValue(Constants.BoatNameHeader, name.name),
-      t => KeyValue(Constants.BoatTokenHeader, t.token)
+      name => KeyValue.build(Constants.BoatNameHeader, name),
+      t => KeyValue.build(Constants.BoatTokenHeader, t)
     )
     openSocket(url, List(headers), httpClient) { socket =>
       code(socket)

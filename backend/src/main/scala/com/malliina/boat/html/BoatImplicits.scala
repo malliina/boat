@@ -1,10 +1,12 @@
 package com.malliina.boat.html
 
+import cats.Show
+import cats.syntax.show.toShow
 import com.malliina.boat.BoatFormats.{formatDistance, formatSpeed, formatTemp}
-import com.malliina.boat.{DateVal, DeviceId, WrappedInt}
+import com.malliina.boat.{DateVal, WrappedInt}
 import com.malliina.measure.{DistanceM, SpeedM, Temperature}
 import com.malliina.values.WrappedString
-import scalatags.Text.all.{Attr, AttrValue, Frag, intFrag, stringFrag}
+import scalatags.Text.all.{Attr, AttrValue, Frag, Modifier, intFrag, stringFrag}
 import scalatags.text.Builder
 
 import scala.language.implicitConversions
@@ -20,11 +22,10 @@ trait BoatImplicits:
   implicit def dateValHtml(d: DateVal): Frag = stringFrag(d.iso8601)
   implicit def wrappedIntAttr[T <: WrappedInt]: AttrValue[T] = boatStringAttr(i => s"${i.value}")
 
-  implicit val deviceIdAttr: AttrValue[DeviceId] = (t: Builder, a: Attr, v: DeviceId) =>
-    t.setAttr(a.name, Builder.GenericAttrValueSource(DeviceId.write(v).toString))
-
-//  implicit def attrId[T <: WrappedId]: AttrValue[T] = (t: Builder, a: Attr, v: T) =>
-//    t.setAttr(a.name, Builder.GenericAttrValueSource(s"$v"))
-
   def boatStringAttr[T](stringify: T => String): AttrValue[T] = (t: Builder, a: Attr, v: T) =>
     t.setAttr(a.name, Builder.GenericAttrValueSource(stringify(v)))
+
+  implicit def showAttr[T: Show]: AttrValue[T] = (t: Builder, a: Attr, v: T) =>
+    t.setAttr(a.name, Builder.GenericAttrValueSource(v.show))
+
+  implicit def showFrag[T: Show](t: T): Modifier = stringFrag(t.show)

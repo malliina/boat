@@ -1,5 +1,6 @@
 package com.malliina.boat
 
+import cats.syntax.show.toShow
 import com.malliina.boat.BoatFormats.*
 import com.malliina.boat.SourceType.Vehicle
 import com.malliina.geojson.{GeoLineString, GeoPoint}
@@ -100,7 +101,7 @@ class MapSocket(
           in =>
             map.getCanvas().style.cursor = "pointer"
             trackPopup.remove()
-            boatPopup.showText(from.boatName.name, in.lngLat, map)
+            boatPopup.showText(from.boatName.show, in.lngLat, map)
           ,
           _ =>
             map.getCanvas().style.cursor = ""
@@ -168,7 +169,7 @@ class MapSocket(
     elem(TitleId).foreach { e =>
       from.trackTitle.foreach { title =>
         e.classList.add("show")
-        e.innerHTML = title.title
+        e.innerHTML = title.show
       }
     }
     elem(DistanceId).foreach { e =>

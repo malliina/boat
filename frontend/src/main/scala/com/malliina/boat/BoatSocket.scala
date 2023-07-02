@@ -1,14 +1,14 @@
 package com.malliina.boat
 
 import io.circe.*
-
+import cats.syntax.show.toShow
 import scala.scalajs.js.URIUtils
 
 object BoatSocket:
   def query(track: PathState, sample: Option[Int]): String =
     val params = track match
-      case Name(name)           => Seq(TrackName.Key -> name.name)
-      case Canonical(canonical) => Seq(TrackCanonical.Key -> canonical.name)
+      case Name(name)           => Seq(TrackName.Key -> name.show)
+      case Canonical(canonical) => Seq(TrackCanonical.Key -> canonical.show)
       case Route(req)           => Nil
       case Timed(from, to)      => Seq(Timings.From -> from, Timings.To -> to)
       case NoTrack              => Nil

@@ -64,7 +64,7 @@ object SentencesPage extends BoatImplicits:
                 id := TitleInputId,
                 name := TrackTitle.Key,
                 `class` := "form-control form-control-sm input-title",
-                track.trackTitle.map(t => value := t.title).getOrElse(modifier()),
+                track.trackTitle.map(t => value := t).getOrElse(modifier()),
                 placeholder := webLang.titlePlaceholder
               )
             ),

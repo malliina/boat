@@ -1,29 +1,29 @@
 package com.malliina.boat.http4s
 
 import cats.data.NonEmptyList
-import cats.effect.kernel.Async
 import cats.effect.Sync
+import cats.effect.kernel.Async
 import cats.implicits.*
 import cats.syntax.all.{catsSyntaxApplicativeError, toFlatMapOps, toFunctorOps}
-import com.malliina.boat.Constants.{LanguageName, TokenCookieName}
 import com.malliina.boat.*
+import com.malliina.boat.Constants.{LanguageName, TokenCookieName}
+import com.malliina.boat.Readables.trackTitle
 import com.malliina.boat.auth.AuthProvider.{PromptKey, SelectAccount}
-import com.malliina.boat.auth.{AuthProvider, SettingsPayload, UserPayload}
+import com.malliina.boat.auth.{AuthProvider, BoatJwt, SettingsPayload, UserPayload}
 import com.malliina.boat.db.*
 import com.malliina.boat.graph.*
 import com.malliina.boat.html.{BoatHtml, BoatLang}
-import com.malliina.boat.http.InviteResult.{AlreadyInvited, Invited, UnknownEmail}
 import com.malliina.boat.http.*
+import com.malliina.boat.http.InviteResult.{AlreadyInvited, Invited, UnknownEmail}
 import com.malliina.boat.http4s.BasicService.{cached, noCache, ranges}
 import com.malliina.boat.http4s.Service.{RequestOps, log}
+import com.malliina.boat.parsing.CarCoord
 import com.malliina.boat.push.SourceState
 import com.malliina.util.AppLogger
 import com.malliina.values.{Email, Readable, UserId, Username}
+import com.malliina.web.*
 import com.malliina.web.OAuthKeys.{Nonce, State}
 import com.malliina.web.Utils.randomString
-import com.malliina.web.*
-import com.malliina.boat.auth.BoatJwt
-import com.malliina.boat.parsing.CarCoord
 import fs2.io.file.Files
 import fs2.{Pipe, Stream}
 import io.circe.parser.parse

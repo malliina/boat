@@ -40,7 +40,7 @@ class TrackInserter[F[_]: Async](val db: DoobieDatabase[F])
         .query[TrackId]
         .option
         .flatMap { opt => opt.map(pure).getOrElse(fail(TrackNameNotFoundException(track))) }
-    val canonical = TrackCanonical(Utils.normalize(title.title))
+    val canonical = TrackCanonical(Utils.normalize(title))
     def updateIO(tid: TrackId) =
       sql"""update tracks set canonical = $canonical, title = $title
             where id = $tid""".update.run

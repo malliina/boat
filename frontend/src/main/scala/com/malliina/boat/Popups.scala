@@ -1,5 +1,6 @@
 package com.malliina.boat
 
+import cats.syntax.show.toShow
 import com.malliina.measure.{DistanceM, SpeedM}
 import scalatags.JsDom.all.*
 
@@ -14,7 +15,7 @@ class Popups(lang: Lang) extends BoatModels:
 
   def track(point: PointProps) =
     val isBoat = point.sourceType == SourceType.Boat
-    titledTable(point.boatName.name)(
+    titledTable(point.boatName.show)(
       row(
         trackLang.speed,
         if isBoat then formatSpeed(point.speed)
@@ -32,7 +33,7 @@ class Popups(lang: Lang) extends BoatModels:
     )
 
   def device(point: DeviceProps) =
-    titledTable(point.deviceName.name)(
+    titledTable(point.deviceName.show)(
       tr(td(colspan := 2)(point.dateTime))
     )
 

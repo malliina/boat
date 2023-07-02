@@ -2,18 +2,19 @@ package com.malliina.boat.html
 
 import com.malliina.assets.HashedAssets
 import com.malliina.boat.FrontKeys.*
+import com.malliina.boat.html.BoatImplicits.showFrag
 import com.malliina.boat.http.{Limits, TrackQuery}
 import com.malliina.boat.http4s.Reverse
 import com.malliina.boat.{AppConf, BuildInfo, Coord, FrontKeys, FullTrack, Lang, TrackRef, TracksBundle, UserBoats, UserInfo, Usernames}
-import com.malliina.html.HtmlTags.{cssLink, deviceWidthViewport, fullUrl, titleTag}
 import com.malliina.html.HtmlTags
+import com.malliina.html.HtmlTags.{cssLink, deviceWidthViewport, fullUrl, titleTag}
 import com.malliina.http.FullUrl
 import com.malliina.live.LiveReload
 import com.malliina.measure.DistanceM
 import com.malliina.values.WrappedString
 import org.http4s.Uri
-import scalatags.Text.all.*
 import scalatags.Text
+import scalatags.Text.all.*
 
 import scala.language.implicitConversions
 

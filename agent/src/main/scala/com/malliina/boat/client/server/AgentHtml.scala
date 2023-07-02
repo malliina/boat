@@ -61,7 +61,7 @@ object AgentHtml:
           `type` := "text",
           name := "token",
           id := "token",
-          conf.flatMap(_.token).map(v => value := v.token).getOrElse(empty)
+          conf.flatMap(_.token).map(v => value := v).getOrElse(empty)
         )
       ),
       div(`class` := "form-field")(
