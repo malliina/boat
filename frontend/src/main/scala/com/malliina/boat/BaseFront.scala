@@ -9,8 +9,8 @@ import scala.util.Try
 trait BaseFront extends FrontKeys:
   val document = org.scalajs.dom.document
   val href = new URI(window.location.href)
-  val queryString = Option(href.getQuery).getOrElse("")
-  val queryParams: Map[String, List[String]] = queryString
+  private val queryString = Option(href.getQuery).getOrElse("")
+  private val queryParams: Map[String, List[String]] = queryString
     .split("&")
     .toList
     .map { kv =>
@@ -41,8 +41,7 @@ trait BaseFront extends FrontKeys:
       yield Timed(f, t)
       timed.getOrElse(NoTrack)
 
-  def toDouble(s: String) = Try(s.toDouble).toOption
-  def queryDouble(key: String) = query(key).flatMap(s => Try(s.toDouble).toOption)
+  private def toDouble(s: String) = Try(s.toDouble).toOption
   def queryInt(key: String) = query(key).flatMap(s => Try(s.toInt).toOption)
   def query(key: String) = queryParams.get(key).flatMap(_.headOption)
   def anchor(id: String) = elemAs[HTMLAnchorElement](id)

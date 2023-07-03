@@ -116,7 +116,6 @@ class MapView(
   private def initNavDropdown(): Unit =
     initDropdown(DropdownLinkId, DropdownContentId)
     initDropdown(BoatDropdownId, BoatDropdownContentId)
-    initDeviceDropdown()
 
   private def initDropdown(linkId: String, contentId: String): Unit =
     htmlElem(linkId).foreach { link =>
@@ -130,15 +129,6 @@ class MapView(
         }
       }
     }
-
-  private def initDeviceDropdown() = document.getElementsByClassName(DeviceLinkClass).map { boat =>
-    boat.addOnClick { e =>
-      val boatName = BoatName(e.target.asInstanceOf[HTMLElement].getAttribute("data-name"))
-      socket.foreach { s =>
-        s.fly(boatName)
-      }
-    }
-  }
 
   private def toggleClass(e: HTMLElement, className: String): Unit =
     val classList = e.classList

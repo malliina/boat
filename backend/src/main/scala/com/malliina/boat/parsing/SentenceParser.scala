@@ -25,7 +25,7 @@ object SentenceParser extends NMEA0183Parser:
     def mapFailures[T](e: Either[SingleError, T]) =
       e.left.map(err => InvalidSentence(raw, err.message))
 
-    raw.sentence match
+    RawSentence.write(raw) match
       case dpt(talker, depth, offset) =>
         mapFailures {
           for

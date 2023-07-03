@@ -27,7 +27,8 @@ package object boat:
 
   implicit class EventTargetOps(val et: EventTarget):
     def addOnClick(code: Event => Unit): Unit = addClickListener[Event](code)
-    def addClickListener[E <: Event](code: E => Unit): Unit = et.addEventListener("click", code)
+    private def addClickListener[E <: Event](code: E => Unit): Unit =
+      et.addEventListener("click", code)
     def isOutside(elem: HTMLElement): Boolean = !isInside(elem)
     def isInside(elem: HTMLElement): Boolean = et match
       case element: HTMLElement => DOM.isInside(element, elem)

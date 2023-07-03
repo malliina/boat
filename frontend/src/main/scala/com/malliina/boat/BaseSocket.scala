@@ -6,32 +6,23 @@ import org.scalajs.dom
 import org.scalajs.dom.CloseEvent
 import org.scalajs.dom.{Event, MessageEvent}
 import io.circe.*
-import io.circe.syntax.EncoderOps
 import io.circe.parser.parse
 
+import scala.annotation.unused
+
 object BaseSocket:
-  val EventKey = "event"
   val Ping = "ping"
 
 class BaseSocket(wsPath: String, val log: BaseLogger = BaseLogger.console):
   val socket: dom.WebSocket = openSocket(wsPath)
-  val EventKey = BaseSocket.EventKey
-  val BodyKey = "body"
 
   def handlePayload(payload: Json): Unit = ()
-
-  def handleValidated[T: Decoder](json: Json)(process: T => Unit): Unit =
-    json.as[T].fold(err => onJsonFailure(DecodingFailure(err.message, Nil), json), process)
 
   private def showConnected(): Unit =
     setFeedback("Connected to socket.")
 
   private def showDisconnected(): Unit =
     setFeedback("Connection closed.")
-
-  def send[T: Encoder](payload: T): Unit =
-    val asString = payload.asJson.noSpaces
-    socket.send(asString)
 
   def onMessage(msg: MessageEvent): Unit =
     val asString = msg.data.toString
@@ -43,11 +34,11 @@ class BaseSocket(wsPath: String, val log: BaseLogger = BaseLogger.console):
         if !isPing then handlePayload(json)
     )
 
-  private def onConnected(e: Event): Unit = showConnected()
+  private def onConnected(@unused e: Event): Unit = showConnected()
 
-  private def onClosed(e: CloseEvent): Unit = showDisconnected()
+  private def onClosed(@unused e: CloseEvent): Unit = showDisconnected()
 
-  private def onError(e: Event): Unit = showDisconnected()
+  private def onError(@unused e: Event): Unit = showDisconnected()
 
   private def openSocket(pathAndQuery: String) =
     val url = wsBaseUrl.append(pathAndQuery)

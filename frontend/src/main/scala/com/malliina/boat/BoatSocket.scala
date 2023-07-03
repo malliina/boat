@@ -1,7 +1,8 @@
 package com.malliina.boat
 
-import io.circe.*
 import cats.syntax.show.toShow
+import io.circe.*
+
 import scala.scalajs.js.URIUtils
 
 object BoatSocket:

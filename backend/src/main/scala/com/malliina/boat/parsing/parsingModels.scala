@@ -1,32 +1,10 @@
 package com.malliina.boat.parsing
 
-import java.time.{Instant, LocalDate, LocalTime, ZoneOffset}
-import com.malliina.boat.{Coord, DeviceId, Energy, GPSKeyedSentence, GPSPointId, GPSSentenceKey, GPSTimedCoord, InsertedPoint, KeyedSentence, LocationUpdate, RawSentence, SentenceKey, TimeFormatter, TimedCoord, TrackId, TrackMetaShort, TrackPointId}
+import com.malliina.boat.{Coord, Energy, InsertedPoint, KeyedSentence, LocationUpdate, RawSentence, SentenceKey, TimeFormatter, TimedCoord, TrackId, TrackMetaShort, TrackPointId}
 import com.malliina.measure.{DistanceM, SpeedM, Temperature}
 import com.malliina.values.{Degrees, ErrorMessage}
 
-trait ParsedGPSSentence:
-  def sentence: GPSKeyedSentence
-  def boat = sentence.from
-  def key = sentence.key
-
-case class ParsedGPSCoord(coord: Coord, ggaTime: LocalTime, sentence: GPSKeyedSentence)
-  extends ParsedGPSSentence:
-  def complete(
-    date: LocalDate,
-    time: LocalTime,
-    satellites: Int,
-    fix: GPSFix,
-    parts: Seq[GPSSentenceKey]
-  ) =
-    GPSCoord(coord, date, time, satellites, fix, boat, parts)
-
-case class ParsedGPSDateTime(date: LocalDate, time: LocalTime, sentence: GPSKeyedSentence)
-  extends ParsedGPSSentence
-
-case class SatellitesInView(satellites: Int, sentence: GPSKeyedSentence) extends ParsedGPSSentence
-
-case class GPSInfo(mode: GPSMode, fix: GPSFix, sentence: GPSKeyedSentence) extends ParsedGPSSentence
+import java.time.{Instant, LocalDate, LocalTime, ZoneOffset}
 
 sealed trait ParsedSentence:
   def sentence: KeyedSentence
@@ -61,27 +39,6 @@ case class WaterTemperature(temp: Temperature, sentence: KeyedSentence) extends 
 
 case class WaterDepth(depth: DistanceM, offset: DistanceM, sentence: KeyedSentence)
   extends ParsedSentence
-
-case class GPSCoord(
-  coord: Coord,
-  date: LocalDate,
-  time: LocalTime,
-  satellites: Int,
-  fix: GPSFix,
-  device: DeviceId,
-  parts: Seq[GPSSentenceKey] = Nil
-):
-  val dateTime = date.atTime(time)
-  val gpsTime = dateTime.toInstant(ZoneOffset.UTC)
-
-  def lng = coord.lng
-  def lat = coord.lat
-
-  def timed(id: GPSPointId, formatter: TimeFormatter) = GPSTimedCoord(
-    id,
-    coord,
-    formatter.timing(gpsTime)
-  )
 
 case class BoatStats(
   waterTemp: Temperature,

@@ -40,13 +40,13 @@ class InviteHandler(
   delete: Element,
   @unused log: BaseLogger = BaseLogger.console
 ) extends BaseFront:
-  open.addOnClick { e =>
+  open.addOnClick { _ =>
     form.show()
     open.hide()
     delete.hide()
   }
 
-  cancel.addOnClick { e =>
+  cancel.addOnClick { _ =>
     form.hide()
     open.show()
     delete.show()

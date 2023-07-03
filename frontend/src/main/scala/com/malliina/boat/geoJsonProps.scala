@@ -43,7 +43,3 @@ case class DeviceProps(
   dateTime: FormattedDateTime
 ) derives Codec.AsObject:
   def coord = Coord(lng, lat)
-
-object DeviceProps:
-  def apply(c: GPSTimedCoord, ref: DeviceRef): DeviceProps =
-    DeviceProps(ref.deviceName, c.coord.lng, c.coord.lat, c.time.dateTime)

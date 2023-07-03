@@ -13,9 +13,6 @@ object BoatParser:
   def parseMulti(sentences: Seq[KeyedSentence]): Seq[ParsedSentence] =
     sentences.map(parse).flatMap(e => e.asOption(handleError))
 
-  def parseMultiGps(sentences: Seq[GPSKeyedSentence]): Seq[ParsedGPSSentence] =
-    sentences.map(parseGps).flatMap(e => e.asOption(handleError))
-
   def readSentences(event: BoatEvent): Either[DecodingFailure, SentencesEvent] =
     event.message.as[SentencesEvent]
 
@@ -50,24 +47,7 @@ object BoatParser:
         Left(IgnoredSentence(raw))
     }
 
-  def parseGps(sentence: GPSKeyedSentence): Either[SentenceError, ParsedGPSSentence] =
-    val raw = sentence.sentence
-    SentenceParser.parse(raw).flatMap {
-      case GGAMessage(_, time, lat, lng, _, _, _, _, _, _) =>
-        Right(ParsedGPSCoord(Coord(lng.toDecimalDegrees, lat.toDecimalDegrees), time, sentence))
-      case zda @ ZDAMessage(_, _, _, _, _, _, _) =>
-        Right(ParsedGPSDateTime(zda.date, zda.timeUtc, sentence))
-      case GSVMessage(_, satellites, _, _) =>
-        Right(SatellitesInView(satellites, sentence))
-      case GSAMessage(_, mode, fix) =>
-        Right(GPSInfo(mode, fix, sentence))
-      case RMCMessage(_, timeUtc, date, _, _) =>
-        Right(ParsedGPSDateTime(date, timeUtc, sentence))
-      case _ =>
-        Left(IgnoredSentence(raw))
-    }
-
-  def handleError(err: SentenceError): Unit =
+  private def handleError(err: SentenceError): Unit =
     err match
       case IgnoredSentence(_) =>
         log.debug(err.messageString)

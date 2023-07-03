@@ -34,8 +34,6 @@ object NewUser:
   def email(email: Email): NewUser =
     NewUser(Username(email.email), Option(email), UserToken.random(), enabled = true)
 
-class NotFoundException(val message: String) extends Exception
-
 opaque type RefreshTokenId = String
 object RefreshTokenId extends JsonCompanion[String, RefreshTokenId]:
   override def apply(raw: String): RefreshTokenId = raw

@@ -5,9 +5,9 @@ import scala.sys.process.Process
 
 val webAuthVersion = "6.5.2"
 val munitVersion = "0.7.29"
-val testContainersScalaVersion = "0.40.16"
+val testContainersScalaVersion = "0.40.17"
 val scalaTagsVersion = "0.12.0"
-val primitiveVersion = "3.4.3"
+val primitiveVersion = "3.4.4"
 val logstreamsVersion = "2.6.1"
 val http4sVersion = "0.23.22"
 val logbackVersion = "1.4.8"

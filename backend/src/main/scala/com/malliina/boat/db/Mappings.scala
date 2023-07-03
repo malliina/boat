@@ -4,7 +4,7 @@ import com.malliina.boat.db.Values.VesselUpdateId
 
 import java.time.{Instant, LocalDate, OffsetDateTime, ZoneOffset}
 import com.malliina.boat.parsing.GPSFix
-import com.malliina.boat.{AisUpdateId, BoatName, BoatToken, CarUpdateId, Coord, CoordHash, DateVal, DeviceId, Energy, FairwayLighting, GPSPointId, GPSSentenceKey, InviteState, Language, Latitude, Longitude, MobileDevice, MonthVal, PushId, PushToken, RawSentence, SeaArea, SentenceKey, SourceType, TrackCanonical, TrackId, TrackName, TrackPointId, TrackTitle, UserToken, VesselRowId, YearVal, long}
+import com.malliina.boat.{AisUpdateId, BoatName, BoatToken, CarUpdateId, Coord, CoordHash, DateVal, DeviceId, Energy, FairwayLighting, GPSSentenceKey, InviteState, Language, Latitude, Longitude, MobileDevice, MonthVal, PushId, PushToken, RawSentence, SeaArea, SentenceKey, SourceType, TrackCanonical, TrackId, TrackName, TrackPointId, TrackTitle, UserToken, VesselRowId, YearVal, long}
 import com.malliina.measure.{DistanceM, SpeedDoubleM, SpeedM, Temperature}
 import com.malliina.values.*
 import com.vividsolutions.jts.geom.Point
@@ -21,10 +21,9 @@ trait Mappings:
   implicit val localDateMeta: Meta[LocalDate] =
     doobie.implicits.legacy.localdate.JavaTimeLocalDateMeta
 
-  implicit val tpi: Meta[TrackPointId] = wrappedId(TrackPointId.apply)
+  implicit val tpi: Meta[TrackPointId] = simple(TrackPointId)
   implicit val rti: Meta[RefreshTokenId] = simple(RefreshTokenId)
   implicit val di: Meta[DeviceId] = simple(DeviceId)
-  implicit val gpi: Meta[GPSPointId] = wrappedId(GPSPointId.apply)
   implicit val gpf: Meta[GPSFix] = Meta[String].timap(GPSFix.orOther)(_.value)
   implicit val pi: Meta[PushId] = simple(PushId)
   implicit val pt: Meta[PushToken] = simple(PushToken)
@@ -32,7 +31,7 @@ trait Mappings:
   implicit val sa: Meta[SeaArea] = Meta[Int].timap(SeaArea.fromIntOrOther)(_.value)
   implicit val fl: Meta[FairwayLighting] =
     Meta[Int].timap(FairwayLighting.fromInt)(FairwayLighting.toInt)
-  implicit val rs: Meta[RawSentence] = wrapped(RawSentence.apply)
+  implicit val rs: Meta[RawSentence] = simple(RawSentence)
   implicit val ti: Meta[TrackId] = simple(TrackId)
   implicit val vr: Meta[VesselRowId] = wrappedId(VesselRowId.apply)
   implicit val aui: Meta[AisUpdateId] = wrappedId(AisUpdateId.apply)

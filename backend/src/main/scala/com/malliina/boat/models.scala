@@ -2,7 +2,6 @@ package com.malliina.boat
 
 import java.time.{Instant, LocalDate, LocalTime, OffsetDateTime, ZoneOffset}
 import com.malliina.boat.BoatPrimitives.durationFormat
-import com.malliina.boat.parsing.{GPSCoord, GPSFix}
 import com.malliina.measure.{DistanceM, SpeedM, Temperature}
 import com.malliina.values.*
 import doobie.Meta
@@ -350,53 +349,6 @@ case class SentenceRow(id: SentenceKey, sentence: RawSentence, track: TrackId, a
   derives Codec.AsObject:
   def timed(formatter: TimeFormatter) =
     TimedSentence(id, sentence, track, added, formatter.timing(added))
-
-case class GPSSentenceRow(
-  id: GPSSentenceKey,
-  sentence: RawSentence,
-  device: DeviceId,
-  added: Instant
-) derives Codec.AsObject
-
-case class GPSPointInput(
-  lon: Longitude,
-  lat: Latitude,
-  coord: Coord,
-  satellites: Int,
-  fix: GPSFix,
-  gpsTime: Instant,
-  diff: DistanceM,
-  device: DeviceId,
-  pointIndex: Int
-)
-
-object GPSPointInput:
-  def forCoord(c: GPSCoord, idx: Int, diff: DistanceM) =
-    GPSPointInput(
-      c.lng,
-      c.lat,
-      c.coord,
-      c.satellites,
-      c.fix,
-      c.gpsTime,
-      diff,
-      c.device,
-      idx
-    )
-
-case class GPSPointRow(
-  id: GPSPointId,
-  longitude: Longitude,
-  latitude: Latitude,
-  coord: Coord,
-  satellites: Int,
-  fix: GPSFix,
-  pointIndex: Int,
-  gpsTime: Instant,
-  diff: DistanceM,
-  device: DeviceId,
-  added: Instant
-)
 
 case class TimedSentence(
   id: SentenceKey,

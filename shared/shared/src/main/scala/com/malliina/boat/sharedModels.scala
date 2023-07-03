@@ -1,6 +1,5 @@
 package com.malliina.boat
 
-import cats.Show
 import cats.syntax.functor.*
 import com.malliina.boat.BoatJson.keyValued
 import com.malliina.json.PrimitiveFormats
@@ -191,37 +190,10 @@ object TimedCoord:
       modern(tc).deepMerge(Json.obj(DepthKey -> tc.depthMeters.toMillis.toLong.asJson))
   )
 
-case class GPSTimedCoord(id: GPSPointId, coord: Coord, time: Timing) derives Codec.AsObject
-
-abstract class ShowableCompanion[T] extends JsonCompanion[String, T]:
-  given Show[T] = Show.fromToString
-
-abstract class ShowableLong[T] extends JsonCompanion[Long, T]:
-  given Show[T] = Show.fromToString
-
 case class AccessToken(token: String) extends AnyVal with WrappedString:
   override def value = token
 
 object AccessToken extends StringCompanion[AccessToken]
-
-opaque type BoatName = String
-object BoatName extends ShowableCompanion[BoatName]:
-  val Key = "boatName"
-  override def apply(raw: String): BoatName = raw
-  override def write(t: BoatName): String = t
-
-opaque type TrackName = String
-object TrackName extends ShowableCompanion[TrackName]:
-  val Key = "track"
-  override def apply(raw: String): TrackName = raw
-  override def write(t: TrackName): String = t
-
-opaque type TrackTitle = String
-object TrackTitle extends ShowableCompanion[TrackTitle]:
-  val Key = "title"
-  val MaxLength = 191
-  override def apply(raw: String): TrackTitle = raw
-  override def write(t: TrackTitle): String = t
 
 case class ChangeTrackTitle(title: TrackTitle) derives Codec.AsObject
 
@@ -229,18 +201,6 @@ object TrackComments:
   val Key = "comments"
 
 case class ChangeComments(comments: String) derives Codec.AsObject
-
-opaque type TrackCanonical = String
-object TrackCanonical extends ShowableCompanion[TrackCanonical]:
-  val Key = "canonical"
-  override def apply(raw: String): TrackCanonical = raw
-  override def write(t: TrackCanonical): String = t
-  def fromName(name: TrackName): TrackCanonical = TrackCanonical(TrackName.write(name))
-
-opaque type BoatToken = String
-object BoatToken extends ShowableCompanion[BoatToken]:
-  override def apply(raw: String): BoatToken = raw
-  override def write(t: BoatToken): String = t
 
 /** An NMEA Sentence.
   *
@@ -259,12 +219,12 @@ object BoatToken extends ShowableCompanion[BoatToken]:
   * @see
   *   http://www.catb.org/gpsd/NMEA.html
   */
-case class RawSentence(sentence: String) extends AnyVal with WrappedString:
-  override def value = sentence
-
-object RawSentence extends StringCompanion[RawSentence]:
+opaque type RawSentence = String
+object RawSentence extends ShowableCompanion[RawSentence]:
   val MaxLength = 82
   val initialZda = RawSentence("$GPZDA,,00,00,0000,-03,00*66")
+  override def apply(raw: String): RawSentence = raw
+  override def write(t: RawSentence): String = t
 
 object Usernames:
   val anon = Username("anon")
@@ -303,27 +263,6 @@ trait IdentifiedDeviceMeta extends DeviceMeta:
 
 case class SimpleSourceMeta(user: Username, boat: BoatName, sourceType: SourceType)
   extends DeviceMeta
-
-opaque type DeviceId = Long
-object DeviceId extends ShowableLong[DeviceId]:
-  val Key = "boat"
-  override def apply(raw: Long): DeviceId = raw
-  override def write(t: DeviceId): Long = t
-
-opaque type TrackId = Long
-object TrackId extends ShowableLong[TrackId]:
-  override def apply(raw: Long): TrackId = raw
-  override def write(t: TrackId): Long = t
-
-opaque type PushId = Long
-object PushId extends ShowableLong[PushId]:
-  override def apply(raw: Long): PushId = raw
-  override def write(t: PushId): Long = t
-
-opaque type PushToken = String
-object PushToken extends ShowableCompanion[PushToken]:
-  override def apply(raw: String): PushToken = raw
-  override def write(t: PushToken): String = t
 
 sealed abstract class MobileDevice(val name: String):
   override def toString: String = name
@@ -452,14 +391,6 @@ case class TrackResponse(track: TrackRef) derives Codec.AsObject
 
 case class InsertedTrackPoint(point: TrackPointId, track: TrackRef)
 
-case class TrackPointId(id: Long) extends AnyVal with WrappedId
-
-object TrackPointId extends IdCompanion[TrackPointId]
-
-case class GPSPointId(id: Long) extends AnyVal with WrappedId
-
-object GPSPointId extends IdCompanion[GPSPointId]
-
 case class BoatUser(track: TrackName, boat: BoatName, sourceType: SourceType, user: Username)
   extends SourceTrackMeta
 
@@ -548,11 +479,6 @@ object VesselMessages:
 sealed trait FrontEvent:
   def isIntendedFor(user: MinimalUserInfo): Boolean
 
-//sealed trait CarFrontEvent extends FrontEvent:
-//  def car: CarInfo
-//  override def isIntendedFor(user: MinimalUserInfo): Boolean =
-//    user.username == car.username || user.authorized.contains(car.name)
-
 sealed trait BoatFrontEvent extends FrontEvent:
   def from: TrackMetaLike
   override def isIntendedFor(user: MinimalUserInfo): Boolean =
@@ -629,7 +555,7 @@ abstract class ValidatedDouble[T](implicit d: Decoder[Double], e: Encoder[Double
   extends ValidatingCompanion[Double, T]()(d, e, TotalOrdering)
 
 class ModelHtml[Builder, Output <: FragT, FragT](val bundle: Bundle[Builder, Output, FragT]):
-  import bundle.all.{stringFrag, Frag}
+  import bundle.all.{Frag, stringFrag}
 
   implicit def wrappedFrag[T <: WrappedString](t: T): Frag = stringFrag(t.value)
 

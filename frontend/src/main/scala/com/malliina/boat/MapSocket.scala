@@ -36,7 +36,6 @@ class MapSocket(
   private var mapMode: MapMode = mode
   private var boats = Map.empty[String, FeatureCollection]
   private var trails = Map.empty[TrackId, Seq[TimedCoord]]
-  private var devices = Map.empty[BoatName, DeviceProps]
 
   val imageInits = Future.sequence(
     Seq(
@@ -111,7 +110,7 @@ class MapSocket(
       // adds trophy icon
       map.putLayer(trophySymbolLayer(trophyLayerId, from.topPoint.coord))
       map.onHover(trophyLayerId)(
-        in => map.getCanvas().style.cursor = "pointer",
+        _ => map.getCanvas().style.cursor = "pointer",
         _ => map.getCanvas().style.cursor = ""
       )
 
@@ -235,16 +234,6 @@ class MapSocket(
 
   private val _ = MapboxPopup(PopupOptions(className = Option("popup-device")))
 
-  def fly(to: BoatName): Unit =
-    devices
-      .get(to)
-      .map { device =>
-        map.flyTo(FlyOptions(device.coord, 0.8))
-      }
-      .getOrElse {
-        log.info(s"Device not found on map: '$to'.")
-      }
-
   override def onAIS(messages: Seq[VesselInfo]): Unit =
     ais.onAIS(messages)
 
@@ -270,10 +259,8 @@ class MapSocket(
     val brng = toDeg(Math.atan2(y, x))
     360 - ((brng + 360) % 360)
 
-  def toRad(deg: Double) = deg * Math.PI / 180
   private def toDeg(rad: Double) = rad * 180 / Math.PI
 
-  def driveName(car: DeviceId) = s"car-$car"
   def trackName(boat: BoatName) = s"track-$boat"
   private def pointName(boat: BoatName) = s"boat-$boat"
   def deviceName(device: BoatName) = s"$DevicePrefix-$device"

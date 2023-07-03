@@ -1,7 +1,7 @@
 package com.malliina.boat.db
 
 import java.time.Instant
-import com.malliina.boat.{Boat, BoatName, BoatPrimitives, BoatRef, BoatToken, Coord, DateVal, DeviceId, FriendRef, GPSPointRow, InviteState, JoinedSource, JoinedTrack, Language, Mmsi, MonthVal, SourceType, TrackCanonical, TrackId, TrackName, TrackPointRow, TrackTitle, UserToken, VesselName, VesselRowId, YearVal}
+import com.malliina.boat.{Boat, BoatName, BoatPrimitives, BoatRef, BoatToken, Coord, DateVal, DeviceId, FriendRef, InviteState, JoinedTrack, Language, Mmsi, MonthVal, SourceType, TrackCanonical, TrackId, TrackName, TrackPointRow, TrackTitle, UserToken, VesselName, VesselRowId, YearVal}
 import com.malliina.measure.{DistanceM, SpeedM, Temperature}
 import com.malliina.values.{Email, UserId, Username}
 import io.circe.*
@@ -106,8 +106,6 @@ case class JoinedUser(
   friend: Option[FriendRow]
 )
 
-case class JoinedGPS(point: GPSPointRow, device: JoinedSource)
-
 case class VesselRow(
   id: VesselRowId,
   mmsi: Mmsi,
@@ -139,8 +137,7 @@ object VesselUpdate:
     VesselUpdate(row.coord, row.sog, row.cog, row.destination, row.heading, row.eta, row.added)
 
 case class VesselHistory(mmsi: Mmsi, name: VesselName, draft: DistanceM, updates: Seq[VesselUpdate])
-object VesselHistory:
-  implicit val json: Codec[VesselHistory] = deriveCodec[VesselHistory]
+  derives Codec.AsObject
 
 object Values:
   opaque type RowsChanged = Int
