@@ -53,7 +53,9 @@ class APNSPush[F[_]: Monad](sandbox: APNSHttpClientF[F], prod: APNSHttpClientF[F
       if isProd then
         PushSummary(
           if result.error.isEmpty then Seq(result.token) else Nil,
-          if result.error.contains(BadDeviceToken) then Seq(PushToken(result.token.token)) else Nil,
+          if result.error.exists(err => PushSummary.removableErrors.exists(_ == err)) then
+            Seq(PushToken(result.token.token))
+          else Nil,
           Nil
         )
       else PushSummary.empty

@@ -1,9 +1,10 @@
 package com.malliina.boat.push
 
+import cats.data.NonEmptyList
 import com.malliina.boat.db.PushDevice
 import com.malliina.boat.{MobileDevice, PushToken}
 import com.malliina.push.Token
-import com.malliina.push.apns.APNSToken
+import com.malliina.push.apns.{APNSError, APNSToken, BadDeviceToken, Unregistered}
 import com.malliina.push.gcm.MappedGCMResponse.TokenReplacement
 import com.malliina.util.FileUtils
 
@@ -46,6 +47,7 @@ case class PushSummary(
 
 object PushSummary:
   val empty = PushSummary(Nil, Nil, Nil)
+  val removableErrors: NonEmptyList[APNSError] = NonEmptyList.of(BadDeviceToken, Unregistered)
 
 trait PushClient[F[_], T <: Token]:
   def push(notification: SourceNotification, to: T): F[PushSummary]
