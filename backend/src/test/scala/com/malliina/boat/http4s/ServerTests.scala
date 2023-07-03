@@ -32,8 +32,7 @@ class ServerTests extends MUnitSuite with ServerSuite:
     }
   }
 
-  // Ignored because times out on CI frequently
-  test("apple app association".ignore) {
+  test("apple app association") {
     assertIO(status(".well-known/apple-app-site-association"), Ok.code)
     assertIO(status(".well-known/assetlinks.json"), Ok.code)
   }
