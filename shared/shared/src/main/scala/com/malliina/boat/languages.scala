@@ -1373,7 +1373,7 @@ object Lang:
       "Spår",
       "Båtar",
       "Spår",
-      "Båtdagar",
+      "Dagar",
       "Rutter",
       "Hastighet",
       "Vatten",
