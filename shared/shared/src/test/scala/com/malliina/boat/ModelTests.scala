@@ -8,7 +8,7 @@ import concurrent.duration.DurationInt
 
 class ModelTests extends munit.FunSuite:
   test("coord cheap hash") {
-    val c = Coord(Longitude(12.1), Latitude(13.412456789))
+    val c = Coord(Longitude.build(12.1).toOption.get, Latitude.build(13.412456789).toOption.get)
     assertEquals(c.approx, "12.10000,13.41245")
   }
 

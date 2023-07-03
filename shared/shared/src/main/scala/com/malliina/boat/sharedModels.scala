@@ -73,30 +73,28 @@ case class Times(start: Timing, end: Timing, range: String) derives Codec.AsObje
   * @param lat
   *   latitude aka y
   */
-case class Latitude(lat: Double) extends AnyVal:
-  override def toString = s"$lat"
-
+opaque type Latitude = Double
 object Latitude extends ValidatedDouble[Latitude]:
   override def build(input: Double): Either[ErrorMessage, Latitude] =
-    if input >= -90 && input <= 90 then Right(apply(input))
+    if input >= -90 && input <= 90 then Right(input)
     else Left(ErrorMessage(s"Invalid latitude: '$input'. Must be between -90 and 90."))
-
-  override def write(t: Latitude): Double = t.lat
+  override def write(t: Latitude): Double = t
+  def unsafe(d: Double): Latitude = d
+  extension (lat: Latitude) def lat: Double = lat
 
 /** Longitude in decimal degrees.
   *
   * @param lng
   *   longitude aka x
   */
-case class Longitude(lng: Double) extends AnyVal:
-  override def toString = s"$lng"
-
+opaque type Longitude = Double
 object Longitude extends ValidatedDouble[Longitude]:
   override def build(input: Double): Either[ErrorMessage, Longitude] =
-    if input >= -180 && input <= 180 then Right(apply(input))
+    if input >= -180 && input <= 180 then Right(input)
     else Left(ErrorMessage(s"Invalid longitude: '$input'. Must be between -180 and 180."))
-
-  override def write(t: Longitude): Double = t.lng
+  override def write(t: Longitude): Double = t
+  def unsafe(d: Double): Longitude = d
+  extension (lng: Longitude) def lng: Double = lng
 
 case class CoordHash(hash: String) extends AnyVal:
   override def toString: String = hash
@@ -181,7 +179,7 @@ case class TimedCoord(
 
 object TimedCoord:
   val SpeedKey = "speed"
-  val DepthKey = "depth"
+  private val DepthKey = "depth"
   val modern: Codec[TimedCoord] = deriveCodec[TimedCoord]
   // For backwards compat
   implicit val json: Codec[TimedCoord] = Codec.from(
@@ -220,7 +218,7 @@ case class ChangeComments(comments: String) derives Codec.AsObject
   *   http://www.catb.org/gpsd/NMEA.html
   */
 opaque type RawSentence = String
-object RawSentence extends ShowableCompanion[RawSentence]:
+object RawSentence extends ShowableString[RawSentence]:
   val MaxLength = 82
   val initialZda = RawSentence("$GPZDA,,00,00,0000,-03,00*66")
   override def apply(raw: String): RawSentence = raw
@@ -451,9 +449,6 @@ case class CoordsBatch(events: Seq[CoordsEvent]) extends FrontEvent:
 object CoordsBatch:
   implicit val json: Codec[CoordsBatch] = deriveCodec[CoordsBatch]
 
-case class GPSSentencesEvent(sentences: Seq[RawSentence], from: IdentifiedDeviceMeta):
-  def length: Int = sentences.length
-
 case class SentencesEvent(sentences: Seq[RawSentence], from: TrackMetaShort) extends BoatFrontEvent
 
 object SentencesEvent:
@@ -511,11 +506,6 @@ object BoatJson:
   val EventKey = "event"
   private val BodyKey = "body"
 
-  def empty[T](build: => T): Codec[T] = Codec.from(
-    Decoder.const(42).map(_ => build),
-    Encoder.encodeJson.contramap(t => Json.fromJsonObject(JsonObject.empty))
-  )
-
   private val eventDecoder = Decoder.decodeString.at(EventKey)
 
   /** A JSON format for objects of type T that contains a top-level "event" key and further data in
@@ -552,7 +542,8 @@ object MapConf:
   )
 
 abstract class ValidatedDouble[T](implicit d: Decoder[Double], e: Encoder[Double])
-  extends ValidatingCompanion[Double, T]()(d, e, TotalOrdering)
+  extends ValidatingCompanion[Double, T]()(d, e, TotalOrdering):
+  extension (t: T) def value: Double = write(t)
 
 class ModelHtml[Builder, Output <: FragT, FragT](val bundle: Bundle[Builder, Output, FragT]):
   import bundle.all.{Frag, stringFrag}

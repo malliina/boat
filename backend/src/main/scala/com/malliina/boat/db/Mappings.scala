@@ -4,7 +4,7 @@ import com.malliina.boat.db.Values.VesselUpdateId
 
 import java.time.{Instant, LocalDate, OffsetDateTime, ZoneOffset}
 import com.malliina.boat.parsing.GPSFix
-import com.malliina.boat.{AisUpdateId, BoatName, BoatToken, CarUpdateId, Coord, CoordHash, DateVal, DeviceId, Energy, FairwayLighting, GPSSentenceKey, InviteState, Language, Latitude, Longitude, MobileDevice, MonthVal, PushId, PushToken, RawSentence, SeaArea, SentenceKey, SourceType, TrackCanonical, TrackId, TrackName, TrackPointId, TrackTitle, UserToken, VesselRowId, YearVal, long}
+import com.malliina.boat.{AisUpdateId, BoatName, BoatToken, CarUpdateId, Coord, CoordHash, DateVal, DeviceId, Energy, FairwayLighting, InviteState, Language, Latitude, Longitude, MobileDevice, MonthVal, PushId, PushToken, RawSentence, SeaArea, SentenceKey, SourceType, TrackCanonical, TrackId, TrackName, TrackPointId, TrackTitle, UserToken, VesselRowId, YearVal}
 import com.malliina.measure.{DistanceM, SpeedDoubleM, SpeedM, Temperature}
 import com.malliina.values.*
 import com.vividsolutions.jts.geom.Point
@@ -33,19 +33,19 @@ trait Mappings:
     Meta[Int].timap(FairwayLighting.fromInt)(FairwayLighting.toInt)
   implicit val rs: Meta[RawSentence] = simple(RawSentence)
   implicit val ti: Meta[TrackId] = simple(TrackId)
-  implicit val vr: Meta[VesselRowId] = wrappedId(VesselRowId.apply)
-  implicit val aui: Meta[AisUpdateId] = wrappedId(AisUpdateId.apply)
+  implicit val vr: Meta[VesselRowId] = simple(VesselRowId)
+  implicit val aui: Meta[AisUpdateId] = simple(AisUpdateId)
   implicit val ui: Meta[VesselUpdateId] = Meta[Long].timap(VesselUpdateId.apply)(_.raw)
-  implicit val fi: Meta[FairwayId] = wrappedId(FairwayId.apply)
-  implicit val fci: Meta[FairwayCoordId] = wrappedId(FairwayCoordId.apply)
+  implicit val fi: Meta[FairwayId] = simple(FairwayId)
+  implicit val fci: Meta[FairwayCoordId] = simple(FairwayCoordId)
   implicit val tn: Meta[TrackName] = simple(TrackName)
   implicit val tt: Meta[TrackTitle] = simple(TrackTitle)
   implicit val tc: Meta[TrackCanonical] = simple(TrackCanonical)
   implicit val bn: Meta[BoatName] = simple(BoatName)
   implicit val bt: Meta[BoatToken] = simple(BoatToken)
-  implicit val ut: Meta[UserToken] = wrapped(UserToken.apply)
-  implicit val lon: Meta[Longitude] = Meta[Double].timap(Longitude.apply)(_.lng)
-  implicit val lat: Meta[Latitude] = Meta[Double].timap(Latitude.apply)(_.lat)
+  implicit val ut: Meta[UserToken] = simple(UserToken)
+  implicit val lon: Meta[Longitude] = Meta[Double].timap(Longitude.unsafe)(_.lng)
+  implicit val lat: Meta[Latitude] = Meta[Double].timap(Latitude.unsafe)(_.lat)
   implicit val speed: Meta[SpeedM] = Meta[Double].timap(_.kmh)(_.toKmh)
   implicit val uid: Meta[UserId] = wrappedId(UserId.apply)
   implicit val us: Meta[Username] = wrapped(Username.apply)
@@ -65,11 +65,10 @@ trait Mappings:
   implicit val isMapping: Meta[InviteState] =
     Meta[String].timap(s => InviteState.orOther(s))(_.name)
   implicit val st: Meta[SourceType] = Meta[String].timap(s => SourceType.orOther(s))(_.name)
-  implicit val sk: Meta[SentenceKey] = wrappedId(SentenceKey.apply)
-  implicit val gsk: Meta[GPSSentenceKey] = wrappedId(GPSSentenceKey.apply)
+  implicit val sk: Meta[SentenceKey] = simple(SentenceKey)
   implicit val dg: Meta[Degrees] = Meta[Float].timap(Degrees.unsafe)(_.float)
-  implicit val cuid: Meta[CarUpdateId] = Meta[Long].timap(CarUpdateId.apply)(_.long)
-  implicit val energyMeta: Meta[Energy] = Meta[Double].timap(Energy.apply)(Energy.write)
+  implicit val cuid: Meta[CarUpdateId] = simple(CarUpdateId)
+  implicit val energyMeta: Meta[Energy] = simple(Energy)
 
   private def simple[T, R: Meta, C <: JsonCompanion[R, T]](c: C): Meta[T] =
     Meta[R].timap(c.apply)(c.write)
@@ -82,4 +81,4 @@ trait Mappings:
 
   private def toCoord(point: Point): Coord =
     val c = point.getCoordinate
-    Coord(Longitude(c.x), Latitude(c.y))
+    Coord(Longitude.unsafe(c.x), Latitude.unsafe(c.y))

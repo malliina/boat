@@ -17,8 +17,8 @@ import java.time.{OffsetDateTime, ZoneOffset}
 class CarServerTests extends MUnitSuite with ServerSuite:
   val testCarId = DeviceId(1)
   val loc = LocationUpdate(
-    Longitude(24),
-    Latitude(60),
+    Longitude.unsafe(24),
+    Latitude.unsafe(60),
     Option(1.meters),
     Option(5.meters),
     Option(128f.degrees),
@@ -32,8 +32,8 @@ class CarServerTests extends MUnitSuite with ServerSuite:
     OffsetDateTime.of(2023, 4, 2, 10, 4, 3, 0, ZoneOffset.UTC)
   )
   val loc2 = loc.copy(
-    longitude = Longitude(24.2),
-    latitude = Latitude(60.3),
+    longitude = Longitude.unsafe(24.2),
+    latitude = Latitude.unsafe(60.3),
     speed = Option(80.kmh),
     date = loc.date.plusSeconds(10)
   )
@@ -51,7 +51,9 @@ class CarServerTests extends MUnitSuite with ServerSuite:
     postCarLocation(LocationUpdates(Nil, testCarId), token = TestEmailAuth.expiredToken).map {
       res =>
         assertEquals(res.status, Unauthorized.code)
-        assert(res.parse[Errors].toOption.exists(_.errors.exists(_.key == SingleError.TokenExpiredKey)))
+        assert(
+          res.parse[Errors].toOption.exists(_.errors.exists(_.key == SingleError.TokenExpiredKey))
+        )
     }
   }
 

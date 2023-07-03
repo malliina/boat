@@ -12,7 +12,7 @@ import io.circe.syntax.EncoderOps
 import scala.concurrent.duration.FiniteDuration
 
 opaque type CarUpdateId = Long
-object CarUpdateId extends JsonCompanion[Long, CarUpdateId]:
+object CarUpdateId extends BoatLong[CarUpdateId]:
   override def apply(raw: Long): CarUpdateId = raw
   override def write(t: CarUpdateId): Long = t
 extension (id: CarUpdateId) def long: Long = id
@@ -102,12 +102,11 @@ object DateVal:
       DayVal(date.getDayOfMonth)
     )
 
-case class UserToken(token: String) extends AnyVal with WrappedString:
-  override def value = token
-
-object UserToken extends BoatStringCompanion[UserToken]:
+opaque type UserToken = String
+object UserToken extends BoatString[UserToken]:
   val minLength = 3
-
+  override def apply(raw: String): UserToken = raw
+  override def write(t: UserToken): String = t
   override def build(in: String): Either[ErrorMessage, UserToken] =
     if in.length >= minLength then Right(UserToken(in))
     else
@@ -265,10 +264,8 @@ sealed trait InputEvent
 case object EmptyEvent extends InputEvent
 case class BoatEvent(message: Json, from: TrackMeta) extends InputEvent
 case class DeviceEvent(message: Json, from: IdentifiedDeviceMeta) extends InputEvent
-case class CarEvent(body: LocationUpdates, meta: DeviceMeta) extends InputEvent
 
 case class BoatJsonError(error: DecodingFailure, boat: BoatEvent)
-case class DeviceJsonError(error: DecodingFailure, boat: DeviceEvent)
 
 object BoatNames:
   val Key = "boatName"
@@ -329,19 +326,20 @@ object TrackInput:
       TrackCanonical.fromName(name)
     )
 
-case class VesselRowId(id: Long) extends AnyVal with WrappedId
-object VesselRowId extends BoatIdCompanion[VesselRowId]
+opaque type VesselRowId = Long
+object VesselRowId extends BoatLong[VesselRowId]:
+  override def apply(raw: Long): VesselRowId = raw
+  override def write(t: VesselRowId): Long = t
 
-case class AisUpdateId(id: Long) extends AnyVal with WrappedId
-object AisUpdateId extends BoatIdCompanion[AisUpdateId]
+opaque type AisUpdateId = Long
+object AisUpdateId extends BoatLong[AisUpdateId]:
+  override def apply(raw: Long): AisUpdateId = raw
+  override def write(t: AisUpdateId): Long = t
 
-case class SentenceKey(id: Long) extends AnyVal with WrappedId
-object SentenceKey extends BoatIdCompanion[SentenceKey]
-
-case class GPSSentenceKey(id: Long) extends AnyVal with WrappedId
-object GPSSentenceKey extends BoatIdCompanion[GPSSentenceKey]
-
-case class GPSKeyedSentence(key: GPSSentenceKey, sentence: RawSentence, from: DeviceId)
+opaque type SentenceKey = Long
+object SentenceKey extends BoatLong[SentenceKey]:
+  override def apply(raw: Long): SentenceKey = raw
+  override def write(t: SentenceKey): Long = t
 
 case class KeyedSentence(key: SentenceKey, sentence: RawSentence, from: TrackMetaShort)
 
@@ -362,20 +360,6 @@ case class Sentences(sentences: Seq[RawSentence]) derives Codec.AsObject
 
 object Sentences:
   val Key = SentencesEvent.Key
-
-case class TrackPointInput(
-  lon: Longitude,
-  lat: Latitude,
-  coord: Coord,
-  boatSpeed: SpeedM,
-  waterTemp: Temperature,
-  depth: DistanceM,
-  depthOffset: DistanceM,
-  boatTime: Instant,
-  track: TrackId,
-  trackIndex: Int,
-  diff: DistanceM
-)
 
 case class SentenceCoord2(
   id: TrackPointId,
@@ -529,13 +513,12 @@ case class TrackPoint(coord: Coord, time: Instant, waterTemp: Temperature, wind:
 case class Track(id: TrackId, name: TrackName, points: Seq[TrackPoint]) derives Codec.AsObject
 
 case class RouteId(id: Long) extends WrappedId
-
 object RouteId extends IdCompanion[RouteId]
 
 case class Route(id: RouteId, name: String, points: Seq[Coord]) derives Codec.AsObject
 
-abstract class BoatStringCompanion[T <: WrappedString] extends StringCompanion[T]:
-  val db: Meta[T] = Meta[String].timap[T](apply)(_.value)
+abstract class BoatString[T] extends ShowableString[T]:
+  val db: Meta[T] = Meta[String].timap[T](apply)(write)
 
-abstract class BoatIdCompanion[T <: WrappedId] extends IdCompanion[T]:
-  val db: Meta[T] = Meta[Long].timap[T](apply)(_.id)
+abstract class BoatLong[T] extends ShowableLong[T]:
+  val db: Meta[T] = Meta[Long].timap[T](apply)(write)

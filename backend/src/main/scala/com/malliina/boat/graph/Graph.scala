@@ -71,7 +71,7 @@ object Graph:
     else
       val x = (line2.c - line1.c) / (line1.d - line2.d)
       val y = (line2.d * line1.c - line1.d * line2.c) / (line2.d - line1.d)
-      val cross = Coord(Longitude(x), Latitude(y))
+      val cross = Coord(Longitude.unsafe(x), Latitude.unsafe(y))
       if line1.boxContains(cross) && line2.boxContains(cross) then Option(cross)
       else None
 

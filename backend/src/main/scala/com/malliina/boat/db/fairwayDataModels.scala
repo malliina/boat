@@ -1,14 +1,17 @@
 package com.malliina.boat.db
 
-import com.malliina.boat.{BoatIdCompanion, Coord, CoordHash, FairwayLighting, Latitude, Longitude, SeaArea}
+import com.malliina.boat.{Coord, CoordHash, FairwayLighting, Latitude, Longitude, SeaArea, ShowableLong}
 import com.malliina.measure.DistanceM
-import com.malliina.values.{IdCompanion, WrappedId}
 
-case class FairwayId(id: Long) extends AnyVal with WrappedId
-object FairwayId extends BoatIdCompanion[FairwayId]
+opaque type FairwayId = Long
+object FairwayId extends ShowableLong[FairwayId]:
+  override def apply(raw: Long): FairwayId = raw
+  override def write(t: FairwayId): Long = t
 
-case class FairwayCoordId(id: Long) extends AnyVal with WrappedId
-object FairwayCoordId extends IdCompanion[FairwayCoordId]
+opaque type FairwayCoordId = Long
+object FairwayCoordId extends ShowableLong[FairwayCoordId]:
+  override def apply(raw: Long): FairwayCoordId = raw
+  override def write(t: FairwayCoordId): Long = t
 
 case class FairwayRow(
   id: FairwayId,

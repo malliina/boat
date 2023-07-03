@@ -21,9 +21,12 @@ object MapCamera:
     for
       center <- Option(document.getElementById(FrontKeys.Center))
       lng <- Option(center.getAttribute(s"data-${FrontKeys.Lng}")).flatMap(_.toDoubleOption)
+      longitude <- Longitude.build(lng).toOption
       lat <- Option(center.getAttribute(s"data-${FrontKeys.Lat}")).flatMap(_.toDoubleOption)
-    yield Coord(Longitude(lng), Latitude(lat))
-  private val defaultCenter = Coord(lng = Longitude(24.9), lat = Latitude(60.14))
+      latitude <- Latitude.build(lat).toOption
+    yield Coord(longitude, latitude)
+  private val defaultCenter =
+    Coord(lng = Longitude.build(24.9).toOption.get, lat = Latitude.build(60.14).toOption.get)
 
   private def default: MapCamera = MapCamera(center.getOrElse(defaultCenter), 13, false)
   def apply(): MapCamera = MapSettings.load(center).getOrElse(default)

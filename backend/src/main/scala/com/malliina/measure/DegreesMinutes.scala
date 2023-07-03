@@ -63,7 +63,7 @@ object LatitudeDM:
     val multiplier = dm.direction match
       case North => 1.0
       case South => -1.0
-    Latitude(multiplier * (dm.degrees + dm.minutes / 60))
+    Latitude.unsafe(multiplier * (dm.degrees + dm.minutes / 60))
 
 case class LongitudeDM(degrees: Int, minutes: Double, direction: EastOrWest):
   def toDecimalDegrees: Longitude = LongitudeDM.toDegreesDecimal(this)
@@ -84,7 +84,7 @@ object LongitudeDM:
     val multiplier = dm.direction match
       case East => 1.0
       case West => -1.0
-    Longitude(multiplier * (dm.degrees + dm.minutes / 60))
+    Longitude.unsafe(multiplier * (dm.degrees + dm.minutes / 60))
 
 case class DegreesMinutes(degrees: Int, minutes: Double):
   def latitude(ns: NorthOrSouth) = LatitudeDM(degrees, minutes, ns)

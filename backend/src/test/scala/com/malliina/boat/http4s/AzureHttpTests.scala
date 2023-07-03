@@ -15,8 +15,8 @@ import java.time.{OffsetDateTime, ZoneOffset}
 
 class AzureHttpTests extends MUnitSuite:
   val loc = LocationUpdate(
-    Longitude(24),
-    Latitude(60),
+    Longitude.unsafe(24),
+    Latitude.unsafe(60),
     Option(1.meters),
     Option(5.meters),
     Option(128f.degrees),

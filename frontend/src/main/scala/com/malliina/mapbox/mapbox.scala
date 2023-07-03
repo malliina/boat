@@ -83,7 +83,7 @@ object MapboxMarker:
     def at(coord: Coord): MapboxMarker = self.setLngLat(LngLatLike(coord.lng, coord.lat))
     def coord: Coord =
       val lngLat = self.getLngLat()
-      Coord(Longitude(lngLat.lng), Latitude(lngLat.lat))
+      Coord(Longitude.unsafe(lngLat.lng), Latitude.unsafe(lngLat.lat))
 
 @js.native
 trait PopupOptions extends js.Object:
@@ -303,7 +303,8 @@ class LngLat(@unused lng: Double, @unused lat: Double) extends LngLatLike
 
 object LngLat:
   def apply(coord: Coord): LngLat = new LngLat(coord.lng.lng, coord.lat.lat)
-  def coord(lngLat: LngLat): Coord = Coord(lng = Longitude(lngLat.lng), lat = Latitude(lngLat.lat))
+  def coord(lngLat: LngLat): Coord =
+    Coord(lng = Longitude.unsafe(lngLat.lng), lat = Latitude.unsafe(lngLat.lat))
 
 @js.native
 trait LngLatLike extends js.Object:
