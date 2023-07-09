@@ -5,6 +5,7 @@ import com.malliina.boat.*
 import com.malliina.util.AppLogger
 import fs2.Stream
 import fs2.concurrent.SignallingRef
+import tests.TestHttp
 
 class StaticBoatTests extends BoatTests:
   val log = AppLogger(getClass)
@@ -21,7 +22,7 @@ class StaticBoatTests extends BoatTests:
   ).map(RawSentence.apply)
 
   test("GPS reporting") {
-    val client = server().http
+    val client = TestHttp.client
     val boatName = BoatNames.random()
     SignallingRef[IO, Boolean](false).flatMap { complete =>
       openTestBoat(boatName, client) { boat =>

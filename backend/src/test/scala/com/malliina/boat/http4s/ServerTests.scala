@@ -6,7 +6,7 @@ import com.malliina.values.IdToken
 import org.http4s.Status
 import org.http4s.Status.{Ok, Unauthorized}
 import org.http4s.headers.Authorization
-import tests.{MUnitSuite, ServerSuite, TestEmailAuth}
+import tests.{MUnitSuite, ServerSuite, TestEmailAuth, TestHttp}
 
 class ServerTests extends MUnitSuite with ServerSuite:
   def meUrl = baseUrl.append(Reverse.me.renderString)
@@ -47,4 +47,4 @@ class ServerTests extends MUnitSuite with ServerSuite:
     http.get(url).map(r => r.code)
 
   def baseUrl = server().baseHttpUrl
-  def http = server().http
+  def http = TestHttp.client

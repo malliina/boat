@@ -10,7 +10,7 @@ import io.circe.syntax.EncoderOps
 import org.http4s.Status
 import org.http4s.Status.{NotFound, Ok, Unauthorized}
 import org.http4s.headers.Authorization
-import tests.{MUnitSuite, ServerSuite, TestEmailAuth}
+import tests.{MUnitSuite, ServerSuite, TestEmailAuth, TestHttp}
 
 import java.time.{OffsetDateTime, ZoneOffset}
 
@@ -88,4 +88,4 @@ class CarServerTests extends MUnitSuite with ServerSuite:
     "Accept" -> "application/json"
   )
   def baseUrl = server().baseHttpUrl
-  def http = server().http
+  def http = TestHttp.client

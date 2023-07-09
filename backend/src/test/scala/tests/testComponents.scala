@@ -1,12 +1,13 @@
 package tests
 
-import cats.effect.Sync
+import cats.effect.{IO, Resource, Sync}
 import com.malliina.boat.BoatConf
 import com.malliina.boat.auth.{EmailAuth, JWT}
 import com.malliina.boat.db.{CustomJwt, IdentityException, JWTError, PushDevice}
 import com.malliina.boat.http4s.{AppComps, AppCompsBuilder, Auth}
 import com.malliina.boat.push.{PushEndpoint, PushSummary, SourceNotification}
 import com.malliina.http.HttpClient
+import com.malliina.http.io.HttpClientF2
 import com.malliina.values.{Email, IdToken}
 import com.malliina.web
 import com.malliina.web.{Expired, InvalidSignature, WebAuthException}
@@ -42,12 +43,14 @@ class TestEmailAuth[F[_]: Sync] extends EmailAuth[F]:
           else F.raiseError(IdentityException(JWTError(InvalidSignature(ok), headers)))
       )
 
-class TestComps[F[_]: Sync](conf: BoatConf) extends AppComps[F]:
+class TestComps(conf: BoatConf) extends AppComps[IO]:
   override val customJwt: CustomJwt = CustomJwt(JWT(conf.secret))
-  override val pushService: PushEndpoint[F] = NoopPushEndpoint[F]
-  override val emailAuth: EmailAuth[F] = TestEmailAuth[F]
+  override val pushService: PushEndpoint[IO] = NoopPushEndpoint[IO]
+  override val emailAuth: EmailAuth[IO] = TestEmailAuth[IO]
 
 object TestComps:
-  val builder: AppCompsBuilder = new AppCompsBuilder:
-    def build[F[_]: Sync](conf: BoatConf, http: HttpClient[F]): AppComps[F] =
+  val builder: AppCompsBuilder[IO] = new AppCompsBuilder[IO]:
+    override def http: Resource[IO, HttpClientF2[IO]] =
+      Resource.pure(TestHttp.client)
+    override def build(conf: BoatConf, http: HttpClient[IO]): AppComps[IO] =
       TestComps(conf)

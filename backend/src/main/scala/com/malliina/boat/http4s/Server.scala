@@ -14,7 +14,7 @@ import com.malliina.boat.http4s.JsonInstances.circeJsonEncoder
 import com.malliina.boat.push.{BoatPushService, PushEndpoint}
 import com.malliina.boat.{AppMeta, AppMode, BoatConf, Errors, Logging, S3Client, SingleError, message}
 import com.malliina.http.HttpClient
-import com.malliina.http.io.HttpClientIO
+import com.malliina.http.io.{HttpClientF2, HttpClientIO}
 import com.malliina.util.AppLogger
 import com.malliina.web.*
 import fs2.compression.Compression
@@ -33,12 +33,14 @@ import scala.util.control.NonFatal
 
 case class ServerComponents[F[_]](app: Service[F], server: Server)
 
-trait AppCompsBuilder:
-  def build[F[_]: Sync](conf: BoatConf, http: HttpClient[F]): AppComps[F]
+trait AppCompsBuilder[F[_]: Sync]:
+  def http: Resource[F, HttpClientF2[F]]
+  def build(conf: BoatConf, http: HttpClient[F]): AppComps[F]
 
 object AppCompsBuilder:
-  def prod: AppCompsBuilder = new AppCompsBuilder:
-    override def build[F[_]: Sync](conf: BoatConf, http: HttpClient[F]): AppComps[F] =
+  def prod[F[_]: Async]: AppCompsBuilder[F] = new AppCompsBuilder[F]:
+    override def http: Resource[F, HttpClientF2[F]] = HttpClientIO.resource
+    override def build(conf: BoatConf, http: HttpClient[F]): AppComps[F] =
       ProdAppComps(conf, http)
 
 // Put modules that have different implementations in dev, prod or tests here.
@@ -47,15 +49,15 @@ trait AppComps[F[_]]:
   def pushService: PushEndpoint[F]
   def emailAuth: EmailAuth[F]
 
-class ProdAppComps[F[_]: Sync](conf: BoatConf, http: HttpClient[F]) extends AppComps[F]:
+class ProdAppComps[F[_]: Async](conf: BoatConf, httpClient: HttpClient[F]) extends AppComps[F]:
   override val customJwt: CustomJwt = CustomJwt(JWT(conf.secret))
-  override val pushService: PushEndpoint[F] = BoatPushService.fromConf(conf.push, http)
+  override val pushService: PushEndpoint[F] = BoatPushService.fromConf(conf.push, httpClient)
   override val emailAuth: EmailAuth[F] =
     TokenEmailAuth.default(
       conf.google.web.id,
       conf.google.ios.id,
       conf.microsoft.id,
-      http,
+      httpClient,
       customJwt
     )
 
@@ -70,7 +72,7 @@ object Server extends IOApp:
 
   def server[F[+_]: Async: Network: Files: Compression](
     conf: BoatConf,
-    builder: AppCompsBuilder,
+    builder: AppCompsBuilder[F],
     port: Port = port
   ): Resource[F, ServerComponents[F]] =
     val F = Sync[F]
@@ -92,11 +94,11 @@ object Server extends IOApp:
 
   def appService[F[+_]: Async: Files](
     conf: BoatConf,
-    builder: AppCompsBuilder
+    builder: AppCompsBuilder[F]
   ): Resource[F, Service[F]] =
     for
       dispatcher <- Dispatcher.parallel[F]
-      http <- HttpClientIO.resource[F]
+      http <- builder.http
       _ <- Resource.eval(Logging.install(dispatcher, http))
       db <- DoobieDatabase.init(conf.db)
       users = DoobieUserManager(db)

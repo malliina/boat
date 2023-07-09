@@ -9,7 +9,7 @@ import com.malliina.boat.db.{Conf, DoobieDatabase, DoobieSQL}
 import com.malliina.boat.http4s.{JsonInstances, Server, ServerComponents, Service}
 import com.malliina.boat.{AisAppConf, BoatConf, Errors, LocalConf}
 import com.malliina.http.FullUrl
-import com.malliina.http.io.{HttpClientF2, HttpClientIO}
+import com.malliina.http.io.HttpClientF2
 import com.malliina.logback.LogbackUtils
 import com.malliina.util.AppLogger
 import com.typesafe.config.Config
@@ -21,6 +21,9 @@ import scala.util.Try
 
 case class TestBoatConf(testdb: Conf)
 case class WrappedTestConf(boat: TestBoatConf)
+
+object TestHttp:
+  lazy val client = HttpClientF2[IO]()
 
 object WrappedTestConf:
   def parse(c: Config = LocalConf.localConf.resolve()) = Try(
@@ -105,7 +108,7 @@ trait Http4sSuite extends MUnitDatabaseSuite:
 
   override def munitFixtures: Seq[Fixture[?]] = Seq(confFixture, app)
 
-case class ServerTools(server: ServerComponents[IO], http: HttpClientF2[IO]):
+case class ServerTools(server: ServerComponents[IO]):
   def port = server.server.address.getPort
   def baseHttpUrl = FullUrl("http", s"localhost:$port", "")
   def baseWsUrl = FullUrl("ws", s"localhost:$port", "")
@@ -113,18 +116,16 @@ case class ServerTools(server: ServerComponents[IO], http: HttpClientF2[IO]):
 trait ServerSuite extends MUnitDatabaseSuite with JsonInstances:
   self: MUnitSuite =>
   implicit val tsBody: EntityDecoder[IO, Errors] = jsonBody[IO, Errors]
-  val client = ResourceFixture(HttpClientIO.resource[IO])
 
   def testServerResource: Resource[IO, ServerTools] =
     for
-      client <- Resource.eval(IO(HttpClientF2[IO]()))
       conf <- Resource.eval(IO(confFixture()))
       service <- Server.server[IO](
         BoatConf.parse().copy(db = conf, ais = AisAppConf(false)),
         TestComps.builder,
         port = port"0"
       )
-    yield ServerTools(service, client)
+    yield ServerTools(service)
   val server: Fixture[ServerTools] =
     ResourceSuiteLocalFixture("munit-server", testServerResource)
 
