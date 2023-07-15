@@ -122,3 +122,9 @@
     padding: .5rem 1rem;
   }
 }
+
+.dates-container {
+  flex-direction: row;
+  background-color: #87cece;
+  height: 32px;
+}

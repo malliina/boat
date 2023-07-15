@@ -1,25 +1,16 @@
+.map {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+.mapbox-map {
+  flex: 1
+}
+
 #map {
-  position: absolute;
-  top: 0;
-  bottom: 0;
   width: 100%;
   z-index: 100;
-
-  &.auth {
-    @media only screen and (min-width: 1000px) {
-      top: var(--navbar-height);
-    }
-  }
-
-  &.routes {
-    @media only screen and (min-width: 1000px) {
-      top: var(--navbar-routes-height);
-
-      &:not(.auth) {
-        top: var(--navbar-height);
-      }
-    }
-  }
 }
 
 .boat-icon {
