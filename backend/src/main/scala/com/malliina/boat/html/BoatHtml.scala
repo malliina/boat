@@ -142,19 +142,20 @@ class BoatHtml(
     span(id := RouteText, `class` := "nav-text route-text")("")
   )
 
-  private def datesContainer = div(id := DatesContainer, `class` := DatesContainer)(
-    timePicker("From", FromTimePickerId)
+  private def datesContainer = div(id := DatesContainer, `class` := s"row $DatesContainer")(
+    timePicker("From", FromTimePickerId),
+    timePicker("To", ToTimePickerId)
   )
 
   private def timePicker(labelText: String, divId: String) =
     val inputId = s"$divId-input"
-    div(`class` := "col-sm-6 col-md-4 mt-2 mb-2 mt-sm-0")(
-      label(`for` := inputId, `class` := "form-label")(labelText),
+    div(`class` := "col-sm-6 col-md-4 mt-2 mb-0 mt-sm-0")(
       div(
         id := divId,
         data("td-target-input") := "nearest",
-        `class` := "input-group"
+        `class` := "input-group input-group-sm"
       )(
+        label(`for` := inputId, `class` := "input-group-text")(labelText),
         input(
           id := inputId,
           `class` := "form-control",

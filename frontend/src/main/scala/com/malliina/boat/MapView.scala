@@ -1,5 +1,6 @@
 package com.malliina.boat
 
+import com.malliina.datepicker.{DateFormats, TempusDominus, TimeLocalization, TimeOptions, TimeRestrictions}
 import com.malliina.mapbox.*
 import io.circe.*
 import io.circe.syntax.EncoderOps
@@ -89,18 +90,18 @@ class MapView(
 
   initNavDropdown()
 
-//  val dateHandler = DateHandler()
-//  private val fromPicker = makePicker(FromTimePickerId)
-//  private val toPicker = makePicker(ToTimePickerId)
-//
-//  val fromSub = dateHandler.subscribeDate(fromPicker, toPicker, isFrom = true)
-//  val toSub = dateHandler.subscribeDate(toPicker, fromPicker, isFrom = false)
+  private val dateHandler = DateHandler()
+  private val fromPicker = makePicker(FromTimePickerId)
+  private val toPicker = makePicker(ToTimePickerId)
 
-//  private def makePicker(elementId: String): TempusDominus =
-//    TempusDominus(
-//      elemGet(elementId),
-//      TimeOptions(TimeRestrictions(None, None), TimeLocalization(DateFormats.default))
-//    )
+  val fromSub = dateHandler.subscribeDate(fromPicker, toPicker, isFrom = true)
+  val toSub = dateHandler.subscribeDate(toPicker, fromPicker, isFrom = false)
+
+  private def makePicker(elementId: String): TempusDominus =
+    TempusDominus(
+      elemGet(elementId),
+      TimeOptions(TimeRestrictions(None, None), TimeLocalization(DateFormats.default))
+    )
 
   private def focusSearch(className: String, e: KeyboardEvent) =
     document

@@ -20,13 +20,14 @@ class DateHandler:
         newDate.foreach { date =>
           other.updateOptions(
             TimeOptions(
-              if isFrom then TimeRestrictions(min = newDate, max = Option(maxDate))
+              if isFrom then TimeRestrictions(min = newDate, max = None)
               else TimeRestrictions(min = None, max = newDate),
               TimeLocalization(DateFormats.default)
             ),
             reset = false
           )
         }
+        // User might clear input manually, in which case there's no value but a need to refresh
         updateSearch()
     )
 

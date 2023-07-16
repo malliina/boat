@@ -126,5 +126,13 @@
 .dates-container {
   flex-direction: row;
   background-color: #87cece;
-  height: 32px;
+}
+
+.time-calendar {
+  background-image: url("../img/calendar.svg");
+  background-repeat: no-repeat;
+  background-size: 100%;
+  background-position: center;
+  width: 14px;
+  height: 16px;
 }
