@@ -62,13 +62,15 @@ class MapView(
         case _ =>
           ()
   var socket: Option[MapSocket] = None
+//  private var seen = Set.empty[TrackIds]
+
+  def mode = if Option(href.getFragment).isDefined then MapMode.Stay else MapMode.Fit
+  def sample = queryInt(SampleKey).getOrElse(1)
 
   map.on(
     "load",
     () =>
-      val mode = if Option(href.getFragment).isDefined then MapMode.Stay else MapMode.Fit
-      val sample = queryInt(SampleKey).getOrElse(1)
-      socket = Option(MapSocket(map, pathFinder, parseUri, Option(sample), mode, language))
+      reconnect()
       if initialSettings.customCenter then
         map.putLayer(
           Layer.symbol(
@@ -90,12 +92,23 @@ class MapView(
 
   initNavDropdown()
 
-  private val dateHandler = DateHandler()
+  private def reconnect(): Unit =
+    socket.foreach { s =>
+      s.socket.close()
+      s.clear()
+    }
+    socket = Option(MapSocket(map, pathFinder, parseUri, Option(sample), mode, language))
+
+  private val dateHandler = DateHandler(log)
   private val fromPicker = makePicker(FromTimePickerId)
   private val toPicker = makePicker(ToTimePickerId)
 
-  val fromSub = dateHandler.subscribeDate(fromPicker, toPicker, isFrom = true)
-  val toSub = dateHandler.subscribeDate(toPicker, fromPicker, isFrom = false)
+  private val _ = dateHandler.subscribeDate(fromPicker, toPicker, isFrom = true) { from =>
+    reconnect()
+  }
+  private val _ = dateHandler.subscribeDate(toPicker, fromPicker, isFrom = false) { to =>
+    reconnect()
+  }
 
   private def makePicker(elementId: String): TempusDominus =
     TempusDominus(

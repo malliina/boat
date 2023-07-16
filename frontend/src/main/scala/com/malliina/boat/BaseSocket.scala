@@ -24,7 +24,7 @@ class BaseSocket(wsPath: String, val log: BaseLogger = BaseLogger.console):
   private def showDisconnected(): Unit =
     setFeedback("Connection closed.")
 
-  def onMessage(msg: MessageEvent): Unit =
+  private def onMessage(msg: MessageEvent): Unit =
     val asString = msg.data.toString
     log.debug(s"Got message: $asString")
     parse(asString).fold(
