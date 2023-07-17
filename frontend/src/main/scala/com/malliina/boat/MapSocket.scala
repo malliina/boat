@@ -13,6 +13,7 @@ import com.malliina.turf.nearestPointOnLine
 import com.malliina.values.ErrorMessage
 
 import scala.scalajs.js
+import scala.scalajs.js.Date
 
 case class NearestResult[T](result: T, distance: Double)
 
@@ -49,10 +50,11 @@ class MapSocket(
   private var trails = Map.empty[TrackId, Seq[TimedCoord]]
   private var hovering = Set.empty[TrackIds]
 
-  def reconnect(track: PathState, sample: Option[Int]): Unit =
+  def reconnect(track: PathState, sample: Option[Int], from: Option[Date], to: Option[Date]): Unit =
     socket.foreach(_.close())
     clear()
-    val s = new BoatSocket(track, sample):
+    val path = s"/ws/updates${BoatSocket.query(track, sample, from, to)}"
+    val s = new BoatSocket(path):
       override def onCoords(event: CoordsEvent): Unit = MapSocket.this.onCoords(event)
       override def onAIS(messages: Seq[VesselInfo]): Unit = ais.onAIS(messages)
     socket = Option(s)

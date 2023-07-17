@@ -6,7 +6,7 @@ import io.circe.*
 import io.circe.syntax.EncoderOps
 import org.scalajs.dom.*
 
-import scala.scalajs.js.{JSON, URIUtils}
+import scala.scalajs.js.{Date, JSON, URIUtils}
 
 object MapView extends CookieNames:
   def default: Either[NotFound, MapView] =
@@ -61,7 +61,6 @@ class MapView(
           pathFinder.toggleState()
         case _ =>
           ()
-//  private var seen = Set.empty[TrackIds]
 
   def mode = if Option(href.getFragment).isDefined then MapMode.Stay else MapMode.Fit
   def sample = queryInt(SampleKey).getOrElse(1)
@@ -70,7 +69,7 @@ class MapView(
   map.on(
     "load",
     () =>
-      reconnect()
+      reconnect(from = None, to = None)
       if initialSettings.customCenter then
         map.putLayer(
           Layer.symbol(
@@ -92,18 +91,18 @@ class MapView(
 
   initNavDropdown()
 
-  private def reconnect(): Unit =
-    socket.reconnect(parseUri, Option(sample))
+  private def reconnect(from: Option[Date], to: Option[Date]): Unit =
+    socket.reconnect(parseUri, Option(sample), from, to)
 
   private val dateHandler = DateHandler(log)
   private val fromPicker = makePicker(FromTimePickerId)
   private val toPicker = makePicker(ToTimePickerId)
 
   private val _ = dateHandler.subscribeDate(fromPicker, toPicker, isFrom = true) { from =>
-    reconnect()
+    reconnect(from, dateHandler.to)
   }
   private val _ = dateHandler.subscribeDate(toPicker, fromPicker, isFrom = false) { to =>
-    reconnect()
+    reconnect(dateHandler.from, to)
   }
 
   private def makePicker(elementId: String): TempusDominus =
