@@ -62,3 +62,5 @@ class BaseSocket(wsPath: String, val log: BaseLogger = BaseLogger.console):
 
   protected def onJsonFailure(result: DecodingFailure, value: Json): Unit =
     log.info(s"JSON error $result")
+
+  def close(): Unit = socket.close()

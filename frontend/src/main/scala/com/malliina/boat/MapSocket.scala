@@ -26,13 +26,14 @@ case class TrackIds(track: TrackName):
 class MapSocket(
   val map: MapboxMap,
   pathFinder: PathFinder,
-  track: PathState,
-  sample: Option[Int],
   mode: MapMode,
-  language: Language
+  language: Language,
 //  hovering: Set[TrackIds]
-) extends BoatSocket(track, sample)
+  log: BaseLogger
+) extends BaseFront
   with GeoUtils:
+
+  private var socket: Option[BoatSocket] = None
 
   val lang = Lang(language)
   val trackLang = lang.track
@@ -46,10 +47,15 @@ class MapSocket(
   private var mapMode: MapMode = mode
   private var boats = Map.empty[TrackIds, FeatureCollection]
   private var trails = Map.empty[TrackId, Seq[TimedCoord]]
-//  private var seen = Set.empty[TrackIds]
-//  def seenSet = seen
-  private var hoverIns: Map[String, js.Function1[MapMouseEvent, Unit]] = Map.empty
-  private var hoverOuts: Map[String, js.Function1[MapMouseEvent, Unit]] = Map.empty
+  private var hovering = Set.empty[TrackIds]
+
+  def reconnect(track: PathState, sample: Option[Int]): Unit =
+    socket.foreach(_.close())
+    clear()
+    val s = new BoatSocket(track, sample):
+      override def onCoords(event: CoordsEvent): Unit = MapSocket.this.onCoords(event)
+      override def onAIS(messages: Seq[VesselInfo]): Unit = ais.onAIS(messages)
+    socket = Option(s)
 
   /** Colors the track by speed.
     *
@@ -65,7 +71,7 @@ class MapSocket(
   private def trackLineLayer(id: String, paint: LinePaint): Layer =
     Layer.line(id, emptyTrack, paint, None)
 
-  override def onCoords(event: CoordsEvent): Unit =
+  def onCoords(event: CoordsEvent): Unit =
     val from = event.from
     val isBoat = from.sourceType == SourceType.Boat
     val trackId = from.track
@@ -120,36 +126,34 @@ class MapSocket(
         _ => map.getCanvas().style.cursor = ""
       )
 
-//      if !hovering.exists(_.hoverable == hoverableTrack) then
-      log.info(s"Installing hover for $hoverableTrack")
-      val hoverIn: js.Function1[MapMouseEvent, Unit] = in =>
-        val isOnBoatSymbol = map
-          .queryRendered(in.point, QueryOptions.all)
-          .getOrElse(Nil)
-          .exists(_.layer.exists(_.id == point))
-        if !isOnBoatSymbol then
-          val hover = in.lngLat
-          val op = for
-            hoverCoord <- Coord.build(hover.lng, hover.lat)
-            trailCoords <- trails
-              .getOrElse(trackId, Nil)
-              .toList
-              .toNel
-              .toRight(ErrorMessage(s"No coords for $trackId."))
-          yield nearest(hoverCoord, trailCoords)(_.coord).map { near =>
-            map.getCanvas().style.cursor = "pointer"
-            popups.isTrackHover = true
-            trackPopup.show(html.track(PointProps(near.result, from)), in.lngLat, map)
-          }
-          op.fold(err => log.info(err.message), identity)
-      val hoverOut: js.Function1[MapMouseEvent, Unit] = _ =>
-        map.getCanvas().style.cursor = ""
-        popups.isTrackHover = false
-        trackPopup.remove()
-      map.onHover(hoverableTrack)(hoverIn, hoverOut)
-      hoverIns = hoverIns.updated(hoverableTrack, hoverIn)
-      hoverOuts = hoverOuts.updated(hoverableTrack, hoverOut)
-//      else log.info(s"Already tracking hovering over $hoverableTrack.")
+      if !hovering.exists(_.hoverable == hoverableTrack) then
+        log.info(s"Installing hover for $hoverableTrack")
+        val hoverIn: js.Function1[MapMouseEvent, Unit] = in =>
+          val isOnBoatSymbol = map
+            .queryRendered(in.point, QueryOptions.all)
+            .getOrElse(Nil)
+            .exists(_.layer.exists(_.id == point))
+          if !isOnBoatSymbol then
+            val hover = in.lngLat
+            val op = for
+              hoverCoord <- Coord.build(hover.lng, hover.lat)
+              trailCoords <- trails
+                .getOrElse(trackId, Nil)
+                .toList
+                .toNel
+                .toRight(ErrorMessage(s"No coords for $trackId."))
+            yield nearest(hoverCoord, trailCoords)(_.coord).map { near =>
+              map.getCanvas().style.cursor = "pointer"
+              popups.isTrackHover = true
+              trackPopup.show(html.track(PointProps(near.result, from)), in.lngLat, map)
+            }
+            op.fold(err => log.info(err.message), identity)
+        val hoverOut: js.Function1[MapMouseEvent, Unit] = _ =>
+          map.getCanvas().style.cursor = ""
+          popups.isTrackHover = false
+          trackPopup.remove()
+        map.onHover(hoverableTrack)(hoverIn, hoverOut)
+      else log.info(s"Already tracking hovering over $hoverableTrack.")
     // updates the source icon
     map.findSource(point).foreach { geoJson =>
       coords.lastOption.foreach { coord =>
@@ -249,12 +253,9 @@ class MapSocket(
           mapMode = MapMode.Stay
       case MapMode.Stay =>
         ()
-//    seen = seen ++ Set(ids)
+    hovering = hovering ++ Set(ids)
 
   private val _ = MapboxPopup(PopupOptions(className = Option("popup-device")))
-
-  override def onAIS(messages: Seq[VesselInfo]): Unit =
-    ais.onAIS(messages)
 
   private def nearest[T](fromCoord: Coord, on: NonEmptyList[T])(
     c: T => Coord
@@ -265,7 +266,7 @@ class MapSocket(
     val turfPoint = GeoPoint(fromCoord)
     val nearestResult = nearestPointOnLine(all, turfPoint)
     val str = scalajs.js.JSON.stringify(nearestResult)
-    log.info(s"Nearest json $str ${nearestResult} props ${nearestResult.properties}")
+    log.info(s"Nearest json $str")
     val idx = nearestResult.properties.index
     if on.length > idx then Right(NearestResult(on.toList(idx), nearestResult.properties.dist))
     else Left(ErrorMessage(s"No trail at $fromCoord."))
@@ -307,14 +308,6 @@ class MapSocket(
       DurationId
     ).foreach { id =>
       elem(id).foreach(_.hide())
-    }
-    hoverIns.foreach { (layerId, func) =>
-      log.info(s"Removing mousemove for $layerId...")
-      map.off("mousemove", layerId, func)
-    }
-    hoverOuts.foreach { (layerId, func) =>
-      log.info(s"Removing mouseleave for $layerId...")
-      map.off("mouseleave", layerId, func)
     }
 
   def remove(id: String): Unit =

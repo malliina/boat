@@ -61,11 +61,11 @@ class MapView(
           pathFinder.toggleState()
         case _ =>
           ()
-  var socket: Option[MapSocket] = None
 //  private var seen = Set.empty[TrackIds]
 
   def mode = if Option(href.getFragment).isDefined then MapMode.Stay else MapMode.Fit
   def sample = queryInt(SampleKey).getOrElse(1)
+  val socket: MapSocket = MapSocket(map, pathFinder, mode, language, log)
 
   map.on(
     "load",
@@ -93,11 +93,7 @@ class MapView(
   initNavDropdown()
 
   private def reconnect(): Unit =
-    socket.foreach { s =>
-      s.socket.close()
-      s.clear()
-    }
-    socket = Option(MapSocket(map, pathFinder, parseUri, Option(sample), mode, language))
+    socket.reconnect(parseUri, Option(sample))
 
   private val dateHandler = DateHandler(log)
   private val fromPicker = makePicker(FromTimePickerId)
