@@ -24,9 +24,14 @@ trait CookieNames:
   val LanguageName = "lang"
   val TokenCookieName = "mapboxToken"
 
+trait DatePickerKeys:
+  val DatesContainer = "dates-container"
+  val FromTimePickerId = "from-time-picker"
+  val ToTimePickerId = "to-time-picker"
+
 object FrontKeys extends FrontKeys
 
-trait FrontKeys extends BodyClasses with ListKeys with NavKeys with AboutKeys:
+trait FrontKeys extends BodyClasses with ListKeys with NavKeys with AboutKeys with DatePickerKeys:
   val ChartsId = "charts"
   val Close = "close"
   val Enabled = "enabled"

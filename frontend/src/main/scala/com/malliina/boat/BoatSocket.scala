@@ -3,24 +3,27 @@ package com.malliina.boat
 import cats.syntax.show.toShow
 import io.circe.*
 
-import scala.scalajs.js.URIUtils
+import scala.scalajs.js.{Date, URIUtils}
 
 object BoatSocket:
-  def query(track: PathState, sample: Option[Int]): String =
+  def query(track: PathState, sample: Option[Int], from: Option[Date], to: Option[Date]): String =
     val params = track match
       case Name(name)           => Seq(TrackName.Key -> name.show)
       case Canonical(canonical) => Seq(TrackCanonical.Key -> canonical.show)
       case Route(req)           => Nil
       case Timed(from, to)      => Seq(Timings.From -> from, Timings.To -> to)
       case NoTrack              => Nil
-    val allParams = params ++ sample.map(s => FrontKeys.SampleKey -> s"$s").toList
+    val timeParams =
+      from.map(f => Timings.From -> f.toISOString()).toList ++
+        to.map(t => Timings.To -> t.toISOString())
+    val allParams = (params ++ timeParams) ++ sample.map(s => FrontKeys.SampleKey -> s"$s").toList
 
     val kvs = allParams.map { (k, v) => s"$k=${URIUtils.encodeURIComponent(v)}" }.mkString("&")
     if kvs.nonEmpty then s"?$kvs" else ""
 
 abstract class BoatSocket(path: String) extends BaseSocket(path) with BaseFront:
   def this(track: PathState, sample: Option[Int]) =
-    this(s"/ws/updates${BoatSocket.query(track, sample)}")
+    this(s"/ws/updates${BoatSocket.query(track, sample, None, None)}")
 
   override def handlePayload(payload: Json): Unit =
     payload.as[FrontEvent].fold(err => onJsonFailure(err, payload), consume)

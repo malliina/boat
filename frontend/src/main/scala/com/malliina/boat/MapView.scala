@@ -1,11 +1,12 @@
 package com.malliina.boat
 
+import com.malliina.datepicker.{DateFormats, TempusDominus, TimeLocalization, TimeOptions, TimeRestrictions}
 import com.malliina.mapbox.*
 import io.circe.*
 import io.circe.syntax.EncoderOps
 import org.scalajs.dom.*
 
-import scala.scalajs.js.{JSON, URIUtils}
+import scala.scalajs.js.{Date, JSON, URIUtils}
 
 object MapView extends CookieNames:
   def default: Either[NotFound, MapView] =
@@ -60,14 +61,15 @@ class MapView(
           pathFinder.toggleState()
         case _ =>
           ()
-  var socket: Option[MapSocket] = None
+
+  def mode = if Option(href.getFragment).isDefined then MapMode.Stay else MapMode.Fit
+  def sample = queryInt(SampleKey).getOrElse(1)
+  val socket: MapSocket = MapSocket(map, pathFinder, mode, language, log)
 
   map.on(
     "load",
     () =>
-      val mode = if Option(href.getFragment).isDefined then MapMode.Stay else MapMode.Fit
-      val sample = queryInt(SampleKey).getOrElse(1)
-      socket = Option(MapSocket(map, pathFinder, parseUri, Option(sample), mode, language))
+      reconnect(from = None, to = None)
       if initialSettings.customCenter then
         map.putLayer(
           Layer.symbol(
@@ -88,6 +90,26 @@ class MapView(
   elem(ModalId).foreach(initModal)
 
   initNavDropdown()
+
+  private def reconnect(from: Option[Date], to: Option[Date]): Unit =
+    socket.reconnect(parseUri, Option(sample), from, to)
+
+  private val dateHandler = DateHandler(log)
+  private val fromPicker = makePicker(FromTimePickerId)
+  private val toPicker = makePicker(ToTimePickerId)
+
+  private val _ = dateHandler.subscribeDate(fromPicker, toPicker, isFrom = true) { from =>
+    reconnect(from, dateHandler.to)
+  }
+  private val _ = dateHandler.subscribeDate(toPicker, fromPicker, isFrom = false) { to =>
+    reconnect(dateHandler.from, to)
+  }
+
+  private def makePicker(elementId: String): TempusDominus =
+    TempusDominus(
+      elemGet(elementId),
+      TimeOptions(TimeRestrictions(None, None), TimeLocalization(DateFormats.default))
+    )
 
   private def focusSearch(className: String, e: KeyboardEvent) =
     document

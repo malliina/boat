@@ -11,14 +11,14 @@ import io.circe.syntax.EncoderOps
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 
 object PathFinder:
-  val routeLayer = "route"
-  val routeFirstLayer = "route-first"
-  val routeLastLayer = "route-last"
-  val layerIds = Seq(routeLayer, routeFirstLayer, routeLastLayer)
+  private val routeLayer = "route"
+  private val routeFirstLayer = "route-first"
+  private val routeLastLayer = "route-last"
+  private val layerIds = Seq(routeLayer, routeFirstLayer, routeLastLayer)
 
 class PathFinder(val map: MapboxMap) extends GeoUtils with BaseFront:
-  val mapContainer = elemGet[HTMLDivElement](MapId)
-  val routesContainer = elemGet[HTMLDivElement](RoutesContainer)
+  private val mapContainer = elemGet[HTMLDivElement](MapId)
+  private val routesContainer = elemGet[HTMLDivElement](RoutesContainer)
   var isEnabled: Boolean = false
   var start: Option[MapboxMarker] = None
   var end: Option[MapboxMarker] = None
@@ -56,7 +56,7 @@ class PathFinder(val map: MapboxMap) extends GeoUtils with BaseFront:
         case _ =>
           start = Option(MapboxMarker(startMark(c), c, map))
 
-  def findRoute(from: Coord, to: Coord) =
+  private def findRoute(from: Coord, to: Coord) =
     HttpClient.get[RouteResult](s"/routes/${from.lat}/${from.lng}/${to.lat}/${to.lng}").map { res =>
       val route = res.route
       val coords = route.coords
@@ -75,7 +75,7 @@ class PathFinder(val map: MapboxMap) extends GeoUtils with BaseFront:
       }
     }
 
-  def clear(): Unit =
+  private def clear(): Unit =
     start.foreach(_.remove())
     start = None
     end.foreach(_.remove())
@@ -84,6 +84,6 @@ class PathFinder(val map: MapboxMap) extends GeoUtils with BaseFront:
       map.removeLayerAndSourceIfExists(id)
     }
 
-  def startMark(c: Coord) = span(`class` := "marker start")
+  private def startMark(c: Coord) = span(`class` := "marker start")
 
-  def finishMark(c: Coord) = span(`class` := "marker finish")
+  private def finishMark(c: Coord) = span(`class` := "marker finish")

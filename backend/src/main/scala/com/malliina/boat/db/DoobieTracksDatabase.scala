@@ -252,7 +252,7 @@ class DoobieTracksDatabase[F[_]: Async](val db: DoobieDatabase[F])
       .map(names => sql.tracksByNames(names))
       .orElse(limits.neCanonicals.map(cs => sql.tracksByCanonicals(cs)))
       .getOrElse {
-        val limit = Option.when(limits.newest)(1)
+        val limit = Option.when(limits.newest)(5)
         sql.latestTracks(user.username, limit)
       }
       .query[JoinedTrack]

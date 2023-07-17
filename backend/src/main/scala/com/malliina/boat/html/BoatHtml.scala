@@ -116,6 +116,7 @@ class BoatHtml(
                 fontAwesomeLink(a, GraphLinkId, "chart-area", Hidden, "Graph"),
                 standaloneQuestion("question-nav")
               ),
+              datesContainer,
               routeContainer
             )
           }.getOrElse {
@@ -140,6 +141,35 @@ class BoatHtml(
     span(id := RouteLength, `class` := "nav-text route-length")(""),
     span(id := RouteText, `class` := "nav-text route-text")("")
   )
+
+  private def datesContainer = div(id := DatesContainer, `class` := s"row $DatesContainer")(
+    timePicker("From", FromTimePickerId),
+    timePicker("To", ToTimePickerId)
+  )
+
+  private def timePicker(labelText: String, divId: String) =
+    val inputId = s"$divId-input"
+    div(`class` := "col-sm-6 col-md-4 mt-2 mb-0 mt-sm-0")(
+      div(
+        id := divId,
+        data("td-target-input") := "nearest",
+        `class` := "input-group input-group-sm"
+      )(
+        label(`for` := inputId, `class` := "input-group-text")(labelText),
+        input(
+          id := inputId,
+          `class` := "form-control",
+          data("td-target") := s"#$divId"
+        ),
+        span(
+          `class` := "input-group-text",
+          data("td-target") := s"#$divId",
+          data("td-toggle") := "datetimepicker"
+        )(
+          span(`class` := "time-calendar")
+        )
+      )
+    )
 
   def short(d: DistanceM) =
     if d.toKilometers >= 10 then s"${d.toKilometers.toInt} km"

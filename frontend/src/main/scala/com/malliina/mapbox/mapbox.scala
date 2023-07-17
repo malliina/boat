@@ -147,6 +147,7 @@ class MapboxMap(@unused options: MapOptions) extends js.Object:
   def addImage(id: String, image: js.Any): Unit = js.native
   def getSource(id: String): js.UndefOr[GeoJsonSource] = js.native
   def addLayer(layer: js.Any): Unit = js.native
+  def getLayer(id: String): js.UndefOr[js.Any] = js.native
   def removeLayer(id: String): Unit = js.native
   def removeSource(id: String): Unit = js.native
   def setLayoutProperty(layer: String, prop: String, value: js.Any): Unit = js.native
@@ -169,7 +170,9 @@ class MapboxMap(@unused options: MapOptions) extends js.Object:
   def on(name: String, func: js.Function1[MapMouseEvent, Unit]): Unit = js.native
   def on(name: String, func: js.Function0[Unit]): Unit = js.native
   def on(name: String, layer: String, func: js.Function1[MapMouseEvent, Unit]): Unit = js.native
+  def off(name: String, layer: String, func: js.Function1[MapMouseEvent, Unit]): Unit = js.native
   def on(name: String, layer: String, func: js.Function0[Unit]): Unit = js.native
+  def off(name: String, layer: String, func: js.Function0[Unit]): Unit = js.native
 
 object MapboxMap:
 
@@ -217,6 +220,8 @@ object MapboxMap:
       p.future
 
     def findSource(id: String): Option[GeoJsonSource] = self.getSource(id).toOption
+    def hasSource(id: String): Boolean = findSource(id).isDefined
+    def hasLayer(id: String): Boolean = self.getLayer(id).toOption.isDefined
 
 @js.native
 @JSImport("mapbox-gl", "LngLatBounds")
