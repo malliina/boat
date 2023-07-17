@@ -177,7 +177,7 @@ object BoatQuery:
       canonicals <- bindSeq[TrackCanonical](TrackCanonical.Key, q)
       route <- bindRouteRequest(q)
       sample <- Limits.readInt(SampleKey, q)
-      newest <- bindNewest(q, default = true)
+      newest <- bindNewest(q, default = timeRange.isEmpty)
     yield BoatQuery(limits, timeRange, tracks, canonicals, route, sample, newest)
 
   def car(q: Query): Either[Errors, CarQuery] =

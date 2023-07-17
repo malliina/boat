@@ -381,7 +381,7 @@ class Service[F[_]: Async: Files](comps: BoatComps[F]) extends BasicService[F]:
         val username = user.username
         log.info(s"Viewer '${user.username}' joined.")
         BoatQuery(req.uri.query).map { boatQuery =>
-          log.debug(s"Got $boatQuery")
+          log.info(s"Got $boatQuery")
           val historicalLimits =
             if boatQuery.tracks.nonEmpty && username == Usernames.anon then
               BoatQuery.tracks(boatQuery.tracks)
