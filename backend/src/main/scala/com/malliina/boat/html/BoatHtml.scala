@@ -149,7 +149,7 @@ class BoatHtml(
 
   private def timePicker(labelText: String, divId: String) =
     val inputId = s"$divId-input"
-    div(`class` := "col-sm-6 col-md-4 mt-2 mb-0 mt-sm-0")(
+    div(`class` := "time-picker-container col-sm-6 col-md-4 mt-2 mb-0 mt-sm-0")(
       div(
         id := divId,
         data("td-target-input") := "nearest",

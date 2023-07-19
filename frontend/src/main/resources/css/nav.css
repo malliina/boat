@@ -128,6 +128,12 @@
   background-color: #87cece;
 }
 
+.time-picker-container {
+  @media (min-width: 576px) {
+    max-width: 300px;
+  }
+}
+
 .time-calendar {
   background-image: url("../img/calendar.svg");
   background-repeat: no-repeat;
