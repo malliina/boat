@@ -1,8 +1,9 @@
 package com.malliina.boat
 
 import com.malliina.boat.auth.SecretKey
-import com.malliina.boat.db.Conf
-import com.malliina.config.{ConfigOps, ConfigReadable}
+import com.malliina.config.ConfigReadable
+import com.malliina.config.ConfigReadable.ConfigOps
+import com.malliina.database.Conf
 import com.malliina.push.apns.{KeyId, TeamId}
 import com.malliina.util.FileUtils
 import com.malliina.values.ErrorMessage
@@ -17,7 +18,7 @@ object AppMode:
   case object Dev extends AppMode
   val fromBuild: AppMode = unsafe(BuildInfo.mode)
 
-  implicit val reader: ConfigReadable[AppMode] = ConfigReadable.string.emap { s =>
+  implicit val reader: ConfigReadable[AppMode] = ConfigReadable.string.emapParsed { s =>
     fromString(s)
   }
 
@@ -78,33 +79,43 @@ object BoatConf:
     val push = c.getConfig("push")
     val apns = push.getConfig("apns")
     val fcm = push.getConfig("fcm")
-    BoatConf(
-      MapboxConf(c.getConfig("mapbox").unsafe[AccessToken]("token")),
-      AisAppConf(c.getConfig("ais").unsafe[Boolean]("enabled")),
-      c.unsafe[SecretKey]("secret"),
-      parseDatabase(c.getConfig("db")),
+    val mapbox = c.getConfig("mapbox")
+    val ais = c.getConfig("ais")
+    val result = for
+      mapboxToken <- mapbox.parse[AccessToken]("token")
+      aisEnabled <- ais.parse[Boolean]("enabled")
+      secret <- c.parse[SecretKey]("secret")
+      db <- c.parse[Conf]("db")
+      iosId <- ios.parse[ClientId]("id")
+      webId <- web.parse[ClientId]("id")
+      webSecret <- web.parse[ClientSecret]("secret")
+      microsoftId <- microsoft.parse[ClientId]("id")
+      microsoftSecret <- microsoft.parse[ClientSecret]("secret")
+      siwa <- c.parse[SignInWithApple.Conf]("apple")
+      apnsEnabled <- apns.parse[Boolean]("enabled")
+      apnsPrivateKey <- apns.parse[String]("privateKey")
+      apnsKeyId <- apns.parse[KeyId]("keyId")
+      apnsTeamId <- apns.parse[TeamId]("teamId")
+      fcmApiKey <- fcm.parse[String]("apiKey")
+    yield BoatConf(
+      MapboxConf(mapboxToken),
+      AisAppConf(aisEnabled),
+      secret,
+      db,
       GoogleConf(
-        AppleConf(ios.unsafe[ClientId]("id")),
-        WebConf(web.unsafe[ClientId]("id"), web.unsafe[ClientSecret]("secret"))
+        AppleConf(iosId),
+        WebConf(webId, webSecret)
       ),
-      WebConf(microsoft.unsafe[ClientId]("id"), microsoft.unsafe[ClientSecret]("secret")),
-      c.unsafe[SignInWithApple.Conf]("apple"),
+      WebConf(microsoftId, microsoftSecret),
+      siwa,
       PushConf(
         APNSConf(
-          apns.unsafe[Boolean]("enabled"),
-          apns.unsafe[String]("privateKey"),
-          apns.unsafe[KeyId]("keyId"),
-          apns.unsafe[TeamId]("teamId")
+          apnsEnabled,
+          apnsPrivateKey,
+          apnsKeyId,
+          apnsTeamId
         ),
-        FCMConf(fcm.unsafe[String]("apiKey"))
+        FCMConf(fcmApiKey)
       )
     )
-
-  def parseDatabase(c: Config): Conf = Conf(
-    c.unsafe[String]("url"),
-    c.unsafe[String]("user"),
-    c.unsafe[String]("pass"),
-    c.unsafe[String]("driver"),
-    c.unsafe[Int]("maxPoolSize"),
-    c.unsafe[Boolean]("autoMigrate")
-  )
+    result.fold(err => throw err, identity)

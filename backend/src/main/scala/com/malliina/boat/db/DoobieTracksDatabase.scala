@@ -6,6 +6,7 @@ import cats.implicits.*
 import com.malliina.boat.InviteState.accepted
 import com.malliina.boat.http.{BoatQuery, SortOrder, TrackQuery}
 import com.malliina.boat.*
+import com.malliina.database.DoobieDatabase
 import com.malliina.measure.{DistanceM, SpeedM, Temperature}
 import com.malliina.util.AppLogger
 import com.malliina.values.Username
@@ -67,7 +68,6 @@ class DoobieTracksDatabase[F[_]: Async](val db: DoobieDatabase[F])
   extends TracksSource[F]
   with StatsSource[F]:
   import Mappings.*
-  import db.logHandler
   val F = Async[F]
   object sql extends CommonSql:
     def pointsByTrack(name: TrackName) =

@@ -5,6 +5,7 @@ import cats.effect.Async
 import cats.implicits.*
 import com.malliina.boat.db.DoobieFairwayService.collect
 import com.malliina.boat.{CoordHash, FairwayInfo}
+import com.malliina.database.DoobieDatabase
 import doobie.*
 import doobie.implicits.*
 

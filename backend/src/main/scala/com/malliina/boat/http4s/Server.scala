@@ -100,7 +100,7 @@ object Server extends IOApp:
       dispatcher <- Dispatcher.parallel[F]
       http <- builder.http
       _ <- Resource.eval(Logging.install(dispatcher, http))
-      db <- DoobieDatabase.init(conf.db)
+      db <- DoobieDatabaseInit.init(conf.db)
       users = DoobieUserManager(db)
       _ <- Resource.eval(users.initUser())
       trackInserts = TrackInserter(db)

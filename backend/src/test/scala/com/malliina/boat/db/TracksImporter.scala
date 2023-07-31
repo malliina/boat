@@ -3,15 +3,15 @@ package com.malliina.boat.db
 import cats.effect.IO
 import cats.implicits.*
 import com.malliina.boat.{BoatName, BoatUser, DateVal, DeviceId, RawSentence, SourceType, TrackId, TrackInput, TrackNames}
+import com.malliina.database.DoobieDatabase
 import com.malliina.values.Username
-import tests.{MUnitSuite, WrappedTestConf}
-import fs2.io.file.Path
 import fs2.Chunk
+import fs2.io.file.Path
+import tests.{MUnitSuite, WrappedTestConf}
 
-import scala.concurrent.duration.Duration
-import scala.concurrent.duration.DurationInt
 import java.time.LocalDate
 import scala.annotation.unused
+import scala.concurrent.duration.{Duration, DurationInt}
 
 class TracksImporter extends MUnitSuite:
   def testConf = WrappedTestConf.parse().map(_.boat.testdb).fold(e => throw e, identity)

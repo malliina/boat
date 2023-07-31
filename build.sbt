@@ -3,19 +3,18 @@ import sbtrelease.ReleasePlugin.autoImport.{ReleaseStep, releaseProcess}
 import sbtrelease.ReleaseStateTransformations._
 import scala.sys.process.Process
 
-val webAuthVersion = "6.5.2"
+val webAuthVersion = "6.5.5"
 val munitVersion = "0.7.29"
 val testContainersScalaVersion = "0.40.17"
 val scalaTagsVersion = "0.12.0"
-val primitiveVersion = "3.4.4"
-val logstreamsVersion = "2.6.1"
-val http4sVersion = "0.23.22"
+val primitiveVersion = "3.4.5"
+val logstreamsVersion = "2.6.2"
+val http4sVersion = "0.23.23"
 val logbackVersion = "1.4.8"
 val circeVersion = "0.14.3"
 // Do not upgrade to 11.0.2 because it depends on slf4j-api alpha versions, breaking logging
 val alpnVersion = "9.4.40.v20210413"
 val webAuthDep = "com.malliina" %% "web-auth" % webAuthVersion
-val utilHtmlDep = "com.malliina" %% "util-html" % webAuthVersion
 val webAuthTestDep = webAuthDep % Test classifier "tests"
 val munitDep = "org.scalameta" %% "munit" % munitVersion % Test
 
@@ -109,23 +108,21 @@ val backend = Project("boat", file("backend"))
     ),
     libraryDependencies ++= Seq("ember-server", "ember-client", "dsl", "circe").map { m =>
       "org.http4s" %% s"http4s-$m" % http4sVersion
-    } ++ Seq("core", "hikari").map { d =>
-      "org.tpolecat" %% s"doobie-$d" % "1.0.0-RC2"
     } ++ Seq("classic", "core").map { m =>
       "ch.qos.logback" % s"logback-$m" % logbackVersion
     } ++ Seq("server", "client").map { m =>
       "org.eclipse.jetty" % s"jetty-alpn-java-$m" % alpnVersion
+    } ++ Seq("util-html", "database").map { m =>
+      "com.malliina" %% m % webAuthVersion
     } ++ Seq(
       "com.vividsolutions" % "jts" % "1.13",
       "mysql" % "mysql-connector-java" % "8.0.33",
-      "org.flywaydb" % "flyway-core" % "7.15.0",
       "org.apache.commons" % "commons-text" % "1.10.0",
-      "software.amazon.awssdk" % "s3" % "2.20.68",
+      "software.amazon.awssdk" % "s3" % "2.20.115",
       "com.malliina" %% "logstreams-client" % logstreamsVersion,
       "com.malliina" %% "mobile-push-io" % "3.8.1",
       "com.malliina" %% "config" % primitiveVersion,
       "org.eclipse.paho" % "org.eclipse.paho.client.mqttv3" % "1.2.5",
-      utilHtmlDep,
       webAuthDep,
       webAuthTestDep,
       munitDep,
@@ -184,7 +181,7 @@ val agent = project
         "com.malliina" %% "primitives" % primitiveVersion,
         "com.malliina" %% "logstreams-client" % logstreamsVersion,
         "com.lihaoyi" %% "scalatags" % scalaTagsVersion,
-        "commons-codec" % "commons-codec" % "1.15"
+        "commons-codec" % "commons-codec" % "1.16.0"
       ),
     releaseUseGlobalVersion := false,
     buildAndUpload := {

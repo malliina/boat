@@ -1,14 +1,15 @@
 package com.malliina.boat.db
 
-import cats.effect.{Async, Sync}
 import cats.data.NonEmptyList
+import cats.effect.{Async, Sync}
 import cats.implicits.*
 import com.malliina.boat.db.DoobiePushDatabase.log
 import com.malliina.boat.push.*
 import com.malliina.boat.{PushId, PushToken, UserDevice}
+import com.malliina.database.DoobieDatabase
 import com.malliina.util.AppLogger
 import com.malliina.values.UserId
-import doobie.{Fragments, LogHandler}
+import doobie.Fragments
 import doobie.implicits.*
 
 object DoobiePushDatabase:
@@ -17,7 +18,6 @@ object DoobiePushDatabase:
 class DoobiePushDatabase[F[_]: Async](db: DoobieDatabase[F], push: PushEndpoint[F])
   extends PushService[F]
   with DoobieSQL:
-  implicit val logger: LogHandler = db.logHandler
   val F = Sync[F]
 
   def enable(input: PushInput): F[PushId] = db.run {

@@ -8,6 +8,8 @@ import org.scalajs.dom.{HTMLDivElement, HTMLSpanElement}
 import scalatags.JsDom.all.*
 import io.circe.*
 import io.circe.syntax.EncoderOps
+
+import scala.annotation.unused
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 
 object PathFinder:
@@ -84,6 +86,6 @@ class PathFinder(val map: MapboxMap) extends GeoUtils with BaseFront:
       map.removeLayerAndSourceIfExists(id)
     }
 
-  private def startMark(c: Coord) = span(`class` := "marker start")
+  private def startMark(@unused c: Coord) = span(`class` := "marker start")
 
-  private def finishMark(c: Coord) = span(`class` := "marker finish")
+  private def finishMark(@unused c: Coord) = span(`class` := "marker finish")

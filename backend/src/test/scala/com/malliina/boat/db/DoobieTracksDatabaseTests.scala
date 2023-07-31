@@ -2,6 +2,7 @@ package com.malliina.boat.db
 
 import com.malliina.boat.http.{Limits, SortOrder, TrackQuery, TrackSort}
 import com.malliina.boat.{Coord, Lang, Language, SimpleUserInfo}
+import com.malliina.database.Conf
 import com.malliina.measure.{DistanceIntM, DistanceM}
 import com.malliina.values.Username
 import doobie.Meta

@@ -5,9 +5,11 @@ import cats.effect.kernel.Resource
 import ch.qos.logback.classic.Level
 import com.comcast.ip4s.port
 import com.dimafeng.testcontainers.MySQLContainer
-import com.malliina.boat.db.{Conf, DoobieDatabase, DoobieSQL}
+import com.malliina.boat.db.{DoobieDatabaseInit, DoobieSQL}
 import com.malliina.boat.http4s.{JsonInstances, Server, ServerComponents, Service}
 import com.malliina.boat.{AisAppConf, BoatConf, Errors, LocalConf}
+import com.malliina.config.ConfigReadable.ConfigOps
+import com.malliina.database.{Conf, DoobieDatabase}
 import com.malliina.http.FullUrl
 import com.malliina.http.io.HttpClientF2
 import com.malliina.logback.LogbackUtils
@@ -28,13 +30,13 @@ object TestHttp:
 object WrappedTestConf:
   def parse(c: Config = LocalConf.localConf.resolve()) = Try(
     WrappedTestConf(
-      TestBoatConf(BoatConf.parseDatabase(c.getConfig("boat").getConfig("dbtest")))
+      TestBoatConf(c.getConfig("boat").parse[Conf]("dbtest").fold(err => throw err, identity))
     )
   )
 
 trait MUnitSuite extends munit.CatsEffectSuite:
   val userHome: Path = Paths.get(sys.props("user.home"))
-  def databaseFixture(conf: => Conf) = resource(DoobieDatabase.resource[IO](conf))
+  def databaseFixture(conf: => Conf) = resource(DoobieDatabase.default[IO](conf))
   def resource[T](res: Resource[IO, T]) = ResourceFixture(res)
   LogbackUtils.init(rootLevel = Level.WARN)
 
@@ -84,7 +86,7 @@ trait MUnitDatabaseSuite extends DoobieSQL:
       TestConf(c)
 
   val dbFixture = ResourceFixture(
-    Resource.eval(IO(confFixture())).flatMap(c => DoobieDatabase.withMigrations(c))
+    Resource.eval(IO(confFixture())).flatMap(c => DoobieDatabaseInit.withMigrations(c))
   )
 
   override def munitFixtures: Seq[Fixture[?]] = Seq(confFixture)

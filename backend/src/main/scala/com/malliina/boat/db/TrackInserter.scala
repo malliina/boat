@@ -6,6 +6,7 @@ import cats.implicits.*
 import com.malliina.boat.*
 import com.malliina.boat.db.TrackInserter.log
 import com.malliina.boat.parsing.PointInsert
+import com.malliina.database.DoobieDatabase
 import com.malliina.measure.{DistanceM, SpeedIntM, SpeedM}
 import com.malliina.util.AppLogger
 import com.malliina.values.UserId
@@ -21,7 +22,7 @@ object TrackInserter:
 class TrackInserter[F[_]: Async](val db: DoobieDatabase[F])
   extends TrackInsertsDatabase[F]
   with DoobieSQL:
-  import db.{logHandler, run}
+  import db.run
   private val minSpeed: SpeedM = 1.kmh
 
   private val trackIds = CommonSql.nonEmptyTracksWith(fr0"t.id")

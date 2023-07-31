@@ -6,6 +6,7 @@ import com.malliina.boat.db.BoatVesselDatabase.{collect, log}
 import com.malliina.boat.db.Values.{RowsChanged, VesselUpdateId}
 import com.malliina.boat.http.VesselQuery
 import com.malliina.boat.{Mmsi, VesselInfo, VesselRowId}
+import com.malliina.database.DoobieDatabase
 import com.malliina.util.AppLogger
 import doobie.*
 import doobie.free.preparedstatement.PreparedStatementIO
