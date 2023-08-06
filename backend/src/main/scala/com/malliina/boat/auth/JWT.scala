@@ -1,7 +1,7 @@
 package com.malliina.boat.auth
 
 import com.malliina.util.AppLogger
-import com.malliina.values.{ErrorMessage, IdToken, Readable, TokenValue}
+import com.malliina.values.{ErrorMessage, IdToken, Readable, TokenValue, err}
 import com.malliina.web.{Expired, InvalidClaims, InvalidSignature, Issuer, JWTError, MissingData, ParseError}
 import com.nimbusds.jose.crypto.{MACSigner, MACVerifier}
 import com.nimbusds.jose.util.JSONObjectUtils
@@ -45,7 +45,7 @@ object JWT:
         signed <- read(token, SignedJWT.parse(token.value), s"Invalid JWT: '$token'.")
         claims <- read(token, signed.getJWTClaimsSet, s"Missing claims: '$token'.")
         json <- parse(claims.toString).left.map(_ =>
-          InvalidClaims(token, ErrorMessage("Claims must be JSON."))
+          InvalidClaims(token, err"Claims must be JSON.")
         )
       yield Parsed(token, signed, claims, json)
 

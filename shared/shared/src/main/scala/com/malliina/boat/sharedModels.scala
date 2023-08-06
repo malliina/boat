@@ -544,6 +544,8 @@ object MapConf:
 abstract class ValidatedDouble[T](implicit d: Decoder[Double], e: Encoder[Double])
   extends ValidatingCompanion[Double, T]()(d, e, TotalOrdering):
   extension (t: T) def value: Double = write(t)
+  def fromString(s: String) =
+    s.toDoubleOption.toRight(ErrorMessage(s"Not a double: '$s'.")).flatMap(build)
 
 class ModelHtml[Builder, Output <: FragT, FragT](val bundle: Bundle[Builder, Output, FragT]):
   import bundle.all.{Frag, stringFrag}

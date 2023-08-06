@@ -7,7 +7,7 @@ import com.malliina.boat.db.{CustomJwt, IdentityException, MissingCredentials}
 import com.malliina.boat.http4s.Auth
 import com.malliina.http.HttpClient
 import com.malliina.util.AppLogger
-import com.malliina.values.{Email, ErrorMessage, IdToken}
+import com.malliina.values.{Email, ErrorMessage, IdToken, err}
 import com.malliina.web.*
 import org.http4s.Headers
 
@@ -94,7 +94,7 @@ class TokenEmailAuth[F[_]: Sync](google: KeyClient[F], microsoft: KeyClient[F], 
         parsed.read(parsed.claims.getBooleanClaim(EmailVerified), EmailVerified).flatMap {
           isVerified =>
             if isVerified then parsed.readString(EmailKey).map(Email.apply)
-            else Left(InvalidClaims(token, ErrorMessage("Email not verified.")))
+            else Left(InvalidClaims(token, err"Email not verified."))
         }
       }
     }

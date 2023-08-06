@@ -3,7 +3,7 @@ package com.malliina.web
 import cats.effect.Sync
 import cats.syntax.all.{toFlatMapOps, toFunctorOps}
 import com.malliina.http.HttpClient
-import com.malliina.values.{Email, ErrorMessage, TokenValue}
+import com.malliina.values.{Email, ErrorMessage, TokenValue, err}
 import com.malliina.web.AppleTokenValidator.EmailVerified
 import com.malliina.web.OAuthKeys.EmailKey
 
@@ -37,7 +37,7 @@ class AppleTokenValidator[F[_]: Sync](
         emailVerified <- v.readString(EmailVerified)
         result <-
           if emailVerified.toLowerCase == "true" then Right(email)
-          else Left(InvalidClaims(token, ErrorMessage("Email not verified.")))
+          else Left(InvalidClaims(token, err"Email not verified."))
       yield result
     }
 

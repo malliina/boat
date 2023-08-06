@@ -1,5 +1,6 @@
 package com.malliina.boat
 
+import com.malliina.values.{lng, lat}
 import io.circe.{Codec, Printer}
 import io.circe.generic.semiauto.deriveCodec
 import io.circe.parser.decode
@@ -8,7 +9,7 @@ import concurrent.duration.DurationInt
 
 class ModelTests extends munit.FunSuite:
   test("coord cheap hash") {
-    val c = Coord(Longitude.build(12.1).toOption.get, Latitude.build(13.412456789).toOption.get)
+    val c = Coord(12.1.lng, 13.412456789.lat)
     assertEquals(c.approx, "12.10000,13.41245")
   }
 
@@ -76,5 +77,5 @@ class ModelTests extends munit.FunSuite:
 
   test("PingEvent JSON") {
     val string = PingEvent(123, 1.seconds).asJson.noSpaces
-    assertEquals(string, """{"event":"ping","body":{"sent":123,"age":1}}""")
+    assertEquals(string, """{"event":"ping","body":{"sent":123,"age":1.0}}""")
   }

@@ -8,8 +8,8 @@ import com.malliina.boat.Mmsi
 import com.malliina.boat.ais.MqttStream.{MqttPayload, log}
 import com.malliina.util.AppLogger
 import com.malliina.values.ErrorMessage
-import fs2.concurrent.{SignallingRef, Topic}
 import fs2.Stream
+import fs2.concurrent.{SignallingRef, Topic}
 import org.eclipse.paho.client.mqttv3.*
 
 import java.nio.charset.StandardCharsets
