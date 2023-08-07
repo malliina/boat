@@ -1,6 +1,6 @@
 package com.malliina.boat
 
-import com.malliina.datepicker.{DateFormats, TempusDominus, TimeLocalization, TimeOptions, TimeRestrictions}
+import com.malliina.datepicker.{DateFormats, TempusDominus, TimeLocale, TimeLocalization, TimeOptions, TimeRestrictions}
 import com.malliina.mapbox.*
 import io.circe.*
 import io.circe.syntax.EncoderOps
@@ -64,7 +64,14 @@ class MapView(
 
   def mode = if Option(href.getFragment).isDefined then MapMode.Stay else MapMode.Fit
   def sample = queryInt(SampleKey).getOrElse(1)
-  val socket: MapSocket = MapSocket(map, pathFinder, mode, language, log)
+  val lang = Lang(language)
+  val formsLang = lang.settings.forms
+  val locale = language match
+    case Language.swedish => TimeLocale.Sv
+    case Language.finnish => TimeLocale.Fi
+    case Language.english => TimeLocale.En
+    case _                => TimeLocale.En
+  val socket: MapSocket = MapSocket(map, pathFinder, mode, lang, log)
 
   map.on(
     "load",
@@ -98,17 +105,22 @@ class MapView(
   private val fromPicker = makePicker(FromTimePickerId)
   private val toPicker = makePicker(ToTimePickerId)
 
-  private val _ = dateHandler.subscribeDate(fromPicker, toPicker, isFrom = true) { from =>
-    reconnect(from, dateHandler.to)
-  }
-  private val _ = dateHandler.subscribeDate(toPicker, fromPicker, isFrom = false) { to =>
-    reconnect(dateHandler.from, to)
+  private val _ =
+    dateHandler.subscribeDate(fromPicker, toPicker, isFrom = true, locale = locale) { from =>
+      reconnect(from, dateHandler.to)
+    }
+  private val _ = dateHandler.subscribeDate(toPicker, fromPicker, isFrom = false, locale = locale) {
+    to =>
+      reconnect(dateHandler.from, to)
   }
 
   private def makePicker(elementId: String): TempusDominus =
     TempusDominus(
       elemGet(elementId),
-      TimeOptions(TimeRestrictions(None, None), TimeLocalization(DateFormats.default))
+      TimeOptions(
+        TimeRestrictions(None, None),
+        TimeLocalization(DateFormats.default, locale)
+      )
     )
 
   private def focusSearch(className: String, e: KeyboardEvent) =

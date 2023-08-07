@@ -33,8 +33,10 @@ class ServerTests extends MUnitSuite with ServerSuite:
   }
 
   test("apple app association") {
-    assertIO(status(".well-known/apple-app-site-association"), Ok.code)
-    assertIO(status(".well-known/assetlinks.json"), Ok.code)
+    for
+      _ <- assertIO(status(".well-known/apple-app-site-association"), Ok.code)
+      _ <- assertIO(status(".well-known/assetlinks.json"), Ok.code)
+    yield 42
   }
 
   private def headers(token: IdToken = TestEmailAuth.testToken) = Map(

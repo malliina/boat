@@ -43,13 +43,15 @@ trait TimeLocalization extends js.Object:
   def startOfTheWeek: Int = js.native
   def locale: String = js.native
 
-object TimeLocalization:
-  val fi = "fi-FI"
-  val se = "sv-SE"
-  val en = "en-US"
+enum TimeLocale(val name: String):
+  case Fi extends TimeLocale("fi")
+  case Sv extends TimeLocale("sv")
+  case En extends TimeLocale("en")
 
-  def apply(df: DateFormats): TimeLocalization =
-    literal(dateFormats = df, hourCycle = "h23", startOfTheWeek = 1, locale = en)
+object TimeLocalization:
+
+  def apply(df: DateFormats, locale: TimeLocale): TimeLocalization =
+    literal(dateFormats = df, hourCycle = "h23", startOfTheWeek = 1, locale = locale.name)
       .asInstanceOf[TimeLocalization]
 
 @js.native
@@ -67,13 +69,43 @@ object TimeRestrictions:
     obj.asInstanceOf[TimeRestrictions]
 
 @js.native
+trait IconOptions extends js.Object:
+  def close: js.UndefOr[String] = js.native
+
+object IconOptions:
+  def apply(close: Option[String]): IconOptions =
+    close.fold(literal())(s => literal(close = s)).asInstanceOf[IconOptions]
+
+@js.native
+trait ButtonOptions extends js.Object:
+  def clear: Boolean = js.native
+  def close: Boolean = js.native
+
+object ButtonOptions:
+  def apply(clear: Boolean, close: Boolean): ButtonOptions =
+    literal(clear = clear, close = close).asInstanceOf[ButtonOptions]
+
+@js.native
+trait DisplayOptions extends js.Object:
+  def sideBySide: Boolean = js.native
+  def icons: IconOptions = js.native
+  def buttons: ButtonOptions = js.native
+
+object DisplayOptions:
+  def apply(sideBySide: Boolean, icons: IconOptions, buttons: ButtonOptions): DisplayOptions =
+    literal(sideBySide = sideBySide, icons = icons, buttons = buttons).asInstanceOf[DisplayOptions]
+
+@js.native
 trait TimeOptions extends js.Object:
+  def display: DisplayOptions = js.native
   def restrictions: TimeRestrictions = js.native
   def localization: TimeLocalization = js.native
 
 object TimeOptions:
-  def apply(r: TimeRestrictions, l: TimeLocalization) =
-    literal(restrictions = r, localization = l).asInstanceOf[TimeOptions]
+  def apply(r: TimeRestrictions, l: TimeLocalization, sideBySide: Boolean = false) =
+    val display =
+      DisplayOptions(sideBySide, IconOptions(None), ButtonOptions(clear = true, close = true))
+    literal(display = display, restrictions = r, localization = l).asInstanceOf[TimeOptions]
 
 @js.native
 trait TimeSubscription extends js.Object:
@@ -88,6 +120,11 @@ trait ChangeEvent extends BaseEvent:
   def date: js.UndefOr[Date] = js.native
   def isValid: Boolean = js.native
   def isClear: Boolean = js.native
+
+@js.native
+trait HideEvent extends BaseEvent:
+  def date: js.UndefOr[Date] = js.native
+  def viewMode: String = js.native
 
 @js.native
 @JSImport("@eonasdan/tempus-dominus", "TempusDominus")

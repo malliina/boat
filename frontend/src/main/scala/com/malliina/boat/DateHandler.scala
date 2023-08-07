@@ -13,22 +13,27 @@ class DateHandler(log: BaseLogger):
   def from = selectedFrom
   def to = selectedTo
 
-  def subscribeDate(picker: TempusDominus, other: TempusDominus, isFrom: Boolean)(
+  def subscribeDate(
+    picker: TempusDominus,
+    other: TempusDominus,
+    isFrom: Boolean,
+    locale: TimeLocale
+  )(
     onUpdate: Option[Date] => Unit
   ) =
     picker.subscribe(
-      "change.td",
+      "hide.td",
       e =>
-        val ce = e.asInstanceOf[ChangeEvent]
-        val newDate = ce.date.toOption
-        log.info(s"New date $newDate valid ${ce.isValid} clear ${ce.isClear}")
+        val he = e.asInstanceOf[HideEvent]
+        val newDate = he.date.toOption.filter(_ != null)
+        log.info(s"New date $newDate")
         if isFrom then selectedFrom = newDate else selectedTo = newDate
         newDate.foreach { date =>
           other.updateOptions(
             TimeOptions(
               if isFrom then TimeRestrictions(min = newDate, max = None)
               else TimeRestrictions(min = None, max = newDate),
-              TimeLocalization(DateFormats.default)
+              TimeLocalization(DateFormats.default, locale)
             ),
             reset = false
           )

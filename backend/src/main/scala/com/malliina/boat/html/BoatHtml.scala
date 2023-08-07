@@ -5,7 +5,7 @@ import com.malliina.boat.FrontKeys.*
 import com.malliina.boat.html.BoatImplicits.showFrag
 import com.malliina.boat.http.{Limits, TrackQuery}
 import com.malliina.boat.http4s.Reverse
-import com.malliina.boat.{AppConf, BuildInfo, Coord, FrontKeys, FullTrack, Lang, TrackRef, TracksBundle, UserBoats, UserInfo, Usernames}
+import com.malliina.boat.{AppConf, BuildInfo, Coord, FormsLang, FrontKeys, FullTrack, Lang, TrackRef, TracksBundle, UserBoats, UserInfo, Usernames}
 import com.malliina.html.HtmlTags
 import com.malliina.html.HtmlTags.{cssLink, deviceWidthViewport, fullUrl, titleTag}
 import com.malliina.http.FullUrl
@@ -59,8 +59,9 @@ class BoatHtml(
     page(Charts.chart(track, lang))
 
   def map(ub: UserBoats, center: Option[Coord] = None) =
-    val lang = BoatLang(ub.language)
-    val about = About(lang.web, lang.lang.profile)
+    val boatLang = BoatLang(ub.language)
+    val lang = boatLang.lang
+    val about = About(boatLang.web, lang.profile)
     val user = ub.user
     val isAnon = user == Usernames.anon
     val mapClass = if ub.boats.isEmpty then "anon" else "auth"
@@ -93,10 +94,10 @@ class BoatHtml(
                 a(
                   href := reverse.tracks,
                   `class` := "icon-link history",
-                  title := lang.lang.track.tracks
+                  title := lang.track.tracks
                 ),
                 div(`class` := "dropdown nav-text tracks", id := DropdownLinkId)(
-                  span(`class` := "dropdown-button", lang.lang.track.tracks),
+                  span(`class` := "dropdown-button", lang.track.tracks),
                   div(`class` := "dropdown-content", id := DropdownContentId)(
                     ub.boats.flatMap(_.tracks).sortBy(_.times.start.millis).reverse.map { t =>
                       a(`class` := "track-link", href := reverse.canonical(t.canonical))(
@@ -116,7 +117,7 @@ class BoatHtml(
                 fontAwesomeLink(a, GraphLinkId, "chart-area", Hidden, "Graph"),
                 standaloneQuestion("question-nav")
               ),
-              datesContainer,
+              datesContainer(lang.settings.forms),
               routeContainer
             )
           }.getOrElse {
@@ -142,10 +143,11 @@ class BoatHtml(
     span(id := RouteText, `class` := "nav-text route-text")("")
   )
 
-  private def datesContainer = div(id := DatesContainer, `class` := s"row $DatesContainer")(
-    timePicker("From", FromTimePickerId),
-    timePicker("To", ToTimePickerId)
-  )
+  private def datesContainer(formsLang: FormsLang) =
+    div(id := DatesContainer, `class` := s"row $DatesContainer")(
+      timePicker(formsLang.from, FromTimePickerId),
+      timePicker(formsLang.to, ToTimePickerId)
+    )
 
   private def timePicker(labelText: String, divId: String) =
     val inputId = s"$divId-input"

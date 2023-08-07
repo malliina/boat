@@ -621,6 +621,8 @@ case class InviteLang(
   def confirmRevoke(boat: BoatName, fromEmail: Email) =
     s"$revoke $boat $from $fromEmail?"
 
+case class FormsLang(from: String, to: String)
+
 case class SettingsLang(
   welcome: String,
   welcomeText: String,
@@ -641,7 +643,8 @@ case class SettingsLang(
   boatLang: BoatLang,
   actions: String,
   delete: String,
-  invite: InviteLang
+  invite: InviteLang,
+  forms: FormsLang
 )
 
 object SettingsLang:
@@ -1143,7 +1146,8 @@ object Lang:
         "Rejected",
         "Awaiting",
         "from"
-      )
+      ),
+      FormsLang("From", "To")
     ),
     LimitLang.en,
     LabelsLang("Statistics", "Monthly", "Yearly", "All time"),
@@ -1313,7 +1317,8 @@ object Lang:
         "Kielletty",
         "Odottaa",
         "käyttäjältä"
-      )
+      ),
+      FormsLang("Alku", "Loppu")
     ),
     LimitLang.fi,
     LabelsLang("Tilastot", "Kuukausittain", "Vuosittain", "Kaikki"),
@@ -1478,7 +1483,8 @@ object Lang:
         "Tackade nej",
         "Väntar",
         "från"
-      )
+      ),
+      FormsLang("Från", "Till")
     ),
     LimitLang.se,
     LabelsLang("Statistik", "Per månad", "Per år", "Alla tider"),

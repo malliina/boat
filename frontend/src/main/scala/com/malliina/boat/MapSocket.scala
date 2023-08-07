@@ -28,15 +28,13 @@ class MapSocket(
   val map: MapboxMap,
   pathFinder: PathFinder,
   mode: MapMode,
-  language: Language,
-//  hovering: Set[TrackIds]
+  lang: Lang,
   log: BaseLogger
 ) extends BaseFront
   with GeoUtils:
 
   private var socket: Option[BoatSocket] = None
 
-  val lang = Lang(language)
   val trackLang = lang.track
   private val emptyTrack = lineForTrack(Nil)
   private val trackPopup = MapboxPopup(PopupOptions())
