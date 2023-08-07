@@ -1,6 +1,6 @@
 package com.malliina.values
 
-import com.malliina.values.{degrees, err}
+import com.malliina.values.{degrees, error}
 
 class ValuesTests extends munit.FunSuite:
   test("degs") {
@@ -8,6 +8,7 @@ class ValuesTests extends munit.FunSuite:
   }
 
   test("macros") {
-    val a: ErrorMessage = err"Hej"
-    println(a)
+    val x = 42
+    val a: ErrorMessage = s"Hej, $x".error
+    assertEquals(a, ErrorMessage("Hej, 42"))
   }

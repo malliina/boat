@@ -21,7 +21,9 @@ extension (i: Float) inline def degrees: Degrees = ${ Literals.DegreesLiteral('i
 extension (i: Double)
   inline def lat: Latitude = ${ Literals.LatitudeLiteral('i) }
   inline def lng: Longitude = ${ Literals.LongitudeLiteral('i) }
-extension (s: String) inline def err: ErrorMessage = ${ Literals.ErrorMessageLiteral('s) }
+extension (s: String)
+  inline def err: ErrorMessage = ${ Literals.ErrorMessageLiteral('s) }
+  def error = ErrorMessage(s)
 extension (inline ctx: StringContext)
   inline def err(inline args: Any*): ErrorMessage =
     ${ Literals.ErrorMessageLiteralCtx('ctx, 'args) }

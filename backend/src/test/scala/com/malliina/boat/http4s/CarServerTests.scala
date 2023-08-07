@@ -3,7 +3,7 @@ package com.malliina.boat.http4s
 import cats.effect.IO
 import com.malliina.boat.db.NewUser
 import com.malliina.boat.{BoatNames, DeviceId, Errors, Latitude, LocationUpdate, LocationUpdates, Longitude, SimpleSourceMeta, SingleError, SourceType, UserToken, wh}
-import com.malliina.http.FullUrl
+import com.malliina.http.{FullUrl, OkHttpResponse}
 import com.malliina.measure.*
 import com.malliina.values.{IdToken, Username, degrees}
 import io.circe.syntax.EncoderOps
@@ -81,8 +81,9 @@ class CarServerTests extends MUnitSuite with ServerSuite:
     updates: LocationUpdates,
     token: IdToken = TestEmailAuth.testToken,
     url: FullUrl = postCarsUrl
-  ) =
+  ): IO[OkHttpResponse] =
     http.postJson(url, updates.asJson, headers(token))
+
   private def headers(token: IdToken) = Map(
     Authorization.name.toString -> s"Bearer $token",
     "Accept" -> "application/json"
