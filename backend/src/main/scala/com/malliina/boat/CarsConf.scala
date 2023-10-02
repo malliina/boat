@@ -3,10 +3,13 @@ package com.malliina.boat
 import cats.data.NonEmptyList
 import io.circe.Codec
 
+case class AuthLang(ctaGoogle: String, instructions: String, additionalText: String)
+
 case class CarProfileLang(
   signedInAs: String,
   driving: String,
   chooseLanguage: String,
+  auth: AuthLang,
   signInWith: String,
   signOut: String,
   failedToLoadProfile: String,
@@ -56,6 +59,11 @@ object CarLanguages:
         "Signed in as",
         "Driving",
         "Select language",
+        AuthLang(
+          "Sign in with Google",
+          "Sign in to store your rides in the cloud.",
+          "Your information will not be shared with third parties."
+        ),
         "Sign in with",
         "Sign out",
         "Failed to load profile.",
@@ -94,6 +102,11 @@ object CarLanguages:
         "Inloggad som",
         "Du kör",
         "Välj språk",
+        AuthLang(
+          "Logga in med Google",
+          "Logga in för att spara dina åk i molnet.",
+          "Din information delas inte med tredje parter."
+        ),
         "Logga in med",
         "Logga ut",
         "Laddning av profil misslyckades.",
@@ -132,6 +145,11 @@ object CarLanguages:
         "Käyttäjätunnus",
         "Ajat autoa",
         "Valitse kieli",
+        AuthLang(
+          "Kirjaudu palvelulla Google",
+          "Kirjautumisella tallennat ajosi pilveen.",
+          "Tietojasi ei jaeta kolmansien osapuolten kanssa."
+        ),
         "Kirjaudu palvelulla",
         "Kirjaudu ulos",
         "Käyttäjätietojen lataus epäonnistui.",
