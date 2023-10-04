@@ -35,11 +35,11 @@ case class LocationUpdate(
   val coord = Coord(longitude, latitude)
 
 object LocationUpdate:
-  implicit val speedReader: Codec[SpeedM] = Codec.from(
+  given Codec[SpeedM] = Codec.from(
     Decoder.decodeDouble.map(mps => SpeedM(mps)),
     Encoder.encodeDouble.contramap(_.toMps)
   )
-  implicit val json: Codec[LocationUpdate] = deriveCodec[LocationUpdate]
+  given Codec[LocationUpdate] = deriveCodec[LocationUpdate]
 
 case class LocationUpdates(updates: List[LocationUpdate], carId: DeviceId) derives Codec.AsObject
 
@@ -90,7 +90,7 @@ case class DateVal(year: YearVal, month: MonthVal, day: DayVal):
   override def toString = iso8601
 
 object DateVal:
-  implicit val json: Codec[DateVal] = Codec.from(
+  given Codec[DateVal] = Codec.from(
     Decoder.decodeLocalDate.map(apply),
     Encoder.encodeLocalDate.contramap(dv => dv.toLocalDate)
   )

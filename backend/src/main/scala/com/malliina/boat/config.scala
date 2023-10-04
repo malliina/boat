@@ -18,7 +18,7 @@ object AppMode:
   case object Dev extends AppMode
   val fromBuild: AppMode = unsafe(BuildInfo.mode)
 
-  implicit val reader: ConfigReadable[AppMode] = ConfigReadable.string.emapParsed { s =>
+  given ConfigReadable[AppMode] = ConfigReadable.string.emapParsed { s =>
     fromString(s)
   }
 
@@ -60,13 +60,13 @@ case class BoatConf(
 )
 
 object BoatConf:
-  implicit val token: ConfigReadable[AccessToken] = byString(s => AccessToken(s))
-  implicit val secret: ConfigReadable[SecretKey] = byString(s => SecretKey(s))
-  implicit val clientId: ConfigReadable[ClientId] = byString(s => ClientId(s))
-  implicit val keyId: ConfigReadable[KeyId] = byString(s => KeyId(s))
-  implicit val teamId: ConfigReadable[TeamId] = byString(s => TeamId(s))
+  given ConfigReadable[AccessToken] = byString(s => AccessToken(s))
+  given ConfigReadable[SecretKey] = byString(s => SecretKey(s))
+  given ConfigReadable[ClientId] = byString(s => ClientId(s))
+  given ConfigReadable[KeyId] = byString(s => KeyId(s))
+  given ConfigReadable[TeamId] = byString(s => TeamId(s))
   private def byString[T](s: String => T): ConfigReadable[T] = ConfigReadable.string.map(s)
-  implicit val clientSecret: ConfigReadable[ClientSecret] =
+  given ConfigReadable[ClientSecret] =
     ConfigReadable.string.map(s => ClientSecret(s))
 
   def parse(

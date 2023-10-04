@@ -14,43 +14,23 @@ object AccessOperation extends StringEnumCompanion[AccessOperation]:
   override def all = Seq(Grant, Revoke)
   override def write(t: AccessOperation) = t.name
 
-case class BoatInvite(email: Email)
+case class BoatInvite(email: Email) derives Codec.AsObject
 
-object BoatInvite:
-  implicit val json: Codec[BoatInvite] = deriveCodec[BoatInvite]
+case class RevokeAccess(to: DeviceId, from: UserId) derives Codec.AsObject
 
-case class RevokeAccess(to: DeviceId, from: UserId)
+case class InviteResponse(to: DeviceId, accept: Boolean) derives Codec.AsObject
 
-object RevokeAccess:
-  implicit val json: Codec[RevokeAccess] = deriveCodec[RevokeAccess]
-
-case class InviteResponse(to: DeviceId, accept: Boolean)
-
-object InviteResponse:
-  implicit val json: Codec[InviteResponse] = deriveCodec[InviteResponse]
-
-case class InvitePayload(boat: DeviceId, email: Email):
+case class InvitePayload(boat: DeviceId, email: Email) derives Codec.AsObject:
   def byUser(user: UserId) = InviteInfo(boat, email, user)
-
-object InvitePayload:
-  implicit val json: Codec[InvitePayload] = deriveCodec[InvitePayload]
 
 case class InviteInfo(boat: DeviceId, email: Email, principal: UserId)
 
 case class BoatAccess(boat: DeviceId, user: UserId, operation: AccessOperation)
+  derives Codec.AsObject
 
-object BoatAccess:
-  implicit val json: Codec[BoatAccess] = deriveCodec[BoatAccess]
+case class InviteAnswer(boat: DeviceId, state: InviteState) derives Codec.AsObject
 
-case class InviteAnswer(boat: DeviceId, state: InviteState)
-
-object InviteAnswer:
-  implicit val json: Codec[InviteAnswer] = deriveCodec[InviteAnswer]
-
-case class AccessResult(existed: Boolean)
-
-object AccessResult:
-  implicit val json: Codec[AccessResult] = deriveCodec[AccessResult]
+case class AccessResult(existed: Boolean) derives Codec.AsObject
 
 case class EmailUser(user: UserId, email: Email)
 

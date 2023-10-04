@@ -11,7 +11,6 @@ import com.malliina.html.HtmlTags.{cssLink, deviceWidthViewport, fullUrl, titleT
 import com.malliina.http.FullUrl
 import com.malliina.live.LiveReload
 import com.malliina.measure.DistanceM
-import com.malliina.values.WrappedString
 import org.http4s.Uri
 import scalatags.Text
 import scalatags.Text.all.*
@@ -40,9 +39,6 @@ class BoatHtml(
   assets: AssetsSource
 ):
   val reverse = Reverse
-
-  implicit def wrapFrag[T <: WrappedString](w: T): Modifier = stringFrag(w.value)
-  implicit def wrapAttr[T <: WrappedString]: AttrValue[T] = BoatImplicits.boatStringAttr(_.value)
 
   def devices(user: UserInfo) =
     page(PageConf(BoatsPage(user), bodyClasses = Seq(BoatsClass)))
