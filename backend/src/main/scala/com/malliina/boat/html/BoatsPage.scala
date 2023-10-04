@@ -23,11 +23,12 @@ object BoatsPage extends BoatImplicits with CSRFConf:
     val settings = lang.settings
     val boatLang = settings.boatLang
     val inviteLang = settings.invite
-    implicit def stateToHtml(s: InviteState): Modifier = s match
+    given Conversion[InviteState, Modifier] = {
       case Awaiting => inviteLang.awaiting
       case Accepted => inviteLang.accepted
       case Rejected => inviteLang.rejected
       case Other(_) => ""
+    }
     div(`class` := "container")(
       div(`class` := "row")(
         div(`class` := "col-md-12")(

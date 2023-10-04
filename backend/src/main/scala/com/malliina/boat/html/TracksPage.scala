@@ -19,7 +19,7 @@ object TracksPage extends BoatImplicits:
 
   implicit def distanceKmHtml(d: DistanceM): Frag = stringFrag(formatDistance(d) + " km")
 
-  def translate(month: MonthVal, lang: MonthsLang): String =
+  private def translate(month: MonthVal, lang: MonthsLang): String =
     month.month match
       case 1  => lang.jan
       case 2  => lang.feb
