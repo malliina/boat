@@ -91,7 +91,7 @@ case class DegreesMinutes(degrees: Int, minutes: Double):
   def longitude(ew: EastOrWest) = LongitudeDM(degrees, minutes, ew)
 
 object DegreesMinutes:
-  val dm = """(\d{2,3})(\d{2}\.\d+)""".r
+  private val dm = """(\d{2,3})(\d{2}\.\d+)""".r
 
   def parse(in: String): Either[SingleError, DegreesMinutes] = in match
     case dm(degrees, minutes) =>

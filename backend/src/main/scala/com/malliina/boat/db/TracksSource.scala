@@ -40,4 +40,8 @@ trait TracksSource[F[_]]:
   def canonical(track: TrackCanonical, language: Language): F[TrackRef]
   def track(track: TrackName, user: Username, query: TrackQuery): F[TrackInfo]
   def full(track: TrackName, language: Language, query: TrackQuery): F[FullTrack]
+
+  /** @return
+    *   oldest first
+    */
   def history(user: MinimalUserInfo, limits: BoatQuery): F[Seq[CoordsEvent]]

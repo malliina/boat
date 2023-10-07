@@ -33,6 +33,8 @@ object DoobieTracksDatabase:
       else acc :+ sc.c.toFull(Seq(sc.s), formatter)
     }
 
+  /** Collects `rows` into coord events in which their order will be reversed.
+    */
   private def collectTrackCoords(rows: Seq[TrackCoord], language: Language): Seq[CoordsEvent] =
     val start = System.currentTimeMillis()
     val formatter = TimeFormatter.lang(language)

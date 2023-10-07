@@ -97,7 +97,7 @@ class BoatStreams[F[_]: Async](
 
   def clientEvents(formatter: TimeFormatter): Stream[F, FrontEvent] =
     val events = saved
-      .subscribe(100)
+      .subscribe(maxQueued = 100)
       .collect { case InsertedCoord(coord, inserted) =>
         CoordsEvent(
           List(coord.timed(inserted.point, formatter)),

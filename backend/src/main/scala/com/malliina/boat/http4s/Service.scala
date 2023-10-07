@@ -381,20 +381,19 @@ class Service[F[_]: Async: Files](comps: BoatComps[F]) extends BasicService[F]:
         val username = user.username
         log.info(s"Viewer '${user.username}' joined.")
         BoatQuery(req.uri.query).map { boatQuery =>
-          log.info(s"Got $boatQuery")
           val historicalLimits =
             if boatQuery.tracks.nonEmpty && username == Usernames.anon then
               BoatQuery.tracks(boatQuery.tracks)
             else if username == Usernames.anon then BoatQuery.empty
             else boatQuery
-          val historyIO = db.history(user, historicalLimits).flatMap { es =>
+          val historyIO = db.history(user, historicalLimits).map { es =>
             // unless a sample is specified, return about 300 historical points - this optimization is for charts
             val intelligentSample = math.max(1, es.map(_.coords.length).sum / 300)
             val actualSample = boatQuery.sample.getOrElse(intelligentSample)
             log.debug(
               s"Points ${es.map(_.coords.length).sum} intelligent sample $intelligentSample actual $actualSample"
             )
-            F.pure(es.toList.map(_.sample(actualSample)))
+            es.toList.map(_.sample(actualSample))
           }
           val history = Stream.evalSeq(historyIO)
           val formatter = TimeFormatter.lang(user.language)
