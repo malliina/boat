@@ -56,7 +56,9 @@ case class CarLanguage(code: Language, name: String) derives Codec.AsObject
 case class NotificationLang(
   appRunning: String,
   enjoy: String,
-  grantPermissions: String
+  grantPermissions: String,
+  autoStart: String,
+  startTracking: String
 ) derives Codec.AsObject
 
 case class CarLang(
@@ -72,7 +74,7 @@ case class CarLang(
 object CarLanguages:
   val default = NonEmptyList.of(
     CarLang(
-      "Car-Tracker",
+      "Car-Map",
       CarLanguage(Language.english, "English"),
       CarProfileLang(
         "Signed in as",
@@ -95,16 +97,16 @@ object CarLanguages:
       PermissionsLang(
         "Grant permissions",
         "Grant app access to location and car",
-        "This app needs access to location and car properties in order to store them to your Car-Tracker account.",
+        "This app needs access to location and car properties in order to store them to your Car-Map account.",
         "Try again",
         "Please open Settings and grant app-level permissions for this app.",
         PermissionContent(
           "Grant access to car data",
-          "This app needs access to car data (speed, battery level, and so on) in order to save it to your Car-Tracker account."
+          "This app needs access to car data (speed, battery level, and so on) in order to save it to your Car-Map account."
         ),
         PermissionContent(
           "Grant access to location",
-          "This app needs access to the car's location in order to save it to your Car-Tracker account."
+          "This app needs access to the car's location in order to save it to your Car-Map account."
         ),
         PermissionContent(
           "Grant access to background location",
@@ -112,7 +114,7 @@ object CarLanguages:
         ),
         PermissionContent(
           "Grant app access to location and car",
-          "This app needs access to location and car properties in order to save them to your Car-Tracker account."
+          "This app needs access to location and car properties in order to save them to your Car-Map account."
         )
       ),
       CarStatsLang(
@@ -129,10 +131,16 @@ object CarLanguages:
         "Range",
         "Temperature outside"
       ),
-      NotificationLang("Car-Tracker running", "Enjoy the drive!", "Please grant permissions.")
+      NotificationLang(
+        "Car-Map running",
+        "Enjoy the drive!",
+        "Please grant permissions.",
+        "Car-Map autostart",
+        "Start tracking?"
+      )
     ),
     CarLang(
-      "Car-Tracker",
+      "Car-Map",
       CarLanguage(Language.swedish, "Svenska"),
       CarProfileLang(
         "Inloggad som",
@@ -155,16 +163,16 @@ object CarLanguages:
       PermissionsLang(
         "Ge rättigheter",
         "Ge appen rättigheter till plats och bildata",
-        "Appen behöver rättigheter för att kunna spara plats och bildata till ditt Car-Tracker konto.",
+        "Appen behöver rättigheter för att kunna spara plats och bildata till ditt Car-Map konto.",
         "Pröva på nytt",
         "Öppna inställningar och ge appen rättigheter.",
         PermissionContent(
           "Ge rättigheter till bildata",
-          "Appen behöver tillgång till bildata (hastighet, batterinivå, osv.) för att kunna spara det till ditt Car-Tracker konto."
+          "Appen behöver tillgång till bildata (hastighet, batterinivå, osv.) för att kunna spara det till ditt Car-Map konto."
         ),
         PermissionContent(
           "Ge appen rättigheter till bilens plats",
-          "Appen behöver tillgång till plats för att spara den till ditt Car-Tracker konto."
+          "Appen behöver tillgång till plats för att spara den till ditt Car-Map konto."
         ),
         PermissionContent(
           "Ge appen rättigheter till plats i bakgrunden",
@@ -172,7 +180,7 @@ object CarLanguages:
         ),
         PermissionContent(
           "Ge appen rättigheter till plats och bildata",
-          "Appen behöver rättigheter för att kunna spara plats och bildata till ditt Car-Tracker konto."
+          "Appen behöver rättigheter för att kunna spara plats och bildata till ditt Car-Map konto."
         )
       ),
       CarStatsLang(
@@ -189,10 +197,16 @@ object CarLanguages:
         "Räckvidd",
         "Temperatur ute"
       ),
-      NotificationLang("Car-Tracker igång", "Njut av dagen!", "Appen behöver rättigheter.")
+      NotificationLang(
+        "Car-Map igång",
+        "Njut av dagen!",
+        "Appen behöver rättigheter.",
+        "Car-Map automatisk start",
+        "Samla data?"
+      )
     ),
     CarLang(
-      "Car-Tracker",
+      "Car-Map",
       CarLanguage(Language.finnish, "Suomeksi"),
       CarProfileLang(
         "Käyttäjätunnus",
@@ -215,16 +229,16 @@ object CarLanguages:
       PermissionsLang(
         "Anna oikeuksia",
         "Anna sovellukselle oikeudet lukea auton sijainti ja muut tiedot",
-        "Sovellus tarvitsee oikeuksia tallentaakseen sijainti- ja muut tiedot Car-Tracker-tilillesi.",
+        "Sovellus tarvitsee oikeuksia tallentaakseen sijainti- ja muut tiedot Car-Map-tilillesi.",
         "Kokeile uudelleen",
         "Avaa asetukset ja anna sovellukselle oikeuksia.",
         PermissionContent(
           "Anna sovellukselle oikeudet lukea auton tietoja",
-          "Sovellus tarvitsee lukuoikeuksia tallentaakseen tiedot Car-Tracker-tilillesi."
+          "Sovellus tarvitsee lukuoikeuksia tallentaakseen tiedot Car-Map-tilillesi."
         ),
         PermissionContent(
           "Anna sovellukselle oikeudet lukea auton sijaintitiedot",
-          "Sovellus tarvitsee oikeuksia tallentaakseen sijaintitiedot Car-Tracker-tilillesi."
+          "Sovellus tarvitsee oikeuksia tallentaakseen sijaintitiedot Car-Map-tilillesi."
         ),
         PermissionContent(
           "Anna sovellukselle lukuoikeudet sijaintitietoihin taustalla",
@@ -232,7 +246,7 @@ object CarLanguages:
         ),
         PermissionContent(
           "Anna sovellukselle oikeudet lukea auton sijainti ja muut tiedot",
-          "Sovellus tarvitsee oikeuksia tallentaakseen sijainti- ja muut tiedot Car-Tracker-tilillesi."
+          "Sovellus tarvitsee oikeuksia tallentaakseen sijainti- ja muut tiedot Car-Map-tilillesi."
         )
       ),
       CarStatsLang(
@@ -249,7 +263,13 @@ object CarLanguages:
         "Toimintamatka",
         "Ulkolämpötila"
       ),
-      NotificationLang("Car-Tracker käynnissä", "Nauti ajosta!", "Anna sovellukselle oikeuksia.")
+      NotificationLang(
+        "Car-Map käynnissä",
+        "Nauti ajosta!",
+        "Anna sovellukselle oikeuksia.",
+        "Car-Map käynnistys",
+        "Tallenna ajo?"
+      )
     )
   )
 
