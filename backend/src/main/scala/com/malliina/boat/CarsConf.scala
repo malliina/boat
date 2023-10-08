@@ -4,6 +4,7 @@ import cats.data.NonEmptyList
 import io.circe.Codec
 
 case class AuthLang(ctaGoogle: String, instructions: String, additionalText: String)
+  derives Codec.AsObject
 
 case class CarProfileLang(
   signedInAs: String,
