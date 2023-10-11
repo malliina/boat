@@ -81,7 +81,7 @@ object CarLanguages:
       CarProfileLang(
         "Signed in as",
         "Driving",
-        "Go to car-map.com to view your driven routes.",
+        "View your driven routes on car-map.com.",
         "Select language",
         AuthLang(
           "Sign in with Google",
