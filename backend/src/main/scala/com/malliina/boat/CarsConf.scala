@@ -9,6 +9,7 @@ case class AuthLang(ctaGoogle: String, instructions: String, additionalText: Str
 case class CarProfileLang(
   signedInAs: String,
   driving: String,
+  cloudInstructions: String,
   chooseLanguage: String,
   auth: AuthLang,
   signInWith: String,
@@ -80,6 +81,7 @@ object CarLanguages:
       CarProfileLang(
         "Signed in as",
         "Driving",
+        "Go to car-map.com to view your driven routes.",
         "Select language",
         AuthLang(
           "Sign in with Google",
@@ -146,6 +148,7 @@ object CarLanguages:
       CarProfileLang(
         "Inloggad som",
         "Du kör",
+        "Följ med resor gjorda med bilen på car-map.com.",
         "Välj språk",
         AuthLang(
           "Logga in med Google",
@@ -212,6 +215,7 @@ object CarLanguages:
       CarProfileLang(
         "Käyttäjätunnus",
         "Ajat autoa",
+        "Seuraa ajettuja reittejä osoitteessa car-map.com",
         "Valitse kieli",
         AuthLang(
           "Kirjaudu palvelulla Google",
