@@ -231,22 +231,28 @@ class DoobieTracksDatabase[F[_]: Async](val db: DoobieDatabase[F])
   }
 
   def full(track: TrackName, language: Language, query: TrackQuery): F[FullTrack] = run {
+    val formatter = TimeFormatter.lang(language)
     val rows = sql.pointsByTrack(track)
     val limited =
       sql"""$rows order by p.source_time asc, p.id asc, p.added asc limit ${query.limit} offset ${query.offset}"""
-    val coordsIO =
+    val sentencesIO =
       sql"""select ${sql.pointColumns}, s.id, s.sentence, s.added sentenceAdded
             from ($limited) p, sentence_points sp, sentences s
             where p.id = sp.point and sp.sentence = s.id
             order by p.source_time, p.id, sentenceAdded"""
         .query[SentenceCoord2]
         .to[List]
+    val pointsIO =
+      limited.query[CombinedCoord].to[List].map(rows => rows.map(_.toFull(Nil, formatter)))
     val trackIO = sql.trackByName(track).query[JoinedTrack].unique
-    val formatter = TimeFormatter.lang(language)
     for
       stats <- trackIO
-      coords <- coordsIO
-    yield FullTrack(stats.strip(formatter), DoobieTracksDatabase.collectRows(coords, formatter))
+      sentences <- sentencesIO
+      collected = DoobieTracksDatabase.collectRows(sentences, formatter)
+      fullCoords <-
+        if collected.isEmpty then pointsIO
+        else collected.pure[ConnectionIO]
+    yield FullTrack(stats.strip(formatter), fullCoords)
   }
 
   def history(user: MinimalUserInfo, limits: BoatQuery): F[Seq[CoordsEvent]] = run {

@@ -3,7 +3,7 @@ package com.malliina.boat.html
 import com.malliina.boat.FrontKeys.*
 import com.malliina.boat.http.Limits
 import com.malliina.boat.http4s.Reverse
-import com.malliina.boat.{BoatFormats, FullTrack, TrackComments, TrackName, TrackRef, TrackTitle}
+import com.malliina.boat.{BoatFormats, FullTrack, SourceType, TrackComments, TrackName, TrackRef, TrackTitle}
 import com.malliina.measure.SpeedM
 import scalatags.Text.all.*
 
@@ -13,12 +13,15 @@ object SentencesPage extends BoatImplicits:
   val reverse = Reverse
 
   def apply(track: FullTrack, current: Limits, lang: BoatLang): Modifier =
+    val speedUnit = BoatFormats.speedUnit(track.track.sourceType)
     val trackLang = lang.lang.track
     div(`class` := "container")(
       namedInfoBox(track.track, lang),
       pagination(track.track, current),
       table(`class` := "table table-hover")(
-        thead(tr(th(trackLang.coordinate), th(trackLang.speed), th(lang.lang.time))),
+        thead(
+          tr(th(trackLang.coordinate), th(s"${trackLang.speed} ($speedUnit)"), th(lang.lang.time))
+        ),
         tbody(
           track.coords.map { c =>
             modifier(

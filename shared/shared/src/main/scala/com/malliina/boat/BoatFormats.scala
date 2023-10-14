@@ -7,9 +7,7 @@ import scala.concurrent.duration.Duration
 object BoatFormats:
   def formatSpeed(s: SpeedM, source: SourceType, includeUnit: Boolean) =
     val unitSuffix =
-      if includeUnit then
-        if source == SourceType.Vehicle then " km/h"
-        else " kn"
+      if includeUnit then s" ${speedUnit(source)}"
       else ""
 
     val rounded = source match
@@ -17,6 +15,10 @@ object BoatFormats:
       case SourceType.Boat     => formatKnots(s)
       case SourceType.Other(n) => formatKph(s)
     s"$rounded$unitSuffix"
+
+  def speedUnit(source: SourceType) =
+    if source == SourceType.Vehicle then "km/h"
+    else "kn"
 
   def formatKnots(s: SpeedM) = "%.3f".format(s.toKnots)
   def formatKph(s: SpeedM) = "%.3f".format(s.toKmh)
