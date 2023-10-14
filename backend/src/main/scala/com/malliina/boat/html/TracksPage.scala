@@ -124,7 +124,9 @@ object TracksPage extends BoatImplicits:
         tbody(
           tracks.tracks.map { track =>
             val speed: String =
-              track.topSpeed.map(BoatFormats.formatSpeed).getOrElse(lang.messages.notAvailable)
+              track.topSpeed
+                .map(BoatFormats.formatSpeed(_, track.sourceType, includeUnit = true))
+                .getOrElse(lang.messages.notAvailable)
             tr(
               td(a(href := reverse.canonical(track.canonical))(track.describe)),
               td(track.times.range),
@@ -139,7 +141,7 @@ object TracksPage extends BoatImplicits:
 
   def column(name: Modifier, sort: TrackSort, activeSort: TrackSort, isAsc: Boolean) =
     val isActive = sort == activeSort
-    val mod =
+    val icon =
       if isActive then if isAsc then "chevron-up" else "chevron-down"
       else "sort"
     val inverseOrder = if isAsc then SortOrder.Desc.name else SortOrder.Asc.name
@@ -149,8 +151,8 @@ object TracksPage extends BoatImplicits:
           reverse.tracks,
           Map(TrackSort.key -> sort.name, SortOrder.key -> inverseOrder)
         )
-      )(name, " ", i(`class` := s"fas fa-$mod"))
+      )(name, " ", i(`class` := s"icon-button $icon"))
     )
 
-  def withQuery(call: Uri, params: Map[String, String]) =
+  private def withQuery(call: Uri, params: Map[String, String]) =
     call.withQueryParams(params)

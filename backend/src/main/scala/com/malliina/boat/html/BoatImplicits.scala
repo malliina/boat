@@ -2,7 +2,7 @@ package com.malliina.boat.html
 
 import cats.Show
 import cats.syntax.show.toShow
-import com.malliina.boat.BoatFormats.{formatSpeed, formatTemp}
+import com.malliina.boat.BoatFormats.{formatKnots, formatTemp}
 import com.malliina.boat.{DateVal, WrappedInt}
 import com.malliina.measure.{SpeedM, Temperature}
 import com.malliina.values.WrappedString
@@ -14,7 +14,7 @@ import scala.language.implicitConversions
 object BoatImplicits extends BoatImplicits
 
 trait BoatImplicits:
-  given Conversion[SpeedM, Frag] = (s: SpeedM) => stringFrag(formatSpeed(s))
+  given Conversion[SpeedM, Frag] = (s: SpeedM) => stringFrag(formatKnots(s))
   // given Conversion[DistanceM, Frag] = (d: DistanceM) => stringFrag(formatDistance(d))
   given Conversion[Temperature, Frag] = (t: Temperature) => stringFrag(formatTemp(t))
   given Conversion[DateVal, Frag] = (d: DateVal) => stringFrag(d.iso8601)

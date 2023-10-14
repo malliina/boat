@@ -41,17 +41,16 @@
 }
 
 .close {
-  color: #aaa;
   align-self: flex-end;
-  font-size: 22px;
-  font-weight: 700;
-}
+  width: 22px;
+  height: 22px;
+  background: url("../img/xmark-aaa.svg") no-repeat center;
 
-.close:hover,
-.close:focus {
-  color: black;
-  text-decoration: none;
-  cursor: pointer;
+  &:hover, &:focus {
+    background: url("../img/xmark-black.svg") no-repeat center;
+    text-decoration: none;
+    cursor: pointer;
+  }
 }
 
 .hidden {

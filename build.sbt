@@ -5,12 +5,12 @@ import scala.sys.process.Process
 
 val webAuthVersion = "6.5.5"
 val munitVersion = "0.7.29"
-val testContainersScalaVersion = "0.40.17"
+val testContainersScalaVersion = "0.41.0"
 val scalaTagsVersion = "0.12.0"
 val primitiveVersion = "3.4.5"
 val logstreamsVersion = "2.6.2"
 val http4sVersion = "0.23.23"
-val logbackVersion = "1.4.8"
+val logbackVersion = "1.4.11"
 val circeVersion = "0.14.3"
 // Do not upgrade to 11.0.2 because it depends on slf4j-api alpha versions, breaking logging
 val alpnVersion = "9.4.40.v20210413"
@@ -90,7 +90,7 @@ val frontend = project
   .settings(boatSettings)
   .settings(
     libraryDependencies ++= Seq(
-      "org.scala-js" %%% "scalajs-dom" % "2.6.0",
+      "org.scala-js" %%% "scalajs-dom" % "2.8.0",
       "org.scalameta" %%% "munit" % munitVersion % Test
     )
   )
@@ -118,7 +118,7 @@ val backend = Project("boat", file("backend"))
       "com.vividsolutions" % "jts" % "1.13",
       "mysql" % "mysql-connector-java" % "8.0.33",
       "org.apache.commons" % "commons-text" % "1.10.0",
-      "software.amazon.awssdk" % "s3" % "2.20.115",
+      "software.amazon.awssdk" % "s3" % "2.21.0",
       "com.malliina" %% "logstreams-client" % logstreamsVersion,
       "com.malliina" %% "mobile-push-io" % "3.8.1",
       "com.malliina" %% "config" % primitiveVersion,

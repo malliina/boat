@@ -68,12 +68,12 @@ object SentencesPage extends BoatImplicits:
                 placeholder := webLang.titlePlaceholder
               )
             ),
-            div(`class` := "col-3 pl-0")(
-              button(`type` := "submit", `class` := "btn btn-sm btn-primary")(webLang.save),
+            div(`class` := "col-3 px-0")(
+              button(`type` := "submit", `class` := "btn btn-sm btn-primary mx-1")(webLang.save),
               button(
                 `type` := "button",
                 id := CancelEditTrackId,
-                `class` := "btn btn-sm btn-secondary ml-1"
+                `class` := "btn btn-sm btn-secondary mx-1"
               )(webLang.cancel)
             )
           )
@@ -116,12 +116,12 @@ object SentencesPage extends BoatImplicits:
                 placeholder := webLang.commentsPlaceholder
               )
             ),
-            div(`class` := "col-3 pl-0")(
-              button(`type` := "submit", `class` := "btn btn-sm btn-primary")(webLang.save),
+            div(`class` := "col-3 px-0")(
+              button(`type` := "submit", `class` := "btn btn-sm btn-primary mx-1")(webLang.save),
               button(
                 `type` := "button",
                 id := CancelEditCommentsId,
-                `class` := "btn btn-sm btn-secondary ml-1"
+                `class` := "btn btn-sm btn-secondary mx-1"
               )(webLang.cancel)
             )
           )
@@ -130,9 +130,9 @@ object SentencesPage extends BoatImplicits:
     )
 
   private def editIcon(editId: String, titleText: String) =
-    span(
+    i(
       id := editId,
-      `class` := s"fas fa-edit icon-link edit-icon tight",
+      `class` := "icon-link edit-icon input-title tight",
       title := titleText,
       aria.hidden := "true"
     )

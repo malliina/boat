@@ -6,8 +6,29 @@
   @media only screen and (min-width: 1000px) {
     display: flex;
   }
+}
 
-  &.icon {
+.icon-button {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  background-repeat: no-repeat;
+  background-position: center center;
+
+  &.sort {
+    background-image: url("../img/sort.svg");
+  }
+
+  &.chevron-up {
+    background-image: url("../img/chevron-up.svg");
+  }
+
+  &.chevron-down {
+    background-image: url("../img/chevron-down.svg");
+  }
+
+  &:hover {
+    text-decoration: none;
   }
 }
 

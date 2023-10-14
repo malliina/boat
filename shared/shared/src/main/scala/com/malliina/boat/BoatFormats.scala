@@ -5,8 +5,21 @@ import com.malliina.measure.{DistanceM, SpeedM, Temperature}
 import scala.concurrent.duration.Duration
 
 object BoatFormats:
-  def formatSpeed(s: SpeedM) = "%.3f".format(s.toKnots)
-  def formatSpeedKph(s: SpeedM) = "%.3f".format(s.toKmh)
+  def formatSpeed(s: SpeedM, source: SourceType, includeUnit: Boolean) =
+    val unitSuffix =
+      if includeUnit then
+        if source == SourceType.Vehicle then " km/h"
+        else " kn"
+      else ""
+
+    val rounded = source match
+      case SourceType.Vehicle  => formatKph(s)
+      case SourceType.Boat     => formatKnots(s)
+      case SourceType.Other(n) => formatKph(s)
+    s"$rounded$unitSuffix"
+
+  def formatKnots(s: SpeedM) = "%.3f".format(s.toKnots)
+  def formatKph(s: SpeedM) = "%.3f".format(s.toKmh)
   def formatDistance(d: DistanceM) = "%.3f".format(d.toKilometers)
   def formatTemp(t: Temperature) = "%.1f".format(t.toCelsius)
 

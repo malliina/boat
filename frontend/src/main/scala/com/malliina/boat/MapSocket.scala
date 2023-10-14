@@ -197,8 +197,8 @@ class MapSocket(
       from.topSpeed.foreach { top =>
         e.show()
         val formatted = from.sourceType match
-          case Vehicle => s"${formatSpeedKph(top)} km/h"
-          case _       => s"${formatSpeed(top)} kn"
+          case Vehicle => s"${formatKph(top)} km/h"
+          case _       => s"${formatKnots(top)} kn"
         e.innerHTML = s"${trackLang.top} $formatted"
       }
     }
