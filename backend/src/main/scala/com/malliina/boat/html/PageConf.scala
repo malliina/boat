@@ -7,7 +7,10 @@ import scalatags.Text.all.*
   * @param bodyClasses
   *   body classes to toggle features
   */
-case class PageConf(content: Modifier, bodyClasses: Seq[String] = Nil)
+case class PageConf(
+  content: Modifier,
+  bodyClasses: Seq[String] = Nil
+)
 
 object PageConf:
   val empty: Modifier = ""

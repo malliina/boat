@@ -6,7 +6,8 @@ import com.malliina.boat.push.PushService
 import com.malliina.boat.{AccessToken, S3Client}
 
 case class BoatComps[F[_]](
-  html: BoatHtml,
+  boatHtml: BoatHtml,
+  carHtml: BoatHtml,
   db: TracksSource[F],
   vessels: VesselDatabase[F],
   inserts: TrackInsertsDatabase[F],

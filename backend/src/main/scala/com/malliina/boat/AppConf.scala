@@ -12,3 +12,4 @@ case class AppConf(
 
 object AppConf:
   val Name = "Boat-Tracker"
+  val CarName = "Car-Map"

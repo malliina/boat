@@ -5,7 +5,7 @@ import com.malliina.boat.FrontKeys.*
 import com.malliina.boat.html.BoatImplicits.showFrag
 import com.malliina.boat.http.{Limits, TrackQuery}
 import com.malliina.boat.http4s.Reverse
-import com.malliina.boat.{AppConf, BuildInfo, Coord, FormsLang, FrontKeys, FullTrack, Lang, TrackRef, TracksBundle, UserBoats, UserInfo, Usernames}
+import com.malliina.boat.{AppConf, BuildInfo, Coord, FormsLang, FrontKeys, FullTrack, Lang, SourceType, TrackRef, TracksBundle, UserBoats, UserInfo, Usernames}
 import com.malliina.html.HtmlTags
 import com.malliina.html.HtmlTags.{cssLink, deviceWidthViewport, fullUrl, titleTag}
 import com.malliina.http.FullUrl
@@ -18,38 +18,52 @@ import scalatags.Text.all.*
 import scala.language.implicitConversions
 
 object BoatHtml:
-  def fromBuild: BoatHtml = apply(BuildInfo.isProd)
+  def fromBuild(sourceType: SourceType): BoatHtml =
+    default(BuildInfo.isProd, sourceType)
 
-  val faviconPath = "assets/img/favicon.png"
+  private def chooseFavicon(sourceType: SourceType) =
+    if sourceType == SourceType.Vehicle then "favicon-car.svg"
+    else "favicon.png"
 
-  def apply(isProd: Boolean): BoatHtml =
+  def faviconPath(sourceType: SourceType) = s"assets/img/${chooseFavicon(sourceType)}"
+
+  def default(isProd: Boolean, sourceType: SourceType): BoatHtml =
     val externalScripts = if isProd then Nil else FullUrl.build(LiveReload.script).toSeq
+    val pageTitle =
+      if sourceType == SourceType.Vehicle then AppConf.CarName
+      else s"${AppConf.Name} - Free nautical charts for Finland"
     val appScripts = Seq("frontend.js")
-    new BoatHtml(
+    BoatHtml(
       appScripts,
       externalScripts,
       Seq("frontend.css", "fonts.css", "styles.css"),
-      AssetsSource(isProd)
+      AssetsSource(isProd),
+      chooseFavicon(sourceType),
+      pageTitle
     )
 
 class BoatHtml(
   jsFiles: Seq[String],
   externalScripts: Seq[FullUrl],
   cssFiles: Seq[String],
-  assets: AssetsSource
+  assets: AssetsSource,
+  favicon: String,
+  pageTitle: String
 ):
   val reverse = Reverse
 
   def devices(user: UserInfo) =
-    page(PageConf(BoatsPage(user), bodyClasses = Seq(BoatsClass)))
+    page(PageConf(BoatsPage(user), Seq(BoatsClass)))
 
   def tracks(data: TracksBundle, query: TrackQuery, lang: Lang): Frag =
-    page(PageConf(TracksPage(data, query, lang), bodyClasses = Seq(StatsClass)))
+    page(PageConf(TracksPage(data, query, lang), Seq(StatsClass)))
 
-  def signIn(lang: Lang) = page(PageConf(SignInPage(lang.settings)))
+  def signIn(lang: Lang) = page(
+    PageConf(SignInPage(lang.settings))
+  )
 
   def list(track: FullTrack, current: Limits, lang: BoatLang) =
-    page(PageConf(SentencesPage(track, current, lang), bodyClasses = Seq(FormsClass)))
+    page(PageConf(SentencesPage(track, current, lang), Seq(FormsClass)))
 
   def chart(track: TrackRef, lang: BoatLang) =
     page(Charts.chart(track, lang))
@@ -208,11 +222,11 @@ class BoatHtml(
           name := "keywords",
           content := "charts, nautical, boat, tracking, ais, live, vessels, marine"
         ),
-        titleTag(s"${AppConf.Name} - Free nautical charts for Finland"),
+        titleTag(pageTitle),
         deviceWidthViewport,
         StructuredData.appStructuredData,
         StructuredData.appLinkMetadata,
-        link(rel := "icon", `type` := "image/png", href := inlineOrAsset("img/favicon.png")),
+        link(rel := "icon", `type` := "image/png", href := inlineOrAsset(s"img/$favicon")),
         cssFiles.map { file =>
           cssLink(versioned(file))
         }

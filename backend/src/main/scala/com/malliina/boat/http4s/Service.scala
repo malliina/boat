@@ -51,7 +51,8 @@ class Service[F[_]: Async: Files](comps: BoatComps[F]) extends BasicService[F]:
   val F = Sync[F]
   val auth = comps.auth
   val userMgmt = auth.users
-  val html = comps.html
+  private def html(req: Request[F]) = if isCar(req) then comps.carHtml else comps.boatHtml
+  private def isCar(req: Request[F]): Boolean = Urls.hostOnly(req).host.endsWith("car-map.com")
   val db = comps.db
   val inserts = comps.inserts
   val streams = comps.streams
@@ -69,8 +70,9 @@ class Service[F[_]: Async: Files](comps: BoatComps[F]) extends BasicService[F]:
   val normalRoutes: HttpRoutes[F] = HttpRoutes.of[F] {
     case req @ GET -> Root      => index(req)
     case GET -> Root / "health" => ok(AppMeta.default)
-    case GET -> Root / "favicon.ico" =>
-      temporaryRedirect(Uri.unsafeFromString(s"/${BoatHtml.faviconPath}"))
+    case req @ GET -> Root / "favicon.ico" =>
+      val sourceType = if isCar(req) then SourceType.Vehicle else SourceType.Boat
+      temporaryRedirect(Uri.unsafeFromString(s"/${BoatHtml.faviconPath(sourceType)}"))
     case req @ GET -> Root / "pingAuth" =>
       auth.profile(req).flatMap { _ => ok(AppMeta.default) }
     case req @ GET -> Root / "users" / "me" =>
@@ -153,7 +155,7 @@ class Service[F[_]: Async: Files](comps: BoatComps[F]) extends BasicService[F]:
       )
     case req @ GET -> Root / "boats" =>
       auth.profile(req).flatMap { user =>
-        ok(html.devices(user))
+        ok(html(req).devices(user))
       }
     case req @ POST -> Root / "boats" =>
       boatFormAction(req) { (boatName, user) =>
@@ -186,7 +188,7 @@ class Service[F[_]: Async: Files](comps: BoatComps[F]) extends BasicService[F]:
           html =
             val lang = BoatLang(authed.user.language).lang
             db.tracksBundle(authed.user, authed.query, lang).flatMap { ts =>
-              ok(html.tracks(ts, authed.query, lang))
+              ok(html(req).tracks(ts, authed.query, lang))
             }
         )
       }
@@ -220,7 +222,7 @@ class Service[F[_]: Async: Files](comps: BoatComps[F]) extends BasicService[F]:
         db.full(trackName, authed.user.language, authed.query).flatMap { track =>
           respond(req)(
             json = ok(track),
-            html = ok(html.list(track, authed.query.limits, BoatLang(authed.user.language)))
+            html = ok(html(req).list(track, authed.query.limits, BoatLang(authed.user.language)))
           )
         }
       }
@@ -229,7 +231,7 @@ class Service[F[_]: Async: Files](comps: BoatComps[F]) extends BasicService[F]:
         authed <- authedLimited(req)
         lang = authed.user.language
         ref <- db.ref(trackName, lang)
-        response <- ok(html.chart(ref, BoatLang(lang)))
+        response <- ok(html(req).chart(ref, BoatLang(lang)))
       yield response
     case req @ GET -> Root / "vessels" =>
       val handler = for
@@ -238,7 +240,7 @@ class Service[F[_]: Async: Files](comps: BoatComps[F]) extends BasicService[F]:
         response <- respond(req)(
           json = ok(rows),
           html = ok(
-            html.map(
+            html(req).map(
               authed.user.userBoats,
               rows.headOption.flatMap(_.updates.headOption.map(_.coord))
             )
@@ -319,7 +321,7 @@ class Service[F[_]: Async: Files](comps: BoatComps[F]) extends BasicService[F]:
           else temporaryRedirect(reverse.signInFlow(provider))
         }
         .getOrElse {
-          ok(html.signIn(Lang.default))
+          ok(html(req).signIn(Lang.default))
         }
     case req @ GET -> Root / "sign-in" / "google" =>
       startHinted(AuthProvider.Google, auth.googleFlow, req)
@@ -519,7 +521,7 @@ class Service[F[_]: Async: Files](comps: BoatComps[F]) extends BasicService[F]:
           secure = isSecure,
           httpOnly = false
         )
-        ok(html.map(maybeBoat.getOrElse(UserBoats.anon))).map { res =>
+        ok(html(req).map(maybeBoat.getOrElse(UserBoats.anon))).map { res =>
           val cookied = res.addCookie(tokenCookie).addCookie(languageCookie)
           auth.saveSettings(SettingsPayload(u, lang, authorizedBoats), cookied, isSecure)
         }

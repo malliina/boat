@@ -19,10 +19,6 @@ object MapboxCss extends js.Object
 object MapboxGlCss extends js.Object
 
 @js.native
-@JSImport("@fortawesome/fontawesome-free/css/all.min.css", JSImport.Namespace)
-object FontAwesomeCss extends js.Object
-
-@js.native
 @JSImport("@eonasdan/tempus-dominus/dist/css/tempus-dominus.css", JSImport.Namespace)
 object TempusDominusCss extends js.Object
 
@@ -33,8 +29,6 @@ object Frontend extends BodyClasses:
   private val mapboxCss = MapboxCss
   @unused
   private val mapboxGlCss = MapboxGlCss
-  @unused
-  private val fontAwesomeCss = FontAwesomeCss
   @unused
   private val tempusDominusCss = TempusDominusCss
   val log: BaseLogger = BaseLogger.console

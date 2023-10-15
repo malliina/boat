@@ -12,7 +12,7 @@ import com.malliina.boat.db.*
 import com.malliina.boat.html.BoatHtml
 import com.malliina.boat.http4s.JsonInstances.circeJsonEncoder
 import com.malliina.boat.push.{BoatPushService, PushEndpoint}
-import com.malliina.boat.{AppMeta, AppMode, BoatConf, Errors, Logging, S3Client, SingleError, message}
+import com.malliina.boat.{AppMeta, AppMode, BoatConf, Errors, Logging, S3Client, SingleError, SourceType, message}
 import com.malliina.http.HttpClient
 import com.malliina.http.io.{HttpClientF2, HttpClientIO}
 import com.malliina.util.AppLogger
@@ -137,7 +137,8 @@ object Server extends IOApp:
       val tracksDatabase = DoobieTracksDatabase(db)
       val push = DoobiePushDatabase(db, appComps.pushService)
       val comps = BoatComps(
-        BoatHtml.fromBuild,
+        BoatHtml.fromBuild(SourceType.Boat),
+        BoatHtml.fromBuild(SourceType.Vehicle),
         tracksDatabase,
         vesselDb,
         trackInserts,

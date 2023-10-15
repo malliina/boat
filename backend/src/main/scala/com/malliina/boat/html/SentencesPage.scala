@@ -3,7 +3,7 @@ package com.malliina.boat.html
 import com.malliina.boat.FrontKeys.*
 import com.malliina.boat.http.Limits
 import com.malliina.boat.http4s.Reverse
-import com.malliina.boat.{BoatFormats, FullTrack, SourceType, TrackComments, TrackName, TrackRef, TrackTitle}
+import com.malliina.boat.{BoatFormats, FullTrack, TrackComments, TrackName, TrackRef, TrackTitle}
 import com.malliina.measure.SpeedM
 import scalatags.Text.all.*
 
