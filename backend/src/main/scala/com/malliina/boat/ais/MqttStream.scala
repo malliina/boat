@@ -52,7 +52,7 @@ private class MqttStream[F[_]: Async](
   connectOptions.setPassword(settings.pass.toCharArray)
 
   private val connect: F[IMqttToken] = F
-    .async_[IMqttToken] { cb =>
+    .async_[IMqttToken]: cb =>
       log.info(s"Connecting to '$broker'...")
       client.connect(
         connectOptions,
@@ -67,24 +67,23 @@ private class MqttStream[F[_]: Async](
             log.warn(s"Connection lost to '$broker'.", exception)
             cb(Left(exception))
       )
-    }
     .onError(t => close)
   // Converts a callback-based Unit-typed API to IO, making events available in topic `in`.
   val start = for
-    installCallback <- F.delay {
+    installCallback <- F.delay:
       client.setCallback(new MqttCallback:
         def messageArrived(topic: String, message: MqttMessage): Unit =
           val payload = MqttPayload(topic, message.getPayload)
-          val task = in.publish1(payload).map { e =>
-            e.fold(err => log.error(s"Failed to publish MQTT message.", err), _ => ())
-          }
+          val task = in
+            .publish1(payload)
+            .map: e =>
+              e.fold(err => log.error(s"Failed to publish MQTT message.", err), _ => ())
           d.unsafeRunAndForget(task)
         def deliveryComplete(token: IMqttDeliveryToken): Unit = ()
         def connectionLost(cause: Throwable): Unit =
           val task = F.delay(log.info(s"Connection lost to '$broker'.", cause)) >> close
           d.unsafeRunAndForget(task)
       )
-    }
     connection <- connect
   yield connection
 

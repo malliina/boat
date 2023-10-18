@@ -29,9 +29,8 @@ object JWT:
     val iss = Option(claims.getIssuer).map(Issuer.apply)
 
     // No expiration => never expired
-    def checkExpiration(now: Instant) = exp.flatMap { e =>
+    def checkExpiration(now: Instant) = exp.flatMap: e =>
       if now.isBefore(e) then None else Option(Expired(token, e, now))
-    }
 
     def verify(secret: SecretKey, now: Instant): Either[JWTError, Verified] =
       Verified.verify(this, secret, now)
@@ -50,9 +49,8 @@ object JWT:
       yield Parsed(token, signed, claims, json)
 
   case class Verified private (parsed: Parsed):
-    def expiresIn(now: Instant): Option[FiniteDuration] = parsed.exp.map { exp =>
+    def expiresIn(now: Instant): Option[FiniteDuration] = parsed.exp.map: exp =>
       (exp.toEpochMilli - now.toEpochMilli).millis
-    }
     def readString(key: String) = parsed.readString(key)
     def token = parsed.token
     def read[T: Decoder](key: String): Either[JWTError, T] =

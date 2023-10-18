@@ -34,15 +34,14 @@ class TracksImporter extends MUnitSuite:
 //    action.unsafeRunSync()
 //  }
 
-  test("split by date".ignore) {
+  test("split by date".ignore):
     val what: IO[List[(LocalDate, Chunk[RawSentence])]] =
       TrackStreams[IO]().fileByDate(file).compile.toList
-    what.map { list =>
-      list.sortBy(_._1).foreach { case (date, chunk) =>
-        println(s"$date: ${chunk.size}")
-      }
-    }
-  }
+    what.map: list =>
+      list
+        .sortBy(_._1)
+        .foreach: (date, chunk) =>
+          println(s"$date: ${chunk.size}")
 
   @unused
   private def importByDay(file: Path, day: LocalDate, db: DoobieDatabase[IO]): IO[Long] =

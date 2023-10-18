@@ -1,9 +1,9 @@
 package com.malliina.boat.ais
 
 import cats.effect.kernel.Resource
-import cats.effect.{Async, Sync}
 import cats.effect.std.Dispatcher
 import cats.effect.syntax.all.*
+import cats.effect.{Async, Sync}
 import cats.syntax.all.{toFlatMapOps, toFunctorOps}
 import com.malliina.boat.ais.BoatMqttClient.{AisPair, log, pass, user}
 import com.malliina.boat.ais.MqttStream.MqttPayload
@@ -100,22 +100,23 @@ class BoatMqttClient[F[_]: Async](
   private val sendTimeWindow = 5.seconds
   private val backoffTime = 30.seconds
   private val newStream: Resource[F, MqttStream[F]] =
-    Resource.eval(F.delay(newClientId())).flatMap { id =>
-      MqttStream.resource(MqttSettings(url, id, topic, user, pass), d)
-    }
-  val events = Stream.resource(newStream).flatMap { s =>
-    s.events ++ Stream.raiseError(Exception(s"Closed '$url'."))
-  }
+    Resource
+      .eval(F.delay(newClientId()))
+      .flatMap: id =>
+        MqttStream.resource(MqttSettings(url, id, topic, user, pass), d)
+  val events = Stream
+    .resource(newStream)
+    .flatMap: s =>
+      s.events ++ Stream.raiseError(Exception(s"Closed '$url'."))
   private val exponential = Stream
     .eval(Topic[F, MqttPayload])
-    .flatMap { receiver =>
+    .flatMap: receiver =>
       val consume = Stream.retry(
         events
           .evalMap(payload => receiver.publish1(payload))
-          .handleErrorWith { t =>
+          .handleErrorWith: t =>
             Stream.eval(F.delay(log.warn(s"Reconnecting to '$url' after backoff...", t))) >>
               Stream.raiseError(t)
-          }
           .compile
           .drain,
         backoffTime,
@@ -123,10 +124,9 @@ class BoatMqttClient[F[_]: Async](
         100000
       )
       receiver.subscribe(10).concurrently(consume)
-    }
     .interruptWhen(interrupter)
   private val parsed: Stream[F, Either[Error, AISMessage]] =
-    exponential.map { msg =>
+    exponential.map: msg =>
       val str = msg.payloadString
       val mmsiResult = msg.mmsi.left.map(e => DecodingFailure(e.message, Nil))
       msg.topic match
@@ -138,8 +138,7 @@ class BoatMqttClient[F[_]: Async](
         case Metadata()    => decode[VesselMetadata](str)(VesselMetadata.readerGeoJson)
         case StatusTopic() => decode[VesselStatus](str)
         case other => Left(DecodingFailure(s"Unknown topic: '$other'. Payload: '$str'.", Nil))
-    }
-  val vesselMessages: Stream[F, AisPair] = parsed.flatMap {
+  val vesselMessages: Stream[F, AisPair] = parsed.flatMap:
     case Right(msg) =>
       msg match
         case locv2: MmsiVesselLocation =>
@@ -155,7 +154,6 @@ class BoatMqttClient[F[_]: Async](
     case Left(e) =>
       log.warn(s"Failed to decode AIS JSON.", e)
       Stream.empty
-  }
   private val internalMessages =
     vesselMessages.groupWithin(maxBatchSize, sendTimeWindow).map(_.toList)
   val publisher = internalMessages

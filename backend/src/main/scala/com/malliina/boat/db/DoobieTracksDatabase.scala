@@ -22,7 +22,7 @@ object DoobieTracksDatabase:
     rows: Seq[SentenceCoord2],
     formatter: TimeFormatter
   ): Seq[CombinedFullCoord] =
-    rows.foldLeft(Vector.empty[CombinedFullCoord]) { (acc, sc) =>
+    rows.foldLeft(Vector.empty[CombinedFullCoord]): (acc, sc) =>
       val idx = acc.indexWhere(_.id == sc.c.id)
       if idx >= 0 then
         val old = acc(idx)
@@ -31,14 +31,13 @@ object DoobieTracksDatabase:
           old.copy(sentences = old.sentences :+ sc.s.timed(formatter))
         )
       else acc :+ sc.c.toFull(Seq(sc.s), formatter)
-    }
 
   /** Collects `rows` into coord events in which their order will be reversed.
     */
   private def collectTrackCoords(rows: Seq[TrackCoord], language: Language): Seq[CoordsEvent] =
     val start = System.currentTimeMillis()
     val formatter = TimeFormatter.lang(language)
-    val result = rows.foldLeft(Vector.empty[CoordsEvent]) { (acc, tc) =>
+    val result = rows.foldLeft(Vector.empty[CoordsEvent]): (acc, tc) =>
       val from = tc.track
       val point = tc.row
       val idx = acc.indexWhere(_.from.track == from.track)
@@ -60,7 +59,6 @@ object DoobieTracksDatabase:
         val old = acc(idx)
         acc.updated(idx, old.copy(coords = coord :: old.coords))
       else acc :+ CoordsEvent(List(coord), from.strip(formatter))
-    }
     val end = System.currentTimeMillis()
     val duration = (end - start).millis
     if duration > 500.millis then log.warn(s"Collected ${rows.length} in ${duration.toMillis} ms")
@@ -111,26 +109,23 @@ class DoobieTracksDatabase[F[_]: Async](val db: DoobieDatabase[F])
   private val boatsView = sql.boats.query[JoinedSource].to[List]
   private val topView = sql.topRows.query[TrackPointRow].to[List]
 
-  def hm: F[Option[SpeedM]] = run {
+  def hm: F[Option[SpeedM]] = run:
     sql"select avg(speed) from points p where p.speed >= 100 having avg(speed) is not null"
       .query[SpeedM]
       .option
-  }
 
-  def boats = run { boatsView }
-  def topRows = run { topView }
+  def boats = run(boatsView)
+  def topRows = run(topView)
 
   def tracksBundle(user: MinimalUserInfo, filter: TrackQuery, lang: Lang): F[TracksBundle] =
-    run {
+    run:
       for
         ts <- tracksForIO(user, filter)
         ss <- statsIO(user, filter, lang)
       yield TracksBundle(ts.tracks, ss)
-    }
 
-  def stats(user: MinimalUserInfo, filter: TrackQuery, lang: Lang): F[StatsResponse] = run {
+  def stats(user: MinimalUserInfo, filter: TrackQuery, lang: Lang): F[StatsResponse] = run:
     statsIO(user, filter, lang)
-  }
 
   private def statsIO(user: MinimalUserInfo, filter: TrackQuery, lang: Lang) =
     val tracks = sql.tracksByUser(user.username)
@@ -172,7 +167,7 @@ class DoobieTracksDatabase[F[_]: Async](val db: DoobieDatabase[F])
       allTime <- allTimeIO
     yield
       val all = allTime.headOption.getOrElse(AllTimeAggregates.empty)
-      val months = monthly.map { ma =>
+      val months = monthly.map: ma =>
         MonthlyStats(
           lang.calendar.months(ma.month),
           ma.year,
@@ -182,9 +177,8 @@ class DoobieTracksDatabase[F[_]: Async](val db: DoobieDatabase[F])
           ma.duration.getOrElse(zeroDuration),
           ma.days
         )
-      }
       StatsResponse(
-        daily.map { da =>
+        daily.map: da =>
           Stats(
             da.date.iso8601,
             da.date,
@@ -193,9 +187,8 @@ class DoobieTracksDatabase[F[_]: Async](val db: DoobieDatabase[F])
             da.distance.getOrElse(zeroDistance),
             da.duration.getOrElse(zeroDuration),
             da.days
-          )
-        },
-        yearly.map { ya =>
+          ),
+        yearly.map: ya =>
           YearlyStats(
             ya.year.toString,
             ya.year,
@@ -204,8 +197,7 @@ class DoobieTracksDatabase[F[_]: Async](val db: DoobieDatabase[F])
             ya.duration.getOrElse(zeroDuration),
             ya.days,
             months.filter(_.year == ya.year)
-          )
-        },
+          ),
         Stats(
           lang.labels.allTime,
           all.from.getOrElse(now),
@@ -223,14 +215,13 @@ class DoobieTracksDatabase[F[_]: Async](val db: DoobieDatabase[F])
   def canonical(trackCanonical: TrackCanonical, language: Language): F[TrackRef] =
     single(sql.tracksByCanonicals(NonEmptyList.of(trackCanonical)), language)
 
-  def track(track: TrackName, user: Username, query: TrackQuery): F[TrackInfo] = run {
+  def track(track: TrackName, user: Username, query: TrackQuery): F[TrackInfo] = run:
     for
       points <- sql.pointsByTime(track).query[CombinedCoord].to[List]
       top <- sql.topPointByTrack(track).query[CombinedCoord].option
     yield TrackInfo(points, top)
-  }
 
-  def full(track: TrackName, language: Language, query: TrackQuery): F[FullTrack] = run {
+  def full(track: TrackName, language: Language, query: TrackQuery): F[FullTrack] = run:
     val formatter = TimeFormatter.lang(language)
     val rows = sql.pointsByTrack(track)
     val limited =
@@ -253,9 +244,8 @@ class DoobieTracksDatabase[F[_]: Async](val db: DoobieDatabase[F])
         if collected.isEmpty then pointsIO
         else collected.pure[ConnectionIO]
     yield FullTrack(stats.strip(formatter), fullCoords)
-  }
 
-  def history(user: MinimalUserInfo, limits: BoatQuery): F[Seq[CoordsEvent]] = run {
+  def history(user: MinimalUserInfo, limits: BoatQuery): F[Seq[CoordsEvent]] = run:
     val eligible = limits.neTracks
       .map(names => sql.tracksByNames(names))
       .orElse(limits.neCanonicals.map(cs => sql.tracksByCanonicals(cs)))
@@ -265,7 +255,7 @@ class DoobieTracksDatabase[F[_]: Async](val db: DoobieDatabase[F])
       }
       .query[JoinedTrack]
       .to[List]
-    eligible.flatMap { ts =>
+    eligible.flatMap: ts =>
       if ts.isEmpty then List.empty[CoordsEvent].pure[ConnectionIO]
       else
         val conditions = Fragments.whereAndOpt(
@@ -280,25 +270,17 @@ class DoobieTracksDatabase[F[_]: Async](val db: DoobieDatabase[F])
                offset ${limits.offset}"""
           .query[TrackPointRow]
           .to[List]
-          .map { ps =>
+          .map: ps =>
             val tracksById = ts.groupBy(_.track)
-            val coords = ps.flatMap { pointRow =>
-              tracksById.get(pointRow.track).map { ts => TrackCoord(ts.head, pointRow) }
-            }
+            val coords = ps.flatMap: pointRow =>
+              tracksById.get(pointRow.track).map(ts => TrackCoord(ts.head, pointRow))
             DoobieTracksDatabase.collectTrackCoords(coords, user.language)
-          }
-    }
-  }
 
-  private def single(oneRowSql: Fragment, language: Language) = run {
-    oneRowSql.query[JoinedTrack].unique.map { row =>
-      row.strip(TimeFormatter.lang(language))
-    }
-  }
+  private def single(oneRowSql: Fragment, language: Language) = run:
+    oneRowSql.query[JoinedTrack].unique.map(row => row.strip(TimeFormatter.lang(language)))
 
-  def tracksFor(user: MinimalUserInfo, filter: TrackQuery): F[Tracks] = run {
+  def tracksFor(user: MinimalUserInfo, filter: TrackQuery): F[Tracks] = run:
     tracksForIO(user, filter)
-  }
 
   private def tracksForIO(user: MinimalUserInfo, filter: TrackQuery) =
     val formatter = TimeFormatter.lang(user.language)
@@ -306,8 +288,6 @@ class DoobieTracksDatabase[F[_]: Async](val db: DoobieDatabase[F])
       .tracksFor(user.username, filter)
       .query[JoinedTrack]
       .to[List]
-      .map { list =>
-        Tracks(list.map(_.strip(formatter)))
-      }
+      .map(list => Tracks(list.map(_.strip(formatter))))
 
   def run[T](io: ConnectionIO[T]): F[T] = db.run(io)

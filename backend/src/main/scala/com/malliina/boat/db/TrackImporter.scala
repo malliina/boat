@@ -41,14 +41,13 @@ class TrackImporter[F[_]: Files: Temporal](inserts: TrackInsertsDatabase[F])
       .groupWithin(100, 500.millis)
       .map(chunk => SentencesEvent(chunk.toList, track))
       .through(processor)
-      .fold(0) { (acc, point) =>
+      .fold(0): (acc, point) =>
         val duration = 1.0d * (System.currentTimeMillis() - start) / 1000d
         val pps = if duration > 0 then 1.0d * acc / duration else 0
         if acc == 0 then log.info(s"Saving points to $describe...")
         if acc % 100 == 0 && acc > 0 then
           log.info(s"Inserted $acc points to $describe. Pace is $pps points/s.")
         acc + 1
-      }
 
     task.compile.toList.map(_.head)
 
@@ -62,18 +61,20 @@ class TrackImporter[F[_]: Files: Temporal](inserts: TrackInsertsDatabase[F])
 
   private def sentenceCompiler: Pipe[F, Seq[KeyedSentence], FullCoord] =
     val state = TrackManager()
-    _.flatMap { sentences =>
+    _.flatMap: sentences =>
       Stream.emits(BoatParser.parseMulti(sentences).flatMap(parsed => state.update(parsed)))
-    }
 
   private def pointInserter: Pipe[F, FullCoord, InsertedPoint] =
     _.mapAsync(1)(coord => inserts.saveCoords(coord))
 
 class TrackStreams[F[_]: Files]:
   def sentencesForDay(file: Path, day: LocalDate): Stream[F, RawSentence] =
-    fileByDate(file).collect { case (date, chunk) if date == day => chunk }.flatMap { chunk =>
-      Stream.chunk(chunk)
-    }
+    fileByDate(file)
+      .collect:
+        case (date, chunk) if date == day =>
+          chunk
+      .flatMap: chunk =>
+        Stream.chunk(chunk)
 
   def fileByDate(file: Path): Stream[F, (LocalDate, Chunk[RawSentence])] =
     byDateGrouped(sentences(file))
@@ -81,23 +82,24 @@ class TrackStreams[F[_]: Files]:
   def byDate(source: Stream[F, RawSentence]): Stream[F, Chunk[RawSentence]] =
     byDateGrouped(source).map(_._2)
 
-  def byDateGrouped(
+  private def byDateGrouped(
     source: Stream[F, RawSentence]
   ): Stream[F, (LocalDate, Chunk[RawSentence])] =
     source
-      .zipWithScan1(LocalDate.of(1980, 1, 1)) { (date, sentence) =>
+      .zipWithScan1(LocalDate.of(1980, 1, 1)): (date, sentence) =>
         zdaDate(sentence).getOrElse(date)
-      }
       .groupAdjacentBy(_._2)
-      .map { case (date, chunk) => (date, chunk.map(_._1)) }
+      .map((date, chunk) => (date, chunk.map(_._1)))
 
-  def zdaDate(s: RawSentence): Option[LocalDate] = SentenceParser.parse(s).toOption.flatMap {
-    case zda @ ZDAMessage(_, _, _, _, _, _, _) => Option(zda.date)
-    case _                                     => None
-  }
+  private def zdaDate(s: RawSentence): Option[LocalDate] = SentenceParser
+    .parse(s)
+    .toOption
+    .flatMap:
+      case zda @ ZDAMessage(_, _, _, _, _, _, _) => Option(zda.date)
+      case _                                     => None
   def sentences(file: Path) = lines(file).map(RawSentence.apply)
 
-  def lines(file: Path) =
+  private def lines(file: Path) =
     fs2.io.file
       .Files[F]
       .readAll(file)

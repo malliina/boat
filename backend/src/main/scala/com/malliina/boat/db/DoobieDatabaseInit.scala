@@ -3,8 +3,6 @@ package com.malliina.boat.db
 import cats.effect.{Async, Resource, Sync}
 import com.malliina.database.{Conf, DoobieDatabase}
 import com.malliina.util.AppLogger
-import doobie.*
-import doobie.implicits.*
 import org.flywaydb.core.Flyway
 import org.flywaydb.core.api.output.MigrateResult
 
@@ -16,7 +14,7 @@ object DoobieDatabaseInit:
     if conf.autoMigrate then withMigrations[F](conf) else DoobieDatabase.default[F](conf)
 
   def withMigrations[F[_]: Async](conf: Conf): Resource[F, DoobieDatabase[F]] =
-    Resource.eval[F, MigrateResult](migrate(conf)).flatMap { _ => DoobieDatabase.default(conf) }
+    Resource.eval[F, MigrateResult](migrate(conf)).flatMap(_ => DoobieDatabase.default(conf))
 
   private def migrate[F[_]: Sync](conf: Conf): F[MigrateResult] = Sync[F].delay {
     val flyway = Flyway.configure

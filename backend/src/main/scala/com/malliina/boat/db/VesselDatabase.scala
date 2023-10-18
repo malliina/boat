@@ -23,20 +23,19 @@ object BoatVesselDatabase:
 
   def collect(rows: List[VesselRow]): List[VesselHistory] =
     rows
-      .foldLeft(Vector.empty[VesselHistory]) { (acc, row) =>
+      .foldLeft(Vector.empty[VesselHistory]): (acc, row) =>
         val idx = acc.indexWhere(_.mmsi == row.mmsi)
         val entry = VesselUpdate.from(row)
         if idx >= 0 then
           val old = acc(idx)
           acc.updated(idx, old.copy(updates = old.updates :+ entry))
         else acc :+ VesselHistory(row.mmsi, row.name, row.draft, List(entry))
-      }
       .toList
 
 class BoatVesselDatabase[F[_]: Async](db: DoobieDatabase[F])
   extends VesselDatabase[F]
   with DoobieSQL:
-  override def load(query: VesselQuery): F[List[VesselHistory]] = db.run {
+  override def load(query: VesselQuery): F[List[VesselHistory]] = db.run:
     val time = query.time
     val limits = query.limits
     val conditions = Fragments.whereAndOpt(
@@ -52,14 +51,12 @@ class BoatVesselDatabase[F[_]: Async](db: DoobieDatabase[F])
           limit ${limits.limit} offset ${limits.offset}"""
       .query[VesselRow]
       .to[List]
-      .map { rows =>
+      .map: rows =>
         val durationMs = System.currentTimeMillis() - start
         log.info(
           s"Searched for vessels with ${query.describe}. Got ${rows.length} rows in $durationMs ms."
         )
         collect(rows)
-      }
-  }
 
   def save(messages: Seq[VesselInfo]): F[List[VesselUpdateId]] =
     val io = for
@@ -71,9 +68,7 @@ class BoatVesselDatabase[F[_]: Async](db: DoobieDatabase[F])
   private def saveVessels(messages: Seq[VesselInfo]): ConnectionIO[RowsChanged] =
     val mmsis = messages.distinctBy(msg => msg.mmsi).map(v => MmsiRow(v.mmsi, v.name, v.draft))
     val sql = s"insert ignore into mmsis(mmsi, name, draft) values(?, ?, ?)"
-    Update[MmsiRow](sql).updateMany(mmsis).map { rows =>
-      RowsChanged(rows)
-    }
+    Update[MmsiRow](sql).updateMany(mmsis).map(rows => RowsChanged(rows))
 
   private def saveUpdates(messages: Seq[VesselInfo]): ConnectionIO[List[VesselUpdateId]] =
     val sql =

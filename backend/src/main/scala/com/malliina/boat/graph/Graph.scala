@@ -21,8 +21,8 @@ object Graph:
     Decoder[List[ValueNode]].map(fromNodes),
     Encoder[List[ValueNode]].contramap(g => g.toList.toList)
   )
-  val graphLocalFile = LocalConf.appDir.resolve("vaylat-all.json")
-  val graphFile = file("vaylat-all.json", graphLocalFile)
+  private val graphLocalFile = LocalConf.appDir.resolve("vaylat-all.json")
+  private val graphFile = file("vaylat-all.json", graphLocalFile)
   lazy val all: Graph = decode[Graph](Files.readString(graphFile)).toOption.get
 
   def file(name: String, to: Path): Path =
@@ -34,21 +34,20 @@ object Graph:
       Files.createDirectories(to.getParent)
       val resourcePath = s"com/malliina/boat/graph/$name"
       val resource = Option(getClass.getClassLoader.getResourceAsStream(resourcePath))
-      resource.map { is =>
-        using(is) { res =>
-          val target = if Files.isWritable(to) then to else Files.createTempFile("vaylat", ".json")
-          write(res, target)
-        }
-      }.getOrElse {
-        throw new Exception(s"Not found: '$resourcePath'.")
-      }
+      resource
+        .map: is =>
+          using(is): res =>
+            val target =
+              if Files.isWritable(to) then to else Files.createTempFile("vaylat", ".json")
+            write(res, target)
+        .getOrElse:
+          throw new Exception(s"Not found: '$resourcePath'.")
 
   def write(in: InputStream, to: Path) =
-    using(new FileOutputStream(to.toFile, false)) { out =>
+    using(new FileOutputStream(to.toFile, false)): out =>
       val size = in.transferTo(out).bytes
       log.info(s"Wrote '${to.toAbsolutePath}', $size.")
       to
-    }
 
   def using[T <: Closeable, U](t: T)(code: T => U) =
     try code(t)
@@ -59,9 +58,7 @@ object Graph:
     g.edges(edges)
 
   def nodes(nodes: Seq[ValueNode]): Graph =
-    apply(nodes.map { n =>
-      n.from.hash -> n
-    }.toMap)
+    Graph(nodes.map(n => n.from.hash -> n).toMap)
 
   def apply(nodes: Map[CoordHash, ValueNode] = Map.empty): Graph =
     new Graph(nodes)
@@ -76,14 +73,14 @@ object Graph:
       else None
 
   def fromList(es: List[ValueEdge]): Graph =
-    apply(es.groupBy(_.from.hash).map { case (k, ves) =>
-      k -> ValueNode(ves.head.from, ves.map(_.link))
-    })
+    apply(
+      es.groupBy(_.from.hash)
+        .map: (k, ves) =>
+          k -> ValueNode(ves.head.from, ves.map(_.link))
+    )
 
   def fromNodes(ns: List[ValueNode]) =
-    apply(ns.map { n =>
-      n.from.hash -> n
-    }.toMap)
+    apply(ns.map(n => n.from.hash -> n).toMap)
 
 class Graph(val nodes: Map[CoordHash, ValueNode]):
   def toList = nodes.values
@@ -95,9 +92,7 @@ class Graph(val nodes: Map[CoordHash, ValueNode]):
   def nearest(to: Coord): Coord =
     coords.minBy(c => Earth.distance(c, to))
 
-  def edges(es: List[Edge]): Graph = es.foldLeft(this) { (acc, e) =>
-    acc.edge(e)
-  }
+  def edges(es: List[Edge]): Graph = es.foldLeft(this)((acc, e) => acc.edge(e))
 
   def contains(edge: Edge): Boolean =
     contains(edge.from, edge.to) || contains(edge.to, edge.from)
@@ -209,22 +204,17 @@ class Graph(val nodes: Map[CoordHash, ValueNode]):
       .map(hit => currentPaths.filter(_.cost < hit.cost))
       .getOrElse(currentPaths)
     val nextLevel = candidates.flatMap { path =>
-      nodes.get(path.to.hash).toList.flatMap { edges =>
-        edges.links.map { link =>
-          link :: path
-        }
-      }
+      nodes.get(path.to.hash).toList.flatMap(edges => edges.links.map(link => link :: path))
     }
     if nextLevel.isEmpty then
       log.info("Search complete, graph exhausted.")
       shortestKnown.get(to.hash).toRight(NoRoute(from, to))
     else
-      val candidateLevel = nextLevel.filter { route =>
+      val candidateLevel = nextLevel.filter: route =>
         val hash = route.to.hash
         !shortestKnown.contains(hash) || shortestKnown
           .get(hash)
           .exists(_.cost > route.cost)
-      }
       val novel =
         candidateLevel.groupBy(_.to.hash).view.mapValues(_.minBy(_.cost))
       val novelList = novel.values.toList

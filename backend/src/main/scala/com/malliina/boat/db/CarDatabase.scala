@@ -2,7 +2,8 @@ package com.malliina.boat.db
 
 import cats.data.NonEmptyList
 import cats.effect.Async
-import cats.implicits.*
+import cats.syntax.list.catsSyntaxList
+import cats.syntax.traverse.toTraverseOps
 import com.malliina.boat.*
 import com.malliina.boat.db.CarDatabase.log
 import com.malliina.boat.http.CarQuery
@@ -28,14 +29,13 @@ class CarDatabase[F[_]: Async](val db: DoobieDatabase[F]) extends DoobieSQL:
     userInfo: MinimalUserInfo,
     user: UserId
   ): F[List[CarRow]] =
-    run {
+    run:
       val carId = locs.carId
       val ownershipCheck =
         sql"select exists(select b.id from boats b where b.id = $carId and b.owner = $user)"
           .query[Boolean]
           .unique
-      import cats.implicits.*
-      val insertion = locs.updates.traverse { loc =>
+      val insertion = locs.updates.traverse: loc =>
         for
           prev <-
             sql"""select p.coord
@@ -58,7 +58,6 @@ class CarDatabase[F[_]: Async](val db: DoobieDatabase[F]) extends DoobieSQL:
                     ${loc.nightMode})
            """.update.withUniqueGeneratedKeys[CarUpdateId]("id")
         yield insertion
-      }
       for
         exists <- ownershipCheck
         _ <- if exists then pure(()) else fail(BoatNotFoundException(carId, user))
@@ -67,7 +66,6 @@ class CarDatabase[F[_]: Async](val db: DoobieDatabase[F]) extends DoobieSQL:
       yield
         if ids.nonEmpty then log.debug(s"Inserted to car $carId IDs ${ids.mkString(", ")}.")
         inserted
-    }
 
   private def historyQuery(filters: CarQuery, user: MinimalUserInfo) =
     val time = filters.timeRange

@@ -109,13 +109,16 @@ class BoatHtml(
                 div(`class` := "dropdown nav-text tracks", id := DropdownLinkId)(
                   span(`class` := "dropdown-button", lang.track.tracks),
                   div(`class` := "dropdown-content", id := DropdownContentId)(
-                    ub.boats.flatMap(_.tracks).sortBy(_.times.start.millis).reverse.map { t =>
-                      a(`class` := "track-link", href := reverse.canonical(t.canonical))(
-                        span(t.describe),
-                        span(short(t.distanceMeters)),
-                        span(t.times.range)
-                      )
-                    }
+                    ub.boats
+                      .flatMap(_.tracks)
+                      .sortBy(_.times.start.millis)
+                      .reverse
+                      .map: t =>
+                        a(`class` := "track-link", href := reverse.canonical(t.canonical))(
+                          span(t.describe),
+                          span(short(t.distanceMeters)),
+                          span(t.times.range)
+                        )
                   )
                 ),
                 span(id := TitleId, `class` := "nav-text title")(""),
@@ -227,18 +230,15 @@ class BoatHtml(
         StructuredData.appStructuredData,
         StructuredData.appLinkMetadata,
         link(rel := "icon", `type` := "image/png", href := inlineOrAsset(s"img/$favicon")),
-        cssFiles.map { file =>
+        cssFiles.map: file =>
           cssLink(versioned(file))
-        }
       ),
       body(`class` := pageConf.bodyClasses.mkString(" "))(
         pageConf.content,
-        jsFiles.map { jsFile =>
-          script(`type` := "text/javascript", src := versioned(jsFile))
-        },
-        externalScripts.map { url =>
+        jsFiles.map: jsFile =>
+          script(`type` := "text/javascript", src := versioned(jsFile)),
+        externalScripts.map: url =>
           script(src := url, defer)
-        }
       )
     )
 

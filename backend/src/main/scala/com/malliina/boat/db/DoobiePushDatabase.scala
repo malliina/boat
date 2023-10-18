@@ -2,7 +2,7 @@ package com.malliina.boat.db
 
 import cats.data.NonEmptyList
 import cats.effect.{Async, Sync}
-import cats.implicits.*
+import cats.syntax.all.{catsSyntaxList, toFlatMapOps, toFunctorOps, toTraverseOps}
 import com.malliina.boat.db.DoobiePushDatabase.log
 import com.malliina.boat.push.*
 import com.malliina.boat.{PushId, PushToken, UserDevice}
@@ -10,7 +10,7 @@ import com.malliina.database.DoobieDatabase
 import com.malliina.util.AppLogger
 import com.malliina.values.UserId
 import doobie.Fragments
-import doobie.implicits.*
+import doobie.syntax.all.toSqlInterpolator
 
 object DoobiePushDatabase:
   private val log = AppLogger(getClass)
@@ -20,38 +20,34 @@ class DoobiePushDatabase[F[_]: Async](db: DoobieDatabase[F], push: PushEndpoint[
   with DoobieSQL:
   val F = Sync[F]
 
-  def enable(input: PushInput): F[PushId] = db.run {
+  def enable(input: PushInput): F[PushId] = db.run:
     val existing = sql"""select id
                          from push_clients
                          where token = ${input.token} and device = ${input.device}"""
       .query[PushId]
       .option
-    existing.flatMap { idOpt =>
-      idOpt.map { id =>
-        log.info(s"${input.device} token ${input.token} already registered for push notifications.")
-        pure(id)
-      }.getOrElse {
-        sql"""insert into push_clients(token, device, user)
+    existing.flatMap: idOpt =>
+      idOpt
+        .map: id =>
+          log.info(
+            s"${input.device} token ${input.token} already registered for push notifications."
+          )
+          pure(id)
+        .getOrElse:
+          sql"""insert into push_clients(token, device, user)
               values(${input.token}, ${input.device}, ${input.user})""".update
-          .withUniqueGeneratedKeys[PushId]("id")
-          .map { id =>
-            log.info(s"Enabled notifications for ${input.device} token '${input.token}'.")
-            id
-          }
-      }
-    }
-  }
-
-  def disable(token: PushToken, user: UserId): F[Boolean] = db.run {
-    sql"delete from push_clients where token = $token and user = $user".update.run.map { rows =>
+            .withUniqueGeneratedKeys[PushId]("id")
+            .map: id =>
+              log.info(s"Enabled notifications for ${input.device} token '${input.token}'.")
+              id
+  def disable(token: PushToken, user: UserId): F[Boolean] = db.run:
+    sql"delete from push_clients where token = $token and user = $user".update.run.map: rows =>
       if rows > 0 then
         log.info(s"Disabled notifications for token '$token'.")
         true
       else
         log.warn(s"Tried to disable notifications for '$token', but no changes were made.")
         false
-    }
-  }
 
   /** Pushes at most once every five minutes to a given device.
     */
@@ -70,11 +66,9 @@ class DoobiePushDatabase[F[_]: Async](db: DoobieDatabase[F], push: PushEndpoint[
         .query[PushDevice]
         .to[List]
     }
-    val bookkeeping = db.run {
-      sql"""insert into push_history(device) values($deviceId)""".update.run.map { _ =>
+    val bookkeeping = db.run:
+      sql"""insert into push_history(device) values($deviceId)""".update.run.map: _ =>
         log.info(s"Recorded push history for device '$deviceId' (${device.deviceName}).")
-      }
-    }
     for
       tokens <- devices
       results <- tokens.traverse(token => push.push(notification, token))
@@ -88,23 +82,22 @@ class DoobiePushDatabase[F[_]: Async](db: DoobieDatabase[F], push: PushEndpoint[
     if summary.noBadTokensOrReplacements then F.pure(0)
     else
       db.run {
-        val deleteIO = summary.badTokens.toList.toNel.map { bad =>
-          val inClause = Fragments.in(fr"token", bad)
-          sql"delete from push_clients where $inClause".update.run.map { deleted =>
-            if deleted > 0 then
-              log.info(s"Removed $deleted bad tokens: ${summary.badTokens.mkString(", ")}")
-            deleted
-          }
-        }.getOrElse {
-          pure(0)
-        }
-        val updateIO = summary.replacements.toList.traverse { repl =>
-          sql"update push_clients set token = ${repl.newToken} where token = ${repl.oldToken} and device = ${repl.device}".update.run.map {
-            updated =>
-              if updated > 0 then
-                log.info(s"Updated token to '${repl.newToken}' from '${repl.oldToken}'.")
-              updated
-          }
-        }.map(_.sum)
-        deleteIO.flatMap { r1 => updateIO.map { r2 => r1 + r2 } }
+        val deleteIO = summary.badTokens.toList.toNel
+          .map: bad =>
+            val inClause = Fragments.in(fr"token", bad)
+            sql"delete from push_clients where $inClause".update.run.map: deleted =>
+              if deleted > 0 then
+                log.info(s"Removed $deleted bad tokens: ${summary.badTokens.mkString(", ")}")
+              deleted
+          .getOrElse:
+            pure(0)
+        val updateIO = summary.replacements.toList
+          .traverse: repl =>
+            sql"update push_clients set token = ${repl.newToken} where token = ${repl.oldToken} and device = ${repl.device}".update.run
+              .map: updated =>
+                if updated > 0 then
+                  log.info(s"Updated token to '${repl.newToken}' from '${repl.oldToken}'.")
+                updated
+          .map(_.sum)
+        deleteIO.flatMap(r1 => updateIO.map(r2 => r1 + r2))
       }

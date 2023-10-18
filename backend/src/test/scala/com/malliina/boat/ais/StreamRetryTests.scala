@@ -18,7 +18,7 @@ class StreamRetryTests extends MUnitSuite:
     _ <- failer
   yield 42
 
-  test("retry failing stream".ignore) {
+  test("retry failing stream".ignore):
     val start = System.currentTimeMillis()
     fs2.Stream
       .eval(unstable(start))
@@ -26,4 +26,3 @@ class StreamRetryTests extends MUnitSuite:
       .repeat
       .compile
       .drain
-  }

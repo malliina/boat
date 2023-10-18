@@ -11,11 +11,11 @@ import com.vividsolutions.jts.io.{ByteOrderValues, OutputStreamOutStream, WKBRea
   *   https://github.com/gquintana/jooq-mysql-spatial/blob/master/src/main/java/net/gquintana/jooq/mysql/GeometryConverter.java
   */
 object SpatialUtils:
-  val byteOrder = ByteOrderValues.LITTLE_ENDIAN
-  val outputDimension = 2
+  private val byteOrder = ByteOrderValues.LITTLE_ENDIAN
+  private val outputDimension = 2
   // TODO What is SRID 4326?
-  val srid = 4326
-  val gf =
+  private val srid = 4326
+  private val gf =
     new GeometryFactory(new PrecisionModel(), srid, CoordinateArraySequenceFactory.instance())
 
   def fromBytes[T](bytes: Array[Byte]): T =
@@ -27,7 +27,7 @@ object SpatialUtils:
     val point = gf.createPoint(new Coordinate(coord.lng.lng, coord.lat.lat))
     geoToBytes(point)
 
-  def geoToBytes(geo: Geometry): Array[Byte] =
+  private def geoToBytes(geo: Geometry): Array[Byte] =
     val out = new ByteArrayOutputStream()
     val sridBytes = new Array[Byte](4)
     ByteOrderValues.putInt(geo.getSRID, sridBytes, byteOrder)

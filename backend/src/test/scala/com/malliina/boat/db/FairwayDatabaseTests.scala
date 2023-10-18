@@ -10,7 +10,7 @@ import tests.{MUnitDatabaseSuite, MUnitSuite}
 import java.nio.file.Files
 
 class FairwayDatabaseTests extends MUnitSuite with MUnitDatabaseSuite:
-  dbFixture.test("import fairways to database".ignore) { database =>
+  dbFixture.test("import fairways to database".ignore): database =>
     val fileIn = userHome.resolve(".boat/vaylat/vaylat-geo.json")
     val strIn = Files.readString(fileIn)
     val coll = decode[FeatureCollection](strIn).toOption.get
@@ -32,4 +32,3 @@ class FairwayDatabaseTests extends MUnitSuite with MUnitDatabaseSuite:
       cids <- insertTask
     yield cids
     database.run(inserts).unsafeRunSync()
-  }

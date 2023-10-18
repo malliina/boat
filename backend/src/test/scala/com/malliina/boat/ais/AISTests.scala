@@ -18,17 +18,15 @@ class AISTests extends MUnitSuite:
   val testFixture = resource(Dispatcher.parallel[IO].flatMap { d =>
     BoatMqttClient.url(TestUrl, MetadataTopic, d)
   })
-  prodFixture.test("MqttSource".ignore) { client =>
+  prodFixture.test("MqttSource".ignore): client =>
     val events = client.slow.take(3).compile.toList.unsafeRunSync()
     events foreach println
-  }
 
-  testFixture.test("metadata only".ignore) { client =>
+  testFixture.test("metadata only".ignore): client =>
     val messages = client.vesselMessages.take(4).compile.toList.unsafeRunSync()
     messages foreach println
-  }
 
-  test("Connect".ignore) {
+  test("Connect".ignore):
     val p = new MemoryPersistence
     val date = Instant.now().toEpochMilli
     val client = new MqttClient(ProdUrl.url, s"testclient_$date", p)
@@ -60,4 +58,3 @@ class AISTests extends MUnitSuite:
     Thread.sleep(5000)
     client.unsubscribe(AllDataTopic)
     client.close(true)
-  }

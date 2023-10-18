@@ -40,7 +40,7 @@ class TrackInserter[F[_]: Async](val db: DoobieDatabase[F])
       sql"""$trackIds and t.name = $track and b.uid = $user"""
         .query[TrackId]
         .option
-        .flatMap { opt => opt.map(pure).getOrElse(fail(TrackNameNotFoundException(track))) }
+        .flatMap(opt => opt.map(pure).getOrElse(fail(TrackNameNotFoundException(track))))
     val canonical = TrackCanonical(Utils.normalize(title))
     def updateIO(tid: TrackId) =
       sql"""update tracks set canonical = $canonical, title = $title
@@ -53,27 +53,22 @@ class TrackInserter[F[_]: Async](val db: DoobieDatabase[F])
       sql"""$trackIds and t.id = $track and b.uid = $user"""
         .query[TrackId]
         .option
-        .flatMap { opt => opt.map(pure).getOrElse(fail(TrackIdNotFoundException(track))) }
+        .flatMap(opt => opt.map(pure).getOrElse(fail(TrackIdNotFoundException(track))))
     def updateIO(tid: TrackId) =
       sql"""update tracks set comments = $comments
             where id = $tid""".update.run
     updateTrack(trackIO, updateIO)
 
-  def addSource(boat: BoatName, sourceType: SourceType, user: UserId): F[SourceRow] = run {
-    saveNewSource(boat, sourceType, user, BoatTokens.random()).flatMap { id =>
-      boatById(id)
-    }
-  }
+  def addSource(boat: BoatName, sourceType: SourceType, user: UserId): F[SourceRow] = run:
+    saveNewSource(boat, sourceType, user, BoatTokens.random()).flatMap(id => boatById(id))
 
-  def removeDevice(device: DeviceId, user: UserId): F[Int] = run {
-    sql"delete from boats b where b.id = $device and b.owner = $user".update.run.map { rows =>
+  def removeDevice(device: DeviceId, user: UserId): F[Int] = run:
+    sql"delete from boats b where b.id = $device and b.owner = $user".update.run.map: rows =>
       if rows == 1 then log.info(s"Deleted device '$device' owned by '$user'.")
       else log.warn(s"Device '$device' owned by '$user' not found.")
       rows
-    }
-  }
 
-  def renameBoat(boat: DeviceId, newName: BoatName, user: UserId): F[SourceRow] = run {
+  def renameBoat(boat: DeviceId, newName: BoatName, user: UserId): F[SourceRow] = run:
     val ownershipCheck =
       sql"select exists(select b.id from boats b where b.id = $boat and b.owner = $user)"
         .query[Boolean]
@@ -86,52 +81,41 @@ class TrackInserter[F[_]: Async](val db: DoobieDatabase[F])
     yield
       log.info(s"Renamed device '$boat' to '$newName'.")
       updated
-  }
 
-  def joinAsSource(meta: DeviceMeta): F[JoinResult] = run {
+  def joinAsSource(meta: DeviceMeta): F[JoinResult] = run:
     val existing: ConnectionIO[List[TrackMeta]] = trackMetas(
       fr"and u.user = ${meta.user} and b.name = ${meta.boat} and t.id in (select p.track from points p where p.added > now() - interval 10 minute)"
     ).to[List]
-    existing.flatMap { opt =>
+    existing.flatMap: opt =>
       opt
         .sortBy(_.trackAdded)
         .reverse
         .headOption
-        .map { t =>
+        .map: t =>
           log.debug(s"Resuming track ${t.track} for device '${meta.boat}' by '${meta.user}'.")
           pure(JoinResult(t, true))
-        }
-        .getOrElse {
+        .getOrElse:
           val trackMeta = meta.withTrack(TrackNames.random())
-          joinSource(trackMeta).flatMap { boat =>
+          joinSource(trackMeta).flatMap: boat =>
             // Is this necessary?
-            trackMetas(fr"and t.name = ${trackMeta.track} and b.id = ${boat.id}").option.flatMap {
+            trackMetas(fr"and t.name = ${trackMeta.track} and b.id = ${boat.id}").option.flatMap:
               opt =>
-                opt.map(m => pure(JoinResult(m, false))).getOrElse {
-                  insertTrack(TrackInput.empty(trackMeta.track, boat.id)).map { meta =>
-                    log.info(s"Registered track with ID '${meta.track}' for source '${boat.id}'.")
-                    JoinResult(meta, false)
-                  }
-                }
-            }
-          }
-        }
-    }
-  }
+                opt
+                  .map(m => pure(JoinResult(m, false)))
+                  .getOrElse:
+                    insertTrack(TrackInput.empty(trackMeta.track, boat.id)).map: meta =>
+                      log.info(s"Registered track with ID '${meta.track}' for source '${boat.id}'.")
+                      JoinResult(meta, false)
 
-  def saveSentences(sentences: SentencesEvent): F[Seq[KeyedSentence]] = run {
+  def saveSentences(sentences: SentencesEvent): F[Seq[KeyedSentence]] = run:
     val from = sentences.from
-    val pairs = sentences.sentences.toList.map { s =>
-      (s, from.track)
-    }
-    pairs.toNel.map { ps =>
-      save(ps).compile.toList.map { list =>
-        list.zip(sentences.sentences).map { case (sk, s) => KeyedSentence(sk, s, from) }
-      }
-    }.getOrElse {
-      List.empty[KeyedSentence].pure[ConnectionIO]
-    }
-  }
+    val pairs = sentences.sentences.toList.map(s => (s, from.track))
+    pairs.toNel
+      .map: ps =>
+        save(ps).compile.toList.map: list =>
+          list.zip(sentences.sentences).map((sk, s) => KeyedSentence(sk, s, from))
+      .getOrElse:
+        List.empty[KeyedSentence].pure[ConnectionIO]
 
   private def save(
     pairs: NonEmptyList[(RawSentence, TrackId)]
@@ -154,7 +138,7 @@ class TrackInserter[F[_]: Async](val db: DoobieDatabase[F])
       case Nil =>
         acc
 
-  def saveCoords(coord: PointInsert): F[InsertedPoint] = run {
+  def saveCoords(coord: PointInsert): F[InsertedPoint] = run:
     val track = coord.track
     val trail =
       sql"""select coord, track_index
@@ -179,33 +163,31 @@ class TrackInserter[F[_]: Async](val db: DoobieDatabase[F])
           .query[DbTrackInfo]
           .option
           .map(_.getOrElse(DbTrackInfo(None, None, DistanceM.zero, 0)))
-      rows <- {
+      rows <-
         sql"""update tracks
               set avg_water_temp = ${info.avgWaterTemp}, avg_outside_temp = ${info.avgOutsideTemp}, avg_speed = $avgSpeed, points = ${info.points}, distance = ${info.distance}
               where id = $track""".update.run
-      }
       _ <- insertSentencePoints(
-        coord.boatStats.toList.flatMap(_.parts).map { key => (key, point) }
+        coord.boatStats.toList.flatMap(_.parts).map(key => (key, point))
       )
       ref <- trackById(track)
     yield InsertedPoint(point, ref)
-  }
 
   private def insertSentencePoints(
     rows: List[(SentenceKey, TrackPointId)]
   ): ConnectionIO[List[(SentenceKey, TrackPointId)]] =
-    rows.toNel.map { rs =>
-      val params = rows.map(_ => "(?,?)").mkString(",")
-      val sql = s"insert into sentence_points(sentence, point) values$params"
-      HC.updateWithGeneratedKeys[(SentenceKey, TrackPointId)](List("sentence", "point"))(
-        sql,
-        makeSpParams(rows),
-        512
-      ).compile
-        .toList
-    }.getOrElse {
-      List.empty[(SentenceKey, TrackPointId)].pure[ConnectionIO]
-    }
+    rows.toNel
+      .map: rs =>
+        val params = rows.map(_ => "(?,?)").mkString(",")
+        val sql = s"insert into sentence_points(sentence, point) values$params"
+        HC.updateWithGeneratedKeys[(SentenceKey, TrackPointId)](List("sentence", "point"))(
+          sql,
+          makeSpParams(rows),
+          512
+        ).compile
+          .toList
+      .getOrElse:
+        List.empty[(SentenceKey, TrackPointId)].pure[ConnectionIO]
 
   @tailrec
   private def makeSpParams(
@@ -262,9 +244,7 @@ class TrackInserter[F[_]: Async](val db: DoobieDatabase[F])
     sql"""insert into tracks(name, boat, avg_speed, avg_water_temp, points, distance, canonical)
           values(${in.name}, ${in.boat}, ${in.avgSpeed}, ${in.avgWaterTemp}, ${in.points}, ${in.distance}, ${in.canonical})""".update
       .withUniqueGeneratedKeys[TrackId]("id")
-      .flatMap { id =>
-        trackMetas(fr"and t.id = $id").unique
-      }
+      .flatMap(id => trackMetas(fr"and t.id = $id").unique)
 
   private def joinSource(meta: SourceTrackMeta): ConnectionIO[SourceRow] =
     val user = sql"select id from users u where u.user = ${meta.user}".query[UserId].unique
@@ -272,22 +252,19 @@ class TrackInserter[F[_]: Async](val db: DoobieDatabase[F])
       sql"select id, name, source_type, token, owner, added from boats b where b.name = ${meta.boat} and b.owner = $uid"
         .query[SourceRow]
         .option
-    user.flatMap { uid =>
-      existingBoat(uid).flatMap { opt =>
-        opt.map(pure).getOrElse {
-          sql"select exists(select id from boats where name = ${meta.boat})"
-            .query[Boolean]
-            .unique
-            .flatMap { exists =>
-              if exists then fail(new BoatNameNotAvailableException(meta.boat, meta.user))
-              else
-                saveNewSource(meta.boat, meta.sourceType, uid, BoatTokens.random()).flatMap { id =>
-                  boatById(id)
-                }
-            }
-        }
-      }
-    }
+    user.flatMap: uid =>
+      existingBoat(uid).flatMap: opt =>
+        opt
+          .map(pure)
+          .getOrElse:
+            sql"select exists(select id from boats where name = ${meta.boat})"
+              .query[Boolean]
+              .unique
+              .flatMap: exists =>
+                if exists then fail(new BoatNameNotAvailableException(meta.boat, meta.user))
+                else
+                  saveNewSource(meta.boat, meta.sourceType, uid, BoatTokens.random()).flatMap: id =>
+                    boatById(id)
 
   private def saveNewSource(
     name: BoatName,
@@ -297,10 +274,9 @@ class TrackInserter[F[_]: Async](val db: DoobieDatabase[F])
   ): ConnectionIO[DeviceId] =
     sql"""insert into boats(name, source_type, owner, token) values($name, $sourceType, $user, $token)""".update
       .withUniqueGeneratedKeys[DeviceId]("id")
-      .map { id =>
+      .map: id =>
         log.info(s"Registered ${sourceType.name} '$name' with ID '$id' owned by '$user'.")
         id
-      }
 
   private def updateTrack(
     tid: ConnectionIO[TrackId],

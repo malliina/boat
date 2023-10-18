@@ -1,11 +1,11 @@
 package com.malliina.boat.db
 
 import cats.effect.kernel.Sync
-import cats.implicits.*
+import cats.syntax.all.catsSyntaxApplicativeId
 import com.malliina.boat.{Coord, DeviceId}
 import com.malliina.measure.DistanceM
 import doobie.ConnectionIO
-import doobie.implicits.*
+import doobie.implicits.toSqlInterpolator
 
 trait DoobieSQL:
   export Mappings.*

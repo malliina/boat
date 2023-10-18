@@ -45,7 +45,7 @@ class TokenEmailAuth[F[_]: Sync](google: KeyClient[F], microsoft: KeyClient[F], 
   def authEmail(headers: Headers, now: Instant): F[Email] =
     Auth
       .token(headers)
-      .map { token =>
+      .map: token =>
         validateAny(token, now).flatMap { e =>
           e.fold(
             err =>
@@ -56,7 +56,6 @@ class TokenEmailAuth[F[_]: Sync](google: KeyClient[F], microsoft: KeyClient[F], 
             email => F.pure(email)
           )
         }
-      }
       .getOrElse {
         F.raiseError(IdentityException(MissingCredentials(headers)))
       }

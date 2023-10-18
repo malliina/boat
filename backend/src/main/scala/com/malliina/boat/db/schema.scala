@@ -66,8 +66,8 @@ case class DailyAggregates(
 )
 
 object DailyAggregates:
-  implicit val dur: Codec[FiniteDuration] = BoatPrimitives.durationFormat
-  implicit val json: Codec[DailyAggregates] = deriveCodec[DailyAggregates]
+  given Codec[FiniteDuration] = BoatPrimitives.durationFormat
+  given Codec[DailyAggregates] = deriveCodec[DailyAggregates]
 
 case class MonthlyAggregates(
   year: YearVal,
@@ -118,9 +118,7 @@ case class VesselRow(
   heading: Option[Int],
   eta: Long,
   added: Instant
-)
-object VesselRow:
-  implicit val json: Codec[VesselRow] = deriveCodec[VesselRow]
+) derives Codec.AsObject
 
 case class VesselUpdate(
   coord: Coord,
@@ -130,9 +128,8 @@ case class VesselUpdate(
   heading: Option[Int],
   eta: Long,
   added: Instant
-)
+) derives Codec.AsObject
 object VesselUpdate:
-  implicit val json: Codec[VesselUpdate] = deriveCodec[VesselUpdate]
   def from(row: VesselRow): VesselUpdate =
     VesselUpdate(row.coord, row.sog, row.cog, row.destination, row.heading, row.eta, row.added)
 

@@ -15,7 +15,7 @@ object TestData:
   val sanfran = Coord.build(-122.4, 37.8).toOption.get
 
 class TracksDatabaseTests extends MUnitSuite with MUnitDatabaseSuite:
-  dbFixture.test("insertion of token") { db =>
+  dbFixture.test("insertion of token"): db =>
     val users = DoobieUserManager(db)
     val email = Email("santa@example.com")
     val action = for
@@ -23,9 +23,8 @@ class TracksDatabaseTests extends MUnitSuite with MUnitDatabaseSuite:
       res <- users.save(RefreshToken("test-token"), u.id)
     yield res
     action.unsafeRunSync()
-  }
 
-  dbFixture.test("inserts update track aggregates") { db =>
+  dbFixture.test("inserts update track aggregates"): db =>
     val tdb = DoobieTracksDatabase(db)
     val inserts = TrackInserter(db)
     val users = DoobieUserManager(db)
@@ -46,9 +45,8 @@ class TracksDatabaseTests extends MUnitSuite with MUnitDatabaseSuite:
     val t = action.unsafeRunSync()
     assertEquals(t.points, 2)
     assert(t.avgSpeed.exists(s => s > 14.kmh && s < 16.kmh))
-  }
 
-  dbFixture.test("add comments to track") { db =>
+  dbFixture.test("add comments to track"): db =>
     val tdb = TrackInserter(db)
     val udb = DoobieUserManager(db)
     val testComment = "test"
@@ -73,7 +71,6 @@ class TracksDatabaseTests extends MUnitSuite with MUnitDatabaseSuite:
     yield t.comments
     val dbComment = task.unsafeRunSync()
     assert(dbComment.contains(testComment))
-  }
 
   def fakeCoord(c: Coord, speed: SpeedM, track: TrackId, boat: DeviceId) =
     FullCoord(

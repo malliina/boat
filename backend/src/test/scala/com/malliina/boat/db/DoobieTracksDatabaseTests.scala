@@ -12,11 +12,10 @@ import tests.{MUnitDatabaseSuite, MUnitSuite}
 import scala.annotation.unused
 
 class DoobieTracksDatabaseTests extends MUnitSuite with MUnitDatabaseSuite:
-  dbFixture.test("run doobie query") { doobie =>
+  dbFixture.test("run doobie query"): doobie =>
     val service = DoobieTracksDatabase(doobie)
     val res = service.hm.unsafeRunSync()
     assertEquals(res, None)
-  }
 
 class DoobieTests extends MUnitSuite with Mappings:
   val conf = Conf(
@@ -30,7 +29,7 @@ class DoobieTests extends MUnitSuite with Mappings:
 
   val dbResource = databaseFixture(conf)
 
-  dbResource.test("make query".ignore) { doobie =>
+  dbResource.test("make query".ignore): doobie =>
     val db = DoobieTracksDatabase(doobie)
     val task = db.tracksBundle(
       SimpleUserInfo(Username("mle"), Language.english, Nil),
@@ -38,18 +37,15 @@ class DoobieTests extends MUnitSuite with Mappings:
       Lang.default
     )
     val _ = task.unsafeRunSync()
-  }
 
-  dbResource.test("measure distance".ignore) { doobie =>
+  dbResource.test("measure distance".ignore): doobie =>
     @unused
     implicit val coordMeta: Meta[Coord] = Mappings.coordMeta
     val db = DoobieTracksDatabase(doobie)
     val c1 = Coord.buildOrFail(60, 30)
     val c2 = Coord.buildOrFail(70, 13)
-    val task = db.run {
+    val task = db.run:
       sql"select st_distance_sphere($c1, $c2)".query[DistanceM].unique
-    }
     val distance = task.unsafeRunSync()
     assert(distance > 2100.km)
     assert(distance < 2200.km)
-  }

@@ -45,28 +45,28 @@ class SIWADatabase[F[_]: Sync](
     * The client should use this JWT going forward.
     */
   def recreate(token: IdToken, now: Instant): F[BoatJwt] =
-    liftEither(jwt.verify(token, now)).flatMap { claims =>
-      users.load(claims.refresh).flatMap { row =>
-        if row.canVerify then
-          for
-            res <- siwa.verifyRefreshToken(row.token)
-            _ = log.info(
-              s"Verified refresh token with ID '${row.id}' for ${claims.email}. Last verification was at ${row.lastVerification}."
-            )
-            email <- tokenValidator.validateOrFail(res.id_token, now)
-            _ <- F.raiseWhen(claims.email != email) {
-              val msg = ErrorMessage(
-                s"Email in claims was '${claims.email}', expected '$email'. Token was '$token'."
-              )
-              JWTException(InvalidClaims(token, msg))
-            }
-            upd <- users.updateValidation(claims.refresh)
-          yield claims.copy(lastValidation = upd.lastVerification)
-        else F.pure(claims)
-      }
-    }.map { cs =>
-      BoatJwt(cs.email, jwt.write(cs, now))
-    }
+    liftEither(jwt.verify(token, now))
+      .flatMap: claims =>
+        users
+          .load(claims.refresh)
+          .flatMap: row =>
+            if row.canVerify then
+              for
+                res <- siwa.verifyRefreshToken(row.token)
+                _ = log.info(
+                  s"Verified refresh token with ID '${row.id}' for ${claims.email}. Last verification was at ${row.lastVerification}."
+                )
+                email <- tokenValidator.validateOrFail(res.id_token, now)
+                _ <- F.raiseWhen(claims.email != email):
+                  val msg = ErrorMessage(
+                    s"Email in claims was '${claims.email}', expected '$email'. Token was '$token'."
+                  )
+                  JWTException(InvalidClaims(token, msg))
+                upd <- users.updateValidation(claims.refresh)
+              yield claims.copy(lastValidation = upd.lastVerification)
+            else F.pure(claims)
+      .map: cs =>
+        BoatJwt(cs.email, jwt.write(cs, now))
 
   private def liftEither[T](e: Either[JWTError, T]): F[T] =
     e.fold(err => F.raiseError(JWTException(err)), t => F.pure(t))

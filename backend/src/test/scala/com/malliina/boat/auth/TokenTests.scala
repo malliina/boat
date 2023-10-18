@@ -15,39 +15,35 @@ import scala.jdk.CollectionConverters.MapHasAsScala
 class TokenTests extends BaseSuite:
   val boatConf = LocalConf.conf.getConfig("boat")
 
-  http.test("google token validation".ignore) { httpClient =>
+  http.test("google token validation".ignore): httpClient =>
     val in = "token_here"
     val client = GoogleAuthFlow.keyClient(Seq(ClientId("client_id")), httpClient)
-    client.validate(IdToken(in)).map { outcome =>
-      assert(outcome.isRight)
-      val v = outcome.toOption.get
-      v.parsed.claims.getClaims.asScala.foreach { case (k, value) =>
-        println(s"$k=$value")
-      }
-    }
-  }
+    client
+      .validate(IdToken(in))
+      .map: outcome =>
+        assert(outcome.isRight)
+        val v = outcome.toOption.get
+        v.parsed.claims.getClaims.asScala.foreach: (k, value) =>
+          println(s"$k=$value")
 
-  http.test("validate iOS SIWA token".ignore) { client =>
+  http.test("validate iOS SIWA token".ignore): client =>
     val token = IdToken("changeme")
     val v = AppleTokenValidator.app(client)
     v.validateToken(token, Instant.now()).map { outcome => }
-  }
 
-  http.test("validate siwa code".ignore) { client =>
+  http.test("validate siwa code".ignore): client =>
     val fields = Map(
       "code" -> demoConf("code"),
       "grant_type" -> "authorization_code"
     )
     printRequest(fields, client)
-  }
 
-  http.test("validate refresh token".ignore) { client =>
+  http.test("validate refresh token".ignore): client =>
     val fields = Map(
       "grant_type" -> "refresh_token",
       "refresh_token" -> demoConf("refresh")
     )
     printRequest(fields, client)
-  }
 
   def demoConf(key: String) =
     val boatConf = LocalConf.localConf.getConfig("boat")

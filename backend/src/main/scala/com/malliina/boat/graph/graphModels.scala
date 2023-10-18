@@ -39,11 +39,9 @@ case class PointOnEdge(from: Coord, to: Coord, point: Coord) extends EdgeLike:
 
 case class RouteEndpoint(desired: Coord, pseudo: Option[Coord], closest: ValueNode)
 
-case class ValueEdge(from: Coord, to: Coord, cost: DistanceM) extends EdgeLike:
+case class ValueEdge(from: Coord, to: Coord, cost: DistanceM) extends EdgeLike
+  derives Codec.AsObject:
   def link = Link(to, cost)
-
-object ValueEdge:
-  implicit val json: Codec[ValueEdge] = deriveCodec[ValueEdge]
 
 case class ValueRoute(head: Link, tail: List[Link]):
   val to = head.to
@@ -52,19 +50,14 @@ case class ValueRoute(head: Link, tail: List[Link]):
   def ::(next: Link) = ValueRoute(next, head :: tail)
 
   def reverse =
-    tail.lastOption.map { last =>
-      RouteSpec(last :: (head :: tail.init).reverse, cost)
-    }.getOrElse {
-      RouteSpec(head :: Nil, cost)
-    }
+    tail.lastOption
+      .map: last =>
+        RouteSpec(last :: (head :: tail.init).reverse, cost)
+      .getOrElse:
+        RouteSpec(head :: Nil, cost)
 
   def coords = edges.map(_.to)
 
-case class ValueNode(from: Coord, links: List[Link]):
-  def edges = links.map { link =>
-    ValueEdge(from, link.to, link.cost)
-  }
+case class ValueNode(from: Coord, links: List[Link]) derives Codec.AsObject:
+  def edges = links.map(link => ValueEdge(from, link.to, link.cost))
   def link(l: Link) = ValueNode(from, l :: links)
-
-object ValueNode:
-  implicit val json: Codec[ValueNode] = deriveCodec[ValueNode]
