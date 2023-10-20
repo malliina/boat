@@ -13,7 +13,7 @@ import com.malliina.web.{Code, RevokeResult}
 import org.http4s.headers.Cookie
 import org.http4s.{Headers, Request, Response}
 import org.typelevel.ci.{CIString, CIStringSyntax}
-
+import cats.syntax.all.toTraverseOps
 import java.time.Instant
 
 object AuthService:
@@ -30,16 +30,14 @@ class AuthService[F[_]: Sync](val users: IdentityManager[F], comps: AuthComps[F]
   val webSiwa: SIWADatabase[F] = SIWADatabase(comps.appleWebFlow, users, comps.customJwt)
 
   def delete(headers: Headers, now: Instant): F[List[RevokeResult]] =
-    import cats.implicits.*
     for
       user <- profile(headers, now)
       tokens <- users.refreshTokens(user.id)
-      revocations <- tokens.traverse { token =>
+      revocations <- tokens.traverse: token =>
         for
           app <- comps.appleAppFlow.revoke(token)
           web <- comps.appleWebFlow.revoke(token)
         yield List(app, web)
-      }
       _ <- users.deleteUser(user.username)
     yield revocations.flatten
 
@@ -51,9 +49,7 @@ class AuthService[F[_]: Sync](val users: IdentityManager[F], comps: AuthComps[F]
     profile(headers).map(ui => ui: MinimalUserInfo)
 
   def profile(headers: Headers, now: Instant = Instant.now()): F[UserInfo] =
-    emailOnly(headers, now).flatMap { email =>
-      users.userInfo(email)
-    }
+    emailOnly(headers, now).flatMap(email => users.userInfo(email))
 
   def recreate(headers: Headers, now: Instant = Instant.now()): F[BoatJwt] =
     Auth
@@ -64,9 +60,7 @@ class AuthService[F[_]: Sync](val users: IdentityManager[F], comps: AuthComps[F]
   def optionalWebAuth(
     req: Request[F]
   ): F[Either[MissingCredentials, UserRequest[F, Option[UserBoats]]]] =
-    optionalUserInfo(req).map { e =>
-      e.map { opt => UserRequest(opt, req) }
-    }
+    optionalUserInfo(req).map(e => e.map(opt => UserRequest(opt, req)))
 
   def authOrAnon(headers: Headers): F[MinimalUserInfo] =
     minimal(headers, _ => F.pure(MinimalUserInfo.anon))
@@ -74,10 +68,9 @@ class AuthService[F[_]: Sync](val users: IdentityManager[F], comps: AuthComps[F]
   def typical(headers: Headers) = minimal(headers, mce => F.raiseError(mce))
 
   private def minimal(headers: Headers, onFail: MissingCredentialsException => F[MinimalUserInfo]) =
-    profileMini(headers).handleErrorWith {
+    profileMini(headers).handleErrorWith:
       case mce: MissingCredentialsException => settings(headers).map(F.pure).getOrElse(onFail(mce))
       case other                            => F.raiseError(other)
-    }
 
   def saveSettings(settings: SettingsPayload, res: Response[F], isSecure: Boolean) = web.withJwt(
     SettingsPayload.cookieName,
@@ -93,46 +86,45 @@ class AuthService[F[_]: Sync](val users: IdentityManager[F], comps: AuthComps[F]
       .filter(_.username != Usernames.anon)
 
   def authBoat(headers: Headers): F[DeviceMeta] =
-    boatToken(headers).map(e => e.map(jb => jb: DeviceMeta)).getOrElse {
-      val boatName = headers
-        .get(CIString(BoatNameHeader))
-        .map(h => BoatName(h.head.value))
-        .getOrElse(BoatNames.random())
-      F.pure(SimpleSourceMeta(Usernames.anon, boatName, SourceType.Boat): DeviceMeta)
-    }
+    boatToken(headers)
+      .map(e => e.map(jb => jb: DeviceMeta))
+      .getOrElse:
+        val boatName = headers
+          .get(CIString(BoatNameHeader))
+          .map(h => BoatName(h.head.value))
+          .getOrElse(BoatNames.random())
+        F.pure(SimpleSourceMeta(Usernames.anon, boatName, SourceType.Boat): DeviceMeta)
 
   private def boatToken(headers: Headers): Option[F[JoinedSource]] =
-    headers.get(CIString(BoatTokenHeader)).map { h =>
-      users.authBoat(BoatToken(h.head.value))
-    }
+    headers.get(CIString(BoatTokenHeader)).map(h => users.authBoat(BoatToken(h.head.value)))
 
   private def emailOnly(headers: Headers, now: Instant): F[Email] =
-    emailAuth.authEmail(headers, now).handleErrorWith {
-      case mce: MissingCredentialsException =>
-        authSession(headers).fold(
-          err => F.raiseError(mce),
-          email => F.pure(email)
-        )
-      case t =>
-        F.raiseError(t)
-    }
+    emailAuth
+      .authEmail(headers, now)
+      .handleErrorWith:
+        case mce: MissingCredentialsException =>
+          authSession(headers).fold(
+            err => F.raiseError(mce),
+            email => F.pure(email)
+          )
+        case t =>
+          F.raiseError(t)
 
   private def optionalUserInfo(
     req: Request[F]
   ): F[Either[MissingCredentials, Option[UserBoats]]] =
     val headers = req.headers
-    authSession(headers).map { email =>
-      users.boats(email).map { boats => Right(Option(boats)) }
-    }.getOrElse {
-      val providerCookieName = comps.web.cookieNames.provider
-      val hasGoogleCookie = headers.get[Cookie].exists { header =>
-        header.values.exists(r =>
-          r.name == providerCookieName && r.content == GoogleCookie.toString
-        )
-      }
-      if hasGoogleCookie then F.pure(Left(MissingCredentials(headers)))
-      else F.pure(Right(None))
-    }
+    authSession(headers)
+      .map: email =>
+        users.boats(email).map(boats => Right(Option(boats)))
+      .getOrElse:
+        val providerCookieName = comps.web.cookieNames.provider
+        val hasGoogleCookie = headers.get[Cookie].exists { header =>
+          header.values
+            .exists(r => r.name == providerCookieName && r.content == GoogleCookie.toString)
+        }
+        if hasGoogleCookie then F.pure(Left(MissingCredentials(headers)))
+        else F.pure(Right(None))
 
   private def authSession(headers: Headers) =
     web

@@ -27,29 +27,24 @@ object SentenceParser extends NMEA0183Parser:
 
     RawSentence.write(raw) match
       case dpt(talker, depth, offset) =>
-        mapFailures {
+        mapFailures:
           for
             d <- asDouble(depth)
             o <- asDouble(offset)
           yield DPTMessage(talker, d.meters, o.meters)
-        }
       case vtg(talker, courseTrue, courseMagnetic, speedKnots, speedKmh) =>
-        mapFailures {
+        mapFailures:
           for
             trueCourse <- asDouble(courseTrue)
             magneticCourse <- asDouble(courseMagnetic)
             knots <- asDouble(speedKnots)
             kmh <- asDouble(speedKmh)
           yield VTGMessage(talker, trueCourse, magneticCourse, knots.knots, kmh.kmh)
-        }
       case mtw(talker, temp) =>
-        mapFailures {
-          asDouble(temp).map { t =>
-            MTWMessage(talker, t.celsius)
-          }
-        }
+        mapFailures:
+          asDouble(temp).map(t => MTWMessage(talker, t.celsius))
       case zda(talker, utc, day, month, year, offsetHours, offsetMinutes) =>
-        mapFailures {
+        mapFailures:
           for
             time <- ZDAMessage.parseTimeUtc(utc)
             d <- asInt(day)
@@ -58,9 +53,8 @@ object SentenceParser extends NMEA0183Parser:
             offHours <- optInt(offsetHours)
             offMinutes <- optInt(offsetMinutes)
           yield ZDAMessage(talker, time, d, m, y, offHours, offMinutes)
-        }
       case gga(talker, utc, latDM, lngDM, quality, svCount, hdopStr, height, geoid, diff) =>
-        mapFailures {
+        mapFailures:
           for
             time <- ZDAMessage.parseTimeUtc(utc)
             lat <- LatitudeDM.parse(latDM)
@@ -72,16 +66,14 @@ object SentenceParser extends NMEA0183Parser:
             geo <- if geoid.isEmpty then Right(None) else asDouble(geoid).map(Option.apply)
             d <- if diff.isEmpty then Right(None) else asDouble(diff).map(Option.apply)
           yield GGAMessage(talker, time, lat, lng, q, svs, hdop, h, geo, d)
-        }
       case gsa(talker, mode, fix) =>
-        mapFailures {
+        mapFailures:
           for
             m <- GPSMode(mode)
             f <- GPSFix(fix)
           yield GSAMessage(talker, m, f)
-        }
       case rmc(talker, utc, latDM, lngDM, knots, course, date) =>
-        mapFailures {
+        mapFailures:
           for
             time <- ZDAMessage.parseTimeUtc(utc)
             lat <- LatitudeDM.parse(latDM)
@@ -90,14 +82,12 @@ object SentenceParser extends NMEA0183Parser:
             c <- toDouble(course)
             d <- RMCMessage.parseDate(date)
           yield RMCMessage(talker, time, d, kn.knots, c)
-        }
       case gsv(talker, satellites, elevation, azimuth) =>
-        mapFailures {
+        mapFailures:
           for
             s <- toInt(satellites)
             e <- Elevation(elevation)
             a <- Azimuth(azimuth)
           yield GSVMessage(talker, s, e, a)
-        }
       case _ =>
         Left(UnknownSentence(raw, s"Unknown sentence: '$raw'."))

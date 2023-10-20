@@ -14,6 +14,7 @@ object AppleTokenValidator:
   val appleIssuer = Issuer("https://appleid.apple.com")
   // aud for tokens obtained in the iOS app SIWA flow
   val boatClientId = ClientId("com.malliina.BoatTracker")
+
   def app[F[_]: Sync](http: HttpClient[F]): AppleTokenValidator[F] =
     AppleTokenValidator(Seq(boatClientId), http)
 
@@ -25,12 +26,11 @@ class AppleTokenValidator[F[_]: Sync](
   val F = Sync[F]
 
   def validateOrFail(token: TokenValue, now: Instant): F[Email] =
-    extractEmail(token, now).flatMap { e =>
+    extractEmail(token, now).flatMap: e =>
       e.fold(err => F.raiseError(AuthException(err)), F.pure)
-    }
 
   def extractEmail(token: TokenValue, now: Instant): F[Either[AuthError, Email]] =
-    validateToken(token, now).map { outcome =>
+    validateToken(token, now).map: outcome =>
       for
         v <- outcome
         email <- v.readString(EmailKey).map(Email.apply)
@@ -39,20 +39,15 @@ class AppleTokenValidator[F[_]: Sync](
           if emailVerified.toLowerCase == "true" then Right(email)
           else Left(InvalidClaims(token, err"Email not verified."))
       yield result
-    }
 
   def validateToken(
     token: TokenValue,
     now: Instant
   ): F[Either[AuthError, Verified]] =
-    http.getAs[JWTKeys](AppleAuthFlow.jwksUri).map { keys =>
-      validate(token, keys.keys, now)
-    }
+    http.getAs[JWTKeys](AppleAuthFlow.jwksUri).map(keys => validate(token, keys.keys, now))
 
   override protected def validateClaims(
     parsed: ParsedJWT,
     now: Instant
   ): Either[JWTError, ParsedJWT] =
-    checkContains(Aud, clientIds.map(_.value), parsed).map { _ =>
-      parsed
-    }
+    checkContains(Aud, clientIds.map(_.value), parsed).map(_ => parsed)

@@ -68,7 +68,7 @@ object TracksPage extends BoatImplicits:
               )
             ),
             tbody(
-              stats.yearly.map { year =>
+              stats.yearly.map: year =>
                 modifier(
                   tr(`class` := "year-row", yearDataAttr := year.year)(
                     td(year.year),
@@ -78,7 +78,7 @@ object TracksPage extends BoatImplicits:
                     td(year.trackCount),
                     td(year.days)
                   ),
-                  year.monthly.map { month =>
+                  year.monthly.map: month =>
                     tr(
                       `class` := s"month-row $Hidden",
                       yearDataAttr := year.year,
@@ -91,9 +91,7 @@ object TracksPage extends BoatImplicits:
                       td(month.trackCount),
                       td(month.days)
                     )
-                  }
-                )
-              },
+                ),
               tr(
                 td(lang.labels.allTime),
                 td(allTime.distance),
@@ -122,7 +120,7 @@ object TracksPage extends BoatImplicits:
           )
         ),
         tbody(
-          tracks.tracks.map { track =>
+          tracks.tracks.map: track =>
             val speed: String =
               track.topSpeed
                 .map(BoatFormats.formatSpeed(_, track.sourceType, includeUnit = true))
@@ -134,7 +132,6 @@ object TracksPage extends BoatImplicits:
               td(track.distanceMeters),
               td(speed)
             )
-          }
         )
       )
     )

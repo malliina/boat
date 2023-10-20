@@ -23,7 +23,7 @@ import tests.{Http4sSuite, MUnitSuite, TestEmailAuth}
 import java.time.{LocalDate, LocalTime}
 
 class ServiceTests extends MUnitSuite with Http4sSuite:
-  test("can change name of boat") {
+  test("can change name of boat"):
     val comps = app()
     val service = comps.service
     val user = Username("test@example.com")
@@ -48,9 +48,8 @@ class ServiceTests extends MUnitSuite with Http4sSuite:
       _ = assertEquals(res.status, Status.Ok)
       res <- res.as[BoatResponse]
     yield assert(res.boat.name == newName)
-  }
 
-  test("tracks endpoint supports versioning based on Accept header") {
+  test("tracks endpoint supports versioning based on Accept header"):
     val comps = app()
     val service = comps.service
     val user = Username("test@example.com")
@@ -87,7 +86,6 @@ class ServiceTests extends MUnitSuite with Http4sSuite:
     implicit val tBody: EntityDecoder[IO, Tracks] = jsonBody[IO, Tracks]
     val tracks = response2.flatMap(_.as[Tracks]).unsafeRunSync()
     assertEquals(tracks.tracks.length, 1)
-  }
 
   def tracksRequest(accept: MediaType, routes: HttpRoutes[IO]): IO[Response[IO]] =
     routes.orNotFound.run(

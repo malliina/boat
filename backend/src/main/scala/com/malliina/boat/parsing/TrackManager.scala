@@ -55,7 +55,7 @@ class TrackManager extends SentenceAggregator[TrackId, ParsedCoord, FullCoord]:
       speed <- latestBoatSpeed.get(track)
       temp <- latestWaterTemp.get(track)
       depth <- latestDepth.get(track)
-    yield buffer.map { coord =>
+    yield buffer.map: coord =>
       val sentenceKeys = List(coord.key, dateTime.key, speed.key, temp.key, depth.key)
       coord.complete(
         dateTime.date,
@@ -66,4 +66,4 @@ class TrackManager extends SentenceAggregator[TrackId, ParsedCoord, FullCoord]:
         depth.offset,
         sentenceKeys
       )
-    }).getOrElse { Nil }
+    ).getOrElse(Nil)

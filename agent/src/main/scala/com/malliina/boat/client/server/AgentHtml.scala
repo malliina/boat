@@ -5,22 +5,21 @@ import com.malliina.boat.client.server.Device.{BoatDevice, GpsDevice}
 import org.http4s.Uri
 import scalatags.Text
 import scalatags.Text.all
-import scalatags.Text.all.{*}
+import scalatags.Text.all.*
 import scalatags.text.Builder
 
 object AgentHtml:
   val empty = stringFrag("")
   implicit val uriAttrValue: AttrValue[Uri] = attrValue[Uri](_.renderString)
-  implicit def showAttrValue[T](implicit s: Show[T]): AttrValue[T] =
+
+  given showAttrValue[T](using s: Show[T]): AttrValue[T] =
     attrValue[T](v => s.show(v))
 
-  implicit def optShowAttrValue[T](implicit s: Show[T]): AttrValue[Option[T]] =
+  given optShowAttrValue[T](using s: Show[T]): AttrValue[Option[T]] =
     attrValue[Option[T]](opt => opt.map(s.show).getOrElse(""))
 
-  def attrValue[T](f: T => String): AttrValue[T] =
+  private def attrValue[T](f: T => String): AttrValue[T] =
     (t: Builder, a: Text.Attr, v: T) => t.setAttr(a.name, Builder.GenericAttrValueSource(f(v)))
-
-//  val hmm: ConcreteHtmlTag[String] = scalatags.Text.tags.form
 
   def boatForm(conf: Option[BoatConf]) =
     form(action := WebServer.settingsUri, method := "post")(
@@ -78,7 +77,7 @@ object AgentHtml:
       )
     )
 
-  def radioButton(
+  private def radioButton(
     text: String,
     radioId: String,
     group: String,

@@ -13,7 +13,7 @@ class SentenceParserTests extends munit.FunSuite:
     "$GPGGA,154817,6009.8242,N,02450.8647,E,1,12,0.60,-2,M,19.5,M,,*48"
   ).map(RawSentence.apply)
 
-  test("parse sentences") {
+  test("parse sentences"):
     val ok = track.map(SentenceParser.parse).collect { case Right(sentence) =>
       sentence
     }
@@ -28,9 +28,8 @@ class SentenceParserTests extends munit.FunSuite:
       case _ => ""
     }
     assert(strs.length == track.length)
-  }
 
-  test("read and convert GGA coordinates from degrees minutes to decimal degrees") {
+  test("read and convert GGA coordinates from degrees minutes to decimal degrees"):
     val dmLatResult = LatitudeDM.parse("6009.1905,N")
     assert(dmLatResult.isRight)
     val dmLat = dmLatResult.toOption.get
@@ -42,9 +41,8 @@ class SentenceParserTests extends munit.FunSuite:
     val dLng = dmLng.minutes / 60
     val actualLng = dmLng.degrees + dLng
     assert(actualLng.toString.take(9) == "24.891631")
-  }
 
-  test("parse RMC") {
+  test("parse RMC"):
     val in = RawSentence("$GPRMC,205152.000,A,6009.1925,N,02453.2406,E,0.00,353.55,070919,,,D*69")
     val rmc = SentenceParser
       .parse(in)
@@ -54,4 +52,3 @@ class SentenceParserTests extends munit.FunSuite:
       }
       .get
     assert(rmc.getHour == 20)
-  }

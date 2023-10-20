@@ -38,14 +38,17 @@ case class ZDAMessage(
 //  val dateTime = dateTimeUtc.withOffsetSameInstant(localZone)
 
 object ZDAMessage:
-  val timeFormatterSimrad = DateTimeFormatter.ofPattern("HHmmss")
-  val timeFormatterGps = DateTimeFormatter.ofPattern("HHmmss.SSS")
+  private val timeFormatterSimrad = DateTimeFormatter.ofPattern("HHmmss")
+  private val timeFormatterGps = DateTimeFormatter.ofPattern("HHmmss.SSS")
 
   def parseTimeUtc(s: String): Either[SingleError, LocalTime] =
     parseFormattedTime(s, timeFormatterSimrad)
       .orElse(parseFormattedTime(s, timeFormatterGps))
 
-  def parseFormattedTime(s: String, formatter: DateTimeFormatter): Either[SingleError, LocalTime] =
+  private def parseFormattedTime(
+    s: String,
+    formatter: DateTimeFormatter
+  ): Either[SingleError, LocalTime] =
     try Right(LocalTime.parse(s, formatter))
     catch
       case _: DateTimeParseException =>
@@ -69,10 +72,11 @@ trait PrimitiveParsing:
     pf.lift(in).toRight(SingleError.input(onFail(in)))
 
   def limitedInt[T](s: String, p: Int => Boolean, build: Int => T): Either[SingleError, T] =
-    Inputs.toInt(s).flatMap { i =>
-      if p(i) then Right(build(i))
-      else Left(SingleError.input(s"Invalid input: '$s'."))
-    }
+    Inputs
+      .toInt(s)
+      .flatMap: i =>
+        if p(i) then Right(build(i))
+        else Left(SingleError.input(s"Invalid input: '$s'."))
 
 sealed trait GPSMode
 object GPSMode extends PrimitiveParsing:
@@ -80,10 +84,9 @@ object GPSMode extends PrimitiveParsing:
   case object Manual extends GPSMode
 
   def apply(s: String): Either[SingleError, GPSMode] =
-    attempt[String, GPSMode](s, in => s"Invalid GPS mode: '$in'.") {
+    attempt[String, GPSMode](s, in => s"Invalid GPS mode: '$in'."):
       case "A" => Automatic
       case "M" => Manual
-    }
 
 sealed abstract class GPSFix(val value: String)
 object GPSFix extends PrimitiveParsing:

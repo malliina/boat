@@ -42,10 +42,11 @@ class AzureHttpTests extends MUnitSuite:
         json = LocationUpdates(List(loc), DeviceId(1234)).asJson,
         headers = headers(expired) ++ Map("Accept-Encoding" -> "identity")
       )
-      .map { res =>
+      .map: res =>
         assertEquals(res.status, Unauthorized.code)
-        assert(res.parse[Errors].toOption.exists(_.errors.exists(_.key == SingleError.TokenExpiredKey)))
-      }
+        assert(
+          res.parse[Errors].toOption.exists(_.errors.exists(_.key == SingleError.TokenExpiredKey))
+        )
   }
 
   private def headers(token: IdToken = TestEmailAuth.testToken) = Map(

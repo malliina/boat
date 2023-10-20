@@ -117,10 +117,10 @@ class Graph(val nodes: Map[CoordHash, ValueNode]):
           .flatMap(_.edges)
           .toList
           .filter(e => !e.isConnected(edge))
-          .flatMap { existingEdge =>
+          .flatMap: existingEdge =>
             intersection(edge.line, existingEdge.line).toList
               .filter(c => !edge.contains(c))
-              .flatMap { crossing =>
+              .flatMap: crossing =>
                 val withCrossing =
                   List(Edge(edge.from, crossing), Edge(edge.to, crossing))
                 val withExisting =
@@ -131,8 +131,6 @@ class Graph(val nodes: Map[CoordHash, ValueNode]):
                     )
                   else Nil
                 withCrossing ++ withExisting
-              }
-          }
       if crossingEdges.isEmpty then
         val valuedLink = Link(edge.to, cost(edge.from, edge.to))
         val valued = ValueEdge(edge.from, valuedLink.to, valuedLink.cost)
@@ -203,9 +201,8 @@ class Graph(val nodes: Map[CoordHash, ValueNode]):
       .get(to.hash)
       .map(hit => currentPaths.filter(_.cost < hit.cost))
       .getOrElse(currentPaths)
-    val nextLevel = candidates.flatMap { path =>
+    val nextLevel = candidates.flatMap: path =>
       nodes.get(path.to.hash).toList.flatMap(edges => edges.links.map(link => link :: path))
-    }
     if nextLevel.isEmpty then
       log.info("Search complete, graph exhausted.")
       shortestKnown.get(to.hash).toRight(NoRoute(from, to))

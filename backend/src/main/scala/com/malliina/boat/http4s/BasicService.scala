@@ -49,17 +49,16 @@ class BasicService[F[_]: Sync] extends Implicits[F]:
     InternalServerError(a, noCache)
   def errorHandler(t: Throwable): F[Response[F]] = t match
     case ir: InvalidRequest =>
-      Sync[F].delay(log.warn(ir.message, ir)).flatMap { _ =>
-        badRequest(ir.errors)
-      }
+      Sync[F]
+        .delay(log.warn(ir.message, ir))
+        .flatMap: _ =>
+          badRequest(ir.errors)
     case ie: IdentityException =>
       unauthorizedNoCache(Errors(ie.error.message))
     case ae: AuthException =>
       unauthorizedNoCache(Errors(ae.singleError))
     case bnfe: BoatNotFoundException =>
-      Sync[F].delay(log.error(bnfe.message, t)).flatMap { _ =>
-        notFound(Errors(bnfe.message))
-      }
+      Sync[F].delay(log.error(bnfe.message, t)).flatMap(_ => notFound(Errors(bnfe.message)))
     case re: ResponseException =>
       serverErrorResponse(s"${re.getMessage} Response: '${re.response.asString}'.", re)
     case ioe: IOException if ioe.message.exists(_.startsWith(BasicService.noisyErrorMessage)) =>
@@ -68,9 +67,10 @@ class BasicService[F[_]: Sync] extends Implicits[F]:
       serverErrorResponse(s"Service error: '${other.getMessage}'.", other)
 
   private def serverErrorResponse(msg: String, t: Throwable) =
-    Sync[F].delay(log.error(msg, t)).flatMap { _ =>
-      serverError(Errors(s"Server error: '${t.getMessage}'."))
-    }
+    Sync[F]
+      .delay(log.error(msg, t))
+      .flatMap: _ =>
+        serverError(Errors(s"Server error: '${t.getMessage}'."))
 
   private def unauthorizedNoCache(errors: Errors) =
     Unauthorized(

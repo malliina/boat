@@ -94,9 +94,11 @@ class Http4sAuth[F[_]](
   def read[T: Decoder](cookieName: String, headers: Headers): Either[IdentityError, T] =
     for
       idToken <- readToken(cookieName, headers)
-      t <- jwt.verify[T](idToken).left.map { err =>
-        JWTError(err, headers)
-      }
+      t <- jwt
+        .verify[T](idToken)
+        .left
+        .map: err =>
+          JWTError(err, headers)
     yield t
 
   private def readToken(cookieName: String, headers: Headers): Either[MissingCredentials, IdToken] =

@@ -32,22 +32,22 @@ class AgentInstance[F[_]: Async: Network](
 ):
   val connections: Stream[F, Unit] = confs
     .subscribe(100)
-    .flatMap { newConf =>
+    .flatMap: newConf =>
       val newUrl =
         if newConf.device == GpsDevice then DeviceAgent.DeviceUrl else DeviceAgent.BoatUrl
-      val io = DeviceAgent.fromConf(newConf, newUrl, http).use { agent =>
-        // Interrupts the previous connection when a new conf appears
-        val stream =
-          if newConf.enabled then
-            agent.connect.interruptWhen(confs.subscribe(1).take(1).map(_ => true))
-          else Stream.empty
-        stream.compile.drain
-      }
+      val io = DeviceAgent
+        .fromConf(newConf, newUrl, http)
+        .use: agent =>
+          // Interrupts the previous connection when a new conf appears
+          val stream =
+            if newConf.enabled then
+              agent.connect.interruptWhen(confs.subscribe(1).take(1).map(_ => true))
+            else Stream.empty
+          stream.compile.drain
       Stream.eval(io)
-    }
     .interruptWhen(interrupter)
 
   def updateIfNecessary(newConf: BoatConf): F[Boolean] =
-    confs.publish1(newConf).map { t => t.fold(_ => false, _ => true) }
+    confs.publish1(newConf).map(t => t.fold(_ => false, _ => true))
 
   def close: F[Unit] = interrupter.set(true)

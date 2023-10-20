@@ -16,7 +16,7 @@ sealed abstract class Device(val name: String):
   override def toString = name
 
 object Device:
-  implicit val codec: Codec[Device] = Codec.from(
+  given Codec[Device] = Codec.from(
     Decoder.decodeString.map(apply),
     Encoder.encodeString.contramap(_.name)
   )
@@ -61,12 +61,12 @@ object BoatConf:
   def anon(host: Host, port: Port) = BoatConf(host, port, Device.default, None, enabled = true)
 
 object AgentSettings:
-  val passFile = file("pass.md5")
-  val confFile = file("boat.conf")
+  private val passFile = file("pass.md5")
+  private val confFile = file("boat.conf")
 
   def file(name: String) = confDir.resolve(name)
 
-  def confDir =
+  private def confDir =
     sys.props.get("conf.dir").map(s => Paths.get(s)).getOrElse(Files.createTempDirectory("boat-"))
 
   def readPass: String =
@@ -82,21 +82,25 @@ object AgentSettings:
       val jsonContent = Try(
         parser.parse(new String(Files.readAllBytes(confFile), StandardCharsets.UTF_8))
       ).toEither.left.map(_ => s"Cannot read '$confFile'.")
-      jsonContent.flatMap { jsonResult =>
-        jsonResult.flatMap { json =>
-          json.as[BoatConf].left.map(_ => "JSON error.").left.flatMap { err =>
+      jsonContent
+        .flatMap: jsonResult =>
+          jsonResult.flatMap: json =>
             json
-              .as[BoatConfOld]
+              .as[BoatConf]
               .left
-              .map(_ => s"Old JSON error.")
-              .map { old =>
-                val converted = old.toConf
-                saveConf(converted)
-                converted
-              }
-          }
-        }
-      }.left.map(_ => "Error.")
+              .map(_ => "JSON error.")
+              .left
+              .flatMap: err =>
+                json
+                  .as[BoatConfOld]
+                  .left
+                  .map(_ => s"Old JSON error.")
+                  .map: old =>
+                    val converted = old.toConf
+                    saveConf(converted)
+                    converted
+        .left
+        .map(_ => "Error.")
     else Left("No conf")
 
   def saveConf(conf: BoatConf): Unit = save(conf.asJson.spaces2, confFile)

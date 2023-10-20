@@ -13,20 +13,18 @@ object Auth:
   val noCredentials = err"No credentials."
 
   def basic(hs: Headers): Either[MissingCredentials, BasicCredentials] =
-    headerCredentials(hs).flatMap {
+    headerCredentials(hs).flatMap:
       case org.http4s.BasicCredentials(user, pass) =>
         Right(BasicCredentials(Username(user), Password(pass)))
       case _ =>
         Left(MissingCredentials("Username and password auth expected.", hs))
-    }
 
   def token(hs: Headers): Either[MissingCredentials, IdToken] =
-    headerCredentials(hs).flatMap {
+    headerCredentials(hs).flatMap:
       case Token(scheme, token) =>
         Right(IdToken(token))
       case _ =>
         Left(MissingCredentials("Basic auth expected.", hs))
-    }
 
   def headerCredentials(hs: Headers): Either[MissingCredentials, Credentials] = hs
     .get[Authorization]

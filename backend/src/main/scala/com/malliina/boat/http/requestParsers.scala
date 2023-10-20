@@ -85,11 +85,10 @@ abstract class EnumLike[T <: Named]:
   def apply(key: String, q: Query): Option[Either[Errors, T]] =
     QueryParsers
       .parseOpt[String](q, key)
-      .map { e =>
+      .map: e =>
         e.flatMap(s =>
           all.find(_.name == s).toRight(Errors(SingleError.input(s"Unknown $key value: '$s'.")))
         )
-      }
 
 case class VesselQuery(
   names: Seq[VesselName],
@@ -123,6 +122,7 @@ case class CarQuery(limits: Limits, timeRange: TimeRange, ids: List[CarUpdateId]
   private def timeDescribe = timeRange.describe
   private def space = if timeDescribe.isEmpty then "" else " "
   def describe = s"${timeRange.describe}${space}with ${limits.describe}"
+
 object CarQuery:
   def ids(list: List[CarUpdateId]) = CarQuery(Limits.default, TimeRange.none, list)
 
@@ -204,11 +204,9 @@ object BoatQuery:
       ln2 <- lng2
       la2 <- lat2
     yield RouteRequest(Coord(ln1, la1), Coord(ln2, la2))
-    optEither.map { e =>
-      e.map(req => Option(req))
-    }.getOrElse {
-      Right(None)
-    }
+    optEither
+      .map(e => e.map(req => Option(req)))
+      .getOrElse(Right(None))
 
   private def readLongitude(key: String, q: Query) =
     transformDouble(key, q)(Longitude.build)
@@ -219,13 +217,8 @@ object BoatQuery:
   private def transformDouble[T](key: String, q: Query)(
     transform: Double => Either[ErrorMessage, T]
   ) =
-    readDouble(key, q).map { e =>
-      e.flatMap { d =>
-        transform(d).left.map { err =>
-          Errors(SingleError.input(err.message))
-        }
-      }
-    }
+    readDouble(key, q).map: e =>
+      e.flatMap(d => transform(d).left.map(err => Errors(SingleError.input(err.message))))
 
   private def readDouble(key: String, q: Query): Option[Either[Errors, Double]] =
     QueryParsers.parseOpt[Double](q, key)

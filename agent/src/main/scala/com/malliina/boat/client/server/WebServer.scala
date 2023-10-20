@@ -49,27 +49,25 @@ class WebServer[F[_]: Async](agentInstance: AgentInstance[F]) extends AppImplici
   val boatUser = "boat"
   val tempUser = "temp"
 
-  val routes = HttpRoutes.of[F] {
+  val routes = HttpRoutes.of[F]:
     case GET -> Root =>
       SeeOther(Location(settingsUri))
     case GET -> Root / "settings" =>
       Ok(asHtml(boatForm(readConf().toOption)), noCache)
     case req @ GET -> Root / "settings" =>
-      parseForm(req, readForm).flatMap { boatConf =>
+      parseForm(req, readForm).flatMap: boatConf =>
         saveAndReload(boatConf, agentInstance)
         SeeOther(Location(settingsUri))
-      }
     case req @ GET -> Root / path =>
       static(path, req)
-  }
 
   private def static(file: String, request: Request[F]): F[Response[F]] =
     StaticFile
       .fromResource("/" + file, Some(request))
       .getOrElseF(NotFound(Errors(s"Not found: '$file'.").asJson))
 
-  implicit val deviceReadable: Readable[Device] = Readable.string.map(s => Device(s))
-  implicit val tokenReadable: Readable[BoatToken] = Readable.string.map(s => BoatToken(s))
+  given Readable[Device] = Readable.string.map(s => Device(s))
+  given Readable[BoatToken] = Readable.string.map(s => BoatToken(s))
 
   val service = Router("/" -> routes).orNotFound
 

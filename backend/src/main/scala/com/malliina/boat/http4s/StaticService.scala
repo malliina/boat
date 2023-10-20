@@ -59,6 +59,7 @@ class StaticService[F[_]: Async: Files] extends BasicService[F]:
   }
 
   private def onNotFound(req: Request[F]) =
-    Sync[F].delay(log.info(s"Not found '${req.uri}'.")).flatMap { _ =>
-      notFoundReq(req)
-    }
+    Sync[F]
+      .delay(log.info(s"Not found '${req.uri}'."))
+      .flatMap: _ =>
+        notFoundReq(req)

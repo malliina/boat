@@ -41,17 +41,17 @@ class AppleAuthFlow[F[_]: Sync](
     redirectUrl: FullUrl,
     requestNonce: Option[String]
   ): F[Either[AuthError, Email]] =
-    refreshToken(code, Map(RedirectUri -> redirectUrl.url)).flatMap { tokens =>
+    refreshToken(code, Map(RedirectUri -> redirectUrl.url)).flatMap: tokens =>
       validator.extractEmail(tokens.idToken, Instant.now())
-    }
 
   def refreshToken(code: Code, extraParams: Map[String, String]): F[RefreshTokenResponse] =
     log.info(s"Exchanging authorization code for tokens...")
     val params = codeParameters(code) ++ extraParams
-    http.postFormAs[RefreshTokenResponse](conf.tokenEndpoint, params).map { res =>
-      log.info("Exchanged authorization code for refresh token.")
-      res
-    }
+    http
+      .postFormAs[RefreshTokenResponse](conf.tokenEndpoint, params)
+      .map: res =>
+        log.info("Exchanged authorization code for refresh token.")
+        res
 
   def verifyRefreshToken(token: RefreshToken): F[TokenResponse] =
     val params = commonParameters(RefreshTokenValue) ++ Map(
@@ -66,13 +66,14 @@ class AppleAuthFlow[F[_]: Sync](
       "token" -> token.token,
       "token_type_hint" -> "refresh_token"
     )
-    http.postForm(revokeUrl, params).map { res =>
-      val shortToken = token.token.take(6)
-      log.info(
-        s"Revocation of token '$shortToken...' using client id ${authConf.clientId} returned ${res.code}."
-      )
-      RevokeResult(res.code == 200, res.code, token, authConf.clientId)
-    }
+    http
+      .postForm(revokeUrl, params)
+      .map: res =>
+        val shortToken = token.token.take(6)
+        log.info(
+          s"Revocation of token '$shortToken...' using client id ${authConf.clientId} returned ${res.code}."
+        )
+        RevokeResult(res.code == 200, res.code, token, authConf.clientId)
 
   override def extraRedirParams(redirectUrl: FullUrl): Map[String, String] =
     Map(ResponseType -> CodeKey, "response_mode" -> "form_post")

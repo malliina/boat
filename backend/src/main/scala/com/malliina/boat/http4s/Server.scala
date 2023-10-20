@@ -155,25 +155,20 @@ object Server extends IOApp:
     service: Service[F],
     sockets: WebSocketBuilder2[F]
   ): Http[F, F] =
-    GZip {
-      HSTS {
-        CSP.when(AppMode.fromBuild.isProd) {
-          orNotFound {
+    GZip:
+      HSTS:
+        CSP.when(AppMode.fromBuild.isProd):
+          orNotFound:
             Router(
               "/" -> service.routes(sockets),
               "/assets" -> StaticService[F].routes
             )
-          }
-        }
-      }
-    }
 
   private def orNotFound[F[_]: Sync](rs: HttpRoutes[F]): Kleisli[F, Request[F], Response[F]] =
-    Kleisli { req =>
+    Kleisli: req =>
       rs.run(req)
         .getOrElseF(BasicService[F].notFoundReq(req))
         .handleErrorWith(BasicService[F].errorHandler)
-    }
 
   private def errorHandler[F[_]: Sync]: PartialFunction[Throwable, F[Response[F]]] = {
     case ioe: IOException if ioe.message.exists(_.startsWith(BasicService.noisyErrorMessage)) =>

@@ -9,7 +9,7 @@ import tests.BaseSuite
 import java.time.{LocalDate, LocalTime}
 
 class SentenceParsingTests extends BaseSuite:
-  test("stateful sentence parsing") {
+  test("stateful sentence parsing"):
     val from = MultiParsingTests.testFrom
 
     def keyed(id: Long) = KeyedSentence(SentenceKey(id), RawSentence(""), from)
@@ -75,4 +75,3 @@ class SentenceParsingTests extends BaseSuite:
     val processed = parsed.flatMap(s => fs2.Stream.emits(manager.update(s))).take(4)
     val actual = processed.compile.toList.unsafeRunSync()
     assert(actual == expected)
-  }

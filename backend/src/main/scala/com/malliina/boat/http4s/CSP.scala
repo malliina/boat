@@ -20,9 +20,8 @@ object CSP:
 
   // Check e.g. HSTS.scala for syntax inspiration
   def apply[F[_]: Functor, A, G[_]](http: Kleisli[F, A, Response[G]]): Kleisli[F, A, Response[G]] =
-    Kleisli { req =>
+    Kleisli: req =>
       http.map(_.putHeaders(header)).apply(req)
-    }
 
   def when[F[_]: Functor, A, G[_]](
     isProd: Boolean

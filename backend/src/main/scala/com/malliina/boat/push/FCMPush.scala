@@ -28,15 +28,17 @@ class FCMPush[F[_]: Functor](fcm: GoogleClientF[F]) extends PushClient[F, GCMTok
         SourceNotification.Title -> notification.title
       )
     )
-    fcm.push(to, message).map { r =>
-      val uninstalledCount = r.uninstalled.length
-      val hasUninstalled = uninstalledCount > 0
-      val suffix = if uninstalledCount > 1 then "s" else ""
-      val detailed = if hasUninstalled then s" $uninstalledCount uninstalled device$suffix." else ""
-      log.info(s"FCM push to '$to' complete.$detailed")
-      PushSummary(
-        Nil,
-        r.uninstalled.map(t => PushToken(t.token)),
-        r.replacements.map(PushTokenReplacement.apply)
-      )
-    }
+    fcm
+      .push(to, message)
+      .map: r =>
+        val uninstalledCount = r.uninstalled.length
+        val hasUninstalled = uninstalledCount > 0
+        val suffix = if uninstalledCount > 1 then "s" else ""
+        val detailed =
+          if hasUninstalled then s" $uninstalledCount uninstalled device$suffix." else ""
+        log.info(s"FCM push to '$to' complete.$detailed")
+        PushSummary(
+          Nil,
+          r.uninstalled.map(t => PushToken(t.token)),
+          r.replacements.map(PushTokenReplacement.apply)
+        )

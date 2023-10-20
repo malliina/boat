@@ -23,17 +23,15 @@ object SentencesPage extends BoatImplicits:
           tr(th(trackLang.coordinate), th(s"${trackLang.speed} ($speedUnit)"), th(lang.lang.time))
         ),
         tbody(
-          track.coords.map { c =>
+          track.coords.map: c =>
             modifier(
               tr(td(c.coord.approx), td(c.boatSpeed), td(c.time.dateTime)),
-              c.sentences.map { sentence =>
+              c.sentences.map: sentence =>
                 tr(`class` := "row-sm")(
                   td(colspan := 2)(sentence.sentence),
                   td(sentence.time.dateTime)
                 )
-              }
             )
-          }
         )
       ),
       pagination(track.track, current)

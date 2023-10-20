@@ -29,19 +29,17 @@ object SignInWithApple:
   )
 
   def secret(conf: Conf, now: Instant): Option[ClientSecret] =
-    Option.when(conf.enabled) {
+    Option.when(conf.enabled):
       SignInWithApple(conf).signInWithAppleToken(now)
-    }
 
   def secretOrDummy(conf: Conf, now: Instant) =
-    secret(conf, now).getOrElse {
+    secret(conf, now).getOrElse:
       log.info(s"Sign in with Apple using ID ${conf.clientId} is disabled.")
       ClientSecret("disabled")
-    }
 
   object Conf:
     import ConfigReadable.ConfigOps
-    implicit val reader: ConfigReadable[Conf] = ConfigReadable.config.emap { obj =>
+    implicit val reader: ConfigReadable[Conf] = ConfigReadable.config.emap: obj =>
       for
         enabled <- obj.parse[Boolean]("enabled")
         keyPath <- obj.parse[Path]("privateKey")
@@ -49,7 +47,6 @@ object SignInWithApple:
         team <- obj.parse[String]("teamId")
         clientId <- obj.parse[ClientId]("clientId")
       yield Conf(enabled, keyPath, keyId, team, clientId)
-    }
 
 /** https://developer.apple.com/documentation/sign_in_with_apple/generate_and_validate_tokens
   */

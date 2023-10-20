@@ -73,7 +73,7 @@ class BoatVesselDatabase[F[_]: Async](db: DoobieDatabase[F])
   private def saveUpdates(messages: Seq[VesselInfo]): ConnectionIO[List[VesselUpdateId]] =
     val sql =
       s"insert into mmsi_updates(mmsi, coord, sog, cog, destination, heading, eta, vessel_time) values(?, ?, ?, ?, ?, ?, ?, ?)"
-    val rows = messages.map { msg =>
+    val rows = messages.map: msg =>
       MmsiUpdateRow(
         msg.mmsi,
         msg.coord,
@@ -84,7 +84,6 @@ class BoatVesselDatabase[F[_]: Async](db: DoobieDatabase[F])
         msg.eta,
         msg.timestampMillis
       )
-    }
     Update[MmsiUpdateRow](sql)
       .updateManyWithGeneratedKeys[VesselUpdateId]("id")(rows)
       .compile
@@ -96,18 +95,18 @@ class BoatVesselDatabase[F[_]: Async](db: DoobieDatabase[F])
     val params = messages.map(_ => oneRow).mkString(",")
     val sql =
       s"insert into vessels(mmsi, name, coord, sog, cog, draft, destination, heading, eta, vessel_time) values$params"
-    val prep = messages.foldLeft((().pure[PreparedStatementIO], 1)) { case ((acc, pos), info) =>
-      val newAcc =
-        acc *> HPS.set(pos, info.mmsi) *>
-          HPS.set(pos + 1, info.name) *>
-          HPS.set(pos + 2, info.coord) *>
-          HPS.set(pos + 3, info.sog) *>
-          HPS.set(pos + 4, info.cog) *>
-          HPS.set(pos + 5, info.draft) *>
-          HPS.set(pos + 6, info.destination) *>
-          HPS.set(pos + 7, info.heading) *>
-          HPS.set(pos + 8, info.eta) *>
-          HPS.set(pos + 9, info.timestampMillis)
-      (newAcc, pos + 10)
-    }
+    val prep = messages.foldLeft((().pure[PreparedStatementIO], 1)):
+      case ((acc, pos), info) =>
+        val newAcc =
+          acc *> HPS.set(pos, info.mmsi) *>
+            HPS.set(pos + 1, info.name) *>
+            HPS.set(pos + 2, info.coord) *>
+            HPS.set(pos + 3, info.sog) *>
+            HPS.set(pos + 4, info.cog) *>
+            HPS.set(pos + 5, info.draft) *>
+            HPS.set(pos + 6, info.destination) *>
+            HPS.set(pos + 7, info.heading) *>
+            HPS.set(pos + 8, info.eta) *>
+            HPS.set(pos + 9, info.timestampMillis)
+        (newAcc, pos + 10)
     HC.updateWithGeneratedKeys[VesselRowId](List("id"))(sql, prep._1, 512)

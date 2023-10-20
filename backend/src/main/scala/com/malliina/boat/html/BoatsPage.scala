@@ -44,7 +44,7 @@ object BoatsPage extends BoatImplicits with CSRFConf:
           )
         ),
         tbody(
-          user.boats.map { boat =>
+          user.boats.map: boat =>
             val confirmDeletionText = s"${settings.delete} ${boat.name}?"
             tr(
               td(boat.name),
@@ -98,7 +98,6 @@ object BoatsPage extends BoatImplicits with CSRFConf:
                 )
               )
             )
-          }
         )
       ),
       form(method := "POST", action := reverse.createBoat, `class` := "pb-5")(
@@ -211,13 +210,13 @@ object BoatsPage extends BoatImplicits with CSRFConf:
   implicit def attrId[T <: WrappedId]: AttrValue[T] = (t: Builder, a: Attr, v: T) =>
     t.setAttr(a.name, Builder.GenericAttrValueSource(s"$v"))
 
-  def hiddenInput[T: AttrValue](inputName: String, inputValue: T) = input(
+  private def hiddenInput[T: AttrValue](inputName: String, inputValue: T) = input(
     `type` := "hidden",
     name := inputName,
     value := inputValue
   )
 
-  def labeledInput(
+  private def labeledInput(
     labelText: String,
     inputId: String,
     inputName: String,

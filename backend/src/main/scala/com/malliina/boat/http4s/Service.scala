@@ -67,82 +67,74 @@ class Service[F[_]: Async: Files](comps: BoatComps[F]) extends BasicService[F]:
   private val pings =
     Stream.awakeEvery(30.seconds).map(d => PingEvent(System.currentTimeMillis(), d))
 
-  val normalRoutes: HttpRoutes[F] = HttpRoutes.of[F] {
+  val normalRoutes: HttpRoutes[F] = HttpRoutes.of[F]:
     case req @ GET -> Root      => index(req)
     case GET -> Root / "health" => ok(AppMeta.default)
     case req @ GET -> Root / "favicon.ico" =>
       val sourceType = if isCar(req) then SourceType.Vehicle else SourceType.Boat
       temporaryRedirect(Uri.unsafeFromString(s"/${BoatHtml.faviconPath(sourceType)}"))
     case req @ GET -> Root / "pingAuth" =>
-      auth.profile(req).flatMap { _ => ok(AppMeta.default) }
+      auth.profile(req).flatMap(_ => ok(AppMeta.default))
     case req @ GET -> Root / "users" / "me" =>
-      auth.profile(req).flatMap { user => ok(UserContainer(user)) }
+      auth.profile(req).flatMap(user => ok(UserContainer(user)))
     case req @ POST -> Root / "users" / "me" =>
-      req.as[RegisterCode](implicitly, jsonBody[F, RegisterCode]).flatMap { reg =>
-        auth.register(reg.code, Instant.now()).flatMap { boatJwt =>
-          ok(boatJwt)
-        }
-      }
+      req
+        .as[RegisterCode](implicitly, jsonBody[F, RegisterCode])
+        .flatMap: reg =>
+          auth.register(reg.code, Instant.now()).flatMap(boatJwt => ok(boatJwt))
     case req @ POST -> Root / "users" / "me" / "tokens" =>
-      auth.recreate(req.headers).flatMap { boatJwt =>
-        ok(boatJwt)
-      }
+      auth.recreate(req.headers).flatMap(boatJwt => ok(boatJwt))
     case req @ PUT -> Root / "users" / "me" =>
-      jsonAction[ChangeLanguage](req) { (newLanguage, user) =>
-        userMgmt.changeLanguage(user.id, newLanguage.language).flatMap { changed =>
-          val msg = if changed then s"Changed language to ${newLanguage.language}." else NoChange
-          ok(SimpleMessage(msg))
-        }
-      }
+      jsonAction[ChangeLanguage](req): (newLanguage, user) =>
+        userMgmt
+          .changeLanguage(user.id, newLanguage.language)
+          .flatMap: changed =>
+            val msg = if changed then s"Changed language to ${newLanguage.language}." else NoChange
+            ok(SimpleMessage(msg))
     case req @ POST -> Root / "users" / "me" / "delete" =>
-      auth.delete(req.headers, Instant.now()).flatMap { _ =>
-        ok(SimpleMessage("Deleted."))
-      }
+      auth.delete(req.headers, Instant.now()).flatMap(_ => ok(SimpleMessage("Deleted.")))
     case req @ POST -> Root / "users" / "notifications" =>
-      jsonAction[PushPayload](req) { (payload, user) =>
-        push.enable(PushInput(payload.token, payload.device, user.id)).flatMap { _ =>
-          ok(SimpleMessage("Enabled."))
-        }
-      }
+      jsonAction[PushPayload](req): (payload, user) =>
+        push
+          .enable(PushInput(payload.token, payload.device, user.id))
+          .flatMap: _ =>
+            ok(SimpleMessage("Enabled."))
     case req @ POST -> Root / "users" / "notifications" / "disable" =>
-      jsonAction[DisablePush](req) { (payload, user) =>
-        push.disable(payload.token, user.id).flatMap { disabled =>
-          val msg = if disabled then "Disabled." else NoChange
-          ok(SimpleMessage(msg))
-        }
-      }
+      jsonAction[DisablePush](req): (payload, user) =>
+        push
+          .disable(payload.token, user.id)
+          .flatMap: disabled =>
+            val msg = if disabled then "Disabled." else NoChange
+            ok(SimpleMessage(msg))
     case req @ POST -> Root / "invites" =>
-      formAction[InvitePayload](req, forms.invite) { (inviteInfo, user) =>
-        userMgmt.invite(inviteInfo.byUser(user.id)).flatMap { res =>
-          val message = res match
-            case UnknownEmail(email) =>
-              s"Unknown email: '$email'."
-            case Invited(uid, to) =>
-              s"User ${user.email} invited ${inviteInfo.email} to boat ${inviteInfo.boat}."
-            case AlreadyInvited(uid, to) =>
-              s"User ${inviteInfo.email} already invited to ${inviteInfo.boat}."
-          log.info(message)
-          seeOther(reverse.boats)
-        }
-      }
+      formAction[InvitePayload](req, forms.invite): (inviteInfo, user) =>
+        userMgmt
+          .invite(inviteInfo.byUser(user.id))
+          .flatMap: res =>
+            val message = res match
+              case UnknownEmail(email) =>
+                s"Unknown email: '$email'."
+              case Invited(uid, to) =>
+                s"User ${user.email} invited ${inviteInfo.email} to boat ${inviteInfo.boat}."
+              case AlreadyInvited(uid, to) =>
+                s"User ${inviteInfo.email} already invited to ${inviteInfo.boat}."
+            log.info(message)
+            seeOther(reverse.boats)
     case req @ POST -> Root / "invites" / "revoke" =>
-      formAction[RevokeAccess](req, forms.revokeInvite) { (revokeInfo, user) =>
-        userMgmt.revokeAccess(revokeInfo.to, revokeInfo.from, user.id).flatMap { res =>
-          seeOther(reverse.boats)
-        }
-      }
+      formAction[RevokeAccess](req, forms.revokeInvite): (revokeInfo, user) =>
+        userMgmt
+          .revokeAccess(revokeInfo.to, revokeInfo.from, user.id)
+          .flatMap: res =>
+            seeOther(reverse.boats)
     case req @ POST -> Root / "invites" / "respond" =>
-      formAction[InviteResponse](req, forms.respondInvite) { (response, user) =>
+      formAction[InviteResponse](req, forms.respondInvite): (response, user) =>
         userMgmt
           .updateInvite(
             response.to,
             user.id,
             if response.accept then InviteState.Accepted else InviteState.Rejected
           )
-          .flatMap { res =>
-            seeOther(reverse.boats)
-          }
-      }
+          .flatMap(res => seeOther(reverse.boats))
     case req @ GET -> Root / "conf" =>
       respondCustom(req)(
         json = rs =>
@@ -154,78 +146,69 @@ class Service[F[_]: Async: Files](comps: BoatComps[F]) extends BasicService[F]:
         html = ok(ClientConf.default)
       )
     case req @ GET -> Root / "boats" =>
-      auth.profile(req).flatMap { user =>
-        ok(html(req).devices(user))
-      }
+      auth.profile(req).flatMap(user => ok(html(req).devices(user)))
     case req @ POST -> Root / "boats" =>
-      boatFormAction(req) { (boatName, user) =>
+      boatFormAction(req): (boatName, user) =>
         // TODO add sourceType parameter to forms and APIs
         inserts.addSource(boatName, SourceType.Boat, user.id)
-      }
     case req @ PATCH -> Root / "boats" / DeviceIdVar(device) =>
-      boatFormAction(req) { (boatName, user) =>
-        inserts.renameBoat(device, boatName, user.id)
-      }
+      boatFormAction(req)((boatName, user) => inserts.renameBoat(device, boatName, user.id))
     case req @ POST -> Root / "boats" / DeviceIdVar(device) / "delete" =>
-      auth.profile(req).flatMap { user =>
-        inserts.removeDevice(device, user.id).flatMap { rows =>
-          respond(req)(
-            json = ok(SimpleMessage("Done.")),
-            html = SeeOther(Location(reverse.boats))
-          )
-        }
-      }
+      auth
+        .profile(req)
+        .flatMap: user =>
+          inserts
+            .removeDevice(device, user.id)
+            .flatMap: rows =>
+              respond(req)(
+                json = ok(SimpleMessage("Done.")),
+                html = SeeOther(Location(reverse.boats))
+              )
     case req @ GET -> Root / "tracks" =>
-      authedQuery(req, TrackQuery.apply).flatMap { authed =>
+      authedQuery(req, TrackQuery.apply).flatMap: authed =>
         respondCustom(req)(
           json = rs =>
-            db.tracksFor(authed.user, authed.query).flatMap { ts =>
-              if rs.exists(_.satisfies(ContentVersions.Version2)) then ok(ts)
-              else if rs.exists(_.satisfies(ContentVersions.Version1)) then
-                ok(TrackSummaries(ts.tracks.map(t => TrackSummary(t))))
-              else ok(ts)
-            },
+            db.tracksFor(authed.user, authed.query)
+              .flatMap: ts =>
+                if rs.exists(_.satisfies(ContentVersions.Version2)) then ok(ts)
+                else if rs.exists(_.satisfies(ContentVersions.Version1)) then
+                  ok(TrackSummaries(ts.tracks.map(t => TrackSummary(t))))
+                else ok(ts),
           html =
             val lang = BoatLang(authed.user.language).lang
-            db.tracksBundle(authed.user, authed.query, lang).flatMap { ts =>
-              ok(html(req).tracks(ts, authed.query, lang))
-            }
+            db.tracksBundle(authed.user, authed.query, lang)
+              .flatMap: ts =>
+                ok(html(req).tracks(ts, authed.query, lang))
         )
-      }
     case req @ GET -> Root / "history" =>
-      authedQuery(req, BoatQuery.apply).flatMap { authed =>
-        db.history(authed.user, authed.query).flatMap { ts => ok(ts) }
-      }
+      authedQuery(req, BoatQuery.apply).flatMap: authed =>
+        db.history(authed.user, authed.query).flatMap(ts => ok(ts))
     case req @ GET -> Root / "tracks" / TrackNameVar(trackName) =>
       respond(req)(
-        json = authedTrackQuery(req).flatMap { authed =>
-          db.ref(trackName, authed.user.language).flatMap { ref => ok(ref) }
-        },
+        json = authedTrackQuery(req).flatMap: authed =>
+          db.ref(trackName, authed.user.language).flatMap(ref => ok(ref)),
         html = index(req)
       )
     case req @ PUT -> Root / "tracks" / TrackNameVar(trackName) =>
       def readTitle(form: FormReader) =
         form.read[TrackTitle](TrackTitle.Key).map(ChangeTrackTitle.apply)
 
-      trackAction[ChangeTrackTitle](req, readTitle) { (title, user) =>
+      trackAction[ChangeTrackTitle](req, readTitle): (title, user) =>
         inserts.updateTitle(trackName, title.title, user.id)
-      }
     case req @ PATCH -> Root / "tracks" / TrackIdVar(trackId) =>
       def readComments(form: FormReader) =
         form.read[String](TrackComments.Key).map(ChangeComments.apply)
 
-      trackAction[ChangeComments](req, readComments) { (comments, user) =>
+      trackAction[ChangeComments](req, readComments): (comments, user) =>
         inserts.updateComments(trackId, comments.comments, user.id)
-      }
     case req @ GET -> Root / "tracks" / TrackNameVar(trackName) / "full" =>
-      authedLimited(req).flatMap { authed =>
-        db.full(trackName, authed.user.language, authed.query).flatMap { track =>
-          respond(req)(
-            json = ok(track),
-            html = ok(html(req).list(track, authed.query.limits, BoatLang(authed.user.language)))
-          )
-        }
-      }
+      authedLimited(req).flatMap: authed =>
+        db.full(trackName, authed.user.language, authed.query)
+          .flatMap: track =>
+            respond(req)(
+              json = ok(track),
+              html = ok(html(req).list(track, authed.query.limits, BoatLang(authed.user.language)))
+            )
     case req @ GET -> Root / "tracks" / TrackNameVar(trackName) / "chart" =>
       for
         authed <- authedLimited(req)
@@ -247,82 +230,71 @@ class Service[F[_]: Async: Files](comps: BoatComps[F]) extends BasicService[F]:
           )
         )
       yield response
-      handler.recoverWith { case t =>
-        redirectToLogin
-      }
+      handler.recoverWith:
+        case t =>
+          redirectToLogin
     case req @ GET -> Root / "stats" =>
-      authedQuery(req, TrackQuery.apply).flatMap { authed =>
-        comps.stats.stats(authed.user, authed.query, BoatLang(authed.user.language).lang).flatMap {
-          statsResponse =>
+      authedQuery(req, TrackQuery.apply).flatMap: authed =>
+        comps.stats
+          .stats(authed.user, authed.query, BoatLang(authed.user.language).lang)
+          .flatMap: statsResponse =>
             ok(statsResponse)
-        }
-      }
     case GET -> Root / "routes" / DoubleVar(srcLat) /
         DoubleVar(srcLng) / DoubleVar(destLat) / DoubleVar(destLng) =>
-      RouteRequest(srcLat, srcLng, destLat, destLng).map { req =>
-        F.blocking(g.shortest(req.from, req.to)).flatMap { op =>
-          op.map { result => ok(result) }.recover {
-            case NoRoute(f, t)     => notFound(Errors(s"No route found from '$f' to '$t'."))
-            case UnresolvedFrom(f) => badRequest(Errors(s"Unresolvable from '$f'."))
-            case UnresolvedTo(t)   => badRequest(Errors(s"Unresolvable to '$t'."))
-            case EmptyGraph        => serverError(Errors("Graph engine not available."))
-          }
-        }
-      }.recover { err =>
-        badRequest(Errors(err.message))
-      }
+      RouteRequest(srcLat, srcLng, destLat, destLng)
+        .map: req =>
+          F.blocking(g.shortest(req.from, req.to))
+            .flatMap: op =>
+              op.map(result => ok(result))
+                .recover:
+                  case NoRoute(f, t)     => notFound(Errors(s"No route found from '$f' to '$t'."))
+                  case UnresolvedFrom(f) => badRequest(Errors(s"Unresolvable from '$f'."))
+                  case UnresolvedTo(t)   => badRequest(Errors(s"Unresolvable to '$t'."))
+                  case EmptyGraph        => serverError(Errors("Graph engine not available."))
+        .recover(err => badRequest(Errors(err.message)))
     case GET -> Root / "cars" / "conf" =>
       ok(CarsConf.default)
     case req @ POST -> Root / "cars" / "locations" =>
-      jsonAction[LocationUpdates](req) { (body, user) =>
+      jsonAction[LocationUpdates](req): (body, user) =>
         val start = System.currentTimeMillis()
         user.boats
           .find(_.id == body.carId)
-          .map { device =>
+          .map: device =>
             val deviceMeta = SimpleSourceMeta(user.username, device.name, device.sourceType)
-            inserts.joinAsSource(deviceMeta).flatMap { result =>
-              val meta = result.track
-              val count = body.updates.size
-              val time = System.currentTimeMillis() - start
-              log.debug(
-                s"User ${user.email} POSTs $count car updates for ${meta.boatName}, join took $time ms..."
-              )
-              val insertion = body.updates.traverse { loc =>
-                streams.saveCarCoord(CarCoord.fromUpdate(loc, meta.track))
-              }.flatMap { inserteds =>
-                val duration = System.currentTimeMillis() - start
-                ok(SimpleMessage(s"Saved ${inserteds.size} updates in $duration ms."))
-              }
-              val pushTask = if result.isResumed then F.pure(()) else pushNotification(meta)
-              pushTask >> insertion
-            }
-          }
-          .getOrElse {
+            inserts
+              .joinAsSource(deviceMeta)
+              .flatMap: result =>
+                val meta = result.track
+                val count = body.updates.size
+                val time = System.currentTimeMillis() - start
+                log.debug(
+                  s"User ${user.email} POSTs $count car updates for ${meta.boatName}, join took $time ms..."
+                )
+                val insertion = body.updates.traverse { loc =>
+                  streams.saveCarCoord(CarCoord.fromUpdate(loc, meta.track))
+                }.flatMap { inserteds =>
+                  val duration = System.currentTimeMillis() - start
+                  ok(SimpleMessage(s"Saved ${inserteds.size} updates in $duration ms."))
+                }
+                val pushTask = if result.isResumed then F.pure(()) else pushNotification(meta)
+                pushTask >> insertion
+          .getOrElse:
             notFound(Errors(SingleError.input(s"Car not found: '${body.carId}'.")))
-          }
-      }
     case req @ GET -> Root / "sign-in" =>
       val now = Instant.now()
       req.cookies
         .find(_.name == cookieNames.provider)
-        .flatMap { cookie =>
-          AuthProvider.forString(cookie.content).toOption
-        }
-        .map { provider =>
+        .flatMap(cookie => AuthProvider.forString(cookie.content).toOption)
+        .map: provider =>
           if provider == AuthProvider.Apple then
             val recreation = web
               .parseLongTermCookie(req.headers)
-              .map { idToken =>
-                auth.webSiwa.recreate(idToken, now).flatMap { boatJwt =>
-                  appleResult(boatJwt, req)
-                }
-              }
+              .map: idToken =>
+                auth.webSiwa.recreate(idToken, now).flatMap(boatJwt => appleResult(boatJwt, req))
             recreation.getOrElse(temporaryRedirect(reverse.signInFlow(provider)))
           else temporaryRedirect(reverse.signInFlow(provider))
-        }
-        .getOrElse {
+        .getOrElse:
           ok(html(req).signIn(Lang.default))
-        }
     case req @ GET -> Root / "sign-in" / "google" =>
       startHinted(AuthProvider.Google, auth.googleFlow, req)
     case req @ GET -> Root / "sign-in" / "microsoft" =>
@@ -336,48 +308,41 @@ class Service[F[_]: Async: Files](comps: BoatComps[F]) extends BasicService[F]:
     case req @ POST -> Root / "sign-in" / "callbacks" / "apple" =>
       handleAppleCallback(req)
     case GET -> Root / "sign-out" =>
-      SeeOther(Location(reverse.index)).map { res =>
-        auth.web.clearSession(res)
-      }
+      SeeOther(Location(reverse.index)).map(res => auth.web.clearSession(res))
     case GET -> Root / "docs" / "agent"    => docsRedirect("agent")
     case GET -> Root / "docs" / "support"  => docsRedirect("support")
     case GET -> Root / "legal" / "privacy" => docsRedirect("privacy")
     case req @ GET -> Root / "files" =>
-      comps.s3.files().flatMap { objects =>
-        val urls = objects.map { obj =>
-          Urls.hostOnly(req) / "files" / obj.key()
-        }
-        ok(Json.obj("files" -> urls.asJson))(jsonEncoder[F])
-      }
+      comps.s3
+        .files()
+        .flatMap: objects =>
+          val urls = objects.map(obj => Urls.hostOnly(req) / "files" / obj.key())
+          ok(Json.obj("files" -> urls.asJson))(jsonEncoder[F])
     case GET -> Root / "files" / file =>
-      comps.s3.download(file).flatMap { file =>
-        val stream = fs2.io.file.Files[F].readAll(fs2.io.file.Path.fromNioPath(file))
-        //        val stream = fs2.io.readInputStream[F](F.pure(obj.getObjectContent), 8192)
-        Ok(stream)
-      }
-
+      comps.s3
+        .download(file)
+        .flatMap: file =>
+          val stream = fs2.io.file.Files[F].readAll(fs2.io.file.Path.fromNioPath(file))
+          //        val stream = fs2.io.readInputStream[F](F.pure(obj.getObjectContent), 8192)
+          Ok(stream)
     case req @ GET -> Root / ".well-known" / "apple-app-site-association" =>
       fileFromPublicResources("apple-app-site-association.json", req)
     case req @ GET -> Root / ".well-known" / "assetlinks.json" =>
       fileFromPublicResources("android-assetlinks.json", req)
     case req @ GET -> Root / TrackCanonicalVar(canonical) =>
       respond(req)(
-        json = authedTrackQuery(req).flatMap { authed =>
+        json = authedTrackQuery(req).flatMap: authed =>
           db.canonical(canonical, authed.user.language)
-            .flatMap { ref =>
-              ok(TrackResponse(ref))
-            }
-            .handleErrorWith { t =>
+            .flatMap(ref => ok(TrackResponse(ref)))
+            .handleErrorWith: t =>
               val errors = Errors(s"Not found: '$canonical'.")
               log.info(s"${errors.message}", t)
               notFound(errors)
-            }
-        },
+        ,
         html = index(req)
       )
-  }
 
-  private def socketRoutes(sockets: WebSocketBuilder2[F]): HttpRoutes[F] = HttpRoutes.of[F] {
+  private def socketRoutes(sockets: WebSocketBuilder2[F]): HttpRoutes[F] = HttpRoutes.of[F]:
     case req @ GET -> Root / "ws" / "updates" =>
       auth.authOrAnon(req.headers).flatMap { user =>
         val username = user.username
@@ -410,50 +375,42 @@ class Service[F[_]: Async: Files](comps: BoatComps[F]) extends BasicService[F]:
             message => F.delay(log.info(message)),
             onClose = F.delay(log.info(s"Viewer '$username' left."))
           )
-        }.recover { errors =>
-          badRequest(errors)
-        }
+        }.recover(errors => badRequest(errors))
       }
     case req @ GET -> Root / "ws" / "boats" =>
       auth
         .authBoat(req.headers)
-        .flatMap { boat =>
+        .flatMap: boat =>
           log.info(s"Boat '${boat.boat}' by '${boat.user}' connected.")
-          inserts.joinAsSource(boat).flatMap { result =>
-            val meta = result.track
-            pushNotification(meta).flatMap { _ =>
-              webSocket(
-                sockets,
-                toClients,
-                message =>
-                  log.debug(s"Boat '${boat.boat}' by '${boat.user}' says '$message'.")
-                  val parsed = parseUnsafe(message)
-                  streams.boatIn
-                    .publish1(BoatEvent(parsed, meta))
-                    .map(e =>
-                      e.fold(
-                        err =>
-                          log
-                            .warn(s"Failed to publish '$message' by ${boat.boat}, topic closed."),
-                        identity
-                      )
-                    )
-                ,
-                onClose =
-                  F.delay(log.info(s"Boat '${boat.boat}' by '${boat.user}' left.")).flatMap { _ =>
-                    push.push(meta, SourceState.Disconnected).map(_ => ())
-                  }
-              ).onError { t =>
-                F.delay(
-                  log.info(s"Boat '${boat.boat}' by '${boat.user}' left exceptionally.", t)
-                ).flatMap { _ =>
-                  push.push(meta, SourceState.Disconnected).map(_ => ())
-                }
-              }
-            }
-          }
-        }
-  }
+          inserts
+            .joinAsSource(boat)
+            .flatMap: result =>
+              val meta = result.track
+              pushNotification(meta).flatMap: _ =>
+                webSocket(
+                  sockets,
+                  toClients,
+                  message =>
+                    log.debug(s"Boat '${boat.boat}' by '${boat.user}' says '$message'.")
+                    val parsed = parseUnsafe(message)
+                    streams.boatIn
+                      .publish1(BoatEvent(parsed, meta))
+                      .map: e =>
+                        e.fold(
+                          err =>
+                            log
+                              .warn(s"Failed to publish '$message' by ${boat.boat}, topic closed."),
+                          identity
+                        )
+                  ,
+                  onClose = F
+                    .delay(log.info(s"Boat '${boat.boat}' by '${boat.user}' left."))
+                    .flatMap: _ =>
+                      push.push(meta, SourceState.Disconnected).map(_ => ())
+                ).onError: t =>
+                  F.delay(
+                    log.info(s"Boat '${boat.boat}' by '${boat.user}' left exceptionally.", t)
+                  ).flatMap(_ => push.push(meta, SourceState.Disconnected).map(_ => ()))
 
   def routes(sockets: WebSocketBuilder2[F]): HttpRoutes[F] =
     normalRoutes <+> socketRoutes(sockets)
@@ -462,9 +419,8 @@ class Service[F[_]: Async: Files](comps: BoatComps[F]) extends BasicService[F]:
     push
       .push(meta, SourceState.Connected)
       .as[Unit](())
-      .handleErrorWith { t =>
+      .handleErrorWith: t =>
         F.delay(log.error(s"Failed to push all device notifications for '${meta.deviceName}'.", t))
-      }
 
   private def parseUnsafe(message: String) =
     parse(message).fold(err => throw Exception(s"Not JSON: '$message'. $err"), identity)
@@ -491,54 +447,50 @@ class Service[F[_]: Async: Files](comps: BoatComps[F]) extends BasicService[F]:
     toClient: Stream[F, WebSocketFrame],
     onMessage: String => F[Unit],
     onClose: F[Unit]
-  ) =
-    val fromClient: Pipe[F, WebSocketFrame, Unit] = _.evalMap {
+  ): F[Response[F]] =
+    val fromClient: Pipe[F, WebSocketFrame, Unit] = _.evalMap:
       case Text(message, _) =>
         log.debug(s"Message $message")
         onMessage(message)
       case f =>
         F.delay(log.debug(s"Unknown WebSocket frame: $f"))
-    }
     sockets.withOnClose(onClose).build(toClient, fromClient)
 
   private def index(req: Request[F]) =
-    auth.optionalWebAuth(req).flatMap { result =>
-      result.map { userRequest =>
-        val maybeBoat = userRequest.user
-        val u: Username = maybeBoat.map(_.user).getOrElse(Usernames.anon)
-        val lang = maybeBoat.map(_.language).getOrElse(Language.default)
-        val authorizedBoats = maybeBoat.map(_.boats.map(_.boat)).getOrElse(Nil)
-        val isSecure = Urls.isSecure(req)
-        val tokenCookie = ResponseCookie(
-          TokenCookieName,
-          comps.mapboxToken.token,
-          secure = isSecure,
-          httpOnly = false
-        )
-        val languageCookie = ResponseCookie(
-          LanguageName,
-          maybeBoat.map(_.language).getOrElse(Language.default).code,
-          secure = isSecure,
-          httpOnly = false
-        )
-        ok(html(req).map(maybeBoat.getOrElse(UserBoats.anon))).map { res =>
-          val cookied = res.addCookie(tokenCookie).addCookie(languageCookie)
-          auth.saveSettings(SettingsPayload(u, lang, authorizedBoats), cookied, isSecure)
-        }
-      }.recover { mc =>
-        redirectToLogin
-      }
-    }
+    auth
+      .optionalWebAuth(req)
+      .flatMap: result =>
+        result
+          .map: userRequest =>
+            val maybeBoat = userRequest.user
+            val u: Username = maybeBoat.map(_.user).getOrElse(Usernames.anon)
+            val lang = maybeBoat.map(_.language).getOrElse(Language.default)
+            val authorizedBoats = maybeBoat.map(_.boats.map(_.boat)).getOrElse(Nil)
+            val isSecure = Urls.isSecure(req)
+            val tokenCookie = ResponseCookie(
+              TokenCookieName,
+              comps.mapboxToken.token,
+              secure = isSecure,
+              httpOnly = false
+            )
+            val languageCookie = ResponseCookie(
+              LanguageName,
+              maybeBoat.map(_.language).getOrElse(Language.default).code,
+              secure = isSecure,
+              httpOnly = false
+            )
+            ok(html(req).map(maybeBoat.getOrElse(UserBoats.anon))).map: res =>
+              val cookied = res.addCookie(tokenCookie).addCookie(languageCookie)
+              auth.saveSettings(SettingsPayload(u, lang, authorizedBoats), cookied, isSecure)
+          .recover(mc => redirectToLogin)
 
   private def trackAction[T: Decoder](req: Request[F], readForm: FormReader => Either[Errors, T])(
     code: (T, UserInfo) => F[JoinedTrack]
   ) =
-    formAction[T](req, readForm) { (t, user) =>
-      code(t, user).flatMap { track =>
+    formAction[T](req, readForm): (t, user) =>
+      code(t, user).flatMap: track =>
         val formatter = TimeFormatter.lang(user.language)
         ok(TrackResponse(track.strip(formatter)))
-      }
-    }
 
   implicit val boatNameReader: Readable[BoatName] =
     Readable.string.emap(s => BoatName.build(s.trim))
@@ -548,50 +500,48 @@ class Service[F[_]: Async: Files](comps: BoatComps[F]) extends BasicService[F]:
       req,
       form => form.read[BoatName](BoatNames.Key).map(n => ChangeBoatName(n))
     ) { (change, user) =>
-      code(change.boatName, user).flatMap { row =>
+      code(change.boatName, user).flatMap: row =>
         respond(req)(
           json = ok(BoatResponse(row.toBoat)),
           html = SeeOther(Location(reverse.boats))
         )
-      }
     }
 
   private def formAction[T: Decoder](req: Request[F], readForm: FormReader => Either[Errors, T])(
     code: (T, UserInfo) => F[Response[F]]
   )(implicit decoder: EntityDecoder[F, UrlForm]): F[Response[F]] =
-    auth.profile(req).flatMap { user =>
-      val isForm = req.headers
-        .get(ci"Content-Type")
-        .exists(_.head.value == "application/x-www-form-urlencoded")
-      val decoded =
-        if isForm then
-          decoder
-            .decode(req, strict = false)
-            .foldF(
-              fail => F.raiseError(fail),
-              form =>
-                readForm(new FormReader(form)).fold(
-                  err => F.raiseError(err.asException),
-                  F.pure
-                )
-            )
-        else req.decodeJson[T]
-      decoded.flatMap { t =>
-        code(t, user)
-      }.handleErrorWith { err =>
-        log.error(s"Form failure. $err")
-        badRequest(Errors(SingleError.input("Invalid form input.")))
-      }
-    }
+    auth
+      .profile(req)
+      .flatMap: user =>
+        val isForm = req.headers
+          .get(ci"Content-Type")
+          .exists(_.head.value == "application/x-www-form-urlencoded")
+        val decoded =
+          if isForm then
+            decoder
+              .decode(req, strict = false)
+              .foldF(
+                fail => F.raiseError(fail),
+                form =>
+                  readForm(new FormReader(form)).fold(
+                    err => F.raiseError(err.asException),
+                    F.pure
+                  )
+              )
+          else req.decodeJson[T]
+        decoded
+          .flatMap(t => code(t, user))
+          .handleErrorWith: err =>
+            log.error(s"Form failure. $err")
+            badRequest(Errors(SingleError.input("Invalid form input.")))
 
   private def jsonAction[T: Decoder](req: Request[F])(
     code: (T, UserInfo) => F[Response[F]]
   ) =
-    auth.profile(req).flatMap { user =>
-      req.as[T](implicitly, jsonBody[F, T]).flatMap { t =>
-        code(t, user)
-      }
-    }
+    auth
+      .profile(req)
+      .flatMap: user =>
+        req.as[T](implicitly, jsonBody[F, T]).flatMap(t => code(t, user))
 
   private def respond(
     req: Request[F]
@@ -638,65 +588,62 @@ class Service[F[_]: Async: Files](comps: BoatComps[F]) extends BasicService[F]:
     makeAuth: Headers => F[U],
     query: Query => Either[Errors, T]
   ): F[BoatRequest[T, U]] =
-    makeAuth(req.headers).flatMap { user =>
+    makeAuth(req.headers).flatMap: user =>
       query(req.uri.query).fold(
         err => F.raiseError(InvalidRequest(req, err)),
         q => F.pure(AnyBoatRequest(user, q, req.headers))
       )
-    }
 
   private def start(validator: FlowStart[F], provider: AuthProvider, req: Request[F]) =
     validator
       .start(Urls.hostOnly(req) / reverse.signInCallback(provider).renderString, Map.empty)
-      .flatMap { s =>
-        startLoginFlow(s, req.isSecured)
-      }
+      .flatMap(s => startLoginFlow(s, req.isSecured))
 
   private def startHinted(
     provider: AuthProvider,
     validator: LoginHint[F],
     req: Request[F]
-  ): F[Response[F]] = F.delay {
-    val redirectUrl = Urls.hostOnly(req) / reverse.signInCallback(provider).renderString
-    val lastIdCookie = req.cookies.find(_.name == cookieNames.lastId)
-    val promptValue = req.cookies
-      .find(_.name == cookieNames.prompt)
-      .map(_.content)
-      .orElse(Option(SelectAccount).filter(_ => lastIdCookie.isEmpty))
-    val extra = promptValue.map(c => Map(PromptKey -> c)).getOrElse(Map.empty)
-    val maybeEmail = lastIdCookie.map(_.content).filter(_ => extra.isEmpty)
-    maybeEmail.foreach { hint =>
-      log.info(s"Starting OAuth flow with $provider using login hint '$hint'...")
-    }
-    promptValue.foreach { prompt =>
-      log.info(s"Starting OAuth flow with $provider using prompt '$prompt'...")
-    }
-    (redirectUrl, maybeEmail, extra)
-  }.flatMap { case (redirectUrl, maybeEmail, extra) =>
-    validator.startHinted(redirectUrl, maybeEmail, extra).flatMap { s =>
-      startLoginFlow(s, req.isSecured)
-    }
-  }
+  ): F[Response[F]] = F
+    .delay:
+      val redirectUrl = Urls.hostOnly(req) / reverse.signInCallback(provider).renderString
+      val lastIdCookie = req.cookies.find(_.name == cookieNames.lastId)
+      val promptValue = req.cookies
+        .find(_.name == cookieNames.prompt)
+        .map(_.content)
+        .orElse(Option(SelectAccount).filter(_ => lastIdCookie.isEmpty))
+      val extra = promptValue.map(c => Map(PromptKey -> c)).getOrElse(Map.empty)
+      val maybeEmail = lastIdCookie.map(_.content).filter(_ => extra.isEmpty)
+      maybeEmail.foreach: hint =>
+        log.info(s"Starting OAuth flow with $provider using login hint '$hint'...")
+      promptValue.foreach: prompt =>
+        log.info(s"Starting OAuth flow with $provider using prompt '$prompt'...")
+      (redirectUrl, maybeEmail, extra)
+    .flatMap:
+      case (redirectUrl, maybeEmail, extra) =>
+        validator
+          .startHinted(redirectUrl, maybeEmail, extra)
+          .flatMap: s =>
+            startLoginFlow(s, req.isSecured)
 
-  private def startLoginFlow(s: Start, isSecure: Boolean): F[Response[F]] = F.delay {
-    val state = randomString()
-    val encodedParams = (s.params ++ Map(OAuthKeys.State -> state)).map { case (k, v) =>
-      k -> com.malliina.web.Utils.urlEncode(v)
-    }
-    val url = s.authorizationEndpoint.append(s"?${stringify(encodedParams)}")
-    log.info(s"Redirecting to '$url' with state '$state'...")
-    val sessionParams: Seq[(String, String)] = Seq(State -> state) ++ s.nonce
-      .map(n => Seq(Nonce -> n))
-      .getOrElse(Nil)
-    (url, sessionParams)
-  }.flatMap { case (url, sessionParams) =>
-    SeeOther(Location(Uri.unsafeFromString(url.url))).map { res =>
-      val session = sessionParams.toMap.asJson
-      auth.web
-        .withSession(session, isSecure, res)
-        .putHeaders(noCache)
-    }
-  }
+  private def startLoginFlow(s: Start, isSecure: Boolean): F[Response[F]] = F
+    .delay:
+      val state = randomString()
+      val encodedParams = (s.params ++ Map(OAuthKeys.State -> state)).map:
+        case (k, v) =>
+          k -> com.malliina.web.Utils.urlEncode(v)
+      val url = s.authorizationEndpoint.append(s"?${stringify(encodedParams)}")
+      log.info(s"Redirecting to '$url' with state '$state'...")
+      val sessionParams: Seq[(String, String)] = Seq(State -> state) ++ s.nonce
+        .map(n => Seq(Nonce -> n))
+        .getOrElse(Nil)
+      (url, sessionParams)
+    .flatMap:
+      case (url, sessionParams) =>
+        SeeOther(Location(Uri.unsafeFromString(url.url))).map: res =>
+          val session = sessionParams.toMap.asJson
+          auth.web
+            .withSession(session, isSecure, res)
+            .putHeaders(noCache)
 
   private def handleAuthCallback(
     flow: DiscoveringAuthFlow[F, Email],
@@ -705,12 +652,7 @@ class Service[F[_]: Async: Files](comps: BoatComps[F]) extends BasicService[F]:
   ) = handleCallback(
     req,
     provider,
-    cb =>
-      flow.validateCallback(cb).map { e =>
-        e.flatMap { v =>
-          flow.parse(v)
-        }
-      }
+    cb => flow.validateCallback(cb).map(e => e.flatMap(v => flow.parse(v)))
   )
 
   private def handleCallback(
@@ -727,12 +669,11 @@ class Service[F[_]: Async: Files](comps: BoatComps[F]) extends BasicService[F]:
       session.get(Nonce),
       Urls.hostOnly(req) / reverse.signInCallback(provider).renderString
     )
-    validate(cb).flatMap { e =>
+    validate(cb).flatMap: e =>
       e.fold(
         err => unauthorized(Errors(err.message.message)),
         email => userResult(email, provider, req)
       )
-    }
 
   private def handleAppleCallback(req: Request[F])(implicit
     decoder: EntityDecoder[F, UrlForm]
@@ -742,34 +683,32 @@ class Service[F[_]: Async: Files](comps: BoatComps[F]) extends BasicService[F]:
       .foldF(
         failure => unauthorized(Errors(failure.message)),
         urlForm =>
-          AppleResponse(urlForm).map { form =>
-            val session =
-              web.authState[Map[String, String]](req.headers).toOption.getOrElse(Map.empty)
-            val actualState = form.state
-            val sessionState = session.get(State)
-            if sessionState.contains(actualState) then
-              val redirectUrl =
-                Urls.hostOnly(req) / reverse.signInCallback(AuthProvider.Apple).renderString
-              auth.webSiwa.registerWeb(form.code, Instant.now(), redirectUrl).flatMap { boatJwt =>
-                appleResult(boatJwt, req)
-              }
-            else
-              val detailed =
-                sessionState.fold(s"Got '$actualState' but found nothing to compare to.") {
-                  expected =>
-                    s"Got '$actualState' but expected '$expected'."
-                }
-              log.error(s"Authentication failed, state mismatch. $detailed $req")
-              unauthorized(Errors("State mismatch."))
-          }.recover { err =>
-            unauthorized(Errors(err))
-          }
+          AppleResponse(urlForm)
+            .map: form =>
+              val session =
+                web.authState[Map[String, String]](req.headers).toOption.getOrElse(Map.empty)
+              val actualState = form.state
+              val sessionState = session.get(State)
+              if sessionState.contains(actualState) then
+                val redirectUrl =
+                  Urls.hostOnly(req) / reverse.signInCallback(AuthProvider.Apple).renderString
+                auth.webSiwa
+                  .registerWeb(form.code, Instant.now(), redirectUrl)
+                  .flatMap: boatJwt =>
+                    appleResult(boatJwt, req)
+              else
+                val detailed =
+                  sessionState.fold(s"Got '$actualState' but found nothing to compare to.") {
+                    expected => s"Got '$actualState' but expected '$expected'."
+                  }
+                log.error(s"Authentication failed, state mismatch. $detailed $req")
+                unauthorized(Errors("State mismatch."))
+            .recover(err => unauthorized(Errors(err)))
       )
 
   private def appleResult(boatJwt: BoatJwt, req: Request[F]) =
-    userResult(boatJwt.email, AuthProvider.Apple, req).map { res =>
+    userResult(boatJwt.email, AuthProvider.Apple, req).map: res =>
       res.addCookie(web.longTermCookie(boatJwt.idToken))
-    }
 
   private def userResult(
     email: Email,
@@ -780,12 +719,11 @@ class Service[F[_]: Async: Files](comps: BoatComps[F]) extends BasicService[F]:
       .find(_.name == cookieNames.returnUri)
       .flatMap(c => Uri.fromString(c.content).toOption)
       .getOrElse(reverse.index)
-    SeeOther(Location(returnUri)).map { r =>
+    SeeOther(Location(returnUri)).map: r =>
       web.withAppUser(UserPayload.email(email), Urls.isSecure(req), provider, r)
-    }
 
   def stringify(map: Map[String, String]): String =
-    map.map { case (key, value) => s"$key=$value" }.mkString("&")
+    map.map((key, value) => s"$key=$value").mkString("&")
 
   private def unauthorized(@unused errors: Errors) = redirectToLogin
   private def redirectToLogin: F[Response[F]] = SeeOther(Location(reverse.signIn))

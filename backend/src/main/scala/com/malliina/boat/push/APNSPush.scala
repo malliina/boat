@@ -49,17 +49,19 @@ class APNSPush[F[_]: Monad](sandbox: APNSHttpClientF[F], prod: APNSHttpClientF[F
 
   def push(to: APNSToken, request: APNSRequest, isProd: Boolean): F[PushSummary] =
     val service = if isProd then prod else sandbox
-    service.push(to, request).map(loggedMap(_, to, useLog = isProd)).map { result =>
-      if isProd then
-        PushSummary(
-          if result.error.isEmpty then Seq(result.token) else Nil,
-          if result.error.exists(err => PushSummary.removableErrors.exists(_ == err)) then
-            Seq(PushToken(result.token.token))
-          else Nil,
-          Nil
-        )
-      else PushSummary.empty
-    }
+    service
+      .push(to, request)
+      .map(loggedMap(_, to, useLog = isProd))
+      .map: result =>
+        if isProd then
+          PushSummary(
+            if result.error.isEmpty then Seq(result.token) else Nil,
+            if result.error.exists(err => PushSummary.removableErrors.exists(_ == err)) then
+              Seq(PushToken(result.token.token))
+            else Nil,
+            Nil
+          )
+        else PushSummary.empty
 
   private def loggedMap(
     result: Either[APNSError, APNSIdentifier],

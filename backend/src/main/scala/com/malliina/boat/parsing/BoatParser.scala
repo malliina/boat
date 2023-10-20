@@ -31,21 +31,22 @@ object BoatParser:
     */
   def parse(sentence: KeyedSentence): Either[SentenceError, ParsedSentence] =
     val raw = sentence.sentence
-    SentenceParser.parse(raw).flatMap {
-      case zda @ ZDAMessage(_, _, _, _, _, _, _) =>
-        if zda.isSuspect then Left(SuspectTime(raw))
-        else Right(ParsedDateTime(zda.date, zda.timeUtc, sentence))
-      case GGAMessage(_, time, lat, lng, _, _, _, _, _, _) =>
-        Right(ParsedCoord(Coord(lng.toDecimalDegrees, lat.toDecimalDegrees), time, sentence))
-      case VTGMessage(_, _, _, speed, _) =>
-        Right(ParsedBoatSpeed(speed, sentence))
-      case MTWMessage(_, temperature) =>
-        Right(WaterTemperature(temperature, sentence))
-      case DPTMessage(_, depth, offset) =>
-        Right(WaterDepth(depth, offset, sentence))
-      case _ =>
-        Left(IgnoredSentence(raw))
-    }
+    SentenceParser
+      .parse(raw)
+      .flatMap:
+        case zda @ ZDAMessage(_, _, _, _, _, _, _) =>
+          if zda.isSuspect then Left(SuspectTime(raw))
+          else Right(ParsedDateTime(zda.date, zda.timeUtc, sentence))
+        case GGAMessage(_, time, lat, lng, _, _, _, _, _, _) =>
+          Right(ParsedCoord(Coord(lng.toDecimalDegrees, lat.toDecimalDegrees), time, sentence))
+        case VTGMessage(_, _, _, speed, _) =>
+          Right(ParsedBoatSpeed(speed, sentence))
+        case MTWMessage(_, temperature) =>
+          Right(WaterTemperature(temperature, sentence))
+        case DPTMessage(_, depth, offset) =>
+          Right(WaterDepth(depth, offset, sentence))
+        case _ =>
+          Left(IgnoredSentence(raw))
 
   private def handleError(err: SentenceError): Unit =
     err match
