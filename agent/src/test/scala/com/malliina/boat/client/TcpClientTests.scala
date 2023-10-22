@@ -16,7 +16,7 @@ class TcpClientTests extends AsyncSuite:
 //  val socketsFixture = resource(Blocker[IO].flatMap { b => SocketGroup[IO](b) })
   val log = AppLogger(getClass)
 
-  test("client receives sentences over TCP socket") {
+  test("client receives sentences over TCP socket"):
     val sentences = Seq(
       "$GPGGA,162112,6009.0969,N,02453.4521,E,1,12,0.70,6,M,19.5,M,,*6F",
       "$GPGGA,174239,6010.2076,N,02450.5518,E,1,12,0.50,0,M,19.5,M,,*63",
@@ -49,7 +49,7 @@ class TcpClientTests extends AsyncSuite:
     client.sentencesHub
       .take(1)
       .map { msg =>
-        msg.sentences.headOption.foreach { raw => p.trySuccess(raw) }
+        msg.sentences.headOption.foreach(raw => p.trySuccess(raw))
       }
       .compile
       .drain
@@ -57,12 +57,10 @@ class TcpClientTests extends AsyncSuite:
     val received = await(p.future)
     client.close.unsafeRunSync()
     assertEquals(received, sentences.map(RawSentence.apply).head)
-  }
 
-  tcpFixture(host"127.0.0.1", port"10109").test("connection to unavailable server fails stream") {
+  tcpFixture(host"127.0.0.1", port"10109").test("connection to unavailable server fails stream"):
     tcp =>
       tcp.close.unsafeRunSync()
       assertEquals(List.empty[Unit], tcp.connect().compile.toList.unsafeRunSync())
-  }
 
   def tcpFixture(host: Host, port: Port) = resource(Resource.eval(TcpClient.default(host, port)))

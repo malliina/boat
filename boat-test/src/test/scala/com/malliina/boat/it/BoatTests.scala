@@ -11,6 +11,8 @@ import org.http4s.Uri
 import tests.{BaseSuite, ServerSuite}
 
 abstract class BoatTests extends BaseSuite with ServerSuite with BoatSockets:
+  export concurrent.duration.DurationInt
+
   def openTestBoat[T](boat: BoatName, httpClient: HttpClientF2[IO])(
     code: WebSocketF[IO] => IO[T]
   ): IO[T] =

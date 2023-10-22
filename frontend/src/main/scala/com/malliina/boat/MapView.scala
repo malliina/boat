@@ -106,13 +106,10 @@ class MapView(
   private val toPicker = makePicker(ToTimePickerId)
 
   private val _ =
-    dateHandler.subscribeDate(fromPicker, toPicker, isFrom = true, locale = locale) { from =>
+    dateHandler.subscribeDate(fromPicker, toPicker, isFrom = true, locale = locale): from =>
       reconnect(from, dateHandler.to)
-    }
-  private val _ = dateHandler.subscribeDate(toPicker, fromPicker, isFrom = false, locale = locale) {
-    to =>
-      reconnect(dateHandler.from, to)
-  }
+  private val _ = dateHandler.subscribeDate(toPicker, fromPicker, isFrom = false, locale = locale):
+    to => reconnect(dateHandler.from, to)
 
   private def makePicker(elementId: String): TempusDominus =
     TempusDominus(
@@ -130,39 +127,35 @@ class MapView(
         _.getElementsByTagName("input")
           .map(_.asInstanceOf[HTMLInputElement])
           .headOption
-          .map { in =>
+          .map: in =>
             e.preventDefault()
             in.focus()
-          }
       )
 
   private def initModal(modal: Element): Unit =
-    window.addOnClick { e =>
+    window.addOnClick: e =>
       if e.target == modal then modal.hide()
-    }
-    modal.getElementsByClassName(Close).headOption.foreach { node =>
-      node.asInstanceOf[HTMLSpanElement].onclick = _ => modal.hide()
-    }
-    elemAs[HTMLSpanElement](Question).foreach { q =>
+    modal
+      .getElementsByClassName(Close)
+      .headOption
+      .foreach: node =>
+        node.asInstanceOf[HTMLSpanElement].onclick = _ => modal.hide()
+    elemAs[HTMLSpanElement](Question).foreach: q =>
       q.onclick = _ => modal.show()
-    }
 
   private def initNavDropdown(): Unit =
     initDropdown(DropdownLinkId, DropdownContentId)
     initDropdown(BoatDropdownId, BoatDropdownContentId)
 
   private def initDropdown(linkId: String, contentId: String): Unit =
-    htmlElem(linkId).foreach { link =>
-      htmlElem(contentId).foreach { content =>
+    htmlElem(linkId).foreach: link =>
+      htmlElem(contentId).foreach: content =>
         link.addOnClick(_ => toggleClass(content, Visible))
-        window.addOnClick { e =>
+        window.addOnClick: e =>
           if e.target.isOutside(content) && e.target.isOutside(link) && content.classList.contains(
               Visible
             )
           then content.classList.remove(Visible)
-        }
-      }
-    }
 
   private def toggleClass(e: HTMLElement, className: String): Unit =
     val classList = e.classList

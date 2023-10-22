@@ -7,7 +7,7 @@ import com.malliina.boat.client.{FormReadable, FormReader}
 import com.malliina.boat.client.TcpClient.{host, port}
 import com.malliina.boat.client.server.AgentHtml.{asHtml, boatForm}
 import com.malliina.boat.client.server.AgentSettings.{readConf, saveAndReload}
-import com.malliina.boat.client.server.WebServer.settingsUri
+import com.malliina.boat.client.server.WebServer.{noCache, settingsUri}
 import com.malliina.boat.{BoatToken, Errors}
 import com.malliina.util.AppLogger
 import com.malliina.values.Readable
@@ -22,6 +22,7 @@ import org.http4s.*
 import com.comcast.ip4s.{Host, Port}
 import org.http4s.CacheDirective.*
 import org.http4s.headers.`Cache-Control`
+import org.slf4j.Logger
 
 import java.nio.charset.StandardCharsets
 
@@ -32,7 +33,7 @@ trait AppImplicits[F[_]]
   with ScalatagsEncoder
 
 object WebServer:
-  val log = AppLogger(getClass)
+  val log: Logger = AppLogger(getClass)
   val boatCharset = StandardCharsets.UTF_8
   // MD5 hash of the default password "boat"
   val defaultHash = "dd8fc45d87f91c6f9a9f43a3f355a94a"
@@ -41,20 +42,20 @@ object WebServer:
   val changePassUri = uri"/init"
   val settingsPath = "settings"
   val settingsUri = uri"/settings"
+  val noCache = `Cache-Control`(`no-cache`(), `no-store`, `must-revalidate`)
 
   def hash(pass: String): String = DigestUtils.md5Hex(pass)
 
 class WebServer[F[_]: Async](agentInstance: AgentInstance[F]) extends AppImplicits[F]:
-  val noCache = `Cache-Control`(`no-cache`(), `no-store`, `must-revalidate`)
   val boatUser = "boat"
   val tempUser = "temp"
 
-  val routes = HttpRoutes.of[F]:
+  private val routes = HttpRoutes.of[F]:
     case GET -> Root =>
       SeeOther(Location(settingsUri))
     case GET -> Root / "settings" =>
       Ok(asHtml(boatForm(readConf().toOption)), noCache)
-    case req @ GET -> Root / "settings" =>
+    case req @ POST -> Root / "settings" =>
       parseForm(req, readForm).flatMap: boatConf =>
         saveAndReload(boatConf, agentInstance)
         SeeOther(Location(settingsUri))
@@ -70,6 +71,7 @@ class WebServer[F[_]: Async](agentInstance: AgentInstance[F]) extends AppImplici
   given Readable[BoatToken] = Readable.string.map(s => BoatToken(s))
 
   val service = Router("/" -> routes).orNotFound
+  val F = Async[F]
 
   private def readForm(form: FormReader): Either[Errors, BoatConf] = for
     host <- form.read[Host]("host")
@@ -79,7 +81,7 @@ class WebServer[F[_]: Async](agentInstance: AgentInstance[F]) extends AppImplici
     enabled <- form.read[Boolean]("enabled")
   yield BoatConf(host, port, device, token, enabled)
 
-  private def parseForm[T](req: Request[F], read: FormReader => Either[Errors, T])(implicit
+  private def parseForm[T](req: Request[F], read: FormReader => Either[Errors, T])(using
     decoder: EntityDecoder[F, UrlForm]
   ): F[T] =
     decoder
@@ -88,4 +90,3 @@ class WebServer[F[_]: Async](agentInstance: AgentInstance[F]) extends AppImplici
         err => F.raiseError(err),
         form => read(FormReader(form)).fold(err => F.raiseError(err.asException), ok => F.pure(ok))
       )
-  val F = Async[F]

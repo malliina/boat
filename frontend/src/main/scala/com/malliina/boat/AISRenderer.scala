@@ -48,9 +48,10 @@ class AISRenderer(val map: MapboxMap, val log: BaseLogger = BaseLogger.console)
   )
 
   def onAIS(messages: Seq[VesselInfo]): Unit =
-    val updated = messages.map { msg =>
-      msg.mmsi -> (msg :: vessels.getOrElse(msg.mmsi, Nil)).take(MaxTrailLength)
-    }.toMap
+    val updated = messages
+      .map: msg =>
+        msg.mmsi -> (msg :: vessels.getOrElse(msg.mmsi, Nil)).take(MaxTrailLength)
+      .toMap
     vessels = vessels ++ updated
     val iconUpdateOutcome = updateOrSet(
       Layer.symbol(
@@ -68,14 +69,13 @@ class AISRenderer(val map: MapboxMap, val log: BaseLogger = BaseLogger.console)
     in =>
       map
         .queryRendered(in.point, QueryOptions.layer(id))
-        .map { fs =>
-          fs.flatMap(_.props.as[VesselProps].toOption).headOption.foreach { vessel =>
-            boatPopup.showText(vessel.name.name, in.lngLat, map)
-          }
-        }
+        .map: fs =>
+          fs.flatMap(_.props.as[VesselProps].toOption)
+            .headOption
+            .foreach: vessel =>
+              boatPopup.showText(vessel.name.name, in.lngLat, map)
         .left
-        .map { err =>
-          log.info(s"JSON error '$err'.")
-        },
+        .map: err =>
+          log.info(s"JSON error '$err'."),
     _ => boatPopup.remove()
   )

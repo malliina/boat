@@ -28,7 +28,7 @@ class DateHandler(log: BaseLogger):
         val newDate = he.date.toOption.filter(_ != null)
         log.info(s"New date $newDate")
         if isFrom then selectedFrom = newDate else selectedTo = newDate
-        newDate.foreach { date =>
+        newDate.foreach: date =>
           other.updateOptions(
             TimeOptions(
               if isFrom then TimeRestrictions(min = newDate, max = None)
@@ -37,7 +37,6 @@ class DateHandler(log: BaseLogger):
             ),
             reset = false
           )
-        }
         // User might clear input manually, in which case there's no value but a need to refresh
         onUpdate(if isFrom then selectedFrom else selectedTo)
     )

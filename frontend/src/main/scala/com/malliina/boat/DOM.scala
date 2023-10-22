@@ -6,6 +6,5 @@ object DOM:
   def isInside(target: HTMLElement, elem: HTMLElement): Boolean =
     if target == elem then true
     else
-      Option(target.parentElement).fold(false) { parent =>
+      Option(target.parentElement).fold(false): parent =>
         isInside(parent, elem)
-      }

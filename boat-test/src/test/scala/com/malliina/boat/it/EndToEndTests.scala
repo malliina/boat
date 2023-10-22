@@ -1,7 +1,8 @@
 package com.malliina.boat.it
 
-import cats.effect.{IO, Resource}
 import cats.effect.kernel.Deferred
+import cats.effect.{IO, Resource}
+import com.comcast.ip4s.*
 import com.malliina.boat.CoordsEvent
 import com.malliina.boat.client.server.BoatConf
 import com.malliina.boat.client.{DeviceAgent, TcpClient}
@@ -11,7 +12,6 @@ import fs2.Stream
 import fs2.concurrent.SignallingRef
 import fs2.io.net.Network
 import io.circe.Json
-import com.comcast.ip4s.*
 
 object EndToEndTests:
   private val log = AppLogger(getClass)
@@ -35,7 +35,7 @@ class EndToEndTests extends BoatTests:
     *   1. Client (frontend) opens socket to boat backend
     *   1. Client receives coordinates event from backend based on sentences
     */
-  http.test("plotter to frontend") { httpClient =>
+  http.test("plotter to frontend"): httpClient =>
     val s = server()
     // the client validates maximum frame length, so we must not concatenate multiple sentences
     val plotterOutput: Stream[IO, Byte] = Stream.emits(
@@ -45,37 +45,35 @@ class EndToEndTests extends BoatTests:
     val tcpHost = host"127.0.0.1"
     val tcpPort = port"10104"
 
-    SignallingRef[IO, Boolean](false).flatMap { complete =>
-      Deferred[IO, Json].flatMap { (firstMessage: Deferred[IO, Json]) =>
-        Deferred[IO, CoordsEvent].flatMap { (coordsPromise: Deferred[IO, CoordsEvent]) =>
+    SignallingRef[IO, Boolean](false).flatMap: complete =>
+      Deferred[IO, Json].flatMap: (firstMessage: Deferred[IO, Json]) =>
+        Deferred[IO, CoordsEvent].flatMap: (coordsPromise: Deferred[IO, CoordsEvent]) =>
           log.info(s"Starting TCP server at $tcpHost:$tcpPort...")
           val server = Network[IO]
             .server(port = Option(tcpPort))
             .take(1)
-            .evalMap { client =>
+            .evalMap: client =>
               log.info(s"TCP server handling client...")
               plotterOutput.through(client.writes).compile.drain
-            }
           val serverUrl = s.baseWsUrl.append(reverse.ws.boats.renderString)
           val agent: IO[Json] =
             DeviceAgent
               .fromConf[IO](BoatConf.anon(tcpHost, tcpPort), serverUrl, httpClient.client)
-              .use { agent =>
-                agent.connect.compile.resource.lastOrError.use { e =>
+              .use: agent =>
+                agent.connect.compile.resource.lastOrError.use: e =>
                   log.info(s"Agent complete")
                   firstMessage.get
-                }
-              }
-          val viewer = openViewerSocket(httpClient, None) { socket =>
-            socket.jsonMessages.evalTap { json =>
-              log.debug(s"Viewer got JSON\\n$json...")
-              firstMessage.complete(json) >> json
-                .as[CoordsEvent]
-                .toOption
-                .map(ce => coordsPromise.complete(ce))
-                .getOrElse(IO.pure(false))
-            }.compile.drain
-          }
+          val viewer = openViewerSocket(httpClient, None): socket =>
+            socket.jsonMessages
+              .evalTap: json =>
+                log.debug(s"Viewer got JSON\\n$json...")
+                firstMessage.complete(json) >> json
+                  .as[CoordsEvent]
+                  .toOption
+                  .map(ce => coordsPromise.complete(ce))
+                  .getOrElse(IO.pure(false))
+              .compile
+              .drain
           val system =
             Stream
               .never[IO]
@@ -89,7 +87,3 @@ class EndToEndTests extends BoatTests:
             cs <- coordsPromise.get
             _ <- complete.getAndSet(true)
           yield cs.coords
-        }
-      }
-    }
-  }

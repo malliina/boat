@@ -13,7 +13,6 @@ object BaseLogger:
 
   val console: BaseLogger = new BaseLogger:
     override def debug(message: String): Unit = ()
-    override def error(message: String, t: Throwable): Unit = println(
-      s"$message Error was ${t.getMessage}"
-    )
+    override def error(message: String, t: Throwable): Unit =
+      println(s"$message Error was ${t.getMessage}")
     override def info(message: String): Unit = println(message)
