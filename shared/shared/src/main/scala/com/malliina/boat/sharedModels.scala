@@ -249,6 +249,7 @@ trait UserDevice:
   def userId: UserId
   def device: DeviceId
   def deviceName: BoatName
+  def sourceType: SourceType
 
 trait DeviceMeta:
   def user: Username
