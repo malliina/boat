@@ -18,9 +18,8 @@ object AppMode:
   case object Dev extends AppMode
   val fromBuild: AppMode = unsafe(BuildInfo.mode)
 
-  given ConfigReadable[AppMode] = ConfigReadable.string.emapParsed { s =>
+  given ConfigReadable[AppMode] = ConfigReadable.string.emapParsed: s =>
     fromString(s)
-  }
 
   def unsafe(in: String): AppMode =
     fromString(in).fold(err => throw new IllegalArgumentException(err.message), identity)

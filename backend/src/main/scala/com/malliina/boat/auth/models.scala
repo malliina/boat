@@ -35,17 +35,14 @@ object CookieConf:
   )
 
 case class SettingsPayload(username: Username, language: Language, authorized: Seq[BoatName])
-  extends MinimalUserInfo
+  extends MinimalUserInfo derives Codec.AsObject
 
 object SettingsPayload:
   val cookieName = "boat-settings"
-  implicit val json: Codec[SettingsPayload] = deriveCodec[SettingsPayload]
 
-case class UserPayload(username: Username)
+case class UserPayload(username: Username) derives Codec.AsObject
 
 object UserPayload:
-  implicit val json: Codec[UserPayload] = deriveCodec[UserPayload]
-
   def email(email: Email): UserPayload = apply(Username(email.value))
 
 sealed abstract class AuthProvider(val name: String)
@@ -68,14 +65,9 @@ object AuthProvider:
   case object Apple extends AuthProvider("apple")
 
 case class BoatJwtClaims(email: Email, refresh: RefreshTokenId, lastValidation: Instant)
+  derives Codec.AsObject
 
-object BoatJwtClaims:
-  implicit val json: Codec[BoatJwtClaims] = deriveCodec[BoatJwtClaims]
-
-case class BoatJwt(email: Email, idToken: IdToken)
-
-object BoatJwt:
-  implicit val json: Codec[BoatJwt] = deriveCodec[BoatJwt]
+case class BoatJwt(email: Email, idToken: IdToken) derives Codec.AsObject
 
 class JWTException(val error: JWTError) extends Exception(error.message.message):
   def message = error.message

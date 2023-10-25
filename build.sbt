@@ -1,4 +1,4 @@
-import sbtcrossproject.CrossPlugin.autoImport.{CrossType => PortableType, crossProject => portableProject}
+import sbtcrossproject.CrossPlugin.autoImport.{CrossType, crossProject}
 import sbtrelease.ReleasePlugin.autoImport.{ReleaseStep, releaseProcess}
 import sbtrelease.ReleaseStateTransformations._
 import scala.sys.process.Process
@@ -63,8 +63,8 @@ val jvmSettings = Seq(
   testFrameworks += new TestFramework("munit.Framework")
 )
 
-val cross = portableProject(JSPlatform, JVMPlatform)
-  .crossType(PortableType.Full)
+val cross = crossProject(JSPlatform, JVMPlatform)
+  .crossType(CrossType.Full)
   .in(file("shared"))
   .disablePlugins(RevolverPlugin)
   .settings(boatSettings)
@@ -120,7 +120,7 @@ val backend = Project("boat", file("backend"))
       "org.apache.commons" % "commons-text" % "1.10.0",
       "software.amazon.awssdk" % "s3" % "2.21.0",
       "com.malliina" %% "logstreams-client" % logstreamsVersion,
-      "com.malliina" %% "mobile-push-io" % "3.8.1",
+      "com.malliina" %% "mobile-push-io" % "3.8.2",
       "com.malliina" %% "config" % primitiveVersion,
       "org.eclipse.paho" % "org.eclipse.paho.client.mqttv3" % "1.2.5",
       webAuthDep,

@@ -10,7 +10,7 @@ sealed abstract class SourceState(val name: String) extends Named
 
 object SourceState extends ValidatingCompanion[String, SourceState]:
   val Key = "state"
-  val all = Seq(Connected, Disconnected)
+  val all: Seq[SourceState] = Seq(Connected, Disconnected)
 
   override def build(input: String): Either[ErrorMessage, SourceState] =
     all.find(_.name == input).toRight(ErrorMessage(s"Unknown boat state: '$input"))
@@ -25,7 +25,8 @@ case class SourceNotification(
   boatName: BoatName,
   state: SourceState
 ) derives Codec.AsObject:
-  def message = s"$boatName $state"
+  private val describeState = if state == SourceState.Connected then "on the move!" else state.name
+  def message = s"$boatName $describeState"
 
 object SourceNotification:
   val Message = "message"

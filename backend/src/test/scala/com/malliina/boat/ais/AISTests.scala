@@ -14,10 +14,13 @@ import tests.MUnitSuite
 import java.time.Instant
 
 class AISTests extends MUnitSuite:
-  val prodFixture = resource(Dispatcher.parallel[IO].flatMap { d => BoatMqttClient.prod(d) })
-  val testFixture = resource(Dispatcher.parallel[IO].flatMap { d =>
-    BoatMqttClient.url(TestUrl, MetadataTopic, d)
-  })
+  val prodFixture = resource(Dispatcher.parallel[IO].flatMap(d => BoatMqttClient.prod(d)))
+  val testFixture = resource(
+    Dispatcher
+      .parallel[IO]
+      .flatMap: d =>
+        BoatMqttClient.url(TestUrl, MetadataTopic, d)
+  )
   prodFixture.test("MqttSource".ignore): client =>
     val events = client.slow.take(3).compile.toList.unsafeRunSync()
     events foreach println

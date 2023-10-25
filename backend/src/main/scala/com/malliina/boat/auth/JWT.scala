@@ -43,9 +43,8 @@ object JWT:
       for
         signed <- read(token, SignedJWT.parse(token.value), s"Invalid JWT: '$token'.")
         claims <- read(token, signed.getJWTClaimsSet, s"Missing claims: '$token'.")
-        json <- parse(claims.toString).left.map(_ =>
+        json <- parse(claims.toString).left.map: _ =>
           InvalidClaims(token, err"Claims must be JSON.")
-        )
       yield Parsed(token, signed, claims, json)
 
   case class Verified private (parsed: Parsed):
@@ -54,13 +53,15 @@ object JWT:
     def readString(key: String) = parsed.readString(key)
     def token = parsed.token
     def read[T: Decoder](key: String): Either[JWTError, T] =
-      parsed.claimsJson.hcursor.downField(key).as[T].left.map { errors =>
-        InvalidClaims(token, ErrorMessage(s"Invalid claims: '$errors'."))
-      }
+      parsed.claimsJson.hcursor
+        .downField(key)
+        .as[T]
+        .left
+        .map: errors =>
+          InvalidClaims(token, ErrorMessage(s"Invalid claims: '$errors'."))
     def parse[T](key: String)(implicit r: Readable[T]): Either[JWTError, T] =
-      readString(key).flatMap { s =>
+      readString(key).flatMap: s =>
         r.read(s).left.map(err => InvalidClaims(token, err))
-      }
 
   object Verified:
     def verify(parsed: Parsed, secret: SecretKey, now: Instant): Either[JWTError, Verified] =

@@ -1,7 +1,7 @@
 package com.malliina.boat.push
 
-import cats.{Applicative, Monad}
 import cats.syntax.all.toFunctorOps
+import cats.{Applicative, Monad}
 import com.malliina.boat.push.APNSPush.log
 import com.malliina.boat.{APNSConf, PushToken}
 import com.malliina.http.HttpClient
@@ -41,9 +41,12 @@ class APNSPush[F[_]: Monad](sandbox: APNSHttpClientF[F], prod: APNSHttpClientF[F
   val topic = APNSTopic("com.malliina.BoatTracker")
 
   def push(notification: SourceNotification, to: APNSToken): F[PushSummary] =
-    val message = APNSMessage
-      .simple(notification.message)
-      .copy(data = Map("meta" -> notification.asJson))
+    val message = APNSMessage(
+      APSPayload(
+        Option(Right(AlertPayload(notification.message, title = Option(notification.title))))
+      ),
+      Map("meta" -> notification.asJson)
+    )
     val request = APNSRequest.withTopic(topic, message)
     push(to, request, isProd = true)
 

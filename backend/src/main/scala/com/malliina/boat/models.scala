@@ -121,8 +121,7 @@ object UserToken extends BoatString[UserToken]:
 case class AppMeta(name: String, version: String, gitHash: String) derives Codec.AsObject
 
 object AppMeta:
-  val default =
-    AppMeta(BuildInfo.name, BuildInfo.version, BuildInfo.gitHash)
+  val default = AppMeta(BuildInfo.name, BuildInfo.version, BuildInfo.gitHash)
 
 case class CarRow(
   coord: Coord,

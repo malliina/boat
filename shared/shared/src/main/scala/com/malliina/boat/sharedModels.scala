@@ -1,13 +1,13 @@
 package com.malliina.boat
 
-import cats.syntax.functor.*
+import cats.syntax.functor.toFunctorOps
 import com.malliina.boat.BoatJson.keyValued
 import com.malliina.json.PrimitiveFormats
 import com.malliina.measure.{DistanceM, SpeedM, Temperature}
 import com.malliina.values.*
-import io.circe.*
-import io.circe.generic.semiauto.*
+import io.circe.generic.semiauto.deriveCodec
 import io.circe.syntax.EncoderOps
+import io.circe.{Codec, Decoder, DecodingFailure, Encoder, Json}
 import scalatags.generic.Bundle
 
 import scala.concurrent.duration.Duration
@@ -182,7 +182,7 @@ object TimedCoord:
   private val DepthKey = "depth"
   val modern: Codec[TimedCoord] = deriveCodec[TimedCoord]
   // For backwards compat
-  implicit val json: Codec[TimedCoord] = Codec.from(
+  given Codec[TimedCoord] = Codec.from(
     modern,
     (tc: TimedCoord) =>
       modern(tc).deepMerge(Json.obj(DepthKey -> tc.depthMeters.toMillis.toLong.asJson))
@@ -378,9 +378,9 @@ case class TrackRef(
   def describe = trackTitle.map(TrackTitle.write).getOrElse(TrackName.write(trackName))
 
 object TrackRef:
-  implicit val durationFormat: Codec[Duration] = PrimitiveFormats.durationCodec
+  given Codec[Duration] = PrimitiveFormats.durationCodec
   val modern: Codec[TrackRef] = deriveCodec[TrackRef]
-  implicit val json: Codec[TrackRef] = Codec.from(
+  given Codec[TrackRef] = Codec.from(
     modern,
     (tr: TrackRef) =>
       modern(tr).deepMerge(Json.obj("distance" -> tr.distanceMeters.toMillis.toLong.asJson))
@@ -412,12 +412,6 @@ case class TrackSummaries(tracks: Seq[TrackSummary]) derives Codec.AsObject
 
 case class Tracks(tracks: Seq[TrackRef]) derives Codec.AsObject
 
-//case class GPSCoordsEvent(coords: List[GPSTimedCoord], from: DeviceRef) extends DeviceFrontEvent
-
-//object GPSCoordsEvent:
-//  val Key = "gps-coords"
-//  implicit val json: Codec[GPSCoordsEvent] = keyValued(Key, deriveCodec[GPSCoordsEvent])
-
 case class CoordsEvent(coords: List[TimedCoord], from: TrackRef) extends BoatFrontEvent:
   def isEmpty = coords.isEmpty
   def sample(every: Int): CoordsEvent =
@@ -443,12 +437,9 @@ extension (e: Double) def wh: Energy = Energy(e)
 
 case class CarInfo(id: DeviceId, name: BoatName, username: Username) derives Codec.AsObject
 
-case class CoordsBatch(events: Seq[CoordsEvent]) extends FrontEvent:
+case class CoordsBatch(events: Seq[CoordsEvent]) extends FrontEvent derives Codec.AsObject:
   override def isIntendedFor(user: MinimalUserInfo): Boolean =
     events.forall(_.isIntendedFor(user))
-
-object CoordsBatch:
-  implicit val json: Codec[CoordsBatch] = deriveCodec[CoordsBatch]
 
 case class SentencesEvent(sentences: Seq[RawSentence], from: TrackMetaShort) extends BoatFrontEvent
 
@@ -513,26 +504,21 @@ object BoatJson:
     * "body".
     */
   def keyValued[T](value: String, payload: Codec[T]): Codec[T] =
-    val decoder = eventDecoder.flatMap[T] { event =>
+    val decoder = eventDecoder.flatMap[T]: event =>
       if event == value then payload.at(BodyKey)
       else Decoder.failed(DecodingFailure(s"Event is '$event', required '$value'.", Nil))
-    }
-    val encoder = new Encoder[T]:
-      final def apply(a: T): Json = Json.obj(
+    val encoder: Encoder[T] = (a: T) =>
+      Json.obj(
         (EventKey, Json.fromString(value)),
         (BodyKey, payload(a))
       )
     Codec.from(decoder, encoder)
 
-case class IconsConf(boat: String, trophy: String)
+case class IconsConf(boat: String, trophy: String) derives Codec.AsObject
 
-object IconsConf:
-  implicit val json: Codec[IconsConf] = deriveCodec[IconsConf]
-
-case class MapConf(styleId: String, styleUrl: String, icons: IconsConf)
+case class MapConf(styleId: String, styleUrl: String, icons: IconsConf) derives Codec.AsObject
 
 object MapConf:
-  implicit val json: Codec[MapConf] = deriveCodec[MapConf]
   val old = apply(Constants.StyleIdOld)
   val active = apply(Constants.StyleId)
 

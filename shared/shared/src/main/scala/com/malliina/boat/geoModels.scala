@@ -1,10 +1,10 @@
 package com.malliina.boat
 
-import cats.syntax.functor.*
+import cats.syntax.functor.toFunctorOps
 import com.malliina.values.*
-import io.circe.*
-import io.circe.generic.semiauto.*
-import io.circe.syntax.*
+import io.circe.generic.semiauto.deriveCodec
+import io.circe.syntax.EncoderOps
+import io.circe.{Codec, Decoder, DecodingFailure, Encoder, Json}
 
 case class MultiLineGeometry(`type`: String, coordinates: Seq[Seq[Coord]])
   extends Geometry(MultiLineGeometry.Key):
