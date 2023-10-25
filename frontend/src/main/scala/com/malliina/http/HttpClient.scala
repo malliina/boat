@@ -15,9 +15,8 @@ object HttpClient extends HttpClient
 
 class HttpClient extends CSRFConf:
   def get[R: Decoder](uri: String): Future[R] =
-    fetch(HttpMethod.GET, uri).flatMap { xhr =>
+    fetch(HttpMethod.GET, uri).flatMap: xhr =>
       validate[R](uri, xhr)
-    }
 
   def post[W: Encoder, R: Decoder](uri: String, data: W): Future[R] =
     makeAjax(HttpMethod.POST, uri, data)
@@ -37,19 +36,19 @@ class HttpClient extends CSRFConf:
       "Content-Type" -> "application/json",
       CsrfHeaderName -> CsrfTokenNoCheck
     )
-    fetch(method, uri, data.asJson.noSpaces, headers = headers).flatMap { res =>
+    fetch(method, uri, data.asJson.noSpaces, headers = headers).flatMap: res =>
       validate[R](uri, res)
-    }
 
   private def validate[R: Decoder](uri: String, res: dom.Response): Future[R] =
     val status = res.status
     if status >= 200 && status <= 300 then
-      res.text().flatMap { str =>
-        decode[R](str).fold(
-          err => Future.failed(new JsonException(err, res)),
-          ok => Future.successful(ok)
-        )
-      }
+      res
+        .text()
+        .flatMap: str =>
+          decode[R](str).fold(
+            err => Future.failed(new JsonException(err, res)),
+            ok => Future.successful(ok)
+          )
     else Future.failed(new StatusException(uri, res))
 
   def fetch(
@@ -64,7 +63,7 @@ class HttpClient extends CSRFConf:
     req.body = data
     req.credentials = credentials
     val hs = new Headers()
-    headers.foreach { case (name, value) => hs.append(name, value) }
+    headers.foreach((name, value) => hs.append(name, value))
     req.headers = hs
     dom.fetch(url, req)
 

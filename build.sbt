@@ -26,7 +26,7 @@ ThisBuild / parallelExecution := false
 Global / concurrentRestrictions += Tags.limit(Tags.Test, 1)
 
 val scala213 = "2.13.6"
-val scala3 = "3.3.0"
+val scala3 = "3.3.1"
 
 inThisBuild(
   Seq(
@@ -181,7 +181,8 @@ val agent = project
         "com.malliina" %% "primitives" % primitiveVersion,
         "com.malliina" %% "logstreams-client" % logstreamsVersion,
         "com.lihaoyi" %% "scalatags" % scalaTagsVersion,
-        "commons-codec" % "commons-codec" % "1.16.0"
+        "commons-codec" % "commons-codec" % "1.16.0",
+        "org.typelevel" %% "munit-cats-effect-3" % "1.0.7" % Test
       ),
     releaseUseGlobalVersion := false,
     buildAndUpload := {

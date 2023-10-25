@@ -41,7 +41,7 @@ object NavMark:
   case object Special extends NavMark
   case object NotApplicable extends NavMark
 
-  private val fromInt: PartialFunction[Int, NavMark] = {
+  private val fromInt: PartialFunction[Int, NavMark] =
     case 0  => Unknown
     case 1  => Left
     case 2  => Right
@@ -53,10 +53,8 @@ object NavMark:
     case 8  => SafeWaters
     case 9  => Special
     case 99 => NotApplicable
-  }
-  implicit val decoder: Decoder[NavMark] = Decoder.decodeInt.emap { int =>
+  implicit val decoder: Decoder[NavMark] = Decoder.decodeInt.emap: int =>
     fromInt.lift(int).toRight(s"Unknown mark type: '$int'.")
-  }
 
 /** Rakennetieto (RAKT_TYYP)
   */
@@ -127,9 +125,8 @@ object ConstructionInfo:
     case 19 => ChannelEdgeLight
     case 20 => Tower
   }
-  implicit val decoder: Decoder[ConstructionInfo] = Decoder.decodeInt.emap { int =>
+  implicit val decoder: Decoder[ConstructionInfo] = Decoder.decodeInt.emap: int =>
     fromInt.lift(int).toRight(s"Unknown construction type: '$int'.")
-  }
 
 /** Turvalaitteen tyyppi (TY_JNR)
   */
@@ -165,7 +162,7 @@ object AidType:
   case object SignatureLighthouse extends AidType
   case object Cairn extends AidType
 
-  private val fromInt: PartialFunction[Int, AidType] = {
+  private val fromInt: PartialFunction[Int, AidType] =
     case 0  => Unknown
     case 1  => Lighthouse
     case 2  => SectorLight
@@ -179,10 +176,8 @@ object AidType:
     case 10 => Beacon
     case 11 => SignatureLighthouse
     case 13 => Cairn
-  }
-  implicit val decoder: Decoder[AidType] = Decoder.decodeInt.emap { int =>
+  implicit val decoder: Decoder[AidType] = Decoder.decodeInt.emap: int =>
     fromInt.lift(int).toRight(s"Unknown aid type: '$int'.")
-  }
 
 sealed trait Flotation:
   def floatingOrSolid = this == Flotation.Solid || this == Flotation.Floating
@@ -196,12 +191,11 @@ object Flotation:
   case object Solid extends Flotation
   case class Other(name: String) extends Flotation
 
-  implicit val reader: Decoder[Flotation] = Decoder.decodeString.map {
+  implicit val reader: Decoder[Flotation] = Decoder.decodeString.map:
     case "KELLUVA" => Floating
     // not a typo
     case "KIINTE" => Solid
     case other    => Other(other)
-  }
 
 trait Owned:
   def owner: String
@@ -233,14 +227,12 @@ sealed trait TrafficMarkType:
     case TrafficMarkType.Other      => lang.unknown
 
 object TrafficMarkType:
-  private val fromInt: PartialFunction[Int, TrafficMarkType] = {
+  private val fromInt: PartialFunction[Int, TrafficMarkType] =
     case 6  => NoWaves
     case 11 => SpeedLimit
     case _  => Other
-  }
-  implicit val reader: Decoder[TrafficMarkType] = Decoder.decodeInt.emap { int =>
+  implicit val reader: Decoder[TrafficMarkType] = Decoder.decodeInt.emap: int =>
     fromInt.lift(int).toRight(s"Unknown traffic mark type: '$int'.")
-  }
   case object SpeedLimit extends TrafficMarkType
   case object NoWaves extends TrafficMarkType
   case object Other extends TrafficMarkType
@@ -263,16 +255,14 @@ case class MarineSymbol(
   with Owned
 
 object MarineSymbol:
-  private val boolNum: Decoder[Boolean] = Decoder.decodeInt.emap {
+  private val boolNum: Decoder[Boolean] = Decoder.decodeInt.emap:
     case 0     => Right(false)
     case 1     => Right(true)
     case other => Left(s"Unexpected integer, must be 1 or 0: '$other'.")
-  }
-  private val boolString: Decoder[Boolean] = Decoder.decodeString.emap {
+  private val boolString: Decoder[Boolean] = Decoder.decodeString.emap:
     case "K"   => Right(true)
     case "E"   => Right(false)
     case other => Left(s"Unexpected string, must be K or E: '$other'.")
-  }
 
   val nonEmpty: Decoder[String] = MaritimeJson.nonEmpty
 
@@ -325,7 +315,7 @@ case class MinimalMarineSymbol(
     else None
 
 object MinimalMarineSymbol:
-  implicit val decoder: Decoder[MinimalMarineSymbol] = (c: HCursor) =>
+  given Decoder[MinimalMarineSymbol] = (c: HCursor) =>
     for
       owner <- c.downField("OMISTAJA").as[String]
       nameFi <- c.downField("NIMIS").as[Option[String]](nonEmptyOpt)
@@ -353,7 +343,7 @@ object MinimalMarineSymbol:
 case class DepthArea(minDepth: DistanceM, maxDepth: DistanceM)
 
 object DepthArea:
-  implicit val decoder: Decoder[DepthArea] = (c: HCursor) =>
+  given Decoder[DepthArea] = (c: HCursor) =>
     for
       min <- c.downField("DRVAL1").as[DistanceM]
       max <- c.downField("DRVAL2").as[DistanceM]
@@ -364,12 +354,11 @@ sealed abstract class QualityClass(val value: Int)
 object QualityClass:
   val all = Seq(Unknown, One, Two, Three)
 
-  implicit val reader: Decoder[QualityClass] = Decoder.decodeInt.emap { i =>
+  given Decoder[QualityClass] = Decoder.decodeInt.emap: i =>
     all
       .find(_.value == i)
       .map(Right(_))
       .getOrElse(Left(s"Invalid quality class: '$i'."))
-  }
 
   case object Unknown extends QualityClass(0)
   case object One extends QualityClass(1)
@@ -394,7 +383,7 @@ sealed trait FairwayType:
     case Pilot          => in.pilot
 
 object FairwayType:
-  private val fromInt: PartialFunction[Int, FairwayType] = {
+  private val fromInt: PartialFunction[Int, FairwayType] =
     case 1  => Navigation
     case 2  => Anchoring
     case 3  => Meetup
@@ -408,11 +397,10 @@ object FairwayType:
     case 11 => ConfirmedExtra
     case 12 => Helcom
     case 13 => Pilot
-  }
 
-  implicit val decoder: Decoder[FairwayType] = Decoder.decodeInt.emap { int =>
+  implicit val decoder: Decoder[FairwayType] = Decoder.decodeInt.emap: int =>
     fromInt.lift(int).toRight(s"Unknown fairway type: '$int'.")
-  }
+
   case object Navigation extends FairwayType
   case object Anchoring extends FairwayType
   case object Meetup extends FairwayType
@@ -430,17 +418,15 @@ object FairwayType:
 sealed trait FairwayState
 
 object FairwayState:
-  private val fromInt: PartialFunction[Int, FairwayState] = {
+  private val fromInt: PartialFunction[Int, FairwayState] =
     case 1 => Confirmed
     case 2 => Aihio
     case 3 => MayChange
     case 4 => ChangeAihio
     case 5 => MayBeRemoved
     case 6 => Removed
-  }
-  implicit val reader: Decoder[FairwayState] = Decoder.decodeInt.emap { int =>
+  given Decoder[FairwayState] = Decoder.decodeInt.emap: int =>
     fromInt.lift(int).toRight(s"Unknown fairway state: '$int'.")
-  }
 
   case object Confirmed extends FairwayState
   case object Aihio extends FairwayState
@@ -457,14 +443,12 @@ sealed trait MarkType:
     case Cardinal => in.cardinal
 
 object MarkType:
-  private val fromInt: PartialFunction[Int, MarkType] = {
+  private val fromInt: PartialFunction[Int, MarkType] =
     case 0 => Unknown
     case 1 => Lateral
     case 2 => Cardinal
-  }
-  implicit val reader: Decoder[MarkType] = Decoder.decodeInt.emap { int =>
+  given Decoder[MarkType] = Decoder.decodeInt.emap: int =>
     fromInt.lift(int).toRight(s"Unknown mark type: '$int'.")
-  }
 
   case object Unknown extends MarkType
   case object Lateral extends MarkType
@@ -493,7 +477,7 @@ case class FairwayArea(
 ) extends Owned
 
 object FairwayArea:
-  implicit val decoder: Decoder[FairwayArea] = (c: HCursor) =>
+  given Decoder[FairwayArea] = (c: HCursor) =>
     for
       owner <- c.downField("OMISTAJA").as[String]
       quality <- c.downField("LAATULK").as[QualityClass]
@@ -522,12 +506,11 @@ sealed trait ZoneOfInfluence:
     case AreaAndFairway          => in.areaAndFairway
 
 object ZoneOfInfluence:
-  implicit val reader: Decoder[ZoneOfInfluence] =
-    partialReader[String, ZoneOfInfluence](str => s"Unexpected zone of influence: '$str'.") {
+  given Decoder[ZoneOfInfluence] =
+    partialReader[String, ZoneOfInfluence](str => s"Unexpected zone of influence: '$str'."):
       case "A"  => Area
       case "V"  => Fairway
       case "AV" => AreaAndFairway
-    }
 
   case object Area extends ZoneOfInfluence
   case object Fairway extends ZoneOfInfluence
@@ -567,7 +550,7 @@ object LimitType:
   implicit val reader: Decoder[LimitType] =
     partialReader[String, LimitType](str => s"Unknown limit type: '$str'.")(parse)
 
-  def parse: PartialFunction[String, LimitType] = {
+  def parse: PartialFunction[String, LimitType] =
     case "01" => SpeedLimit
     case "02" => NoWaves
     case "03" => NoWindSurfing
@@ -579,23 +562,23 @@ object LimitType:
     case "09" => NoOvertaking
     case "10" => NoRendezVous
     case "11" => SpeedRecommendation
-  }
 
   def fromString(s: String): Either[String, Seq[LimitType]] =
-    val results = s.split(", ").toList.map { limit =>
-      LimitType.parse
-        .lift(limit)
-        .toRight(s"Unknown limit type: '$limit'.")
-    }
+    val results = s
+      .split(", ")
+      .toList
+      .map: limit =>
+        LimitType.parse
+          .lift(limit)
+          .toRight(s"Unknown limit type: '$limit'.")
     jsonSeq(results)
 
   private def jsonSeq[T](results: Seq[Either[String, T]]): Either[String, Seq[T]] =
-    results.foldLeft[Either[String, Seq[T]]](Right(Nil)) { (acc, t) =>
+    results.foldLeft[Either[String, Seq[T]]](Right(Nil)): (acc, t) =>
       t.fold(
         err => Left(err),
         ok => acc.map(ts => Seq(ok) ++ ts)
       )
-    }
 
 /** @param responsible
   *   merkinnästä vastaava
@@ -625,7 +608,7 @@ case class LimitArea(
   )
 
 object LimitArea:
-  implicit val decoder: Decoder[LimitArea] = (c: HCursor) =>
+  given Decoder[LimitArea] = (c: HCursor) =>
     for
       types <-
         c.downField("RAJOITUSTY")

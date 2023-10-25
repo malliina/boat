@@ -5,7 +5,7 @@ import cats.effect.{Async, Sync}
 import cats.syntax.all.{catsSyntaxList, toFlatMapOps, toFunctorOps, toTraverseOps}
 import com.malliina.boat.db.DoobiePushDatabase.log
 import com.malliina.boat.push.*
-import com.malliina.boat.{PushId, PushToken, UserDevice}
+import com.malliina.boat.{AppConf, PushId, PushToken, SourceType, UserDevice}
 import com.malliina.database.DoobieDatabase
 import com.malliina.util.AppLogger
 import com.malliina.values.UserId
@@ -52,9 +52,10 @@ class DoobiePushDatabase[F[_]: Async](db: DoobieDatabase[F], push: PushEndpoint[
   /** Pushes at most once every five minutes to a given device.
     */
   def push(device: UserDevice, state: SourceState): F[PushSummary] =
-    val notification = SourceNotification(device.deviceName, state)
+    val title = if device.sourceType == SourceType.Vehicle then AppConf.CarName else AppConf.Name
+    val notification = SourceNotification(title, device.deviceName, state)
     val deviceId = device.device
-    val devices = db.run {
+    val devices = db.run:
       // pushes at most once every five minutes as per the "not exists" clause
       sql"""select id, token, device, user, added
             from push_clients
@@ -65,7 +66,6 @@ class DoobiePushDatabase[F[_]: Async](db: DoobieDatabase[F], push: PushEndpoint[
                        having timestampdiff(SECOND, max(h.added), now()) < 300)"""
         .query[PushDevice]
         .to[List]
-    }
     val bookkeeping = db.run:
       sql"""insert into push_history(device) values($deviceId)""".update.run.map: _ =>
         log.info(s"Recorded push history for device '$deviceId' (${device.deviceName}).")
@@ -81,7 +81,7 @@ class DoobiePushDatabase[F[_]: Async](db: DoobieDatabase[F], push: PushEndpoint[
     log.info(summary.describe)
     if summary.noBadTokensOrReplacements then F.pure(0)
     else
-      db.run {
+      db.run:
         val deleteIO = summary.badTokens.toList.toNel
           .map: bad =>
             val inClause = Fragments.in(fr"token", bad)
@@ -100,4 +100,3 @@ class DoobiePushDatabase[F[_]: Async](db: DoobieDatabase[F], push: PushEndpoint[
                 updated
           .map(_.sum)
         deleteIO.flatMap(r1 => updateIO.map(r2 => r1 + r2))
-      }

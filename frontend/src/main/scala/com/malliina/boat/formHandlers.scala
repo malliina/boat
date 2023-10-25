@@ -40,17 +40,15 @@ class InviteHandler(
   delete: Element,
   @unused log: BaseLogger = BaseLogger.console
 ) extends BaseFront:
-  open.addOnClick { _ =>
+  open.addOnClick: _ =>
     form.show()
     open.hide()
     delete.hide()
-  }
 
-  cancel.addOnClick { _ =>
+  cancel.addOnClick: _ =>
     form.hide()
     open.show()
     delete.show()
-  }
 
 class TitleHandler(
   form: HTMLFormElement,
@@ -60,17 +58,15 @@ class TitleHandler(
 ) extends AjaxForm(form, editIcon, TrackRow, cancel)
   with CSRFConf:
   form.onsubmit = (e: Event) =>
-    elemAs[HTMLInputElement](TitleInputId).map { in =>
+    elemAs[HTMLInputElement](TitleInputId).map: in =>
       HttpClient
         .put[Json, TrackResponse](form.action, Json.obj(TrackTitle.Key -> in.value.asJson))
-        .map { res =>
+        .map: res =>
           elemAs[HTMLSpanElement](TrackTitleId).map { span =>
             span.textContent = res.track.describe
           }
           form.hide()
           editable.foreach(_.show())
-        }
-    }
     e.preventDefault()
 
 class CommentsHandler(
@@ -81,10 +77,10 @@ class CommentsHandler(
 ) extends AjaxForm(form, editIcon, CommentsRow, cancel)
   with CSRFConf:
   form.onsubmit = (e: Event) =>
-    elemAs[HTMLInputElement](CommentsInputId).map { in =>
+    elemAs[HTMLInputElement](CommentsInputId).map: in =>
       HttpClient
         .patch[Json, TrackResponse](form.action, Json.obj(TrackComments.Key -> in.value.asJson))
-        .map { res =>
+        .map: res =>
           elemAs[HTMLSpanElement](CommentsTitleId).map { span =>
             val textContent = res.track.comments.getOrElse("")
             span.textContent = textContent
@@ -92,8 +88,6 @@ class CommentsHandler(
           }
           form.hide()
           editable.foreach(_.show())
-        }
-    }
     e.preventDefault()
 
 abstract class AjaxForm(

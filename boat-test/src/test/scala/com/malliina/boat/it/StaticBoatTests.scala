@@ -21,35 +21,36 @@ class StaticBoatTests extends BoatTests:
     "$GPGGA,141209,6009.3630,N,02453.7997,E,1,12,0.60,-3,M,19.6,M,,*4F"
   ).map(RawSentence.apply)
 
-  test("GPS reporting") {
+  test("GPS reporting"):
     val client = TestHttp.client
     val boatName = BoatNames.random()
-    SignallingRef[IO, Boolean](false).flatMap { complete =>
-      openTestBoat(boatName, client) { boat =>
-        Deferred[IO, CoordsEvent].flatMap { coordPromise =>
-          Deferred[IO, Boolean].flatMap { viewing =>
+    SignallingRef[IO, Boolean](false).flatMap: complete =>
+      openTestBoat(boatName, client): boat =>
+        Deferred[IO, CoordsEvent].flatMap: coordPromise =>
+          Deferred[IO, Boolean].flatMap: viewing =>
             val testMessage = SentencesMessage(testTrack.take(6))
             val testCoord = Coord.buildOrFail(24.89171, 60.1532)
-            val viewer = openViewerSocket(client, None) { socket =>
+            val viewer = openViewerSocket(client, None): socket =>
               viewing.complete(true) >>
-                socket.jsonMessages.evalTap { json =>
-                  json
-                    .as[CoordsEvent]
-                    .toOption
-                    .filter(_.from.boatName == boatName)
-                    .map(c => coordPromise.complete(c))
-                    .getOrElse(IO.unit)
-                }.compile.drain
-            }
-            val messages = viewing.get >> boat.send(testMessage).flatMap { sent =>
-              assert(sent)
-              coordPromise.get.map { coordsEvent =>
-                assertEquals(coordsEvent.from.boatName, boatName)
-                assertEquals(coordsEvent.coords.map(_.coord), List(testCoord))
-                val first = coordsEvent.coords.head
-                assertEquals(first.boatTimeMillis, 1525443455000L)
-              }
-            }
+                socket.jsonMessages
+                  .evalTap: json =>
+                    json
+                      .as[CoordsEvent]
+                      .toOption
+                      .filter(_.from.boatName == boatName)
+                      .map(c => coordPromise.complete(c))
+                      .getOrElse(IO.unit)
+                  .compile
+                  .drain
+            val messages = viewing.get >> boat
+              .send(testMessage)
+              .flatMap: sent =>
+                assert(sent)
+                coordPromise.get.map: coordsEvent =>
+                  assertEquals(coordsEvent.from.boatName, boatName)
+                  assertEquals(coordsEvent.coords.map(_.coord), List(testCoord))
+                  val first = coordsEvent.coords.head
+                  assertEquals(first.boatTimeMillis, 1525443455000L)
             val system = Stream
               .never[IO]
               .concurrently(Stream.eval(viewer))
@@ -59,8 +60,3 @@ class StaticBoatTests extends BoatTests:
               _ <- messages
               _ <- complete.getAndSet(true)
             yield ()
-          }
-        }
-      }
-    }
-  }

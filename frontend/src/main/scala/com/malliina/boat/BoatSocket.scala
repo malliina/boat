@@ -1,7 +1,7 @@
 package com.malliina.boat
 
 import cats.syntax.show.toShow
-import io.circe.*
+import io.circe.Json
 
 import scala.scalajs.js.{Date, URIUtils}
 
@@ -18,7 +18,7 @@ object BoatSocket:
         to.map(t => Timings.To -> t.toISOString())
     val allParams = (params ++ timeParams) ++ sample.map(s => FrontKeys.SampleKey -> s"$s").toList
 
-    val kvs = allParams.map { (k, v) => s"$k=${URIUtils.encodeURIComponent(v)}" }.mkString("&")
+    val kvs = allParams.map((k, v) => s"$k=${URIUtils.encodeURIComponent(v)}").mkString("&")
     if kvs.nonEmpty then s"?$kvs" else ""
 
 abstract class BoatSocket(path: String) extends BaseSocket(path) with BaseFront:

@@ -589,6 +589,7 @@ case class FormatsLang(date: String, time: String, timeShort: String, dateTime: 
   derives Codec.AsObject
 
 case class BoatLang(
+  appIcon: String,
   boat: String,
   rename: String,
   renameBoat: String,
@@ -597,9 +598,7 @@ case class BoatLang(
   token: String,
   tokenText: String,
   tokenTextLong: String
-)
-object BoatLang:
-  implicit val json: Codec[BoatLang] = deriveCodec[BoatLang]
+) derives Codec.AsObject
 
 case class InviteLang(
   invites: String,
@@ -648,10 +647,10 @@ case class SettingsLang(
 )
 
 object SettingsLang:
-  val modern = deriveCodec[SettingsLang]
-  val encoder: Encoder[SettingsLang] = (sl: SettingsLang) =>
-    modern(sl).deepMerge(BoatLang.json(sl.boatLang))
-  implicit val codec: Codec[SettingsLang] = Codec.from(modern, encoder)
+  private val modern = deriveCodec[SettingsLang]
+  private val encoder: Encoder[SettingsLang] = (sl: SettingsLang) =>
+    modern(sl).deepMerge(Encoder[BoatLang].apply(sl.boatLang))
+  given Codec[SettingsLang] = Codec.from(modern, encoder)
 
 case class LanguageInfo(name: String, code: String) derives Codec.AsObject
 
@@ -1119,6 +1118,7 @@ object Lang:
       s"Hello! You have no saved tracks. To save tracks, you'll need to connect the $appName agent software to the GPS chartplotter in your boat.",
       FormatsLang("dd MMM yyyy", "HH:mm:ss", "HH:mm", "dd MMM yyyy HH:mm:ss"),
       BoatLang(
+        "App icon",
         "Boat",
         "Rename",
         "Rename Boat",
@@ -1290,6 +1290,7 @@ object Lang:
       s"Hei! Ei tallennettuja reittejä. Reittien tallennus vaatii $appName -sovelluksen yhdistämisen veneesi karttaplotteriin.",
       FormatsLang("dd.MM.yyyy", "HH:mm:ss", "HH:mm", "dd.MM.yyyy HH:mm:ss"),
       BoatLang(
+        "Sovelluksen ikoni",
         "Vene",
         "Uusi nimi",
         "Nimeä vene",
@@ -1456,6 +1457,7 @@ object Lang:
       s"Inga sparade spår. För att spara spår, koppla $appName-appen till båtens plotter.",
       FormatsLang("dd.MM.yyyy", "HH:mm:ss", "HH:mm", "dd.MM.yyyy HH:mm:ss"),
       BoatLang(
+        "Appens ikon",
         "Båt",
         "Ändra namn",
         "Namnge båt",

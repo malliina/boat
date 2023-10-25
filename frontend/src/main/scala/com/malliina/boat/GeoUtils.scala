@@ -15,18 +15,16 @@ trait GeoUtils:
   def updateOrSet(layer: Layer): Outcome =
     map
       .findSource(layer.id)
-      .map { geo =>
+      .map: geo =>
         layer.source match
           case InlineLayerSource(_, data) =>
             geo.updateData(data)
             Outcome.Updated
           case StringLayerSource(_) =>
             Outcome.Noop
-      }
-      .getOrElse {
+      .getOrElse:
         map.putLayer(layer)
         Outcome.Added
-      }
 
   def drawLine(id: String, geoJson: FeatureCollection, paint: LinePaint = LinePaint.thin()) =
     updateOrSet(Layer.line(id, geoJson, paint, None))
@@ -45,13 +43,14 @@ trait GeoUtils:
       )
       Seq(feature)
     case _ =>
-      coords.zip(coords.drop(1)).map { case (start, end) =>
-        val avgSpeed: Double = (start.speed + end.speed).toKnots / 2
-        Feature(
-          LineGeometry(Seq(start, end).map(_.coord)),
-          Map(TimedCoord.SpeedKey -> avgSpeed.asJson)
-        )
-      }
+      coords
+        .zip(coords.drop(1))
+        .map: (start, end) =>
+          val avgSpeed: Double = (start.speed + end.speed).toKnots / 2
+          Feature(
+            LineGeometry(Seq(start, end).map(_.coord)),
+            Map(TimedCoord.SpeedKey -> avgSpeed.asJson)
+          )
 
   def lineFor(coords: Seq[Coord]): FeatureCollection =
     collectionFor(LineGeometry(coords), Map.empty)

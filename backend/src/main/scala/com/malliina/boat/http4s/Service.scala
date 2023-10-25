@@ -270,12 +270,12 @@ class Service[F[_]: Async: Files](comps: BoatComps[F]) extends BasicService[F]:
                 log.debug(
                   s"User ${user.email} POSTs $count car updates for ${meta.boatName}, join took $time ms..."
                 )
-                val insertion = body.updates.traverse { loc =>
-                  streams.saveCarCoord(CarCoord.fromUpdate(loc, meta.track))
-                }.flatMap { inserteds =>
-                  val duration = System.currentTimeMillis() - start
-                  ok(SimpleMessage(s"Saved ${inserteds.size} updates in $duration ms."))
-                }
+                val insertion = body.updates
+                  .traverse: loc =>
+                    streams.saveCarCoord(CarCoord.fromUpdate(loc, meta.track))
+                  .flatMap: inserteds =>
+                    val duration = System.currentTimeMillis() - start
+                    ok(SimpleMessage(s"Saved ${inserteds.size} updates in $duration ms."))
                 val pushTask = if result.isResumed then F.pure(()) else pushNotification(meta)
                 pushTask >> insertion
           .getOrElse:
@@ -344,39 +344,42 @@ class Service[F[_]: Async: Files](comps: BoatComps[F]) extends BasicService[F]:
 
   private def socketRoutes(sockets: WebSocketBuilder2[F]): HttpRoutes[F] = HttpRoutes.of[F]:
     case req @ GET -> Root / "ws" / "updates" =>
-      auth.authOrAnon(req.headers).flatMap { user =>
-        val username = user.username
-        log.info(s"Viewer '${user.username}' joined.")
-        BoatQuery(req.uri.query).map { boatQuery =>
-          val historicalLimits =
-            if boatQuery.tracks.nonEmpty && username == Usernames.anon then
-              BoatQuery.tracks(boatQuery.tracks)
-            else if username == Usernames.anon then BoatQuery.empty
-            else boatQuery
-          val historyIO = db.history(user, historicalLimits).map { es =>
-            // unless a sample is specified, return about 300 historical points - this optimization is for charts
-            val intelligentSample = math.max(1, es.map(_.coords.length).sum / 300)
-            val actualSample = boatQuery.sample.getOrElse(intelligentSample)
-            log.debug(
-              s"Points ${es.map(_.coords.length).sum} intelligent sample $intelligentSample actual $actualSample"
-            )
-            es.toList.map(_.sample(actualSample))
-          }
-          val history = Stream.evalSeq(historyIO)
-          val formatter = TimeFormatter.lang(user.language)
-          val updates = streams.clientEvents(formatter)
-          val eventSource = (history ++ updates)
-            .mergeHaltBoth(pings)
-            .filter(_.isIntendedFor(user))
-            .map(message => Text(message.asJson.noSpaces))
-          webSocket(
-            sockets,
-            eventSource,
-            message => F.delay(log.info(message)),
-            onClose = F.delay(log.info(s"Viewer '$username' left."))
-          )
-        }.recover(errors => badRequest(errors))
-      }
+      auth
+        .authOrAnon(req.headers)
+        .flatMap: user =>
+          val username = user.username
+          log.info(s"Viewer '${user.username}' joined.")
+          BoatQuery(req.uri.query)
+            .map: boatQuery =>
+              val historicalLimits =
+                if boatQuery.tracks.nonEmpty && username == Usernames.anon then
+                  BoatQuery.tracks(boatQuery.tracks)
+                else if username == Usernames.anon then BoatQuery.empty
+                else boatQuery
+              val historyIO = db
+                .history(user, historicalLimits)
+                .map: es =>
+                  // unless a sample is specified, return about 300 historical points - this optimization is for charts
+                  val intelligentSample = math.max(1, es.map(_.coords.length).sum / 300)
+                  val actualSample = boatQuery.sample.getOrElse(intelligentSample)
+                  log.debug(
+                    s"Points ${es.map(_.coords.length).sum} intelligent sample $intelligentSample actual $actualSample"
+                  )
+                  es.toList.map(_.sample(actualSample))
+              val history = Stream.evalSeq(historyIO)
+              val formatter = TimeFormatter.lang(user.language)
+              val updates = streams.clientEvents(formatter)
+              val eventSource = (history ++ updates)
+                .mergeHaltBoth(pings)
+                .filter(_.isIntendedFor(user))
+                .map(message => Text(message.asJson.noSpaces))
+              webSocket(
+                sockets,
+                eventSource,
+                message => F.delay(log.info(message)),
+                onClose = F.delay(log.info(s"Viewer '$username' left."))
+              )
+            .recover(errors => badRequest(errors))
     case req @ GET -> Root / "ws" / "boats" =>
       auth
         .authBoat(req.headers)
@@ -492,24 +495,22 @@ class Service[F[_]: Async: Files](comps: BoatComps[F]) extends BasicService[F]:
         val formatter = TimeFormatter.lang(user.language)
         ok(TrackResponse(track.strip(formatter)))
 
-  implicit val boatNameReader: Readable[BoatName] =
-    Readable.string.emap(s => BoatName.build(s.trim))
+  given Readable[BoatName] = Readable.string.emap(s => BoatName.build(s.trim))
 
   private def boatFormAction(req: Request[F])(code: (BoatName, UserInfo) => F[SourceRow]) =
     formAction(
       req,
       form => form.read[BoatName](BoatNames.Key).map(n => ChangeBoatName(n))
-    ) { (change, user) =>
+    ): (change, user) =>
       code(change.boatName, user).flatMap: row =>
         respond(req)(
           json = ok(BoatResponse(row.toBoat)),
           html = SeeOther(Location(reverse.boats))
         )
-    }
 
   private def formAction[T: Decoder](req: Request[F], readForm: FormReader => Either[Errors, T])(
     code: (T, UserInfo) => F[Response[F]]
-  )(implicit decoder: EntityDecoder[F, UrlForm]): F[Response[F]] =
+  )(using decoder: EntityDecoder[F, UrlForm]): F[Response[F]] =
     auth
       .profile(req)
       .flatMap: user =>
@@ -698,9 +699,8 @@ class Service[F[_]: Async: Files](comps: BoatComps[F]) extends BasicService[F]:
                     appleResult(boatJwt, req)
               else
                 val detailed =
-                  sessionState.fold(s"Got '$actualState' but found nothing to compare to.") {
+                  sessionState.fold(s"Got '$actualState' but found nothing to compare to."):
                     expected => s"Got '$actualState' but expected '$expected'."
-                  }
                 log.error(s"Authentication failed, state mismatch. $detailed $req")
                 unauthorized(Errors("State mismatch."))
             .recover(err => unauthorized(Errors(err)))

@@ -102,7 +102,7 @@ class MapSocket(
       map.putLayer(lineLayer(track))
       // adds a thicker, transparent trail on top of the visible one, which represents the mouse-hoverable area
       map.putLayer(trackLineLayer(hoverableTrack, LinePaint(LinePaint.blackColor, 5, 0)))
-      coords.lastOption.foreach { coord =>
+      coords.lastOption.foreach: coord =>
         // adds boat icon
         val layer = if isBoat then boatSymbolLayer(point, coord) else carSymbolLayer(point, coord)
         map.putLayer(layer)
@@ -117,7 +117,6 @@ class MapSocket(
             map.getCanvas().style.cursor = ""
             boatPopup.remove()
         )
-      }
       // adds trophy icon
       map.putLayer(trophySymbolLayer(trophyLayerId, from.topPoint.coord))
 //      if !hovering.exists(_.trophy == trophyLayerId) then
@@ -142,11 +141,10 @@ class MapSocket(
                 .toList
                 .toNel
                 .toRight(ErrorMessage(s"No coords for $trackId."))
-            yield nearest(hoverCoord, trailCoords)(_.coord).map { near =>
+            yield nearest(hoverCoord, trailCoords)(_.coord).map: near =>
               map.getCanvas().style.cursor = "pointer"
               popups.isTrackHover = true
               trackPopup.show(html.track(PointProps(near.result, from)), in.lngLat, map)
-            }
             op.fold(err => log.info(err.message), identity)
         val hoverOut: js.Function1[MapMouseEvent, Unit] = _ =>
           map.getCanvas().style.cursor = ""
@@ -155,84 +153,79 @@ class MapSocket(
         map.onHover(hoverableTrack)(hoverIn, hoverOut)
       else log.info(s"Already tracking hovering over $hoverableTrack.")
     // updates the source icon
-    map.findSource(point).foreach { geoJson =>
-      coords.lastOption.foreach { coord =>
-        // updates placement
-        geoJson.updateData(pointFor(coord))
-        // updates bearing
-        newTrack.features.flatMap(_.geometry.coords).takeRight(2).toList match
-          case prev :: last :: _ =>
-            val spin = bearing(prev, last).toInt
-            // The car SVG icon is pointing left, so this rotates by 90 degrees
-            val rotation = if isBoat then spin else (spin + 90) % 360
-            map.setLayoutProperty(point, ImageLayout.IconRotate, rotation)
-          case _ =>
-            ()
-      }
-    }
+    map
+      .findSource(point)
+      .foreach: geoJson =>
+        coords.lastOption.foreach: coord =>
+          // updates placement
+          geoJson.updateData(pointFor(coord))
+          // updates bearing
+          newTrack.features.flatMap(_.geometry.coords).takeRight(2).toList match
+            case prev :: last :: _ =>
+              val spin = bearing(prev, last).toInt
+              // The car SVG icon is pointing left, so this rotates by 90 degrees
+              val rotation = if isBoat then spin else (spin + 90) % 360
+              map.setLayoutProperty(point, ImageLayout.IconRotate, rotation)
+            case _ =>
+              ()
     // updates the trail
-    map.findSource(track).foreach { geoJson =>
-      geoJson.updateData(newTrack)
-    }
-    map.findSource(hoverableTrack).foreach { geoJson =>
-      geoJson.updateData(newTrack)
-    }
+    map
+      .findSource(track)
+      .foreach: geoJson =>
+        geoJson.updateData(newTrack)
+    map
+      .findSource(hoverableTrack)
+      .foreach: geoJson =>
+        geoJson.updateData(newTrack)
     // updates the trophy icon
     val topPoint = from.topPoint
-    map.findSource(trophyLayerId).foreach { geoJson =>
-      geoJson.updateData(pointForProps(topPoint.coord, PointProps(topPoint, from)))
-    }
+    map
+      .findSource(trophyLayerId)
+      .foreach: geoJson =>
+        geoJson.updateData(pointForProps(topPoint.coord, PointProps(topPoint, from)))
     val trail: Seq[Coord] = newTrack.features.flatMap(_.geometry.coords)
-    elem(TitleId).foreach { e =>
-      from.trackTitle.foreach { title =>
+    elem(TitleId).foreach: e =>
+      from.trackTitle.foreach: title =>
         e.show()
         e.innerHTML = title.show
-      }
-    }
-    elem(DistanceId).foreach { e =>
+    elem(DistanceId).foreach: e =>
       e.show()
       e.innerHTML = s"${formatDistance(from.distanceMeters)} km"
-    }
-    elem(TopSpeedId).foreach { e =>
-      from.topSpeed.foreach { top =>
+    elem(TopSpeedId).foreach: e =>
+      from.topSpeed.foreach: top =>
         e.show()
         val formatted = from.sourceType match
           case Vehicle => s"${formatKph(top)} km/h"
           case _       => s"${formatKnots(top)} kn"
         e.innerHTML = s"${trackLang.top} $formatted"
-      }
-    }
     if from.sourceType == SourceType.Boat then
-      elem(WaterTempId).foreach { e =>
-        coordsInfo.lastOption.map(_.waterTemp).foreach { temp =>
-          e.show()
-          e.innerHTML = s"${trackLang.water} ${formatTemp(temp)} ℃"
-        }
-      }
-    anchor(FullLinkId).foreach { e =>
+      elem(WaterTempId).foreach: e =>
+        coordsInfo.lastOption
+          .map(_.waterTemp)
+          .foreach: temp =>
+            e.show()
+            e.innerHTML = s"${trackLang.water} ${formatTemp(temp)} ℃"
+    anchor(FullLinkId).foreach: e =>
       e.show()
       e.href = s"/tracks/${from.trackName}/full"
-    }
-    anchor(GraphLinkId).foreach { e =>
+    anchor(GraphLinkId).foreach: e =>
       e.show()
       e.href = s"/tracks/${from.trackName}/chart"
-    }
-    elem(EditTitleId).foreach { e =>
+    elem(EditTitleId).foreach: e =>
       e.show()
-    }
     if boats.keySet.size == 1 then
-      elem(DurationId).foreach { e =>
+      elem(DurationId).foreach: e =>
         e.show()
         e.innerHTML = s"${trackLang.duration} ${formatDuration(from.duration)}"
-      }
     // updates the map position, zoom to reflect the updated track(s)
     mapMode match
       case MapMode.Fit =>
-        trail.headOption.foreach { head =>
+        trail.headOption.foreach: head =>
           val init = LngLatBounds(head)
-          val bs: LngLatBounds = trail.drop(1).foldLeft(init) { (bounds, c) =>
-            bounds.extend(LngLat(c))
-          }
+          val bs: LngLatBounds = trail
+            .drop(1)
+            .foldLeft(init): (bounds, c) =>
+              bounds.extend(LngLat(c))
           try map.fitBounds(bs, SimplePaddingOptions(20))
           catch
             case e: Exception =>
@@ -241,13 +234,11 @@ class MapSocket(
                     .getNorthEast()} ${bs.getSouthEast()}",
                 e
               )
-        }
         mapMode = MapMode.Follow
       case MapMode.Follow =>
         if boats.keySet.size == 1 then
-          coords.lastOption.foreach { coord =>
+          coords.lastOption.foreach: coord =>
             map.easeTo(EaseOptions(coord))
-          }
         else
           // does not follow if more than one boats are online, since it's not clear what to follow
           mapMode = MapMode.Stay
@@ -306,9 +297,8 @@ class MapSocket(
       GraphLinkId,
       EditTitleId,
       DurationId
-    ).foreach { id =>
+    ).foreach: id =>
       elem(id).foreach(_.hide())
-    }
 
   def remove(id: String): Unit =
     if map.hasLayer(id) then map.removeLayer(id)

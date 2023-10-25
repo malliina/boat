@@ -1,13 +1,13 @@
 package com.malliina.boat
 
-import io.circe.*
+import io.circe.Json
 import io.circe.syntax.EncoderOps
 
 import scala.language.implicitConversions
 
 object Styles:
-  implicit def string(s: String): Json = s.asJson
-  implicit def int(i: Int): Json = i.asJson
+  given Conversion[String, Json] = _.asJson
+  given Conversion[Int, Json] = _.asJson
 
   val colorBySpeed = Json.arr(
     "interpolate",

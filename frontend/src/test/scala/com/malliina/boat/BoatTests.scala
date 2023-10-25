@@ -4,24 +4,21 @@ import io.circe.*
 import io.circe.parser.decode
 
 class BoatTests extends munit.FunSuite with DemoJson:
-  test("serialize GeoJSON") {
+  test("serialize GeoJSON"):
     val _ = LineGeometry("LineString", Seq(Coord.buildOrFail(24, 60)))
     assert(1 == 1)
-  }
 
-  test("parse mark") {
+  test("parse mark"):
     val mark = decode[MarineSymbol](markJson)
     assert(mark.isRight)
     assert(mark.toOption.get.nameFi.contains("Saukonlaituri 2"))
-  }
 
-  test("parse limit") {
+  test("parse limit"):
     val limit = decode[LimitArea](limitAreaJson)
     assert(limit.isRight)
     val l = limit.toOption.get
     assert(l.limit.exists(s => s.toKmh > 9 && s.toKmh < 11))
     assert(l.length.exists(len => len.meters > 675 && len.meters < 677))
-  }
 
 trait DemoJson:
   val markJson =

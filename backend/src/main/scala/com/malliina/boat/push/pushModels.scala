@@ -20,9 +20,12 @@ object SourceState extends ValidatingCompanion[String, SourceState]:
   case object Connected extends SourceState("connected")
   case object Disconnected extends SourceState("disconnected")
 
-case class SourceNotification(boatName: BoatName, state: SourceState) derives Codec.AsObject:
+case class SourceNotification(
+  title: String,
+  boatName: BoatName,
+  state: SourceState
+) derives Codec.AsObject:
   def message = s"$boatName $state"
-  def title = "Boat-Tracker"
 
 object SourceNotification:
   val Message = "message"

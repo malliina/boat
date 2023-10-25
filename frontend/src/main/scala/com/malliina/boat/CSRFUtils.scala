@@ -10,31 +10,32 @@ class CSRFUtils(val log: BaseLogger = BaseLogger.console) extends CSRFConf:
   val document = dom.document
 
   def installCsrf(parent: Element): Unit =
-    parent.getElementsByTagName("form").foreach { node =>
-      node.addEventListener(
-        "submit",
-        (e: Event) => installTo(e.target.asInstanceOf[HTMLFormElement])
-      )
-    }
+    parent
+      .getElementsByTagName("form")
+      .foreach: node =>
+        node.addEventListener(
+          "submit",
+          (e: Event) => installTo(e.target.asInstanceOf[HTMLFormElement])
+        )
 
-  def installTo(form: HTMLFormElement) =
-    readCookie(CsrfCookieName).map { tokenValue =>
-      form.appendChild(csrfInput(CsrfTokenName, tokenValue).render)
-    }.getOrElse {
-      log.info("CSRF token not found.")
-    }
+  private def installTo(form: HTMLFormElement) =
+    readCookie(CsrfCookieName)
+      .map: tokenValue =>
+        form.appendChild(csrfInput(CsrfTokenName, tokenValue).render)
+      .getOrElse:
+        log.info("CSRF token not found.")
 
-  def readCookie(key: String) =
+  private def readCookie(key: String) =
     cookiesMap(document.cookie).get(key)
 
-  def cookiesMap(in: String) =
+  private def cookiesMap(in: String) =
     in.split(";")
       .toList
       .map(_.trim.split("=", 2).toList)
-      .collect { case key :: value :: Nil =>
-        key -> value
-      }
+      .collect:
+        case key :: value :: Nil =>
+          key -> value
       .toMap
 
-  def csrfInput(inputName: String, inputValue: String) =
+  private def csrfInput(inputName: String, inputValue: String) =
     input(`type` := "hidden", name := inputName, value := inputValue)

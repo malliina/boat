@@ -59,32 +59,30 @@ class PathFinder(val map: MapboxMap) extends GeoUtils with BaseFront:
           start = Option(MapboxMarker(startMark(c), c, map))
 
   private def findRoute(from: Coord, to: Coord) =
-    HttpClient.get[RouteResult](s"/routes/${from.lat}/${from.lng}/${to.lat}/${to.lng}").map { res =>
-      val route = res.route
-      val coords = route.coords
-      val coll = FeatureCollection(
-        Seq(Feature(LineGeometry(coords), Map(RouteSpec.Cost -> route.cost.asJson)))
-      )
-      elemGet[HTMLSpanElement](RouteLength).innerHTML = s"${formatDistance(route.cost)} km"
-      drawLine(routeLayer, coll)
-      coords.headOption.map { start =>
-        val init = lineFor(Seq(from, start))
-        drawLine(routeFirstLayer, init, LinePaint.dashed())
-      }
-      coords.lastOption.foreach { end =>
-        val tail = lineFor(Seq(end, to))
-        drawLine(routeLastLayer, tail, LinePaint.dashed())
-      }
-    }
+    HttpClient
+      .get[RouteResult](s"/routes/${from.lat}/${from.lng}/${to.lat}/${to.lng}")
+      .map: res =>
+        val route = res.route
+        val coords = route.coords
+        val coll = FeatureCollection(
+          Seq(Feature(LineGeometry(coords), Map(RouteSpec.Cost -> route.cost.asJson)))
+        )
+        elemGet[HTMLSpanElement](RouteLength).innerHTML = s"${formatDistance(route.cost)} km"
+        drawLine(routeLayer, coll)
+        coords.headOption.map: start =>
+          val init = lineFor(Seq(from, start))
+          drawLine(routeFirstLayer, init, LinePaint.dashed())
+        coords.lastOption.foreach: end =>
+          val tail = lineFor(Seq(end, to))
+          drawLine(routeLastLayer, tail, LinePaint.dashed())
 
   private def clear(): Unit =
     start.foreach(_.remove())
     start = None
     end.foreach(_.remove())
     end = None
-    layerIds.foreach { id =>
+    layerIds.foreach: id =>
       map.removeLayerAndSourceIfExists(id)
-    }
 
   private def startMark(@unused c: Coord) = span(`class` := "marker start")
 
