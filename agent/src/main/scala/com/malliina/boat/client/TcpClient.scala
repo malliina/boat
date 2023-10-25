@@ -56,7 +56,7 @@ class TcpClient[F[_]: Async: Network](
     * Makes received sentences available in `sentencesHub`. Sends `toServer` to the server upon
     * connection.
     */
-  def connect(toServer: Stream[F, Byte] = Stream.empty): Stream[F, Unit] = connections.flatMap {
+  def connect(toServer: Stream[F, Byte] = Stream.empty): Stream[F, Unit] = connections.flatMap:
     socket =>
       val outMessages = toServer.through(socket.writes)
       val inMessages = socket.reads
@@ -66,15 +66,14 @@ class TcpClient[F[_]: Async: Network](
         .map(s => RawSentence(s.trim))
         .groupWithin(maxBatchSize, sendTimeWindow)
         .map(chunk => SentencesMessage(chunk.toList))
-      outMessages ++ inMessages.evalMap { m =>
-        topic.publish1(m).map { e =>
-          e.fold(
-            closed => log.warn(s"Topic closed, failed to publish '$m' from $hostPort."),
-            identity
-          )
-        }
-      }
-  }
+      outMessages ++ inMessages.evalMap: m =>
+        topic
+          .publish1(m)
+          .map: e =>
+            e.fold(
+              closed => log.warn(s"Topic closed, failed to publish '$m' from $hostPort."),
+              identity
+            )
 
   private def connections: Stream[F, Socket[F]] =
     Stream
@@ -82,19 +81,17 @@ class TcpClient[F[_]: Async: Network](
         Resource.eval(delay(log.info(s"Connecting to $hostPort..."))) >>
           Network[F].client(SocketAddress(host, port))
       )
-      .evalTap { socket =>
-        delay(log.info(s"Connected to $hostPort."))
-      }
-      .handleErrorWith { e =>
-        Stream.eval(signal.get).flatMap { isDisabled =>
-          if !isDisabled then
-            log.warn(s"Lost connection to $hostPort. Reconnecting in $reconnectInterval...", e)
-            connections.delayBy(reconnectInterval)
-          else
-            log.info(s"Disconnected from $hostPort.")
-            Stream.empty
-        }
-      }
+      .evalTap(socket => delay(log.info(s"Connected to $hostPort.")))
+      .handleErrorWith: e =>
+        Stream
+          .eval(signal.get)
+          .flatMap: isDisabled =>
+            if !isDisabled then
+              log.warn(s"Lost connection to $hostPort. Reconnecting in $reconnectInterval...", e)
+              connections.delayBy(reconnectInterval)
+            else
+              log.info(s"Disconnected from $hostPort.")
+              Stream.empty
       .interruptWhen(signal)
 
   def close: F[Boolean] = signal.getAndSet(true)
