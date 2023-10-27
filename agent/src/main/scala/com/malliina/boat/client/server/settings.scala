@@ -35,7 +35,7 @@ case class BoatConfOld(host: Host, port: Port, token: Option[BoatToken], enabled
 
 object BoatConfOld:
   import BoatConf.{hostCodec, portCodec}
-  implicit val codec: Codec[BoatConfOld] = deriveCodec[BoatConfOld]
+  given Codec[BoatConfOld] = deriveCodec[BoatConfOld]
 
 case class BoatConf(
   host: Host,
@@ -56,7 +56,7 @@ object BoatConf:
     Encoder.encodeInt.contramap[Port](p => p.value)
   )
 
-  implicit val json: Codec[BoatConf] = deriveCodec[BoatConf]
+  given Codec[BoatConf] = deriveCodec[BoatConf]
 
   def anon(host: Host, port: Port) = BoatConf(host, port, Device.default, None, enabled = true)
 

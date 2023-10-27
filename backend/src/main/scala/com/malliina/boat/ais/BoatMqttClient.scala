@@ -56,10 +56,9 @@ object BoatMqttClient:
   def test[F[_]: Async](d: Dispatcher[F]): Resource[F, BoatMqttClient[F]] =
     url(TestUrl, AllDataTopic, d)
 
-  private def silent[F[_]: Async]: F[AISSource[F]] = Sync[F].delay {
+  private def silent[F[_]: Async]: F[AISSource[F]] = Sync[F].delay:
     log.info("AIS is disabled.")
     SilentAISSource[F]
-  }
 
   def url[F[_]: Async](
     url: FullUrl,

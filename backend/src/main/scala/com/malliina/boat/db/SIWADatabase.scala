@@ -76,9 +76,8 @@ class CustomJwt(jwt: JWT):
 
   def email(token: IdToken, now: Instant) = validate(token, now).map(_.email)
   def validate(token: IdToken, now: Instant): Either[JWTError, BoatJwtClaims] =
-    verify(token, now).flatMap { claims =>
+    verify(token, now).flatMap: claims =>
       val exp = claims.lastValidation.plus(2, ChronoUnit.DAYS)
       Either.cond(now.isBefore(exp), claims, Expired(token, exp, now))
-    }
   def write(claims: BoatJwtClaims, now: Instant) = jwt.sign(claims, ttl, now)
   def verify(token: IdToken, now: Instant) = jwt.verify[BoatJwtClaims](token, now)

@@ -47,9 +47,8 @@ class WebSocketClientTests extends AsyncSuite:
       socket <- WebSocketF.build[IO](url, Map(Constants.BoatTokenHeader -> token), http.client)
     yield socket
     socketResource.use: (client: WebSocketF[IO]) =>
-      val stream = client.events.evalMap {
+      val stream = client.events.evalMap:
         case Open(_, _)                   => client.send(msg)
         case TextMessage(socket, message) => IO(println(message))
         case _                            => IO.unit
-      }
       stream.compile.drain

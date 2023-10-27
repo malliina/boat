@@ -1,6 +1,6 @@
 package com.malliina.boat
 
-import cats.syntax.functor.toFunctorOps
+import cats.syntax.all.*
 import com.malliina.values.*
 import io.circe.generic.semiauto.deriveCodec
 import io.circe.syntax.EncoderOps

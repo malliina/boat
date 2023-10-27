@@ -3,15 +3,15 @@ import sbtrelease.ReleasePlugin.autoImport.{ReleaseStep, releaseProcess}
 import sbtrelease.ReleaseStateTransformations._
 import scala.sys.process.Process
 
-val webAuthVersion = "6.5.5"
+val webAuthVersion = "6.5.7"
 val munitVersion = "0.7.29"
 val testContainersScalaVersion = "0.41.0"
 val scalaTagsVersion = "0.12.0"
-val primitiveVersion = "3.4.5"
-val logstreamsVersion = "2.6.2"
+val primitiveVersion = "3.4.6"
+val logstreamsVersion = "2.6.3"
 val http4sVersion = "0.23.23"
 val logbackVersion = "1.4.11"
-val circeVersion = "0.14.3"
+val circeVersion = "0.14.6"
 // Do not upgrade to 11.0.2 because it depends on slf4j-api alpha versions, breaking logging
 val alpnVersion = "9.4.40.v20210413"
 val webAuthDep = "com.malliina" %% "web-auth" % webAuthVersion

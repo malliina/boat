@@ -46,7 +46,7 @@ class TokenEmailAuth[F[_]: Sync](google: KeyClient[F], microsoft: KeyClient[F], 
     Auth
       .token(headers)
       .map: token =>
-        validateAny(token, now).flatMap { e =>
+        validateAny(token, now).flatMap: e =>
           e.fold(
             err =>
               val ex = WebAuthException(err, headers)
@@ -55,10 +55,8 @@ class TokenEmailAuth[F[_]: Sync](google: KeyClient[F], microsoft: KeyClient[F], 
             ,
             email => F.pure(email)
           )
-        }
-      .getOrElse {
+      .getOrElse:
         F.raiseError(IdentityException(MissingCredentials(headers)))
-      }
 
   private def validateAny(token: IdToken, now: Instant): F[Either[AuthError, Email]] =
     validateGoogle(token, now).flatMap: googleResult =>

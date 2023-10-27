@@ -1,6 +1,6 @@
 package com.malliina.boat
 
-import cats.syntax.functor.toFunctorOps
+//import cats.syntax.all.*
 import com.malliina.boat.BoatJson.keyValued
 import com.malliina.json.PrimitiveFormats
 import com.malliina.measure.{DistanceM, SpeedM, Temperature}
@@ -472,6 +472,7 @@ sealed trait BoatFrontEvent extends FrontEvent:
     user.username == from.username || user.authorized.contains(from.boatName)
 
 object FrontEvent:
+  import cats.syntax.all.toFunctorOps
   implicit val decoder: Decoder[FrontEvent] = List[Decoder[FrontEvent]](
     Decoder[VesselMessages].widen,
     Decoder[CoordsEvent].widen,

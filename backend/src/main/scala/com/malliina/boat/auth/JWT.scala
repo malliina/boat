@@ -101,11 +101,11 @@ class JWT(secret: SecretKey, dataKey: String = "data"):
     IdToken(signed.serialize())
 
   def verify[T: Decoder](token: TokenValue, now: Instant = Instant.now()): Either[JWTError, T] =
-    verifyToken(token, now).flatMap { v =>
+    verifyToken(token, now).flatMap: v =>
       v.read[T](dataKey)
-    }
 
   def verifyToken(token: TokenValue, now: Instant): Either[JWTError, JWT.Verified] =
-    JWT.Parsed(token).flatMap { p =>
-      p.verify(secret, now)
-    }
+    JWT
+      .Parsed(token)
+      .flatMap: p =>
+        p.verify(secret, now)

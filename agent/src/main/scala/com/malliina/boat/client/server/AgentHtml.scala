@@ -10,7 +10,7 @@ import scalatags.text.Builder
 
 object AgentHtml:
   val empty = stringFrag("")
-  implicit val uriAttrValue: AttrValue[Uri] = attrValue[Uri](_.renderString)
+  given AttrValue[Uri] = attrValue[Uri](_.renderString)
 
   given showAttrValue[T](using s: Show[T]): AttrValue[T] =
     attrValue[T](v => s.show(v))
