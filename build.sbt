@@ -1,6 +1,8 @@
+import com.malliina.sbt.filetree.DirMap
 import sbtcrossproject.CrossPlugin.autoImport.{CrossType, crossProject}
 import sbtrelease.ReleasePlugin.autoImport.{ReleaseStep, releaseProcess}
-import sbtrelease.ReleaseStateTransformations._
+import sbtrelease.ReleaseStateTransformations.*
+
 import scala.sys.process.Process
 
 val webAuthVersion = "6.5.7"
@@ -145,7 +147,10 @@ val backend = Project("boat", file("backend"))
     Compile / packageDoc / publishArtifact := false,
     Compile / doc / sources := Seq.empty,
     assembly / assemblyJarName := "app.jar",
-    Compile / resourceDirectories += io.Path.userHome / ".boat"
+    Compile / resourceDirectories += io.Path.userHome / ".boat",
+    fileTreeSources := Seq(
+      DirMap((frontend / assetsRoot).value.toFile, "com.malliina.boat.FileAssets")
+    )
   )
 
 val agent = project

@@ -18,15 +18,12 @@ object DoobieUserManager:
     rows.foldLeft(Vector.empty[UserInfo]): (acc, ub) =>
       val user = ub.user
       val idx = acc.indexWhere(_.id == user.id)
-      val newBoats = ub.boat.toSeq.map { b =>
+      val newBoats = ub.boat.toSeq.map: b =>
         Boat(b.id, b.name, b.sourceType, b.token, b.added.toEpochMilli)
-      }
-      val newInvites = ub.invite.toList.map { row =>
+      val newInvites = ub.invite.toList.map: row =>
         Invite(row.boat, row.state, row.added.toEpochMilli)
-      }
-      val newFriends = ub.friend.toList.map { f =>
+      val newFriends = ub.friend.toList.map: f =>
         FriendInvite(f.boat, f.friend, f.state, f.added.toEpochMilli)
-      }
       if idx >= 0 then
         val old = acc(idx)
         val unseenBoats =
@@ -250,10 +247,9 @@ class DoobieUserManager[F[_]](db: DoobieDatabase[F]) extends IdentityManager[F] 
     manageGroups(boat, from, principal): existed =>
       if existed then
         sql"delete from users_boats where boat = $boat and user = $from".update.run
-          .map(changed =>
+          .map: changed =>
             if changed == 1 then AccessResult(existed)
             else AccessResult(false)
-          )
       else pure(AccessResult(existed))
 
   def updateInvite(boat: DeviceId, user: UserId, state: InviteState): F[Long] = run:
@@ -291,10 +287,9 @@ class DoobieUserManager[F[_]](db: DoobieDatabase[F]) extends IdentityManager[F] 
     to: UserId,
     principal: UserId
   ): ConnectionIO[InviteResult] =
-    manageGroups(boat, to, principal) { existed =>
+    manageGroups(boat, to, principal): existed =>
       if existed then pure(AlreadyInvited(to, boat))
       else linkInvite(boat, to).map(_ => Invited(to, boat))
-    }
 
   private def manageGroups[T](boat: DeviceId, from: UserId, principal: UserId)(
     run: Boolean => ConnectionIO[T]
