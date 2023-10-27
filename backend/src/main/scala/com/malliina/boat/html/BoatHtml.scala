@@ -5,7 +5,7 @@ import com.malliina.boat.FrontKeys.*
 import com.malliina.boat.html.BoatImplicits.showFrag
 import com.malliina.boat.http.{Limits, TrackQuery}
 import com.malliina.boat.http4s.Reverse
-import com.malliina.boat.{AppConf, BuildInfo, Coord, FormsLang, FrontKeys, FullTrack, Lang, SourceType, TrackRef, TracksBundle, UserBoats, UserInfo, Usernames}
+import com.malliina.boat.{AppConf, BuildInfo, Coord, FileAssets, FormsLang, FrontKeys, FullTrack, Lang, SourceType, TrackRef, TracksBundle, UserBoats, UserInfo, Usernames}
 import com.malliina.html.HtmlTags
 import com.malliina.html.HtmlTags.{cssLink, deviceWidthViewport, titleTag}
 import com.malliina.html.HtmlImplicits.given
@@ -23,21 +23,21 @@ object BoatHtml:
     default(BuildInfo.isProd, sourceType)
 
   private def chooseFavicon(sourceType: SourceType) =
-    if sourceType == SourceType.Vehicle then "favicon-car.svg"
-    else "favicon.png"
+    if sourceType == SourceType.Vehicle then FileAssets.img.favicon_png
+    else FileAssets.img.favicon_car_svg
 
-  def faviconPath(sourceType: SourceType) = s"assets/img/${chooseFavicon(sourceType)}"
+  def faviconPath(sourceType: SourceType) = s"assets/${chooseFavicon(sourceType)}"
 
   def default(isProd: Boolean, sourceType: SourceType): BoatHtml =
     val externalScripts = if isProd then Nil else FullUrl.build(LiveReload.script).toSeq
     val pageTitle =
       if sourceType == SourceType.Vehicle then AppConf.CarName
       else s"${AppConf.Name} - Free nautical charts for Finland"
-    val appScripts = Seq("frontend.js")
+    val appScripts = Seq(FileAssets.frontend_js)
     BoatHtml(
       appScripts,
       externalScripts,
-      Seq("frontend.css", "fonts.css", "styles.css"),
+      Seq(FileAssets.frontend_css, FileAssets.fonts_css, FileAssets.styles_css),
       AssetsSource(isProd),
       chooseFavicon(sourceType),
       pageTitle
@@ -230,7 +230,7 @@ class BoatHtml(
         deviceWidthViewport,
         StructuredData.appStructuredData,
         StructuredData.appLinkMetadata,
-        link(rel := "icon", `type` := "image/png", href := inlineOrAsset(s"img/$favicon")),
+        link(rel := "icon", `type` := "image/png", href := inlineOrAsset(favicon)),
         cssFiles.map: file =>
           cssLink(versioned(file))
       ),
