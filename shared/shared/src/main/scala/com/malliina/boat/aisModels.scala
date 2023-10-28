@@ -234,7 +234,7 @@ object VesselLocation:
       sog <- propsCursor.downField("sog").as[Double].map(_.knots)
       cog <- propsCursor.downField("cog").as[Double]
       heading <-
-        propsCursor.downField("heading").as[Int].map { h => if h == 511 then None else Option(h) }
+        propsCursor.downField("heading").as[Int].map(h => if h == 511 then None else Option(h))
       timestamp <- propsCursor.downField("timestampExternal").as[Long]
     yield VesselLocation(mmsi, coord, sog, cog, heading, timestamp)
 
@@ -298,7 +298,7 @@ object VesselMetadata:
       destination <- c.downField("destination").as[String].map { s =>
         if s.trim.nonEmpty then Option(s.trim) else None
       }
-      shipType <- c.downField("shipType").as[Int].map { int => ShipType(int) }
+      shipType <- c.downField("shipType").as[Int].map(int => ShipType(int))
       callSign <- c.downField("callSign").as[String]
     yield VesselMetadata(
       name,

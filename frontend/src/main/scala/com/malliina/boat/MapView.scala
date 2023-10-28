@@ -102,14 +102,17 @@ class MapView(
     socket.reconnect(parseUri, Option(sample), from, to)
 
   private val dateHandler = DateHandler(log)
-  private val fromPicker = makePicker(FromTimePickerId)
-  private val toPicker = makePicker(ToTimePickerId)
-
-  private val _ =
-    dateHandler.subscribeDate(fromPicker, toPicker, isFrom = true, locale = locale): from =>
-      reconnect(from, dateHandler.to)
-  private val _ = dateHandler.subscribeDate(toPicker, fromPicker, isFrom = false, locale = locale):
-    to => reconnect(dateHandler.from, to)
+  for
+    fromElem <- elemAs[Element](FromTimePickerId)
+    toElem <- elemAs[Element](ToTimePickerId)
+  yield
+    val fromPicker = makePicker(FromTimePickerId)
+    val toPicker = makePicker(ToTimePickerId)
+    val _ =
+      dateHandler.subscribeDate(fromPicker, toPicker, isFrom = true, locale = locale): from =>
+        reconnect(from, dateHandler.to)
+    val _ = dateHandler.subscribeDate(toPicker, fromPicker, isFrom = false, locale = locale): to =>
+      reconnect(dateHandler.from, to)
 
   private def makePicker(elementId: String): TempusDominus =
     TempusDominus(

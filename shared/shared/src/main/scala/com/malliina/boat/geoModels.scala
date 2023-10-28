@@ -16,8 +16,8 @@ case class MultiLineGeometry(`type`: String, coordinates: Seq[Seq[Coord]])
 
 object MultiLineGeometry:
   val Key = "MultiLineString"
-  given Codec[Coord] = Coord.jsonArray
-  given Codec[MultiLineGeometry] = deriveCodec[MultiLineGeometry]
+  implicit val coordJson: Codec[Coord] = Coord.jsonArray
+  implicit val json: Codec[MultiLineGeometry] = deriveCodec[MultiLineGeometry]
 
   def apply(coordinates: Seq[Seq[Coord]]): MultiLineGeometry =
     MultiLineGeometry(Key, coordinates)
@@ -32,8 +32,8 @@ case class LineGeometry(`type`: String, coordinates: Seq[Coord]) extends Geometr
 
 object LineGeometry:
   val Key = "LineString"
-  given Codec[Coord] = Coord.jsonArray
-  given Codec[LineGeometry] = deriveCodec[LineGeometry]
+  implicit val coordJson: Codec[Coord] = Coord.jsonArray
+  implicit val json: Codec[LineGeometry] = deriveCodec[LineGeometry]
 
   def apply(coords: Seq[Coord]): LineGeometry = LineGeometry(Key, coords)
 
@@ -47,8 +47,8 @@ case class PointGeometry(`type`: String, coordinates: Coord) extends Geometry(Po
 
 object PointGeometry:
   val Key = "Point"
-  given Codec[Coord] = Coord.jsonArray
-  given Codec[PointGeometry] = deriveCodec[PointGeometry]
+  implicit val coordJson: Codec[Coord] = Coord.jsonArray
+  implicit val json: Codec[PointGeometry] = deriveCodec[PointGeometry]
 
   def apply(point: Coord): PointGeometry = PointGeometry(Key, point)
 
@@ -64,8 +64,8 @@ case class MultiPolygon(`type`: String, coordinates: Seq[Seq[Seq[Coord]]])
 
 object MultiPolygon:
   val Key = "MultiPolygon"
-  given Codec[Coord] = Coord.jsonArray
-  given Codec[MultiPolygon] = deriveCodec[MultiPolygon]
+  implicit val coordJson: Codec[Coord] = Coord.jsonArray
+  implicit val json: Codec[MultiPolygon] = deriveCodec[MultiPolygon]
 
 case class Polygon(`type`: String, coordinates: Seq[Seq[Coord]]) extends Geometry(Polygon.Key):
   override type Self = Polygon
@@ -74,8 +74,8 @@ case class Polygon(`type`: String, coordinates: Seq[Seq[Coord]]) extends Geometr
 
 object Polygon:
   val Key = "Polygon"
-  given Codec[Coord] = Coord.jsonArray
-  given Codec[Polygon] = deriveCodec[Polygon]
+  implicit val coordJson: Codec[Coord] = Coord.jsonArray
+  implicit val json: Codec[Polygon] = deriveCodec[Polygon]
 
 sealed abstract class Geometry(val typeName: String):
   type Self <: Geometry

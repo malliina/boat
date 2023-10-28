@@ -1,6 +1,6 @@
 package com.malliina.boat
 
-//import cats.syntax.all.*
+import cats.syntax.all.toFunctorOps
 import com.malliina.boat.BoatJson.keyValued
 import com.malliina.json.PrimitiveFormats
 import com.malliina.measure.{DistanceM, SpeedM, Temperature}
@@ -422,8 +422,8 @@ case class CoordsEvent(coords: List[TimedCoord], from: TrackRef) extends BoatFro
 
 object CoordsEvent:
   val Key = "coords"
-  given Codec[Coord] = Coord.json
-  given Codec[CoordsEvent] = keyValued(Key, deriveCodec[CoordsEvent])
+  implicit val coordsJson: Codec[Coord] = Coord.json
+  implicit val json: Codec[CoordsEvent] = keyValued(Key, deriveCodec[CoordsEvent])
 
 // Watt hours
 opaque type Energy = Double
@@ -463,22 +463,21 @@ object VesselMessages:
   given Codec[VesselMessages] = keyValued(Key, deriveCodec[VesselMessages])
   val empty = VesselMessages(Nil)
 
-sealed trait FrontEvent:
-  def isIntendedFor(user: MinimalUserInfo): Boolean
-
 sealed trait BoatFrontEvent extends FrontEvent:
   def from: TrackMetaLike
   override def isIntendedFor(user: MinimalUserInfo): Boolean =
     user.username == from.username || user.authorized.contains(from.boatName)
 
+sealed trait FrontEvent:
+  def isIntendedFor(user: MinimalUserInfo): Boolean
+
 object FrontEvent:
-  import cats.syntax.all.toFunctorOps
   given Decoder[FrontEvent] = List[Decoder[FrontEvent]](
     Decoder[VesselMessages].widen,
-    Decoder[CoordsEvent].widen,
     Decoder[CoordsBatch].widen,
     Decoder[SentencesEvent].widen,
-    Decoder[PingEvent].widen
+    Decoder[PingEvent].widen,
+    Decoder[CoordsEvent].widen
   ).reduceLeft(_ or _)
   given Encoder[FrontEvent] = {
     case se @ SentencesEvent(_, _) => se.asJson
