@@ -3,7 +3,7 @@ package com.malliina.boat.db
 import com.malliina.boat.{BoatToken, DeviceId, JoinedSource}
 import doobie.*
 import doobie.implicits.*
-import com.malliina.boat.db.Mappings.*
+import com.malliina.boat.db.Mappings.given
 
 object CommonSql extends CommonSql
 

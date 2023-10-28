@@ -8,7 +8,7 @@ import doobie.ConnectionIO
 import doobie.implicits.toSqlInterpolator
 
 trait DoobieSQL:
-  export Mappings.*
+  export Mappings.given
   def boatById(id: DeviceId): ConnectionIO[SourceRow] =
     sql"select id, name, source_type, token, owner, added from boats b where b.id = $id"
       .query[SourceRow]

@@ -95,7 +95,7 @@ case class VesselQuery(
   mmsis: Seq[Mmsi],
   time: TimeRange,
   limits: Limits
-):
+) derives Codec.AsObject:
   private def describeNames = if names.isEmpty then "" else s"names ${names.mkString(", ")} "
   private def describeMmsis = if mmsis.isEmpty then "" else s"mmsis ${mmsis.mkString(", ")} "
   private def describeTime = if time.isEmpty then "" else s"time ${time.describe} "
@@ -103,11 +103,9 @@ case class VesselQuery(
   def describe =
     s"$describeNames$describeMmsis$describeTime$describeLimits"
 object VesselQuery:
-  implicit val json: Codec[VesselQuery] = deriveCodec[VesselQuery]
-
-  implicit val mmsiDecoder: QueryParamDecoder[Mmsi] =
+  given QueryParamDecoder[Mmsi] =
     QueryParsers.decoder[Mmsi](Mmsi.parse)
-  implicit val nameDecoder: QueryParamDecoder[VesselName] =
+  given QueryParamDecoder[VesselName] =
     QueryParsers.decoder[VesselName](VesselName.build)
 
   def query(q: Query): Either[Errors, VesselQuery] =
@@ -152,9 +150,9 @@ object BoatQuery:
   private val NewestKey = "newest"
   private val SampleKey = "sample"
   private val DefaultSample = Constants.DefaultSample
-  implicit val bindTrack: QueryParamDecoder[TrackName] =
+  given QueryParamDecoder[TrackName] =
     QueryParamDecoder.stringQueryParamDecoder.map(s => TrackName(s))
-  implicit val bindCanonical: QueryParamDecoder[TrackCanonical] =
+  given QueryParamDecoder[TrackCanonical] =
     QueryParamDecoder.stringQueryParamDecoder.map(s => TrackCanonical(s))
   val empty = BoatQuery(Limits(0, 0), TimeRange(None, None), Nil, Nil, None, None, newest = true)
 

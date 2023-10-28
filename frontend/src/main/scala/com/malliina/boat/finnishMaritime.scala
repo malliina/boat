@@ -53,7 +53,7 @@ object NavMark:
     case 8  => SafeWaters
     case 9  => Special
     case 99 => NotApplicable
-  implicit val decoder: Decoder[NavMark] = Decoder.decodeInt.emap: int =>
+  given Decoder[NavMark] = Decoder.decodeInt.emap: int =>
     fromInt.lift(int).toRight(s"Unknown mark type: '$int'.")
 
 /** Rakennetieto (RAKT_TYYP)

@@ -15,60 +15,60 @@ import scala.concurrent.duration.{DurationDouble, FiniteDuration}
 object Mappings extends Mappings
 
 trait Mappings:
-  implicit val instantMeta: Meta[Instant] = doobie.implicits.legacy.instant.JavaTimeInstantMeta
-  implicit val odtMeta: Meta[OffsetDateTime] =
+  given Meta[Instant] = doobie.implicits.legacy.instant.JavaTimeInstantMeta
+  given Meta[OffsetDateTime] =
     Meta[Instant].imap(_.atOffset(ZoneOffset.UTC))(_.toInstant)
-  implicit val localDateMeta: Meta[LocalDate] =
+  given Meta[LocalDate] =
     doobie.implicits.legacy.localdate.JavaTimeLocalDateMeta
 
-  implicit val tpi: Meta[TrackPointId] = simple(TrackPointId)
-  implicit val rti: Meta[RefreshTokenId] = simple(RefreshTokenId)
-  implicit val di: Meta[DeviceId] = simple(DeviceId)
-  implicit val gpf: Meta[GPSFix] = Meta[String].timap(GPSFix.orOther)(_.value)
-  implicit val pi: Meta[PushId] = simple(PushId)
-  implicit val pt: Meta[PushToken] = simple(PushToken)
-  implicit val md: Meta[MobileDevice] = Meta[String].timap(MobileDevice.apply)(_.name)
-  implicit val sa: Meta[SeaArea] = Meta[Int].timap(SeaArea.fromIntOrOther)(_.value)
-  implicit val fl: Meta[FairwayLighting] =
+  given Meta[TrackPointId] = simple(TrackPointId)
+  given Meta[RefreshTokenId] = simple(RefreshTokenId)
+  given Meta[DeviceId] = simple(DeviceId)
+  given Meta[GPSFix] = Meta[String].timap(GPSFix.orOther)(_.value)
+  given Meta[PushId] = simple(PushId)
+  given Meta[PushToken] = simple(PushToken)
+  given Meta[MobileDevice] = Meta[String].timap(MobileDevice.apply)(_.name)
+  given Meta[SeaArea] = Meta[Int].timap(SeaArea.fromIntOrOther)(_.value)
+  given Meta[FairwayLighting] =
     Meta[Int].timap(FairwayLighting.fromInt)(FairwayLighting.toInt)
-  implicit val rs: Meta[RawSentence] = simple(RawSentence)
-  implicit val ti: Meta[TrackId] = simple(TrackId)
-  implicit val vr: Meta[VesselRowId] = simple(VesselRowId)
-  implicit val aui: Meta[AisUpdateId] = simple(AisUpdateId)
-  implicit val ui: Meta[VesselUpdateId] = Meta[Long].timap(VesselUpdateId.apply)(_.raw)
-  implicit val fi: Meta[FairwayId] = simple(FairwayId)
-  implicit val fci: Meta[FairwayCoordId] = simple(FairwayCoordId)
-  implicit val tn: Meta[TrackName] = simple(TrackName)
-  implicit val tt: Meta[TrackTitle] = simple(TrackTitle)
-  implicit val tc: Meta[TrackCanonical] = simple(TrackCanonical)
-  implicit val bn: Meta[BoatName] = simple(BoatName)
-  implicit val bt: Meta[BoatToken] = simple(BoatToken)
-  implicit val ut: Meta[UserToken] = simple(UserToken)
-  implicit val lon: Meta[Longitude] = Meta[Double].timap(Longitude.unsafe)(_.lng)
-  implicit val lat: Meta[Latitude] = Meta[Double].timap(Latitude.unsafe)(_.lat)
-  implicit val speed: Meta[SpeedM] = Meta[Double].timap(_.kmh)(_.toKmh)
-  implicit val uid: Meta[UserId] = wrappedId(UserId.apply)
-  implicit val us: Meta[Username] = wrapped(Username.apply)
-  implicit val em: Meta[Email] = wrapped(Email.apply)
-  implicit val lan: Meta[Language] = wrapped(Language.apply)
-  implicit val ch: Meta[CoordHash] = Meta[String].timap(CoordHash.apply)(_.hash)
-  implicit val temperature: Meta[Temperature] = Meta[Double].timap(Temperature.apply)(_.celsius)
-  implicit val distanceMeta: Meta[DistanceM] = Meta[Double].timap(DistanceM.apply)(_.meters)
-  implicit val du: Meta[FiniteDuration] =
+  given Meta[RawSentence] = simple(RawSentence)
+  given Meta[TrackId] = simple(TrackId)
+  given Meta[VesselRowId] = simple(VesselRowId)
+  given Meta[AisUpdateId] = simple(AisUpdateId)
+  given Meta[VesselUpdateId] = Meta[Long].timap(VesselUpdateId.apply)(_.raw)
+  given Meta[FairwayId] = simple(FairwayId)
+  given Meta[FairwayCoordId] = simple(FairwayCoordId)
+  given Meta[TrackName] = simple(TrackName)
+  given Meta[TrackTitle] = simple(TrackTitle)
+  given Meta[TrackCanonical] = simple(TrackCanonical)
+  given Meta[BoatName] = simple(BoatName)
+  given Meta[BoatToken] = simple(BoatToken)
+  given Meta[UserToken] = simple(UserToken)
+  given Meta[Longitude] = Meta[Double].timap(Longitude.unsafe)(_.lng)
+  given Meta[Latitude] = Meta[Double].timap(Latitude.unsafe)(_.lat)
+  given Meta[SpeedM] = Meta[Double].timap(_.kmh)(_.toKmh)
+  given Meta[UserId] = wrappedId(UserId.apply)
+  given Meta[Username] = wrapped(Username.apply)
+  given Meta[Email] = wrapped(Email.apply)
+  given Meta[Language] = wrapped(Language.apply)
+  given Meta[CoordHash] = Meta[String].timap(CoordHash.apply)(_.hash)
+  given Meta[Temperature] = Meta[Double].timap(Temperature.apply)(_.celsius)
+  given Meta[DistanceM] = Meta[Double].timap(DistanceM.apply)(_.meters)
+  given Meta[FiniteDuration] =
     Meta[Double].timap(d => d.seconds)(_.toMillis.toDouble / 1000d)
-  implicit val coordMeta: Meta[Coord] = Meta[Array[Byte]].timap(bytes =>
+  given Meta[Coord] = Meta[Array[Byte]].timap(bytes =>
     toCoord(SpatialUtils.fromBytes[Point](bytes))
   )(SpatialUtils.coordToBytes)
-  implicit val dateMapping: Meta[DateVal] = Meta[LocalDate].timap(d => DateVal(d))(_.toLocalDate)
-  implicit val year: Meta[YearVal] = Meta[Int].timap(y => YearVal(y))(_.year)
-  implicit val month: Meta[MonthVal] = Meta[Int].timap(m => MonthVal(m))(_.month)
-  implicit val isMapping: Meta[InviteState] =
+  given Meta[DateVal] = Meta[LocalDate].timap(d => DateVal(d))(_.toLocalDate)
+  given Meta[YearVal] = Meta[Int].timap(y => YearVal(y))(_.year)
+  given Meta[MonthVal] = Meta[Int].timap(m => MonthVal(m))(_.month)
+  given Meta[InviteState] =
     Meta[String].timap(s => InviteState.orOther(s))(_.name)
-  implicit val st: Meta[SourceType] = Meta[String].timap(s => SourceType.orOther(s))(_.name)
-  implicit val sk: Meta[SentenceKey] = simple(SentenceKey)
-  implicit val dg: Meta[Degrees] = Meta[Float].timap(Degrees.unsafe)(_.float)
-  implicit val cuid: Meta[CarUpdateId] = simple(CarUpdateId)
-  implicit val energyMeta: Meta[Energy] = simple(Energy)
+  given Meta[SourceType] = Meta[String].timap(s => SourceType.orOther(s))(_.name)
+  given Meta[SentenceKey] = simple(SentenceKey)
+  given Meta[Degrees] = Meta[Float].timap(Degrees.unsafe)(_.float)
+  given Meta[CarUpdateId] = simple(CarUpdateId)
+  given Meta[Energy] = simple(Energy)
 
   private def simple[T, R: Meta, C <: JsonCompanion[R, T]](c: C): Meta[T] =
     Meta[R].timap(c.apply)(c.write)

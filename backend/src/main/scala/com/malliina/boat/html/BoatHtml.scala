@@ -1,11 +1,11 @@
 package com.malliina.boat.html
 
-import com.malliina.assets.HashedAssets
+import com.malliina.assets.{HashedAssets, FileAssets}
 import com.malliina.boat.FrontKeys.*
 import com.malliina.boat.html.BoatImplicits.showFrag
 import com.malliina.boat.http.{Limits, TrackQuery}
 import com.malliina.boat.http4s.Reverse
-import com.malliina.boat.{AppConf, BuildInfo, Coord, FileAssets, FormsLang, FrontKeys, FullTrack, Lang, SourceType, TrackRef, TracksBundle, UserBoats, UserInfo, Usernames}
+import com.malliina.boat.{AppConf, BuildInfo, Coord, FormsLang, FrontKeys, FullTrack, Lang, SourceType, TrackRef, TracksBundle, UserBoats, UserInfo, Usernames}
 import com.malliina.html.HtmlTags
 import com.malliina.html.HtmlTags.{cssLink, deviceWidthViewport, titleTag}
 import com.malliina.html.HtmlImplicits.given

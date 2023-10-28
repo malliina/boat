@@ -114,7 +114,7 @@ case class Coord(lng: Longitude, lat: Latitude):
 object Coord:
   val Key = "coord"
 
-  implicit val json: Codec[Coord] = deriveCodec[Coord]
+  given json: Codec[Coord] = deriveCodec[Coord]
   // GeoJSON format
   val jsonArray: Codec[Coord] = Codec.from(
     Decoder[List[Double]].emap {
@@ -422,8 +422,8 @@ case class CoordsEvent(coords: List[TimedCoord], from: TrackRef) extends BoatFro
 
 object CoordsEvent:
   val Key = "coords"
-  implicit val coordJson: Codec[Coord] = Coord.json
-  implicit val json: Codec[CoordsEvent] = keyValued(Key, deriveCodec[CoordsEvent])
+  given Codec[Coord] = Coord.json
+  given Codec[CoordsEvent] = keyValued(Key, deriveCodec[CoordsEvent])
 
 // Watt hours
 opaque type Energy = Double
@@ -445,22 +445,22 @@ case class SentencesEvent(sentences: Seq[RawSentence], from: TrackMetaShort) ext
 
 object SentencesEvent:
   val Key = "sentences"
-  implicit val json: Codec[SentencesEvent] = keyValued(Key, deriveCodec[SentencesEvent])
+  given Codec[SentencesEvent] = keyValued(Key, deriveCodec[SentencesEvent])
 
 case class PingEvent(sent: Long, age: Duration) extends FrontEvent:
   override def isIntendedFor(user: MinimalUserInfo) = true
 
 object PingEvent:
   val Key = "ping"
-  implicit val durationFormat: Codec[Duration] = PrimitiveFormats.durationCodec
-  implicit val json: Codec[PingEvent] = keyValued(Key, deriveCodec[PingEvent])
+  given Codec[Duration] = PrimitiveFormats.durationCodec
+  given Codec[PingEvent] = keyValued(Key, deriveCodec[PingEvent])
 
 case class VesselMessages(vessels: Seq[VesselInfo]) extends FrontEvent:
   override def isIntendedFor(user: MinimalUserInfo): Boolean = true
 
 object VesselMessages:
   val Key = "vessels"
-  implicit val json: Codec[VesselMessages] = keyValued(Key, deriveCodec[VesselMessages])
+  given Codec[VesselMessages] = keyValued(Key, deriveCodec[VesselMessages])
   val empty = VesselMessages(Nil)
 
 sealed trait FrontEvent:
@@ -473,14 +473,14 @@ sealed trait BoatFrontEvent extends FrontEvent:
 
 object FrontEvent:
   import cats.syntax.all.toFunctorOps
-  implicit val decoder: Decoder[FrontEvent] = List[Decoder[FrontEvent]](
+  given Decoder[FrontEvent] = List[Decoder[FrontEvent]](
     Decoder[VesselMessages].widen,
     Decoder[CoordsEvent].widen,
     Decoder[CoordsBatch].widen,
     Decoder[SentencesEvent].widen,
     Decoder[PingEvent].widen
   ).reduceLeft(_ or _)
-  implicit val encoder: Encoder[FrontEvent] = {
+  given Encoder[FrontEvent] = {
     case se @ SentencesEvent(_, _) => se.asJson
     case ce @ CoordsEvent(_, _)    => ce.asJson
     case cb @ CoordsBatch(_)       => cb.asJson
@@ -493,7 +493,7 @@ case class SentencesMessage(sentences: Seq[RawSentence]):
 
 object SentencesMessage:
   val Key = "sentences"
-  implicit val json: Codec[SentencesMessage] = keyValued(Key, deriveCodec[SentencesMessage])
+  given Codec[SentencesMessage] = keyValued(Key, deriveCodec[SentencesMessage])
 
 object BoatJson:
   val EventKey = "event"

@@ -7,7 +7,7 @@ import scala.concurrent.duration.FiniteDuration
 
 object DurationDoubleFormat:
   import concurrent.duration.DurationDouble
-  implicit val json: Codec[FiniteDuration] = Codec.from[FiniteDuration](
+  given json: Codec[FiniteDuration] = Codec.from[FiniteDuration](
     Decoder.decodeDouble.map(_.seconds),
     Encoder.encodeDouble.contramap(fd => 1.0d * fd.toMillis / 1000)
   )
@@ -24,8 +24,8 @@ case class RouteSpec(links: List[Link], cost: DistanceM):
 
 object RouteSpec:
   val Cost = "cost"
-  implicit val df: Codec[FiniteDuration] = DurationDoubleFormat.json
-  implicit val json: Codec[RouteSpec] = deriveCodec[RouteSpec]
+  given Codec[FiniteDuration] = DurationDoubleFormat.json
+  given Codec[RouteSpec] = deriveCodec[RouteSpec]
 
 case class RouteResult(
   from: Coord,
@@ -36,5 +36,5 @@ case class RouteResult(
 )
 
 object RouteResult:
-  implicit val df: Codec[FiniteDuration] = DurationDoubleFormat.json
-  implicit val json: Codec[RouteResult] = deriveCodec[RouteResult]
+  given Codec[FiniteDuration] = DurationDoubleFormat.json
+  given Codec[RouteResult] = deriveCodec[RouteResult]

@@ -1,6 +1,6 @@
 package com.malliina.boat
 
-import cats.syntax.all.*
+import cats.syntax.all.toFunctorOps
 import com.malliina.values.*
 import io.circe.generic.semiauto.deriveCodec
 import io.circe.syntax.EncoderOps
@@ -16,8 +16,8 @@ case class MultiLineGeometry(`type`: String, coordinates: Seq[Seq[Coord]])
 
 object MultiLineGeometry:
   val Key = "MultiLineString"
-  implicit val coord: Codec[Coord] = Coord.jsonArray
-  implicit val json: Codec[MultiLineGeometry] = deriveCodec[MultiLineGeometry]
+  given Codec[Coord] = Coord.jsonArray
+  given Codec[MultiLineGeometry] = deriveCodec[MultiLineGeometry]
 
   def apply(coordinates: Seq[Seq[Coord]]): MultiLineGeometry =
     MultiLineGeometry(Key, coordinates)
@@ -32,8 +32,8 @@ case class LineGeometry(`type`: String, coordinates: Seq[Coord]) extends Geometr
 
 object LineGeometry:
   val Key = "LineString"
-  implicit val coord: Codec[Coord] = Coord.jsonArray
-  implicit val json: Codec[LineGeometry] = deriveCodec[LineGeometry]
+  given Codec[Coord] = Coord.jsonArray
+  given Codec[LineGeometry] = deriveCodec[LineGeometry]
 
   def apply(coords: Seq[Coord]): LineGeometry = LineGeometry(Key, coords)
 
@@ -47,8 +47,8 @@ case class PointGeometry(`type`: String, coordinates: Coord) extends Geometry(Po
 
 object PointGeometry:
   val Key = "Point"
-  implicit val coord: Codec[Coord] = Coord.jsonArray
-  implicit val json: Codec[PointGeometry] = deriveCodec[PointGeometry]
+  given Codec[Coord] = Coord.jsonArray
+  given Codec[PointGeometry] = deriveCodec[PointGeometry]
 
   def apply(point: Coord): PointGeometry = PointGeometry(Key, point)
 
@@ -64,8 +64,8 @@ case class MultiPolygon(`type`: String, coordinates: Seq[Seq[Seq[Coord]]])
 
 object MultiPolygon:
   val Key = "MultiPolygon"
-  implicit val coord: Codec[Coord] = Coord.jsonArray
-  implicit val json: Codec[MultiPolygon] = deriveCodec[MultiPolygon]
+  given Codec[Coord] = Coord.jsonArray
+  given Codec[MultiPolygon] = deriveCodec[MultiPolygon]
 
 case class Polygon(`type`: String, coordinates: Seq[Seq[Coord]]) extends Geometry(Polygon.Key):
   override type Self = Polygon
@@ -74,8 +74,8 @@ case class Polygon(`type`: String, coordinates: Seq[Seq[Coord]]) extends Geometr
 
 object Polygon:
   val Key = "Polygon"
-  implicit val coord: Codec[Coord] = Coord.jsonArray
-  implicit val json: Codec[Polygon] = deriveCodec[Polygon]
+  given Codec[Coord] = Coord.jsonArray
+  given Codec[Polygon] = deriveCodec[Polygon]
 
 sealed abstract class Geometry(val typeName: String):
   type Self <: Geometry
@@ -87,14 +87,14 @@ object Geometry:
   val Type = "type"
   val all = Seq(LineGeometry, PointGeometry)
 
-  implicit val encoder: Encoder[Geometry] = {
+  given Encoder[Geometry] = {
     case lg @ LineGeometry(_, _)       => lg.asJson
     case mlg @ MultiLineGeometry(_, _) => mlg.asJson
     case pg @ PointGeometry(_, _)      => pg.asJson
     case mp @ MultiPolygon(_, _)       => mp.asJson
     case p @ Polygon(_, _)             => p.asJson
   }
-  implicit val decoder: Decoder[Geometry] = Decoder.decodeString.at(Geometry.Type).flatMap {
+  given Decoder[Geometry] = Decoder.decodeString.at(Geometry.Type).flatMap {
     case LineGeometry.Key      => Decoder[LineGeometry].widen
     case MultiLineGeometry.Key => Decoder[MultiLineGeometry].widen
     case PointGeometry.Key     => Decoder[PointGeometry].widen
@@ -134,7 +134,7 @@ object ImageLayout:
 case class OtherLayout(data: Json) extends Layout
 
 object OtherLayout:
-  implicit val json: Codec[OtherLayout] = Codec.from(
+  given Codec[OtherLayout] = Codec.from(
     Decoder.decodeJson.map(json => OtherLayout(json)),
     (l: OtherLayout) => l.data.asJson
   )
@@ -143,12 +143,12 @@ sealed trait Layout
 
 object Layout:
   // https://circe.github.io/circe/codecs/adt.html#adts-encoding-and-decoding
-  implicit val reader: Decoder[Layout] = List[Decoder[Layout]](
+  given Decoder[Layout] = List[Decoder[Layout]](
     Decoder[LineLayout].widen,
     Decoder[ImageLayout].widen,
     Decoder[OtherLayout].widen
   ).reduceLeft(_ or _)
-  implicit val encoder: Encoder[Layout] = {
+  given Encoder[Layout] = {
     case ll @ LineLayout(_, _)        => ll.asJson
     case il @ ImageLayout(_, _, _, _) => il.asJson
     case OtherLayout(data)            => data
@@ -157,7 +157,7 @@ object Layout:
 sealed trait PropertyValue
 
 object PropertyValue:
-  implicit val codec: Codec[PropertyValue] = Codec.from(
+  given Codec[PropertyValue] = Codec.from(
     Decoder.decodeString.map(Literal.apply).or(Decoder.decodeJson.map(Custom.apply)),
     {
       case Literal(value) => value.asJson
@@ -191,7 +191,7 @@ object LinePaint:
 case class OtherPaint(data: Json) extends BasePaint
 
 object OtherPaint:
-  implicit val codec: Codec[OtherPaint] = Codec.from(
+  given Codec[OtherPaint] = Codec.from(
     Decoder.decodeJson.map(json => OtherPaint(json)),
     Encoder.encodeJson.contramap(t => t.data)
   )
@@ -199,13 +199,13 @@ object OtherPaint:
 sealed trait BasePaint
 
 object BasePaint:
-  implicit val reader: Decoder[BasePaint] =
+  given Decoder[BasePaint] =
     List[Decoder[BasePaint]](
       Decoder[LinePaint].widen,
       Decoder[CirclePaint].widen,
       Decoder[OtherPaint].widen
     ).reduceLeft(_ or _)
-  implicit val writer: Encoder[BasePaint] = {
+  given Encoder[BasePaint] = {
     case lp @ LinePaint(_, _, _, _, _) => lp.asJson
     case cp @ CirclePaint(_, _)        => cp.asJson
     case OtherPaint(data)              => data
@@ -239,14 +239,14 @@ object LayerType extends ValidatingCompanion[String, LayerType]:
 sealed trait LayerSource
 
 object LayerSource:
-  implicit val reader: Decoder[LayerSource] =
+  val reader: Decoder[LayerSource] =
     List[Decoder[LayerSource]](Decoder[StringLayerSource].widen, Decoder[InlineLayerSource].widen)
       .reduceLeft(_ or _)
-  implicit val writer: Encoder[LayerSource] = {
+  val writer: Encoder[LayerSource] = {
     case sls @ StringLayerSource(_)    => sls.asJson
     case ils @ InlineLayerSource(_, _) => ils.asJson
   }
-  implicit val json: Codec[LayerSource] = Codec.from[LayerSource](reader, writer)
+  given Codec[LayerSource] = Codec.from[LayerSource](reader, writer)
 
 /** @see
   *   https://www.mapbox.com/mapbox-gl-js/style-spec/#layers
@@ -330,7 +330,7 @@ case class InlineLayerSource(`type`: String, data: FeatureCollection) extends La
 object InlineLayerSource:
   // Recursive data structure:
   // FeatureCollection -> Feature -> Layer -> LayerSource -> FeatureCollection
-  implicit val json: Codec[InlineLayerSource] = deriveCodec[InlineLayerSource]
+  given Codec[InlineLayerSource] = deriveCodec[InlineLayerSource]
 
   def apply(data: FeatureCollection): InlineLayerSource =
     InlineLayerSource("geojson", data)

@@ -23,9 +23,9 @@ object TcpClient:
   val linefeed: String = crlf
   val charset = StandardCharsets.US_ASCII
 
-  implicit val host: Readable[Host] =
+  given host: Readable[Host] =
     Readable.string.emap(s => Host.fromString(s).toRight(ErrorMessage(s"Invalid host: '$s'.")))
-  implicit val port: Readable[Port] =
+  given port: Readable[Port] =
     Readable.int.emap(i => Port.fromInt(i).toRight(ErrorMessage(s"Invalid port: '$i'.")))
 
   // Subscribes to NMEA messages. Depending on device, by default, nothing happens.

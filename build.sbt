@@ -1,4 +1,3 @@
-import com.malliina.sbt.filetree.DirMap
 import sbtcrossproject.CrossPlugin.autoImport.{CrossType, crossProject}
 import sbtrelease.ReleasePlugin.autoImport.{ReleaseStep, releaseProcess}
 import sbtrelease.ReleaseStateTransformations.*
@@ -98,10 +97,7 @@ val frontend = project
   )
 
 val backend = Project("boat", file("backend"))
-  .enablePlugins(
-    ServerPlugin,
-    FileTreePlugin
-  )
+  .enablePlugins(ServerPlugin)
   .dependsOn(crossJvm)
   .settings(jvmSettings ++ boatSettings)
   .settings(
@@ -147,10 +143,7 @@ val backend = Project("boat", file("backend"))
     Compile / packageDoc / publishArtifact := false,
     Compile / doc / sources := Seq.empty,
     assembly / assemblyJarName := "app.jar",
-    Compile / resourceDirectories += io.Path.userHome / ".boat",
-    fileTreeSources := Seq(
-      DirMap((frontend / assetsRoot).value.toFile, "com.malliina.boat.FileAssets")
-    )
+    Compile / resourceDirectories += io.Path.userHome / ".boat"
   )
 
 val agent = project

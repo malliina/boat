@@ -67,7 +67,7 @@ object DoobieTracksDatabase:
 class DoobieTracksDatabase[F[_]: Async](val db: DoobieDatabase[F])
   extends TracksSource[F]
   with StatsSource[F]:
-  import Mappings.*
+  import Mappings.given
   val F = Async[F]
   object sql extends CommonSql:
     def pointsByTrack(name: TrackName) =
