@@ -226,7 +226,7 @@ val utils = project
       "org.geotools" % s"gt-$m" % "23.0" exclude ("javax.media", "jai_core")
     } ++ Seq(
       "ch.qos.logback" % "logback-classic" % logbackVersion,
-      "javax.media" % "jai_core" % "1.1.3",
+//      "javax.media" % "jai_core" % "1.1.3",
       munitDep
     ),
     testFrameworks += new TestFramework("munit.Framework")
