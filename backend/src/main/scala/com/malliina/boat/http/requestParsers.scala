@@ -5,7 +5,6 @@ import com.malliina.boat.http4s.QueryParsers
 import com.malliina.boat.{CarUpdateId, Constants, Coord, Errors, Latitude, Longitude, Mmsi, RouteRequest, SingleError, TimeFormatter, Timings, TrackCanonical, TrackName, VesselName}
 import com.malliina.values.{Email, ErrorMessage}
 import io.circe.Codec
-import io.circe.generic.semiauto.deriveCodec
 import org.http4s.{Headers, Query, QueryParamDecoder, Request}
 
 import java.time.{Instant, LocalDate}
