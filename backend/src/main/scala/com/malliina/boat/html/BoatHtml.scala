@@ -23,8 +23,8 @@ object BoatHtml:
     default(BuildInfo.isProd, sourceType)
 
   private def chooseFavicon(sourceType: SourceType) =
-    if sourceType == SourceType.Vehicle then FileAssets.img.favicon_png
-    else FileAssets.img.favicon_car_svg
+    if sourceType == SourceType.Vehicle then FileAssets.img.favicon_car_svg
+    else FileAssets.img.favicon_boat_png
 
   def faviconPath(sourceType: SourceType) = s"assets/${chooseFavicon(sourceType)}"
 
