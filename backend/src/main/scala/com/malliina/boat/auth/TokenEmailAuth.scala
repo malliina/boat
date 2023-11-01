@@ -26,12 +26,14 @@ object TokenEmailAuth:
   def default[F[_]: Sync](
     webClientId: ClientId,
     iosClientId: ClientId,
-    microsoftClientId: ClientId,
+    microsoftBoatClientId: ClientId,
+    microsoftCarClientId: ClientId,
     http: HttpClient[F],
     custom: CustomJwt
   ): TokenEmailAuth[F] =
     val google = GoogleAuthFlow.keyClient(Seq(webClientId, iosClientId), http)
-    val microsoft = MicrosoftAuthFlow.keyClient(Seq(microsoftClientId), http)
+    val microsoft =
+      MicrosoftAuthFlow.keyClient(Seq(microsoftBoatClientId, microsoftCarClientId), http)
     TokenEmailAuth(google, microsoft, custom)
 
 /** Validates tokens and extracts the email address.

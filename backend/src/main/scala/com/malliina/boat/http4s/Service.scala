@@ -298,13 +298,15 @@ class Service[F[_]: Async: Files](comps: BoatComps[F]) extends BasicService[F]:
     case req @ GET -> Root / "sign-in" / "google" =>
       startHinted(AuthProvider.Google, auth.googleFlow, req)
     case req @ GET -> Root / "sign-in" / "microsoft" =>
-      startHinted(AuthProvider.Microsoft, auth.microsoftFlow, req)
+      val flow = if isCar(req) then auth.microsoftCarFlow else auth.microsoftBoatFlow
+      startHinted(AuthProvider.Microsoft, flow, req)
     case req @ GET -> Root / "sign-in" / "apple" =>
       start(auth.appleWebFlow, AuthProvider.Apple, req)
     case req @ GET -> Root / "sign-in" / "callbacks" / "google" =>
       handleAuthCallback(auth.googleFlow, AuthProvider.Google, req)
     case req @ GET -> Root / "sign-in" / "callbacks" / "microsoft" =>
-      handleAuthCallback(auth.microsoftFlow, AuthProvider.Microsoft, req)
+      val flow = if isCar(req) then auth.microsoftCarFlow else auth.microsoftBoatFlow
+      handleAuthCallback(flow, AuthProvider.Microsoft, req)
     case req @ POST -> Root / "sign-in" / "callbacks" / "apple" =>
       handleAppleCallback(req)
     case GET -> Root / "sign-out" =>

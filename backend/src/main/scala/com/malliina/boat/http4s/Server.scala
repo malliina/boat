@@ -56,7 +56,8 @@ class ProdAppComps[F[_]: Async](conf: BoatConf, httpClient: HttpClient[F]) exten
     TokenEmailAuth.default(
       conf.google.web.id,
       conf.google.ios.id,
-      conf.microsoft.id,
+      conf.microsoft.boat.id,
+      conf.microsoft.car.id,
       httpClient,
       customJwt
     )
@@ -128,7 +129,8 @@ object Server extends IOApp:
         googleAuth,
         auth,
         GoogleAuthFlow(conf.google.webAuthConf, http),
-        MicrosoftAuthFlow(conf.microsoft.webAuthConf, http),
+        MicrosoftAuthFlow(conf.microsoft.boat.webAuthConf, http),
+        MicrosoftAuthFlow(conf.microsoft.car.webAuthConf, http),
         AppleAuthFlow(appleWebConf, appleValidator, http),
         AppleAuthFlow(appleAppConf, appleValidator, http),
         appComps.customJwt

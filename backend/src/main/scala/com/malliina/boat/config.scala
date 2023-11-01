@@ -39,6 +39,7 @@ object LocalConf:
 case class MapboxConf(token: AccessToken)
 case class AisAppConf(enabled: Boolean)
 case class AppleConf(id: ClientId)
+case class MicrosoftConf(boat: WebConf, car: WebConf)
 case class WebConf(id: ClientId, secret: ClientSecret):
   def webAuthConf = AuthConf(id, secret)
 case class GoogleConf(ios: AppleConf, web: WebConf):
@@ -53,7 +54,7 @@ case class BoatConf(
   secret: SecretKey,
   db: Conf,
   google: GoogleConf,
-  microsoft: WebConf,
+  microsoft: MicrosoftConf,
   apple: SignInWithApple.Conf,
   push: PushConf
 )
@@ -75,6 +76,8 @@ object BoatConf:
     val ios = google.getConfig("ios")
     val web = google.getConfig("web")
     val microsoft = c.getConfig("microsoft")
+    val microsoftBoat = microsoft.getConfig("boat")
+    val microsoftCar = microsoft.getConfig("car")
     val push = c.getConfig("push")
     val apns = push.getConfig("apns")
     val fcm = push.getConfig("fcm")
@@ -88,8 +91,10 @@ object BoatConf:
       iosId <- ios.parse[ClientId]("id")
       webId <- web.parse[ClientId]("id")
       webSecret <- web.parse[ClientSecret]("secret")
-      microsoftId <- microsoft.parse[ClientId]("id")
-      microsoftSecret <- microsoft.parse[ClientSecret]("secret")
+      microsoftBoatId <- microsoftBoat.parse[ClientId]("id")
+      microsoftBoatSecret <- microsoftBoat.parse[ClientSecret]("secret")
+      microsoftCarId <- microsoftCar.parse[ClientId]("id")
+      microsoftCarSecret <- microsoftCar.parse[ClientSecret]("secret")
       siwa <- c.parse[SignInWithApple.Conf]("apple")
       apnsEnabled <- apns.parse[Boolean]("enabled")
       apnsPrivateKey <- apns.parse[String]("privateKey")
@@ -105,7 +110,10 @@ object BoatConf:
         AppleConf(iosId),
         WebConf(webId, webSecret)
       ),
-      WebConf(microsoftId, microsoftSecret),
+      MicrosoftConf(
+        WebConf(microsoftBoatId, microsoftBoatSecret),
+        WebConf(microsoftCarId, microsoftCarSecret)
+      ),
       siwa,
       PushConf(
         APNSConf(

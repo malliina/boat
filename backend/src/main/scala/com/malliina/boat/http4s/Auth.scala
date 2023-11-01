@@ -35,7 +35,8 @@ case class AuthComps[F[_]: Sync](
   google: EmailAuth[F],
   web: Http4sAuth[F],
   googleFlow: GoogleAuthFlow[F],
-  microsoftFlow: EmailAuthFlow[F],
+  microsoftBoatFlow: EmailAuthFlow[F],
+  microsoftCarFlow: EmailAuthFlow[F],
   appleWebFlow: AppleAuthFlow[F],
   appleAppFlow: AppleAuthFlow[F],
   customJwt: CustomJwt

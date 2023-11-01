@@ -83,6 +83,16 @@ To recompute the distances between points, use
 If using BSP, exclude folder [node-modules](frontend/target/scala-3.1.1/scalajs-bundler/main/node_modules) in the 
 project structure settings to reduce excessive indexing.
 
+### Social logins
+
+To configure Sign in with Apple:
+
+https://developer.apple.com/help/account/configure-app-capabilities/configure-sign-in-with-apple-for-the-web
+
+To configure Microsoft login:
+
+https://portal.azure.com -> Registered Apps
+
 ## License
 
 Licensed under the 3-Clause BSD License.

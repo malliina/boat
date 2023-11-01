@@ -24,7 +24,8 @@ class AuthService[F[_]: Sync](val users: IdentityManager[F], comps: AuthComps[F]
   val emailAuth = comps.google
   val web = comps.web
   val googleFlow = comps.googleFlow
-  val microsoftFlow = comps.microsoftFlow
+  val microsoftBoatFlow = comps.microsoftBoatFlow
+  val microsoftCarFlow = comps.microsoftCarFlow
   val appleWebFlow = comps.appleWebFlow
   private val appSiwa: SIWADatabase[F] = SIWADatabase(comps.appleAppFlow, users, comps.customJwt)
   val webSiwa: SIWADatabase[F] = SIWADatabase(comps.appleWebFlow, users, comps.customJwt)
