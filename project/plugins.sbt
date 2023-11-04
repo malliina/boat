@@ -2,13 +2,13 @@ scalaVersion := "2.12.18"
 
 libraryDependencies += "com.amazonaws" % "aws-java-sdk-s3" % "1.12.566"
 
-val utilsVersion = "1.6.28"
+val utilsVersion = "1.6.29"
 
 Seq(
   "com.malliina" %% "sbt-utils-maven" % utilsVersion,
   "com.malliina" %% "sbt-nodejs" % utilsVersion,
   "com.malliina" %% "sbt-revolver-rollup" % utilsVersion,
-  "com.malliina" % "live-reload" % "0.5.0",
+  "com.malliina" % "live-reload" % "0.6.0",
   "com.github.sbt" % "sbt-native-packager" % "1.9.16",
   "org.portable-scala" % "sbt-scalajs-crossproject" % "1.3.2",
   "org.scala-js" % "sbt-scalajs" % "1.14.0",

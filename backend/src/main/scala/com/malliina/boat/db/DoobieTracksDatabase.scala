@@ -32,7 +32,7 @@ object DoobieTracksDatabase:
         )
       else acc :+ sc.c.toFull(Seq(sc.s), formatter)
 
-  /** Collects `rows` into coord events in which their order will be reversed.
+  /** Collects `rows` into coord events, maintaining order.
     */
   private def collectTrackCoords(rows: Seq[TrackCoord], language: Language): Seq[CoordsEvent] =
     val start = System.currentTimeMillis()
@@ -57,7 +57,7 @@ object DoobieTracksDatabase:
       )
       if idx >= 0 then
         val old = acc(idx)
-        acc.updated(idx, old.copy(coords = coord :: old.coords))
+        acc.updated(idx, old.copy(coords = old.coords :+ coord))
       else acc :+ CoordsEvent(List(coord), from.strip(formatter))
     val end = System.currentTimeMillis()
     val duration = (end - start).millis
@@ -264,7 +264,7 @@ class DoobieTracksDatabase[F[_]: Async](val db: DoobieDatabase[F])
         )
         sql"""${sql.selectAllPoints}
                $conditions
-               order by p.track_index desc
+               order by p.added, p.track_index
                limit ${limits.limit}
                offset ${limits.offset}"""
           .query[TrackPointRow]
@@ -272,7 +272,7 @@ class DoobieTracksDatabase[F[_]: Async](val db: DoobieDatabase[F])
           .map: ps =>
             val tracksById = ts.groupBy(_.track)
             val coords = ps.flatMap: pointRow =>
-              tracksById.get(pointRow.track).map(ts => TrackCoord(ts.head, pointRow))
+              tracksById.get(pointRow.track).map(t => TrackCoord(t.head, pointRow))
             DoobieTracksDatabase.collectTrackCoords(coords, user.language)
 
   private def single(oneRowSql: Fragment, language: Language) = run:

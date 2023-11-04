@@ -17,7 +17,7 @@ import scala.scalajs.js.Date
 
 case class NearestResult[T](result: T, distance: Double)
 
-case class TrackIds(track: TrackName):
+case class TrackIds(id: TrackId, track: TrackName, source: DeviceId, start: Timing):
   def trail = s"track-$track"
   def hoverable = s"$trail-thick"
   def trophy = s"$TrophyPrefix-$track"
@@ -44,6 +44,10 @@ class MapSocket(
   private val popups = MapMouseListener(map, pathFinder, ais, html)
 
   private var mapMode: MapMode = mode
+
+  /** These two maps are two representations of the same data. One in GeoJSON the other in Scala
+    * case classes.
+    */
   private var boats = Map.empty[TrackIds, FeatureCollection]
   private var trails = Map.empty[TrackId, Seq[TimedCoord]]
   private var hovering = Set.empty[TrackIds]
@@ -64,8 +68,8 @@ class MapSocket(
     * @param id
     *   layer ID
     */
-  private def lineLayer(id: String) =
-    trackLineLayer(id, LinePaint(LinePaint.blackColor, 1, 1))
+  private def lineLayer(id: String, opacity: Double = 1d) =
+    trackLineLayer(id, LinePaint(LinePaint.blackColor, 1, opacity))
 //  trackLineLayer(id, LinePaint(PropertyValue.Custom(Styles.colorBySpeed), 1, 1))
 
   private def trackLineLayer(id: String, paint: LinePaint): Layer =
@@ -78,7 +82,7 @@ class MapSocket(
     val coordsInfo = event.coords
     val coords = coordsInfo.map(_.coord)
     val boat = from.boatName
-    val ids = TrackIds(from.trackName)
+    val ids = TrackIds(from.track, from.trackName, from.boat, from.times.start)
     val track = ids.trail
     val trophyLayerId = ids.trophy
     val hoverableTrack = ids.hoverable
@@ -98,6 +102,17 @@ class MapSocket(
     trails = trails.updated(trackId, trails.getOrElse(trackId, Nil) ++ coordsInfo)
     // adds layer if not already added
     if map.findSource(track).isEmpty then
+      // All but the latest trails have lower opacity. Older = less prominent.
+      boats.keys
+        .map(_.trail)
+        .filter(map.hasLayer)
+        .foreach: layerId =>
+          map.setPaintProperty(layerId, "line-opacity", 0.4)
+      // Only shows the trophy and boat/car icon of the latest track
+      boats.keys
+        .flatMap(k => Seq(k.trophy, k.point))
+        .filter(map.hasLayer)
+        .foreach(id => map.removeLayer(id))
       log.debug(s"Crafting new track for boat '$boat'...")
       map.putLayer(lineLayer(track))
       // adds a thicker, transparent trail on top of the visible one, which represents the mouse-hoverable area
@@ -106,7 +121,6 @@ class MapSocket(
         // adds boat icon
         val layer = if isBoat then boatSymbolLayer(point, coord) else carSymbolLayer(point, coord)
         map.putLayer(layer)
-//        if !hovering.exists(_.point == point) then
         map.onHover(point)(
           in =>
             map.getCanvas().style.cursor = "pointer"
@@ -119,7 +133,6 @@ class MapSocket(
         )
       // adds trophy icon
       map.putLayer(trophySymbolLayer(trophyLayerId, from.topPoint.coord))
-//      if !hovering.exists(_.trophy == trophyLayerId) then
       map.onHover(trophyLayerId)(
         _ => map.getCanvas().style.cursor = "pointer",
         _ => map.getCanvas().style.cursor = ""

@@ -151,6 +151,8 @@ class MapboxMap(@unused options: MapOptions) extends js.Object:
   def removeLayer(id: String): Unit = js.native
   def removeSource(id: String): Unit = js.native
   def setLayoutProperty(layer: String, prop: String, value: js.Any): Unit = js.native
+  def setPaintProperty(layer: String, prop: String, value: js.Any): Unit = js.native
+  def getPaintProperty(layer: String, prop: String): js.UndefOr[js.Any] = js.native
   def queryRenderedFeatures(point: PixelCoord, options: QueryOptions): js.Any = js.native
   def getCanvas(): HTMLCanvasElement = js.native
   def getCenter(): LngLat = js.native
