@@ -358,7 +358,18 @@ class Service[F[_]: Async: Files](comps: BoatComps[F]) extends BasicService[F]:
                   BoatQuery.tracks(boatQuery.tracks)
                 else if username == Usernames.anon then BoatQuery.empty
                 else boatQuery
-              val historyIO = db.history(user, historicalLimits)
+              val historyIO = db
+                .history(user, historicalLimits)
+                .map: es =>
+                  // Unless a sample is specified, returns about 1000 historical points - this optimization is for charts.
+                  // Also, the websocket message size must be below 1 MB for iOS. Either we sample, or slice the
+                  // messages to smaller sizes. Currently, sampling is used.
+                  val intelligentSample = math.max(1, es.map(_.coords.length).sum / 1000)
+                  val actualSample = boatQuery.sample.getOrElse(intelligentSample)
+                  log.debug(
+                    s"Points ${es.map(_.coords.length).sum} intelligent sample $intelligentSample actual $actualSample"
+                  )
+                  es.toList.map(_.sample(actualSample))
               val history = Stream.evalSeq(historyIO)
               val formatter = TimeFormatter.lang(user.language)
               val updates = streams.clientEvents(formatter)
