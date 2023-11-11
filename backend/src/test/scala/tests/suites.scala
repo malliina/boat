@@ -28,10 +28,18 @@ object TestHttp:
   lazy val client = HttpClientF2[IO]()
 
 object WrappedTestConf:
-  def parse(c: Config = LocalConf.localConf.resolve()) = Try(
-    WrappedTestConf(
-      TestBoatConf(c.getConfig("boat").parse[Conf]("dbtest").fold(err => throw err, identity))
-    )
+  def parse(c: Config = LocalConf.localConf.resolve()): Try[WrappedTestConf] =
+    c.parse[String]("boat.dbtest.pass")
+      .map(dbPass => WrappedTestConf(TestBoatConf(testDbConf(dbPass))))
+      .toTry
+
+  private def testDbConf(dbPass: String) = Conf(
+    "jdbc:mysql://localhost:3306/boattest",
+    "boattest",
+    dbPass,
+    Conf.MySQLDriver,
+    2,
+    autoMigrate = true
   )
 
 trait MUnitSuite extends munit.CatsEffectSuite:
