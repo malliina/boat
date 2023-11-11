@@ -9,6 +9,7 @@ import com.malliina.web.{AppleTokenValidator, ClientId, GoogleAuthFlow, SignInWi
 import tests.BaseSuite
 import com.malliina.config.ConfigReadable.ConfigOps
 
+import java.nio.file.Path
 import java.time.Instant
 import scala.jdk.CollectionConverters.MapHasAsScala
 
@@ -51,14 +52,15 @@ class TokenTests extends BaseSuite:
     conf.getString(key)
 
   def printRequest(fields: Map[String, String], client: HttpClient[IO]): IO[Unit] =
+
     val siwaConf = boatConf
-      .parse[SignInWithApple.Conf]("apple")
+      .parse[Path]("apple.privateKey")
+      .map(p => SignInWithApple.Conf.siwa(p))
       .fold(err => throw err, identity)
       .copy(clientId = AppleTokenValidator.boatClientId)
     val siwa = SignInWithApple(siwaConf)
     val privateKey = siwa.signInWithAppleToken(Instant.now())
     val _ = boatConf.getConfig("demo")
-//    val code = conf.getString("code")
     client
       .postForm(
         FullUrl("https", "appleid.apple.com", "/auth/token"),

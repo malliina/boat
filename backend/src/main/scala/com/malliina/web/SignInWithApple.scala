@@ -1,6 +1,8 @@
 package com.malliina.web
 
-import com.malliina.config.ConfigReadable
+import com.malliina.boat.APNSConf
+import com.malliina.boat.APNSConf.teamId
+import com.malliina.push.apns.{KeyId, TeamId}
 import com.malliina.util.AppLogger
 import com.malliina.web.AppleTokenValidator.appleIssuer
 import com.malliina.web.SignInWithApple.{Conf, log}
@@ -23,8 +25,8 @@ object SignInWithApple:
   case class Conf(
     enabled: Boolean,
     privateKey: Path,
-    keyId: String,
-    teamId: String,
+    keyId: KeyId,
+    teamId: TeamId,
     clientId: ClientId
   )
 
@@ -38,15 +40,13 @@ object SignInWithApple:
       ClientSecret("disabled")
 
   object Conf:
-    import ConfigReadable.ConfigOps
-    implicit val reader: ConfigReadable[Conf] = ConfigReadable.config.emap: obj =>
-      for
-        enabled <- obj.parse[Boolean]("enabled")
-        keyPath <- obj.parse[Path]("privateKey")
-        keyId <- obj.parse[String]("keyId")
-        team <- obj.parse[String]("teamId")
-        clientId <- obj.parse[ClientId]("clientId")
-      yield Conf(enabled, keyPath, keyId, team, clientId)
+    def siwa(privateKey: Path): Conf = Conf(
+      true,
+      privateKey,
+      KeyId("8MPB7UVCG4"),
+      APNSConf.teamId,
+      ClientId("com.malliina.boat.client")
+    )
 
 /** https://developer.apple.com/documentation/sign_in_with_apple/generate_and_validate_tokens
   */
@@ -60,14 +60,14 @@ class SignInWithApple(conf: Conf):
   private val keyFactory = KeyFactory.getInstance("EC")
   private val key = keyFactory.generatePrivate(keySpec).asInstanceOf[ECPrivateKey]
   private val signer = ECDSASigner(key)
-  private val header = JWSHeader.Builder(JWSAlgorithm.ES256).keyID(conf.keyId).build()
+  private val header = JWSHeader.Builder(JWSAlgorithm.ES256).keyID(conf.keyId.id).build()
 
   def signInWithAppleToken(now: Instant): ClientSecret =
     val issuedAt = Date.from(now)
     val exp = Date.from(now.plus(179, ChronoUnit.DAYS))
     val claims = JWTClaimsSet
       .Builder()
-      .issuer(conf.teamId)
+      .issuer(conf.teamId.team)
       .issueTime(issuedAt)
       .expirationTime(exp)
       .audience(appleIssuer.value)

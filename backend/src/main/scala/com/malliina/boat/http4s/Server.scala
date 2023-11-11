@@ -172,13 +172,12 @@ object Server extends IOApp:
         .getOrElseF(BasicService[F].notFoundReq(req))
         .handleErrorWith(BasicService[F].errorHandler)
 
-  private def errorHandler[F[_]: Sync]: PartialFunction[Throwable, F[Response[F]]] = {
+  private def errorHandler[F[_]: Sync]: PartialFunction[Throwable, F[Response[F]]] =
     case ioe: IOException if ioe.message.exists(_.startsWith(BasicService.noisyErrorMessage)) =>
       serverErrorResponse("Generic server IO error.")
     case NonFatal(t) =>
       log.error(s"Server error: '${t.getMessage}'.", t)
       serverErrorResponse("Generic server error.")
-  }
 
   def serverErrorResponse[F[_]: Sync](msg: String) =
     BasicService[F].serverError(Errors(SingleError(msg, "server")))
