@@ -23,7 +23,7 @@ object APNSPush:
 
   def fromConf[F[_]: Monad](conf: APNSConf, http: HttpClient[F]): APNS[F] =
     if conf.enabled then
-      val confModel = APNSTokenConf(Paths.get(conf.privateKey), conf.keyId, conf.teamId)
+      val confModel = APNSTokenConf(conf.privateKey, conf.keyId, conf.teamId)
       log.info(
         s"Initializing APNS with team ID ${confModel.teamId} and private key at ${conf.privateKey}..."
       )

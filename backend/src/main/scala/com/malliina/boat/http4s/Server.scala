@@ -106,7 +106,7 @@ object Server extends IOApp:
       _ <- Resource.eval(users.initUser())
       trackInserts = TrackInserter(db)
       vesselDb = BoatVesselDatabase(db)
-      ais <- BoatMqttClient.build(conf.ais.enabled, AppMode.fromBuild, dispatcher)
+      ais <- BoatMqttClient.build(conf.ais.enabled, dispatcher)
       streams <- BoatStreams.resource(trackInserts, vesselDb, ais)
       s3 <- S3Client.build[F]()
     yield

@@ -7,7 +7,7 @@ import cats.effect.{Async, Sync}
 import cats.syntax.all.{toFlatMapOps, toFunctorOps}
 import com.malliina.boat.ais.BoatMqttClient.{AisPair, log, pass, user}
 import com.malliina.boat.ais.MqttStream.MqttPayload
-import com.malliina.boat.{AISMessage, AppMode, Locations, LocationsV2, Metadata, MetadataV2, Mmsi, MmsiVesselLocation, MmsiVesselMetadata, StatusTopic, TimeFormatter, VesselInfo, VesselLocation, VesselLocationV2, VesselMetadata, VesselMetadataV2, VesselStatus}
+import com.malliina.boat.{AISMessage, Locations, LocationsV2, Metadata, MetadataV2, Mmsi, MmsiVesselLocation, MmsiVesselMetadata, StatusTopic, TimeFormatter, VesselInfo, VesselLocation, VesselLocationV2, VesselMetadata, VesselMetadataV2, VesselStatus}
 import com.malliina.http.FullUrl
 import com.malliina.util.AppLogger
 import fs2.Stream
@@ -40,15 +40,8 @@ object BoatMqttClient:
   val TestUrl = FullUrl.wss("meri-test.digitraffic.fi:443", "/mqtt")
   val ProdUrl = FullUrl.wss("meri.digitraffic.fi:443", "/mqtt")
 
-  def build[F[_]: Async](
-    enabled: Boolean,
-    mode: AppMode,
-    d: Dispatcher[F]
-  ): Resource[F, AISSource[F]] =
-    mode match
-      case AppMode.Prod if enabled => prod(d)
-      case AppMode.Dev if enabled  => prod(d)
-      case _                       => Resource.eval(silent)
+  def build[F[_]: Async](enabled: Boolean, d: Dispatcher[F]): Resource[F, AISSource[F]] =
+    if enabled then prod(d) else Resource.eval(silent)
 
   def prod[F[_]: Async](d: Dispatcher[F]): Resource[F, BoatMqttClient[F]] =
     url(ProdUrl, AllDataTopic, d)

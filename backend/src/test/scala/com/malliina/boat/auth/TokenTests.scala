@@ -52,10 +52,9 @@ class TokenTests extends BaseSuite:
     conf.getString(key)
 
   def printRequest(fields: Map[String, String], client: HttpClient[IO]): IO[Unit] =
-
     val siwaConf = boatConf
       .parse[Path]("apple.privateKey")
-      .map(p => SignInWithApple.Conf.siwa(p))
+      .map(p => SignInWithApple.Conf.siwa(true, p))
       .fold(err => throw err, identity)
       .copy(clientId = AppleTokenValidator.boatClientId)
     val siwa = SignInWithApple(siwaConf)

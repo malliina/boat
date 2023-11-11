@@ -73,11 +73,11 @@ object WebConf:
 case class GoogleConf(ios: AppleConf, web: WebConf):
   def webAuthConf = AuthConf(web.id, web.secret)
 
-case class APNSConf(enabled: Boolean, privateKey: String, keyId: KeyId, teamId: TeamId)
+case class APNSConf(enabled: Boolean, privateKey: Path, keyId: KeyId, teamId: TeamId)
 object APNSConf:
   val teamId = TeamId("D2T2QC36Z9")
 
-  def push(enabled: Boolean, privateKey: String) =
+  def push(enabled: Boolean, privateKey: Path) =
     APNSConf(enabled, privateKey, KeyId("4YLFNAB5BW"), teamId)
 
 case class FCMConf(apiKey: String)
@@ -126,7 +126,9 @@ object BoatConf:
     c: Config = ConfigFactory.load(LocalConf.conf).resolve().getConfig("boat")
   ): BoatConf =
     val isProdBuild = AppMode.fromBuild.isProd
-    val isStaging = Env.read[String]("ENV_NAME").contains("staging")
+    val envName = Env.read[String]("ENV_NAME")
+    val isStaging = envName.contains("staging")
+    val isProd = envName.contains("prod")
     val google = c.getConfig("google")
     val web = google.getConfig("web")
     val microsoft = c.getConfig("microsoft")
@@ -146,7 +148,7 @@ object BoatConf:
       microsoftBoatSecret <- microsoftBoat.parse[ClientSecret]("secret")
       microsoftCarSecret <- microsoftCar.parse[ClientSecret]("secret")
       siwaPrivateKey <- apple.parse[Path]("privateKey")
-      apnsPrivateKey <- apns.parse[String]("privateKey")
+      apnsPrivateKey <- apns.parse[Path]("privateKey")
       fcmApiKey <- fcm.parse[String]("apiKey")
     yield BoatConf(
       MapboxConf(mapboxToken),
@@ -161,9 +163,9 @@ object BoatConf:
         WebConf(WebConf.microsoftBoatId, microsoftBoatSecret),
         WebConf(WebConf.microsoftCarId, microsoftCarSecret)
       ),
-      SignInWithApple.Conf.siwa(siwaPrivateKey),
+      SignInWithApple.Conf.siwa(isProd, siwaPrivateKey),
       PushConf(
-        APNSConf.push(isProdBuild, apnsPrivateKey),
+        APNSConf.push(isProd, apnsPrivateKey),
         FCMConf(fcmApiKey)
       )
     )

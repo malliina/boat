@@ -40,8 +40,8 @@ object SignInWithApple:
       ClientSecret("disabled")
 
   object Conf:
-    def siwa(privateKey: Path): Conf = Conf(
-      true,
+    def siwa(enabled: Boolean, privateKey: Path): Conf = Conf(
+      enabled,
       privateKey,
       KeyId("8MPB7UVCG4"),
       APNSConf.teamId,
