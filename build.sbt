@@ -13,8 +13,7 @@ val logstreamsVersion = "2.6.3"
 val http4sVersion = "0.23.23"
 val logbackVersion = "1.4.11"
 val circeVersion = "0.14.6"
-// Do not upgrade to 11.0.2 because it depends on slf4j-api alpha versions, breaking logging
-val alpnVersion = "9.4.40.v20210413"
+val alpnVersion = "12.0.3"
 val webAuthDep = "com.malliina" %% "web-auth" % webAuthVersion
 val webAuthTestDep = webAuthDep % Test classifier "tests"
 val munitDep = "org.scalameta" %% "munit" % munitVersion % Test
@@ -115,8 +114,8 @@ val backend = Project("boat", file("backend"))
     } ++ Seq(
       "com.vividsolutions" % "jts" % "1.13",
       "mysql" % "mysql-connector-java" % "8.0.33",
-      "org.apache.commons" % "commons-text" % "1.10.0",
-      "software.amazon.awssdk" % "s3" % "2.21.0",
+      "org.apache.commons" % "commons-text" % "1.11.0",
+      "software.amazon.awssdk" % "s3" % "2.21.21",
       "com.malliina" %% "logstreams-client" % logstreamsVersion,
       "com.malliina" %% "mobile-push-io" % "3.8.2",
       "com.malliina" %% "config" % primitiveVersion,
@@ -223,7 +222,7 @@ val utils = project
       "OSGeo Release Repository" at "https://repo.osgeo.org/repository/release/"
     ),
     libraryDependencies ++= Seq("shapefile", "geojson").map { m =>
-      "org.geotools" % s"gt-$m" % "23.0" exclude ("javax.media", "jai_core")
+      "org.geotools" % s"gt-$m" % "30.0" exclude ("javax.media", "jai_core")
     } ++ Seq(
       "ch.qos.logback" % "logback-classic" % logbackVersion,
 //      "javax.media" % "jai_core" % "1.1.3",

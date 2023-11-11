@@ -6,7 +6,7 @@ import java.io.FileInputStream
 import java.nio.channels.FileChannel
 import java.nio.charset.{Charset, StandardCharsets}
 import java.nio.file.{Files, Path, Paths, StandardOpenOption}
-import org.geotools.data.DataStoreFinder
+import org.geotools.api.data.DataStoreFinder
 import org.geotools.data.shapefile.dbf.{DbaseFileReader, DbaseFileWriter}
 import org.geotools.data.simple.SimpleFeatureCollection
 import org.geotools.feature.DefaultFeatureCollection
