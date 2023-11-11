@@ -41,23 +41,20 @@ class CarServerTests extends MUnitSuite with ServerSuite:
   def postCarsUrl = baseUrl.append(Reverse.postCars.renderString)
   def getCarsUrl = baseUrl.append(Reverse.historyCars.renderString)
 
-  test("POST call with no creds") {
-    http.postJson(postCarsUrl, LocationUpdates(Nil, testCarId).asJson, Map.empty).map { res =>
-      assertEquals(res.status, Unauthorized.code)
-    }
-  }
-
-  test("POST car locations with outdated jwt returns 401 with token expired") {
-    postCarLocation(LocationUpdates(Nil, testCarId), token = TestEmailAuth.expiredToken).map {
-      res =>
+  test("POST call with no creds"):
+    http
+      .postJson(postCarsUrl, LocationUpdates(Nil, testCarId).asJson, Map.empty)
+      .map: res =>
         assertEquals(res.status, Unauthorized.code)
-        assert(
-          res.parse[Errors].toOption.exists(_.errors.exists(_.key == SingleError.TokenExpiredKey))
-        )
-    }
-  }
 
-  test("POST call with working jwt") {
+  test("POST car locations with outdated jwt returns 401 with token expired"):
+    postCarLocation(LocationUpdates(Nil, testCarId), token = TestEmailAuth.expiredToken).map: res =>
+      assertEquals(res.status, Unauthorized.code)
+      assert(
+        res.parse[Errors].toOption.exists(_.errors.exists(_.key == SingleError.TokenExpiredKey))
+      )
+
+  test("POST call with working jwt"):
     val user = Username("test@example.com")
     val service = server().server.app
     val meta = SimpleSourceMeta(user, BoatNames.random(), SourceType.Vehicle)
@@ -69,13 +66,10 @@ class CarServerTests extends MUnitSuite with ServerSuite:
       car <- service.inserts.joinAsSource(meta)
       res <- postCarLocation(LocationUpdates(Nil, car.track.device))
     yield assertEquals(res.status, Ok.code)
-  }
 
-  test("POST car locations for non-owned car fails") {
-    postCarLocation(LocationUpdates(List(loc), DeviceId(123))).map { res =>
+  test("POST car locations for non-owned car fails"):
+    postCarLocation(LocationUpdates(List(loc), DeviceId(123))).map: res =>
       assertEquals(res.status, NotFound.code)
-    }
-  }
 
   private def postCarLocation(
     updates: LocationUpdates,

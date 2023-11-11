@@ -4,7 +4,7 @@ import com.malliina.boat.http.{Limits, SortOrder, TrackQuery, TrackSort}
 import com.malliina.boat.{Coord, Lang, Language, SimpleUserInfo}
 import com.malliina.database.Conf
 import com.malliina.measure.{DistanceIntM, DistanceM}
-import com.malliina.values.Username
+import com.malliina.values.{Username, lngLat, lng, lat}
 import doobie.implicits.toSqlInterpolator
 import tests.{MUnitDatabaseSuite, MUnitSuite}
 
@@ -38,8 +38,8 @@ class DoobieTests extends MUnitSuite with Mappings:
   dbResource.test("measure distance".ignore): doobie =>
     import Mappings.given
     val db = DoobieTracksDatabase(doobie)
-    val c1 = Coord.buildOrFail(60, 30)
-    val c2 = Coord.buildOrFail(70, 13)
+    val c1 = 60.0 lngLat 30.0
+    val c2 = 70.0 lngLat 13.0
     val task = db.run:
       sql"select st_distance_sphere($c1, $c2)".query[DistanceM].unique
     val distance = task.unsafeRunSync()

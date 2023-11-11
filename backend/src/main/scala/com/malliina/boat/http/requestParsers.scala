@@ -23,7 +23,6 @@ trait BoatRequest[T, U]:
   def headers: Headers
 
 case class UserRequest[F[_], U](user: U, req: Request[F]):
-//  def body: B = req.body
   def headers = req.headers
 
 sealed abstract class TrackSort(val name: String) extends Named

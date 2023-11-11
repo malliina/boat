@@ -78,7 +78,6 @@ class DoobiePushDatabase[F[_]: Async](db: DoobieDatabase[F], push: PushEndpoint[
     yield summary
 
   private def handle(summary: PushSummary): F[Int] =
-    log.info(summary.describe)
     if summary.noBadTokensOrReplacements then F.pure(0)
     else
       db.run:

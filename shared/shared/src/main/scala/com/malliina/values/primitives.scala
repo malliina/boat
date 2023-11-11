@@ -1,6 +1,6 @@
 package com.malliina.values
 
-import com.malliina.boat.{Latitude, Longitude}
+import com.malliina.boat.{Coord, Latitude, Longitude}
 import com.malliina.values.Literals.ErrorMessageLiteral
 
 import scala.quoted.{Expr, Quotes, quotes}
@@ -21,6 +21,8 @@ extension (i: Float) inline def degrees: Degrees = ${ Literals.DegreesLiteral('i
 extension (i: Double)
   inline def lat: Latitude = ${ Literals.LatitudeLiteral('i) }
   inline def lng: Longitude = ${ Literals.LongitudeLiteral('i) }
+  inline def lngLat(lat: Double): Coord = Coord(i.lng, lat.lat)
+
 extension (s: String)
   inline def err: ErrorMessage = ${ Literals.ErrorMessageLiteral('s) }
   def error = ErrorMessage(s)
@@ -59,6 +61,20 @@ object Literals:
     override def parse(in: String)(using Quotes): Either[ErrorMessage, Expr[ErrorMessage]] =
       if in.nonEmpty then Right('{ ErrorMessage(${ Expr(in) }) })
       else Left(ErrorMessage("Error message must be non-empty."))
+
+trait LiteralInt[T]:
+  def parse(in: Int)(using Quotes): Either[ErrorMessage, Expr[T]]
+
+  def apply(x: Expr[Int])(using Quotes): Expr[T] =
+    val f = x.valueOrAbort
+    parse(f)
+      .fold(
+        err =>
+          quotes.reflect.report.error(err.message)
+          ???
+        ,
+        ok => ok
+      )
 
 trait LiteralDouble[T]:
   def parse(in: Double)(using Quotes): Either[ErrorMessage, Expr[T]]

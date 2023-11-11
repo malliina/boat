@@ -1,6 +1,7 @@
 package com.malliina.boat.graph
 
 import com.malliina.boat.*
+import com.malliina.values.lngLat
 import com.malliina.measure.{DistanceDoubleM, DistanceIntM}
 import com.nimbusds.jose.util.StandardCharset
 import io.circe.parser.decode

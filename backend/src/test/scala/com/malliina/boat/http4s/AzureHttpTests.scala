@@ -30,7 +30,7 @@ class AzureHttpTests extends MUnitSuite:
     OffsetDateTime.of(2023, 4, 2, 10, 4, 3, 0, ZoneOffset.UTC)
   )
 
-  test("POST car locations with outdated jwt returns 401 with token expired prod".ignore) {
+  test("POST car locations with outdated jwt returns 401 with token expired prod".ignore):
     val b = new OkHttpClient.Builder()
       .addNetworkInterceptor(LoggingInterceptor())
       .build()
@@ -47,7 +47,6 @@ class AzureHttpTests extends MUnitSuite:
         assert(
           res.parse[Errors].toOption.exists(_.errors.exists(_.key == SingleError.TokenExpiredKey))
         )
-  }
 
   private def headers(token: IdToken = TestEmailAuth.testToken) = Map(
     "Authorization" -> s"Bearer $token",

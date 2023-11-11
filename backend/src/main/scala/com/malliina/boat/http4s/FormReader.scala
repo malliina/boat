@@ -5,7 +5,7 @@ import com.malliina.values.{ErrorMessage, Readable}
 import org.http4s.UrlForm
 
 class FormReader(form: UrlForm):
-  def read[T](key: String)(implicit r: Readable[T]): Either[Errors, T] =
+  def read[T](key: String)(using r: Readable[T]): Either[Errors, T] =
     FormReadable[T].read(key, form).left.map(err => Errors(SingleError.input(err.message)))
 
 trait FormReadable[T]:
@@ -18,11 +18,11 @@ object FormReadable:
   val string: FormReadable[String] = (key: String, form: UrlForm) =>
     form.getFirst(key).toRight(ErrorMessage(s"Not found: '$key'."))
 
-  def apply[T](implicit fr: FormReadable[T]): FormReadable[T] = fr
+  def apply[T](using fr: FormReadable[T]): FormReadable[T] = fr
 
-  implicit def option[T](implicit r: Readable[T]): FormReadable[Option[T]] =
+  given option[T](using r: Readable[T]): FormReadable[Option[T]] =
     (key: String, form: UrlForm) =>
       form.getFirst(key).fold(Right(None))(s => r.read(s).map(Option.apply))
 
-  implicit def readable[T](implicit r: Readable[T]): FormReadable[T] =
+  given readable[T](using r: Readable[T]): FormReadable[T] =
     string.emap(str => r.read(str))

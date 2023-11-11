@@ -4,6 +4,7 @@ import cats.effect.IO
 import com.malliina.boat.parsing.*
 import com.malliina.boat.{Coord, KeyedSentence, RawSentence, SentenceKey}
 import com.malliina.measure.{DistanceIntM, SpeedIntM, TemperatureInt}
+import com.malliina.values.lngLat
 import tests.BaseSuite
 
 import java.time.{LocalDate, LocalTime}
@@ -22,12 +23,12 @@ class SentenceParsingTests extends BaseSuite:
       testSpeed,
       testDepth,
       ParsedDateTime(LocalDate.of(2018, 4, 10), LocalTime.of(10, 11, 1), keyed(4)),
-      ParsedCoord(Coord.buildOrFail(1, 2), LocalTime.of(10, 11, 1), keyed(5)),
+      ParsedCoord(1.0 lngLat 2.0, LocalTime.of(10, 11, 1), keyed(5)),
       ParsedDateTime(LocalDate.of(2018, 4, 10), LocalTime.of(10, 12, 2), keyed(6)),
-      ParsedCoord(Coord.buildOrFail(4, 5), LocalTime.of(10, 12, 2), keyed(7)),
+      ParsedCoord(4.0 lngLat 5.0, LocalTime.of(10, 12, 2), keyed(7)),
       ParsedDateTime(LocalDate.of(2018, 4, 11), LocalTime.of(10, 13, 3), keyed(8)),
-      ParsedCoord(Coord.buildOrFail(6, 7), LocalTime.of(10, 13, 3), keyed(9)),
-      ParsedCoord(Coord.buildOrFail(8, 9), LocalTime.of(0, 1, 4), keyed(10))
+      ParsedCoord(6.0 lngLat 7.0, LocalTime.of(10, 13, 3), keyed(9)),
+      ParsedCoord(8.0 lngLat 9.0, LocalTime.of(0, 1, 4), keyed(10))
     )
 
     def toFull(coord: Coord, time: LocalTime, date: LocalDate, keys: Seq[Long]) =
@@ -47,25 +48,25 @@ class SentenceParsingTests extends BaseSuite:
 
     val expected = List(
       toFull(
-        Coord.buildOrFail(1, 2),
+        1.0 lngLat 2.0,
         LocalTime.of(10, 11, 1),
         LocalDate.of(2018, 4, 10),
         Seq(5, 4, 2, 1, 3)
       ),
       toFull(
-        Coord.buildOrFail(4, 5),
+        4.0 lngLat 5.0,
         LocalTime.of(10, 12, 2),
         LocalDate.of(2018, 4, 10),
         Seq(7, 6, 2, 1, 3)
       ),
       toFull(
-        Coord.buildOrFail(6, 7),
+        6.0 lngLat 7.0,
         LocalTime.of(10, 13, 3),
         LocalDate.of(2018, 4, 11),
         Seq(9, 8, 2, 1, 3)
       ),
       toFull(
-        Coord.buildOrFail(8, 9),
+        8.0 lngLat 9.0,
         LocalTime.of(10, 13, 3),
         LocalDate.of(2018, 4, 11),
         Seq(10, 8, 2, 1, 3)

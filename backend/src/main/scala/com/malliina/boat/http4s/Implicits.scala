@@ -30,14 +30,14 @@ trait Extractors:
     def unapply(str: String): Option[Double] = str.toDoubleOption
 
 trait MyScalatagsInstances:
-  implicit def scalatagsEncoder[F[_], C <: Frag[?, String]](implicit
+  given scalatagsEncoder[F[_], C <: Frag[?, String]](using
     charset: Charset = Charset.`UTF-8`
   ): EntityEncoder[F, C] =
     contentEncoder(MediaType.text.html)
 
   private def contentEncoder[F[_], C <: Frag[?, String]](
     mediaType: MediaType
-  )(implicit charset: Charset): EntityEncoder[F, C] =
+  )(using charset: Charset): EntityEncoder[F, C] =
     EntityEncoder
       .stringEncoder[F]
       .contramap[C](content => content.render)
@@ -50,15 +50,15 @@ object JsonInstances extends JsonInstances
 trait JsonInstances extends CirceInstances:
   override protected val defaultPrinter: Printer = Printer.noSpaces.copy(dropNullValues = true)
 
-  implicit def circeJsonEncoder[F[_], T: Encoder]: EntityEncoder[F, T] =
+  given circeJsonEncoder[F[_], T: Encoder]: EntityEncoder[F, T] =
     jsonEncoder[F].contramap[T](t => t.asJson)
 
-  def jsonBody[F[_]: Concurrent, A](implicit decoder: Decoder[A]): EntityDecoder[F, A] =
+  def jsonBody[F[_]: Concurrent, A](using decoder: Decoder[A]): EntityDecoder[F, A] =
     jsonDecoder[F].flatMapR { json =>
       json
         .as[A]
         .fold(
-          errors => DecodeResult.failureT[F, A](new JsonException(errors, json)),
+          errors => DecodeResult.failureT[F, A](JsonException(errors, json)),
           ok => DecodeResult.successT(ok)
         )
     }

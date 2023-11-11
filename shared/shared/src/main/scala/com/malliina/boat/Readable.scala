@@ -30,9 +30,9 @@ object Errors:
     Errors(SingleError.input(s"JSON error. $error"))
 
 object Readables:
-  implicit val device: Readable[DeviceId] = from[Long, DeviceId](DeviceId.build)
-  implicit val userId: Readable[UserId] = from[Long, UserId](UserId.build)
-  implicit val trackTitle: Readable[TrackTitle] = from[String, TrackTitle](TrackTitle.build)
+  given device: Readable[DeviceId] = from[Long, DeviceId](DeviceId.build)
+  given userId: Readable[UserId] = from[Long, UserId](UserId.build)
+  given trackTitle: Readable[TrackTitle] = from[String, TrackTitle](TrackTitle.build)
 
   def from[T, U](build: T => Either[ErrorMessage, U])(using tr: Readable[T]): Readable[U] =
     tr.emap(t => build(t))

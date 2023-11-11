@@ -3,8 +3,7 @@ package com.malliina.boat.http4s
 import cats.data.NonEmptyList
 import cats.effect.Sync
 import cats.effect.kernel.Async
-import cats.implicits.*
-import cats.syntax.all.{catsSyntaxApplicativeError, toFlatMapOps, toFunctorOps}
+import cats.syntax.all.{catsSyntaxApplicativeError, catsSyntaxFlatMapOps, toFlatMapOps, toFunctorOps, toSemigroupKOps, toTraverseOps}
 import com.malliina.boat.*
 import com.malliina.boat.Constants.{LanguageName, TokenCookieName}
 import com.malliina.boat.Readables.trackTitle
@@ -16,7 +15,7 @@ import com.malliina.boat.html.{BoatHtml, BoatLang}
 import com.malliina.boat.http.*
 import com.malliina.boat.http.InviteResult.{AlreadyInvited, Invited, UnknownEmail}
 import com.malliina.boat.http4s.BasicService.{cached, noCache, ranges}
-import com.malliina.boat.http4s.Service.{RequestOps, log}
+import com.malliina.boat.http4s.Service.{isSecured, log}
 import com.malliina.boat.parsing.CarCoord
 import com.malliina.boat.push.SourceState
 import com.malliina.util.AppLogger
@@ -44,8 +43,7 @@ import scala.concurrent.duration.DurationInt
 object Service:
   private val log = AppLogger(getClass)
 
-  implicit class RequestOps[F[_]](val req: Request[F]) extends AnyVal:
-    def isSecured: Boolean = Urls.isSecure(req)
+  extension [F[_]](req: Request[F]) def isSecured: Boolean = Urls.isSecure(req)
 
 class Service[F[_]: Async: Files](comps: BoatComps[F]) extends BasicService[F]:
   val F = Sync[F]
@@ -433,10 +431,12 @@ class Service[F[_]: Async: Files](comps: BoatComps[F]) extends BasicService[F]:
     parse(message).fold(err => throw Exception(s"Not JSON: '$message'. $err"), identity)
 
   private object forms:
-    import Readables.*
+    import Readables.given
+    given Readable[Email] = Readable.email
+
     def invite(form: FormReader) = for
       boat <- form.read[DeviceId](Forms.Boat)
-      email <- form.read[Email](Forms.Email)(Readable.email)
+      email <- form.read[Email](Forms.Email)
     yield InvitePayload(boat, email)
 
     def respondInvite(form: FormReader) = for
