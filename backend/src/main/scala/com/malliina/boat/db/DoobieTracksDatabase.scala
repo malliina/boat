@@ -61,7 +61,8 @@ object DoobieTracksDatabase:
       else acc :+ CoordsEvent(List(coord), from.strip(formatter))
     val end = System.currentTimeMillis()
     val duration = (end - start).millis
-    if duration > 500.millis then log.warn(s"Collected ${rows.length} in ${duration.toMillis} ms")
+    if duration > 500.millis then
+      log.warn(s"Collected ${rows.length} coords in ${duration.toMillis} ms.")
     result
 
 class DoobieTracksDatabase[F[_]: Async](val db: DoobieDatabase[F])
