@@ -9,8 +9,6 @@ import com.malliina.push.apns.*
 import com.malliina.util.AppLogger
 import io.circe.syntax.EncoderOps
 
-import java.nio.file.Paths
-
 trait APNS[F[_]]:
   def push(notification: SourceNotification, to: APNSToken): F[PushSummary]
 

@@ -1,6 +1,6 @@
 package tests
 
-import cats.effect.*
+import cats.effect.IO
 import cats.effect.kernel.Resource
 import ch.qos.logback.classic.Level
 import com.comcast.ip4s.port
@@ -15,17 +15,28 @@ import com.malliina.http.io.HttpClientF2
 import com.malliina.logback.LogbackUtils
 import com.malliina.util.AppLogger
 import com.typesafe.config.Config
+import okhttp3.{OkHttpClient, Protocol}
 import org.http4s.EntityDecoder
 import org.testcontainers.utility.DockerImageName
 
 import java.nio.file.{Path, Paths}
+import java.util
+import java.util.concurrent.TimeUnit
 import scala.util.Try
 
 case class TestBoatConf(testdb: Conf)
 case class WrappedTestConf(boat: TestBoatConf)
 
 object TestHttp:
-  lazy val client = HttpClientF2[IO]()
+  val okClient = OkHttpClient
+    .Builder()
+    .protocols(util.Arrays.asList(Protocol.HTTP_2, Protocol.HTTP_1_1))
+    .connectTimeout(30, TimeUnit.SECONDS)
+    .writeTimeout(60, TimeUnit.SECONDS)
+    .readTimeout(60, TimeUnit.SECONDS)
+    .callTimeout(60, TimeUnit.SECONDS)
+    .build()
+  lazy val client = HttpClientF2[IO](okClient)
 
 object WrappedTestConf:
   def parse(c: Config = LocalConf.localConf.resolve()): Try[WrappedTestConf] =
@@ -54,7 +65,7 @@ object TestConf:
     container.username,
     container.password,
     container.driverClassName,
-    maxPoolSize = 5,
+    maxPoolSize = 2,
     autoMigrate = true
   )
 
@@ -125,7 +136,7 @@ case class ServerTools(server: ServerComponents[IO]):
 
 trait ServerSuite extends MUnitDatabaseSuite with JsonInstances:
   self: MUnitSuite =>
-  implicit val tsBody: EntityDecoder[IO, Errors] = jsonBody[IO, Errors]
+  given EntityDecoder[IO, Errors] = jsonBody[IO, Errors]
 
   def testServerResource: Resource[IO, ServerTools] =
     for
