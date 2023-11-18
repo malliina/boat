@@ -8,6 +8,7 @@ import com.dimafeng.testcontainers.MySQLContainer
 import com.malliina.boat.db.{DoobieDatabaseInit, DoobieSQL}
 import com.malliina.boat.http4s.{JsonInstances, Server, ServerComponents, Service}
 import com.malliina.boat.{AisAppConf, BoatConf, Errors, LocalConf}
+import com.malliina.config.ConfigNode
 import com.malliina.config.ConfigReadable.ConfigOps
 import com.malliina.database.{Conf, DoobieDatabase}
 import com.malliina.http.FullUrl
@@ -39,7 +40,7 @@ object TestHttp:
   lazy val client = HttpClientF2[IO](okClient)
 
 object WrappedTestConf:
-  def parse(c: Config = LocalConf.localConf.resolve()): Try[WrappedTestConf] =
+  def parse(c: ConfigNode = LocalConf.localConf): Try[WrappedTestConf] =
     c.parse[String]("boat.dbtest.pass")
       .map(dbPass => WrappedTestConf(TestBoatConf(testDbConf(dbPass))))
       .toTry

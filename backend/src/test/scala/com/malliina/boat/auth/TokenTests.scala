@@ -2,6 +2,7 @@ package com.malliina.boat.auth
 
 import cats.effect.IO
 import com.malliina.boat.LocalConf
+import com.malliina.config.ConfigNode
 import com.malliina.http.FullUrl
 import com.malliina.http.HttpClient
 import com.malliina.values.IdToken
@@ -14,7 +15,7 @@ import java.time.Instant
 import scala.jdk.CollectionConverters.MapHasAsScala
 
 class TokenTests extends BaseSuite:
-  val boatConf = LocalConf.conf.getConfig("boat")
+  val boatConf = LocalConf.conf.parse[ConfigNode]("boat").toOption.get
 
   http.test("google token validation".ignore): httpClient =>
     val in = "token_here"
@@ -47,9 +48,7 @@ class TokenTests extends BaseSuite:
     printRequest(fields, client)
 
   def demoConf(key: String) =
-    val boatConf = LocalConf.localConf.getConfig("boat")
-    val conf = boatConf.getConfig("demo")
-    conf.getString(key)
+    LocalConf.localConf.parse[String](s"boat.demo.$key").toOption.get
 
   def printRequest(fields: Map[String, String], client: HttpClient[IO]): IO[Unit] =
     val siwaConf = boatConf
@@ -59,7 +58,7 @@ class TokenTests extends BaseSuite:
       .copy(clientId = AppleTokenValidator.boatClientId)
     val siwa = SignInWithApple(siwaConf)
     val privateKey = siwa.signInWithAppleToken(Instant.now())
-    val _ = boatConf.getConfig("demo")
+    val _ = boatConf.parse[ConfigNode]("demo").toOption.get
     client
       .postForm(
         FullUrl("https", "appleid.apple.com", "/auth/token"),

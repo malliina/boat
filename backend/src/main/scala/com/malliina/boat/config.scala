@@ -1,30 +1,14 @@
 package com.malliina.boat
 
 import com.malliina.boat.auth.SecretKey
-import com.malliina.values.Readable
-import com.malliina.config.{ConfigError, ConfigReadable, InvalidValue, MissingValue}
-import com.malliina.config.ConfigReadable.ConfigOps
+import com.malliina.config.{ConfigNode, ConfigReadable, Env}
 import com.malliina.database.Conf
 import com.malliina.push.apns.{KeyId, TeamId}
 import com.malliina.util.FileUtils
-import com.malliina.values.ErrorMessage
+import com.malliina.values.{ErrorMessage, Readable}
 import com.malliina.web.{AuthConf, ClientId, ClientSecret, SignInWithApple}
-import com.typesafe.config.{Config, ConfigFactory}
 
 import java.nio.file.Path
-
-object Env:
-  def readOrElse[T: Readable](key: String, default: => T): Either[InvalidValue, T] =
-    read(key).left.flatMap:
-      case mv: MissingValue => Right(default)
-      case iv: InvalidValue => Left(iv)
-
-  def read[T](key: String)(using r: Readable[T]): Either[ConfigError, T] =
-    sys.env
-      .get(key)
-      .toRight(MissingValue(key))
-      .flatMap: str =>
-        r.read(str).left.map(err => InvalidValue(key, err, None))
 
 sealed trait AppMode:
   def isProd = this == AppMode.Prod
@@ -50,8 +34,8 @@ object LocalConf:
   val appDir = homeDir.resolve(".boat")
   private val localConfFile = appDir.resolve("boat.conf")
   val isProd = BuildInfo.mode == "prod"
-  val localConf = ConfigFactory.parseFile(localConfFile.toFile).withFallback(ConfigFactory.load())
-  val conf = if isProd then ConfigFactory.load("application-prod.conf") else localConf
+  val localConf = ConfigNode.default(localConfFile)
+  val conf = if isProd then ConfigNode.load("application-prod.conf") else localConf
 
 case class MapboxConf(token: AccessToken)
 case class AisAppConf(enabled: Boolean)
@@ -123,31 +107,24 @@ object BoatConf:
   )
 
   def parse(
-    c: Config = ConfigFactory.load(LocalConf.conf).resolve().getConfig("boat")
+    c: ConfigNode = LocalConf.conf.parse[ConfigNode]("boat").toOption.get
   ): BoatConf =
     val isProdBuild = AppMode.fromBuild.isProd
     val envName = Env.read[String]("ENV_NAME")
     val isStaging = envName.contains("staging")
     val isProd = envName.contains("prod")
-    val google = c.getConfig("google")
-    val web = google.getConfig("web")
-    val microsoft = c.getConfig("microsoft")
-    val microsoftBoat = microsoft.getConfig("boat")
-    val microsoftCar = microsoft.getConfig("car")
-    val push = c.getConfig("push")
-    val apns = push.getConfig("apns")
-    val fcm = push.getConfig("fcm")
-    val mapbox = c.getConfig("mapbox")
-    val apple = c.getConfig("apple")
-    val db = c.getConfig("db")
     val result = for
-      dbPass <- db.parse[String]("pass")
-      mapboxToken <- mapbox.parse[AccessToken]("token")
+      push <- c.parse[ConfigNode]("push")
+      apns <- push.parse[ConfigNode]("apns")
+      fcm <- push.parse[ConfigNode]("fcm")
+      microsoft <- c.parse[ConfigNode]("microsoft")
+      dbPass <- c.parse[String]("db.pass")
+      mapboxToken <- c.parse[AccessToken]("mapbox.token")
       secret <- c.parse[SecretKey]("secret")
-      webSecret <- web.parse[ClientSecret]("secret")
-      microsoftBoatSecret <- microsoftBoat.parse[ClientSecret]("secret")
-      microsoftCarSecret <- microsoftCar.parse[ClientSecret]("secret")
-      siwaPrivateKey <- apple.parse[Path]("privateKey")
+      webSecret <- c.parse[ClientSecret]("google.web.secret")
+      microsoftBoatSecret <- microsoft.parse[ClientSecret]("boat.secret")
+      microsoftCarSecret <- microsoft.parse[ClientSecret]("car.secret")
+      siwaPrivateKey <- c.parse[Path]("apple.privateKey")
       apnsPrivateKey <- apns.parse[Path]("privateKey")
       fcmApiKey <- fcm.parse[String]("apiKey")
     yield BoatConf(

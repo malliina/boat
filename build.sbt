@@ -4,13 +4,13 @@ import sbtrelease.ReleaseStateTransformations.*
 
 import scala.sys.process.Process
 
-val webAuthVersion = "6.5.7"
+val webAuthVersion = "6.6.1"
 val munitVersion = "0.7.29"
 val testContainersScalaVersion = "0.41.0"
 val scalaTagsVersion = "0.12.0"
-val primitiveVersion = "3.4.6"
-val logstreamsVersion = "2.6.3"
-val http4sVersion = "0.23.23"
+val primitiveVersion = "3.5.2"
+val logstreamsVersion = "2.7.0"
+val http4sVersion = "0.23.24"
 val logbackVersion = "1.4.11"
 val circeVersion = "0.14.6"
 val alpnVersion = "12.0.3"
@@ -117,7 +117,7 @@ val backend = Project("boat", file("backend"))
       "org.apache.commons" % "commons-text" % "1.11.0",
       "software.amazon.awssdk" % "s3" % "2.21.21",
       "com.malliina" %% "logstreams-client" % logstreamsVersion,
-      "com.malliina" %% "mobile-push-io" % "3.8.2",
+      "com.malliina" %% "mobile-push-io" % "3.9.0",
       "com.malliina" %% "config" % primitiveVersion,
       "org.eclipse.paho" % "org.eclipse.paho.client.mqttv3" % "1.2.5",
       webAuthDep,

@@ -5,6 +5,8 @@ import com.malliina.values.Literals.ErrorMessageLiteral
 
 import scala.quoted.{Expr, Quotes, quotes}
 
+given Readable[Float] = Readable.double.map(_.toFloat)
+
 opaque type Degrees = Float
 object Degrees extends ValidatingCompanion[Float, Degrees]:
   val min = 0f

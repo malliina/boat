@@ -437,8 +437,6 @@ class Service[F[_]: Async: Files](comps: BoatComps[F]) extends BasicService[F]:
 
   private object forms:
     import Readables.given
-    given Readable[Email] = Readable.email
-
     def invite(form: FormReader) = for
       boat <- form.read[DeviceId](Forms.Boat)
       email <- form.read[Email](Forms.Email)
