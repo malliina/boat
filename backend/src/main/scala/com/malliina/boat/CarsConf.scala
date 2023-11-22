@@ -50,8 +50,14 @@ case class PermissionsLang(
   all: PermissionContent
 ) derives Codec.AsObject
 
-case class CarSettingsLang(title: String, openSettings: String, selectCar: String, noCars: String)
-  derives Codec.AsObject
+case class CarSettingsLang(
+  title: String,
+  openSettings: String,
+  selectCar: String,
+  noCars: String,
+  tracks: String,
+  noTracks: String
+) derives Codec.AsObject
 
 case class CarLanguage(code: Language, name: String) derives Codec.AsObject
 
@@ -96,7 +102,14 @@ object CarLanguages:
         "Version",
         "Nothing to see here."
       ),
-      CarSettingsLang("Settings", "Open Settings", "Select car", "No cars."),
+      CarSettingsLang(
+        "Settings",
+        "Open Settings",
+        "Select car",
+        "No cars.",
+        "Tracks",
+        "No tracks."
+      ),
       PermissionsLang(
         "Grant permissions",
         "Grant app access to location and car",
@@ -152,7 +165,7 @@ object CarLanguages:
         "Välj språk",
         AuthLang(
           "Logga in med Google",
-          "Logga in för att spara dina åk i molnet.",
+          "Logga in för att spara dina resor i molnet.",
           "Din information delas inte med tredje parter."
         ),
         "Logga in med",
@@ -163,7 +176,14 @@ object CarLanguages:
         "Version",
         "Ingenting här."
       ),
-      CarSettingsLang("Inställningar", "Öppna inställningar", "Välj bil", "Inga bilar."),
+      CarSettingsLang(
+        "Inställningar",
+        "Öppna inställningar",
+        "Välj bil",
+        "Inga bilar.",
+        "Resor",
+        "Inga resor."
+      ),
       PermissionsLang(
         "Ge rättigheter",
         "Ge appen rättigheter till plats och bildata",
@@ -230,7 +250,14 @@ object CarLanguages:
         "Version",
         "Täällä ei ole mitään."
       ),
-      CarSettingsLang("Asetukset", "Avaa asetukset", "Valitse auto", "Ei autoja."),
+      CarSettingsLang(
+        "Asetukset",
+        "Avaa asetukset",
+        "Valitse auto",
+        "Ei autoja.",
+        "Ajot",
+        "Ei ajoja."
+      ),
       PermissionsLang(
         "Anna oikeuksia",
         "Anna sovellukselle oikeudet lukea auton sijainti ja muut tiedot",
