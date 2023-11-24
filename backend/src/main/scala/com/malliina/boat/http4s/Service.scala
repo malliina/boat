@@ -309,9 +309,9 @@ class Service[F[_]: Async: Files](comps: BoatComps[F]) extends BasicService[F]:
       handleAppleCallback(req)
     case GET -> Root / "sign-out" =>
       SeeOther(Location(reverse.index)).map(res => auth.web.clearSession(res))
-    case GET -> Root / "docs" / "agent"    => docsRedirect("agent")
-    case GET -> Root / "docs" / "support"  => docsRedirect("support")
-    case GET -> Root / "legal" / "privacy" => docsRedirect("privacy")
+    case GET -> Root / "docs" / "agent"          => docsRedirect("agent")
+    case GET -> Root / "docs" / "support"        => docsRedirect("support")
+    case req @ GET -> Root / "legal" / "privacy" => ok(html(req).privacyPolicy)
     case req @ GET -> Root / "files" =>
       comps.s3
         .files()
@@ -323,7 +323,6 @@ class Service[F[_]: Async: Files](comps: BoatComps[F]) extends BasicService[F]:
         .download(file)
         .flatMap: file =>
           val stream = fs2.io.file.Files[F].readAll(fs2.io.file.Path.fromNioPath(file))
-          //        val stream = fs2.io.readInputStream[F](F.pure(obj.getObjectContent), 8192)
           Ok(stream)
     case req @ GET -> Root / ".well-known" / "apple-app-site-association" =>
       fileFromPublicResources("apple-app-site-association.json", req)

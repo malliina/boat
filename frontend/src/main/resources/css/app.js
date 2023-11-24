@@ -7,5 +7,6 @@ import "./tables.css"
 import "./charts.css"
 import "./list.css"
 import "./auth.css"
+import "./privacy-policy.css"
 
 console.log("Styles only.")

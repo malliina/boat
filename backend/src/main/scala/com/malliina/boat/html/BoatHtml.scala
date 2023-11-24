@@ -69,6 +69,8 @@ class BoatHtml(
   def chart(track: TrackRef, lang: BoatLang) =
     page(Charts.chart(track, lang))
 
+  def privacyPolicy = page(PageConf(PrivacyPolicy.page))
+
   def map(ub: UserBoats, center: Option[Coord] = None) =
     val boatLang = BoatLang(ub.language)
     val lang = boatLang.lang
