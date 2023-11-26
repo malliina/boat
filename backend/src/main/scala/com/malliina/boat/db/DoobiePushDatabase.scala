@@ -29,17 +29,18 @@ class DoobiePushDatabase[F[_]: Async](db: DoobieDatabase[F], push: PushEndpoint[
     existing.flatMap: idOpt =>
       idOpt
         .map: id =>
-          log.info(
+          log.debug(
             s"${input.device} token ${input.token} already registered for push notifications."
           )
           pure(id)
         .getOrElse:
           sql"""insert into push_clients(token, device, user)
-              values(${input.token}, ${input.device}, ${input.user})""".update
+                values(${input.token}, ${input.device}, ${input.user})""".update
             .withUniqueGeneratedKeys[PushId]("id")
             .map: id =>
               log.info(s"Enabled notifications for ${input.device} token '${input.token}'.")
               id
+
   def disable(token: PushToken, user: UserId): F[Boolean] = db.run:
     sql"delete from push_clients where token = $token and user = $user".update.run.map: rows =>
       if rows > 0 then
