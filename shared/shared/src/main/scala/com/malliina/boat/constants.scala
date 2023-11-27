@@ -25,7 +25,7 @@ trait CookieNames:
   val TokenCookieName = "mapboxToken"
 
 trait DatePickerKeys:
-  val DatesContainer = "dates-container"
+  val DatesContainer = "dates-container gx-0"
   val FromTimePickerId = "from-time-picker"
   val ToTimePickerId = "to-time-picker"
 

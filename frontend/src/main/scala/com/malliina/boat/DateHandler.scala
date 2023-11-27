@@ -26,7 +26,7 @@ class DateHandler(log: BaseLogger):
       e =>
         val he = e.asInstanceOf[HideEvent]
         val newDate = he.date.toOption.filter(_ != null)
-        log.info(s"New date $newDate")
+//        log.info(s"New date $newDate")
         if isFrom then selectedFrom = newDate else selectedTo = newDate
         newDate.foreach: date =>
           other.updateOptions(

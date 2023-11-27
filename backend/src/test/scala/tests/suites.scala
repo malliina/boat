@@ -9,13 +9,11 @@ import com.malliina.boat.db.{DoobieDatabaseInit, DoobieSQL}
 import com.malliina.boat.http4s.{JsonInstances, Server, ServerComponents, Service}
 import com.malliina.boat.{AisAppConf, BoatConf, Errors, LocalConf}
 import com.malliina.config.ConfigNode
-import com.malliina.config.ConfigReadable.ConfigOps
 import com.malliina.database.{Conf, DoobieDatabase}
 import com.malliina.http.FullUrl
 import com.malliina.http.io.HttpClientF2
 import com.malliina.logback.LogbackUtils
 import com.malliina.util.AppLogger
-import com.typesafe.config.Config
 import okhttp3.{OkHttpClient, Protocol}
 import org.http4s.EntityDecoder
 import org.testcontainers.utility.DockerImageName

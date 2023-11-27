@@ -1,17 +1,33 @@
 package com.malliina.boat
 
+import cats.effect.kernel.Async
+import cats.effect.std.Dispatcher
+import cats.effect.Resource
 import com.malliina.datepicker.{DateFormats, TempusDominus, TimeLocale, TimeLocalization, TimeOptions, TimeRestrictions}
 import com.malliina.mapbox.*
+import fs2.concurrent.Topic
 import io.circe.*
 import io.circe.syntax.EncoderOps
 import org.scalajs.dom.*
 
+import concurrent.duration.DurationInt
 import scala.scalajs.js.{Date, JSON, URIUtils}
 
 object MapView extends CookieNames:
-  def default: Either[NotFound, MapView] =
-    val lang = readCookie(LanguageName).map(Language.apply).getOrElse(Language.default)
-    readCookie(TokenCookieName).map(t => MapView(AccessToken(t), lang))
+  def default[F[_]: Async]: Resource[F, MapView[F]] =
+    val F = Async[F]
+    for
+      topic <- Resource.eval(Topic[F, CoordsEvent])
+      dispatcher <- Dispatcher.parallel[F]
+      token <- Resource.eval(
+        readCookie(TokenCookieName).fold(
+          nf => F.raiseError(Exception(s"Not found: '${nf.id}'.")),
+          t => F.pure(t)
+        )
+      )
+    yield
+      val lang = readCookie(LanguageName).map(Language.apply).getOrElse(Language.default)
+      MapView[F](AccessToken(token), lang, topic, dispatcher)
 
   def readCookie(key: String): Either[NotFound, String] =
     cookies.get(key).toRight(NotFound(key))
@@ -24,11 +40,14 @@ object MapView extends CookieNames:
     .collect { case key :: value :: _ => key -> value }
     .toMap
 
-class MapView(
+class MapView[F[_]: Async](
   accessToken: AccessToken,
   language: Language,
+  topic: Topic[F, CoordsEvent],
+  dispatcher: Dispatcher[F],
   val log: BaseLogger = BaseLogger.console
 ) extends BaseFront:
+  val F = Async[F]
   mapboxGl.accessToken = accessToken.token
 
   private val initialSettings = MapCamera()
@@ -71,8 +90,13 @@ class MapView(
     case Language.finnish => TimeLocale.Fi
     case Language.english => TimeLocale.En
     case _                => TimeLocale.En
-  val socket: MapSocket = MapSocket(map, pathFinder, mode, lang, log)
-
+  val socket: MapSocket[F] = MapSocket(map, pathFinder, mode, topic, dispatcher, lang, log)
+  val events = topic
+    .subscribe(100)
+    .debounce(2.seconds)
+    .evalTap: e =>
+      F.delay(socket.fitToMap())
+//      F.delay(log.info("Debounced!"))
   map.on(
     "load",
     () =>

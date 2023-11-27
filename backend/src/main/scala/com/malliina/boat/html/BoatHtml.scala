@@ -161,13 +161,13 @@ class BoatHtml(
 
   private def datesContainer(formsLang: FormsLang) =
     div(id := DatesContainer, `class` := s"row $DatesContainer")(
-      timePicker(formsLang.from, FromTimePickerId),
-      timePicker(formsLang.to, ToTimePickerId)
+      timePicker(formsLang.from, FromTimePickerId, "me-2"),
+      timePicker(formsLang.to, ToTimePickerId, "")
     )
 
-  private def timePicker(labelText: String, divId: String) =
+  private def timePicker(labelText: String, divId: String, cls: String) =
     val inputId = s"$divId-input"
-    div(`class` := "time-picker-container col-sm-6 col-md-4 mt-2 mb-0 mt-sm-0")(
+    div(`class` := s"time-picker-container col-sm-6 col-md-4 mt-2 mb-0 mt-sm-0 $cls")(
       div(
         id := divId,
         data("td-target-input") := "nearest",

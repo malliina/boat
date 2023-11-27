@@ -1,8 +1,10 @@
 package com.malliina.boat
 
 import cats.data.NonEmptyList
-import cats.syntax.show.toShow
+import cats.effect.Temporal
+import cats.effect.std.Dispatcher
 import cats.syntax.list.*
+import cats.syntax.show.toShow
 import com.malliina.boat.BoatFormats.*
 import com.malliina.boat.FrontKeys.TrophyPrefix
 import com.malliina.boat.SourceType.Vehicle
@@ -11,6 +13,7 @@ import com.malliina.mapbox.*
 import com.malliina.measure.SpeedM
 import com.malliina.turf.nearestPointOnLine
 import com.malliina.values.ErrorMessage
+import fs2.concurrent.Topic
 
 import scala.scalajs.js
 import scala.scalajs.js.Date
@@ -24,23 +27,24 @@ case class TrackIds(id: TrackId, track: TrackName, source: DeviceId, start: Timi
   def point = s"boat-$track"
   def all = Seq(trail, hoverable, trophy, point)
 
-class MapSocket(
+class MapSocket[F[_]: Temporal](
   val map: MapboxMap,
   pathFinder: PathFinder,
   mode: MapMode,
+  topic: Topic[F, CoordsEvent],
+  dispatcher: Dispatcher[F],
   lang: Lang,
   log: BaseLogger
 ) extends BaseFront
   with GeoUtils:
-
   private var socket: Option[BoatSocket] = None
 
-  val trackLang = lang.track
+  private val trackLang = lang.track
   private val emptyTrack = lineForTrack(Nil)
   private val trackPopup = MapboxPopup(PopupOptions())
-  val boatPopup = MapboxPopup(PopupOptions(className = Option("popup-boat")))
-  val ais = AISRenderer(map)
-  val html = Popups(lang)
+  private val boatPopup = MapboxPopup(PopupOptions(className = Option("popup-boat")))
+  private val ais = AISRenderer(map)
+  private val html = Popups(lang)
   private val popups = MapMouseListener(map, pathFinder, ais, html)
 
   private var mapMode: MapMode = mode
@@ -57,7 +61,9 @@ class MapSocket(
     clear()
     val path = s"/ws/updates${BoatSocket.query(track, sample, from, to)}"
     val s = new BoatSocket(path):
-      override def onCoords(event: CoordsEvent): Unit = MapSocket.this.onCoords(event)
+      override def onCoords(event: CoordsEvent): Unit =
+        dispatcher.unsafeRunAndForget(topic.publish1(event))
+        MapSocket.this.onCoords(event)
       override def onAIS(messages: Seq[VesselInfo]): Unit = ais.onAIS(messages)
     socket = Option(s)
 
@@ -196,7 +202,6 @@ class MapSocket(
       .findSource(trophyLayerId)
       .foreach: geoJson =>
         geoJson.updateData(pointForProps(topPoint.coord, PointProps(topPoint, from)))
-    val trail: Seq[Coord] = newTrack.features.flatMap(_.geometry.coords)
     elem(TitleId).foreach: e =>
       from.trackTitle.foreach: title =>
         e.show()
@@ -233,21 +238,7 @@ class MapSocket(
     // updates the map position, zoom to reflect the updated track(s)
     mapMode match
       case MapMode.Fit =>
-        trail.headOption.foreach: head =>
-          val init = LngLatBounds(head)
-          val bs: LngLatBounds = trail
-            .drop(1)
-            .foldLeft(init): (bounds, c) =>
-              bounds.extend(LngLat(c))
-          try map.fitBounds(bs, SimplePaddingOptions(20))
-          catch
-            case e: Exception =>
-              log.error(
-                s"Unable to fit using ${bs.getSouthWest()} ${bs.getNorthWest()} ${bs
-                    .getNorthEast()} ${bs.getSouthEast()}",
-                e
-              )
-        mapMode = MapMode.Follow
+        ()
       case MapMode.Follow =>
         if boats.keySet.size == 1 then
           coords.lastOption.foreach: coord =>
@@ -260,6 +251,26 @@ class MapSocket(
     hovering = hovering ++ Set(ids)
 
   private val _ = MapboxPopup(PopupOptions(className = Option("popup-device")))
+
+  def fitToMap(): Unit =
+    if mapMode == MapMode.Fit then
+      log.info("Fitting to map...")
+      val trail = trails.values.flatten.map(_.coord)
+      trail.headOption.foreach: head =>
+        val init = LngLatBounds(head)
+        val bs: LngLatBounds = trail
+          .drop(1)
+          .foldLeft(init): (bounds, c) =>
+            bounds.extend(LngLat(c))
+        try map.fitBounds(bs, SimplePaddingOptions(20))
+        catch
+          case e: Exception =>
+            val sw = bs.getSouthWest()
+            val nw = bs.getNorthWest()
+            val ne = bs.getNorthEast()
+            val se = bs.getSouthEast()
+            log.error(s"Unable to fit using $sw $nw $ne $se", e)
+    else log.info(s"Not fitting, map mode is $mapMode")
 
   private def nearest[T](fromCoord: Coord, on: NonEmptyList[T])(
     c: T => Coord

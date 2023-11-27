@@ -88,7 +88,7 @@ val frontend = project
   .settings(boatSettings)
   .settings(
     libraryDependencies ++= Seq(
-      "org.typelevel" %%% "cats-effect" % "3.5.2",
+      "co.fs2" %%% "fs2-core" % "3.9.3",
       "org.scala-js" %%% "scalajs-dom" % "2.8.0",
       "org.scalameta" %%% "munit" % munitVersion % Test
     )

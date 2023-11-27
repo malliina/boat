@@ -8,7 +8,6 @@ import com.malliina.http.HttpClient
 import com.malliina.values.IdToken
 import com.malliina.web.{AppleTokenValidator, ClientId, GoogleAuthFlow, SignInWithApple}
 import tests.BaseSuite
-import com.malliina.config.ConfigReadable.ConfigOps
 
 import java.nio.file.Path
 import java.time.Instant

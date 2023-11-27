@@ -1,6 +1,6 @@
 package com.malliina.boat
 
-import cats.effect.{IO, IOApp}
+import cats.effect.{IO, IOApp, Resource}
 import org.scalajs.dom
 
 import scala.annotation.unused
@@ -34,21 +34,38 @@ object Frontend extends IOApp.Simple with BodyClasses:
   private val tempusDominusCss = TempusDominusCss
   val log: BaseLogger = BaseLogger.console
 
-  override def run: IO[Unit] = IO.delay:
-    log.info("Initializing...")
-    init(MapClass)(MapView.default)
-    init(ChartsClass)(ChartsView.default)
-    init(FormsClass):
-      FormHandlers.titles().flatMap(_ => FormHandlers.comments())
-    init(AboutClass):
-      Right(AboutPage())
-    init(StatsClass):
-      Right(StatsPage())
-    init(BoatsClass):
-      Right(FormHandlers.inviteOthers())
+  override def run: IO[Unit] =
+    val resource = for
+      _ <- Resource.eval(IO.delay(log.info("Initializing...")))
+      _ <- initF(MapClass):
+        for
+          map <- MapView.default[IO]
+          _ <- fs2.Stream.emit(()).concurrently(map.events).compile.resource.lastOrError
+        yield ()
+      _ <- init(ChartsClass)(ChartsView.default)
+      _ <- init(FormsClass):
+        FormHandlers.titles().flatMap(_ => FormHandlers.comments())
+      _ <- init(AboutClass):
+        Right(AboutPage())
+      _ <- init(StatsClass):
+        Right(StatsPage())
+      _ <- init(BoatsClass):
+        Right(FormHandlers.inviteOthers())
+      _ <- Resource.eval(IO.delay(log.info("Initialized.")))
+    yield ()
+    resource.useForever.onError: t =>
+      IO.delay(log.info(s"Initialization error: $t."))
 
-  def init(cls: String)(run: => Either[NotFound, Any]): Unit =
+  private def init(cls: String)(run: => Either[NotFound, Any]): Resource[IO, Unit] =
+    initF(cls):
+      Resource.eval(
+        IO.delay(run)
+          .flatMap: e =>
+            e.fold(nf => IO.raiseError(Exception(s"Not found: '${nf.id}'.")), _ => IO.unit)
+      )
+
+  private def initF(cls: String)(run: => Resource[IO, Unit]): Resource[IO, Unit] =
     val bodyClasses = dom.document.body.classList
-    val result = if bodyClasses.contains(cls) then run else Right(())
-    result.left.foreach: notFound =>
-      log.info(s"Not found: '$notFound'.")
+    if bodyClasses.contains(cls) then run else Resource.unit[IO]
+//    result.onError: t =>
+//      IO.delay(log.info(s"Initialization error: $t."))
