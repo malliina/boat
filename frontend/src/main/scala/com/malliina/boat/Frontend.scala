@@ -1,5 +1,6 @@
 package com.malliina.boat
 
+import cats.effect.{IO, IOApp}
 import org.scalajs.dom
 
 import scala.annotation.unused
@@ -22,7 +23,7 @@ object MapboxGlCss extends js.Object
 @JSImport("@eonasdan/tempus-dominus/dist/css/tempus-dominus.css", JSImport.Namespace)
 object TempusDominusCss extends js.Object
 
-object Frontend extends BodyClasses:
+object Frontend extends IOApp.Simple with BodyClasses:
   @unused
   private val bootstrapCss = BootstrapCss
   @unused
@@ -33,7 +34,8 @@ object Frontend extends BodyClasses:
   private val tempusDominusCss = TempusDominusCss
   val log: BaseLogger = BaseLogger.console
 
-  def main(args: Array[String]): Unit =
+  override def run: IO[Unit] = IO.delay:
+    log.info("Initializing...")
     init(MapClass)(MapView.default)
     init(ChartsClass)(ChartsView.default)
     init(FormsClass):

@@ -59,8 +59,7 @@ val boatSettings = Seq(
 val jvmSettings = Seq(
   libraryDependencies ++= Seq(
     munitDep
-  ),
-  testFrameworks += new TestFramework("munit.Framework")
+  )
 )
 
 val cross = crossProject(JSPlatform, JVMPlatform)
@@ -75,8 +74,7 @@ val cross = crossProject(JSPlatform, JVMPlatform)
       "com.malliina" %%% "primitives" % primitiveVersion,
       "com.lihaoyi" %%% "scalatags" % scalaTagsVersion,
       "org.scalameta" %%% "munit" % munitVersion % Test
-    ),
-    testFrameworks += new TestFramework("munit.Framework")
+    )
   )
 
 val crossJvm = cross.jvm
@@ -90,6 +88,7 @@ val frontend = project
   .settings(boatSettings)
   .settings(
     libraryDependencies ++= Seq(
+      "org.typelevel" %%% "cats-effect" % "3.5.2",
       "org.scala-js" %%% "scalajs-dom" % "2.8.0",
       "org.scalameta" %%% "munit" % munitVersion % Test
     )
@@ -227,8 +226,7 @@ val utils = project
       "ch.qos.logback" % "logback-classic" % logbackVersion,
 //      "javax.media" % "jai_core" % "1.1.3",
       munitDep
-    ),
-    testFrameworks += new TestFramework("munit.Framework")
+    )
   )
 
 val boatRoot = project
