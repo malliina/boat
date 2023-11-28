@@ -1,23 +1,19 @@
 package com.malliina.boat.http4s
 
 import cats.effect.Sync
-import cats.syntax.all.{catsSyntaxApplicativeError, toFlatMapOps, toFunctorOps}
+import cats.syntax.all.{catsSyntaxApplicativeError, toFlatMapOps, toFunctorOps, toTraverseOps}
 import com.malliina.boat.Constants.{BoatNameHeader, BoatTokenHeader}
-import com.malliina.boat.auth.{BoatJwt, SettingsPayload}
-import com.malliina.boat.db.*
+import com.malliina.boat.auth.{AuthProvider, BoatJwt, SettingsPayload}
+import com.malliina.boat.db.{IdentityManager, MissingCredentials, MissingCredentialsException, SIWADatabase}
 import com.malliina.boat.http.UserRequest
-import com.malliina.boat.http4s.AuthService.GoogleCookie
 import com.malliina.boat.{BoatName, BoatNames, BoatToken, DeviceMeta, JoinedSource, MinimalUserInfo, SimpleSourceMeta, SourceType, UserBoats, UserInfo, Usernames}
 import com.malliina.values.Email
 import com.malliina.web.{Code, RevokeResult}
 import org.http4s.headers.Cookie
 import org.http4s.{Headers, Request, Response}
-import org.typelevel.ci.{CIString, CIStringSyntax}
-import cats.syntax.all.toTraverseOps
-import java.time.Instant
+import org.typelevel.ci.CIString
 
-object AuthService:
-  val GoogleCookie = ci"google"
+import java.time.Instant
 
 class AuthService[F[_]: Sync](val users: IdentityManager[F], comps: AuthComps[F]):
   val F = Sync[F]
@@ -120,11 +116,14 @@ class AuthService[F[_]: Sync](val users: IdentityManager[F], comps: AuthComps[F]
         users.boats(email).map(boats => Right(Option(boats)))
       .getOrElse:
         val providerCookieName = comps.web.cookieNames.provider
-        val hasGoogleCookie = headers.get[Cookie].exists { header =>
-          header.values
-            .exists(r => r.name == providerCookieName && r.content == GoogleCookie.toString)
-        }
-        if hasGoogleCookie then F.pure(Left(MissingCredentials(headers)))
+        // Why not always do this?
+        val microsoftOrGoogle = headers
+          .get[Cookie]
+          .exists: cookies =>
+            cookies.values.exists: cookie =>
+              cookie.name == providerCookieName && Seq(AuthProvider.Google, AuthProvider.Microsoft)
+                .exists(_.name == cookie.content)
+        if microsoftOrGoogle then F.pure(Left(MissingCredentials(headers)))
         else F.pure(Right(None))
 
   private def authSession(headers: Headers) =

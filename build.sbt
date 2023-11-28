@@ -1,3 +1,4 @@
+import com.malliina.build.FileIO
 import sbtcrossproject.CrossPlugin.autoImport.{CrossType, crossProject}
 import sbtrelease.ReleasePlugin.autoImport.{ReleaseStep, releaseProcess}
 import sbtrelease.ReleaseStateTransformations.*
@@ -80,6 +81,9 @@ val cross = crossProject(JSPlatform, JVMPlatform)
 val crossJvm = cross.jvm
 val crossJs = cross.js
 
+val runNpmInstall = taskKey[Unit]("Updates the package-lock.json file")
+val updatePackageLockJson = taskKey[Unit]("Updates the package-lock.json file")
+
 val frontend = project
   .in(file("frontend"))
   .enablePlugins(NodeJsPlugin, RollupPlugin)
@@ -91,7 +95,13 @@ val frontend = project
       "co.fs2" %%% "fs2-core" % "3.9.3",
       "org.scala-js" %%% "scalajs-dom" % "2.8.0",
       "org.scalameta" %%% "munit" % munitVersion % Test
-    )
+    ),
+    runNpmInstall := RollupPlugin.npmInstall(npmRoot.value, streams.value.log),
+    updatePackageLockJson := FileIO.copyIfChanged(
+      (target.value / "package-lock.json").toPath,
+      ((Compile / resourceDirectory).value / "package-lock.json").toPath
+    ),
+    updatePackageLockJson := updatePackageLockJson.dependsOn(runNpmInstall).value
   )
 
 val backend = Project("boat", file("backend"))

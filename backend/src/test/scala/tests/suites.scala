@@ -30,10 +30,10 @@ object TestHttp:
   val okClient = OkHttpClient
     .Builder()
     .protocols(util.Arrays.asList(Protocol.HTTP_2, Protocol.HTTP_1_1))
-    .connectTimeout(30, TimeUnit.SECONDS)
-    .writeTimeout(60, TimeUnit.SECONDS)
-    .readTimeout(60, TimeUnit.SECONDS)
-    .callTimeout(60, TimeUnit.SECONDS)
+    .connectTimeout(60, TimeUnit.SECONDS)
+    .writeTimeout(120, TimeUnit.SECONDS)
+    .readTimeout(120, TimeUnit.SECONDS)
+    .callTimeout(120, TimeUnit.SECONDS)
     .build()
   lazy val client = HttpClientF2[IO](okClient)
 

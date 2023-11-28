@@ -70,5 +70,3 @@ object Frontend extends IOApp.Simple with BodyClasses:
   private def initF(cls: String)(run: => Resource[IO, Unit]): Resource[IO, Unit] =
     val bodyClasses = dom.document.body.classList
     if bodyClasses.contains(cls) then run else Resource.unit[IO]
-//    result.onError: t =>
-//      IO.delay(log.info(s"Initialization error: $t."))

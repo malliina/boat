@@ -2,7 +2,7 @@ package com.malliina.boat.db
 
 import com.malliina.boat.http.{AccessResult, InviteInfo, InviteResult}
 import com.malliina.boat.{BoatToken, DeviceId, InviteState, JoinedSource, Language, UserBoats, UserInfo}
-import com.malliina.values.*
+import com.malliina.values.{Email, Password, RefreshToken, UserId, Username}
 import org.apache.commons.codec.digest.DigestUtils
 
 trait IdentityManager[F[_]] extends UserManager[F] with TokenManager[F]
