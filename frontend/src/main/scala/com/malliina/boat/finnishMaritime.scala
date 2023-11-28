@@ -54,7 +54,7 @@ object NavMark:
     case 9  => Special
     case 99 => NotApplicable
   given Decoder[NavMark] = Decoder.decodeInt.emap: int =>
-    fromInt.lift(int).toRight(s"Unknown mark type: '$int'.")
+    fromInt.lift(int).toRight(s"Unknown nav mark: '$int'.")
 
 /** Rakennetieto (RAKT_TYYP)
   */

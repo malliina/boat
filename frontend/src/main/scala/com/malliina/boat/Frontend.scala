@@ -4,6 +4,7 @@ import cats.effect.{IO, IOApp, Resource}
 import org.scalajs.dom
 
 import scala.annotation.unused
+import scala.concurrent.duration.Duration
 import scala.scalajs.js
 import scala.scalajs.js.annotation.*
 
@@ -24,6 +25,8 @@ object MapboxGlCss extends js.Object
 object TempusDominusCss extends js.Object
 
 object Frontend extends IOApp.Simple with BodyClasses:
+  override def runtimeConfig =
+    super.runtimeConfig.copy(cpuStarvationCheckInitialDelay = Duration.Inf)
   @unused
   private val bootstrapCss = BootstrapCss
   @unused
