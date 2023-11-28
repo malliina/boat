@@ -283,6 +283,7 @@ class Service[F[_]: Async: Files](comps: BoatComps[F]) extends BasicService[F]:
       req.cookies
         .find(_.name == cookieNames.provider)
         .flatMap(cookie => AuthProvider.forString(cookie.content).toOption)
+        .filter(_ => !req.uri.query.params.contains("reset"))
         .map: provider =>
           if provider == AuthProvider.Apple then
             val recreation = web

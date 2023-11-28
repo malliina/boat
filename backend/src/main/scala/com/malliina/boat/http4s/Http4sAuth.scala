@@ -42,7 +42,7 @@ class Http4sAuth[F[_]](
       .removeCookie(cookieNames.longTerm)
       .removeCookie(ResponseCookie(cookieNames.authState, "", path = cookiePath))
       .removeCookie(ResponseCookie(cookieNames.user, "", path = cookiePath))
-      .addCookie(cookieNames.prompt, SelectAccount)
+      .addCookie(responseCookie(cookieNames.prompt, SelectAccount))
 
   def withAppUser(
     user: UserPayload,
