@@ -97,7 +97,7 @@ object BoatConf:
     autoMigrate = true
   )
 
-  private def devDbConf(password: String) = Conf(
+  private def devDatabaseConf(password: String) = Conf(
     "jdbc:mysql://localhost:3307/boat",
     "boat",
     password,
@@ -120,7 +120,9 @@ object BoatConf:
       microsoft <- c.parse[ConfigNode]("microsoft")
       dbPass <- c.parse[String]("db.pass")
       mapboxToken <- c.parse[AccessToken]("mapbox.token")
-      secret <- c.parse[SecretKey]("secret")
+      secret <-
+        if BuildInfo.isProd then c.parse[SecretKey]("secret")
+        else c.opt[SecretKey]("secret").map(_.getOrElse(SecretKey.dev))
       webSecret <- c.parse[ClientSecret]("google.web.secret")
       microsoftBoatSecret <- microsoft.parse[ClientSecret]("boat.secret")
       microsoftCarSecret <- microsoft.parse[ClientSecret]("car.secret")
@@ -131,7 +133,8 @@ object BoatConf:
       MapboxConf(mapboxToken),
       AisAppConf.default,
       secret,
-      if isProdBuild then prodDbConf(dbPass, if isStaging then 2 else 10) else devDbConf(dbPass),
+      if isProdBuild then prodDbConf(dbPass, if isStaging then 2 else 10)
+      else devDatabaseConf(dbPass),
       GoogleConf(
         AppleConf.default,
         WebConf(WebConf.googleId, webSecret)

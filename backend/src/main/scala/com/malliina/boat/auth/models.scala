@@ -2,14 +2,21 @@ package com.malliina.boat.auth
 
 import com.malliina.boat.db.RefreshTokenId
 import com.malliina.boat.{BoatName, Language, MinimalUserInfo, SingleError}
+import com.malliina.config.ConfigReadable
 import com.malliina.values.{Email, IdToken, Password, Username}
 import io.circe.*
 import io.circe.generic.semiauto.*
+
 import java.time.Instant
 import com.malliina.web.JWTError
 
 case class SecretKey(value: String) extends AnyVal:
   override def toString = "****"
+
+object SecretKey:
+  val dev = SecretKey("app-jwt-signing-secret-goes-here-must-be-sufficiently-long")
+
+  given ConfigReadable[SecretKey] = ConfigReadable.string.map(apply)
 
 case class BasicCredentials(username: Username, password: Password)
 
