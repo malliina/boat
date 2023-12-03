@@ -38,14 +38,17 @@ object LocalConf:
   val conf = if isProd then ConfigNode.load("application-prod.conf") else localConf
 
 case class MapboxConf(token: AccessToken)
+
 case class AisAppConf(enabled: Boolean)
 object AisAppConf:
   def default = AisAppConf(AppMode.fromBuild.isProd)
+
 case class AppleConf(id: ClientId)
 object AppleConf:
   val id = ClientId("497623115973-qut66ppubk4f9mpigckfkoqqoi060bge.apps.googleusercontent.com")
   val default = AppleConf(id)
 case class MicrosoftConf(boat: WebConf, car: WebConf)
+
 case class WebConf(id: ClientId, secret: ClientSecret):
   def webAuthConf = AuthConf(id, secret)
 object WebConf:
@@ -54,6 +57,7 @@ object WebConf:
   val googleId = ClientId(
     "497623115973-c6v1e9khup8bqj41vf228o2urnv86muh.apps.googleusercontent.com"
   )
+
 case class GoogleConf(ios: AppleConf, web: WebConf):
   def webAuthConf = AuthConf(web.id, web.secret)
 
@@ -65,6 +69,7 @@ object APNSConf:
     APNSConf(enabled, privateKey, KeyId("4YLFNAB5BW"), teamId)
 
 case class FCMConf(apiKey: String)
+
 case class PushConf(apns: APNSConf, fcm: FCMConf)
 
 case class BoatConf(
@@ -79,33 +84,6 @@ case class BoatConf(
 )
 
 object BoatConf:
-  given ConfigReadable[AccessToken] = byString(s => AccessToken(s))
-  given ConfigReadable[SecretKey] = byString(s => SecretKey(s))
-  given ConfigReadable[ClientId] = byString(s => ClientId(s))
-  given ConfigReadable[KeyId] = byString(s => KeyId(s))
-  given ConfigReadable[TeamId] = byString(s => TeamId(s))
-  private def byString[T](s: String => T): ConfigReadable[T] = ConfigReadable.string.map(s)
-  given ConfigReadable[ClientSecret] =
-    ConfigReadable.string.map(s => ClientSecret(s))
-
-  private def prodDbConf(password: String, maxPoolSize: Int) = Conf(
-    "jdbc:mysql://database8-nuqmhn2cxlhle.mysql.database.azure.com:3306/boat",
-    "boat",
-    password,
-    Conf.MySQLDriver,
-    maxPoolSize = maxPoolSize,
-    autoMigrate = true
-  )
-
-  private def devDatabaseConf(password: String) = Conf(
-    "jdbc:mysql://localhost:3307/boat",
-    "boat",
-    password,
-    Conf.MySQLDriver,
-    maxPoolSize = 2,
-    autoMigrate = false
-  )
-
   def parse(
     c: ConfigNode = LocalConf.conf.parse[ConfigNode]("boat").toOption.get
   ): BoatConf =
@@ -114,21 +92,18 @@ object BoatConf:
     val isStaging = envName.contains("staging")
     val isProd = envName.contains("prod")
     val result = for
-      push <- c.parse[ConfigNode]("push")
-      apns <- push.parse[ConfigNode]("apns")
-      fcm <- push.parse[ConfigNode]("fcm")
-      microsoft <- c.parse[ConfigNode]("microsoft")
       dbPass <- c.parse[String]("db.pass")
       mapboxToken <- c.parse[AccessToken]("mapbox.token")
       secret <-
         if BuildInfo.isProd then c.parse[SecretKey]("secret")
         else c.opt[SecretKey]("secret").map(_.getOrElse(SecretKey.dev))
       webSecret <- c.parse[ClientSecret]("google.web.secret")
+      microsoft <- c.parse[ConfigNode]("microsoft")
       microsoftBoatSecret <- microsoft.parse[ClientSecret]("boat.secret")
       microsoftCarSecret <- microsoft.parse[ClientSecret]("car.secret")
       siwaPrivateKey <- c.parse[Path]("apple.privateKey")
-      apnsPrivateKey <- apns.parse[Path]("privateKey")
-      fcmApiKey <- fcm.parse[String]("apiKey")
+      apnsPrivateKey <- c.parse[Path]("apns.privateKey")
+      fcmApiKey <- c.parse[String]("fcm.apiKey")
     yield BoatConf(
       MapboxConf(mapboxToken),
       AisAppConf.default,
@@ -150,3 +125,21 @@ object BoatConf:
       )
     )
     result.fold(err => throw err, identity)
+
+  private def prodDbConf(password: String, maxPoolSize: Int) = Conf(
+    "jdbc:mysql://database8-nuqmhn2cxlhle.mysql.database.azure.com:3306/boat",
+    "boat",
+    password,
+    Conf.MySQLDriver,
+    maxPoolSize = maxPoolSize,
+    autoMigrate = true
+  )
+
+  private def devDatabaseConf(password: String) = Conf(
+    "jdbc:mysql://localhost:3307/boat",
+    "boat",
+    password,
+    Conf.MySQLDriver,
+    maxPoolSize = 2,
+    autoMigrate = false
+  )

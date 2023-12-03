@@ -1,14 +1,14 @@
 package com.malliina.boat
 
-import java.time.{Instant, LocalDate, LocalTime, OffsetDateTime, ZoneOffset}
 import com.malliina.boat.BoatPrimitives.durationFormat
 import com.malliina.measure.{DistanceM, SpeedM, Temperature}
 import com.malliina.values.*
 import doobie.Meta
-import io.circe.*
-import io.circe.generic.semiauto.*
+import io.circe.generic.semiauto.deriveCodec
 import io.circe.syntax.EncoderOps
+import io.circe.{Codec, Decoder, DecodingFailure, Encoder, Json}
 
+import java.time.{Instant, LocalDate, LocalTime, OffsetDateTime, ZoneOffset}
 import scala.concurrent.duration.FiniteDuration
 
 opaque type CarUpdateId = Long
