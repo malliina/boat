@@ -102,8 +102,8 @@ object BoatConf:
       microsoftBoatSecret <- microsoft.parse[ClientSecret]("boat.secret")
       microsoftCarSecret <- microsoft.parse[ClientSecret]("car.secret")
       siwaPrivateKey <- c.parse[Path]("apple.privateKey")
-      apnsPrivateKey <- c.parse[Path]("apns.privateKey")
-      fcmApiKey <- c.parse[String]("fcm.apiKey")
+      apnsPrivateKey <- c.parse[Path]("push.apns.privateKey")
+      fcmApiKey <- c.parse[String]("push.fcm.apiKey")
     yield BoatConf(
       MapboxConf(mapboxToken),
       AisAppConf.default,
