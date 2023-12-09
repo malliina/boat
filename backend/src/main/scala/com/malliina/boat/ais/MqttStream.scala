@@ -50,6 +50,7 @@ private class MqttStream[F[_]: Async](
   private val connectOptions = new MqttConnectOptions
   connectOptions.setUserName(settings.user)
   connectOptions.setPassword(settings.pass.toCharArray)
+  connectOptions.setKeepAliveInterval(30)
 
   private val connect: F[IMqttToken] = F
     .async_[IMqttToken]: cb =>
@@ -60,7 +61,14 @@ private class MqttStream[F[_]: Async](
         new IMqttActionListener:
           override def onSuccess(asyncActionToken: IMqttToken): Unit =
             log.info(s"Connected to '$broker'. Subscribing to '${settings.topic}'...")
-            client.subscribe(settings.topic, settings.qos.level)
+            val subscribeCallback = new IMqttActionListener:
+              override def onSuccess(asyncActionToken: IMqttToken): Unit =
+                log.info(s"Subscribed to ${settings.topic}.")
+              override def onFailure(asyncActionToken: IMqttToken, exception: Throwable): Unit =
+                log.warn(s"Failed to subscribe to ${settings.topic}.", exception)
+            client
+              .subscribe(settings.topic, settings.qos.level)
+              .setActionCallback(subscribeCallback)
             cb(Right(asyncActionToken))
 
           override def onFailure(asyncActionToken: IMqttToken, exception: Throwable): Unit =

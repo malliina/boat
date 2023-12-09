@@ -41,7 +41,7 @@ case class MapboxConf(token: AccessToken)
 
 case class AisAppConf(enabled: Boolean)
 object AisAppConf:
-  def default = AisAppConf(AppMode.fromBuild.isProd)
+  def default = AisAppConf(true)
 
 case class AppleConf(id: ClientId)
 object AppleConf:

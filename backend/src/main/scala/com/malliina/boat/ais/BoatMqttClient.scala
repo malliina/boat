@@ -60,8 +60,9 @@ object BoatMqttClient:
   ): Resource[F, BoatMqttClient[F]] =
     val build: F[BoatMqttClient[F]] = for
       interrupter <- SignallingRef[F, Boolean](false)
+      receiver <- Topic[F, MqttPayload]
       messagesTopic <- Topic[F, List[AisPair]]
-    yield BoatMqttClient(url, topic, messagesTopic, interrupter, d)
+    yield BoatMqttClient(url, topic, receiver, messagesTopic, interrupter, d)
     for
       client <- Resource.make(build)(_.close)
       // Consumes any messages regardless of whether there's subscribers
@@ -82,6 +83,7 @@ object BoatMqttClient:
 class BoatMqttClient[F[_]: Async](
   url: FullUrl,
   topic: String,
+  receiver: Topic[F, MqttPayload],
   messagesTopic: Topic[F, List[AisPair]],
   interrupter: SignallingRef[F, Boolean],
   d: Dispatcher[F]
@@ -96,27 +98,23 @@ class BoatMqttClient[F[_]: Async](
       .eval(F.delay(newClientId()))
       .flatMap: id =>
         MqttStream.resource(MqttSettings(url, id, topic, user, pass), d)
-  val events = Stream
+  private val events = Stream
     .resource(newStream)
     .flatMap: s =>
       s.events ++ Stream.raiseError(Exception(s"Closed '$url'."))
-  private val exponential = Stream
-    .eval(Topic[F, MqttPayload])
-    .flatMap: receiver =>
-      val consume = Stream.retry(
-        events
-          .evalMap(payload => receiver.publish1(payload))
-          .handleErrorWith: t =>
-            Stream.eval(F.delay(log.warn(s"Reconnecting to '$url' after backoff...", t))) >>
-              Stream.raiseError(t)
-          .compile
-          .drain,
-        backoffTime,
-        _ * 2,
-        100000
-      )
-      receiver.subscribe(10).concurrently(consume)
-    .interruptWhen(interrupter)
+  private val consume = Stream.retry(
+    events
+      .evalMap(payload => receiver.publish1(payload))
+      .handleErrorWith: t =>
+        Stream.eval(F.delay(log.warn(s"Reconnecting to '$url' after backoff...", t))) >>
+          Stream.raiseError(t)
+      .compile
+      .drain,
+    backoffTime,
+    _ * 2,
+    100000
+  )
+  private val exponential = receiver.subscribe(10).concurrently(consume).interruptWhen(interrupter)
   private val parsed: Stream[F, Either[Error, AISMessage]] =
     exponential.map: msg =>
       val str = msg.payloadString
@@ -139,7 +137,8 @@ class BoatMqttClient[F[_]: Async](
         case meta: MmsiVesselMetadata =>
           metadata.update(meta.mmsi, meta)
           Stream.empty
-        case VesselStatus(_) => Stream.empty
+        case VesselStatus(_) =>
+          Stream.empty
         case other =>
           log.info(s"Ignoring $other.")
           Stream.empty
@@ -147,7 +146,9 @@ class BoatMqttClient[F[_]: Async](
       log.warn(s"Failed to decode AIS JSON.", e)
       Stream.empty
   private val internalMessages =
-    vesselMessages.groupWithin(maxBatchSize, sendTimeWindow).map(_.toList)
+    vesselMessages
+      .groupWithin(maxBatchSize, sendTimeWindow)
+      .map(_.toList)
   val publisher = internalMessages
     .evalMap(list => messagesTopic.publish1(list))
 

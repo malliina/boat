@@ -129,6 +129,7 @@ val backend = Project("boat", file("backend"))
       "com.malliina" %% "mobile-push-io" % "3.9.0",
       "com.malliina" %% "config" % primitiveVersion,
       "org.eclipse.paho" % "org.eclipse.paho.client.mqttv3" % "1.2.5",
+      "com.hivemq" % "hivemq-mqtt-client-websocket" % "1.3.0",
       webAuthDep,
       webAuthTestDep,
       munitDep,
