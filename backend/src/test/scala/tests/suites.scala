@@ -119,7 +119,7 @@ trait Http4sSuite extends MUnitDatabaseSuite:
     for
       conf <- Resource.eval(IO(confFixture()))
       service <- Server.appService[IO](
-        BoatConf.parse().copy(db = conf, ais = AisAppConf(false)),
+        BoatConf.parseUnsafe().copy(db = conf, ais = AisAppConf(false)),
         TestComps.builder
       )
     yield AppComponents(service)
@@ -141,7 +141,7 @@ trait ServerSuite extends MUnitDatabaseSuite with JsonInstances:
     for
       conf <- Resource.eval(IO(confFixture()))
       service <- Server.server[IO](
-        BoatConf.parse().copy(db = conf, ais = AisAppConf(false)),
+        BoatConf.parseUnsafe().copy(db = conf, ais = AisAppConf(false)),
         TestComps.builder,
         port = port"0"
       )

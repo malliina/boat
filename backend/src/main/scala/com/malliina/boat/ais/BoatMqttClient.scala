@@ -2,10 +2,9 @@ package com.malliina.boat.ais
 
 import cats.effect.kernel.Resource
 import cats.effect.std.Dispatcher
-import cats.effect.syntax.all.*
 import cats.effect.{Async, Ref, Sync}
 import cats.syntax.all.*
-import com.malliina.boat.ais.BoatMqttClient.{AisPair, initialBackoff, log, pass, user}
+import com.malliina.boat.ais.BoatMqttClient.*
 import com.malliina.boat.ais.MqttStream.MqttPayload
 import com.malliina.boat.{AISMessage, Locations, LocationsV2, Metadata, MetadataV2, Mmsi, MmsiVesselLocation, MmsiVesselMetadata, StatusTopic, TimeFormatter, VesselInfo, VesselLocation, VesselLocationV2, VesselMetadata, VesselMetadataV2, VesselStatus}
 import com.malliina.http.FullUrl

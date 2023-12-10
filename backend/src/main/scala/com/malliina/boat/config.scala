@@ -1,7 +1,7 @@
 package com.malliina.boat
 
 import com.malliina.boat.auth.SecretKey
-import com.malliina.config.{ConfigNode, ConfigReadable, Env}
+import com.malliina.config.{ConfigError, ConfigNode, ConfigReadable, Env}
 import com.malliina.database.Conf
 import com.malliina.push.apns.{KeyId, TeamId}
 import com.malliina.util.FileUtils
@@ -84,14 +84,23 @@ case class BoatConf(
 )
 
 object BoatConf:
-  def parse(
-    c: ConfigNode = LocalConf.conf.parse[ConfigNode]("boat").toOption.get
-  ): BoatConf =
+  def parseUnsafe() =
+    parseBoat().fold(err => throw err, identity)
+
+  def parseBoat(): Either[ConfigError, BoatConf] =
+    for
+      boat <- LocalConf.conf.parse[ConfigNode]("boat")
+      conf <- parse(boat)
+    yield conf
+
+  private def parse(
+    c: ConfigNode
+  ): Either[ConfigError, BoatConf] =
     val isProdBuild = AppMode.fromBuild.isProd
     val envName = Env.read[String]("ENV_NAME")
     val isStaging = envName.contains("staging")
     val isProd = envName.contains("prod")
-    val result = for
+    for
       dbPass <- c.parse[String]("db.pass")
       mapboxToken <- c.parse[AccessToken]("mapbox.token")
       secret <-
@@ -124,7 +133,6 @@ object BoatConf:
         FCMConf(fcmApiKey)
       )
     )
-    result.fold(err => throw err, identity)
 
   private def prodDbConf(password: String, maxPoolSize: Int) = Conf(
     "jdbc:mysql://database8-nuqmhn2cxlhle.mysql.database.azure.com:3306/boat",

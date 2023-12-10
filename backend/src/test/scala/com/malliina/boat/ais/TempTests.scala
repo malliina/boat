@@ -27,7 +27,7 @@ class TempTests extends munit.FunSuite:
       override def deliveryComplete(token: IMqttDeliveryToken): Unit =
         ()
     )
-    val token = client.connect(
+    val _ = client.connect(
       connectOptions,
       (),
       new IMqttActionListener:

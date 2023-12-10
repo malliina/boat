@@ -183,4 +183,4 @@ object Server extends IOApp:
     BasicService[F].serverError(Errors(SingleError(msg, "server")))
 
   override def run(args: List[String]): IO[ExitCode] =
-    server[IO](BoatConf.parse(), AppCompsBuilder.prod).use(_ => IO.never).as(ExitCode.Success)
+    server[IO](BoatConf.parseUnsafe(), AppCompsBuilder.prod).use(_ => IO.never).as(ExitCode.Success)
