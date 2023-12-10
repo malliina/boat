@@ -79,7 +79,7 @@ class MapSocket[F[_]: Temporal](
 //  trackLineLayer(id, LinePaint(PropertyValue.Custom(Styles.colorBySpeed), 1, 1))
 
   private def trackLineLayer(id: String, paint: LinePaint): Layer =
-    Layer.line(id, emptyTrack, paint, None)
+    Layer.line(id, emptyTrack, paint, minzoom = None)
 
   def onCoords(event: CoordsEvent): Unit =
     val from = event.from

@@ -115,10 +115,11 @@ object IconRotationAlignment extends StringEnumCompanion[IconRotationAlignment]:
   case object Viewport extends IconRotationAlignment("viewport")
   case object Auto extends IconRotationAlignment("auto")
 
-case class LineLayout(`line-join`: String, `line-cap`: String) extends Layout derives Codec.AsObject
+case class LineLayout(`line-join`: String, `line-cap`: String, `line-sort-key`: Option[Double])
+  extends Layout derives Codec.AsObject
 
 object LineLayout:
-  def round = LineLayout("round", "round")
+  def round = LineLayout("round", "round", `line-sort-key` = None)
 
 case class ImageLayout(
   `icon-image`: String,
@@ -148,11 +149,10 @@ object Layout:
     Decoder[ImageLayout].widen,
     Decoder[OtherLayout].widen
   ).reduceLeft(_ or _)
-  given Encoder[Layout] = {
-    case ll @ LineLayout(_, _)        => ll.asJson
+  given Encoder[Layout] =
+    case ll @ LineLayout(_, _, _)     => ll.asJson
     case il @ ImageLayout(_, _, _, _) => il.asJson
     case OtherLayout(data)            => data
-  }
 
 sealed trait PropertyValue
 
