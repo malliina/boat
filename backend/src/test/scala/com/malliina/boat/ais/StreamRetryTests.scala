@@ -1,9 +1,9 @@
 package com.malliina.boat.ais
 
-import cats.effect.IO
+import cats.effect.{IO, Ref}
 import tests.MUnitSuite
 
-import scala.concurrent.duration.DurationInt
+import scala.concurrent.duration.{DurationInt, FiniteDuration}
 
 class StreamRetryTests extends MUnitSuite:
   val sleeper = IO.sleep(1.second)
@@ -26,3 +26,11 @@ class StreamRetryTests extends MUnitSuite:
       .repeat
       .compile
       .drain
+
+  test("retry backoff"):
+    val stream =
+      for ref <- Ref.of[IO, FiniteDuration](20.millis)
+      yield fs2.Stream.eval(ref.getAndUpdate(_ * 2)).repeat.take(2)
+    val durations = stream.flatMap(_.compile.toList)
+    durations.map: ds =>
+      assertEquals(ds, List(20.millis, 40.millis))

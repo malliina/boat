@@ -3,9 +3,9 @@ package com.malliina.boat.ais
 import cats.effect.kernel.Resource
 import cats.effect.std.Dispatcher
 import cats.effect.syntax.all.*
-import cats.effect.{Async, Sync}
-import cats.syntax.all.{toFlatMapOps, toFunctorOps, catsSyntaxFlatMapOps}
-import com.malliina.boat.ais.BoatMqttClient.{AisPair, log, pass, user}
+import cats.effect.{Async, Ref, Sync}
+import cats.syntax.all.*
+import com.malliina.boat.ais.BoatMqttClient.{AisPair, initialBackoff, log, pass, user}
 import com.malliina.boat.ais.MqttStream.MqttPayload
 import com.malliina.boat.{AISMessage, Locations, LocationsV2, Metadata, MetadataV2, Mmsi, MmsiVesselLocation, MmsiVesselMetadata, StatusTopic, TimeFormatter, VesselInfo, VesselLocation, VesselLocationV2, VesselMetadata, VesselMetadataV2, VesselStatus}
 import com.malliina.http.FullUrl
@@ -40,6 +40,8 @@ object BoatMqttClient:
   val TestUrl = FullUrl.wss("meri-test.digitraffic.fi:443", "/mqtt")
   val ProdUrl = FullUrl.wss("meri.digitraffic.fi:443", "/mqtt")
 
+  private val initialBackoff = 30.seconds
+
   def build[F[_]: Async](enabled: Boolean, d: Dispatcher[F]): Resource[F, AISSource[F]] =
     if enabled then prod(d) else Resource.eval(silent)
 
@@ -62,7 +64,8 @@ object BoatMqttClient:
       interrupter <- SignallingRef[F, Boolean](false)
       messagesTopic <- Topic[F, List[AisPair]]
       receiver <- Topic[F, MqttPayload]
-    yield BoatMqttClient(url, topic, messagesTopic, receiver, interrupter, d)
+      ref <- Ref.of(initialBackoff)
+    yield BoatMqttClient(url, topic, messagesTopic, receiver, ref, interrupter, d)
     for
       client <- Resource.make(build)(_.close)
       // Consumes any messages regardless of whether there's subscribers
@@ -85,6 +88,7 @@ class BoatMqttClient[F[_]: Async](
   topic: String,
   messagesTopic: Topic[F, List[AisPair]],
   receiver: Topic[F, MqttPayload],
+  backoff: Ref[F, FiniteDuration],
   interrupter: SignallingRef[F, Boolean],
   d: Dispatcher[F]
 ) extends AISSource[F]:
@@ -92,7 +96,6 @@ class BoatMqttClient[F[_]: Async](
   private val metadata = TrieMap.empty[Mmsi, MmsiVesselMetadata]
   private val maxBatchSize = 300
   private val sendTimeWindow = 5.seconds
-  private val backoffTime = 30.seconds
   private val newStream: Resource[F, MqttStream[F]] =
     Resource
       .eval(F.delay(newClientId()))
@@ -103,13 +106,15 @@ class BoatMqttClient[F[_]: Async](
     .flatMap: s =>
       s.events ++ Stream.raiseError(Exception(s"Closed '$url'."))
   private val consumeConnection = events
-    .evalMap(payload => receiver.publish1(payload))
+    .evalMap(payload => receiver.publish1(payload) <* backoff.set(initialBackoff))
     .compile
     .drain
-  private val delays = Stream.iterateEval[F, FiniteDuration](backoffTime): prev =>
-    val next = prev * 2
-    F.delay(log.info(s"Reconnecting to '$url' in $next...")).map(_ => next)
-  private val consume = Stream.eval(consumeConnection).attempts(delays).rethrow
+  private val backoffDelay = backoff
+    .getAndUpdate(_ * 2)
+    .flatTap: reconnectIn =>
+      F.delay(log.info(s"Reconnecting to '$url' in $reconnectIn..."))
+  private val backoffs = Stream.eval(backoffDelay).repeat
+  private val consume = Stream.eval(consumeConnection).attempts(backoffs).rethrow
   private val exponential = receiver.subscribe(10).concurrently(consume).interruptWhen(interrupter)
   private val parsed: Stream[F, Either[Error, AISMessage]] =
     exponential.map: msg =>
