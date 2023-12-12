@@ -79,6 +79,10 @@ class DoobiePushDatabase[F[_]: Async](db: DoobieDatabase[F], push: PushEndpoint[
     yield summary
 
   private def handle(summary: PushSummary): F[Int] =
+    if summary.iosSuccesses.nonEmpty then
+      log.info(s"Successfully notified iOS tokens ${summary.iosSuccesses.mkString(", ")}.")
+    if summary.gcmSuccesses.nonEmpty then
+      log.info(s"Successfully notified GCM tokens ${summary.gcmSuccesses.mkString(", ")}.")
     if summary.noBadTokensOrReplacements then F.pure(0)
     else
       db.run:

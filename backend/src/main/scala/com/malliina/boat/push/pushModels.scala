@@ -2,7 +2,6 @@ package com.malliina.boat.push
 
 import com.malliina.boat.BoatName
 import com.malliina.boat.http.Named
-import com.malliina.push.apns.{APNSError, APNSIdentifier, APNSToken}
 import com.malliina.values.{ErrorMessage, ValidatingCompanion}
 import io.circe.Codec
 
@@ -31,6 +30,3 @@ case class SourceNotification(
 object SourceNotification:
   val Message = "message"
   val Title = "title"
-
-case class APNSHttpResult(token: APNSToken, id: Option[APNSIdentifier], error: Option[APNSError])
-  derives Codec.AsObject

@@ -4,7 +4,8 @@ import cats.data.NonEmptyList
 import com.malliina.boat.db.PushDevice
 import com.malliina.boat.{MobileDevice, PushToken}
 import com.malliina.push.Token
-import com.malliina.push.apns.{APNSError, APNSToken, BadDeviceToken, Unregistered}
+import com.malliina.push.apns.{APNSError, APNSHttpResult, BadDeviceToken, Unregistered}
+import com.malliina.push.gcm.MappedGCMResponse
 import com.malliina.push.gcm.MappedGCMResponse.TokenReplacement
 import com.malliina.util.FileUtils
 
@@ -18,26 +19,30 @@ object PushTokenReplacement:
       MobileDevice.Android
     )
 
-case class PushSummary(
-  iosTokens: Seq[APNSToken],
-  badTokens: Seq[PushToken],
-  replacements: Seq[PushTokenReplacement]
-):
+case class PushSummary(iosResults: Seq[APNSHttpResult], gcmResults: Seq[MappedGCMResponse]):
+  private def gcmUninstalled = gcmResults.flatMap(_.uninstalled)
+  def isEmpty = iosResults.isEmpty && gcmResults.isEmpty
+  def iosSuccesses = iosResults.filter(_.error.isEmpty).map(_.token)
+  def gcmSuccesses = gcmResults.flatMap: res =>
+    res.ids
+      .zip(res.response.results)
+      .collect:
+        case (token, res) if res.error.isEmpty => token
+  def badTokens = iosResults
+    .filter(res => res.error.exists(err => PushSummary.removableErrors.exists(_ == err)))
+    .map(res => PushToken(res.token.token)) ++ gcmUninstalled.map(t => PushToken(t.token))
+  def replacements = gcmResults.flatMap(_.replacements).map(PushTokenReplacement.apply)
   def noBadTokensOrReplacements = badTokens.isEmpty && replacements.isEmpty
-
-  def ++(other: PushSummary): PushSummary =
-    PushSummary(
-      iosTokens ++ other.iosTokens,
-      badTokens ++ other.badTokens,
-      replacements ++ other.replacements
-    )
+  def ++(other: PushSummary): PushSummary = PushSummary(
+    iosResults ++ other.iosResults,
+    gcmResults ++ other.gcmResults
+  )
 
   private def section[T](xs: Seq[T]) = xs.mkString(
     FileUtils.lineSep + FileUtils.lineSep,
     FileUtils.lineSep,
     FileUtils.lineSep + FileUtils.lineSep
   )
-
   private def tokensList = section(badTokens)
   private def replacementsList =
     section(replacements.map(r => s"${r.oldToken} to ${r.newToken} for ${r.device}"))
@@ -46,7 +51,7 @@ case class PushSummary(
     s"Bad tokens: ${badTokens.size}. $tokensList Replacements: ${replacements.size}. $replacementsList"
 
 object PushSummary:
-  val empty = PushSummary(Nil, Nil, Nil)
+  val empty = PushSummary(Nil, Nil)
   val removableErrors: NonEmptyList[APNSError] = NonEmptyList.of(BadDeviceToken, Unregistered)
 
 trait PushClient[F[_], T <: Token]:

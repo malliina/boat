@@ -5,11 +5,10 @@ import com.malliina.datepicker.*
 import scala.scalajs.js.Date
 
 class DateHandler(log: BaseLogger):
-  def maxDate = new Date(Date.now())
-
   private var selectedFrom: Option[Date] = None
   private var selectedTo: Option[Date] = None
 
+  def maxDate = new Date(Date.now())
   def from = selectedFrom
   def to = selectedTo
 

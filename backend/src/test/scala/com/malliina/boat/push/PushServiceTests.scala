@@ -17,4 +17,4 @@ class PushServiceTests extends BaseSuite:
       )
     task.map: result =>
       assert(result.noBadTokensOrReplacements)
-      assert(result.iosTokens.contains(token))
+      assert(result.iosSuccesses.contains(token))
