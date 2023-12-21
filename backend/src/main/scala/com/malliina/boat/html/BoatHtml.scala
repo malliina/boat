@@ -33,7 +33,9 @@ object BoatHtml:
     val pageTitle =
       if sourceType == SourceType.Vehicle then AppConf.CarName
       else s"${AppConf.Name} - Free nautical charts for Finland"
-    val appScripts = Seq(FileAssets.frontend_js)
+    val appScripts =
+      if isProd then Seq(FileAssets.frontend_js)
+      else Seq(FileAssets.frontend_js, FileAssets.frontend_loader_js, FileAssets.main_js)
     BoatHtml(
       appScripts,
       externalScripts,
@@ -81,72 +83,71 @@ class BoatHtml(
     page(
       PageConf(
         modifier(
-          center.fold(modifier()) { coord =>
+          center.fold(modifier()): coord =>
             span(
               id := FrontKeys.Center,
               data(FrontKeys.Lng) := coord.lng.lng,
               data(FrontKeys.Lat) := coord.lat.lat
-            )
-          },
-          ub.boats.headOption.map { b =>
-            modifier(
-              div(id := "navbar", `class` := "navbar navbar-boat py-1")(
-                a(`class` := "nav-text tight boats-link", href := reverse.boats)(b.boat),
-                div(`class` := "dropdown nav-text tight tracks", id := BoatDropdownId)(
-                  span(`class` := "dropdown-button", ""),
-                  div(`class` := "dropdown-content", id := BoatDropdownContentId)(
-                    ub.boats.map { boat =>
-                      a(
-                        `class` := s"track-link $DeviceLinkClass",
-                        href := "#",
-                        data("name") := s"${boat.boat}"
-                      )(boat.boat)
-                    }
+            ),
+          ub.boats.headOption
+            .map: b =>
+              modifier(
+                div(id := "navbar", `class` := "navbar navbar-boat py-1")(
+                  a(`class` := "nav-text tight boats-link", href := reverse.boats)(b.boat),
+                  div(`class` := "dropdown nav-text tight tracks", id := BoatDropdownId)(
+                    span(`class` := "dropdown-button", ""),
+                    div(`class` := "dropdown-content", id := BoatDropdownContentId)(
+                      ub.boats.map: boat =>
+                        a(
+                          `class` := s"track-link $DeviceLinkClass",
+                          href := "#",
+                          data("name") := s"${boat.boat}"
+                        )(boat.boat)
+                    )
+                  ),
+                  a(
+                    href := reverse.tracks,
+                    `class` := "icon-link history",
+                    title := lang.track.tracks
+                  ),
+                  div(`class` := "dropdown nav-text tracks", id := DropdownLinkId)(
+                    span(`class` := "dropdown-button", lang.track.tracks),
+                    div(`class` := "dropdown-content", id := DropdownContentId)(
+                      ub.boats
+                        .flatMap(_.tracks)
+                        .sortBy(_.times.start.millis)
+                        .reverse
+                        .map: t =>
+                          a(`class` := "track-link", href := reverse.canonical(t.canonical))(
+                            span(t.describe),
+                            span(short(t.distanceMeters)),
+                            span(t.times.range)
+                          )
+                    )
+                  ),
+                  span(id := TitleId, `class` := "nav-text title")(""),
+                  span(id := DistanceId, `class` := "nav-text distance")(""),
+                  span(id := DurationId, `class` := "nav-text duration")(""),
+                  span(id := TopSpeedId, `class` := "nav-text top-speed")(""),
+                  span(id := WaterTempId, `class` := "nav-text water-temp")(""),
+                  fontAwesomeLink(a, FullLinkId, "list", Hidden, "List"),
+                  fontAwesomeLink(a, GraphLinkId, "chart-area", Hidden, "Graph"),
+                  standaloneQuestion("question-nav")
+                ),
+                datesContainer(lang.settings.forms),
+                routeContainer
+              )
+            .getOrElse:
+              modifier(
+                routeContainer,
+                if isAnon then
+                  modifier(
+                    standaloneQuestion("boat-icon framed question"),
+                    personIcon("boat-icon framed user")
                   )
-                ),
-                a(
-                  href := reverse.tracks,
-                  `class` := "icon-link history",
-                  title := lang.track.tracks
-                ),
-                div(`class` := "dropdown nav-text tracks", id := DropdownLinkId)(
-                  span(`class` := "dropdown-button", lang.track.tracks),
-                  div(`class` := "dropdown-content", id := DropdownContentId)(
-                    ub.boats
-                      .flatMap(_.tracks)
-                      .sortBy(_.times.start.millis)
-                      .reverse
-                      .map: t =>
-                        a(`class` := "track-link", href := reverse.canonical(t.canonical))(
-                          span(t.describe),
-                          span(short(t.distanceMeters)),
-                          span(t.times.range)
-                        )
-                  )
-                ),
-                span(id := TitleId, `class` := "nav-text title")(""),
-                span(id := DistanceId, `class` := "nav-text distance")(""),
-                span(id := DurationId, `class` := "nav-text duration")(""),
-                span(id := TopSpeedId, `class` := "nav-text top-speed")(""),
-                span(id := WaterTempId, `class` := "nav-text water-temp")(""),
-                fontAwesomeLink(a, FullLinkId, "list", Hidden, "List"),
-                fontAwesomeLink(a, GraphLinkId, "chart-area", Hidden, "Graph"),
-                standaloneQuestion("question-nav")
-              ),
-              datesContainer(lang.settings.forms),
-              routeContainer
-            )
-          }.getOrElse {
-            modifier(
-              routeContainer,
-              if isAnon then
-                modifier(
-                  standaloneQuestion("boat-icon framed question"),
-                  personIcon("boat-icon framed user")
-                )
-              else standaloneQuestion("boat-icon framed question")
-            )
-          },
+                else standaloneQuestion("boat-icon framed question")
+              )
+          ,
           div(id := MapId, `class` := s"mapbox-map $mapClass"),
           about.about(user, ub.language)
         ),
