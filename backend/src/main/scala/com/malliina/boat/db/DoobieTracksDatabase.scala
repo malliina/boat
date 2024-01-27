@@ -4,7 +4,7 @@ import cats.data.NonEmptyList
 import cats.effect.Async
 import cats.implicits.*
 import com.malliina.boat.InviteState.accepted
-import com.malliina.boat.http.{BoatQuery, SortOrder, TrackQuery}
+import com.malliina.boat.http.{BoatQuery, SortOrder, TrackQuery, TracksQuery}
 import com.malliina.boat.*
 import com.malliina.database.DoobieDatabase
 import com.malliina.measure.{DistanceM, SpeedM, Temperature}
@@ -81,20 +81,23 @@ class DoobieTracksDatabase[F[_]: Async](val db: DoobieDatabase[F])
     def topPointByTrack(name: TrackName) =
       val selectPoints = pointsByTrack(name)
       sql"$selectPoints order by p.speed desc limit 1"
-    def tracksByUser(user: Username) =
-      sql"$nonEmptyTracks and (b.user = $user or b.id in (select ub2.boat from users u2, users_boats ub2 where u2.id = ub2.user and u2.user = $user and ub2.state = $accepted))"
+    def tracksByUser(user: Username, boats: Seq[BoatName]) =
+      val boatFilter =
+        boats.toList.toNel.map(list => Fragments.in(fr"b.name", list)).getOrElse(fr"true")
+      sql"$nonEmptyTracks and $boatFilter and (b.user = $user or b.id in (select ub2.boat from users u2, users_boats ub2 where u2.id = ub2.user and u2.user = $user and ub2.state = $accepted))"
     def trackByName(name: TrackName) = sql"$nonEmptyTracks and t.name = $name"
     def tracksByNames(names: NonEmptyList[TrackName]) =
       sql"$nonEmptyTracks and " ++ Fragments.in(fr"t.name", names)
     def tracksByCanonicals(names: NonEmptyList[TrackCanonical]) =
       sql"$nonEmptyTracks and " ++ Fragments.in(fr"t.canonical", names)
     def latestTracks(name: Username, limit: Option[Int]) =
-      val userTracks = tracksByUser(name)
+      val userTracks = tracksByUser(name, Nil)
       val limitClause = limit.fold(Fragment.empty)(l => fr"limit $l")
       sql"$userTracks order by t.added desc $limitClause"
     import com.malliina.boat.http.TrackSort.*
 
-    def tracksFor(user: Username, filter: TrackQuery) =
+    def tracksFor(user: Username, tracksFilter: TracksQuery) =
+      val filter = tracksFilter.query
       val order = if filter.order == SortOrder.Asc then fr"asc" else fr"desc"
       val sortColumns = filter.sort match
         case Name     => fr"t.title $order, t.name $order, t.id $order"
@@ -103,7 +106,7 @@ class DoobieTracksDatabase[F[_]: Async](val db: DoobieDatabase[F])
         case TopSpeed => fr"topSpeed $order, t.id $order"
         case Length   => fr"t.distance $order, t.id $order"
         case _        => fr"t.start $order, t.id $order"
-      val unsorted = tracksByUser(user)
+      val unsorted = tracksByUser(user, tracksFilter.sources)
       val limits = filter.limits
       sql"""$unsorted order by $sortColumns limit ${limits.limit} offset ${limits.offset}"""
 
@@ -118,18 +121,19 @@ class DoobieTracksDatabase[F[_]: Async](val db: DoobieDatabase[F])
   def boats = run(boatsView)
   def topRows = run(topView)
 
-  def tracksBundle(user: MinimalUserInfo, filter: TrackQuery, lang: Lang): F[TracksBundle] =
+  def tracksBundle(user: MinimalUserInfo, filter: TracksQuery, lang: Lang): F[TracksBundle] =
     run:
       for
         ts <- tracksForIO(user, filter)
         ss <- statsIO(user, filter, lang)
       yield TracksBundle(ts.tracks, ss)
 
-  def stats(user: MinimalUserInfo, filter: TrackQuery, lang: Lang): F[StatsResponse] = run:
+  def stats(user: MinimalUserInfo, filter: TracksQuery, lang: Lang): F[StatsResponse] = run:
     statsIO(user, filter, lang)
 
-  private def statsIO(user: MinimalUserInfo, filter: TrackQuery, lang: Lang) =
-    val tracks = sql.tracksByUser(user.username)
+  private def statsIO(user: MinimalUserInfo, tracksQuery: TracksQuery, lang: Lang) =
+    val filter = tracksQuery.query
+    val tracks = sql.tracksByUser(user.username, tracksQuery.sources)
     val zeroDistance = DistanceM.zero
     val zeroDuration: FiniteDuration = 0.seconds
     val now = DateVal.now()
@@ -279,10 +283,10 @@ class DoobieTracksDatabase[F[_]: Async](val db: DoobieDatabase[F])
   private def single(oneRowSql: Fragment, language: Language) = run:
     oneRowSql.query[JoinedTrack].unique.map(row => row.strip(TimeFormatter.lang(language)))
 
-  def tracksFor(user: MinimalUserInfo, filter: TrackQuery): F[Tracks] = run:
+  def tracksFor(user: MinimalUserInfo, filter: TracksQuery): F[Tracks] = run:
     tracksForIO(user, filter)
 
-  private def tracksForIO(user: MinimalUserInfo, filter: TrackQuery) =
+  private def tracksForIO(user: MinimalUserInfo, filter: TracksQuery) =
     val formatter = TimeFormatter.lang(user.language)
     sql
       .tracksFor(user.username, filter)

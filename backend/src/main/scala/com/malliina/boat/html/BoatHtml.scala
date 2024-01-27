@@ -1,9 +1,9 @@
 package com.malliina.boat.html
 
-import com.malliina.assets.{HashedAssets, FileAssets}
+import com.malliina.assets.{FileAssets, HashedAssets}
 import com.malliina.boat.FrontKeys.*
 import com.malliina.boat.html.BoatImplicits.showFrag
-import com.malliina.boat.http.{Limits, TrackQuery}
+import com.malliina.boat.http.{Limits, TracksQuery}
 import com.malliina.boat.http4s.Reverse
 import com.malliina.boat.{AppConf, BuildInfo, Coord, FormsLang, FrontKeys, FullTrack, Lang, SourceType, TrackRef, TracksBundle, UserBoats, UserInfo, Usernames}
 import com.malliina.html.HtmlTags
@@ -58,8 +58,8 @@ class BoatHtml(
   def devices(user: UserInfo) =
     page(PageConf(BoatsPage(user), Seq(BoatsClass)))
 
-  def tracks(data: TracksBundle, query: TrackQuery, lang: Lang): Frag =
-    page(PageConf(TracksPage(data, query, lang), Seq(StatsClass)))
+  def tracks(user: UserInfo, data: TracksBundle, query: TracksQuery, lang: Lang): Frag =
+    page(PageConf(TracksPage(user, data, query, lang), Seq(StatsClass)))
 
   def signIn(lang: Lang) = page(
     PageConf(SignInPage(lang.settings))

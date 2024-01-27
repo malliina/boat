@@ -7,6 +7,7 @@ import com.malliina.database.DoobieDatabase
 import com.malliina.values.Username
 import fs2.Chunk
 import fs2.io.file.Path
+import org.typelevel.ci.CIStringSyntax
 import tests.{MUnitSuite, WrappedTestConf}
 
 import java.time.LocalDate
@@ -48,7 +49,7 @@ class TracksImporter extends MUnitSuite:
     val inserts = TrackInserter(db)
     val importer = TrackImporter(inserts)
     val trackName = TrackNames.random()
-    val user = BoatUser(trackName, BoatName("Amina"), SourceType.Boat, Username("mle"))
+    val user = BoatUser(trackName, BoatName(ci"Amina"), SourceType.Boat, Username("mle"))
 //    val user = BoatUser(trackName, BoatName("xrxmjq"), Username("santa@example.com"))
 //    val user = BoatUser(trackName, BoatName("hzghbu"), Username("santa@example.com"))
     inserts.joinAsSource(user).flatMap { track =>

@@ -88,7 +88,7 @@ class AuthService[F[_]: Sync](val users: IdentityManager[F], comps: AuthComps[F]
       .getOrElse:
         val boatName = headers
           .get(CIString(BoatNameHeader))
-          .map(h => BoatName(h.head.value))
+          .map(h => BoatName(CIString(h.head.value)))
           .getOrElse(BoatNames.random())
         F.pure(SimpleSourceMeta(Usernames.anon, boatName, SourceType.Boat): DeviceMeta)
 

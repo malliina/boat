@@ -11,7 +11,7 @@ val testContainersScalaVersion = "0.41.0"
 val scalaTagsVersion = "0.12.0"
 val primitiveVersion = "3.5.2"
 val logstreamsVersion = "2.7.0"
-val http4sVersion = "0.23.24"
+val http4sVersion = "0.23.25"
 val logbackVersion = "1.4.11"
 val circeVersion = "0.14.6"
 val alpnVersion = "12.0.3"
@@ -72,6 +72,7 @@ val cross = crossProject(JSPlatform, JVMPlatform)
     libraryDependencies ++= Seq("generic", "parser").map { m =>
       "io.circe" %%% s"circe-$m" % circeVersion
     } ++ Seq(
+      "org.typelevel" %% "case-insensitive" % "1.4.0",
       "com.malliina" %%% "primitives" % primitiveVersion,
       "com.lihaoyi" %%% "scalatags" % scalaTagsVersion,
       "org.scalameta" %%% "munit" % munitVersion % Test

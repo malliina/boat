@@ -1,10 +1,10 @@
 package com.malliina.boat.db
 
-import com.malliina.boat.http.{Limits, SortOrder, TrackQuery, TrackSort}
+import com.malliina.boat.http.{Limits, SortOrder, TrackQuery, TrackSort, TracksQuery}
 import com.malliina.boat.{Coord, Lang, Language, SimpleUserInfo}
 import com.malliina.database.Conf
 import com.malliina.measure.{DistanceIntM, DistanceM}
-import com.malliina.values.{Username, lngLat, lng, lat}
+import com.malliina.values.{Username, lat, lng, lngLat}
 import doobie.implicits.toSqlInterpolator
 import tests.{MUnitDatabaseSuite, MUnitSuite}
 
@@ -30,7 +30,7 @@ class DoobieTests extends MUnitSuite with Mappings:
     val db = DoobieTracksDatabase(doobie)
     val task = db.tracksBundle(
       SimpleUserInfo(Username("mle"), Language.english, Nil),
-      TrackQuery(TrackSort.TopSpeed, SortOrder.Desc, Limits(10, 0)),
+      TracksQuery(Nil, TrackQuery(TrackSort.TopSpeed, SortOrder.Desc, Limits(10, 0))),
       Lang.default
     )
     val _ = task.unsafeRunSync()

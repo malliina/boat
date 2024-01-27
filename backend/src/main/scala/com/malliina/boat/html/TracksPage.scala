@@ -2,9 +2,9 @@ package com.malliina.boat.html
 
 import com.malliina.boat.BoatFormats.{durationHuman, formatDistance, inHours}
 import com.malliina.boat.FrontKeys.Hidden
-import com.malliina.boat.http.{SortOrder, TrackQuery, TrackSort}
+import com.malliina.boat.http.{SortOrder, TrackSort, TracksQuery}
 import com.malliina.boat.http4s.Reverse
-import com.malliina.boat.{BoatFormats, Lang, MonthVal, MonthsLang, TracksBundle}
+import com.malliina.boat.{BoatFormats, BoatName, Lang, MonthVal, MonthsLang, TracksBundle, UserInfo}
 import com.malliina.measure.DistanceM
 import org.http4s.Uri
 import scalatags.Text
@@ -14,8 +14,9 @@ import scala.language.implicitConversions
 
 object TracksPage extends BoatImplicits:
   val reverse = Reverse
-  val monthDataAttr = data("month")
-  val yearDataAttr = data("year")
+  private val monthDataAttr = data("month")
+  private val yearDataAttr = data("year")
+  val empty = modifier("")
 
   implicit def distanceKmHtml(d: DistanceM): Frag = stringFrag(formatDistance(d) + " km")
 
@@ -35,10 +36,7 @@ object TracksPage extends BoatImplicits:
       case 12 => lang.dec
       case _  => ""
 
-  def apply(tracks: TracksBundle, query: TrackQuery, lang: Lang) =
-    val sort = query.sort
-    val order = query.order
-    val isAsc = order == SortOrder.Asc
+  def apply(user: UserInfo, tracks: TracksBundle, tracksQuery: TracksQuery, lang: Lang) =
     val trackLang = lang.track
     val stats = tracks.stats
     val allTime = stats.allTime
@@ -47,6 +45,24 @@ object TracksPage extends BoatImplicits:
       div(`class` := "row")(
         div(`class` := "col-md-12")(
           h1(lang.track.trackHistory)
+        )
+      ),
+      div(`class` := "row")(
+        div(`class` := "col-md-12 mb-4")(
+          user.boats.zipWithIndex.map: (boat, idx) =>
+            val extra = if idx == 0 then "me-1" else "mx-1"
+            val sources = tracksQuery.sources
+            val isSelected = sources.contains(boat.name)
+            val cls =
+              if isSelected then "btn-primary"
+              else "btn-outline-primary"
+            val linkQuery = tracksQuery.copy(sources =
+              if isSelected then sources.filter(s => s != boat.name) else sources :+ boat.name
+            )
+            a(
+              `class` := s"btn $cls $extra",
+              href := withQuery(reverse.tracks, queryParams(linkQuery))
+            )(boat.name)
         )
       ),
       div(`class` := "row")(
@@ -112,11 +128,12 @@ object TracksPage extends BoatImplicits:
       table(`class` := "table table-hover")(
         thead(
           tr(
-            column(lang.name, TrackSort.Name, sort, isAsc),
-            column(trackLang.date, TrackSort.Recent, sort, isAsc),
-            column(trackLang.duration, TrackSort.Time, sort, isAsc),
-            column(trackLang.distance, TrackSort.Length, sort, isAsc),
-            column(trackLang.topSpeed, TrackSort.TopSpeed, sort, isAsc)
+            th(lang.settings.boatLang.boat),
+            column(lang.name, TrackSort.Name, tracksQuery),
+            column(trackLang.date, TrackSort.Recent, tracksQuery),
+            column(trackLang.duration, TrackSort.Time, tracksQuery),
+            column(trackLang.distance, TrackSort.Length, tracksQuery),
+            column(trackLang.topSpeed, TrackSort.TopSpeed, tracksQuery)
           )
         ),
         tbody(
@@ -126,6 +143,7 @@ object TracksPage extends BoatImplicits:
                 .map(BoatFormats.formatSpeed(_, track.sourceType, includeUnit = true))
                 .getOrElse(lang.messages.notAvailable)
             tr(
+              td(track.boatName),
               td(a(href := reverse.canonical(track.canonical))(track.describe)),
               td(track.times.range),
               td(BoatFormats.formatDuration(track.duration)),
@@ -136,20 +154,32 @@ object TracksPage extends BoatImplicits:
       )
     )
 
-  def column(name: Modifier, sort: TrackSort, activeSort: TrackSort, isAsc: Boolean) =
-    val isActive = sort == activeSort
+  def column(name: Modifier, sort: TrackSort, query: TracksQuery) =
+    val isAsc = query.query.order == SortOrder.Asc
+    val isActive = sort == query.query.sort
     val icon =
       if isActive then if isAsc then "chevron-up" else "chevron-down"
       else "sort"
-    val inverseOrder = if isAsc then SortOrder.Desc.name else SortOrder.Asc.name
+    val inverseOrder = if isAsc then SortOrder.Desc else SortOrder.Asc
+    val linkQuery = query.copy(query = query.query.copy(sort = sort, order = inverseOrder))
     th(
-      a(
-        href := withQuery(
-          reverse.tracks,
-          Map(TrackSort.key -> sort.name, SortOrder.key -> inverseOrder)
-        )
-      )(name, " ", i(`class` := s"icon-button $icon"))
+      link(linkQuery)(
+        name,
+        " ",
+        i(`class` := s"icon-button $icon")
+      )
     )
 
-  private def withQuery(call: Uri, params: Map[String, String]) =
-    call.withQueryParams(params)
+  private def link(q: TracksQuery) = a(href := withQuery(reverse.tracks, queryParams(q)))
+
+  private def queryParams(q: TracksQuery) =
+    Seq(TrackSort.key -> q.query.sort.name, SortOrder.key -> q.query.order.name)
+      .map((k, v) => k -> Seq(v))
+      .toMap ++ boatsQueryOf(q.sources)
+
+  private def boatsQueryOf(boats: Seq[BoatName]) =
+    if boats.nonEmpty then Map(TracksQuery.BoatsKey -> boats.map(n => BoatName.write(n).toString))
+    else Map.empty
+
+  private def withQuery(call: Uri, params: Map[String, Seq[String]]) =
+    call.withMultiValueQueryParams(params)

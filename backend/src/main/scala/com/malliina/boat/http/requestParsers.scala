@@ -2,10 +2,11 @@ package com.malliina.boat.http
 
 import cats.implicits.*
 import com.malliina.boat.http4s.QueryParsers
-import com.malliina.boat.{CarUpdateId, Constants, Coord, Errors, Latitude, Longitude, Mmsi, RouteRequest, SingleError, TimeFormatter, Timings, TrackCanonical, TrackName, VesselName}
+import com.malliina.boat.{BoatName, CarUpdateId, Constants, Coord, Errors, Latitude, Longitude, Mmsi, RouteRequest, SingleError, TimeFormatter, Timings, TrackCanonical, TrackName, VesselName}
 import com.malliina.values.{Email, ErrorMessage}
 import io.circe.Codec
 import org.http4s.{Headers, Query, QueryParamDecoder, Request}
+import org.typelevel.ci.CIString
 
 import java.time.{Instant, LocalDate}
 import java.time.format.{DateTimeFormatter, DateTimeParseException}
@@ -66,6 +67,19 @@ object TrackQuery:
       limits <- Limits(q, defaultLimit)
     yield TrackQuery(sort, order, limits)
 
+case class TracksQuery(sources: Seq[BoatName], query: TrackQuery)
+
+object TracksQuery:
+  val BoatsKey = "boats"
+
+  given QueryParamDecoder[BoatName] =
+    QueryParamDecoder.stringQueryParamDecoder.map(s => BoatName(CIString(s)))
+
+  def apply(q: Query): Either[Errors, TracksQuery] = for
+    boats <- QueryParsers.list[BoatName](BoatsKey, q)
+    query <- TrackQuery(q)
+  yield TracksQuery(boats, query)
+
 trait Named:
   def name: String
   override def toString: String = name
@@ -84,9 +98,8 @@ abstract class EnumLike[T <: Named]:
     QueryParsers
       .parseOpt[String](q, key)
       .map: e =>
-        e.flatMap(s =>
+        e.flatMap: s =>
           all.find(_.name == s).toRight(Errors(SingleError.input(s"Unknown $key value: '$s'.")))
-        )
 
 case class VesselQuery(
   names: Seq[VesselName],

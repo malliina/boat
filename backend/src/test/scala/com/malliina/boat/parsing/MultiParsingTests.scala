@@ -3,6 +3,7 @@ package com.malliina.boat.parsing
 import com.malliina.boat.{BoatName, DeviceId, RawSentence, TrackId, TrackMetaShort, TrackName}
 import com.malliina.util.FileUtils
 import com.malliina.values.Username
+import org.typelevel.ci.CIStringSyntax
 import tests.BaseSuite
 
 import java.nio.charset.StandardCharsets
@@ -14,7 +15,7 @@ object MultiParsingTests:
     TrackId(1),
     TrackName("test"),
     DeviceId(1),
-    BoatName("boat"),
+    BoatName(ci"boat"),
     Username("u")
   )
 

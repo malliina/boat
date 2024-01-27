@@ -7,6 +7,7 @@ import doobie.Meta
 import io.circe.generic.semiauto.deriveCodec
 import io.circe.syntax.EncoderOps
 import io.circe.{Codec, Decoder, DecodingFailure, Encoder, Json}
+import org.typelevel.ci.CIString
 
 import java.time.{Instant, LocalDate, LocalTime, OffsetDateTime, ZoneOffset}
 import scala.concurrent.duration.FiniteDuration
@@ -270,7 +271,7 @@ object BoatNames:
   val Key = "boatName"
   val BoatKey = "boat"
 
-  def random() = BoatName(Utils.randomString(6))
+  def random() = BoatName(CIString(Utils.randomString(6)))
 
 case class PushPayload(token: PushToken, device: MobileDevice) derives Codec.AsObject
 

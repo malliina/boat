@@ -34,7 +34,7 @@ import org.http4s.server.websocket.WebSocketBuilder2
 import org.http4s.websocket.WebSocketFrame
 import org.http4s.websocket.WebSocketFrame.Text
 import org.http4s.{Callback as _, *}
-import org.typelevel.ci.CIStringSyntax
+import org.typelevel.ci.{CIString, CIStringSyntax}
 
 import java.time.Instant
 import scala.annotation.unused
@@ -163,20 +163,22 @@ class Service[F[_]: Async: Files](comps: BoatComps[F]) extends BasicService[F]:
                 html = SeeOther(Location(reverse.boats))
               )
     case req @ GET -> Root / "tracks" =>
-      authedQuery(req, TrackQuery.apply).flatMap: authed =>
+      authedQuery(req, TracksQuery.apply).flatMap: authed =>
+        val query = authed.query
+        val user = authed.user
         respondCustom(req)(
           json = rs =>
-            db.tracksFor(authed.user, authed.query)
+            db.tracksFor(user, query)
               .flatMap: ts =>
                 if rs.exists(_.satisfies(ContentVersions.Version2)) then ok(ts)
                 else if rs.exists(_.satisfies(ContentVersions.Version1)) then
                   ok(TrackSummaries(ts.tracks.map(t => TrackSummary(t))))
                 else ok(ts),
           html =
-            val lang = BoatLang(authed.user.language).lang
-            db.tracksBundle(authed.user, authed.query, lang)
+            val lang = BoatLang(user.language).lang
+            db.tracksBundle(user, query, lang)
               .flatMap: ts =>
-                ok(html(req).tracks(ts, authed.query, lang))
+                ok(html(req).tracks(user, ts, query, lang))
         )
     case req @ GET -> Root / "history" =>
       authedQuery(req, BoatQuery.apply).flatMap: authed =>
@@ -232,7 +234,7 @@ class Service[F[_]: Async: Files](comps: BoatComps[F]) extends BasicService[F]:
         case t =>
           redirectToLogin
     case req @ GET -> Root / "stats" =>
-      authedQuery(req, TrackQuery.apply).flatMap: authed =>
+      authedQuery(req, TracksQuery.apply).flatMap: authed =>
         comps.stats
           .stats(authed.user, authed.query, BoatLang(authed.user.language).lang)
           .flatMap: statsResponse =>
@@ -502,7 +504,7 @@ class Service[F[_]: Async: Files](comps: BoatComps[F]) extends BasicService[F]:
         val formatter = TimeFormatter.lang(user.language)
         ok(TrackResponse(track.strip(formatter)))
 
-  given Readable[BoatName] = Readable.string.emap(s => BoatName.build(s.trim))
+  given Readable[BoatName] = Readable.string.emap(s => BoatName.build(CIString(s.trim)))
 
   private def boatFormAction(req: Request[F])(code: (BoatName, UserInfo) => F[SourceRow]) =
     formAction(

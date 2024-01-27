@@ -1,7 +1,9 @@
 package com.malliina.boat
 
 import cats.Show
-import com.malliina.values.JsonCompanion
+import com.malliina.values.{JsonCompanion, Readable}
+import io.circe.{Codec, Decoder, Encoder}
+import org.typelevel.ci.CIString
 
 abstract class ShowableString[T] extends JsonCompanion[String, T]:
   given Show[T] = Show.fromToString
@@ -9,11 +11,18 @@ abstract class ShowableString[T] extends JsonCompanion[String, T]:
 abstract class ShowableLong[T] extends JsonCompanion[Long, T]:
   given Show[T] = Show.fromToString
 
-opaque type BoatName = String
-object BoatName extends ShowableString[BoatName]:
+given Codec[CIString] = Codec.from(
+  Decoder.decodeString.map(s => CIString(s)),
+  Encoder.encodeString.contramap[CIString](_.toString)
+)
+given Readable[CIString] = Readable.string.map(s => CIString(s))
+
+opaque type BoatName = CIString
+object BoatName extends JsonCompanion[CIString, BoatName]:
   val Key = "boatName"
-  override def apply(raw: String): BoatName = raw
-  override def write(t: BoatName): String = t
+  override def apply(raw: CIString): BoatName = raw
+  override def write(t: BoatName): CIString = t
+  given Show[BoatName] = Show.fromToString
 
 opaque type TrackName = String
 object TrackName extends ShowableString[TrackName]:

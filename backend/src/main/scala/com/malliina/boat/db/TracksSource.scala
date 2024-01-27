@@ -1,7 +1,7 @@
 package com.malliina.boat.db
 
 import com.malliina.boat.*
-import com.malliina.boat.http.{BoatQuery, TrackQuery}
+import com.malliina.boat.http.{BoatQuery, TrackQuery, TracksQuery}
 import com.malliina.boat.parsing.PointInsert
 import com.malliina.values.{UserId, Username}
 
@@ -31,11 +31,11 @@ trait TrackInsertsDatabase[F[_]]:
   def saveCoords(coords: PointInsert): F[InsertedPoint]
 
 trait StatsSource[F[_]]:
-  def stats(user: MinimalUserInfo, limits: TrackQuery, lang: Lang): F[StatsResponse]
+  def stats(user: MinimalUserInfo, limits: TracksQuery, lang: Lang): F[StatsResponse]
 
 trait TracksSource[F[_]]:
-  def tracksFor(user: MinimalUserInfo, filter: TrackQuery): F[Tracks]
-  def tracksBundle(user: MinimalUserInfo, filter: TrackQuery, lang: Lang): F[TracksBundle]
+  def tracksFor(user: MinimalUserInfo, filter: TracksQuery): F[Tracks]
+  def tracksBundle(user: MinimalUserInfo, filter: TracksQuery, lang: Lang): F[TracksBundle]
   def ref(track: TrackName, language: Language): F[TrackRef]
   def canonical(track: TrackCanonical, language: Language): F[TrackRef]
   def track(track: TrackName, user: Username, query: TrackQuery): F[TrackInfo]

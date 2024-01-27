@@ -9,12 +9,14 @@ import com.malliina.measure.{DistanceM, SpeedDoubleM, SpeedM, Temperature}
 import com.malliina.values.*
 import com.vividsolutions.jts.geom.Point
 import doobie.*
+import org.typelevel.ci.CIString
 
 import scala.concurrent.duration.{DurationDouble, FiniteDuration}
 
 object Mappings extends Mappings
 
 trait Mappings:
+  given Meta[CIString] = Meta[String].timap(s => CIString(s))(_.toString)
   given Meta[Instant] = doobie.implicits.legacy.instant.JavaTimeInstantMeta
   given Meta[OffsetDateTime] =
     Meta[Instant].imap(_.atOffset(ZoneOffset.UTC))(_.toInstant)
