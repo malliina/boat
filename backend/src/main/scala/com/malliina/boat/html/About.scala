@@ -12,7 +12,7 @@ class About(lang: WebLang, profile: ProfileLang) extends AboutKeys:
     val isLoggedIn = user != Usernames.anon
     div(id := ModalId, `class` := s"${FrontKeys.Modal} $Hidden")(
       div(`class` := "modal-content")(
-        i(`class` := "close"),
+        i(`class` := "about close"),
         if isLoggedIn then
           modifier(
             h2(`class` := "text-center")(profile.username),

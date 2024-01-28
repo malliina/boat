@@ -3,7 +3,7 @@ package com.malliina.boat
 import cats.effect.kernel.Async
 import cats.effect.std.Dispatcher
 import cats.effect.Resource
-import com.malliina.datepicker.{DateFormats, TempusDominus, TimeLocale, TimeLocalization, TimeOptions, TimeRestrictions}
+import com.malliina.datepicker.{TempusDominus, TimeLocale, TimeRestrictions}
 import com.malliina.mapbox.*
 import fs2.concurrent.Topic
 import io.circe.*
@@ -125,7 +125,7 @@ class MapView[F[_]: Async](
   private def reconnect(from: Option[Date], to: Option[Date]): Unit =
     socket.reconnect(parseUri, Option(sample), from, to)
 
-  private val dateHandler = DateHandler(log)
+  private val dateHandler = DateHandler()
   for
     fromElem <- elemAs[Element](FromTimePickerId)
     toElem <- elemAs[Element](ToTimePickerId)
@@ -141,10 +141,7 @@ class MapView[F[_]: Async](
   private def makePicker(elementId: String): TempusDominus =
     TempusDominus(
       elemGet(elementId),
-      TimeOptions(
-        TimeRestrictions(None, None),
-        TimeLocalization(DateFormats.default, locale)
-      )
+      DateHandler.timeOptions(TimeRestrictions(None, None), locale)
     )
 
   private def focusSearch(className: String, e: KeyboardEvent) =

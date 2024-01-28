@@ -71,10 +71,35 @@ object TimeRestrictions:
 @js.native
 trait IconOptions extends js.Object:
   def close: js.UndefOr[String] = js.native
+  def clear: js.UndefOr[String] = js.native
+  def time: js.UndefOr[String] = js.native
+  def date: js.UndefOr[String] = js.native
+  def up: js.UndefOr[String] = js.native
+  def down: js.UndefOr[String] = js.native
+  def previous: js.UndefOr[String] = js.native
+  def next: js.UndefOr[String] = js.native
 
 object IconOptions:
-  def apply(close: Option[String]): IconOptions =
-    close.fold(literal())(s => literal(close = s)).asInstanceOf[IconOptions]
+  def apply(
+    close: String,
+    clear: String,
+    time: String,
+    date: String,
+    up: String,
+    down: String,
+    previous: String,
+    next: String
+  ): IconOptions =
+    literal(
+      close = close,
+      clear = clear,
+      time = time,
+      date = date,
+      up = up,
+      down = down,
+      previous = previous,
+      next = next
+    ).asInstanceOf[IconOptions]
 
 @js.native
 trait ButtonOptions extends js.Object:
@@ -102,9 +127,14 @@ trait TimeOptions extends js.Object:
   def localization: TimeLocalization = js.native
 
 object TimeOptions:
-  def apply(r: TimeRestrictions, l: TimeLocalization, sideBySide: Boolean = false) =
+  def apply(
+    r: TimeRestrictions,
+    l: TimeLocalization,
+    icons: IconOptions,
+    sideBySide: Boolean = false
+  ) =
     val display =
-      DisplayOptions(sideBySide, IconOptions(None), ButtonOptions(clear = true, close = true))
+      DisplayOptions(sideBySide, icons, ButtonOptions(clear = true, close = true))
     literal(display = display, restrictions = r, localization = l).asInstanceOf[TimeOptions]
 
 @js.native

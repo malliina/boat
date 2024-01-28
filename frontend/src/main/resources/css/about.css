@@ -40,16 +40,18 @@
   }
 }
 
-.close {
-  align-self: flex-end;
-  width: 22px;
-  height: 22px;
-  background: url("../img/xmark-aaa.svg") no-repeat center;
+.about {
+  &.close {
+    align-self: flex-end;
+    width: 22px;
+    height: 22px;
+    background: url("../img/xmark-aaa.svg") no-repeat center;
 
-  &:hover, &:focus {
-    background: url("../img/xmark-black.svg") no-repeat center;
-    text-decoration: none;
-    cursor: pointer;
+    &:hover, &:focus {
+      background: url("../img/xmark-black.svg") no-repeat center;
+      text-decoration: none;
+      cursor: pointer;
+    }
   }
 }
 
