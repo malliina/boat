@@ -47,8 +47,8 @@ object TracksPage extends BoatImplicits:
           h1(lang.track.trackHistory)
         )
       ),
-      div(`class` := "row")(
-        div(`class` := "col-md-12 mb-4")(
+      div(`class` := "row mb-4")(
+        div(`class` := "col-md-12")(
           user.boats.zipWithIndex.map: (boat, idx) =>
             val extra = if idx == 0 then "me-1" else "mx-1"
             val sources = tracksQuery.sources
@@ -70,7 +70,7 @@ object TracksPage extends BoatImplicits:
           h3(lang.labels.statistics)
         )
       ),
-      div(`class` := "row")(
+      div(`class` := "row mb-4")(
         div(`class` := "col-xl-8")(
           table(`class` := "table table-hover")(
             thead(
@@ -125,33 +125,35 @@ object TracksPage extends BoatImplicits:
           h3(lang.track.tracks)
         )
       ),
-      table(`class` := "table table-hover")(
-        thead(
-          tr(
-            th(lang.settings.boatLang.boat),
-            column(lang.name, TrackSort.Name, tracksQuery),
-            column(trackLang.date, TrackSort.Recent, tracksQuery),
-            column(trackLang.duration, TrackSort.Time, tracksQuery),
-            column(trackLang.distance, TrackSort.Length, tracksQuery),
-            column(trackLang.topSpeed, TrackSort.TopSpeed, tracksQuery)
-          )
-        ),
-        tbody(
-          tracks.tracks.map: track =>
-            val speed: String =
-              track.topSpeed
-                .map(BoatFormats.formatSpeed(_, track.sourceType, includeUnit = true))
-                .getOrElse(lang.messages.notAvailable)
+      if tracks.tracks.nonEmpty then
+        table(`class` := "table table-hover")(
+          thead(
             tr(
-              td(track.boatName),
-              td(a(href := reverse.canonical(track.canonical))(track.describe)),
-              td(track.times.range),
-              td(BoatFormats.formatDuration(track.duration)),
-              td(track.distanceMeters),
-              td(speed)
+              th(lang.settings.boatLang.boat),
+              column(lang.name, TrackSort.Name, tracksQuery),
+              column(trackLang.date, TrackSort.Recent, tracksQuery),
+              column(trackLang.duration, TrackSort.Time, tracksQuery),
+              column(trackLang.distance, TrackSort.Length, tracksQuery),
+              column(trackLang.topSpeed, TrackSort.TopSpeed, tracksQuery)
             )
+          ),
+          tbody(
+            tracks.tracks.map: track =>
+              val speed: String =
+                track.topSpeed
+                  .map(BoatFormats.formatSpeed(_, track.sourceType, includeUnit = true))
+                  .getOrElse(lang.messages.notAvailable)
+              tr(
+                td(track.boatName),
+                td(a(href := reverse.canonical(track.canonical))(track.describe)),
+                td(track.times.range),
+                td(BoatFormats.formatDuration(track.duration)),
+                td(track.distanceMeters),
+                td(speed)
+              )
+          )
         )
-      )
+      else p(lang.messages.noSavedTracks)
     )
 
   def column(name: Modifier, sort: TrackSort, query: TracksQuery) =

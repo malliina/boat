@@ -39,7 +39,6 @@ object Frontend extends IOApp.Simple with BodyClasses:
 
   override def run: IO[Unit] =
     val resource = for
-      _ <- Resource.eval(IO.delay(log.info("Initializing...")))
       _ <- initF(MapClass):
         for
           map <- MapView.default[IO]
@@ -54,7 +53,6 @@ object Frontend extends IOApp.Simple with BodyClasses:
         Right(StatsPage())
       _ <- init(BoatsClass):
         Right(FormHandlers.inviteOthers())
-      _ <- Resource.eval(IO.delay(log.info("Initialized.")))
     yield ()
     resource.useForever.onError: t =>
       IO.delay(log.info(s"Initialization error: $t."))
