@@ -87,7 +87,7 @@ object BoatConf:
   def parseUnsafe() =
     parseBoat().fold(err => throw err, identity)
 
-  def parseBoat(): Either[ConfigError, BoatConf] =
+  private def parseBoat(): Either[ConfigError, BoatConf] =
     for
       boat <- LocalConf.conf.parse[ConfigNode]("boat")
       conf <- parse(boat)
