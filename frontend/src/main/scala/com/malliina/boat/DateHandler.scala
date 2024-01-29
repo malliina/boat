@@ -10,6 +10,7 @@ object DateHandler:
       restrictions,
       TimeLocalization(DateFormats.default, locale),
       IconOptions(
+        "icons",
         "time-picker close",
         "time-picker clear",
         "time-picker time",
@@ -17,7 +18,8 @@ object DateHandler:
         "time-picker up",
         "time-picker down",
         "time-picker previous",
-        "time-picker next"
+        "time-picker next",
+        "time-picker today"
       )
     )
 

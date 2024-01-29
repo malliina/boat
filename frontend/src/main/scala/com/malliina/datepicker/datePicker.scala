@@ -70,6 +70,7 @@ object TimeRestrictions:
 
 @js.native
 trait IconOptions extends js.Object:
+  def `type`: js.UndefOr[String] = js.native
   def close: js.UndefOr[String] = js.native
   def clear: js.UndefOr[String] = js.native
   def time: js.UndefOr[String] = js.native
@@ -78,9 +79,11 @@ trait IconOptions extends js.Object:
   def down: js.UndefOr[String] = js.native
   def previous: js.UndefOr[String] = js.native
   def next: js.UndefOr[String] = js.native
+  def today: js.UndefOr[String] = js.native
 
 object IconOptions:
   def apply(
+    `type`: String,
     close: String,
     clear: String,
     time: String,
@@ -88,9 +91,11 @@ object IconOptions:
     up: String,
     down: String,
     previous: String,
-    next: String
+    next: String,
+    today: String
   ): IconOptions =
     literal(
+      `type` = `type`,
       close = close,
       clear = clear,
       time = time,
@@ -98,7 +103,8 @@ object IconOptions:
       up = up,
       down = down,
       previous = previous,
-      next = next
+      next = next,
+      today = today
     ).asInstanceOf[IconOptions]
 
 @js.native
