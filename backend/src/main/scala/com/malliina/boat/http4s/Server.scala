@@ -101,9 +101,9 @@ object Server extends IOApp:
       dispatcher <- Dispatcher.parallel[F]
       http <- builder.http
       _ <- Resource.eval(Logging.install(dispatcher, http))
-      db <- DoobieDatabaseInit.init(conf.db)
+      db <- if conf.isProdBuild then DoobieDatabaseInit.init(conf.db) else DoobieDatabaseInit.fast(conf.db)
       users = DoobieUserManager(db)
-      _ <- Resource.eval(users.initUser())
+      _ <- if conf.isProdBuild then Resource.eval(users.initUser()) else Resource.unit
       trackInserts = TrackInserter(db)
       vesselDb = BoatVesselDatabase(db)
       ais <- BoatMqttClient.build(conf.ais.enabled, dispatcher)

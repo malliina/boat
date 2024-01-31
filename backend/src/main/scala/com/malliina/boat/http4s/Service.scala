@@ -59,6 +59,7 @@ class Service[F[_]: Async: Files](comps: BoatComps[F]) extends BasicService[F]:
   val cookieNames = web.cookieNames
   val reverse = Reverse
   val g = Graph.all
+  log.info(s"Decoded graph.")
   private val NoChange = "No change."
 
   private val toClients: Stream[F, WebSocketFrame] = Stream.never[F]

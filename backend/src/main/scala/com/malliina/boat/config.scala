@@ -73,6 +73,7 @@ case class FCMConf(apiKey: String)
 case class PushConf(apns: APNSConf, fcm: FCMConf)
 
 case class BoatConf(
+  isProdBuild: Boolean,
   mapbox: MapboxConf,
   ais: AisAppConf,
   secret: SecretKey,
@@ -114,6 +115,7 @@ object BoatConf:
       apnsPrivateKey <- c.parse[Path]("push.apns.privateKey")
       fcmApiKey <- c.parse[String]("push.fcm.apiKey")
     yield BoatConf(
+      isProdBuild,
       MapboxConf(mapboxToken),
       AisAppConf.default,
       secret,

@@ -13,9 +13,13 @@ object DoobieDatabaseInit:
   def init[F[_]: Async](conf: Conf): Resource[F, DoobieDatabase[F]] =
     if conf.autoMigrate then withMigrations[F](conf) else DoobieDatabase.default[F](conf)
 
+  def fast[F[_]: Async](conf: Conf): Resource[F, DoobieDatabase[F]] =
+    Resource.pure(DoobieDatabase.fast(conf))
+
   def withMigrations[F[_]: Async](conf: Conf): Resource[F, DoobieDatabase[F]] =
     Resource.eval[F, MigrateResult](migrate(conf)).flatMap(_ => DoobieDatabase.default(conf))
 
+  // hej
   private def migrate[F[_]: Sync](conf: Conf): F[MigrateResult] = Sync[F].delay:
     val flyway = Flyway.configure
       .dataSource(conf.url, conf.user, conf.pass)
