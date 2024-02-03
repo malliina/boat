@@ -103,7 +103,7 @@ object Server extends IOApp:
       http <- builder.http
       _ <- Resource.eval(Logging.install(dispatcher, http))
       db <-
-        if conf.isProdBuild then DoobieDatabaseInit.init(conf.db)
+        if conf.isProdBuild || conf.isTest then DoobieDatabaseInit.init(conf.db)
         else DoobieDatabaseInit.fast(conf.db)
       users = DoobieUserManager(db)
       _ <-
