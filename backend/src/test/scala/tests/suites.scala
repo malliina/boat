@@ -92,6 +92,7 @@ trait MUnitDatabaseSuite extends DoobieSQL:
             ok => ok
           )
       conf = Option(testDb)
+
     override def afterAll(): Unit =
       container.foreach(_.stop())
 
@@ -109,19 +110,23 @@ trait MUnitDatabaseSuite extends DoobieSQL:
 
   override def munitFixtures: Seq[Fixture[?]] = Seq(confFixture)
 
-case class AppComponents(service: Service[IO]) //, routes: HttpApp[IO])
+case class AppComponents(service: Service[IO])
+
+trait BoatDatabaseSuite extends MUnitDatabaseSuite:
+  self: MUnitSuite =>
+  def boatIO = for
+    conf <- IO(confFixture())
+    boatConf <- BoatConf.parseF[IO].map(_.copy(isTest = true, db = conf, ais = AisAppConf(false)))
+  yield boatConf
 
 // https://github.com/typelevel/munit-cats-effect
-trait Http4sSuite extends MUnitDatabaseSuite:
+trait Http4sSuite extends BoatDatabaseSuite:
   self: MUnitSuite =>
 
   val appResource: Resource[IO, AppComponents] =
     for
-      conf <- Resource.eval(IO(confFixture()))
-      service <- Server.appService[IO](
-        BoatConf.parseUnsafe().copy(db = conf, ais = AisAppConf(false)),
-        TestComps.builder
-      )
+      boatConf <- Resource.eval(boatIO)
+      service <- Server.appService[IO](boatConf, TestComps.builder)
     yield AppComponents(service)
 
   val app = ResourceSuiteLocalFixture("munit-boat-app", appResource)
@@ -133,18 +138,14 @@ case class ServerTools(server: ServerComponents[IO]):
   def baseHttpUrl = FullUrl("http", s"localhost:$port", "")
   def baseWsUrl = FullUrl("ws", s"localhost:$port", "")
 
-trait ServerSuite extends MUnitDatabaseSuite with JsonInstances:
+trait ServerSuite extends BoatDatabaseSuite with JsonInstances:
   self: MUnitSuite =>
   given EntityDecoder[IO, Errors] = jsonBody[IO, Errors]
 
   def testServerResource: Resource[IO, ServerTools] =
     for
-      conf <- Resource.eval(IO(confFixture()))
-      service <- Server.server[IO](
-        BoatConf.parseUnsafe().copy(db = conf, ais = AisAppConf(false)),
-        TestComps.builder,
-        port = port"0"
-      )
+      boatConf <- Resource.eval(boatIO)
+      service <- Server.server[IO](boatConf, TestComps.builder, port = port"0")
     yield ServerTools(service)
   val server: Fixture[ServerTools] =
     ResourceSuiteLocalFixture("munit-server", testServerResource)

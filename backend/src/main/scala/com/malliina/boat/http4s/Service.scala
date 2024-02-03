@@ -45,7 +45,7 @@ object Service:
 
   extension [F[_]](req: Request[F]) def isSecured: Boolean = Urls.isSecure(req)
 
-class Service[F[_]: Async: Files](comps: BoatComps[F]) extends BasicService[F]:
+class Service[F[_]: Async: Files](comps: BoatComps[F], graph: Graph) extends BasicService[F]:
   val F = Sync[F]
   val auth = comps.auth
   val userMgmt = auth.users
@@ -58,8 +58,6 @@ class Service[F[_]: Async: Files](comps: BoatComps[F]) extends BasicService[F]:
   val web = auth.web
   val cookieNames = web.cookieNames
   val reverse = Reverse
-  val g = Graph.all
-  log.info(s"Decoded graph.")
   private val NoChange = "No change."
 
   private val toClients: Stream[F, WebSocketFrame] = Stream.never[F]
@@ -244,7 +242,7 @@ class Service[F[_]: Async: Files](comps: BoatComps[F]) extends BasicService[F]:
         DoubleVar(srcLng) / DoubleVar(destLat) / DoubleVar(destLng) =>
       RouteRequest(srcLat, srcLng, destLat, destLng)
         .map: req =>
-          F.blocking(g.shortest(req.from, req.to))
+          F.blocking(graph.shortest(req.from, req.to))
             .flatMap: op =>
               op.map(result => ok(result))
                 .recover:

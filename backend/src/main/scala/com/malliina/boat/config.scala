@@ -1,5 +1,6 @@
 package com.malliina.boat
 
+import cats.effect.kernel.Sync
 import com.malliina.boat.auth.SecretKey
 import com.malliina.config.{ConfigError, ConfigNode, ConfigReadable, Env}
 import com.malliina.database.Conf
@@ -73,6 +74,7 @@ case class FCMConf(apiKey: String)
 case class PushConf(apns: APNSConf, fcm: FCMConf)
 
 case class BoatConf(
+  isTest: Boolean,
   isProdBuild: Boolean,
   mapbox: MapboxConf,
   ais: AisAppConf,
@@ -88,7 +90,9 @@ object BoatConf:
   def parseUnsafe() =
     parseBoat().fold(err => throw err, identity)
 
-  private def parseBoat(): Either[ConfigError, BoatConf] =
+  def parseF[F[_]: Sync] = Sync[F].fromEither(parseBoat())
+
+  def parseBoat(): Either[ConfigError, BoatConf] =
     for
       boat <- LocalConf.conf.parse[ConfigNode]("boat")
       conf <- parse(boat)
@@ -115,6 +119,7 @@ object BoatConf:
       apnsPrivateKey <- c.parse[Path]("push.apns.privateKey")
       fcmApiKey <- c.parse[String]("push.fcm.apiKey")
     yield BoatConf(
+      isTest = false,
       isProdBuild,
       MapboxConf(mapboxToken),
       AisAppConf.default,

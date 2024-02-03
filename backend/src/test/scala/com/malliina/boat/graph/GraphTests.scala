@@ -1,19 +1,18 @@
 package com.malliina.boat.graph
 
+import cats.effect.{IO, Sync}
+import cats.syntax.all.toFunctorOps
 import com.malliina.boat.*
-import com.malliina.values.lngLat
 import com.malliina.measure.{DistanceDoubleM, DistanceIntM}
-import com.nimbusds.jose.util.StandardCharset
+import com.malliina.values.lngLat
 import io.circe.parser.decode
 import io.circe.syntax.EncoderOps
 
+import java.nio.charset.StandardCharsets
 import java.nio.file.{Files, Paths}
-import java.util.concurrent.{Executors, TimeUnit}
 import scala.annotation.tailrec
-import scala.concurrent.duration.DurationInt
-import scala.concurrent.{Await, ExecutionContext, Future}
 
-class GraphTests extends munit.FunSuite:
+class GraphTests extends munit.CatsEffectSuite:
   test("find route"):
     val from = 19.97655 lngLat 60.27473
     val to = 20.01310 lngLat 60.24488
@@ -52,30 +51,30 @@ class GraphTests extends munit.FunSuite:
     assert(actual <= 37.kilometers)
 
   test("read geo file"):
-    val route = findRoute(from = 24.8438 lngLat 60.1395, to = 25.2130 lngLat 60.1728)
-    assert(route.isRight)
-    val r = route.toOption.get
-    val cost = r.route.cost
-    assert(cost > 22.kilometers)
-    assert(cost < 22.8.kilometers)
+    findRoute[IO](from = 24.8438 lngLat 60.1395, to = 25.2130 lngLat 60.1728).map: route =>
+      assert(route.isRight)
+      val r = route.toOption.get
+      val cost = r.route.cost
+      assert(cost > 22.kilometers)
+      assert(cost < 22.8.kilometers)
 
   test("porkkala to helsinki"):
-    val route = findRoute(from = 24.37521 lngLat 59.97423, to = 25.2130 lngLat 60.1728)
-    assert(route.isRight)
-    val r = route.toOption.get
-    val cost = r.route.cost
-    assert(cost > 55.6.kilometers)
-    assert(cost < 55.7.kilometers)
+    findRoute[IO](from = 24.37521 lngLat 59.97423, to = 25.2130 lngLat 60.1728).map: route =>
+      assert(route.isRight)
+      val r = route.toOption.get
+      val cost = r.route.cost
+      assert(cost > 55.6.kilometers)
+      assert(cost < 55.7.kilometers)
 
   test("kemi to kotka".ignore):
     val aland = 20.2218 lngLat 60.1419
     val kotka = 26.9771 lngLat 60.4505
-    val route = findRoute(from = aland, to = kotka)
-    assert(route.isRight)
+    findRoute[IO](from = aland, to = kotka).map: route =>
+      assert(route.isRight)
 
   test("read and write graph".ignore):
     val g = fromResource("vaylat-geo.json")
-    Files.write(Paths.get("vaylat-all2.json"), g.asJson.noSpaces.getBytes(StandardCharset.UTF_8))
+    Files.write(Paths.get("vaylat-all2.json"), g.asJson.noSpaces.getBytes(StandardCharsets.UTF_8))
 
   test("create graph from geojson".ignore):
     fromResource("vaylat-geo.json")
@@ -86,14 +85,11 @@ class GraphTests extends munit.FunSuite:
     println(graph.nodes)
     println(n)
 
-  private def findRoute(from: Coord, to: Coord) =
-    val graph = Graph.all
-    val exec = Executors.newCachedThreadPool()
-    val ec = ExecutionContext.fromExecutor(exec)
-    try Await.result(Future(graph.shortest(from, to))(ec), 30.seconds)
-    finally
-      exec.shutdownNow()
-      exec.awaitTermination(10, TimeUnit.SECONDS)
+  private def findRoute[F[_]: Sync](from: Coord, to: Coord) =
+    Graph
+      .load[F]
+      .map: graph =>
+        graph.shortest(from, to)
 
   def toGeo(r: RouteResult) = FeatureCollection(
     List(Feature.line(r.route.coords), Feature.point(r.from), Feature.point(r.to))

@@ -9,6 +9,7 @@ import com.comcast.ip4s.{Port, host, port}
 import com.malliina.boat.ais.BoatMqttClient
 import com.malliina.boat.auth.{EmailAuth, JWT, TokenEmailAuth}
 import com.malliina.boat.db.*
+import com.malliina.boat.graph.Graph
 import com.malliina.boat.html.BoatHtml
 import com.malliina.boat.http4s.JsonInstances.circeJsonEncoder
 import com.malliina.boat.push.{BoatPushService, PushEndpoint}
@@ -101,14 +102,21 @@ object Server extends IOApp:
       dispatcher <- Dispatcher.parallel[F]
       http <- builder.http
       _ <- Resource.eval(Logging.install(dispatcher, http))
-      db <- if conf.isProdBuild then DoobieDatabaseInit.init(conf.db) else DoobieDatabaseInit.fast(conf.db)
+      db <-
+        if conf.isProdBuild then DoobieDatabaseInit.init(conf.db)
+        else DoobieDatabaseInit.fast(conf.db)
       users = DoobieUserManager(db)
-      _ <- if conf.isProdBuild then Resource.eval(users.initUser()) else Resource.unit
+      _ <-
+        if conf.isProdBuild || conf.isTest then Resource.eval(users.initUser()) else Resource.unit
       trackInserts = TrackInserter(db)
       vesselDb = BoatVesselDatabase(db)
       ais <- BoatMqttClient.build(conf.ais.enabled, dispatcher)
       streams <- BoatStreams.resource(trackInserts, vesselDb, ais)
       s3 <- S3Client.build[F]()
+      graph <- Resource.eval(
+        if conf.isProdBuild || conf.isTest then Graph.load[F]
+        else Sync[F].delay(Graph(Map.empty))
+      )
     yield
       val appComps = builder.build(conf, http)
       val jwt = JWT(conf.secret)
@@ -151,7 +159,7 @@ object Server extends IOApp:
         push,
         streams
       )
-      Service(comps)
+      Service(comps, graph)
 
   private def makeHandler[F[_]: Async: Compression: Files](
     service: Service[F],
@@ -183,4 +191,7 @@ object Server extends IOApp:
     BasicService[F].serverError(Errors(SingleError(msg, "server")))
 
   override def run(args: List[String]): IO[ExitCode] =
-    server[IO](BoatConf.parseUnsafe(), AppCompsBuilder.prod).use(_ => IO.never).as(ExitCode.Success)
+    for
+      conf <- BoatConf.parseF[IO]
+      webServer <- server[IO](conf, AppCompsBuilder.prod).use(_ => IO.never).as(ExitCode.Success)
+    yield webServer

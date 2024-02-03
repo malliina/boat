@@ -1,5 +1,6 @@
 package com.malliina.boat.graph
 
+import cats.effect.Sync
 import com.malliina.util.AppLogger
 import com.malliina.boat.*
 import com.malliina.boat.graph.Graph.{intersection, log}
@@ -22,8 +23,10 @@ object Graph:
     Encoder[List[ValueNode]].contramap(g => g.toList.toList)
   )
   private val graphLocalFile = LocalConf.appDir.resolve("vaylat-all.json")
-  private val graphFile = file("vaylat-all.json", graphLocalFile)
-  lazy val all: Graph = decode[Graph](Files.readString(graphFile)).toOption.get
+  private def graphFile = file("vaylat-all.json", graphLocalFile)
+
+  def load[F[_]: Sync]: F[Graph] =
+    Sync[F].delay(decode[Graph](Files.readString(graphFile)).toOption.get)
 
   def file(name: String, to: Path): Path =
     if Files.exists(to) && Files.size(to) > 0 then
@@ -109,7 +112,7 @@ class Graph(val nodes: Map[CoordHash, ValueNode]):
     * @return
     *   a new graph with the edge added
     */
-  def edge(edge: Edge): Graph =
+  private def edge(edge: Edge): Graph =
     if contains(edge) then this
     else
       val crossingEdges =

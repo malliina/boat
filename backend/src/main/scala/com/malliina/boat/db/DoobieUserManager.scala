@@ -264,6 +264,9 @@ class DoobieUserManager[F[_]](db: DoobieDatabase[F]) extends IdentityManager[F] 
     sql"""insert into users(user, email, token, language, enabled)
           values(${user.user}, ${user.email}, ${user.token}, ${Language.default}, ${user.enabled})""".update
       .withUniqueGeneratedKeys[UserId]("id")
+      .map: userId =>
+        log.info(s"Created user '${user.user}' with ID '$userId'.")
+        userId
 
   private def getOrCreate(email: Email): ConnectionIO[UserId] = for
     existing <- userByEmail(email).option
