@@ -591,6 +591,7 @@ case class FormatsLang(date: String, time: String, timeShort: String, dateTime: 
 case class BoatLang(
   appIcon: String,
   boat: String,
+  car: String,
   rename: String,
   renameBoat: String,
   addBoat: String,
@@ -1120,6 +1121,7 @@ object Lang:
       BoatLang(
         "App icon",
         "Boat",
+        "Car",
         "Rename",
         "Rename Boat",
         "Add boat",
@@ -1292,6 +1294,7 @@ object Lang:
       BoatLang(
         "Sovelluksen ikoni",
         "Vene",
+        "Auto",
         "Uusi nimi",
         "Nimeä vene",
         "Lisää vene",
@@ -1459,6 +1462,7 @@ object Lang:
       BoatLang(
         "Appens ikon",
         "Båt",
+        "Bil",
         "Ändra namn",
         "Namnge båt",
         "Lägg till båt",

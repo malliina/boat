@@ -145,11 +145,25 @@ class Service[F[_]: Async: Files](comps: BoatComps[F], graph: Graph) extends Bas
     case req @ GET -> Root / "boats" =>
       auth.profile(req).flatMap(user => ok(html(req).devices(user)))
     case req @ POST -> Root / "boats" =>
-      boatFormAction(req): (boatName, user) =>
-        // TODO add sourceType parameter to forms and APIs
-        inserts.addSource(boatName, SourceType.Boat, user.id)
+      formAction(
+        req,
+        form =>
+          for
+            name <- form.read[BoatName](BoatNames.Key)
+            sourceType <- form.read[SourceType](SourceType.Key)
+          yield AddSource(name, sourceType)
+      ): (boat, user) =>
+        inserts
+          .addSource(boat.boatName, boat.sourceType, user.id)
+          .flatMap(row => boatResponse(req, row))
     case req @ PATCH -> Root / "boats" / DeviceIdVar(device) =>
-      boatFormAction(req)((boatName, user) => inserts.renameBoat(device, boatName, user.id))
+      formAction(
+        req,
+        form => form.read[BoatName](BoatNames.Key).map(n => ChangeBoatName(n))
+      ): (change, user) =>
+        inserts
+          .renameBoat(device, change.boatName, user.id)
+          .flatMap(row => boatResponse(req, row))
     case req @ POST -> Root / "boats" / DeviceIdVar(device) / "delete" =>
       auth
         .profile(req)
@@ -505,16 +519,11 @@ class Service[F[_]: Async: Files](comps: BoatComps[F], graph: Graph) extends Bas
 
   given Readable[BoatName] = Readable.string.emap(s => BoatName.build(CIString(s.trim)))
 
-  private def boatFormAction(req: Request[F])(code: (BoatName, UserInfo) => F[SourceRow]) =
-    formAction(
-      req,
-      form => form.read[BoatName](BoatNames.Key).map(n => ChangeBoatName(n))
-    ): (change, user) =>
-      code(change.boatName, user).flatMap: row =>
-        respond(req)(
-          json = ok(BoatResponse(row.toBoat)),
-          html = SeeOther(Location(reverse.boats))
-        )
+  private def boatResponse(req: Request[F], row: SourceRow) =
+    respond(req)(
+      json = ok(BoatResponse(row.toBoat)),
+      html = SeeOther(Location(reverse.boats))
+    )
 
   private def formAction[T: Decoder](req: Request[F], readForm: FormReader => Either[Errors, T])(
     code: (T, UserInfo) => F[Response[F]]

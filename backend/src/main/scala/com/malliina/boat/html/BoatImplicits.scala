@@ -3,7 +3,7 @@ package com.malliina.boat.html
 import cats.Show
 import cats.syntax.show.toShow
 import com.malliina.boat.BoatFormats.{formatKnots, formatTemp}
-import com.malliina.boat.{DateVal, WrappedInt}
+import com.malliina.boat.{DateVal, SourceType, WrappedInt}
 import com.malliina.measure.{SpeedM, Temperature}
 import com.malliina.values.WrappedString
 import scalatags.Text.all.{Attr, AttrValue, Frag, Modifier, intFrag, stringFrag}
@@ -25,5 +25,6 @@ trait BoatImplicits:
   given showFrag[T: Show]: Conversion[T, Modifier] = (t: T) => stringFrag(t.show)
   given wrappedIntAttr[T <: WrappedInt]: AttrValue[T] = boatStringAttr(i => s"${i.value}")
   given wrappedStringAttr[T <: WrappedString]: AttrValue[T] = boatStringAttr(_.value)
+  given AttrValue[SourceType] = boatStringAttr(_.name)
   def boatStringAttr[T](stringify: T => String): AttrValue[T] = (t: Builder, a: Attr, v: T) =>
     t.setAttr(a.name, Builder.GenericAttrValueSource(stringify(v)))

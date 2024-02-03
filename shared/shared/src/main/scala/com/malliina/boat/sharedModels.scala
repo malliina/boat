@@ -200,6 +200,8 @@ object TrackComments:
 
 case class ChangeComments(comments: String) derives Codec.AsObject
 
+case class AddSource(boatName: BoatName, sourceType: SourceType) derives Codec.AsObject
+
 /** An NMEA Sentence.
   *
   * "An NMEA sentence consists of a start delimiter, followed by a comma-separated sequence of
@@ -544,6 +546,7 @@ class ModelHtml[Builder, Output <: FragT, FragT](val bundle: Bundle[Builder, Out
 
 sealed abstract class SourceType(val name: String)
 object SourceType extends StringEnumCompanion[SourceType]:
+  val Key = "sourceType"
   case object Vehicle extends SourceType("vehicle")
   case object Boat extends SourceType("boat")
   case class Other(n: String) extends SourceType(n)
