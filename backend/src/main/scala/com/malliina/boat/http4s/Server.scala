@@ -103,18 +103,18 @@ object Server extends IOApp:
       http <- builder.http
       _ <- Resource.eval(Logging.install(dispatcher, http))
       db <-
-        if conf.isProdBuild || conf.isTest then DoobieDatabaseInit.init(conf.db)
+        if conf.isFull then DoobieDatabaseInit.init(conf.db)
         else DoobieDatabaseInit.fast(conf.db)
       users = DoobieUserManager(db)
       _ <-
-        if conf.isProdBuild || conf.isTest then Resource.eval(users.initUser()) else Resource.unit
+        if conf.isFull then Resource.eval(users.initUser()) else Resource.unit
       trackInserts = TrackInserter(db)
       vesselDb = BoatVesselDatabase(db)
       ais <- BoatMqttClient.build(conf.ais.enabled, dispatcher)
       streams <- BoatStreams.resource(trackInserts, vesselDb, ais)
       s3 <- S3Client.build[F]()
       graph <- Resource.eval(
-        if conf.isProdBuild || conf.isTest then Graph.load[F]
+        if conf.isFull then Graph.load[F]
         else Sync[F].delay(Graph(Map.empty))
       )
     yield

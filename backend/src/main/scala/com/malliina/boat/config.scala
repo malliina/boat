@@ -84,7 +84,8 @@ case class BoatConf(
   microsoft: MicrosoftConf,
   apple: SignInWithApple.Conf,
   push: PushConf
-)
+):
+  def isFull = isProdBuild || isTest
 
 object BoatConf:
   def parseUnsafe() =
