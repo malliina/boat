@@ -78,11 +78,6 @@ To recompute the distances between points, use
     set p.diff = computed.d
     where p.id = computed.id
 
-### IntelliJ
-
-If using BSP, exclude folder [node-modules](frontend/target/scala-3.1.1/scalajs-bundler/main/node_modules) in the 
-project structure settings to reduce excessive indexing.
-
 ### Social logins
 
 To configure Sign in with Apple:

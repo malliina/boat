@@ -34,13 +34,13 @@ object BoatsPage extends BoatImplicits with CSRFConf with HTMLConstants:
       case Rejected => inviteLang.rejected
       case Other(_) => ""
     }
-    div(`class` := "container")(
-      div(`class` := row)(
-        div(`class` := "col-md-12")(
+    div(cls := "container")(
+      div(cls := row)(
+        div(cls := "col-md-12")(
           h1(lang.track.boats)
         )
       ),
-      table(`class` := "table table-hover mb-5")(
+      table(cls := "table table-hover mb-5")(
         thead(
           tr(
             th(boatLang.boat),
@@ -56,28 +56,28 @@ object BoatsPage extends BoatImplicits with CSRFConf with HTMLConstants:
               td(if boat.sourceType == SourceType.Vehicle then boatLang.car else boatLang.boat),
               td(boat.name),
               td(boat.token),
-              td(`class` := s"$row table-button $FormParent")(
-                div(`class` := "col")(
+              td(cls := s"$row table-button $FormParent")(
+                div(cls := "col")(
                   form(
                     method := post,
                     action := reverse.boatDelete(boat.id),
                     onsubmit := s"return confirm('$confirmDeletionText');",
-                    `class` := DeleteForm
+                    cls := DeleteForm
                   )(
-                    button(`type` := "submit", `class` := "btn btn-sm btn-danger")(
+                    button(`type` := "submit", cls := "btn btn-sm btn-danger")(
                       settings.delete
                     )
                   )
                 ),
-                div(`class` := "col")(
-                  button(`type` := "button", `class` := s"btn btn-sm btn-info $InviteFormOpen")(
+                div(cls := "col")(
+                  button(`type` := "button", cls := s"btn btn-sm btn-info $InviteFormOpen")(
                     settings.invite.invite
                   )
                 ),
                 form(
                   method := post,
                   action := reverse.invites,
-                  `class` := s"row $InviteFormClass $Hidden"
+                  cls := s"row $InviteFormClass $Hidden"
                 )(
                   hiddenInput(BoatIds.Key, boat.id),
                   labeledInput(
@@ -88,14 +88,14 @@ object BoatsPage extends BoatImplicits with CSRFConf with HTMLConstants:
                     s"form-control form-control sm $InviteFormInputClass",
                     "michael@email.com"
                   ),
-                  div(`class` := "col-sm-3 pl-sm-0 pt-2 pt-sm-0")(
-                    button(`type` := "submit", `class` := "btn btn-sm btn-primary")(
+                  div(cls := "col-sm-3 pl-sm-0 pt-2 pt-sm-0")(
+                    button(`type` := "submit", cls := "btn btn-sm btn-primary")(
                       settings.invite.invite
                     ),
                     button(
                       `type` := "button",
                       id := "cancel-invite",
-                      `class` := s"btn btn-sm btn-secondary ml-1 $FormCancel"
+                      cls := s"btn btn-sm btn-secondary ml-1 $FormCancel"
                     )(webLang.cancel)
                   )
                 )
@@ -103,12 +103,12 @@ object BoatsPage extends BoatImplicits with CSRFConf with HTMLConstants:
             )
         )
       ),
-      div(`class` := row)(
-        div(`class` := "col-md-12")(
+      div(cls := row)(
+        div(cls := "col-md-12")(
           h2(boatLang.addBoat)
         )
       ),
-      form(method := post, action := reverse.createBoat, `class` := "row g-3 mb-5")(
+      form(method := post, action := reverse.createBoat, cls := "row g-3 mb-5")(
         radio[SourceType](
           "source-boat",
           SourceType.Key,
@@ -125,18 +125,18 @@ object BoatsPage extends BoatImplicits with CSRFConf with HTMLConstants:
           "form-control form-control-sm",
           "Titanic"
         ),
-        div(`class` := "col-sm-3 pl-sm-0 pt-2 pt-sm-0")(
-          button(`type` := "submit", `class` := "btn btn-sm btn-primary")(webLang.save)
+        div(cls := "col-sm-3 pl-sm-0 pt-2 pt-sm-0")(
+          button(`type` := "submit", cls := "btn btn-sm btn-primary")(webLang.save)
         )
       ),
-      div(`class` := row)(
-        div(`class` := "col-md-12")(
+      div(cls := row)(
+        div(cls := "col-md-12")(
           h2(inviteLang.invites)
         )
       ),
-      if user.invites.isEmpty then p(`class` := "mb-5")(inviteLang.noInvites)
+      if user.invites.isEmpty then p(cls := "mb-5")(inviteLang.noInvites)
       else
-        table(`class` := "table table-hover mb-5")(
+        table(cls := "table table-hover mb-5")(
           thead(
             tr(
               th(boatLang.boat),
@@ -149,8 +149,8 @@ object BoatsPage extends BoatImplicits with CSRFConf with HTMLConstants:
               tr(
                 td(i.boat.name),
                 td(i.state),
-                td(`class` := "table-button")(
-                  div(`class` := row)(
+                td(cls := "table-button")(
+                  div(cls := row)(
                     if i.state != Accepted then
                       respondForm(i.boat, inviteLang.accept, accept = true)
                     else empty,
@@ -164,14 +164,14 @@ object BoatsPage extends BoatImplicits with CSRFConf with HTMLConstants:
           )
         )
       ,
-      div(`class` := row)(
-        div(`class` := "col-md-12")(
+      div(cls := row)(
+        div(cls := "col-md-12")(
           h2(inviteLang.friends)
         )
       ),
-      if user.friends.isEmpty then p(`class` := "mb-5")(inviteLang.noFriends)
+      if user.friends.isEmpty then p(cls := "mb-5")(inviteLang.noFriends)
       else
-        table(`class` := "table table-hover")(
+        table(cls := "table table-hover")(
           thead(
             tr(
               th(boatLang.boat),
@@ -187,16 +187,16 @@ object BoatsPage extends BoatImplicits with CSRFConf with HTMLConstants:
                 td(f.boat.name),
                 td(f.friend.email),
                 td(f.state),
-                td(`class` := "table-button")(
+                td(cls := "table-button")(
                   form(
                     method := post,
                     action := reverse.revoke,
                     onsubmit := s"return confirm('$confirmRevokeText');",
-                    `class` := FriendsForm
+                    cls := FriendsForm
                   )(
                     hiddenInput(Forms.Boat, f.boat.id),
                     hiddenInput(Forms.User, f.friend.id),
-                    button(`type` := "submit", `class` := "btn btn-sm btn-danger")(
+                    button(`type` := "submit", cls := "btn btn-sm btn-danger")(
                       settings.delete
                     )
                   )
@@ -214,7 +214,7 @@ object BoatsPage extends BoatImplicits with CSRFConf with HTMLConstants:
     inputValue: T,
     isChecked: Boolean
   ) =
-    div(`class` := "form-check mx-2")(
+    div(cls := "form-check mx-2")(
       input(
         cls := "form-check-input",
         tpe := "radio",
@@ -227,14 +227,14 @@ object BoatsPage extends BoatImplicits with CSRFConf with HTMLConstants:
     )
 
   private def respondForm(boat: BoatRef, buttonText: String, accept: Boolean) =
-    div(`class` := "col")(
+    div(cls := "col")(
       form(
         method := post,
         action := reverse.invitesRespond
       )(
         hiddenInput(Forms.Boat, boat.id),
         hiddenInput(Forms.Accept, s"$accept"),
-        button(`type` := "submit", `class` := "btn btn-sm btn-info")(
+        button(`type` := "submit", cls := "btn btn-sm btn-info")(
           buttonText
         )
       )
@@ -257,12 +257,12 @@ object BoatsPage extends BoatImplicits with CSRFConf with HTMLConstants:
     inputClass: String,
     placeholderValue: String
   ) = modifier(
-    label(`class` := labelClass, `for` := inputId)(labelText),
-    div(`class` := "col-sm-7")(
+    label(cls := labelClass, `for` := inputId)(labelText),
+    div(cls := "col-sm-7")(
       input(
         `type` := "text",
         id := inputId,
-        `class` := inputClass,
+        cls := inputClass,
         placeholder := placeholderValue,
         name := inputName
       )

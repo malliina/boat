@@ -4,7 +4,7 @@ import scalatags.Text.all.*
 
 object PrivacyPolicy extends BoatImplicits:
   val page =
-    div(`class` := "container privacy-container")(
+    div(cls := "container privacy-container")(
       h1("Privacy Policy"),
       p(
         "This privacy policy describes how your information is used and stored when you use this app."

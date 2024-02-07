@@ -41,38 +41,38 @@ object TracksPage extends BoatImplicits:
     val stats = tracks.stats
     val allTime = stats.allTime
 
-    div(`class` := "container")(
-      div(`class` := "row")(
-        div(`class` := "col-md-12")(
+    div(cls := "container")(
+      div(cls := "row")(
+        div(cls := "col-md-12")(
           h1(lang.track.trackHistory)
         )
       ),
-      div(`class` := "row mb-4")(
-        div(`class` := "col-md-12")(
+      div(cls := "row mb-4")(
+        div(cls := "col-md-12")(
           user.boats.zipWithIndex.map: (boat, idx) =>
             val extra = if idx == 0 then "me-1" else "mx-1"
             val sources = tracksQuery.sources
             val isSelected = sources.contains(boat.name)
-            val cls =
+            val buttonCls =
               if isSelected then "btn-primary"
               else "btn-outline-primary"
             val linkQuery = tracksQuery.copy(sources =
               if isSelected then sources.filter(s => s != boat.name) else sources :+ boat.name
             )
             a(
-              `class` := s"btn $cls $extra",
+              cls := s"btn $buttonCls $extra",
               href := withQuery(reverse.tracks, queryParams(linkQuery))
             )(boat.name)
         )
       ),
-      div(`class` := "row")(
-        div(`class` := "col-md-12")(
+      div(cls := "row")(
+        div(cls := "col-md-12")(
           h3(lang.labels.statistics)
         )
       ),
-      div(`class` := "row mb-4")(
-        div(`class` := "col-xl-8")(
-          table(`class` := "table table-hover")(
+      div(cls := "row mb-4")(
+        div(cls := "col-xl-8")(
+          table(cls := "table table-hover")(
             thead(
               tr(
                 th(lang.time),
@@ -86,7 +86,7 @@ object TracksPage extends BoatImplicits:
             tbody(
               stats.yearly.map: year =>
                 modifier(
-                  tr(`class` := "year-row", yearDataAttr := year.year)(
+                  tr(cls := "year-row", yearDataAttr := year.year)(
                     td(year.year),
                     td(year.distance),
                     td(durationHuman(year.duration)),
@@ -96,7 +96,7 @@ object TracksPage extends BoatImplicits:
                   ),
                   year.monthly.map: month =>
                     tr(
-                      `class` := s"month-row $Hidden",
+                      cls := s"month-row $Hidden",
                       yearDataAttr := year.year,
                       monthDataAttr := month.month
                     )(
@@ -120,13 +120,13 @@ object TracksPage extends BoatImplicits:
           )
         )
       ),
-      div(`class` := "row")(
-        div(`class` := "col-md-12")(
+      div(cls := "row")(
+        div(cls := "col-md-12")(
           h3(lang.track.tracks)
         )
       ),
       if tracks.tracks.nonEmpty then
-        table(`class` := "table table-hover")(
+        table(cls := "table table-hover")(
           thead(
             tr(
               th(lang.settings.boatLang.boat),
@@ -168,7 +168,7 @@ object TracksPage extends BoatImplicits:
       link(linkQuery)(
         name,
         " ",
-        i(`class` := s"icon-button $icon")
+        i(cls := s"icon-button $icon")
       )
     )
 

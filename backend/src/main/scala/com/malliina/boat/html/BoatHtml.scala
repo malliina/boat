@@ -92,14 +92,14 @@ class BoatHtml(
           ub.boats.headOption
             .map: b =>
               modifier(
-                div(id := "navbar", `class` := "navbar navbar-boat py-1")(
-                  a(`class` := "nav-text tight boats-link", href := reverse.boats)(b.boat),
-                  div(`class` := "dropdown nav-text tight tracks", id := BoatDropdownId)(
-                    span(`class` := "dropdown-button", ""),
-                    div(`class` := "dropdown-content", id := BoatDropdownContentId)(
+                div(id := "navbar", cls := "navbar navbar-boat py-1")(
+                  a(cls := "nav-text tight boats-link", href := reverse.boats)(b.boat),
+                  div(cls := "dropdown nav-text tight tracks", id := BoatDropdownId)(
+                    span(cls := "dropdown-button", ""),
+                    div(cls := "dropdown-content", id := BoatDropdownContentId)(
                       ub.boats.map: boat =>
                         a(
-                          `class` := s"track-link $DeviceLinkClass",
+                          cls := s"track-link $DeviceLinkClass",
                           href := "#",
                           data("name") := s"${boat.boat}"
                         )(boat.boat)
@@ -107,29 +107,29 @@ class BoatHtml(
                   ),
                   a(
                     href := reverse.tracks,
-                    `class` := "icon-link history",
+                    cls := "icon-link history",
                     title := lang.track.tracks
                   ),
-                  div(`class` := "dropdown nav-text tracks", id := DropdownLinkId)(
-                    span(`class` := "dropdown-button", lang.track.tracks),
-                    div(`class` := "dropdown-content", id := DropdownContentId)(
+                  div(cls := "dropdown nav-text tracks", id := DropdownLinkId)(
+                    span(cls := "dropdown-button", lang.track.tracks),
+                    div(cls := "dropdown-content", id := DropdownContentId)(
                       ub.boats
                         .flatMap(_.tracks)
                         .sortBy(_.times.start.millis)
                         .reverse
                         .map: t =>
-                          a(`class` := "track-link", href := reverse.canonical(t.canonical))(
+                          a(cls := "track-link", href := reverse.canonical(t.canonical))(
                             span(t.describe),
                             span(short(t.distanceMeters)),
                             span(t.times.range)
                           )
                     )
                   ),
-                  span(id := TitleId, `class` := "nav-text title")(""),
-                  span(id := DistanceId, `class` := "nav-text distance")(""),
-                  span(id := DurationId, `class` := "nav-text duration")(""),
-                  span(id := TopSpeedId, `class` := "nav-text top-speed")(""),
-                  span(id := WaterTempId, `class` := "nav-text water-temp")(""),
+                  span(id := TitleId, cls := "nav-text title")(""),
+                  span(id := DistanceId, cls := "nav-text distance")(""),
+                  span(id := DurationId, cls := "nav-text duration")(""),
+                  span(id := TopSpeedId, cls := "nav-text top-speed")(""),
+                  span(id := WaterTempId, cls := "nav-text water-temp")(""),
                   fontAwesomeLink(a, FullLinkId, "list", Hidden, "List"),
                   fontAwesomeLink(a, GraphLinkId, "chart-area", Hidden, "Graph"),
                   standaloneQuestion("question-nav")
@@ -148,44 +148,44 @@ class BoatHtml(
                 else standaloneQuestion("boat-icon framed question")
               )
           ,
-          div(id := MapId, `class` := s"mapbox-map $mapClass"),
+          div(id := MapId, cls := s"mapbox-map $mapClass"),
           about.about(user, ub.language)
         ),
         bodyClasses = Seq(s"$MapClass $AboutClass")
       )
     )
 
-  private def routeContainer = div(id := RoutesContainer, `class` := RoutesContainer)(
-    span(id := RouteLength, `class` := "nav-text route-length")(""),
-    span(id := RouteText, `class` := "nav-text route-text")("")
+  private def routeContainer = div(id := RoutesContainer, cls := RoutesContainer)(
+    span(id := RouteLength, cls := "nav-text route-length")(""),
+    span(id := RouteText, cls := "nav-text route-text")("")
   )
 
   private def datesContainer(formsLang: FormsLang) =
-    div(id := DatesContainer, `class` := s"row $DatesContainer")(
+    div(id := DatesContainer, cls := s"row $DatesContainer")(
       timePicker(formsLang.from, FromTimePickerId, "me-2"),
       timePicker(formsLang.to, ToTimePickerId, "")
     )
 
-  private def timePicker(labelText: String, divId: String, cls: String) =
+  private def timePicker(labelText: String, divId: String, clazz: String) =
     val inputId = s"$divId-input"
-    div(`class` := s"time-picker-container col-sm-6 col-md-4 mt-2 mb-0 mt-sm-0 $cls")(
+    div(cls := s"time-picker-container col-sm-6 col-md-4 mt-2 mb-0 mt-sm-0 $clazz")(
       div(
         id := divId,
         data("td-target-input") := "nearest",
-        `class` := "input-group input-group-sm"
+        cls := "input-group input-group-sm"
       )(
-        label(`for` := inputId, `class` := "input-group-text")(labelText),
+        label(`for` := inputId, cls := "input-group-text")(labelText),
         input(
           id := inputId,
-          `class` := "form-control",
+          cls := "form-control",
           data("td-target") := s"#$divId"
         ),
         span(
-          `class` := "input-group-text",
+          cls := "input-group-text",
           data("td-target") := s"#$divId",
           data("td-toggle") := "datetimepicker"
         )(
-          span(`class` := "time-calendar")
+          span(cls := "time-calendar")
         )
       )
     )
@@ -211,7 +211,7 @@ class BoatHtml(
   ): Frag =
     tag(
       id := idValue,
-      `class` := s"icon-link $faIcon $classes",
+      cls := s"icon-link $faIcon $classes",
       title := titleValue,
       aria.hidden := "true",
       more
@@ -237,7 +237,7 @@ class BoatHtml(
         cssFiles.map: file =>
           cssLink(versioned(file))
       ),
-      body(`class` := pageConf.bodyClasses.mkString(" "))(
+      body(cls := pageConf.bodyClasses.mkString(" "))(
         pageConf.content,
         jsFiles.map: jsFile =>
           script(`type` := "text/javascript", src := versioned(jsFile)),

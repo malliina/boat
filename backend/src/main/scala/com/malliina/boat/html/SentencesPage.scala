@@ -15,10 +15,10 @@ object SentencesPage extends BoatImplicits:
   def apply(track: FullTrack, current: Limits, lang: BoatLang): Modifier =
     val speedUnit = BoatFormats.speedUnit(track.track.sourceType)
     val trackLang = lang.lang.track
-    div(`class` := "container")(
+    div(cls := "container")(
       namedInfoBox(track.track, lang),
       pagination(track.track, current),
-      table(`class` := "table table-hover")(
+      table(cls := "table table-hover")(
         thead(
           tr(th(trackLang.coordinate), th(s"${trackLang.speed} ($speedUnit)"), th(lang.lang.time))
         ),
@@ -27,7 +27,7 @@ object SentencesPage extends BoatImplicits:
             modifier(
               tr(td(c.coord.approx), td(c.boatSpeed), td(c.time.dateTime)),
               c.sentences.map: sentence =>
-                tr(`class` := "row-sm")(
+                tr(cls := "row-sm")(
                   td(colspan := 2)(sentence.sentence),
                   td(sentence.time.dateTime)
                 )
@@ -43,86 +43,86 @@ object SentencesPage extends BoatImplicits:
     val topSpeed = track.topSpeed.getOrElse(SpeedM.zero)
     val commentValue = track.comments.getOrElse("")
     modifier(
-      div(`class` := "row")(
-        div(`class` := "col-md-12")(
+      div(cls := "row")(
+        div(cls := "col-md-12")(
           h1(track.boatName)
         )
       ),
-      div(`class` := "mb-3")(
+      div(cls := "mb-3")(
         form(
-          `class` := Hidden,
+          cls := Hidden,
           id := EditTitleFormId,
           method := "PUT",
           action := reverse.modifyTitle(track.trackName)
         )(
-          div(`class` := "form-group row form-title")(
-            label(`for` := TitleInputId, `class` := "col-sm-2 col-form-label col-form-label-sm")(
+          div(cls := "form-group row form-title")(
+            label(`for` := TitleInputId, cls := "col-sm-2 col-form-label col-form-label-sm")(
               webLang.editTitle
             ),
-            div(`class` := "col-sm-7 pr-2")(
+            div(cls := "col-sm-7 pr-2")(
               input(
                 `type` := "text",
                 id := TitleInputId,
                 name := TrackTitle.Key,
-                `class` := "form-control form-control-sm input-title",
+                cls := "form-control form-control-sm input-title",
                 track.trackTitle.map(t => value := t).getOrElse(modifier()),
                 placeholder := webLang.titlePlaceholder
               )
             ),
-            div(`class` := "col-3 px-0")(
-              button(`type` := "submit", `class` := "btn btn-sm btn-primary mx-1")(webLang.save),
+            div(cls := "col-3 px-0")(
+              button(`type` := "submit", cls := "btn btn-sm btn-primary mx-1")(webLang.save),
               button(
                 `type` := "button",
                 id := CancelEditTrackId,
-                `class` := "btn btn-sm btn-secondary mx-1"
+                cls := "btn btn-sm btn-secondary mx-1"
               )(webLang.cancel)
             )
           )
         ),
-        dl(`class` := "row mb-0")(
-          dt(`class` := s"col-sm-2 $TrackRow")(trackLang.track),
-          dd(`class` := s"col-sm-10 $TrackRow")(
-            span(`class` := "text-editable", id := TrackTitleId)(track.describe),
+        dl(cls := "row mb-0")(
+          dt(cls := s"col-sm-2 $TrackRow")(trackLang.track),
+          dd(cls := s"col-sm-10 $TrackRow")(
+            span(cls := "text-editable", id := TrackTitleId)(track.describe),
             editIcon(EditTitleId, webLang.editTitle)
           ),
           description(lang.lang.time, track.times.range),
           description(trackLang.duration, BoatFormats.formatDuration(track.duration)),
           description(trackLang.topSpeed, topSpeed),
-          dt(`class` := s"col-sm-2 $CommentsRow")(trackLang.comments),
-          dd(`class` := s"col-sm-10 $CommentsRow")(
+          dt(cls := s"col-sm-2 $CommentsRow")(trackLang.comments),
+          dd(cls := s"col-sm-10 $CommentsRow")(
             span(
-              `class` := classes("text-editable", track.comments.fold(Hidden)(_ => "")),
+              cls := classes("text-editable", track.comments.fold(Hidden)(_ => "")),
               id := CommentsTitleId
             )(commentValue),
             editIcon(EditCommentsId, webLang.editComments)
           )
         ),
         form(
-          `class` := s"$Hidden mb-3",
+          cls := s"$Hidden mb-3",
           id := EditCommentsFormId,
           method := "PATCH",
           action := reverse.updateComments(track.track)
         )(
-          div(`class` := "form-group row form-title")(
-            label(`for` := CommentsInputId, `class` := "col-sm-2 col-form-label col-form-label-sm")(
+          div(cls := "form-group row form-title")(
+            label(`for` := CommentsInputId, cls := "col-sm-2 col-form-label col-form-label-sm")(
               webLang.editComments
             ),
-            div(`class` := "col-sm-7 pr-2")(
+            div(cls := "col-sm-7 pr-2")(
               input(
                 `type` := "text",
                 id := CommentsInputId,
                 name := TrackComments.Key,
-                `class` := "form-control form-control-sm input-title",
+                cls := "form-control form-control-sm input-title",
                 track.comments.map(c => value := c).getOrElse(modifier()),
                 placeholder := webLang.commentsPlaceholder
               )
             ),
-            div(`class` := "col-3 px-0")(
-              button(`type` := "submit", `class` := "btn btn-sm btn-primary mx-1")(webLang.save),
+            div(cls := "col-3 px-0")(
+              button(`type` := "submit", cls := "btn btn-sm btn-primary mx-1")(webLang.save),
               button(
                 `type` := "button",
                 id := CancelEditCommentsId,
-                `class` := "btn btn-sm btn-secondary mx-1"
+                cls := "btn btn-sm btn-secondary mx-1"
               )(webLang.cancel)
             )
           )
@@ -133,14 +133,14 @@ object SentencesPage extends BoatImplicits:
   private def editIcon(editId: String, titleText: String) =
     i(
       id := editId,
-      `class` := "icon-link edit-icon input-title tight",
+      cls := "icon-link edit-icon input-title tight",
       title := titleText,
       aria.hidden := "true"
     )
 
   private def description(labelText: String, value: Modifier) = modifier(
-    dt(`class` := "col-sm-2")(labelText),
-    dd(`class` := "col-sm-10")(value)
+    dt(cls := "col-sm-2")(labelText),
+    dd(cls := "col-sm-10")(value)
   )
 
   private def pagination(track: TrackRef, current: Limits) =
@@ -150,7 +150,7 @@ object SentencesPage extends BoatImplicits:
     val prevOffset = math.max(current.offset - pageSize, 0)
     val lastOffset = ((track.points - 1) / pageSize) * pageSize
     tag("nav")(aria.label := "Navigation")(
-      ul(`class` := "pagination justify-content-center")(
+      ul(cls := "pagination justify-content-center")(
         pageLink(trackName, Limits(pageSize, 0), "First", isDisabled = current.offset == 0),
         pageLink(
           trackName,
@@ -185,6 +185,6 @@ object SentencesPage extends BoatImplicits:
     val call = reverse.trackFull(track).withQueryParams(params)
     val liClass = if isDisabled then "disabled" else ""
     val _ = if isActive then "todo" else "todo"
-    li(`class` := classes("page-item", liClass))(a(`class` := "page-link", href := call)(text))
+    li(cls := classes("page-item", liClass))(a(cls := "page-link", href := call)(text))
 
   def classes(cs: String*) = cs.filter(_.nonEmpty).mkString(" ")
