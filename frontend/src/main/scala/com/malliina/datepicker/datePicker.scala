@@ -7,6 +7,7 @@ import scala.scalajs.js
 import scala.scalajs.js.Date
 import scala.scalajs.js.Dynamic.literal
 import scala.scalajs.js.annotation.JSImport
+import scala.scalajs.js.JSConverters.JSRichOption
 
 @js.native
 trait DateFormats extends js.Object:
@@ -61,12 +62,7 @@ trait TimeRestrictions extends js.Object:
 
 object TimeRestrictions:
   def apply(min: Option[Date], max: Option[Date]): TimeRestrictions =
-    val obj = (min, max) match
-      case (Some(mi), Some(ma)) => literal(minDate = mi, maxDate = ma)
-      case (None, Some(ma))     => literal(maxDate = ma)
-      case (Some(mi), None)     => literal(minDate = mi)
-      case _                    => literal()
-    obj.asInstanceOf[TimeRestrictions]
+    literal(minDate = min.orUndefined, maxDate = max.orUndefined).asInstanceOf[TimeRestrictions]
 
 @js.native
 trait IconOptions extends js.Object:
@@ -131,17 +127,26 @@ trait TimeOptions extends js.Object:
   def display: DisplayOptions = js.native
   def restrictions: TimeRestrictions = js.native
   def localization: TimeLocalization = js.native
+  def useCurrent: Boolean = js.native
 
 object TimeOptions:
   def apply(
     r: TimeRestrictions,
     l: TimeLocalization,
     icons: IconOptions,
-    sideBySide: Boolean = false
+    sideBySide: Boolean = false,
+    useCurrent: Boolean = false,
+    promptTimeOnDateChange: Boolean = true
   ) =
     val display =
       DisplayOptions(sideBySide, icons, ButtonOptions(clear = true, close = true))
-    literal(display = display, restrictions = r, localization = l).asInstanceOf[TimeOptions]
+    literal(
+      display = display,
+      restrictions = r,
+      localization = l,
+      useCurrent = useCurrent,
+      promptTimeOnDateChange = promptTimeOnDateChange
+    ).asInstanceOf[TimeOptions]
 
 @js.native
 trait TimeSubscription extends js.Object:

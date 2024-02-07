@@ -125,23 +125,24 @@ class MapView[F[_]: Async](
   private def reconnect(from: Option[Date], to: Option[Date]): Unit =
     socket.reconnect(parseUri, Option(sample), from, to)
 
+  private val oneDayMs = 86400000L
   private val dateHandler = DateHandler()
   for
     fromElem <- elemAs[Element](FromTimePickerId)
     toElem <- elemAs[Element](ToTimePickerId)
   yield
-    val fromPicker = makePicker(FromTimePickerId)
-    val toPicker = makePicker(ToTimePickerId)
-    val _ =
-      dateHandler.subscribeDate(fromPicker, toPicker, isFrom = true, locale = locale): from =>
-        reconnect(from, dateHandler.to)
+    val tomorrow = new Date(Date.now() + oneDayMs)
+    val fromPicker = makePicker(FromTimePickerId, maxDate = Option(tomorrow))
+    val toPicker = makePicker(ToTimePickerId, None)
+    val _ = dateHandler.subscribeDate(fromPicker, toPicker, isFrom = true, locale = locale): from =>
+      reconnect(from, dateHandler.to)
     val _ = dateHandler.subscribeDate(toPicker, fromPicker, isFrom = false, locale = locale): to =>
       reconnect(dateHandler.from, to)
 
-  private def makePicker(elementId: String): TempusDominus =
+  private def makePicker(elementId: String, maxDate: Option[Date]): TempusDominus =
     TempusDominus(
       elemGet(elementId),
-      DateHandler.timeOptions(TimeRestrictions(None, None), locale)
+      DateHandler.timeOptions(TimeRestrictions(None, maxDate), locale)
     )
 
   private def focusSearch(className: String, e: KeyboardEvent) =

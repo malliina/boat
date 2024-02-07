@@ -27,7 +27,6 @@ class DateHandler:
   private var selectedFrom: Option[Date] = None
   private var selectedTo: Option[Date] = None
 
-  def maxDate = new Date(Date.now())
   def from = selectedFrom
   def to = selectedTo
 
