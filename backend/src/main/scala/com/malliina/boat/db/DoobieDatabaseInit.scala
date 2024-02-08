@@ -7,7 +7,7 @@ import org.flywaydb.core.Flyway
 import org.flywaydb.core.api.output.MigrateResult
 
 // TODO support table name customization in com.malliina %% database, then remove this file and use DoobieDatabase.scala directly
-object DoobieDatabaseInit:
+object DoobieDatabaseInit2:
   val log = AppLogger(getClass)
 
   def init[F[_]: Async](conf: Conf): Resource[F, DoobieDatabase[F]] =
@@ -19,7 +19,6 @@ object DoobieDatabaseInit:
   def withMigrations[F[_]: Async](conf: Conf): Resource[F, DoobieDatabase[F]] =
     Resource.eval[F, MigrateResult](migrate(conf)).flatMap(_ => DoobieDatabase.default(conf))
 
-  // hej
   private def migrate[F[_]: Sync](conf: Conf): F[MigrateResult] = Sync[F].delay:
     val flyway = Flyway.configure
       .dataSource(conf.url, conf.user, conf.pass)

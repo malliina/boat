@@ -5,7 +5,7 @@ import cats.effect.kernel.Resource
 import ch.qos.logback.classic.Level
 import com.comcast.ip4s.port
 import com.dimafeng.testcontainers.MySQLContainer
-import com.malliina.boat.db.{DoobieDatabaseInit, DoobieSQL}
+import com.malliina.boat.db.DoobieSQL
 import com.malliina.boat.http4s.{JsonInstances, Server, ServerComponents, Service}
 import com.malliina.boat.{AisAppConf, BoatConf, Errors, LocalConf}
 import com.malliina.config.ConfigNode
@@ -49,7 +49,8 @@ object WrappedTestConf:
     dbPass,
     Conf.MySQLDriver,
     2,
-    autoMigrate = true
+    autoMigrate = true,
+    schemaTable = "flyway_schema_history2"
   )
 
 trait MUnitSuite extends munit.CatsEffectSuite:
@@ -65,7 +66,8 @@ object TestConf:
     container.password,
     container.driverClassName,
     maxPoolSize = 2,
-    autoMigrate = true
+    autoMigrate = true,
+    schemaTable = "flyway_schema_history2"
   )
 
 object MUnitDatabaseSuite:
@@ -105,7 +107,7 @@ trait MUnitDatabaseSuite extends DoobieSQL:
       TestConf(c)
 
   val dbFixture = ResourceFixture(
-    Resource.eval(IO(confFixture())).flatMap(c => DoobieDatabaseInit.withMigrations(c))
+    Resource.eval(IO(confFixture())).flatMap(c => DoobieDatabase.init(c))
   )
 
   override def munitFixtures: Seq[Fixture[?]] = Seq(confFixture)
