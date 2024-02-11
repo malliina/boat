@@ -372,6 +372,8 @@ case class SentenceCoord2(
   waterTemp: Temperature,
   depth: DistanceM,
   depthOffset: DistanceM,
+  battery: Option[Energy],
+  carRange: Option[DistanceM],
   boatTime: Instant,
   date: DateVal,
   track: TrackId,
@@ -391,6 +393,8 @@ case class SentenceCoord2(
     Option(waterTemp),
     Option(depth),
     Option(depthOffset),
+    battery,
+    carRange,
     boatTime,
     date,
     track,
@@ -409,6 +413,8 @@ case class CombinedCoord(
   waterTemp: Option[Temperature],
   depth: Option[DistanceM],
   depthOffset: Option[DistanceM],
+  battery: Option[Energy],
+  carRange: Option[DistanceM],
   sourceTime: Instant,
   date: DateVal,
   track: TrackId,
@@ -446,6 +452,7 @@ case class CombinedCoord(
       outsideTemp,
       waterTemp.getOrElse(Temperature.zeroCelsius),
       depth.getOrElse(DistanceM.zero),
+      battery,
       formatter.timing(instant)
     )
 
@@ -495,6 +502,8 @@ case class TrackPointRow(
   waterTemp: Option[Temperature],
   depthm: Option[DistanceM],
   depthOffsetm: Option[DistanceM],
+  battery: Option[Energy],
+  carRange: Option[DistanceM],
   sourceTime: Instant,
   track: TrackId,
   trackIndex: Int,

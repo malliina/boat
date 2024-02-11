@@ -254,15 +254,17 @@ class MapSocket[F[_]: Temporal](
 
   def fitToMap(): Unit =
     if mapMode == MapMode.Fit then
-      log.info("Fitting to map...")
-      val trail = trails.values.flatten.map(_.coord)
+      val eligibleTrails = trails.filter((_, cs) => cs.size > 2)
+      val lengths = eligibleTrails.map((_, cs) => cs.size).mkString(", ")
+      log.info(s"Fitting to map from ${eligibleTrails.size} trails of lengths $lengths...")
+      val trail = eligibleTrails.values.flatten.map(_.coord)
       trail.headOption.foreach: head =>
         val init = LngLatBounds(head)
         val bs: LngLatBounds = trail
           .drop(1)
           .foldLeft(init): (bounds, c) =>
             bounds.extend(LngLat(c))
-        try map.fitBounds(bs, SimplePaddingOptions(20))
+        try map.fitBounds(bs, SimplePaddingOptions(60))
         catch
           case e: Exception =>
             val sw = bs.getSouthWest()

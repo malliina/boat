@@ -53,6 +53,7 @@ object DoobieTracksDatabase:
         point.outsideTemp,
         point.waterTemp.getOrElse(Temperature.zeroCelsius),
         point.depth.getOrElse(DistanceM.zero),
+        point.battery,
         formatter.timing(instant)
       )
       if idx >= 0 then

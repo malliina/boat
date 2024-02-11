@@ -488,6 +488,7 @@ case class TrackLang(
   graph: String,
   coordinate: String,
   comments: String,
+  battery: String,
   env: EnvLang
 ) derives Codec.AsObject
 
@@ -1059,6 +1060,7 @@ object Lang:
       "Graph",
       "Coordinates",
       "Comments",
+      "Battery",
       EnvLang("Altitude")
     ),
     mark = MarkLang(
@@ -1227,6 +1229,7 @@ object Lang:
       "Käyrät",
       "Koordinaatit",
       "Kommentit",
+      "Akku",
       EnvLang("Korkeus")
     ),
     mark = MarkLang(
@@ -1400,6 +1403,7 @@ object Lang:
       "Visualisering",
       "Koordinater",
       "Kommentarer",
+      "Batteri",
       EnvLang("Höjd")
     ),
     mark = MarkLang(

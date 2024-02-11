@@ -27,6 +27,7 @@ class Popups(lang: Lang) extends BoatModels:
           row(trackLang.depth, point.depth.short)
         )
       else empty,
+      point.battery.fold(empty)(b => row(trackLang.battery, b.formatKwh)),
       point.outsideTemp.fold(empty)(ot => row(trackLang.temperature, ot.formatCelsius)),
       point.altitude.fold(empty)(a => row(trackLang.env.altitude, formatDistance(a))),
       tr(td(colspan := 2)(point.dateTime))

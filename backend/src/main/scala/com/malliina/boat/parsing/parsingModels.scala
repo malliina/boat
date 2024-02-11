@@ -92,6 +92,7 @@ case class CarCoord(
     carStats.flatMap(_.outsideTemperature),
     Temperature.zeroCelsius,
     DistanceM.zero,
+    stats.batteryLevel,
     formatter.timing(sourceTime)
   )
 
@@ -139,6 +140,7 @@ case class FullCoord(
     carStats.flatMap(_.outsideTemperature),
     boat.waterTemp,
     boat.depth,
+    carStats.flatMap(_.batteryLevel),
     formatter.timing(sourceTime)
   )
 
