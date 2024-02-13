@@ -1,8 +1,6 @@
 package com.malliina.boat.client
 
-import cats.effect.IO
-import cats.effect.kernel.Resource
-import cats.effect.unsafe.implicits.global
+import cats.effect.{Deferred, IO, Resource}
 import com.comcast.ip4s.*
 import com.malliina.boat.RawSentence
 import com.malliina.util.AppLogger
@@ -10,10 +8,8 @@ import fs2.io.net.{Network, Socket}
 import fs2.{Chunk, Stream}
 
 import java.nio.ByteBuffer
-import scala.concurrent.Promise
 
-class TcpClientTests extends AsyncSuite:
-//  val socketsFixture = resource(Blocker[IO].flatMap { b => SocketGroup[IO](b) })
+class TcpClientTests extends munit.CatsEffectSuite:
   val log = AppLogger(getClass)
 
   test("client receives sentences over TCP socket"):
@@ -33,32 +29,37 @@ class TcpClientTests extends AsyncSuite:
     val tcpPort = port"10103"
     val network = Network[IO]
     val clientz: Stream[IO, Socket[IO]] = network.server(port = Option(tcpPort)).head
-    val headClient: Stream[IO, Unit] = clientz.evalMap { client =>
+    val headClient: Stream[IO, Unit] = clientz.evalMap: client =>
       val byteStream =
         plotterOutput
           .map(bs => Chunk.byteBuffer(ByteBuffer.wrap(bs)))
           .flatMap(c => Stream.emits(c.toList))
       byteStream.through(client.writes).compile.drain
-    }
-    headClient.compile.drain.unsafeRunAndForget()
+    val runPlotter = headClient.compile.drain
 
     // client connects to pretend-plotter
-    val p = Promise[RawSentence]()
-    val client = TcpClient.default[IO](tcpHost, tcpPort).unsafeRunSync()
-    client.connect(Stream.empty).compile.drain.unsafeRunAndForget()
-    client.sentencesHub
-      .take(1)
-      .map(msg => msg.sentences.headOption.foreach(raw => p.trySuccess(raw)))
-      .compile
-      .drain
-      .unsafeRunSync()
-    val received = await(p.future)
-    client.close.unsafeRunSync()
-    assertEquals(received, sentences.map(RawSentence.apply).head)
+    for
+      plotter <- runPlotter.start
+      p <- Deferred[IO, RawSentence]
+      client <- TcpClient.default[IO](tcpHost, tcpPort)
+      connection <- client.connect(Stream.empty).compile.drain.start
+      _ <- client.sentencesHub
+        .take(1)
+        .evalMap(msg => msg.sentences.headOption.fold(IO.unit)(raw => p.complete(raw)))
+        .compile
+        .drain
+      received <- p.get
+      _ <- client.close
+      _ <- plotter.join
+    yield assertEquals(received, sentences.map(RawSentence.apply).head)
 
   tcpFixture(host"127.0.0.1", port"10109").test("connection to unavailable server fails stream"):
     tcp =>
-      tcp.close.unsafeRunSync()
-      assertEquals(List.empty[Unit], tcp.connect().compile.toList.unsafeRunSync())
+      for
+        _ <- tcp.close
+        res <- tcp.connect().compile.toList
+      yield assertEquals(List.empty[Unit], res)
 
-  def tcpFixture(host: Host, port: Port) = resource(Resource.eval(TcpClient.default(host, port)))
+  def tcpFixture(host: Host, port: Port) = ResourceFixture(
+    Resource.eval(TcpClient.default(host, port))
+  )

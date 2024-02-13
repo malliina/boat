@@ -1,13 +1,12 @@
 package com.malliina.boat.client
 
-import cats.effect.unsafe.implicits.global
 import cats.effect.IO
 import com.malliina.boat.{Constants, RawSentence, SentencesMessage}
 import com.malliina.http.FullUrl
-import com.malliina.http.io.{HttpClientIO, WebSocketF}
 import com.malliina.http.io.SocketEvent.{Open, TextMessage}
+import com.malliina.http.io.{HttpClientIO, WebSocketF}
 
-class WebSocketClientTests extends AsyncSuite:
+class WebSocketClientTests extends munit.CatsEffectSuite:
   test("can connect to api.boat-tracker.com".ignore):
     val socketResource = for
       http <- HttpClientIO.resource[IO]
@@ -22,10 +21,7 @@ class WebSocketClientTests extends AsyncSuite:
           .take(1)
           .compile
           .toList
-          .unsafeRunSync()
-          .take(1)
-        IO.unit
-      .unsafeRunSync()
+          .void
 
   test("connect boat to boat-tracker.com".ignore):
     val url = FullUrl.ws("localhost:9000", "/ws/devices")
