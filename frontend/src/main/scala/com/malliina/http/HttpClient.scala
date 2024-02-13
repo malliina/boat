@@ -5,7 +5,7 @@ import io.circe.parser.decode
 import io.circe.syntax.EncoderOps
 import io.circe.{Decoder, Encoder}
 import org.scalajs.dom
-import org.scalajs.dom.{Headers, HttpMethod, RequestCredentials, RequestInit}
+import org.scalajs.dom.{Headers, HttpMethod, RequestCredentials, RequestInit, Response}
 
 import scala.concurrent.Future
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
@@ -57,7 +57,7 @@ class HttpClient extends CSRFConf:
     data: String | Unit = (),
     headers: Map[String, String] = Map.empty,
     credentials: RequestCredentials = RequestCredentials.include
-  ) =
+  ): Future[Response] =
     val req = new RequestInit {}
     req.method = method
     req.body = data
@@ -65,8 +65,9 @@ class HttpClient extends CSRFConf:
     val hs = new Headers()
     headers.foreach((name, value) => hs.append(name, value))
     req.headers = hs
-    dom.fetch(url, req)
+    dom.fetch(url, req).toFuture
 
 class JsonException(val error: io.circe.Error, val res: dom.Response) extends Exception
+
 class StatusException(val uri: String, val res: dom.Response)
   extends Exception(s"Invalid response code '${res.status}' from '$uri'.")

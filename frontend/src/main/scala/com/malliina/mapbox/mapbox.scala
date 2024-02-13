@@ -185,10 +185,11 @@ object MapboxMap:
       self.addLayer(JSON.parse(Parsing.stringify(layer)))
 
     def removeLayerAndSourceIfExists(id: String): Unit =
-      self.findSource(id).foreach { _ =>
-        self.removeLayer(id)
-        self.removeSource(id)
-      }
+      self
+        .findSource(id)
+        .foreach: _ =>
+          self.removeLayer(id)
+          self.removeSource(id)
 
     def queryRendered(
       point: PixelCoord,
@@ -207,9 +208,8 @@ object MapboxMap:
     )
 
     def initImage(uri: String, iconId: String): Future[Unit] =
-      fetchImage(uri).map { image =>
+      fetchImage(uri).map: image =>
         self.addImage(iconId, image)
-      }
 
     def fetchImage(uri: String): Future[js.Any] =
       val p = Promise[js.Any]()
