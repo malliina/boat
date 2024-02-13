@@ -148,7 +148,8 @@ object BoatConf:
     password,
     Conf.MySQLDriver,
     maxPoolSize = maxPoolSize,
-    autoMigrate = true
+    autoMigrate = true,
+    schemaTable = "flyway_schema_history2"
   )
 
   private def devDatabaseConf(password: String) = Conf(
@@ -157,5 +158,6 @@ object BoatConf:
     password,
     Conf.MySQLDriver,
     maxPoolSize = 2,
-    autoMigrate = false
+    autoMigrate = false,
+    schemaTable = "flyway_schema_history2"
   )

@@ -172,6 +172,7 @@ case class TimedCoord(
   outsideTemp: Option[Temperature],
   waterTemp: Temperature,
   depthMeters: DistanceM,
+  battery: Option[Energy],
   time: Timing
 ) extends MeasuredCoord:
   def lng = coord.lng
@@ -434,6 +435,7 @@ object Energy extends JsonCompanion[Double, Energy]:
   override def write(t: Energy): Double = t
 extension (e: Energy)
   def wattHours: Double = e
+  def formatKwh: String = "%.1f kWh".format(wattHours / 1000)
   def -(other: Energy): Energy = Energy(e.wattHours - other.wattHours)
 extension (e: Double) def wh: Energy = Energy(e)
 

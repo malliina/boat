@@ -21,7 +21,8 @@ class DoobieTests extends MUnitSuite with Mappings:
     "changeme",
     Conf.MySQLDriver,
     maxPoolSize = 5,
-    autoMigrate = true
+    autoMigrate = true,
+    schemaTable = "flyway_schema_history2"
   )
 
   val dbResource = databaseFixture(conf)

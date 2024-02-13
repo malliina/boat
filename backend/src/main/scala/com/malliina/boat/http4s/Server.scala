@@ -14,6 +14,7 @@ import com.malliina.boat.html.BoatHtml
 import com.malliina.boat.http4s.JsonInstances.circeJsonEncoder
 import com.malliina.boat.push.{BoatPushService, PushEndpoint}
 import com.malliina.boat.{AppMeta, AppMode, BoatConf, Errors, Logging, S3Client, SingleError, SourceType, message}
+import com.malliina.database.DoobieDatabase
 import com.malliina.http.HttpClient
 import com.malliina.http.io.{HttpClientF2, HttpClientIO}
 import com.malliina.util.AppLogger
@@ -103,8 +104,8 @@ object Server extends IOApp:
       http <- builder.http
       _ <- Resource.eval(Logging.install(dispatcher, http))
       db <-
-        if conf.isFull then DoobieDatabaseInit.init(conf.db)
-        else DoobieDatabaseInit.fast(conf.db)
+        if conf.isFull then DoobieDatabase.init(conf.db)
+        else Resource.pure(DoobieDatabase.fast(conf.db))
       users = DoobieUserManager(db)
       _ <-
         if conf.isFull then Resource.eval(users.initUser()) else Resource.unit

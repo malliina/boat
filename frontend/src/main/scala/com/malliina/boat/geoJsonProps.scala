@@ -18,6 +18,7 @@ case class PointProps(
   waterTemp: Temperature,
   outsideTemp: Option[Temperature],
   depth: DistanceM,
+  battery: Option[Energy],
   dateTime: FormattedDateTime,
   sourceType: SourceType
 ) derives Codec.AsObject
@@ -32,6 +33,7 @@ object PointProps:
       c.waterTemp,
       c.outsideTemp,
       c.depthMeters,
+      c.battery,
       c.time.dateTime,
       ref.sourceType
     )
