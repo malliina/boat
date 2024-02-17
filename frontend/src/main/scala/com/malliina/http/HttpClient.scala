@@ -1,5 +1,7 @@
 package com.malliina.http
 
+import cats.effect.Async
+import cats.syntax.all.toFlatMapOps
 import com.malliina.boat.http.CSRFConf
 import io.circe.parser.decode
 import io.circe.syntax.EncoderOps
@@ -7,31 +9,37 @@ import io.circe.{Decoder, Encoder}
 import org.scalajs.dom
 import org.scalajs.dom.{Headers, HttpMethod, RequestCredentials, RequestInit, Response}
 
-import scala.concurrent.Future
-import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
-import scala.scalajs.js.Thenable.Implicits.thenable2future
+import scala.scalajs.js
 
-object HttpClient extends HttpClient
+extension [A](t: js.Thenable[A])
+  def effect[F[_]: Async]: F[A] =
+    Async[F].async_[A]: cb =>
+      t.`then`(
+        a => cb(Right(a)),
+        err => cb(Left(js.special.wrapAsThrowable(err)))
+      )
 
-class HttpClient extends CSRFConf:
-  def get[R: Decoder](uri: String): Future[R] =
+class HttpClient[F[_]: Async] extends CSRFConf:
+  private val F = Async[F]
+
+  def get[R: Decoder](uri: String): F[R] =
     fetch(HttpMethod.GET, uri).flatMap: xhr =>
       validate[R](uri, xhr)
 
-  def post[W: Encoder, R: Decoder](uri: String, data: W): Future[R] =
+  def post[W: Encoder, R: Decoder](uri: String, data: W): F[R] =
     makeAjax(HttpMethod.POST, uri, data)
 
-  def patch[W: Encoder, R: Decoder](uri: String, data: W): Future[R] =
+  def patch[W: Encoder, R: Decoder](uri: String, data: W): F[R] =
     makeAjax(HttpMethod.PATCH, uri, data)
 
-  def put[W: Encoder, R: Decoder](uri: String, data: W): Future[R] =
+  def put[W: Encoder, R: Decoder](uri: String, data: W): F[R] =
     makeAjax(HttpMethod.PUT, uri, data)
 
   private def makeAjax[W: Encoder, R: Decoder](
     method: HttpMethod,
     uri: String,
     data: W
-  ): Future[R] =
+  ): F[R] =
     val headers = Map(
       "Content-Type" -> "application/json",
       CsrfHeaderName -> CsrfTokenNoCheck
@@ -39,17 +47,18 @@ class HttpClient extends CSRFConf:
     fetch(method, uri, data.asJson.noSpaces, headers = headers).flatMap: res =>
       validate[R](uri, res)
 
-  private def validate[R: Decoder](uri: String, res: dom.Response): Future[R] =
+  private def validate[R: Decoder](uri: String, res: dom.Response): F[R] =
     val status = res.status
     if status >= 200 && status <= 300 then
       res
         .text()
+        .effect
         .flatMap: str =>
           decode[R](str).fold(
-            err => Future.failed(new JsonException(err, res)),
-            ok => Future.successful(ok)
+            err => F.raiseError(new JsonException(err, res)),
+            ok => F.pure(ok)
           )
-    else Future.failed(new StatusException(uri, res))
+    else F.raiseError(new StatusException(uri, res))
 
   def fetch(
     method: HttpMethod,
@@ -57,7 +66,7 @@ class HttpClient extends CSRFConf:
     data: String | Unit = (),
     headers: Map[String, String] = Map.empty,
     credentials: RequestCredentials = RequestCredentials.include
-  ): Future[Response] =
+  ): F[Response] =
     val req = new RequestInit {}
     req.method = method
     req.body = data
@@ -65,7 +74,7 @@ class HttpClient extends CSRFConf:
     val hs = new Headers()
     headers.foreach((name, value) => hs.append(name, value))
     req.headers = hs
-    dom.fetch(url, req).toFuture
+    dom.fetch(url, req).effect
 
 class JsonException(val error: io.circe.Error, val res: dom.Response) extends Exception
 

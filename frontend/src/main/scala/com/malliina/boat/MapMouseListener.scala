@@ -1,5 +1,6 @@
 package com.malliina.boat
 
+import cats.effect.Async
 import com.malliina.boat.Parsing.validate
 import com.malliina.mapbox.*
 import com.malliina.util.EitherOps
@@ -19,9 +20,9 @@ case class LimitClick(limit: LimitArea, target: LngLatLike) extends ClickType
 case class LimitedFairwayClick(limit: LimitArea, area: FairwayArea, target: LngLatLike)
   extends ClickType
 
-class MapMouseListener(
+class MapMouseListener[F[_]: Async](
   map: MapboxMap,
-  pathFinder: PathFinder,
+  pathFinder: PathFinder[F],
   ais: AISRenderer,
   html: Popups,
   val log: BaseLogger = BaseLogger.console

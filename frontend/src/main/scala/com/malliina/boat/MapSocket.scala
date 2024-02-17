@@ -1,8 +1,8 @@
 package com.malliina.boat
 
 import cats.data.NonEmptyList
-import cats.effect.Temporal
 import cats.effect.std.Dispatcher
+import cats.effect.{Async, Temporal}
 import cats.syntax.list.*
 import cats.syntax.show.toShow
 import com.malliina.boat.BoatFormats.*
@@ -27,9 +27,9 @@ case class TrackIds(id: TrackId, track: TrackName, source: DeviceId, start: Timi
   def point = s"boat-$track"
   def all = Seq(trail, hoverable, trophy, point)
 
-class MapSocket[F[_]: Temporal](
+class MapSocket[F[_]: Temporal: Async](
   val map: MapboxMap,
-  pathFinder: PathFinder,
+  pathFinder: PathFinder[F],
   mode: MapMode,
   topic: Topic[F, CoordsEvent],
   dispatcher: Dispatcher[F],
@@ -45,7 +45,7 @@ class MapSocket[F[_]: Temporal](
   private val boatPopup = MapboxPopup(PopupOptions(className = Option("popup-boat")))
   private val ais = AISRenderer(map)
   private val html = Popups(lang)
-  private val popups = MapMouseListener(map, pathFinder, ais, html)
+  private val popups = MapMouseListener[F](map, pathFinder, ais, html)
 
   private var mapMode: MapMode = mode
 

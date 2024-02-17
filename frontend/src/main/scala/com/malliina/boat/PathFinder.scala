@@ -1,5 +1,7 @@
 package com.malliina.boat
 
+import cats.effect.Async
+import cats.syntax.all.toFunctorOps
 import com.malliina.boat.BoatFormats.formatDistance
 import com.malliina.boat.PathFinder.*
 import com.malliina.http.HttpClient
@@ -10,7 +12,6 @@ import org.scalajs.dom.{HTMLDivElement, HTMLSpanElement}
 import scalatags.JsDom.all.*
 
 import scala.annotation.unused
-import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 
 object PathFinder:
   private val routeLayer = "route"
@@ -18,7 +19,9 @@ object PathFinder:
   private val routeLastLayer = "route-last"
   private val layerIds = Seq(routeLayer, routeFirstLayer, routeLastLayer)
 
-class PathFinder(val map: MapboxMap) extends GeoUtils with BaseFront:
+class PathFinder[F[_]: Async](val map: MapboxMap, http: HttpClient[F])
+  extends GeoUtils
+  with BaseFront:
   private val mapContainer = elemGet[HTMLDivElement](MapId)
   private val routesContainer = elemGet[HTMLDivElement](RoutesContainer)
   var isEnabled: Boolean = false
@@ -59,7 +62,7 @@ class PathFinder(val map: MapboxMap) extends GeoUtils with BaseFront:
           start = Option(MapboxMarker(startMark(c), c, map))
 
   private def findRoute(from: Coord, to: Coord) =
-    HttpClient
+    http
       .get[RouteResult](s"/routes/${from.lat}/${from.lng}/${to.lat}/${to.lng}")
       .map: res =>
         val route = res.route

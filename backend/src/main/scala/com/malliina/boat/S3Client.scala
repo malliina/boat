@@ -1,7 +1,6 @@
 package com.malliina.boat
 
-import cats.effect.kernel.Resource
-import cats.effect.{Async, Sync}
+import cats.effect.{Async, Resource, Sync}
 import cats.implicits.toFunctorOps
 import com.malliina.boat.S3Client.{asF, log}
 import com.malliina.util.{AppLogger, FileUtils}

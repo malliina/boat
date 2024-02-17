@@ -1,20 +1,21 @@
 package com.malliina.boat
 
+import cats.effect.Resource
 import cats.effect.kernel.Async
 import cats.effect.std.Dispatcher
-import cats.effect.Resource
 import com.malliina.datepicker.{TempusDominus, TimeLocale, TimeRestrictions}
+import com.malliina.http.HttpClient
 import com.malliina.mapbox.*
 import fs2.concurrent.Topic
 import io.circe.*
 import io.circe.syntax.EncoderOps
 import org.scalajs.dom.*
 
-import concurrent.duration.DurationInt
+import scala.concurrent.duration.DurationInt
 import scala.scalajs.js.{Date, JSON, URIUtils}
 
 object MapView extends CookieNames:
-  def default[F[_]: Async]: Resource[F, MapView[F]] =
+  def default[F[_]: Async](http: HttpClient[F]): Resource[F, MapView[F]] =
     val F = Async[F]
     for
       topic <- Resource.eval(Topic[F, CoordsEvent])
@@ -27,7 +28,7 @@ object MapView extends CookieNames:
       )
     yield
       val lang = readCookie(LanguageName).map(Language.apply).getOrElse(Language.default)
-      MapView[F](AccessToken(token), lang, topic, dispatcher)
+      MapView[F](AccessToken(token), lang, topic, dispatcher, http)
 
   def readCookie(key: String): Either[NotFound, String] =
     cookies.get(key).toRight(NotFound(key))
@@ -45,6 +46,7 @@ class MapView[F[_]: Async](
   language: Language,
   topic: Topic[F, CoordsEvent],
   dispatcher: Dispatcher[F],
+  http: HttpClient[F],
   val log: BaseLogger = BaseLogger.console
 ) extends BaseFront:
   val F = Async[F]
@@ -60,7 +62,7 @@ class MapView[F[_]: Async](
   )
   val map = MapboxMap(mapOptions)
   private val geocoder = MapboxGeocoder.finland(accessToken)
-  val pathFinder = PathFinder(map)
+  val pathFinder = PathFinder(map, http)
   val settings = MapSettings
   private val SearchKey = "s"
   private val DirectionsKey = "d"

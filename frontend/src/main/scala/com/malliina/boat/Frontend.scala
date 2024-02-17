@@ -1,6 +1,7 @@
 package com.malliina.boat
 
 import cats.effect.{IO, IOApp, Resource}
+import com.malliina.http.HttpClient
 import org.scalajs.dom
 
 import scala.annotation.unused
@@ -38,21 +39,23 @@ object Frontend extends IOApp.Simple with BodyClasses:
   val log: BaseLogger = BaseLogger.console
 
   override def run: IO[Unit] =
+    val http = HttpClient[IO]()
+    val forms = FormHandlers(http)
     val resource = for
       _ <- initF(MapClass):
         for
-          map <- MapView.default[IO]
+          map <- MapView.default[IO](http)
           _ <- fs2.Stream.emit(()).concurrently(map.events).compile.resource.lastOrError
         yield ()
       _ <- init(ChartsClass)(ChartsView.default)
       _ <- init(FormsClass):
-        FormHandlers.titles().flatMap(_ => FormHandlers.comments())
+        forms.titles().flatMap(_ => forms.comments())
       _ <- init(AboutClass):
-        Right(AboutPage())
+        Right(AboutPage(http))
       _ <- init(StatsClass):
         Right(StatsPage())
       _ <- init(BoatsClass):
-        Right(FormHandlers.inviteOthers())
+        Right(forms.inviteOthers())
     yield ()
     resource.useForever.onError: t =>
       IO.delay(log.info(s"Initialization error: $t."))

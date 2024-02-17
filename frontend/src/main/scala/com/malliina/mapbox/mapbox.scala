@@ -1,14 +1,14 @@
 package com.malliina.mapbox
 
+import cats.effect.Async
+import cats.syntax.all.toFunctorOps
 import com.malliina.boat.{AccessToken, Coord, Feature, FeatureCollection, JsonError, Latitude, Layer, Longitude, Parsing}
+import com.malliina.{OptionDoubleOps, OptionOps, OptionStringOps}
 import org.scalajs.dom
 import org.scalajs.dom.{HTMLCanvasElement, html}
 import scalatags.JsDom.TypedTag
-import com.malliina.{OptionDoubleOps, OptionOps, OptionStringOps}
 
 import scala.annotation.unused
-import scala.concurrent.{Future, Promise}
-import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 import scala.scalajs.js
 import scala.scalajs.js.Dynamic.literal
 import scala.scalajs.js.JSConverters.*
@@ -207,19 +207,18 @@ object MapboxMap:
       out => self.getCanvas().style.cursor = ""
     )
 
-    def initImage(uri: String, iconId: String): Future[Unit] =
+    def initImage[F[_]: Async](uri: String, iconId: String): F[Unit] =
       fetchImage(uri).map: image =>
         self.addImage(iconId, image)
 
-    def fetchImage(uri: String): Future[js.Any] =
-      val p = Promise[js.Any]()
-      self.loadImage(
-        uri,
-        (err, data) =>
-          if err == null then p.success(data)
-          else p.failure(new Exception(s"Failed to load '$uri'."))
-      )
-      p.future
+    def fetchImage[F[_]: Async](uri: String): F[js.Any] =
+      Async[F].async_[js.Any]: cb =>
+        self.loadImage(
+          uri,
+          (err, data) =>
+            if err == null then cb(Right(data))
+            else cb(Left(new Exception(s"Failed to load '$uri'.")))
+        )
 
     def findSource(id: String): Option[GeoJsonSource] = self.getSource(id).toOption
     def hasSource(id: String): Boolean = findSource(id).isDefined
