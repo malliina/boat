@@ -28,12 +28,11 @@ object BoatsPage extends BoatImplicits with CSRFConf with HTMLConstants:
     val settings = lang.settings
     val boatLang = settings.boatLang
     val inviteLang = settings.invite
-    given Conversion[InviteState, Modifier] = {
+    given Conversion[InviteState, Modifier] =
       case Awaiting => inviteLang.awaiting
       case Accepted => inviteLang.accepted
       case Rejected => inviteLang.rejected
       case Other(_) => ""
-    }
     div(cls := "container")(
       div(cls := row)(
         div(cls := "col-md-12")(

@@ -16,7 +16,6 @@ import com.malliina.values.ErrorMessage
 import fs2.concurrent.Topic
 
 import scala.scalajs.js
-import scala.scalajs.js.Date
 
 case class NearestResult[T](result: T, distance: Double)
 
@@ -56,10 +55,10 @@ class MapSocket[F[_]: Temporal: Async](
   private var trails = Map.empty[TrackId, Seq[TimedCoord]]
   private var hovering = Set.empty[TrackIds]
 
-  def reconnect(track: PathState, sample: Option[Int], from: Option[Date], to: Option[Date]): Unit =
+  def reconnect(track: PathState, sample: Option[Int]): Unit =
     socket.foreach(_.close())
     clear()
-    val path = s"/ws/updates${BoatSocket.query(track, sample, from, to)}"
+    val path = s"/ws/updates${BoatSocket.query(track, sample)}"
     val s = new BoatSocket(path):
       override def onCoords(event: CoordsEvent): Unit =
         dispatcher.unsafeRunAndForget(topic.publish1(event))

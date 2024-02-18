@@ -1,5 +1,7 @@
 package com.malliina.boat
 
+import cats.Show
+
 import scala.concurrent.duration.{DurationInt, FiniteDuration}
 
 object Constants extends Constants
@@ -28,6 +30,19 @@ trait DatePickerKeys:
   val DatesContainer = "dates-container gx-0"
   val FromTimePickerId = "from-time-picker"
   val ToTimePickerId = "to-time-picker"
+  val ShortcutsId = "time-shortcuts-select"
+
+enum Shortcut(val name: String):
+  case Last30min extends Shortcut("last30min")
+  case Last2h extends Shortcut("last2h")
+  case Last12h extends Shortcut("last12h")
+  case Last24h extends Shortcut("last24h")
+  case Last48h extends Shortcut("last48h")
+
+object Shortcut:
+  given Show[Shortcut] = s => s.name
+  def fromString(s: String): Option[Shortcut] =
+    Shortcut.values.toList.find(_.name == s)
 
 object FrontKeys extends FrontKeys
 

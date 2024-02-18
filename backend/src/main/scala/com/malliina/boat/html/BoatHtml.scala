@@ -2,10 +2,10 @@ package com.malliina.boat.html
 
 import com.malliina.assets.{FileAssets, HashedAssets}
 import com.malliina.boat.FrontKeys.*
-import com.malliina.boat.html.BoatImplicits.showFrag
+import com.malliina.boat.html.BoatImplicits.given
 import com.malliina.boat.http.{Limits, TracksQuery}
 import com.malliina.boat.http4s.Reverse
-import com.malliina.boat.{AppConf, BuildInfo, Coord, FormsLang, FrontKeys, FullTrack, Lang, SourceType, TrackRef, TracksBundle, UserBoats, UserInfo, Usernames}
+import com.malliina.boat.{AppConf, BuildInfo, Coord, FormsLang, FrontKeys, FullTrack, Lang, Shortcut, SourceType, TrackRef, TracksBundle, UserBoats, UserInfo, Usernames}
 import com.malliina.html.HtmlTags
 import com.malliina.html.HtmlTags.{cssLink, deviceWidthViewport, titleTag}
 import com.malliina.html.HtmlImplicits.given
@@ -163,7 +163,21 @@ class BoatHtml(
   private def datesContainer(formsLang: FormsLang) =
     div(id := DatesContainer, cls := s"row $DatesContainer")(
       timePicker(formsLang.from, FromTimePickerId, "me-2"),
-      timePicker(formsLang.to, ToTimePickerId, "")
+      timePicker(formsLang.to, ToTimePickerId, "me-2"),
+      div(cls := "time-shortcuts time-picker-container col-sm-6 col-md-4 mt-2 mb-0 mt-sm-0")(
+        select(
+          id := ShortcutsId,
+          cls := "form-select form-select-sm",
+          aria.label := "Select time shortcut"
+        )(
+          option(selected)(formsLang.shortcuts),
+          option(value := Shortcut.Last30min)(formsLang.last30min),
+          option(value := Shortcut.Last2h)(formsLang.last2h),
+          option(value := Shortcut.Last12h)(formsLang.last12h),
+          option(value := Shortcut.Last24h)(formsLang.last24h),
+          option(value := Shortcut.Last48h)(formsLang.last48h)
+        )
+      )
     )
 
   private def timePicker(labelText: String, divId: String, clazz: String) =

@@ -98,11 +98,10 @@ class MapView[F[_]: Async](
     .debounce(2.seconds)
     .evalTap: e =>
       F.delay(socket.fitToMap())
-//      F.delay(log.info("Debounced!"))
   map.on(
     "load",
     () =>
-      reconnect(from = None, to = None)
+      reconnect()
       if initialSettings.customCenter then
         map.putLayer(
           Layer.symbol(
@@ -124,22 +123,40 @@ class MapView[F[_]: Async](
 
   initNavDropdown()
 
-  private def reconnect(from: Option[Date], to: Option[Date]): Unit =
-    socket.reconnect(parseUri, Option(sample), from, to)
+  private def reconnect(): Unit =
+    socket.reconnect(parseUri, Option(sample))
 
   private val oneDayMs = 86400000L
   private val dateHandler = DateHandler()
   for
     fromElem <- elemAs[Element](FromTimePickerId)
     toElem <- elemAs[Element](ToTimePickerId)
+    shortcutsElem <- elemAs[HTMLSelectElement](ShortcutsId)
   yield
     val tomorrow = new Date(Date.now() + oneDayMs)
     val fromPicker = makePicker(FromTimePickerId, maxDate = Option(tomorrow))
     val toPicker = makePicker(ToTimePickerId, None)
     val _ = dateHandler.subscribeDate(fromPicker, toPicker, isFrom = true, locale = locale): from =>
-      reconnect(from, dateHandler.to)
+      datesChanged(from, dateHandler.to)
     val _ = dateHandler.subscribeDate(toPicker, fromPicker, isFrom = false, locale = locale): to =>
-      reconnect(dateHandler.from, to)
+      datesChanged(dateHandler.from, to)
+    shortcutsElem.onchange = e =>
+      Shortcut
+        .fromString(shortcutsElem.value)
+        .map: shortcut =>
+          dateHandler.onShortcut(shortcut)
+          datesChanged(dateHandler.from, dateHandler.to)
+
+  private def datesChanged(from: Option[Date], to: Option[Date]): Unit =
+    val qs = QueryString.parse
+    Seq(Timings.From -> from, Timings.To -> to).foreach: (k, date) =>
+      date
+        .map: d =>
+          qs.set(k, d.toISOString())
+        .getOrElse:
+          qs.delete(k)
+    window.history.replaceState("", "", s"${window.location.pathname}?$qs")
+    reconnect()
 
   private def makePicker(elementId: String, maxDate: Option[Date]): TempusDominus =
     TempusDominus(

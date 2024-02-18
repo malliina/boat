@@ -9,18 +9,7 @@ import scala.util.Try
 trait BaseFront extends FrontKeys:
   val document = org.scalajs.dom.document
   val href = new URI(window.location.href)
-  private val queryString = Option(href.getQuery).getOrElse("")
-  private val queryParams: Map[String, List[String]] = queryString
-    .split("&")
-    .toList
-    .map { kv =>
-      kv.split("=").toList
-    }
-    .collect { case key :: value :: Nil => key -> value }
-    .groupBy { case (key, _) => key }
-    .map { case (k, v) =>
-      (k, v.map { case (_, vv) => vv })
-    }
+  private val queryParams = QueryString.parse
 
   def parseUri: PathState = href.getPath.split('/').toList match
     case _ :: "tracks" :: track :: _ => Name(TrackName(track))
@@ -33,17 +22,11 @@ trait BaseFront extends FrontKeys:
       yield RouteRequest(srcLatD, srcLngD, destLatD, destLngD)
       result.map(e => e.fold(_ => NoTrack, req => Route(req))).getOrElse(NoTrack)
     case _ :: canonical :: Nil => Canonical(TrackCanonical(canonical))
-    case _ =>
-      val qs = QueryString.parse
-      val timed = for
-        f <- qs.get("from")
-        t <- qs.get("to")
-      yield Timed(f, t)
-      timed.getOrElse(NoTrack)
+    case _                     => NoTrack
 
   private def toDouble(s: String) = Try(s.toDouble).toOption
   def queryInt(key: String) = query(key).flatMap(s => Try(s.toInt).toOption)
-  def query(key: String) = queryParams.get(key).flatMap(_.headOption)
+  def query(key: String) = queryParams.get(key)
   def anchor(id: String) = elemAs[HTMLAnchorElement](id)
   def elemGet[T](id: String) = elemAs[T](id).toOption.get
   def elemAs[T](id: String) = elem(id).map(_.asInstanceOf[T])
@@ -62,7 +45,6 @@ sealed trait PathState:
 case class Canonical(track: TrackCanonical) extends PathState
 case class Name(track: TrackName) extends PathState
 case class Route(req: RouteRequest) extends PathState
-case class Timed(from: String, to: String) extends PathState
 case object NoTrack extends PathState
 
 case class NotFound(id: String) extends AnyVal:

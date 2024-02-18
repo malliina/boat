@@ -50,7 +50,6 @@ enum TimeLocale(val name: String):
   case En extends TimeLocale("en")
 
 object TimeLocalization:
-
   def apply(df: DateFormats, locale: TimeLocale): TimeLocalization =
     literal(dateFormats = df, hourCycle = "h23", startOfTheWeek = 1, locale = locale.name)
       .asInstanceOf[TimeLocalization]

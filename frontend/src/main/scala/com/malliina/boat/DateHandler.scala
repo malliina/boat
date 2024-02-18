@@ -30,6 +30,17 @@ class DateHandler:
   def from = selectedFrom
   def to = selectedTo
 
+  def onShortcut(s: Shortcut): Unit =
+    val oneHour = 60 * 60 * 1000
+    val age = s match
+      case Shortcut.Last30min => oneHour / 2
+      case Shortcut.Last2h    => oneHour * 2
+      case Shortcut.Last12h   => oneHour * 12
+      case Shortcut.Last24h   => oneHour * 24
+      case Shortcut.Last48h   => oneHour * 48
+    selectedFrom = Option(new Date(Date.now() - age))
+    selectedTo = Option(new Date(Date.now()))
+
   def subscribeDate(
     picker: TempusDominus,
     other: TempusDominus,

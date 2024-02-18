@@ -145,7 +145,6 @@
 }
 
 .dates-container {
-  flex-direction: row;
   background-color: #87cece;
 }
 
@@ -194,4 +193,8 @@
   &.next {
     background-image: url("../img/chevron-right.svg");
   }
+}
+
+.time-shortcuts {
+
 }

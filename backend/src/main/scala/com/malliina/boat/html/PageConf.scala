@@ -1,6 +1,6 @@
 package com.malliina.boat.html
 
-import scalatags.Text.all.*
+import scalatags.Text.all.{Modifier, stringFrag}
 
 /** @param content
   *   page content

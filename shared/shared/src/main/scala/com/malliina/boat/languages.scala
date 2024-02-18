@@ -622,7 +622,16 @@ case class InviteLang(
   def confirmRevoke(boat: BoatName, fromEmail: Email) =
     s"$revoke $boat $from $fromEmail?"
 
-case class FormsLang(from: String, to: String)
+case class FormsLang(
+  from: String,
+  to: String,
+  shortcuts: String,
+  last30min: String,
+  last2h: String,
+  last12h: String,
+  last24h: String,
+  last48h: String
+) derives Codec.AsObject
 
 case class SettingsLang(
   welcome: String,
@@ -649,7 +658,7 @@ case class SettingsLang(
 )
 
 object SettingsLang:
-  private val modern = deriveCodec[SettingsLang]
+  private val modern: Codec.AsObject[SettingsLang] = deriveCodec[SettingsLang]
   private val encoder: Encoder[SettingsLang] = (sl: SettingsLang) =>
     modern(sl).deepMerge(Encoder[BoatLang].apply(sl.boatLang))
   given Codec[SettingsLang] = Codec.from(modern, encoder)
@@ -1151,7 +1160,16 @@ object Lang:
         "Awaiting",
         "from"
       ),
-      FormsLang("From", "To")
+      FormsLang(
+        "From",
+        "To",
+        "Quick selection",
+        "Last 30 min",
+        "Last 2h",
+        "Last 12h",
+        "Last 24h",
+        "Last 48h"
+      )
     ),
     LimitLang.en,
     LabelsLang("Statistics", "Monthly", "Yearly", "All time"),
@@ -1325,7 +1343,16 @@ object Lang:
         "Odottaa",
         "käyttäjältä"
       ),
-      FormsLang("Alku", "Loppu")
+      FormsLang(
+        "Alku",
+        "Loppu",
+        "Nopea valinta",
+        "Viimeisimmät 30 min",
+        "Viimeisimmät 2h",
+        "Viimeisimmät 12h",
+        "Viimeisimmät 24h",
+        "Viimeisimmät 48h"
+      )
     ),
     LimitLang.fi,
     LabelsLang("Tilastot", "Kuukausittain", "Vuosittain", "Kaikki"),
@@ -1494,7 +1521,16 @@ object Lang:
         "Väntar",
         "från"
       ),
-      FormsLang("Från", "Till")
+      FormsLang(
+        "Från",
+        "Till",
+        "Genvägar",
+        "Senaste 30 min",
+        "Senaste 2h",
+        "Senaste 12h",
+        "Senaste 24h",
+        "Senaste 48h"
+      )
     ),
     LimitLang.se,
     LabelsLang("Statistik", "Per månad", "Per år", "Alla tider"),
