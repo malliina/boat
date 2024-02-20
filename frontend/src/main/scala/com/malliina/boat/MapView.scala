@@ -155,6 +155,7 @@ class MapView[F[_]: Async](
           qs.set(k, d.toISOString())
         .getOrElse:
           qs.delete(k)
+    // This was from some google blog. Crazy api.
     window.history.replaceState("", "", s"${window.location.pathname}?$qs")
     reconnect()
 

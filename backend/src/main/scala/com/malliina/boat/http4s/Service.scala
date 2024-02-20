@@ -363,9 +363,9 @@ class Service[F[_]: Async: Files](comps: BoatComps[F], graph: Graph) extends Bas
         .authOrAnon(req.headers)
         .flatMap: user =>
           val username = user.username
-          log.info(s"Viewer '${user.username}' joined.")
           BoatQuery(req.uri.query)
             .map: boatQuery =>
+              log.info(s"Viewer '$username' joined with query ${boatQuery.describe}.")
               val historicalLimits =
                 if boatQuery.tracks.nonEmpty && username == Usernames.anon then
                   BoatQuery.tracks(boatQuery.tracks)
@@ -381,12 +381,11 @@ class Service[F[_]: Async: Files](comps: BoatComps[F], graph: Graph) extends Bas
                   val fallbackSample = math.max(1, coordsCount / 1000)
                   val actualSample = boatQuery.sample.getOrElse(fallbackSample)
                   val sampled = es.toList.map(_.sample(actualSample))
-                  if actualSample > 1 then
-                    val sampledCount = sampled.map(_.coords.length).sum
-                    val trackIds = sampled.map(_.from.track).sorted.distinct.mkString(", ")
-                    log.info(
-                      s"Using sample of $sampledCount/$coordsCount coords for track IDs $trackIds for user ${user.username}."
-                    )
+                  val sampledCount = sampled.map(_.coords.length).sum
+                  val trackIds = sampled.map(_.from.track).sorted.distinct.mkString(", ")
+                  log.info(
+                    s"Returning history of $sampledCount/$coordsCount coords for track IDs $trackIds for user ${user.username}."
+                  )
                   sampled
               val history = Stream.evalSeq(historyIO)
               val formatter = TimeFormatter.lang(user.language)
@@ -401,7 +400,9 @@ class Service[F[_]: Async: Files](comps: BoatComps[F], graph: Graph) extends Bas
                 message => F.delay(log.info(message)),
                 onClose = F.delay(log.info(s"Viewer '$username' left."))
               )
-            .recover(errors => badRequest(errors))
+            .recover: errors =>
+              log.warn(s"User '$username' sent a bad boat query, failing. (${errors.message})")
+              badRequest(errors)
     case req @ GET -> Root / "ws" / "boats" =>
       auth
         .authBoat(req.headers)

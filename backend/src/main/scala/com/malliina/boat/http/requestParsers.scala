@@ -156,6 +156,14 @@ case class BoatQuery(
   def offset = limits.offset
   def from = timeRange.from
   def to = timeRange.to
+  def describe: String =
+    val timeFrom = from.map(f => s"from $f ").getOrElse("")
+    val timeTo = to.map(t => s"to $t ").getOrElse("")
+    val cs =
+      if canonicals.nonEmpty then s"canonicals ${canonicals.map(c => s"'$c'").mkString(", ")} "
+      else ""
+    val ts = if tracks.nonEmpty then s"tracks ${tracks.map(t => s"'$t'").mkString(",")} " else ""
+    s"$timeFrom$timeTo$cs${ts}limit ${limits.limit} offset ${limits.offset} newest $newest"
 
 object BoatQuery:
   private val NewestKey = "newest"
