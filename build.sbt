@@ -7,14 +7,14 @@ import scala.sys.process.Process
 
 val webAuthVersion = "6.6.4"
 val munitVersion = "0.7.29"
-val testContainersScalaVersion = "0.41.2"
+val testContainersScalaVersion = "0.41.3"
 val scalaTagsVersion = "0.12.0"
 val primitiveVersion = "3.5.2"
 val logstreamsVersion = "2.7.0"
-val http4sVersion = "0.23.25"
-val logbackVersion = "1.4.11"
+val http4sVersion = "0.23.26"
+val logbackVersion = "1.4.14"
 val circeVersion = "0.14.6"
-val alpnVersion = "12.0.3"
+val alpnVersion = "12.0.7"
 val webAuthDep = "com.malliina" %% "web-auth" % webAuthVersion
 val webAuthTestDep = webAuthDep % Test classifier "tests"
 val munitDep = "org.scalameta" %% "munit" % munitVersion % Test
@@ -27,7 +27,7 @@ ThisBuild / parallelExecution := false
 Global / concurrentRestrictions += Tags.limit(Tags.Test, 1)
 
 val scala213 = "2.13.6"
-val scala3 = "3.3.1"
+val scala3 = "3.4.0"
 
 inThisBuild(
   Seq(
@@ -93,7 +93,7 @@ val frontend = project
   .settings(boatSettings)
   .settings(
     libraryDependencies ++= Seq(
-      "co.fs2" %%% "fs2-core" % "3.9.3",
+      "co.fs2" %%% "fs2-core" % "3.9.4",
       "org.scala-js" %%% "scalajs-dom" % "2.8.0",
       "org.scalameta" %%% "munit" % munitVersion % Test
     ),
@@ -125,7 +125,7 @@ val backend = Project("boat", file("backend"))
       "com.vividsolutions" % "jts" % "1.13",
       "mysql" % "mysql-connector-java" % "8.0.33",
       "org.apache.commons" % "commons-text" % "1.11.0",
-      "software.amazon.awssdk" % "s3" % "2.21.21",
+      "software.amazon.awssdk" % "s3" % "2.25.7",
       "com.malliina" %% "logstreams-client" % logstreamsVersion,
       "com.malliina" %% "mobile-push-io" % "3.9.0",
       "com.malliina" %% "config" % primitiveVersion,
@@ -188,7 +188,7 @@ val agent = project
         "com.malliina" %% "primitives" % primitiveVersion,
         "com.malliina" %% "logstreams-client" % logstreamsVersion,
         "com.lihaoyi" %% "scalatags" % scalaTagsVersion,
-        "commons-codec" % "commons-codec" % "1.16.0",
+        "commons-codec" % "commons-codec" % "1.16.1",
         "org.typelevel" %% "munit-cats-effect-3" % "1.0.7" % Test
       ),
     releaseUseGlobalVersion := false,
@@ -232,7 +232,7 @@ val utils = project
       "OSGeo Release Repository" at "https://repo.osgeo.org/repository/release/"
     ),
     libraryDependencies ++= Seq("shapefile", "geojson").map { m =>
-      "org.geotools" % s"gt-$m" % "30.0" exclude ("javax.media", "jai_core")
+      "org.geotools" % s"gt-$m" % "30.2" exclude ("javax.media", "jai_core")
     } ++ Seq(
       "ch.qos.logback" % "logback-classic" % logbackVersion,
 //      "javax.media" % "jai_core" % "1.1.3",
