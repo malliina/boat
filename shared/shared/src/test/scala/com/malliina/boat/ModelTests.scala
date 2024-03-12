@@ -42,7 +42,7 @@ class ModelTests extends munit.FunSuite:
         |  }
         |}
       """.stripMargin
-    val result = decode[VesselLocation](in)(VesselLocation.readerGeoJson)
+    val result = decode[VesselLocation](in)(using VesselLocation.readerGeoJson)
     // println(result)
     assert(result.isRight)
 
@@ -67,7 +67,7 @@ class ModelTests extends munit.FunSuite:
         |}
       """.stripMargin
 
-    val result = decode[VesselMetadata](in)(VesselMetadata.readerGeoJson)
+    val result = decode[VesselMetadata](in)(using VesselMetadata.readerGeoJson)
     // println(result)
     assert(result.isRight)
 

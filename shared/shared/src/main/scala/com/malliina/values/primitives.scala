@@ -23,7 +23,7 @@ extension (i: Float) inline def degrees: Degrees = ${ Literals.DegreesLiteral('i
 extension (i: Double)
   inline def lat: Latitude = ${ Literals.LatitudeLiteral('i) }
   inline def lng: Longitude = ${ Literals.LongitudeLiteral('i) }
-  inline def lngLat(lat: Double): Coord = Coord(i.lng, lat.lat)
+  inline infix def lngLat(lat: Double): Coord = Coord(i.lng, lat.lat)
 
 extension (s: String)
   inline def err: ErrorMessage = ${ Literals.ErrorMessageLiteral('s) }
