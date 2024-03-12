@@ -299,13 +299,13 @@ object TimeRange:
 
   private def bindInstant(key: String, q: Query): Either[Errors, Option[Instant]] =
     QueryParsers
-      .parseOptE[Instant](q, key)(instantDecoder)
+      .parseOptE[Instant](q, key)(using instantDecoder)
       .orElse(
         bindLocalDate(key, q).map(_.map(_.atStartOfDay(TimeFormatter.helsinkiZone).toInstant))
       )
 
   private def bindLocalDate(key: String, q: Query): Either[Errors, Option[LocalDate]] =
-    QueryParsers.parseOptE[LocalDate](q, key)(localDateEncoder)
+    QueryParsers.parseOptE[LocalDate](q, key)(using localDateEncoder)
 
   def parseInstant(in: String): Either[SingleError, Instant] =
     try Right(Instant.parse(in))

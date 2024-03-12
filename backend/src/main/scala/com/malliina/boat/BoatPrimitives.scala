@@ -1,6 +1,6 @@
 package com.malliina.boat
 
-import io.circe.*
+import io.circe.{Codec, Decoder, Encoder}
 
 import scala.concurrent.duration.{DurationDouble, FiniteDuration}
 

@@ -124,8 +124,8 @@ class BoatMqttClient[F[_]: Async](
           decode[VesselLocationV2](str).flatMap(loc => mmsiResult.map(mmsi => loc.withMmsi(mmsi)))
         case MetadataV2() =>
           decode[VesselMetadataV2](str).flatMap(meta => mmsiResult.map(mmsi => meta.withMmsi(mmsi)))
-        case Locations()   => decode[VesselLocation](str)(VesselLocation.readerGeoJson)
-        case Metadata()    => decode[VesselMetadata](str)(VesselMetadata.readerGeoJson)
+        case Locations()   => decode[VesselLocation](str)(using VesselLocation.readerGeoJson)
+        case Metadata()    => decode[VesselMetadata](str)(using VesselMetadata.readerGeoJson)
         case StatusTopic() => decode[VesselStatus](str)
         case other => Left(DecodingFailure(s"Unknown topic: '$other'. Payload: '$str'.", Nil))
   val vesselMessages: Stream[F, AisPair] = parsed.flatMap:

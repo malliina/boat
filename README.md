@@ -88,6 +88,14 @@ To configure Microsoft login:
 
 https://portal.azure.com -> Registered Apps
 
+### Azure credentials
+
+Every 24 months, Azure credentials used in GitHub Actions expire. To renew, run:
+
+    az ad sp create-for-rbac --name "CICD" --role contributor --scopes /subscriptions/$AZURE_SUBSCRIPTION_ID --sdk-auth
+
+Then copy the JSON output to GitHub Actions secret AZURE_CREDENTIALS.
+
 ## License
 
 Licensed under the 3-Clause BSD License.
