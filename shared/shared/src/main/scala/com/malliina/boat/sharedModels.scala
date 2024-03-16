@@ -2,6 +2,7 @@ package com.malliina.boat
 
 import cats.syntax.all.toFunctorOps
 import com.malliina.boat.BoatJson.keyValued
+import com.malliina.boat.http.Limits
 import com.malliina.json.PrimitiveFormats
 import com.malliina.measure.{DistanceM, SpeedM, Temperature}
 import com.malliina.values.*
@@ -459,6 +460,43 @@ object PingEvent:
   given Codec[Duration] = PrimitiveFormats.durationCodec
   given Codec[PingEvent] = keyValued(Key, deriveCodec[PingEvent])
 
+case class FromTo(from: Option[String], to: Option[String]) derives Codec.AsObject
+
+case class SearchQuery(
+  limits: Limits,
+  timeRange: FromTo,
+  tracks: Seq[TrackName],
+  canonicals: Seq[TrackCanonical],
+  route: Option[RouteRequest],
+  sample: Option[Int],
+  newest: Boolean
+) derives Codec.AsObject
+
+enum MetaType(val name: String):
+  case Loading extends MetaType("loading")
+  case NoData extends MetaType("noData")
+
+object MetaType:
+  val enc: Encoder[MetaType] = Encoder.encodeString.contramap(_.name)
+  val all = Seq(Loading, NoData)
+  val dec = Decoder.decodeString.emap: s =>
+    all.find(_.name == s).toRight(s"Unknown meta type: '$s', must be one of ${all.mkString(", ")}.")
+  given Codec[MetaType] = Codec.from(dec, enc)
+
+case class MetaEvent(event: MetaType, meta: SearchQuery) extends FrontEvent:
+  override def isIntendedFor(user: MinimalUserInfo): Boolean = true
+
+object MetaEvent:
+  val Key = "meta"
+//  val enc: Encoder[MetaEvent] = (me: MetaEvent) =>
+//    keyValued(me.event.name, deriveCodec[SearchQuery])(me)
+//  val dec =
+//    keyedDecoder(Seq(MetaType.Loading, MetaType.NoData).map(_.name), deriveCodec[SearchQuery])
+  given Codec[MetaEvent] = keyValued(Key, deriveCodec[MetaEvent])
+
+  def noData(meta: SearchQuery) = MetaEvent(MetaType.NoData, meta)
+  def loading(meta: SearchQuery) = MetaEvent(MetaType.Loading, meta)
+
 case class VesselMessages(vessels: Seq[VesselInfo]) extends FrontEvent:
   override def isIntendedFor(user: MinimalUserInfo): Boolean = true
 
@@ -481,15 +519,16 @@ object FrontEvent:
     Decoder[CoordsBatch].widen,
     Decoder[SentencesEvent].widen,
     Decoder[PingEvent].widen,
-    Decoder[CoordsEvent].widen
+    Decoder[CoordsEvent].widen,
+    Decoder[MetaEvent].widen
   ).reduceLeft(_ or _)
-  given Encoder[FrontEvent] = {
+  given Encoder[FrontEvent] =
     case se @ SentencesEvent(_, _) => se.asJson
     case ce @ CoordsEvent(_, _)    => ce.asJson
     case cb @ CoordsBatch(_)       => cb.asJson
     case pe @ PingEvent(_, _)      => pe.asJson
     case vs @ VesselMessages(_)    => vs.asJson
-  }
+    case me @ MetaEvent(_, _)      => me.asJson
 
 case class SentencesMessage(sentences: Seq[RawSentence]):
   def toTrackEvent(from: TrackMetaShort) = SentencesEvent(sentences, from)
@@ -508,15 +547,23 @@ object BoatJson:
     * "body".
     */
   def keyValued[T](value: String, payload: Codec[T]): Codec[T] =
-    val decoder = eventDecoder.flatMap[T]: event =>
-      if event == value then payload.at(BodyKey)
-      else Decoder.failed(DecodingFailure(s"Event is '$event', required '$value'.", Nil))
+    keyValueds(Seq(value), value, payload)
+
+  def keyValueds[T](eventValues: Seq[String], encodeEvent: String, payload: Codec[T]): Codec[T] =
     val encoder: Encoder[T] = (a: T) =>
       Json.obj(
-        (EventKey, Json.fromString(value)),
+        (EventKey, Json.fromString(encodeEvent)),
         (BodyKey, payload(a))
       )
-    Codec.from(decoder, encoder)
+    Codec.from(keyedDecoder(eventValues, payload), encoder)
+
+  def keyedDecoder[T](eventValues: Seq[String], payload: Decoder[T]): Decoder[T] =
+    eventDecoder.flatMap[T]: event =>
+      if eventValues.contains(event) then payload.at(BodyKey)
+      else
+        Decoder.failed(
+          DecodingFailure(s"Event is '$event', must be one of ${eventValues.mkString(", ")}.", Nil)
+        )
 
 case class IconsConf(boat: String, trophy: String) derives Codec.AsObject
 

@@ -2,7 +2,7 @@ package com.malliina.boat.http
 
 import cats.implicits.*
 import com.malliina.boat.http4s.QueryParsers
-import com.malliina.boat.{BoatName, CarUpdateId, Constants, Coord, Errors, Latitude, Longitude, Mmsi, RouteRequest, SingleError, TimeFormatter, Timings, TrackCanonical, TrackName, VesselName}
+import com.malliina.boat.{BoatName, CarUpdateId, Constants, Coord, Errors, FromTo, Latitude, Longitude, Mmsi, RouteRequest, SearchQuery, SingleError, TimeFormatter, Timings, TrackCanonical, TrackName, VesselName}
 import com.malliina.values.{Email, ErrorMessage}
 import io.circe.Codec
 import org.http4s.{Headers, Query, QueryParamDecoder, Request}
@@ -59,12 +59,12 @@ object TrackQuery:
 
   def withDefault(
     q: Query,
-    defaultLimit: Int = Limits.DefaultLimit
+    defaultLimit: Int = LimitsBuilder.DefaultLimit
   ): Either[Errors, TrackQuery] =
     for
       sort <- TrackSort(q)
       order <- SortOrder(q)
-      limits <- Limits(q, defaultLimit)
+      limits <- LimitsBuilder(q, defaultLimit)
     yield TrackQuery(sort, order, limits)
 
 case class TracksQuery(sources: Seq[BoatName], query: TrackQuery)
@@ -123,7 +123,7 @@ object VesselQuery:
     for
       name <- QueryParsers.list[VesselName](VesselName.Key, q)
       mmsi <- QueryParsers.list[Mmsi](Mmsi.Key, q)
-      limits <- Limits(q)
+      limits <- LimitsBuilder(q)
       time <- TimeRange(q)
     yield VesselQuery(name, mmsi, time, limits)
 
@@ -133,7 +133,7 @@ case class CarQuery(limits: Limits, timeRange: TimeRange, ids: List[CarUpdateId]
   def describe = s"${timeRange.describe}${space}with ${limits.describe}"
 
 object CarQuery:
-  def ids(list: List[CarUpdateId]) = CarQuery(Limits.default, TimeRange.none, list)
+  def ids(list: List[CarUpdateId]) = CarQuery(LimitsBuilder.default, TimeRange.none, list)
 
 /** @param tracks
   *   tracks to return
@@ -156,6 +156,12 @@ case class BoatQuery(
   def offset = limits.offset
   def from = timeRange.from
   def to = timeRange.to
+  def simple =
+    val fromTo = FromTo(
+      from = timeRange.from.map(BoatQuery.instantFormatter.format),
+      to = timeRange.to.map(BoatQuery.instantFormatter.format)
+    )
+    SearchQuery(limits, fromTo, tracks, canonicals, route, sample, newest)
   def describe: String =
     val timeFrom = from.map(f => s"from $f ").getOrElse("")
     val timeTo = to.map(t => s"to $t ").getOrElse("")
@@ -166,6 +172,8 @@ case class BoatQuery(
     s"$timeFrom$timeTo$cs${ts}limit ${limits.limit} offset ${limits.offset} newest $newest"
 
 object BoatQuery:
+  private val instantFormatter = DateTimeFormatter.ISO_INSTANT
+
   private val NewestKey = "newest"
   private val SampleKey = "sample"
   private val DefaultSample = Constants.DefaultSample
@@ -177,7 +185,7 @@ object BoatQuery:
 
   def tracks(tracks: Seq[TrackName]): BoatQuery =
     BoatQuery(
-      Limits.default,
+      LimitsBuilder.default,
       TimeRange(None, None),
       tracks,
       Nil,
@@ -188,18 +196,18 @@ object BoatQuery:
 
   def apply(q: Query): Either[Errors, BoatQuery] =
     for
-      limits <- Limits(q)
+      limits <- LimitsBuilder(q)
       timeRange <- TimeRange(q)
       tracks <- bindSeq[TrackName](TrackName.Key, q)
       canonicals <- bindSeq[TrackCanonical](TrackCanonical.Key, q)
       route <- bindRouteRequest(q)
-      sample <- Limits.readInt(SampleKey, q)
+      sample <- LimitsBuilder.readInt(SampleKey, q)
       newest <- bindNewest(q, default = timeRange.isEmpty)
     yield BoatQuery(limits, timeRange, tracks, canonicals, route, sample, newest)
 
   def car(q: Query): Either[Errors, CarQuery] =
     for
-      limits <- Limits(q)
+      limits <- LimitsBuilder(q)
       timeRange <- TimeRange(q)
     yield CarQuery(limits, timeRange, Nil)
 
@@ -240,18 +248,7 @@ object BoatQuery:
   private def readDouble(key: String, q: Query): Option[Either[Errors, Double]] =
     QueryParsers.parseOpt[Double](q, key)
 
-trait LimitLike:
-  def limit: Int
-  def offset: Int
-  def page = offset / limit + 1
-
-case class Limits(limit: Int, offset: Int) extends LimitLike:
-  def describe = s"limit $limit offset $offset"
-
-object Limits:
-  val Limit = "limit"
-  val Offset = "offset"
-
+object LimitsBuilder:
   val DefaultLimit = 100000
   private val DefaultOffset = 0
 
@@ -262,8 +259,8 @@ object Limits:
 
   def apply(q: Query, defaultLimit: Int = DefaultLimit): Either[Errors, Limits] =
     for
-      limit <- QueryParsers.parseOrDefault(q, Limit, defaultLimit)
-      offset <- QueryParsers.parseOrDefault(q, Offset, DefaultOffset)
+      limit <- QueryParsers.parseOrDefault(q, Limits.Limit, defaultLimit)
+      offset <- QueryParsers.parseOrDefault(q, Limits.Offset, DefaultOffset)
     yield Limits(limit, offset)
 
 case class TimeRange(from: Option[Instant], to: Option[Instant]):

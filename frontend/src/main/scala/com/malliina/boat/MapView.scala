@@ -156,7 +156,7 @@ class MapView[F[_]: Async](
         .getOrElse:
           qs.delete(k)
     // This was from some google blog. Crazy api.
-    window.history.replaceState("", "", s"${window.location.pathname}?$qs")
+    qs.commit()
     reconnect()
 
   private def makePicker(elementId: String, maxDate: Option[Date]): TempusDominus =

@@ -20,3 +20,4 @@ class QueryString(val inner: URLSearchParams):
   def render = inner.toString
   def isEmpty = inner.isEmpty
   override def toString = render
+  def commit(): Unit = window.history.replaceState("", "", s"${window.location.pathname}?$render")

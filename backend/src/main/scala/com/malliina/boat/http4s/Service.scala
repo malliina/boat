@@ -387,10 +387,15 @@ class Service[F[_]: Async: Files](comps: BoatComps[F], graph: Graph) extends Bas
                     s"Returning history of $sampledCount/$coordsCount coords for track IDs $trackIds for user ${user.username}."
                   )
                   sampled
-              val history = Stream.evalSeq(historyIO)
+              val simpleQuery = boatQuery.simple
+              val historyOrNoData: F[Seq[FrontEvent]] = historyIO.map: ces =>
+                if ces.isEmpty then Seq(MetaEvent.noData(simpleQuery))
+                else ces
+              val history = Stream.evalSeq(historyOrNoData)
+
               val formatter = TimeFormatter.lang(user.language)
               val updates = streams.clientEvents(formatter)
-              val eventSource = (history ++ updates)
+              val eventSource = (Stream(MetaEvent.loading(simpleQuery)) ++ history ++ updates)
                 .mergeHaltBoth(pings)
                 .filter(_.isIntendedFor(user))
                 .map(message => Text(message.asJson.noSpaces))

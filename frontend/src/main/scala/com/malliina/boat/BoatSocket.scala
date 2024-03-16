@@ -27,7 +27,9 @@ abstract class BoatSocket(path: String) extends BaseSocket(path) with BaseFront:
       case SentencesEvent(_, _)                           => ()
       case PingEvent(_, _)                                => ()
       case VesselMessages(messages)                       => onAIS(messages)
+      case me @ MetaEvent(_, _)                           => onMeta(me)
       case other                                          => log.info(s"Unknown event: '$other'.")
 
+  def onMeta(event: MetaEvent): Unit
   def onCoords(event: CoordsEvent): Unit
   def onAIS(messages: Seq[VesselInfo]): Unit
