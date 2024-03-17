@@ -426,8 +426,8 @@ case class CoordsEvent(coords: List[TimedCoord], from: TrackRef) extends BoatFro
 
 object CoordsEvent:
   val Key = "coords"
-  implicit val coordsJson: Codec[Coord] = Coord.json
-  implicit val json: Codec[CoordsEvent] = keyValued(Key, deriveCodec[CoordsEvent])
+  given Codec[Coord] = Coord.json
+  given Codec[CoordsEvent] = keyValued(Key, deriveCodec[CoordsEvent])
 
 // Watt hours
 opaque type Energy = Double
@@ -452,8 +452,10 @@ object SentencesEvent:
   val Key = "sentences"
   given Codec[SentencesEvent] = keyValued(Key, deriveCodec[SentencesEvent])
 
-case class PingEvent(sent: Long, age: Duration) extends FrontEvent:
-  override def isIntendedFor(user: MinimalUserInfo) = true
+sealed trait BroadcastEvent extends FrontEvent:
+  override def isIntendedFor(user: MinimalUserInfo): Boolean = true
+
+case class PingEvent(sent: Long, age: Duration) extends BroadcastEvent
 
 object PingEvent:
   val Key = "ping"
@@ -472,38 +474,25 @@ case class SearchQuery(
   newest: Boolean
 ) derives Codec.AsObject
 
-enum MetaType(val name: String):
-  case Loading extends MetaType("loading")
-  case NoData extends MetaType("noData")
-
-object MetaType:
-  val enc: Encoder[MetaType] = Encoder.encodeString.contramap(_.name)
-  val all = Seq(Loading, NoData)
-  val dec = Decoder.decodeString.emap: s =>
-    all.find(_.name == s).toRight(s"Unknown meta type: '$s', must be one of ${all.mkString(", ")}.")
-  given Codec[MetaType] = Codec.from(dec, enc)
-
-case class MetaEvent(event: MetaType, meta: SearchQuery) extends FrontEvent:
+case class LoadingEvent(meta: SearchQuery) extends BroadcastEvent:
   override def isIntendedFor(user: MinimalUserInfo): Boolean = true
 
-object MetaEvent:
-  val Key = "meta"
-//  val enc: Encoder[MetaEvent] = (me: MetaEvent) =>
-//    keyValued(me.event.name, deriveCodec[SearchQuery])(me)
-//  val dec =
-//    keyedDecoder(Seq(MetaType.Loading, MetaType.NoData).map(_.name), deriveCodec[SearchQuery])
-  given Codec[MetaEvent] = keyValued(Key, deriveCodec[MetaEvent])
+object LoadingEvent:
+  val Key = "loading"
+  given Codec[LoadingEvent] = keyValued(Key, deriveCodec[LoadingEvent])
 
-  def noData(meta: SearchQuery) = MetaEvent(MetaType.NoData, meta)
-  def loading(meta: SearchQuery) = MetaEvent(MetaType.Loading, meta)
+case class NoDataEvent(meta: SearchQuery) extends BroadcastEvent
 
-case class VesselMessages(vessels: Seq[VesselInfo]) extends FrontEvent:
-  override def isIntendedFor(user: MinimalUserInfo): Boolean = true
+object NoDataEvent:
+  val Key = "noData"
+  given Codec[NoDataEvent] = keyValued(Key, deriveCodec[NoDataEvent])
+
+case class VesselMessages(vessels: Seq[VesselInfo]) extends BroadcastEvent
 
 object VesselMessages:
   val Key = "vessels"
-  given Codec[VesselMessages] = keyValued(Key, deriveCodec[VesselMessages])
   val empty = VesselMessages(Nil)
+  given Codec[VesselMessages] = keyValued(Key, deriveCodec[VesselMessages])
 
 sealed trait BoatFrontEvent extends FrontEvent:
   def from: TrackMetaLike
@@ -520,7 +509,8 @@ object FrontEvent:
     Decoder[SentencesEvent].widen,
     Decoder[PingEvent].widen,
     Decoder[CoordsEvent].widen,
-    Decoder[MetaEvent].widen
+    Decoder[LoadingEvent].widen,
+    Decoder[NoDataEvent].widen
   ).reduceLeft(_ or _)
   given Encoder[FrontEvent] =
     case se @ SentencesEvent(_, _) => se.asJson
@@ -528,7 +518,8 @@ object FrontEvent:
     case cb @ CoordsBatch(_)       => cb.asJson
     case pe @ PingEvent(_, _)      => pe.asJson
     case vs @ VesselMessages(_)    => vs.asJson
-    case me @ MetaEvent(_, _)      => me.asJson
+    case le @ LoadingEvent(_)      => le.asJson
+    case nd @ NoDataEvent(_)       => nd.asJson
 
 case class SentencesMessage(sentences: Seq[RawSentence]):
   def toTrackEvent(from: TrackMetaShort) = SentencesEvent(sentences, from)
@@ -547,22 +538,19 @@ object BoatJson:
     * "body".
     */
   def keyValued[T](value: String, payload: Codec[T]): Codec[T] =
-    keyValueds(Seq(value), value, payload)
-
-  def keyValueds[T](eventValues: Seq[String], encodeEvent: String, payload: Codec[T]): Codec[T] =
     val encoder: Encoder[T] = (a: T) =>
       Json.obj(
-        (EventKey, Json.fromString(encodeEvent)),
+        (EventKey, Json.fromString(value)),
         (BodyKey, payload(a))
       )
-    Codec.from(keyedDecoder(eventValues, payload), encoder)
+    Codec.from(keyedDecoder(value, payload), encoder)
 
-  def keyedDecoder[T](eventValues: Seq[String], payload: Decoder[T]): Decoder[T] =
+  private def keyedDecoder[T](value: String, payload: Decoder[T]): Decoder[T] =
     eventDecoder.flatMap[T]: event =>
-      if eventValues.contains(event) then payload.at(BodyKey)
+      if event == value then payload.at(BodyKey)
       else
         Decoder.failed(
-          DecodingFailure(s"Event is '$event', must be one of ${eventValues.mkString(", ")}.", Nil)
+          DecodingFailure(s"Event is '$event', expected '$value'.", Nil)
         )
 
 case class IconsConf(boat: String, trophy: String) derives Codec.AsObject

@@ -55,8 +55,6 @@ class ChartSocket(ctx: CanvasRenderingContext2D, track: TrackName, sample: Optio
     borderWidth = 2
   )
 
-  override def onMeta(event: MetaEvent): Unit = ()
-
   override def onCoords(event: CoordsEvent): Unit =
     val coords = event.coords
     chart.data.append(

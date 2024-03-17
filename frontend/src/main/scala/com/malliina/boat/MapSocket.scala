@@ -60,7 +60,7 @@ class MapSocket[F[_]: Temporal: Async](
     clear()
     val path = s"/ws/updates${BoatSocket.query(track, sample)}"
     val s = new BoatSocket(path):
-      override def onMeta(event: MetaEvent): Unit = MapSocket.this.onMeta(event)
+      override def onLoading(meta: SearchQuery): Unit = MapSocket.this.onLoading(meta)
       override def onCoords(event: CoordsEvent): Unit =
         dispatcher.unsafeRunAndForget(topic.publish1(event))
         MapSocket.this.onCoords(event)
@@ -82,8 +82,8 @@ class MapSocket[F[_]: Temporal: Async](
   private def trackLineLayer(id: String, paint: LinePaint): Layer =
     Layer.line(id, emptyTrack, paint, minzoom = None)
 
-  def onMeta(event: MetaEvent): Unit =
-    log.info(s"Now ${event.event}")
+  def onLoading(meta: SearchQuery): Unit =
+    log.info("Now loading")
 
   def onCoords(event: CoordsEvent): Unit =
     val from = event.from
