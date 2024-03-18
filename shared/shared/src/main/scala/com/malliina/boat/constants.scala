@@ -31,6 +31,7 @@ trait DatePickerKeys:
   val FromTimePickerId = "from-time-picker"
   val ToTimePickerId = "to-time-picker"
   val ShortcutsId = "time-shortcuts-select"
+  val LoadingSpinnerId = "loading-spinner"
 
 enum Shortcut(val name: String):
   case Last30min extends Shortcut("last30min")

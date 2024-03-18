@@ -55,12 +55,17 @@ class MapSocket[F[_]: Temporal: Async](
   private var trails = Map.empty[TrackId, Seq[TimedCoord]]
   private var hovering = Set.empty[TrackIds]
 
+  private def spinner = elemGet(LoadingSpinnerId)
+
   def reconnect(track: PathState, sample: Option[Int]): Unit =
     socket.foreach(_.close())
     clear()
     val path = s"/ws/updates${BoatSocket.query(track, sample)}"
     val s = new BoatSocket(path):
       override def onLoading(meta: SearchQuery): Unit = MapSocket.this.onLoading(meta)
+
+      override def onNoData(meta: SearchQuery): Unit = MapSocket.this.onNoData(meta)
+
       override def onCoords(event: CoordsEvent): Unit =
         dispatcher.unsafeRunAndForget(topic.publish1(event))
         MapSocket.this.onCoords(event)
@@ -82,10 +87,12 @@ class MapSocket[F[_]: Temporal: Async](
   private def trackLineLayer(id: String, paint: LinePaint): Layer =
     Layer.line(id, emptyTrack, paint, minzoom = None)
 
-  def onLoading(meta: SearchQuery): Unit =
-    log.info("Now loading")
+  def onLoading(meta: SearchQuery): Unit = spinner.show()
+
+  def onNoData(meta: SearchQuery): Unit = spinner.hide()
 
   def onCoords(event: CoordsEvent): Unit =
+    spinner.hide()
     val from = event.from
     val isBoat = from.sourceType == SourceType.Boat
     val trackId = from.track

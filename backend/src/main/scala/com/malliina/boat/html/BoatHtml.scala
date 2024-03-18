@@ -177,7 +177,8 @@ class BoatHtml(
           option(value := Shortcut.Last24h)(formsLang.last24h),
           option(value := Shortcut.Last48h)(formsLang.last48h)
         )
-      )
+      ),
+      div(id := LoadingSpinnerId, cls := "loader col-sm-6 col-md-4 mx-2 mb-0 mt-sm-0")
     )
 
   private def timePicker(labelText: String, divId: String, clazz: String) =

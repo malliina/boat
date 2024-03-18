@@ -28,9 +28,11 @@ trait BaseFront extends FrontKeys:
   def queryInt(key: String) = query(key).flatMap(s => Try(s.toInt).toOption)
   def query(key: String) = queryParams.get(key)
   def anchor(id: String) = elemAs[HTMLAnchorElement](id)
-  def elemGet[T](id: String) = elemAs[T](id).toOption.get
+  def elemAsGet[T](id: String) =
+    elemAs[T](id).fold(nf => throw Exception(s"Not found: '$nf'."), identity)
   def elemAs[T](id: String) = elem(id).map(_.asInstanceOf[T])
 
+  def elemGet(id: String) = elem(id).fold(nf => throw Exception(s"Not found: '$nf'."), identity)
   def elem(id: String): Either[NotFound, Element] =
     Option(document.getElementById(id)).toRight(NotFound(id))
 

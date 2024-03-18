@@ -161,7 +161,7 @@ class MapView[F[_]: Async](
 
   private def makePicker(elementId: String, maxDate: Option[Date]): TempusDominus =
     TempusDominus(
-      elemGet(elementId),
+      elemAsGet(elementId),
       DateHandler.timeOptions(TimeRestrictions(None, maxDate), locale)
     )
 

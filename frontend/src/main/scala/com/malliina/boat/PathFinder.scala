@@ -22,8 +22,8 @@ object PathFinder:
 class PathFinder[F[_]: Async](val map: MapboxMap, http: HttpClient[F])
   extends GeoUtils
   with BaseFront:
-  private val mapContainer = elemGet[HTMLDivElement](MapId)
-  private val routesContainer = elemGet[HTMLDivElement](RoutesContainer)
+  private val mapContainer = elemAsGet[HTMLDivElement](MapId)
+  private val routesContainer = elemAsGet[HTMLDivElement](RoutesContainer)
   var isEnabled: Boolean = false
   var start: Option[MapboxMarker] = None
   var end: Option[MapboxMarker] = None
@@ -70,7 +70,7 @@ class PathFinder[F[_]: Async](val map: MapboxMap, http: HttpClient[F])
         val coll = FeatureCollection(
           Seq(Feature(LineGeometry(coords), Map(RouteSpec.Cost -> route.cost.asJson)))
         )
-        elemGet[HTMLSpanElement](RouteLength).innerHTML = s"${formatDistance(route.cost)} km"
+        elemAsGet[HTMLSpanElement](RouteLength).innerHTML = s"${formatDistance(route.cost)} km"
         drawLine(routeLayer, coll)
         coords.headOption.map: start =>
           val init = lineFor(Seq(from, start))
