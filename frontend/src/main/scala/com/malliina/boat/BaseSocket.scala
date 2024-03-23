@@ -1,19 +1,25 @@
 package com.malliina.boat
 
+import cats.effect.std.Dispatcher
 import com.malliina.boat.BaseSocket.Ping
 import com.malliina.http.FullUrl
-import org.scalajs.dom
-import org.scalajs.dom.CloseEvent
-import org.scalajs.dom.{Event, MessageEvent}
+import fs2.concurrent.Topic
 import io.circe.*
 import io.circe.parser.parse
+import org.scalajs.dom
+import org.scalajs.dom.{CloseEvent, Event, MessageEvent}
 
 import scala.annotation.unused
 
 object BaseSocket:
   val Ping = "ping"
 
-class BaseSocket(wsPath: String, val log: BaseLogger = BaseLogger.console):
+class BaseSocket[F[_]](
+  wsPath: String,
+  messages: Topic[F, MessageEvent],
+  d: Dispatcher[F],
+  val log: BaseLogger = BaseLogger.console
+):
   val socket: dom.WebSocket = openSocket(wsPath)
 
   def handlePayload(payload: Json): Unit = ()
@@ -30,7 +36,7 @@ class BaseSocket(wsPath: String, val log: BaseLogger = BaseLogger.console):
     parse(asString).fold(
       err => onJsonException(asString, err),
       json =>
-        val isPing = json.hcursor.downField("EventKey").as[String].contains(Ping)
+        val isPing = json.hcursor.downField(BoatJson.EventKey).as[String].contains(Ping)
         if !isPing then handlePayload(json)
     )
 
@@ -44,7 +50,9 @@ class BaseSocket(wsPath: String, val log: BaseLogger = BaseLogger.console):
     val url = wsBaseUrl.append(pathAndQuery)
     val socket = new dom.WebSocket(url.url)
     socket.onopen = (e: Event) => onConnected(e)
-    socket.onmessage = (e: MessageEvent) => onMessage(e)
+    socket.onmessage = (e: MessageEvent) =>
+      onMessage(e)
+      d.unsafeRunAndForget(messages.publish1(e))
     socket.onclose = (e: CloseEvent) => onClosed(e)
     socket.onerror = (e: Event) => onError(e)
     socket

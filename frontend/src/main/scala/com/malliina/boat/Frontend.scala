@@ -1,8 +1,11 @@
 package com.malliina.boat
 
+import cats.effect.std.Dispatcher
 import cats.effect.{IO, IOApp, Resource}
 import com.malliina.http.HttpClient
+import fs2.concurrent.Topic
 import org.scalajs.dom
+import org.scalajs.dom.MessageEvent
 
 import scala.annotation.unused
 import scala.concurrent.duration.Duration
@@ -42,12 +45,19 @@ object Frontend extends IOApp.Simple with BodyClasses:
     val http = HttpClient[IO]()
     val forms = FormHandlers(http)
     val resource = for
+      dispatcher <- Dispatcher.parallel[IO]
+      messages <- Resource.eval(Topic[IO, MessageEvent])
       _ <- initF(MapClass):
         for
-          map <- MapView.default[IO](http)
-          _ <- fs2.Stream.emit(()).concurrently(map.events).compile.resource.lastOrError
+          map <- MapView.default[IO](messages, dispatcher, http)
+          _ <- map.runnables.runInBackground
         yield ()
-      _ <- init(ChartsClass)(ChartsView.default)
+      _ <- initF(ChartsClass):
+        ChartsView
+          .default(messages, dispatcher)
+          .map(_.task)
+          .getOrElse(fs2.Stream.empty)
+          .runInBackground
       _ <- init(FormsClass):
         forms.titles().flatMap(_ => forms.comments())
       _ <- init(AboutClass):

@@ -1,6 +1,9 @@
 package com.malliina.boat
 
+import cats.effect.std.Dispatcher
+import fs2.concurrent.Topic
 import io.circe.Json
+import org.scalajs.dom.MessageEvent
 
 object BoatSocket:
   def query(track: PathState, sample: Option[Int]): String =
@@ -13,9 +16,16 @@ object BoatSocket:
     sample.fold(qs)(s => qs.set(FrontKeys.SampleKey, s"$s"))
     if qs.isEmpty then "" else s"?$qs"
 
-abstract class BoatSocket(path: String) extends BaseSocket(path) with BaseFront:
-  def this(track: PathState, sample: Option[Int]) =
-    this(s"/ws/updates${BoatSocket.query(track, sample)}")
+abstract class BoatSocket[F[_]](path: String, messages: Topic[F, MessageEvent], d: Dispatcher[F])
+  extends BaseSocket(path, messages, d)
+  with BaseFront:
+  def this(
+    track: PathState,
+    sample: Option[Int],
+    messages: Topic[F, MessageEvent],
+    d: Dispatcher[F]
+  ) =
+    this(s"/ws/updates${BoatSocket.query(track, sample)}", messages, d)
 
   override def handlePayload(payload: Json): Unit =
     payload.as[FrontEvent].fold(err => onJsonFailure(err, payload), consume)

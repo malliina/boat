@@ -1,17 +1,30 @@
 package com.malliina.boat
 
+import cats.effect.Sync
+import cats.effect.std.Dispatcher
 import com.malliina.chartjs.*
-import org.scalajs.dom.{CanvasRenderingContext2D, HTMLCanvasElement}
+import fs2.Stream
+import fs2.concurrent.Topic
+import org.scalajs.dom.{CanvasRenderingContext2D, HTMLCanvasElement, MessageEvent}
 
 object ChartsView extends BaseFront:
-  def default: Either[NotFound, ChartsView] = elem(ChartsId).map: e =>
-    ChartsView(e.asInstanceOf[HTMLCanvasElement])
+  def default[F[_]: Sync](
+    messages: Topic[F, MessageEvent],
+    d: Dispatcher[F]
+  ): Either[NotFound, ChartsView[F]] =
+    elem(ChartsId).map: e =>
+      ChartsView(e.asInstanceOf[HTMLCanvasElement], messages, d)
 
-class ChartsView(canvas: HTMLCanvasElement) extends BaseFront:
+class ChartsView[F[_]: Sync](
+  canvas: HTMLCanvasElement,
+  messages: Topic[F, MessageEvent],
+  d: Dispatcher[F]
+) extends BaseFront:
   val ctx = canvas.getContext("2d").asInstanceOf[CanvasRenderingContext2D]
-  parseUri.toOption.foreach: track =>
+  val socket = parseUri.toOption.map: track =>
     val sample = queryInt(SampleKey)
-    ChartSocket(ctx, track, sample)
+    ChartSocket(ctx, track, sample, messages, d)
+  val task = socket.map(_.task).getOrElse(Stream.empty)
 
 /** Initializes an empty chart, then appends data in `onCoords`.
   *
@@ -22,8 +35,16 @@ class ChartsView(canvas: HTMLCanvasElement) extends BaseFront:
   * @param sample
   *   1 = full accuracy, None = intelligent
   */
-class ChartSocket(ctx: CanvasRenderingContext2D, track: TrackName, sample: Option[Int])
-  extends BoatSocket(Name(track), sample):
+class ChartSocket[F[_]: Sync](
+  ctx: CanvasRenderingContext2D,
+  track: TrackName,
+  sample: Option[Int],
+  messages: Topic[F, MessageEvent],
+  d: Dispatcher[F]
+) extends BoatSocket(Name(track), sample, messages, d):
+  val events = Events(messages)
+  val task = events.coordEvents.tap: event =>
+    handleCoords(event)
 
   private val seaBlue = "#006994"
   private val red = "red"
@@ -55,7 +76,7 @@ class ChartSocket(ctx: CanvasRenderingContext2D, track: TrackName, sample: Optio
     borderWidth = 2
   )
 
-  override def onCoords(event: CoordsEvent): Unit =
+  private def handleCoords(event: CoordsEvent): Unit =
     val coords = event.coords
     chart.data.append(
       coords.map(_.boatTimeOnly.time),
@@ -65,5 +86,7 @@ class ChartSocket(ctx: CanvasRenderingContext2D, track: TrackName, sample: Optio
       )
     )
     chart.update()
+
+  override def onCoords(event: CoordsEvent): Unit = ()
 
   override def onAIS(messages: Seq[VesselInfo]): Unit = ()

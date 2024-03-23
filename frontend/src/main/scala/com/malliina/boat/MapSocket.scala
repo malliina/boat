@@ -14,6 +14,7 @@ import com.malliina.measure.SpeedM
 import com.malliina.turf.nearestPointOnLine
 import com.malliina.values.ErrorMessage
 import fs2.concurrent.Topic
+import org.scalajs.dom.MessageEvent
 
 import scala.scalajs.js
 
@@ -30,13 +31,15 @@ class MapSocket[F[_]: Temporal: Async](
   val map: MapboxMap,
   pathFinder: PathFinder[F],
   mode: MapMode,
-  topic: Topic[F, CoordsEvent],
+  messages: Topic[F, MessageEvent],
   dispatcher: Dispatcher[F],
   lang: Lang,
   log: BaseLogger
 ) extends BaseFront
   with GeoUtils:
-  private var socket: Option[BoatSocket] = None
+  val F = Async[F]
+  val events = Events(messages)
+  private var socket: Option[BoatSocket[F]] = None
 
   private val trackLang = lang.track
   private val emptyTrack = lineForTrack(Nil)
@@ -61,17 +64,28 @@ class MapSocket[F[_]: Temporal: Async](
     socket.foreach(_.close())
     clear()
     val path = s"/ws/updates${BoatSocket.query(track, sample)}"
-    val s = new BoatSocket(path):
+    val s = new BoatSocket(path, messages, dispatcher):
       override def onLoading(meta: SearchQuery): Unit = MapSocket.this.onLoading(meta)
-
       override def onNoData(meta: SearchQuery): Unit = MapSocket.this.onNoData(meta)
-
-      override def onCoords(event: CoordsEvent): Unit =
-        dispatcher.unsafeRunAndForget(topic.publish1(event))
-        MapSocket.this.onCoords(event)
-      override def onAIS(messages: Seq[VesselInfo]): Unit = ais.onAIS(messages)
+      override def onCoords(event: CoordsEvent): Unit = ()
+      override def onAIS(messages: Seq[VesselInfo]): Unit = ()
 
     socket = Option(s)
+
+  private val showSpinner: fs2.Stream[F, Boolean] = events.frontEvents
+    .collect:
+      case CoordsBatch(events) => false
+      case CoordsEvent(_, _)   => false
+      case LoadingEvent(_)     => true
+      case NoDataEvent(_)      => false
+    .changes
+  val spinnerListener = showSpinner.tap: show =>
+    if show then spinner.show() else spinner.hide()
+  val coordsListener = events.coordEvents.tap: event =>
+    onCoords(event)
+  val aisListener = events.aisEvents.tap: messages =>
+    ais.onAIS(messages)
+  val task = spinnerListener.concurrently(coordsListener).concurrently(aisListener)
 
   /** Colors the track by speed.
     *
@@ -87,12 +101,11 @@ class MapSocket[F[_]: Temporal: Async](
   private def trackLineLayer(id: String, paint: LinePaint): Layer =
     Layer.line(id, emptyTrack, paint, minzoom = None)
 
-  def onLoading(meta: SearchQuery): Unit = spinner.show()
+  def onLoading(meta: SearchQuery): Unit = ()
 
-  def onNoData(meta: SearchQuery): Unit = spinner.hide()
+  def onNoData(meta: SearchQuery): Unit = ()
 
-  def onCoords(event: CoordsEvent): Unit =
-    spinner.hide()
+  private def onCoords(event: CoordsEvent): Unit =
     val from = event.from
     val isBoat = from.sourceType == SourceType.Boat
     val trackId = from.track

@@ -15,12 +15,13 @@ import scala.concurrent.duration.DurationInt
 import scala.scalajs.js.{Date, JSON, URIUtils}
 
 object MapView extends CookieNames:
-  def default[F[_]: Async](http: HttpClient[F]): Resource[F, MapView[F]] =
+  def default[F[_]: Async](
+    messages: Topic[F, MessageEvent],
+    dispatcher: Dispatcher[F],
+    http: HttpClient[F]
+  ): Resource[F, MapView[F]] =
     val F = Async[F]
-    for
-      topic <- Resource.eval(Topic[F, CoordsEvent])
-      dispatcher <- Dispatcher.parallel[F]
-      token <- Resource.eval(
+    for token <- Resource.eval(
         readCookie(TokenCookieName).fold(
           nf => F.raiseError(Exception(s"Not found: '${nf.id}'.")),
           t => F.pure(t)
@@ -28,7 +29,7 @@ object MapView extends CookieNames:
       )
     yield
       val lang = readCookie(LanguageName).map(Language.apply).getOrElse(Language.default)
-      MapView[F](AccessToken(token), lang, topic, dispatcher, http)
+      MapView[F](AccessToken(token), lang, messages, dispatcher, http)
 
   def readCookie(key: String): Either[NotFound, String] =
     cookies.get(key).toRight(NotFound(key))
@@ -44,7 +45,7 @@ object MapView extends CookieNames:
 class MapView[F[_]: Async](
   accessToken: AccessToken,
   language: Language,
-  topic: Topic[F, CoordsEvent],
+  messages: Topic[F, MessageEvent],
   dispatcher: Dispatcher[F],
   http: HttpClient[F],
   val log: BaseLogger = BaseLogger.console
@@ -92,12 +93,13 @@ class MapView[F[_]: Async](
     case Language.finnish => TimeLocale.Fi
     case Language.english => TimeLocale.En
     case _                => TimeLocale.En
-  val socket: MapSocket[F] = MapSocket(map, pathFinder, mode, topic, dispatcher, lang, log)
-  val events = topic
-    .subscribe(100)
+  val socket: MapSocket[F] =
+    MapSocket(map, pathFinder, mode, messages, dispatcher, lang, log)
+  val events = socket.events.coordEvents
     .debounce(2.seconds)
-    .evalTap: e =>
-      F.delay(socket.fitToMap())
+    .tap: e =>
+      socket.fitToMap()
+  val runnables = events.concurrently(socket.task)
   map.on(
     "load",
     () =>
