@@ -3,6 +3,7 @@ package com.malliina.boat
 import cats.effect.Resource
 import cats.effect.kernel.Async
 import cats.effect.std.Dispatcher
+import com.malliina.boat.TrackShortcut.Latest
 import com.malliina.datepicker.{TempusDominus, TimeLocale, TimeRestrictions}
 import com.malliina.http.HttpClient
 import com.malliina.mapbox.*
@@ -143,11 +144,22 @@ class MapView[F[_]: Async](
     val _ = dateHandler.subscribeDate(toPicker, fromPicker, isFrom = false, locale = locale): to =>
       datesChanged(dateHandler.from, to)
     shortcutsElem.onchange = e =>
+      val value = shortcutsElem.value
       Shortcut
-        .fromString(shortcutsElem.value)
-        .map: shortcut =>
+        .fromString(value)
+        .foreach: shortcut =>
           dateHandler.onShortcut(shortcut)
           datesChanged(dateHandler.from, dateHandler.to)
+      TrackShortcut
+        .fromString(value)
+        .map: shortcut =>
+          val limit = shortcut match
+            case TrackShortcut.Latest  => 1
+            case TrackShortcut.Latest5 => 5
+          val qs = QueryString.parse
+          qs.set(TracksLimit, limit)
+          qs.commit()
+          reconnect()
 
   private def datesChanged(from: Option[Date], to: Option[Date]): Unit =
     val qs = QueryString.parse
@@ -157,7 +169,6 @@ class MapView[F[_]: Async](
           qs.set(k, d.toISOString())
         .getOrElse:
           qs.delete(k)
-    // This was from some google blog. Crazy api.
     qs.commit()
     reconnect()
 

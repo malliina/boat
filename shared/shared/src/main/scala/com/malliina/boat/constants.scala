@@ -33,21 +33,46 @@ trait DatePickerKeys:
   val ShortcutsId = "time-shortcuts-select"
   val LoadingSpinnerId = "loading-spinner"
 
-enum Shortcut(val name: String):
+trait Named:
+  def name: String
+
+trait NamedCompanion[T <: Named]:
+  def all: Seq[T]
+  given Show[T] = s => s.name
+  def fromString(s: String): Option[T] =
+    all.toList.find(_.name == s)
+
+enum TrackShortcut(val name: String) extends Named:
+  case Latest extends TrackShortcut("latest")
+  case Latest5 extends TrackShortcut("latest5")
+
+object TrackShortcut extends NamedCompanion[TrackShortcut]:
+  override val all: Seq[TrackShortcut] = values.toList
+
+enum Shortcut(val name: String) extends Named:
   case Last30min extends Shortcut("last30min")
   case Last2h extends Shortcut("last2h")
   case Last12h extends Shortcut("last12h")
   case Last24h extends Shortcut("last24h")
   case Last48h extends Shortcut("last48h")
 
-object Shortcut:
-  given Show[Shortcut] = s => s.name
-  def fromString(s: String): Option[Shortcut] =
-    Shortcut.values.toList.find(_.name == s)
+object Shortcut extends NamedCompanion[Shortcut]:
+  override val all: Seq[Shortcut] = values.toList
+
+trait FilterKeys:
+  val Newest = "newest"
+  val SampleKey = "sample"
+  val TracksLimit = "tracksLimit"
 
 object FrontKeys extends FrontKeys
 
-trait FrontKeys extends BodyClasses with ListKeys with NavKeys with AboutKeys with DatePickerKeys:
+trait FrontKeys
+  extends BodyClasses
+  with ListKeys
+  with NavKeys
+  with AboutKeys
+  with DatePickerKeys
+  with FilterKeys:
   val ChartsId = "charts"
   val Close = "close"
   val Enabled = "enabled"
@@ -61,8 +86,6 @@ trait FrontKeys extends BodyClasses with ListKeys with NavKeys with AboutKeys wi
   val PersonLink = "person-link"
   val Routes = "routes"
   val RoutesContainer = "routes-container"
-
-  val SampleKey = "sample"
 
   val DevicePrefix = "device"
   val TrophyPrefix = "trophy"

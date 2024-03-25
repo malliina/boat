@@ -5,7 +5,7 @@ import com.malliina.boat.FrontKeys.*
 import com.malliina.boat.html.BoatImplicits.given
 import com.malliina.boat.http.{Limits, TracksQuery}
 import com.malliina.boat.http4s.Reverse
-import com.malliina.boat.{AppConf, BuildInfo, Coord, FormsLang, FrontKeys, FullTrack, Lang, Shortcut, SourceType, TrackRef, TracksBundle, UserBoats, UserInfo, Usernames}
+import com.malliina.boat.{AppConf, BuildInfo, Coord, FormsLang, FrontKeys, FullTrack, Lang, Shortcut, SourceType, TrackRef, TrackShortcut, TracksBundle, UserBoats, UserInfo, Usernames}
 import com.malliina.html.HtmlTags
 import com.malliina.html.HtmlTags.{cssLink, deviceWidthViewport, titleTag}
 import com.malliina.html.HtmlImplicits.given
@@ -171,11 +171,15 @@ class BoatHtml(
           aria.label := "Select time shortcut"
         )(
           option(selected)(formsLang.shortcuts),
-          option(value := Shortcut.Last30min)(formsLang.last30min),
-          option(value := Shortcut.Last2h)(formsLang.last2h),
-          option(value := Shortcut.Last12h)(formsLang.last12h),
-          option(value := Shortcut.Last24h)(formsLang.last24h),
-          option(value := Shortcut.Last48h)(formsLang.last48h)
+          Seq(TrackShortcut.Latest -> formsLang.latest, TrackShortcut.Latest5 -> formsLang.latest5)
+            .map((shortcut, word) => option(value := shortcut)(word)),
+          Seq(
+            Shortcut.Last30min -> formsLang.last30min,
+            Shortcut.Last2h -> formsLang.last2h,
+            Shortcut.Last12h -> formsLang.last12h,
+            Shortcut.Last24h -> formsLang.last24h,
+            Shortcut.Last48h -> formsLang.last48h
+          ).map((shortcut, word) => option(value := shortcut)(word))
         )
       ),
       div(id := LoadingSpinnerId, cls := "loader col-sm-6 col-md-4 mx-2 mb-0 mt-sm-0")

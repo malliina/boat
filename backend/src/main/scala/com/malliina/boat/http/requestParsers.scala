@@ -2,7 +2,7 @@ package com.malliina.boat.http
 
 import cats.implicits.*
 import com.malliina.boat.http4s.QueryParsers
-import com.malliina.boat.{BoatName, CarUpdateId, Constants, Coord, Errors, FromTo, Latitude, Longitude, Mmsi, RouteRequest, SearchQuery, SingleError, TimeFormatter, Timings, TrackCanonical, TrackName, VesselName}
+import com.malliina.boat.{BoatName, CarUpdateId, Constants, Coord, Errors, FromTo, FrontKeys, Latitude, Longitude, Mmsi, RouteRequest, SearchQuery, SingleError, TimeFormatter, Timings, TrackCanonical, TrackName, VesselName}
 import com.malliina.values.{Email, ErrorMessage}
 import io.circe.Codec
 import org.http4s.{Headers, Query, QueryParamDecoder, Request}
@@ -148,7 +148,8 @@ case class BoatQuery(
   canonicals: Seq[TrackCanonical],
   route: Option[RouteRequest],
   sample: Option[Int],
-  newest: Boolean
+  newest: Boolean,
+  tracksLimit: Option[Int]
 ):
   def neTracks = tracks.toList.toNel
   def neCanonicals = canonicals.toList.toNel
@@ -174,14 +175,24 @@ case class BoatQuery(
 object BoatQuery:
   private val instantFormatter = DateTimeFormatter.ISO_INSTANT
 
-  private val NewestKey = "newest"
-  private val SampleKey = "sample"
+  private val NewestKey = FrontKeys.Newest
+  private val SampleKey = FrontKeys.SampleKey
+  private val TracksLimitKey = FrontKeys.TracksLimit
   private val DefaultSample = Constants.DefaultSample
   given QueryParamDecoder[TrackName] =
     QueryParamDecoder.stringQueryParamDecoder.map(s => TrackName(s))
   given QueryParamDecoder[TrackCanonical] =
     QueryParamDecoder.stringQueryParamDecoder.map(s => TrackCanonical(s))
-  val empty = BoatQuery(Limits(0, 0), TimeRange(None, None), Nil, Nil, None, None, newest = true)
+  val empty = BoatQuery(
+    Limits(0, 0),
+    TimeRange(None, None),
+    Nil,
+    Nil,
+    None,
+    None,
+    newest = true,
+    tracksLimit = None
+  )
 
   def tracks(tracks: Seq[TrackName]): BoatQuery =
     BoatQuery(
@@ -191,7 +202,8 @@ object BoatQuery:
       Nil,
       None,
       Option(DefaultSample),
-      newest = false
+      newest = false,
+      tracksLimit = None
     )
 
   def apply(q: Query): Either[Errors, BoatQuery] =
@@ -203,7 +215,8 @@ object BoatQuery:
       route <- bindRouteRequest(q)
       sample <- LimitsBuilder.readInt(SampleKey, q)
       newest <- bindNewest(q, default = timeRange.isEmpty)
-    yield BoatQuery(limits, timeRange, tracks, canonicals, route, sample, newest)
+      tracksLimit <- QueryParsers.parseOptE[Int](q, TracksLimitKey)
+    yield BoatQuery(limits, timeRange, tracks, canonicals, route, sample, newest, tracksLimit)
 
   def car(q: Query): Either[Errors, CarQuery] =
     for

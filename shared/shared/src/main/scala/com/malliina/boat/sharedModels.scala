@@ -118,14 +118,14 @@ object Coord:
   given json: Codec[Coord] = deriveCodec[Coord]
   // GeoJSON format
   val jsonArray: Codec[Coord] = Codec.from(
-    Decoder[List[Double]].emap {
+    Decoder[List[Double]].emap:
       case lng :: lat :: _ =>
         build(lng, lat).left.map(_.message)
       case other =>
         Left(
           s"Expected a JSON array of at least two numbers for coordinates [lng, lat]. Got: '$other'."
         )
-    },
+    ,
     (c: Coord) => c.toArray.toList.asJson
   )
 
