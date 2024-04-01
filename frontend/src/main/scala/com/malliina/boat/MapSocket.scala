@@ -10,12 +10,13 @@ import com.malliina.boat.FrontKeys.TrophyPrefix
 import com.malliina.boat.SourceType.Vehicle
 import com.malliina.geojson.{GeoLineString, GeoPoint}
 import com.malliina.mapbox.*
-import com.malliina.measure.SpeedM
+import com.malliina.measure.{DistanceM, SpeedM}
 import com.malliina.turf.nearestPointOnLine
 import com.malliina.values.ErrorMessage
 import fs2.concurrent.Topic
 import org.scalajs.dom.MessageEvent
 
+import scala.concurrent.duration.Duration
 import scala.scalajs.js
 
 case class NearestResult[T](result: T, distance: Double)
@@ -55,7 +56,8 @@ class MapSocket[F[_]: Temporal: Async](
     * case classes.
     */
   private var boats = Map.empty[TrackIds, FeatureCollection]
-  private var trails = Map.empty[TrackId, Seq[TimedCoord]]
+  private var trails = Map.empty[TrackId, CoordsEvent]
+  private def froms = trails.values.map(_.from).toList
   private var hovering = Set.empty[TrackIds]
 
   private def spinner = elemGet(LoadingSpinnerId)
@@ -64,7 +66,7 @@ class MapSocket[F[_]: Temporal: Async](
     socket.foreach(_.close())
     clear()
     val path = s"/ws/updates${BoatSocket.query(track, sample)}"
-    val s = new BoatSocket(path, messages, dispatcher)
+    val s = BoatSocket(path, messages, dispatcher)
     socket = Option(s)
 
   private val showSpinner: fs2.Stream[F, Boolean] = events.frontEvents
@@ -120,7 +122,10 @@ class MapSocket[F[_]: Temporal: Async](
       oldTrack
         .copy(features = oldTrack.features ++ speedFeatures(latestMeasurement.toSeq ++ coordsInfo))
     boats = boats.updated(ids, newTrack)
-    trails = trails.updated(trackId, trails.getOrElse(trackId, Nil) ++ coordsInfo)
+    trails = trails.updated(
+      trackId,
+      CoordsEvent(trails.get(trackId).map(_.coords).getOrElse(Nil) ++ coordsInfo, from)
+    )
     // adds layer if not already added
     if map.findSource(track).isEmpty then
       // All but the latest trails have lower opacity. Older = less prominent.
@@ -171,8 +176,9 @@ class MapSocket[F[_]: Temporal: Async](
             val op = for
               hoverCoord <- Coord.build(hover.lng, hover.lat)
               trailCoords <- trails
-                .getOrElse(trackId, Nil)
-                .toList
+                .get(trackId)
+                .map(_.coords)
+                .getOrElse(Nil)
                 .toNel
                 .toRight(ErrorMessage(s"No coords for $trackId."))
             yield nearest(hoverCoord, trailCoords)(_.coord).map: near =>
@@ -223,14 +229,19 @@ class MapSocket[F[_]: Temporal: Async](
         e.innerHTML = title.show
     elem(DistanceId).foreach: e =>
       e.show()
-      e.innerHTML = s"${formatDistance(from.distanceMeters)} km"
+      val totalDistance =
+        if froms.isEmpty then 0d else froms.map(_.distanceMeters.toMeters).sum
+      e.innerHTML = s"${formatDistance(DistanceM(totalDistance))} km"
     elem(TopSpeedId).foreach: e =>
-      from.topSpeed.foreach: top =>
-        e.show()
-        val formatted = from.sourceType match
-          case Vehicle => s"${formatKph(top)} km/h"
-          case _       => s"${formatKnots(top)} kn"
-        e.innerHTML = s"${trackLang.top} $formatted"
+      froms
+        .flatMap(_.topSpeed)
+        .maxOption
+        .foreach: top =>
+          e.show()
+          val formatted = from.sourceType match
+            case Vehicle => s"${formatKph(top)} km/h"
+            case _       => s"${formatKnots(top)} kn"
+          e.innerHTML = s"${trackLang.top} $formatted"
     if from.sourceType == SourceType.Boat then
       elem(WaterTempId).foreach: e =>
         coordsInfo.lastOption
@@ -246,10 +257,14 @@ class MapSocket[F[_]: Temporal: Async](
       e.href = s"/tracks/${from.trackName}/chart"
     elem(EditTitleId).foreach: e =>
       e.show()
-    if boats.keySet.size == 1 then
-      elem(DurationId).foreach: e =>
-        e.show()
-        e.innerHTML = s"${trackLang.duration} ${formatDuration(from.duration)}"
+//    if boats.keySet.size == 1 then
+    elem(DurationId).foreach: e =>
+      e.show()
+      if froms.nonEmpty then
+        val durNanos = froms.map(_.duration.toNanos).sum
+        val dur: Duration = Duration.fromNanos(durNanos)
+        log.info(s"Duration is $dur from ${froms.map(_.duration)}")
+        e.innerHTML = s"${trackLang.duration} ${formatDuration(dur)}"
     // updates the map position, zoom to reflect the updated track(s)
     mapMode match
       case MapMode.Fit =>
@@ -269,10 +284,10 @@ class MapSocket[F[_]: Temporal: Async](
 
   def fitToMap(): Unit =
     if mapMode == MapMode.Fit then
-      val eligibleTrails = trails.filter((_, cs) => cs.size > 2)
-      val lengths = eligibleTrails.map((_, cs) => cs.size).mkString(", ")
+      val eligibleTrails = trails.filter((_, cs) => cs.coords.size > 2)
+      val lengths = eligibleTrails.map((_, cs) => cs.coords.size).mkString(", ")
       log.info(s"Fitting to map from ${eligibleTrails.size} trails of lengths $lengths...")
-      val trail = eligibleTrails.values.flatten.map(_.coord)
+      val trail = eligibleTrails.values.flatMap(_.coords).map(_.coord)
       trail.headOption.foreach: head =>
         val init = LngLatBounds(head)
         val bs: LngLatBounds = trail
