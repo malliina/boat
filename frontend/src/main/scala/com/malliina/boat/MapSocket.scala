@@ -64,12 +64,7 @@ class MapSocket[F[_]: Temporal: Async](
     socket.foreach(_.close())
     clear()
     val path = s"/ws/updates${BoatSocket.query(track, sample)}"
-    val s = new BoatSocket(path, messages, dispatcher):
-      override def onLoading(meta: SearchQuery): Unit = MapSocket.this.onLoading(meta)
-      override def onNoData(meta: SearchQuery): Unit = MapSocket.this.onNoData(meta)
-      override def onCoords(event: CoordsEvent): Unit = ()
-      override def onAIS(messages: Seq[VesselInfo]): Unit = ()
-
+    val s = new BoatSocket(path, messages, dispatcher)
     socket = Option(s)
 
   private val showSpinner: fs2.Stream[F, Boolean] = events.frontEvents
@@ -100,10 +95,6 @@ class MapSocket[F[_]: Temporal: Async](
 
   private def trackLineLayer(id: String, paint: LinePaint): Layer =
     Layer.line(id, emptyTrack, paint, minzoom = None)
-
-  def onLoading(meta: SearchQuery): Unit = ()
-
-  def onNoData(meta: SearchQuery): Unit = ()
 
   private def onCoords(event: CoordsEvent): Unit =
     val from = event.from

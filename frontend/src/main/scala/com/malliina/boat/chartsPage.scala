@@ -86,7 +86,3 @@ class ChartSocket[F[_]: Sync](
       )
     )
     chart.update()
-
-  override def onCoords(event: CoordsEvent): Unit = ()
-
-  override def onAIS(messages: Seq[VesselInfo]): Unit = ()
