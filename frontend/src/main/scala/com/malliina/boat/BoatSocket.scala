@@ -1,10 +1,14 @@
 package com.malliina.boat
 
 import cats.effect.std.Dispatcher
+import com.malliina.boat.BoatSocket.uri
 import fs2.concurrent.Topic
 import org.scalajs.dom.MessageEvent
 
 object BoatSocket:
+  def uri(track: PathState, sample: Option[Int]): String =
+    s"/ws/updates${query(track, sample)}"
+
   def query(track: PathState, sample: Option[Int]): String =
     val qs = QueryString.parse
     track match
@@ -13,7 +17,7 @@ object BoatSocket:
       case Route(req)           => ()
       case NoTrack              => ()
     sample.fold(qs)(s => qs.set(FrontKeys.SampleKey, s"$s"))
-    if qs.isEmpty then "" else s"?$qs"
+    if qs.isEmpty then "" else s"?${qs.render}"
 
 class BoatSocket[F[_]](path: String, messages: Topic[F, MessageEvent], d: Dispatcher[F])
   extends BaseSocket(path, messages, d)
@@ -24,4 +28,4 @@ class BoatSocket[F[_]](path: String, messages: Topic[F, MessageEvent], d: Dispat
     messages: Topic[F, MessageEvent],
     d: Dispatcher[F]
   ) =
-    this(s"/ws/updates${BoatSocket.query(track, sample)}", messages, d)
+    this(uri(track, sample), messages, d)

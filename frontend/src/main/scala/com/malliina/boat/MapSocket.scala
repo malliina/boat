@@ -65,8 +65,7 @@ class MapSocket[F[_]: Temporal: Async](
   def reconnect(track: PathState, sample: Option[Int]): Unit =
     socket.foreach(_.close())
     clear()
-    val path = s"/ws/updates${BoatSocket.query(track, sample)}"
-    val s = BoatSocket(path, messages, dispatcher)
+    val s = BoatSocket(BoatSocket.uri(track, sample), messages, dispatcher)
     socket = Option(s)
 
   private val showSpinner: fs2.Stream[F, Boolean] = events.frontEvents
@@ -76,11 +75,11 @@ class MapSocket[F[_]: Temporal: Async](
       case LoadingEvent(_)     => true
       case NoDataEvent(_)      => false
     .changes
-  val spinnerListener = showSpinner.tap: show =>
+  private val spinnerListener = showSpinner.tap: show =>
     if show then spinner.show() else spinner.hide()
-  val coordsListener = events.coordEvents.tap: event =>
+  private val coordsListener = events.coordEvents.tap: event =>
     onCoords(event)
-  val aisListener = events.aisEvents.tap: messages =>
+  private val aisListener = events.aisEvents.tap: messages =>
     ais.onAIS(messages)
   val task = spinnerListener.concurrently(coordsListener).concurrently(aisListener)
 
