@@ -250,7 +250,7 @@ class MapSocket[F[_]: Temporal: Async](
         val carDistance = calcDistance(carTrails.map(_.from))
         val kwhPer100Km = consumption.wattHours / carDistance.toMeters * 100
         val rounded = "%.2f".format(kwhPer100Km)
-        e.innerHTML = s"$rounded kWh / 100 km"
+        e.innerHTML = s"$rounded kWh/100km"
     elem(TopSpeedId).foreach: e =>
       froms
         .flatMap(_.topSpeed)
