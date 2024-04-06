@@ -109,6 +109,7 @@ trait NavKeys:
   val DeviceLinkClass = "device-link"
 
   val DistanceId = "distance"
+  val ConsumptionId = "consumption"
   val DurationId = "duration"
   val TitleId = "text-title"
   val TopSpeedId = "top-speed"

@@ -228,9 +228,29 @@ class MapSocket[F[_]: Temporal: Async](
         e.innerHTML = title.show
     elem(DistanceId).foreach: e =>
       e.show()
-      val totalDistance =
-        if froms.isEmpty then 0d else froms.map(_.distanceMeters.toMeters).sum
-      e.innerHTML = s"${formatDistance(DistanceM(totalDistance))} km"
+      val totalDistance = calcDistance(froms)
+      e.innerHTML = s"${formatDistance(totalDistance)} km"
+    elem(ConsumptionId).foreach: e =>
+      if from.sourceType == SourceType.Vehicle then
+        e.show()
+        val carTrails = trails.values.toList
+          .filter(_.from.sourceType == SourceType.Vehicle)
+        val consumptions: Seq[Energy] = trails.values
+          .filter(_.from.sourceType == SourceType.Vehicle)
+          .toList
+          .map: cs =>
+            val decrements: Iterator[Energy] = cs.coords
+              .flatMap[Energy](_.battery)
+              .sliding(2)
+              .collect:
+                case Seq(b1, b2) if b2 < b1 => b2.minus(b1)
+            val consumption: Double = decrements.map(_.wattHours).sum
+            Energy(consumption)
+        val consumption = Energy(consumptions.map(_.wattHours).sum.abs)
+        val carDistance = calcDistance(carTrails.map(_.from))
+        val kwhPer100Km = consumption.wattHours / carDistance.toMeters * 100
+        val rounded = "%.2f".format(kwhPer100Km)
+        e.innerHTML = s"$rounded kWh / 100 km"
     elem(TopSpeedId).foreach: e =>
       froms
         .flatMap(_.topSpeed)
@@ -303,6 +323,10 @@ class MapSocket[F[_]: Temporal: Async](
             log.error(s"Unable to fit using $sw $nw $ne $se", e)
     else log.info(s"Not fitting, map mode is $mapMode")
 
+  private def calcDistance(ts: Seq[TrackRef]) = DistanceM(
+    if ts.isEmpty then 0d else ts.map(_.distanceMeters.toMeters).sum
+  )
+
   private def nearest[T](fromCoord: Coord, on: NonEmptyList[T])(
     c: T => Coord
   ): Either[ErrorMessage, NearestResult[T]] =
@@ -346,6 +370,7 @@ class MapSocket[F[_]: Temporal: Async](
     Seq(
       TitleId,
       DistanceId,
+      ConsumptionId,
       TopSpeedId,
       WaterTempId,
       FullLinkId,

@@ -100,6 +100,10 @@
     max-width: 150px;
   }
 
+  &.consumption {
+    max-width: 170px;
+  }
+
   &.title {
     display: none;
 

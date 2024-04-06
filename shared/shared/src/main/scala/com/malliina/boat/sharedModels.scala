@@ -437,7 +437,10 @@ object Energy extends JsonCompanion[Double, Energy]:
 extension (e: Energy)
   def wattHours: Double = e
   def formatKwh: String = "%.1f kWh".format(wattHours / 1000)
-  def -(other: Energy): Energy = Energy(e.wattHours - other.wattHours)
+  def minus(other: Energy): Energy = Energy(e.wattHours - other.wattHours)
+  def plus(other: Energy): Energy = Energy(e.wattHours + other.wattHours)
+  def add(other: Energy): Energy = Energy(e.wattHours + other.wattHours)
+  def <(other: Energy): Boolean = e.wattHours < other.wattHours
 extension (e: Double) def wh: Energy = Energy(e)
 
 case class CarInfo(id: DeviceId, name: BoatName, username: Username) derives Codec.AsObject

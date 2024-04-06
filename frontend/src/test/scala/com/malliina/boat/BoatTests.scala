@@ -4,6 +4,14 @@ import io.circe.*
 import io.circe.parser.decode
 
 class BoatTests extends munit.FunSuite with DemoJson:
+  test("hej"):
+    val in = List(6, 5, 4, 3, 15, 14, 13, 13, 13, 16, 15, 6)
+    val expected = 1 + 1 + 1 + 1 + 1 + 1 + 9
+    val decrements = in
+      .sliding(2)
+      .collect:
+        case Seq(a, b) if b < a => b - a
+    assert(decrements.sum.abs == expected)
   test("serialize GeoJSON"):
     val _ = LineGeometry("LineString", Seq(Coord.buildOrFail(24, 60)))
     assert(1 == 1)

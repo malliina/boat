@@ -125,11 +125,12 @@ class BoatHtml(
                           )
                     )
                   ),
-                  span(id := TitleId, cls := "nav-text title")(""),
-                  span(id := DistanceId, cls := "nav-text distance")(""),
-                  span(id := DurationId, cls := "nav-text duration")(""),
-                  span(id := TopSpeedId, cls := "nav-text top-speed")(""),
-                  span(id := WaterTempId, cls := "nav-text water-temp")(""),
+                  span(id := TitleId, cls := "nav-text title"),
+                  span(id := DistanceId, cls := "nav-text distance"),
+                  span(id := ConsumptionId, cls := "nav-text consumption"),
+                  span(id := DurationId, cls := "nav-text duration"),
+                  span(id := TopSpeedId, cls := "nav-text top-speed"),
+                  span(id := WaterTempId, cls := "nav-text water-temp"),
                   fontAwesomeLink(a, FullLinkId, "list", Hidden, "List"),
                   fontAwesomeLink(a, GraphLinkId, "chart-area", Hidden, "Graph"),
                   standaloneQuestion("question-nav")
