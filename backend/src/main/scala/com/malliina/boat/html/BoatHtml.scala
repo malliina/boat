@@ -172,8 +172,8 @@ class BoatHtml(
           aria.label := "Select time shortcut"
         )(
           option(selected)(formsLang.shortcuts),
-          Seq(TrackShortcut.Latest -> formsLang.latest, TrackShortcut.Latest5 -> formsLang.latest5)
-            .map((shortcut, word) => option(value := shortcut)(word)),
+          (1 to 5).map: n =>
+            option(value := TrackShortcut(n))(s"${formsLang.latestPlural} $n"),
           Seq(
             Shortcut.Last30min -> formsLang.last30min,
             Shortcut.Last2h -> formsLang.last2h,

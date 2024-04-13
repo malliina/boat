@@ -12,9 +12,9 @@ val scalaTagsVersion = "0.12.0"
 val primitiveVersion = "3.6.0"
 val logstreamsVersion = "2.7.0"
 val http4sVersion = "0.23.26"
-val logbackVersion = "1.4.14"
+val logbackVersion = "1.5.5"
 val circeVersion = "0.14.6"
-val alpnVersion = "12.0.7"
+val alpnVersion = "12.0.8"
 val webAuthDep = "com.malliina" %% "web-auth" % webAuthVersion
 val webAuthTestDep = webAuthDep % Test classifier "tests"
 val munitDep = "org.scalameta" %% "munit" % munitVersion % Test
@@ -125,7 +125,7 @@ val backend = Project("boat", file("backend"))
       "com.vividsolutions" % "jts" % "1.13",
       "mysql" % "mysql-connector-java" % "8.0.33",
       "org.apache.commons" % "commons-text" % "1.11.0",
-      "software.amazon.awssdk" % "s3" % "2.25.7",
+      "software.amazon.awssdk" % "s3" % "2.25.31",
       "com.malliina" %% "logstreams-client" % logstreamsVersion,
       "com.malliina" %% "mobile-push-io" % "3.10.0",
       "com.malliina" %% "config" % primitiveVersion,
@@ -184,7 +184,7 @@ val agent = project
       } ++ Seq("generic", "parser").map { m =>
         "io.circe" %% s"circe-$m" % circeVersion
       } ++ Seq(
-        "co.fs2" %% "fs2-io" % "3.7.0",
+        "co.fs2" %% "fs2-io" % "3.9.4",
         "com.malliina" %% "primitives" % primitiveVersion,
         "com.malliina" %% "logstreams-client" % logstreamsVersion,
         "com.lihaoyi" %% "scalatags" % scalaTagsVersion,

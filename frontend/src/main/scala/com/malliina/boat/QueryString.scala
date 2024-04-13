@@ -17,6 +17,8 @@ class QueryString(val inner: URLSearchParams):
   def set[V: Show](name: String, value: V): Unit =
     inner.set(name, value.show)
   def delete(name: String): Unit = inner.delete(name)
+  def update[V: Show](name: String, value: Option[V]): Unit =
+    value.fold(delete(name))(v => set(name, v))
   def render = inner.toString
   def isEmpty = inner.isEmpty
   override def toString = render

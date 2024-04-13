@@ -42,12 +42,17 @@ trait NamedCompanion[T <: Named]:
   def fromString(s: String): Option[T] =
     all.toList.find(_.name == s)
 
-enum TrackShortcut(val name: String) extends Named:
-  case Latest extends TrackShortcut("latest")
-  case Latest5 extends TrackShortcut("latest5")
+case class TrackShortcut(latest: Int) extends Named:
+  def name = s"${TrackShortcut.prefix}$latest"
 
-object TrackShortcut extends NamedCompanion[TrackShortcut]:
-  override val all: Seq[TrackShortcut] = values.toList
+object TrackShortcut:
+  val prefix = "latest-"
+  def fromString(s: String): Either[String, TrackShortcut] =
+    if s.startsWith(prefix) then
+      s.drop(prefix.length).toIntOption.map(apply).toRight(s"Invalid value: '$s'.")
+    else Left(s"Must start with '$prefix'.")
+
+  given Show[TrackShortcut] = _.name
 
 enum Shortcut(val name: String) extends Named:
   case Last30min extends Shortcut("last30min")
