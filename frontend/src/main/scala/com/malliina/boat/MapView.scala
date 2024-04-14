@@ -3,14 +3,13 @@ package com.malliina.boat
 import cats.effect.Resource
 import cats.effect.kernel.Async
 import cats.effect.std.Dispatcher
-import com.malliina.datepicker.{TempusDominus, TimeLocale, TimeRestrictions}
+import com.malliina.datepicker.{TempusDominus, TimeLocale, TimeRestrictions, updateDate}
 import com.malliina.http.HttpClient
 import com.malliina.mapbox.*
 import fs2.concurrent.Topic
 import io.circe.*
 import io.circe.syntax.EncoderOps
 import org.scalajs.dom.*
-
 import scala.concurrent.duration.DurationInt
 import scala.scalajs.js.{Date, JSON, URIUtils}
 
@@ -148,20 +147,23 @@ class MapView[F[_]: Async](
         .fromString(value)
         .foreach: shortcut =>
           dateHandler.onShortcut(shortcut)
+          fromPicker.updateDate(dateHandler.from)
+          toPicker.updateDate(dateHandler.to)
           datesChanged(dateHandler.from, dateHandler.to)
       TrackShortcut
         .fromString(value)
         .map: shortcut =>
-          val qs = QueryString.parse
-          qs.set(TracksLimit, shortcut.latest)
-          qs.commit()
+          fromPicker.updateDate(None)
+          toPicker.updateDate(None)
+          QueryString.transact(
+            TracksLimit -> Option(shortcut.latest),
+            Timings.From -> None,
+            Timings.To -> None
+          )
           reconnect()
 
   private def datesChanged(from: Option[Date], to: Option[Date]): Unit =
-    val qs = QueryString.parse
-    Seq(Timings.From -> from, Timings.To -> to).foreach: (k, date) =>
-      qs.update(k, date.map(_.toISOString()))
-    qs.commit()
+    QueryString.transact(Timings.From -> from, Timings.To -> to, TracksLimit -> None)
     reconnect()
 
   private def makePicker(elementId: String, maxDate: Option[Date]): TempusDominus =

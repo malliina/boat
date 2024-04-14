@@ -270,19 +270,17 @@ class MapSocket[F[_]: Temporal: Async](
             e.innerHTML = s"${trackLang.water} ${formatTemp(temp)} ℃"
     anchor(FullLinkId).foreach: e =>
       e.show()
-      e.href = s"/tracks/${from.trackName}/full"
+      e.href = HttpRoutes.full(from.trackName)
     anchor(GraphLinkId).foreach: e =>
       e.show()
-      e.href = s"/tracks/${from.trackName}/chart"
+      e.href = HttpRoutes.chart(from.trackName)
     elem(EditTitleId).foreach: e =>
       e.show()
-//    if boats.keySet.size == 1 then
     elem(DurationId).foreach: e =>
       e.show()
       if froms.nonEmpty then
         val durNanos = froms.map(_.duration.toNanos).sum
         val dur: Duration = Duration.fromNanos(durNanos)
-        log.info(s"Duration is $dur from ${froms.map(_.duration)}")
         e.innerHTML = s"${trackLang.duration} ${formatDuration(dur)}"
     // updates the map position, zoom to reflect the updated track(s)
     mapMode match

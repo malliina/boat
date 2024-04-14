@@ -167,15 +167,33 @@ trait HideEvent extends BaseEvent:
   def viewMode: String = js.native
 
 @js.native
+trait DateTime extends js.Date
+
+@js.native
+@JSImport("@eonasdan/tempus-dominus", "DateTime")
+object DateTime extends js.Object:
+  def convert(date: Date): DateTime = js.native
+
+@js.native
+trait Dates extends js.Object:
+  def parseInput(date: Date): DateTime
+  def setValue(date: js.UndefOr[DateTime]): Unit = js.native
+
+@js.native
 @JSImport("@eonasdan/tempus-dominus", "TempusDominus")
 class TempusDominus(@unused e: Element, @unused options: TimeOptions) extends js.Object:
+  var viewDate: js.UndefOr[DateTime] = js.native
   def updateOptions(opts: TimeOptions, reset: Boolean): Unit = js.native
-  def viewDate: js.UndefOr[Date] = js.native
   def picked: js.UndefOr[js.Array[Date]] = js.native
   def lastPicked: js.UndefOr[Date] = js.native
   def subscribe(event: String, callback: js.Function1[BaseEvent, Unit]): TimeSubscription =
     js.native
+  def parseInput(value: js.Any): DateTime = js.native
+  def dates: Dates = js.native
   def clear: Unit = js.native
 
 extension (td: TempusDominus)
   def date: Option[Date] = Option(td).flatMap(p => Option(p.viewDate)).flatMap(_.toOption)
+  def updateDate(date: Option[Date]): Unit =
+    val dt = date.map(DateTime.convert).orUndefined
+    td.dates.setValue(dt)
