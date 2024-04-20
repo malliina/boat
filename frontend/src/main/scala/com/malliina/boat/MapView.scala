@@ -2,22 +2,21 @@ package com.malliina.boat
 
 import cats.effect.Resource
 import cats.effect.kernel.Async
-import cats.effect.std.Dispatcher
 import com.malliina.datepicker.{TempusDominus, TimeLocale, TimeRestrictions, updateDate}
-import com.malliina.http.HttpClient
+import com.malliina.http.{Http, HttpClient}
 import com.malliina.mapbox.*
 import fs2.concurrent.Topic
 import io.circe.*
 import io.circe.syntax.EncoderOps
 import org.scalajs.dom.*
+
 import scala.concurrent.duration.DurationInt
 import scala.scalajs.js.{Date, JSON, URIUtils}
 
 object MapView extends CookieNames:
   def default[F[_]: Async](
     messages: Topic[F, MessageEvent],
-    dispatcher: Dispatcher[F],
-    http: HttpClient[F]
+    http: Http[F]
   ): Resource[F, MapView[F]] =
     val F = Async[F]
     for token <- Resource.eval(
@@ -28,7 +27,7 @@ object MapView extends CookieNames:
       )
     yield
       val lang = readCookie(LanguageName).map(Language.apply).getOrElse(Language.default)
-      MapView[F](AccessToken(token), lang, messages, dispatcher, http)
+      MapView[F](AccessToken(token), lang, messages, http)
 
   def readCookie(key: String): Either[NotFound, String] =
     cookies.get(key).toRight(NotFound(key))
@@ -45,8 +44,7 @@ class MapView[F[_]: Async](
   accessToken: AccessToken,
   language: Language,
   messages: Topic[F, MessageEvent],
-  dispatcher: Dispatcher[F],
-  http: HttpClient[F],
+  http: Http[F],
   val log: BaseLogger = BaseLogger.console
 ) extends BaseFront:
   val F = Async[F]
@@ -93,7 +91,7 @@ class MapView[F[_]: Async](
     case Language.english => TimeLocale.En
     case _                => TimeLocale.En
   val socket: MapSocket[F] =
-    MapSocket(map, pathFinder, mode, messages, dispatcher, lang, log)
+    MapSocket(map, pathFinder, mode, messages, http.dispatcher, lang, log)
   val events = socket.events.coordEvents
     .debounce(2.seconds)
     .tap: e =>

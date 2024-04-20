@@ -1,6 +1,7 @@
 package com.malliina.http
 
 import cats.effect.Async
+import cats.effect.std.Dispatcher
 import cats.syntax.all.toFlatMapOps
 import com.malliina.boat.http.CSRFConf
 import io.circe.parser.decode
@@ -18,6 +19,10 @@ extension [A](t: js.Thenable[A])
         a => cb(Right(a)),
         err => cb(Left(js.special.wrapAsThrowable(err)))
       )
+
+class Http[F[_]: Async](val client: HttpClient[F], val dispatcher: Dispatcher[F]):
+  def run[R](task: F[R]): Unit = dispatcher.unsafeRunAndForget(task)
+  def using[R](request: HttpClient[F] => F[R]): Unit = run(request(client))
 
 class HttpClient[F[_]: Async] extends CSRFConf:
   private val F = Async[F]
@@ -67,14 +72,16 @@ class HttpClient[F[_]: Async] extends CSRFConf:
     headers: Map[String, String] = Map.empty,
     credentials: RequestCredentials = RequestCredentials.include
   ): F[Response] =
-    val req = new RequestInit {}
-    req.method = method
-    req.body = data
-    req.credentials = credentials
-    val hs = new Headers()
-    headers.foreach((name, value) => hs.append(name, value))
-    req.headers = hs
-    dom.fetch(url, req).effect
+    val promise = F.delay:
+      val req = new RequestInit {}
+      req.method = method
+      req.body = data
+      req.credentials = credentials
+      val hs = new Headers()
+      headers.foreach((name, value) => hs.append(name, value))
+      req.headers = hs
+      dom.fetch(url, req)
+    promise.flatMap(_.effect)
 
 class JsonException(val error: io.circe.Error, val res: dom.Response) extends Exception
 

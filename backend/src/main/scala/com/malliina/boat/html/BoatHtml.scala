@@ -158,7 +158,8 @@ class BoatHtml(
 
   private def routeContainer = div(id := RoutesContainer, cls := RoutesContainer)(
     span(id := RouteLength, cls := "nav-text route-length")(""),
-    span(id := RouteText, cls := "nav-text route-text")("")
+    span(id := RouteText, cls := "nav-text route-text")(""),
+    span(id := RouteDuration, cls := "nav-text route-duration")("")
   )
 
   private def datesContainer(formsLang: FormsLang) =

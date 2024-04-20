@@ -1,10 +1,10 @@
 package com.malliina.boat
 
 import cats.effect.Async
-import com.malliina.http.HttpClient
+import com.malliina.http.Http
 import org.scalajs.dom.HTMLInputElement
 
-class AboutPage[F[_]: Async](http: HttpClient[F]) extends BaseFront:
+class AboutPage[F[_]: Async](http: Http[F]) extends BaseFront:
   document
     .getElementsByName(LanguageRadios)
     .foreach: radio =>
@@ -12,5 +12,5 @@ class AboutPage[F[_]: Async](http: HttpClient[F]) extends BaseFront:
         val code = e.target.asInstanceOf[HTMLInputElement].value
         langChanged(Language(code))
 
-  private def langChanged(to: Language): Unit =
-    http.put[ChangeLanguage, SimpleMessage]("/users/me", ChangeLanguage(to))
+  private def langChanged(to: Language): Unit = http.using: client =>
+    client.put[ChangeLanguage, SimpleMessage]("/users/me", ChangeLanguage(to))

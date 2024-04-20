@@ -115,8 +115,9 @@ object Server extends IOApp:
       streams <- BoatStreams.resource(trackInserts, vesselDb, ais)
       s3 <- S3Client.build[F]()
       graph <- Resource.eval(
-        if conf.isFull then Graph.load[F]
-        else Sync[F].delay(Graph(Map.empty))
+//        if conf.isFull then Graph.load[F]
+//        else Sync[F].delay(Graph(Map.empty))
+        Graph.load[F]
       )
     yield
       val appComps = builder.build(conf, http)

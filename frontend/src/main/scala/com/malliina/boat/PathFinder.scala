@@ -4,7 +4,7 @@ import cats.effect.Async
 import cats.syntax.all.toFunctorOps
 import com.malliina.boat.BoatFormats.formatDistance
 import com.malliina.boat.PathFinder.*
-import com.malliina.http.HttpClient
+import com.malliina.http.Http
 import com.malliina.mapbox.{MapMouseEvent, MapboxMap, MapboxMarker}
 import io.circe.*
 import io.circe.syntax.EncoderOps
@@ -19,8 +19,11 @@ object PathFinder:
   private val routeLastLayer = "route-last"
   private val layerIds = Seq(routeLayer, routeFirstLayer, routeLastLayer)
 
-class PathFinder[F[_]: Async](val map: MapboxMap, http: HttpClient[F])
-  extends GeoUtils
+class PathFinder[F[_]: Async](
+  val map: MapboxMap,
+  http: Http[F],
+  @unused log: BaseLogger = BaseLogger.console
+) extends GeoUtils
   with BaseFront:
   private val mapContainer = elemAsGet[HTMLDivElement](MapId)
   private val routesContainer = elemAsGet[HTMLDivElement](RoutesContainer)
@@ -61,23 +64,25 @@ class PathFinder[F[_]: Async](val map: MapboxMap, http: HttpClient[F])
         case _ =>
           start = Option(MapboxMarker(startMark(c), c, map))
 
-  private def findRoute(from: Coord, to: Coord) =
-    http
-      .get[RouteResult](s"/routes/${from.lat}/${from.lng}/${to.lat}/${to.lng}")
-      .map: res =>
-        val route = res.route
-        val coords = route.coords
-        val coll = FeatureCollection(
-          Seq(Feature(LineGeometry(coords), Map(RouteSpec.Cost -> route.cost.asJson)))
-        )
-        elemAsGet[HTMLSpanElement](RouteLength).innerHTML = s"${formatDistance(route.cost)} km"
-        drawLine(routeLayer, coll)
-        coords.headOption.map: start =>
-          val init = lineFor(Seq(from, start))
-          drawLine(routeFirstLayer, init, LinePaint.dashed())
-        coords.lastOption.foreach: end =>
-          val tail = lineFor(Seq(end, to))
-          drawLine(routeLastLayer, tail, LinePaint.dashed())
+  private def findRoute(from: Coord, to: Coord): Unit =
+    http.using: client =>
+      client
+        .get[RouteResult](s"/routes/${from.lat}/${from.lng}/${to.lat}/${to.lng}")
+        .map: res =>
+          val route = res.route
+          val coords = route.coords
+          val coll = FeatureCollection(
+            Seq(Feature(LineGeometry(coords), Map(RouteSpec.Cost -> route.cost.asJson)))
+          )
+          elemAsGet[HTMLSpanElement](RouteLength).innerHTML = s"${formatDistance(route.cost)} km"
+          elemAsGet[HTMLSpanElement](RouteDuration).innerHTML = s"${res.duration.toMillis} ms"
+          drawLine(routeLayer, coll)
+          coords.headOption.map: start =>
+            val init = lineFor(Seq(from, start))
+            drawLine(routeFirstLayer, init, LinePaint.dashed())
+          coords.lastOption.foreach: end =>
+            val tail = lineFor(Seq(end, to))
+            drawLine(routeLastLayer, tail, LinePaint.dashed())
 
   private def clear(): Unit =
     start.foreach(_.remove())
