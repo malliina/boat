@@ -270,10 +270,10 @@ class MapSocket[F[_]: Temporal: Async](
             e.innerHTML = s"${trackLang.water} ${formatTemp(temp)} ℃"
     anchor(FullLinkId).foreach: e =>
       e.show()
-      e.href = HttpRoutes.full(from.trackName)
+      e.href = BoatHttpRoutes.full(from.trackName)
     anchor(GraphLinkId).foreach: e =>
       e.show()
-      e.href = HttpRoutes.chart(from.trackName)
+      e.href = BoatHttpRoutes.chart(from.trackName)
     elem(EditTitleId).foreach: e =>
       e.show()
     elem(DurationId).foreach: e =>

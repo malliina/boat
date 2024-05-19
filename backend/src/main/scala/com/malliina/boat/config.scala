@@ -143,7 +143,7 @@ object BoatConf:
     )
 
   private def prodDbConf(password: String, maxPoolSize: Int) = Conf(
-    "jdbc:mysql://database8-nuqmhn2cxlhle.mysql.database.azure.com:3306/boat",
+    "jdbc:mysql://localhost:3306/boat",
     "boat",
     password,
     Conf.MySQLDriver,

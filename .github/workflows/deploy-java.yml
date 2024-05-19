@@ -13,6 +13,7 @@ env:
 
 jobs:
   build-and-deploy:
+    if: false
     name: Build and Deploy
     runs-on: ubuntu-22.04
     steps:

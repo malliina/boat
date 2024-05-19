@@ -152,7 +152,14 @@ val backend = Project("boat", file("backend"))
     Compile / packageDoc / publishArtifact := false,
     Compile / doc / sources := Seq.empty,
     assembly / assemblyJarName := "app.jar",
-    Compile / resourceDirectories += io.Path.userHome / ".boat"
+    Compile / resourceDirectories += io.Path.userHome / ".boat",
+    Compile / packageDoc / mappings := Nil,
+    Compile / packageDoc / publishArtifact := false,
+    maintainer := "Michael Skogberg <malliina123@gmail.com>",
+    packageSummary := "Boat-Tracker backend",
+    packageDescription := "Boat-Tracker endpoints.",
+    Linux / daemonUser := "boat",
+    Linux / packageName := "boat"
   )
 
 val agent = project
