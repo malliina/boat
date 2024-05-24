@@ -113,12 +113,10 @@ class MapMouseListener[F[_]: Async](
               case VesselClick(boat, target) =>
                 ais
                   .info(boat.mmsi)
-                  .map { info =>
+                  .map: info =>
                     popup.show(html.ais(info), target, map)
-                  }
-                  .recover { err =>
+                  .recover: err =>
                     log.info(s"Vessel info not available for '$boat'. $err.")
-                  }
               case SymbolClick(marker, target) =>
                 popup.show(html.mark(marker), target, map)
               case MinimalClick(marker, target) =>
