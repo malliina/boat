@@ -3,7 +3,7 @@ package com.malliina.boat
 import cats.effect.Resource
 import cats.effect.kernel.Async
 import com.malliina.datepicker.{TempusDominus, TimeLocale, TimeRestrictions, updateDate}
-import com.malliina.http.{Http, HttpClient}
+import com.malliina.http.Http
 import com.malliina.mapbox.*
 import fs2.concurrent.Topic
 import io.circe.*

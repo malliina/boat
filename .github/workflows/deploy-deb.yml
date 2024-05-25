@@ -1,0 +1,29 @@
+name: Build
+
+on:
+  push:
+    branches:
+      - master
+
+env:
+  A: b
+
+jobs:
+  deploy:
+    name: Build deb
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install lintian
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y lintian
+      - uses: actions/setup-java@v4
+        with:
+          distribution: zulu
+          java-version: 17
+          cache: sbt
+      - name: Build with sbt
+        run: |
+          sbt "mode prod" compile
+          sbt "mode prod" Debian/lintian
