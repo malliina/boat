@@ -53,16 +53,13 @@ To upload a new downloadable `.deb` binary to S3, run:
     
 This will make a binary available at [www.boat-tracker.com/files](https://www.boat-tracker.com/files).
 
-Creating the binary requires a Linux operating system with certain packages installed,
-therefore it is currently a separate step from the release process.
-
 ## Notes
 
 ### Backups
 
 Use mysqldump:
 
-    ./mysqldump -u boat -p --no-tablespaces -h database-nuqmhn2cxlhle.mysql.database.azure.com boat > boat.sql
+    ./mysqldump -u boat -p --no-tablespaces -h localhost boat > boat.sql
 
 ### SQL
 
