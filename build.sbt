@@ -6,7 +6,7 @@ import sbtrelease.ReleaseStateTransformations.*
 import scala.sys.process.Process
 
 val webAuthVersion = "6.7.0"
-val munitVersion = "0.7.29"
+val munitVersion = "1.0.0"
 val testContainersScalaVersion = "0.41.3"
 val scalaTagsVersion = "0.12.0"
 val primitiveVersion = "3.6.0"
@@ -106,7 +106,7 @@ val frontend = project
   )
 
 val backend = Project("boat", file("backend"))
-  .enablePlugins(ServerPlugin)
+  .enablePlugins(ServerPlugin, DebPlugin)
   .dependsOn(crossJvm)
   .settings(jvmSettings ++ boatSettings)
   .settings(
@@ -153,13 +153,7 @@ val backend = Project("boat", file("backend"))
     Compile / doc / sources := Seq.empty,
     assembly / assemblyJarName := "app.jar",
     Compile / resourceDirectories += io.Path.userHome / ".boat",
-    Compile / packageDoc / mappings := Nil,
-    Compile / packageDoc / publishArtifact := false,
-    maintainer := "Michael Skogberg <malliina123@gmail.com>",
-    packageSummary := "Boat-Tracker backend",
-    packageDescription := "Boat-Tracker endpoints.",
-    Linux / daemonUser := "boat",
-    Linux / packageName := "boat"
+    Linux / name := "boat"
   )
 
 val agent = project

@@ -4,19 +4,31 @@ import cats.syntax.all.{toFlatMapOps, toFunctorOps}
 import cats.effect.kernel.Resource
 import cats.effect.Async
 import com.malliina.boat.client.DeviceAgent
+import com.malliina.boat.client.server.AgentInstance.log
 import com.malliina.boat.client.server.Device.GpsDevice
+import com.malliina.util.AppLogger
 import okhttp3.OkHttpClient
 import fs2.concurrent.{SignallingRef, Topic}
 import fs2.Stream
 import fs2.io.net.Network
 
 object AgentInstance:
+  private val log = AppLogger(getClass)
+
   def resource[F[_]: Async: Network](
     http: OkHttpClient
   ): Resource[F, AgentInstance[F]] =
     for
       agent <- Resource.eval(io(http))
-      _ <- agent.connections.compile.resource.lastOrError
+      _ <- Stream.emit(()).concurrently(agent.connections).compile.resource.lastOrError
+      _ <- Resource.eval(
+        AgentSettings
+          .readConf()
+          .fold(
+            err => Async[F].delay(log.warn(s"Failed to read conf: '$err'.")).map(_ => false),
+            conf => agent.updateIfNecessary(conf)
+          )
+      )
     yield agent
 
   def io[F[_]: Async: Network](http: OkHttpClient): F[AgentInstance[F]] =
@@ -33,6 +45,7 @@ class AgentInstance[F[_]: Async: Network](
   val connections: Stream[F, Unit] = confs
     .subscribe(100)
     .flatMap: newConf =>
+      log.info(s"Using conf ${newConf.describe}...")
       val newUrl =
         if newConf.device == GpsDevice then DeviceAgent.DeviceUrl else DeviceAgent.BoatUrl
       val io = DeviceAgent

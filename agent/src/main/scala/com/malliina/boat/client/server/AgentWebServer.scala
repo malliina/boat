@@ -10,22 +10,21 @@ import org.http4s.ember.server.EmberServerBuilder
 object AgentWebServer extends IOApp:
   private val log = AppLogger(getClass)
 
-  val conf = AgentSettings.readConf().toOption
-//  val url =
-//    if conf.exists(_.device == GpsDevice) then DeviceAgent.DeviceUrl else DeviceAgent.BoatUrl
-  def serverResource[F[_]: Async: Network] = for
-    http <- HttpClientIO.resource[F]
-    agentManager <- AgentInstance.resource[F](http.client)
-    service = WebServer(agentManager)
-    server <- EmberServerBuilder
-      .default[F]
-      .withHost(host"0.0.0.0")
-      .withPort(port"8080")
-      .withHttpApp(service.service)
-      .build
-  yield
-    log.info(s"Starting HTTP server at ${server.baseUri}...")
-    server
+  private def serverResource[F[_]: Async: Network] =
+    log.info("Initializing server...")
+    for
+      http <- HttpClientIO.resource[F]
+      agentManager <- AgentInstance.resource[F](http.client)
+      service = WebServer(agentManager)
+      server <- EmberServerBuilder
+        .default[F]
+        .withHost(host"0.0.0.0")
+        .withPort(port"8080")
+        .withHttpApp(service.service)
+        .build
+    yield
+      log.info(s"Starting HTTP server at ${server.baseUri}...")
+      server
 
   override def run(args: List[String]): IO[ExitCode] =
     serverResource[IO].use(_ => IO.never).as(ExitCode.Success)
