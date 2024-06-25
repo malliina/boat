@@ -289,7 +289,7 @@ class TrackInserter[F[_]: Async](val db: DoobieDatabase[F])
   private def updateTrack(
     tid: ConnectionIO[TrackId],
     update: TrackId => ConnectionIO[Int]
-  ): F[JoinedTrack] = db.run {
+  ): F[JoinedTrack] = db.run:
     for
       id <- tid
       _ <- update(id)
@@ -299,4 +299,3 @@ class TrackInserter[F[_]: Async](val db: DoobieDatabase[F])
         s"Updated track ${updated.track} ('${updated.trackName}') of '${updated.boatName}' by '${updated.user}'."
       )
       updated
-  }

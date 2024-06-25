@@ -47,7 +47,7 @@ trait CommonSql:
           from ($topRows) top, ($timedTracks) t
           where top.track = t.id"""
   private val trackColumns =
-    fr0"t.id tid, t.name, t.title, t.canonical, t.comments, t.added, t.points, t.avg_speed, t.avg_water_temp, t.avg_outside_temp, t.distance, t.start, t.startDate, t.startMonth, t.startYear, t.end, t.secs duration, t.speed maxBoatspeed, t.pointId, t.longitude, t.latitude, t.coord, t.speed topSpeed, t.altitude, t.outside_temperature, t.water_temp, t.depthm, t.depth_offsetm, t.battery, t.car_range, t.source_time, t.trackDate, t.track, t.topAdded, b.id boatId, b.name boatName, b.source_type, b.token, b.uid, b.user owner, b.email, b.language"
+    fr0"t.id tid, t.name, t.title, t.canonical, t.comments, t.added, t.points, t.avg_speed, t.avg_water_temp, t.avg_outside_temp, t.distance, t.start, t.startDate, t.startMonth, t.startYear, t.end, t.secs duration, t.speed maxBoatspeed, t.pointId, t.longitude, t.latitude, t.coord, t.speed topSpeed, t.altitude, t.outside_temperature, t.water_temp, t.depthm, t.depth_offsetm, t.battery, t.car_range, t.source_time, t.trackDate, t.track, t.topAdded, b.id boatId, b.name boatName, b.source_type, b.token, b.gps_ip, b.gps_port, b.uid, b.user owner, b.email, b.language"
   val nonEmptyTracks = nonEmptyTracksWith(trackColumns)
   def nonEmptyTracksWith(cols: Fragment) =
     sql"""select $cols
