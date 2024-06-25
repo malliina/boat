@@ -1,15 +1,27 @@
 package com.malliina.boat.http4s
 
+import cats.Show
+import cats.syntax.show.toShow
 import com.malliina.boat.auth.AuthProvider
 import com.malliina.boat.http.CarQuery
-import com.malliina.boat.{DeviceId, Timings, TrackCanonical, TrackId, TrackName}
+import com.malliina.boat.*
 import org.http4s.Uri
+import org.http4s.Uri.Path.SegmentEncoder
 import org.http4s.implicits.*
 
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 
 object Reverse:
+  private def longEncoder[T, C <: ShowableLong[T]](comp: C): SegmentEncoder[T] =
+    SegmentEncoder.longSegmentEncoder.contramap[T](t => comp.write(t))
+
+  given showSegmentEncoder[T: Show]: SegmentEncoder[T] =
+    SegmentEncoder.stringSegmentEncoder.contramap[T](t => t.show)
+
+  given SegmentEncoder[DeviceId] = longEncoder(DeviceId)
+  given SegmentEncoder[TrackId] = longEncoder(TrackId)
+
   val root = uri"/"
   val index = root
   val pingAuth = uri"/pingAuth"
@@ -18,7 +30,7 @@ object Reverse:
   val me = uri"/users/me"
   val usersBoats = uri"/users/boats"
   val usersBoatsAnswers = uri"/users/boats/answers"
-  def usersBoat(id: DeviceId) = Uri.unsafeFromString(s"/users/boats/$id")
+  def usersBoat(id: DeviceId) = uri"/users/boats" / id
 //  def inviteByEmail(id: DeviceId) = usersBoat(id)
   def invites = uri"/invites"
   def revoke = uri"/invites/revoke"
@@ -27,18 +39,19 @@ object Reverse:
   val notificationsDisable = uri"/users/notifications/disable"
   val boats = uri"/boats"
   val createBoat = boats
-  def boat(id: DeviceId) = Uri.unsafeFromString(s"/boats/$id")
-  def boatDelete(id: DeviceId) = Uri.unsafeFromString(s"/boats/$id/delete")
+  def boat(id: DeviceId) = uri"/boats" / id
+  def boatDelete(id: DeviceId) = uri"/boats" / id / "delete"
+  def boatEdit(id: DeviceId) = uri"/boats" / id / "edit"
   val history = uri"/history"
   val tracks = uri"/tracks"
-  def track(id: TrackId) = Uri.unsafeFromString(s"/tracks/$id")
-  def modifyTitle(name: TrackName) = Uri.unsafeFromString(s"/tracks/$name")
-  def updateComments(id: TrackId) = Uri.unsafeFromString(s"/tracks/$id")
-  def trackFull(name: TrackName) = Uri.unsafeFromString(s"/tracks/$name/full")
-  def trackChart(name: TrackName) = Uri.unsafeFromString(s"/tracks/$name/chart")
+  def track(id: TrackId) = tracks / id
+  def modifyTitle(name: TrackName) = tracks / name
+  def updateComments(id: TrackId) = tracks / id
+  def trackFull(name: TrackName) = tracks / name / "full"
+  def trackChart(name: TrackName) = tracks / name / "chart"
   val stats = uri"/stats"
   def shortest(srclat: Double, srclng: Double, destlat: Double, destlng: Double) =
-    Uri.unsafeFromString(s"/routes/$srclat/$srclng/$destlat/$destlng")
+    uri"/routes" / srclat / srclng / destlat / destlng
   object ws:
     val updates = uri"/ws/updates"
     val boats = uri"/ws/boats"
@@ -60,5 +73,5 @@ object Reverse:
       t.from.map(i => Seq(Timings.From -> iso.format(i.atOffset(ZoneOffset.UTC)))).getOrElse(Nil) ++
         t.to.map(i => Seq(Timings.To -> iso.format(i.atOffset(ZoneOffset.UTC)))).getOrElse(Nil)
     uri"/".withQueryParams(params.toMap)
-  def file(id: String) = Uri.unsafeFromString(s"/files/$id")
-  def canonical(id: TrackCanonical) = Uri.unsafeFromString(s"/$id")
+  def file(id: String) = uri"/files" / id
+  def canonical(id: TrackCanonical) = uri"/" / id

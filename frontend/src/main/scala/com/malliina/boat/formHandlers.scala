@@ -26,30 +26,34 @@ class FormHandlers[F[_]: Async](http: Http[F]) extends BaseFront:
       cancelButton <- elemAs[HTMLButtonElement](CancelEditCommentsId)
     yield CommentsHandler(form, editIcon, cancelButton, http)
 
-  def inviteOthers() = for
-    parent <- elemsByClass[Element](FormParent)
-    form <- parent.getElementsByClassName(InviteFormClass).map(_.asInstanceOf[HTMLFormElement])
-    open <- parent.getElementsByClassName(InviteFormOpen).headOption
-    cancel <- parent.getElementsByClassName(FormCancel).headOption
-    delete <- parent.getElementsByClassName(DeleteForm).headOption
-  yield InviteHandler(form, open, cancel, delete)
+  def inviteOthers() =
+    for
+      parent <- elemsByClass[Element](FormParent)
+      form <- parent.getElementsByClassName(InviteFormClass).map(_.asInstanceOf[HTMLFormElement])
+      open <- parent.elementByClass(InviteFormOpen)
+      cancel <- parent.elementByClass(FormCancel)
+//      delete <- parent.elementByClass(DeleteForm)
+    yield InviteHandler(form, open, cancel)
+
+extension (e: Element)
+  def elementByClass(cls: String): Option[Element] = e.getElementsByClassName(cls).headOption
 
 class InviteHandler(
   form: HTMLFormElement,
   open: Element,
   cancel: Element,
-  delete: Element,
+//  delete: Element,
   @unused log: BaseLogger = BaseLogger.console
 ) extends BaseFront:
   open.addOnClick: _ =>
     form.show()
     open.hide()
-    delete.hide()
+//    delete.hide()
 
   cancel.addOnClick: _ =>
     form.hide()
     open.show()
-    delete.show()
+//    delete.show()
 
 class TitleHandler[F[_]: Async](
   form: HTMLFormElement,

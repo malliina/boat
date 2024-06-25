@@ -35,4 +35,4 @@ object IdentityException:
     case other                         => new IdentityException(other)
 
   def missingCredentials(hs: Headers): MissingCredentialsException =
-    new MissingCredentialsException(MissingCredentials(hs))
+    MissingCredentialsException(MissingCredentials(hs))

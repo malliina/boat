@@ -10,7 +10,7 @@ trait TrackInsertsDatabase[F[_]]:
   def updateComments(track: TrackId, comments: String, user: UserId): F[JoinedTrack]
   def addSource(boat: BoatName, sourceType: SourceType, user: UserId): F[SourceRow]
   def removeDevice(device: DeviceId, user: UserId): F[Int]
-  def renameBoat(boat: DeviceId, newName: BoatName, user: UserId): F[SourceRow]
+  def updateBoat(boat: DeviceId, update: PatchBoat, user: UserId): F[SourceRow]
 
   /** If the given track and source exist and are owned by the user, returns the track info.
     *

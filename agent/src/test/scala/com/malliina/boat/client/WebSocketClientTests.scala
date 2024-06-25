@@ -40,7 +40,8 @@ class WebSocketClientTests extends munit.CatsEffectSuite:
     val token = "todo"
     val socketResource = for
       http <- HttpClientIO.resource[IO]
-      socket <- WebSocketF.build[IO](url, Map(Constants.BoatTokenHeader -> token), http.client)
+      socket <- WebSocketF
+        .build[IO](url, Map(Constants.BoatTokenHeader.toString -> token), http.client)
     yield socket
     socketResource.use: (client: WebSocketF[IO]) =>
       val stream = client.events.evalMap:

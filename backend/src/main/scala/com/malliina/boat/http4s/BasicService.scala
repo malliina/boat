@@ -33,6 +33,7 @@ object BasicService:
     .getOrElse(NonEmptyList.of(MediaRange.`*/*`))
 
 class BasicService[F[_]: Sync] extends Implicits[F]:
+  val F = Sync[F]
   def temporaryRedirect(uri: Uri): F[Response[F]] =
     TemporaryRedirect(Location(uri)).map(_.putHeaders(noCache))
   def seeOther(uri: Uri): F[Response[F]] =
@@ -49,7 +50,7 @@ class BasicService[F[_]: Sync] extends Implicits[F]:
     InternalServerError(a, noCache)
   def errorHandler(t: Throwable): F[Response[F]] = t match
     case ir: InvalidRequest =>
-      Sync[F]
+      F
         .delay(log.warn(ir.message, ir))
         .flatMap: _ =>
           badRequest(ir.errors)
@@ -58,7 +59,7 @@ class BasicService[F[_]: Sync] extends Implicits[F]:
     case ae: AuthException =>
       unauthorizedNoCache(Errors(ae.singleError))
     case bnfe: BoatNotFoundException =>
-      Sync[F].delay(log.error(bnfe.message, t)).flatMap(_ => notFound(Errors(bnfe.message)))
+      F.delay(log.error(bnfe.message, t)).flatMap(_ => notFound(Errors(bnfe.message)))
     case re: ResponseException =>
       serverErrorResponse(s"${re.getMessage} Response: '${re.response.asString}'.", re)
     case ioe: IOException if ioe.message.exists(_.startsWith(BasicService.noisyErrorMessage)) =>
@@ -67,12 +68,12 @@ class BasicService[F[_]: Sync] extends Implicits[F]:
       serverErrorResponse(s"Service error: '${other.getMessage}'.", other)
 
   private def serverErrorResponse(msg: String, t: Throwable) =
-    Sync[F]
+    F
       .delay(log.error(msg, t))
       .flatMap: _ =>
         serverError(Errors(s"Server error: '${t.getMessage}'."))
 
-  private def unauthorizedNoCache(errors: Errors) =
+  def unauthorizedNoCache(errors: Errors) =
     Unauthorized(
       `WWW-Authenticate`(NonEmptyList.of(Challenge("Bearer", "Social login"))),
       errors,

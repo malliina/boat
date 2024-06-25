@@ -43,8 +43,6 @@ trait MyScalatagsInstances:
       .contramap[C](content => content.render)
       .withContentType(`Content-Type`(mediaType, charset))
 
-trait HtmlInstances extends MyScalatagsInstances
-
 object JsonInstances extends JsonInstances
 
 trait JsonInstances extends CirceInstances:
@@ -66,6 +64,6 @@ trait JsonInstances extends CirceInstances:
 abstract class Implicits[F[_]]
   extends syntax.AllSyntax
   with Http4sDsl[F]
-  with HtmlInstances
+  with MyScalatagsInstances
   with JsonInstances
   with Extractors

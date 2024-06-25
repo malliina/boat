@@ -68,7 +68,7 @@ class TrackInserter[F[_]: Async](val db: DoobieDatabase[F])
       else log.warn(s"Device '$device' owned by '$user' not found.")
       rows
 
-  def renameBoat(boat: DeviceId, newName: BoatName, user: UserId): F[SourceRow] = run:
+  def updateBoat(boat: DeviceId, update: PatchBoat, user: UserId): F[SourceRow] = run:
     val ownershipCheck =
       sql"select exists(select b.id from boats b where b.id = $boat and b.owner = $user)"
         .query[Boolean]
@@ -76,10 +76,18 @@ class TrackInserter[F[_]: Async](val db: DoobieDatabase[F])
     for
       exists <- ownershipCheck
       _ <- if exists then pure(()) else fail(BoatNotFoundException(boat, user))
-      _ <- sql"update boats set name = $newName where id = $boat".update.run
+      _ <- update match
+        case PatchBoat.ChangeName(name) =>
+          sql"update boats set name = ${name.boatName} where id = $boat".update.run
+        case PatchBoat.UpdateGps(gps) =>
+          sql"update boats set gps_ip = ${gps.ip}, gps_port = ${gps.port} where id = $boat".update.run
       updated <- boatById(boat)
     yield
-      log.info(s"Renamed device '$boat' to '$newName'.")
+      val msg = update match
+        case PatchBoat.ChangeName(name) => s"Renamed device '$boat' to '${name.boatName}'."
+        case PatchBoat.UpdateGps(gps) =>
+          s"Updated GPS of boat '${updated.name}' ($boat) to ${gps.describe}."
+      log.info(msg)
       updated
 
   def joinAsSource(meta: DeviceMeta): F[JoinResult] = run:

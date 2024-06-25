@@ -88,9 +88,6 @@ case class BoatConf(
   def isFull = isProdBuild || isTest
 
 object BoatConf:
-  def parseUnsafe() =
-    parseBoat().fold(err => throw err, identity)
-
   def parseF[F[_]: Sync] = Sync[F].fromEither(parseBoat())
 
   def parseBoat(): Either[ConfigError, BoatConf] =
@@ -153,7 +150,7 @@ object BoatConf:
   )
 
   private def devDatabaseConf(password: String) = Conf(
-    "jdbc:mysql://localhost:3307/boat",
+    "jdbc:mysql://localhost:3306/boat",
     "boat",
     password,
     Conf.MySQLDriver,

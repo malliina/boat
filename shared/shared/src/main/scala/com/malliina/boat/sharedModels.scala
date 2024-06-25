@@ -292,6 +292,7 @@ case class Boat(
   name: BoatName,
   sourceType: SourceType,
   token: BoatToken,
+  gps: Option[GPSInfo],
   addedMillis: Long
 ) derives Codec.AsObject
 
@@ -356,8 +357,29 @@ case class TrackMetaShort(
 ) extends TrackMetaLike
   derives Codec.AsObject
 
-case class DeviceRef(device: DeviceId, deviceName: BoatName, username: Username)
-  derives Codec.AsObject
+case class GPSInfo(ip: String, port: Int) derives Codec.AsObject:
+  def describe = s"$ip:$port"
+
+object GPSInfo:
+  val Ip = "ip"
+  val Port = "port"
+
+enum PatchBoat:
+  case ChangeName(name: ChangeBoatName)
+  case UpdateGps(gps: GPSInfo)
+
+object PatchBoat:
+  given Decoder[PatchBoat] =
+    Decoder[ChangeBoatName].map(ChangeName.apply).or(Decoder[GPSInfo].map(UpdateGps.apply))
+
+case class DeviceRef(
+  id: DeviceId,
+  name: BoatName,
+  username: Username,
+  gps: Option[GPSInfo]
+) derives Codec.AsObject
+
+case class DeviceContainer(boat: DeviceRef) derives Codec.AsObject
 
 case class TrackRef(
   track: TrackId,

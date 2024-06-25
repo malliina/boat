@@ -46,12 +46,11 @@ trait BoatSockets:
     code: WebSocketF[IO] => IO[T]
   ): IO[T] =
     val headers = boat.fold(
-      name => KeyValue.build(Constants.BoatNameHeader, name),
-      t => KeyValue.build(Constants.BoatTokenHeader, t)
+      name => KeyValue.build(Constants.BoatNameHeader.toString, name),
+      t => KeyValue.build(Constants.BoatTokenHeader.toString, t)
     )
-    openSocket(url, List(headers), httpClient) { socket =>
+    openSocket(url, List(headers), httpClient): socket =>
       code(socket)
-    }
 
   def openSocket[T](url: FullUrl, headers: List[KeyValue], httpClient: HttpClientF2[IO])(
     code: WebSocketF[IO] => IO[T]

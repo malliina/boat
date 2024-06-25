@@ -5,7 +5,7 @@ import com.malliina.boat.FrontKeys.*
 import com.malliina.boat.html.BoatImplicits.given
 import com.malliina.boat.http.{Limits, TracksQuery}
 import com.malliina.boat.http4s.Reverse
-import com.malliina.boat.{AppConf, BuildInfo, Coord, FormsLang, FrontKeys, FullTrack, Lang, Shortcut, SourceType, TrackRef, TrackShortcut, TracksBundle, UserBoats, UserInfo, Usernames}
+import com.malliina.boat.{AppConf, Boat, BuildInfo, Coord, FormsLang, FrontKeys, FullTrack, Lang, Shortcut, SourceType, TrackRef, TrackShortcut, TracksBundle, UserBoats, UserInfo, Usernames}
 import com.malliina.html.HtmlTags
 import com.malliina.html.HtmlTags.{cssLink, deviceWidthViewport, titleTag}
 import com.malliina.html.HtmlImplicits.given
@@ -57,6 +57,9 @@ class BoatHtml(
 
   def devices(user: UserInfo) =
     page(PageConf(BoatsPage(user), Seq(BoatsClass)))
+
+  def editDevice(user: UserInfo, boat: Boat) =
+    page(PageConf(BoatsPage.edit(user, boat), Seq(BoatsClass)))
 
   def tracks(user: UserInfo, data: TracksBundle, query: TracksQuery, lang: Lang): Frag =
     page(PageConf(TracksPage(user, data, query, lang), Seq(StatsClass)))

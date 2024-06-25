@@ -29,7 +29,7 @@ object DeviceAgent:
     url: FullUrl,
     http: OkHttpClient
   ): Resource[F, DeviceAgent[F]] =
-    val headers = conf.token.toList.map(t => BoatTokenHeader -> BoatToken.write(t)).toMap
+    val headers = conf.token.toList.map(t => BoatTokenHeader.toString -> BoatToken.write(t)).toMap
     val isGps = conf.device == GpsDevice
     for
       tcp <- Resource.eval(TcpClient.default(conf.host, conf.port))

@@ -26,3 +26,17 @@ object FormReadable:
 
   given readable[T](using r: Readable[T]): FormReadable[T] =
     string.emap(str => r.read(str))
+
+trait FormReadableT[T]:
+  def read(url: UrlForm): Either[Errors, T]
+  def map[U](f: T => U): FormReadableT[U] = emap(t => Right(f(t)))
+  def emap[U](f: T => Either[Errors, U]): FormReadableT[U] =
+    (form: UrlForm) =>
+      read(form).flatMap: t =>
+        f(t)
+  def or[TT >: T](other: => FormReadableT[TT]): FormReadableT[TT] = form =>
+    read(form).orElse(other.read(form))
+
+object FormReadableT:
+  def apply[T](using reader: FormReadableT[T]): FormReadableT[T] = reader
+  given reader: FormReadableT[FormReader] = (urlForm: UrlForm) => Right(FormReader(urlForm))

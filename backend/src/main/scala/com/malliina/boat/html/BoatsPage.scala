@@ -4,15 +4,14 @@ import com.malliina.boat.FrontKeys.*
 import com.malliina.boat.InviteState.{Accepted, Awaiting, Other, Rejected}
 import com.malliina.boat.http.CSRFConf
 import com.malliina.boat.http4s.Reverse
-import com.malliina.boat.{BoatIds, BoatNames, BoatRef, Emails, Forms, InviteState, SourceType, UserInfo}
+import com.malliina.boat.{Boat, BoatIds, BoatNames, BoatRef, Emails, Forms, GPSInfo, InviteState, SourceType, UserInfo}
 import com.malliina.values.WrappedId
 import scalatags.Text
 import scalatags.Text.all.*
 import scalatags.text.Builder
 
-import scala.language.implicitConversions
-
 object HTMLConstants extends HTMLConstants
+
 trait HTMLConstants:
   val post = "POST"
   val row = "row"
@@ -20,6 +19,53 @@ trait HTMLConstants:
 object BoatsPage extends BoatImplicits with CSRFConf with HTMLConstants:
   val reverse = Reverse
   val empty: Modifier = modifier()
+
+  def edit(user: UserInfo, boat: Boat) =
+    val langs = BoatLang(user.language)
+    val lang = langs.lang
+    val settings = lang.settings
+    val boatLang = settings.boatLang
+    div(cls := "container")(
+      div(cls := row)(
+        div(cls := "col-md-12")(
+          h1(lang.track.boats)
+        )
+      ),
+      form(
+        method := post,
+        action := reverse.boatEdit(boat.id),
+        cls := row
+      )(
+        hiddenInput(BoatIds.Key, boat.id),
+        div(cls := "mb-3 col-md-5")(
+          formInput(
+            boatLang.ip,
+            "ip-label",
+            GPSInfo.Ip,
+            "form-label",
+            "form-control",
+            "192.168.0.1",
+            inputValue = boat.gps.map(_.ip)
+          )
+        ),
+        div(cls := "mb-3 col-md-5")(
+          formInput(
+            boatLang.port,
+            "port-label",
+            GPSInfo.Port,
+            "form-label",
+            "form-control",
+            "10110",
+            inputValue = boat.gps.map(gps => s"${gps.port}")
+          )
+        ),
+        div(cls := "col-12")(
+          button(`type` := "submit", cls := "btn btn-primary")(
+            settings.done
+          )
+        )
+      )
+    )
 
   def apply(user: UserInfo) =
     val langs = BoatLang(user.language)
@@ -45,29 +91,33 @@ object BoatsPage extends BoatImplicits with CSRFConf with HTMLConstants:
             th(boatLang.boat),
             th(lang.name),
             th(boatLang.token),
-            th(settings.actions)
+            th(settings.actions),
+            th(inviteLang.invites)
           )
         ),
         tbody(
           user.boats.map: boat =>
-            val confirmDeletionText = s"${settings.delete} ${boat.name}?"
+//            val confirmDeletionText = s"${settings.delete} ${boat.name}?"
             tr(
-              td(if boat.sourceType == SourceType.Vehicle then boatLang.car else boatLang.boat),
-              td(boat.name),
-              td(boat.token),
+              tdMiddle(
+                if boat.sourceType == SourceType.Vehicle then boatLang.car else boatLang.boat
+              ),
+              tdMiddle(boat.name),
+              tdMiddle(boat.token),
+              tdMiddle(a(href := reverse.boatEdit(boat.id), cls := "align-middle")(settings.edit)),
               td(cls := s"$row table-button $FormParent")(
-                div(cls := "col")(
-                  form(
-                    method := post,
-                    action := reverse.boatDelete(boat.id),
-                    onsubmit := s"return confirm('$confirmDeletionText');",
-                    cls := DeleteForm
-                  )(
-                    button(`type` := "submit", cls := "btn btn-sm btn-danger")(
-                      settings.delete
-                    )
-                  )
-                ),
+//                div(cls := "col")(
+//                  form(
+//                    method := post,
+//                    action := reverse.boatDelete(boat.id),
+//                    onsubmit := s"return confirm('$confirmDeletionText');",
+//                    cls := DeleteForm
+//                  )(
+//                    button(`type` := "submit", cls := "btn btn-sm btn-danger")(
+//                      settings.delete
+//                    )
+//                  )
+//                ),
                 div(cls := "col")(
                   button(`type` := "button", cls := s"btn btn-sm btn-info $InviteFormOpen")(
                     settings.invite.invite
@@ -84,8 +134,9 @@ object BoatsPage extends BoatImplicits with CSRFConf with HTMLConstants:
                     "email-label",
                     Emails.Key,
                     "col-form-label col-form-label-sm col-sm-2",
-                    s"form-control form-control sm $InviteFormInputClass",
-                    "michael@email.com"
+                    s"form-control form-control-sm $InviteFormInputClass",
+                    "michael@email.com",
+                    inputType = "email"
                   ),
                   div(cls := "col-sm-3 pl-sm-0 pt-2 pt-sm-0")(
                     button(`type` := "submit", cls := "btn btn-sm btn-primary")(
@@ -94,7 +145,7 @@ object BoatsPage extends BoatImplicits with CSRFConf with HTMLConstants:
                     button(
                       `type` := "button",
                       id := "cancel-invite",
-                      cls := s"btn btn-sm btn-secondary ml-1 $FormCancel"
+                      cls := s"btn btn-sm btn-secondary ms-2 $FormCancel"
                     )(webLang.cancel)
                   )
                 )
@@ -144,7 +195,7 @@ object BoatsPage extends BoatImplicits with CSRFConf with HTMLConstants:
             )
           ),
           tbody(
-            user.invites.map { i =>
+            user.invites.map: i =>
               tr(
                 td(i.boat.name),
                 td(i.state),
@@ -159,7 +210,6 @@ object BoatsPage extends BoatImplicits with CSRFConf with HTMLConstants:
                   )
                 )
               )
-            }
           )
         )
       ,
@@ -180,7 +230,7 @@ object BoatsPage extends BoatImplicits with CSRFConf with HTMLConstants:
             )
           ),
           tbody(
-            user.friends.map { f =>
+            user.friends.map: f =>
               val confirmRevokeText = inviteLang.confirmRevoke(f.boat.name, f.friend.email)
               tr(
                 td(f.boat.name),
@@ -201,10 +251,11 @@ object BoatsPage extends BoatImplicits with CSRFConf with HTMLConstants:
                   )
                 )
               )
-            }
           )
         )
     )
+
+  private def tdMiddle = td(cls := "align-middle")
 
   private def radio[T: AttrValue](
     inputId: String,
@@ -254,17 +305,39 @@ object BoatsPage extends BoatImplicits with CSRFConf with HTMLConstants:
     inputName: String,
     labelClass: String,
     inputClass: String,
-    placeholderValue: String
+    placeholderValue: String,
+    inputType: String = "text"
   ) = modifier(
     label(cls := labelClass, `for` := inputId)(labelText),
     div(cls := "col-sm-7")(
       input(
-        `type` := "text",
+        `type` := inputType,
         id := inputId,
         cls := inputClass,
         placeholder := placeholderValue,
         name := inputName
       )
+    )
+  )
+
+  private def formInput(
+    labelText: String,
+    inputId: String,
+    inputName: String,
+    labelClass: String,
+    inputClass: String,
+    placeholderValue: String,
+    inputValue: Option[String] = None,
+    inputType: String = "text"
+  ) = modifier(
+    label(cls := labelClass, `for` := inputId)(labelText),
+    input(
+      tpe := inputType,
+      id := inputId,
+      cls := inputClass,
+      placeholder := placeholderValue,
+      name := inputName,
+      inputValue.fold(empty)(v => value := v)
     )
   )
 

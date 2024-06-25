@@ -1,12 +1,10 @@
 package com.malliina.boat.http4s
 
 import cats.data.NonEmptyList
-import cats.effect.Sync
-import cats.effect.kernel.Async
+import cats.effect.Async
 import cats.syntax.all.{catsSyntaxApplicativeError, catsSyntaxFlatMapOps, toFlatMapOps, toFunctorOps, toSemigroupKOps, toTraverseOps}
 import com.malliina.boat.*
 import com.malliina.boat.Constants.{LanguageName, TokenCookieName}
-import com.malliina.boat.Readables.trackTitle
 import com.malliina.boat.auth.AuthProvider.{PromptKey, SelectAccount}
 import com.malliina.boat.auth.{AuthProvider, BoatJwt, SettingsPayload, UserPayload}
 import com.malliina.boat.db.*
@@ -28,13 +26,13 @@ import fs2.{Pipe, Stream}
 import io.circe.parser.parse
 import io.circe.syntax.EncoderOps
 import io.circe.{Decoder, Json}
-import org.http4s.headers.Location
+import org.http4s.headers.{Location, `Content-Type`}
 import org.http4s.implicits.uri
 import org.http4s.server.websocket.WebSocketBuilder2
 import org.http4s.websocket.WebSocketFrame
 import org.http4s.websocket.WebSocketFrame.Text
 import org.http4s.{Callback as _, *}
-import org.typelevel.ci.{CIString, CIStringSyntax}
+import org.typelevel.ci.CIString
 
 import java.time.Instant
 import scala.annotation.unused
@@ -45,8 +43,9 @@ object Service:
 
   extension [F[_]](req: Request[F]) def isSecured: Boolean = Urls.isSecure(req)
 
-class Service[F[_]: Async: Files](comps: BoatComps[F], graph: Graph) extends BasicService[F]:
-  val F = Sync[F]
+class Service[F[_]: Async: Files](comps: BoatComps[F], graph: Graph)
+  extends BasicService[F]
+  with BoatDecoders[F]:
   val auth = comps.auth
   val userMgmt = auth.users
   private def html(req: Request[F]) = if isCar(req) then comps.carHtml else comps.boatHtml
@@ -73,12 +72,15 @@ class Service[F[_]: Async: Files](comps: BoatComps[F], graph: Graph) extends Bas
     case req @ GET -> Root / "pingAuth" =>
       auth.profile(req).flatMap(_ => ok(AppMeta.default))
     case req @ GET -> Root / "users" / "me" =>
-      auth.profile(req).flatMap(user => ok(UserContainer(user)))
+      auth
+        .profile(req)
+        .flatMap: user =>
+          ok(UserContainer(user))
     case req @ POST -> Root / "users" / "me" =>
       req
-        .as[RegisterCode](implicitly, jsonBody[F, RegisterCode])
+        .decodeJson[RegisterCode]
         .flatMap: reg =>
-          auth.register(reg.code, Instant.now()).flatMap(boatJwt => ok(boatJwt))
+          auth.register(reg.code, now()).flatMap(boatJwt => ok(boatJwt))
     case req @ POST -> Root / "users" / "me" / "tokens" =>
       auth.recreate(req.headers).flatMap(boatJwt => ok(boatJwt))
     case req @ PUT -> Root / "users" / "me" =>
@@ -89,7 +91,7 @@ class Service[F[_]: Async: Files](comps: BoatComps[F], graph: Graph) extends Bas
             val msg = if changed then s"Changed language to ${newLanguage.language}." else NoChange
             ok(SimpleMessage(msg))
     case req @ POST -> Root / "users" / "me" / "delete" =>
-      auth.delete(req.headers, Instant.now()).flatMap(_ => ok(SimpleMessage("Deleted.")))
+      auth.delete(req.headers, now()).flatMap(_ => ok(SimpleMessage("Deleted.")))
     case req @ POST -> Root / "users" / "notifications" =>
       jsonAction[PushPayload](req): (payload, user) =>
         push
@@ -104,7 +106,7 @@ class Service[F[_]: Async: Files](comps: BoatComps[F], graph: Graph) extends Bas
             val msg = if disabled then "Disabled." else NoChange
             ok(SimpleMessage(msg))
     case req @ POST -> Root / "invites" =>
-      formAction[InvitePayload](req, forms.invite): (inviteInfo, user) =>
+      formAction[InvitePayload](req): (inviteInfo, user) =>
         userMgmt
           .invite(inviteInfo.byUser(user.id))
           .flatMap: res =>
@@ -118,13 +120,13 @@ class Service[F[_]: Async: Files](comps: BoatComps[F], graph: Graph) extends Bas
             log.info(message)
             seeOther(reverse.boats)
     case req @ POST -> Root / "invites" / "revoke" =>
-      formAction[RevokeAccess](req, forms.revokeInvite): (revokeInfo, user) =>
+      formAction[RevokeAccess](req): (revokeInfo, user) =>
         userMgmt
           .revokeAccess(revokeInfo.to, revokeInfo.from, user.id)
           .flatMap: res =>
             seeOther(reverse.boats)
     case req @ POST -> Root / "invites" / "respond" =>
-      formAction[InviteResponse](req, forms.respondInvite): (response, user) =>
+      formAction[InviteResponse](req): (response, user) =>
         userMgmt
           .updateInvite(
             response.to,
@@ -143,27 +145,34 @@ class Service[F[_]: Async: Files](comps: BoatComps[F], graph: Graph) extends Bas
         html = ok(ClientConf.default)
       )
     case req @ GET -> Root / "boats" =>
-      auth.profile(req).flatMap(user => ok(html(req).devices(user)))
+      auth
+        .profile(req)
+        .flatMap: user =>
+          ok(html(req).devices(user))
+    case req @ GET -> Root / "boats" / "me" =>
+      auth
+        .boatTokenOrFail(req.headers)
+        .flatMap: boat =>
+          ok(DeviceContainer(boat.strip))
     case req @ POST -> Root / "boats" =>
-      formAction(
-        req,
-        form =>
-          for
-            name <- form.read[BoatName](BoatNames.Key)
-            sourceType <- form.read[SourceType](SourceType.Key)
-          yield AddSource(name, sourceType)
-      ): (boat, user) =>
+      formAction[AddSource](req): (boat, user) =>
         inserts
           .addSource(boat.boatName, boat.sourceType, user.id)
           .flatMap(row => boatResponse(req, row))
     case req @ PATCH -> Root / "boats" / DeviceIdVar(device) =>
-      formAction(
-        req,
-        form => form.read[BoatName](BoatNames.Key).map(n => ChangeBoatName(n))
-      ): (change, user) =>
-        inserts
-          .renameBoat(device, change.boatName, user.id)
-          .flatMap(row => boatResponse(req, row))
+      updateBoat(req, device)
+    case req @ GET -> Root / "boats" / DeviceIdVar(device) / "edit" =>
+      auth
+        .profile(req)
+        .flatMap: user =>
+          user.boats
+            .find(_.id == device)
+            .map: boat =>
+              ok(html(req).editDevice(user, boat))
+            .getOrElse:
+              unauthorizedNoCache(Errors("No access."))
+    case req @ POST -> Root / "boats" / DeviceIdVar(device) / "edit" =>
+      updateBoat(req, device)
     case req @ POST -> Root / "boats" / DeviceIdVar(device) / "delete" =>
       auth
         .profile(req)
@@ -203,16 +212,10 @@ class Service[F[_]: Async: Files](comps: BoatComps[F], graph: Graph) extends Bas
         html = index(req)
       )
     case req @ PUT -> Root / "tracks" / TrackNameVar(trackName) =>
-      def readTitle(form: FormReader) =
-        form.read[TrackTitle](TrackTitle.Key).map(ChangeTrackTitle.apply)
-
-      trackAction[ChangeTrackTitle](req, readTitle): (title, user) =>
+      trackAction[ChangeTrackTitle](req): (title, user) =>
         inserts.updateTitle(trackName, title.title, user.id)
     case req @ PATCH -> Root / "tracks" / TrackIdVar(trackId) =>
-      def readComments(form: FormReader) =
-        form.read[String](TrackComments.Key).map(ChangeComments.apply)
-
-      trackAction[ChangeComments](req, readComments): (comments, user) =>
+      trackAction[ChangeComments](req): (comments, user) =>
         inserts.updateComments(trackId, comments.comments, user.id)
     case req @ GET -> Root / "tracks" / TrackNameVar(trackName) / "full" =>
       authedLimited(req).flatMap: authed =>
@@ -294,7 +297,7 @@ class Service[F[_]: Async: Files](comps: BoatComps[F], graph: Graph) extends Bas
           .getOrElse:
             notFound(Errors(SingleError.input(s"Car not found: '${body.carId}'.")))
     case req @ GET -> Root / "sign-in" =>
-      val now = Instant.now()
+      val timeNow = now()
       req.cookies
         .find(_.name == cookieNames.provider)
         .flatMap(cookie => AuthProvider.forString(cookie.content).toOption)
@@ -304,7 +307,9 @@ class Service[F[_]: Async: Files](comps: BoatComps[F], graph: Graph) extends Bas
             val recreation = web
               .parseLongTermCookie(req.headers)
               .map: idToken =>
-                auth.webSiwa.recreate(idToken, now).flatMap(boatJwt => appleResult(boatJwt, req))
+                auth.webSiwa
+                  .recreate(idToken, timeNow)
+                  .flatMap(boatJwt => appleResult(boatJwt, req))
             recreation.getOrElse(temporaryRedirect(reverse.signInFlow(provider)))
           else temporaryRedirect(reverse.signInFlow(provider))
         .getOrElse:
@@ -356,6 +361,12 @@ class Service[F[_]: Async: Files](comps: BoatComps[F], graph: Graph) extends Bas
         ,
         html = index(req)
       )
+
+  private def updateBoat(req: Request[F], device: DeviceId) =
+    formAction[PatchBoat](req): (patch, user) =>
+      inserts
+        .updateBoat(device, patch, user.id)
+        .flatMap(row => boatResponse(req, row))
 
   private def socketRoutes(sockets: WebSocketBuilder2[F]): HttpRoutes[F] = HttpRoutes.of[F]:
     case req @ GET -> Root / "ws" / "updates" =>
@@ -456,23 +467,6 @@ class Service[F[_]: Async: Files](comps: BoatComps[F], graph: Graph) extends Bas
   private def parseUnsafe(message: String) =
     parse(message).fold(err => throw Exception(s"Not JSON: '$message'. $err"), identity)
 
-  private object forms:
-    import Readables.given
-    def invite(form: FormReader) = for
-      boat <- form.read[DeviceId](Forms.Boat)
-      email <- form.read[Email](Forms.Email)
-    yield InvitePayload(boat, email)
-
-    def respondInvite(form: FormReader) = for
-      boat <- form.read[DeviceId](Forms.Boat)
-      accept <- form.read[Boolean](Forms.Accept)
-    yield InviteResponse(boat, accept)
-
-    def revokeInvite(form: FormReader) = for
-      boat <- form.read[DeviceId](Forms.Boat)
-      user <- form.read[UserId](Forms.User)
-    yield RevokeAccess(boat, user)
-
   private def webSocket(
     sockets: WebSocketBuilder2[F],
     toClient: Stream[F, WebSocketFrame],
@@ -515,10 +509,10 @@ class Service[F[_]: Async: Files](comps: BoatComps[F], graph: Graph) extends Bas
               auth.saveSettings(SettingsPayload(u, lang, authorizedBoats), cookied, isSecure)
           .recover(mc => redirectToLogin)
 
-  private def trackAction[T: Decoder](req: Request[F], readForm: FormReader => Either[Errors, T])(
+  private def trackAction[T: Decoder](req: Request[F])(
     code: (T, UserInfo) => F[JoinedTrack]
-  ) =
-    formAction[T](req, readForm): (t, user) =>
+  )(using EntityDecoder[F, T]) =
+    formAction[T](req): (t, user) =>
       code(t, user).flatMap: track =>
         val formatter = TimeFormatter.lang(user.language)
         ok(TrackResponse(track.strip(formatter)))
@@ -531,27 +525,17 @@ class Service[F[_]: Async: Files](comps: BoatComps[F], graph: Graph) extends Bas
       html = SeeOther(Location(reverse.boats))
     )
 
-  private def formAction[T: Decoder](req: Request[F], readForm: FormReader => Either[Errors, T])(
+  private def formAction[T: Decoder](req: Request[F])(
     code: (T, UserInfo) => F[Response[F]]
-  )(using decoder: EntityDecoder[F, UrlForm]): F[Response[F]] =
+  )(using decoder: EntityDecoder[F, T]): F[Response[F]] =
     auth
       .profile(req)
       .flatMap: user =>
         val isForm = req.headers
-          .get(ci"Content-Type")
-          .exists(_.head.value == "application/x-www-form-urlencoded")
+          .get[`Content-Type`]
+          .exists(_.mediaType == MediaType.application.`x-www-form-urlencoded`)
         val decoded =
-          if isForm then
-            decoder
-              .decode(req, strict = false)
-              .foldF(
-                fail => F.raiseError(fail),
-                form =>
-                  readForm(new FormReader(form)).fold(
-                    err => F.raiseError(err.asException),
-                    F.pure
-                  )
-              )
+          if isForm then req.as[T]
           else req.decodeJson[T]
         decoded
           .flatMap(t => code(t, user))
@@ -565,7 +549,7 @@ class Service[F[_]: Async: Files](comps: BoatComps[F], graph: Graph) extends Bas
     auth
       .profile(req)
       .flatMap: user =>
-        req.as[T](implicitly, jsonBody[F, T]).flatMap(t => code(t, user))
+        req.decodeJson[T].flatMap(t => code(t, user))
 
   private def respond(
     req: Request[F]
@@ -699,34 +683,29 @@ class Service[F[_]: Async: Files](comps: BoatComps[F], graph: Graph) extends Bas
         email => userResult(email, provider, req)
       )
 
-  private def handleAppleCallback(req: Request[F])(implicit
-    decoder: EntityDecoder[F, UrlForm]
-  ): F[Response[F]] =
-    decoder
-      .decode(req, strict = false)
+  private def handleAppleCallback(req: Request[F]): F[Response[F]] =
+    req
+      .attemptAs[AppleResponse]
       .foldF(
         failure => unauthorized(Errors(failure.message)),
-        urlForm =>
-          AppleResponse(urlForm)
-            .map: form =>
-              val session =
-                web.authState[Map[String, String]](req.headers).toOption.getOrElse(Map.empty)
-              val actualState = form.state
-              val sessionState = session.get(State)
-              if sessionState.contains(actualState) then
-                val redirectUrl =
-                  Urls.hostOnly(req) / reverse.signInCallback(AuthProvider.Apple).renderString
-                auth.webSiwa
-                  .registerWeb(form.code, Instant.now(), redirectUrl)
-                  .flatMap: boatJwt =>
-                    appleResult(boatJwt, req)
-              else
-                val detailed =
-                  sessionState.fold(s"Got '$actualState' but found nothing to compare to."):
-                    expected => s"Got '$actualState' but expected '$expected'."
-                log.error(s"Authentication failed, state mismatch. $detailed $req")
-                unauthorized(Errors("State mismatch."))
-            .recover(err => unauthorized(Errors(err)))
+        response =>
+          val session =
+            web.authState[Map[String, String]](req.headers).toOption.getOrElse(Map.empty)
+          val actualState = response.state
+          val sessionState = session.get(State)
+          if sessionState.contains(actualState) then
+            val redirectUrl =
+              Urls.hostOnly(req) / reverse.signInCallback(AuthProvider.Apple).renderString
+            auth.webSiwa
+              .registerWeb(response.code, now(), redirectUrl)
+              .flatMap: boatJwt =>
+                appleResult(boatJwt, req)
+          else
+            val detailed =
+              sessionState.fold(s"Got '$actualState' but found nothing to compare to."): expected =>
+                s"Got '$actualState' but expected '$expected'."
+            log.error(s"Authentication failed, state mismatch. $detailed $req")
+            unauthorized(Errors("State mismatch."))
       )
 
   private def appleResult(boatJwt: BoatJwt, req: Request[F]) =
@@ -750,3 +729,4 @@ class Service[F[_]: Async: Files](comps: BoatComps[F], graph: Graph) extends Bas
 
   private def unauthorized(@unused errors: Errors) = redirectToLogin
   private def redirectToLogin: F[Response[F]] = SeeOther(Location(reverse.signIn))
+  private def now() = Instant.now()

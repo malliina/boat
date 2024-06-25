@@ -104,7 +104,7 @@ object Server extends IOApp:
       http <- builder.http
       _ <- Resource.eval(Logging.install(dispatcher, http))
       db <-
-        if conf.isFull then DoobieDatabase.init(conf.db)
+        if conf.isFull || conf.db.autoMigrate then DoobieDatabase.init(conf.db)
         else Resource.pure(DoobieDatabase.fast(conf.db))
       users = DoobieUserManager(db)
       _ <-
@@ -114,11 +114,7 @@ object Server extends IOApp:
       ais <- BoatMqttClient.build(conf.ais.enabled, dispatcher)
       streams <- BoatStreams.resource(trackInserts, vesselDb, ais)
       s3 <- S3Client.build[F]()
-      graph <- Resource.eval(
-//        if conf.isFull then Graph.load[F]
-//        else Sync[F].delay(Graph(Map.empty))
-        Graph.load[F]
-      )
+      graph <- Resource.eval(Graph.load[F])
     yield
       val appComps = builder.build(conf, http)
       val jwt = JWT(conf.secret)

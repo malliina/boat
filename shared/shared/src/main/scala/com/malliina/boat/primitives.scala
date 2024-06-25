@@ -6,10 +6,10 @@ import io.circe.{Codec, Decoder, Encoder}
 import org.typelevel.ci.CIString
 
 abstract class ShowableString[T] extends JsonCompanion[String, T]:
-  given Show[T] = Show.fromToString
+  given Show[T] = Show(t => write(t))
 
 abstract class ShowableLong[T] extends JsonCompanion[Long, T]:
-  given Show[T] = Show.fromToString
+  given Show[T] = Show(t => write(t).toString)
 
 given Codec[CIString] = Codec.from(
   Decoder.decodeString.map(s => CIString(s)),
@@ -22,7 +22,7 @@ object BoatName extends JsonCompanion[CIString, BoatName]:
   val Key = "boatName"
   override def apply(raw: CIString): BoatName = raw
   override def write(t: BoatName): CIString = t
-  given Show[BoatName] = Show.fromToString
+  given Show[BoatName] = Show.show(bn => write(bn).toString)
 
 opaque type TrackName = String
 object TrackName extends ShowableString[TrackName]:

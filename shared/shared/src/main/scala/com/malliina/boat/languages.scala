@@ -599,7 +599,9 @@ case class BoatLang(
   newName: String,
   token: String,
   tokenText: String,
-  tokenTextLong: String
+  tokenTextLong: String,
+  ip: String,
+  port: String
 ) derives Codec.AsObject
 
 case class InviteLang(
@@ -1142,7 +1144,9 @@ object Lang:
         "Provide a new name",
         "Token",
         s"Add the token to the $appName agent software running in your boat. For more information, see https://www.boat-tracker.com/docs/agent.",
-        s"Add the token provided after sign in to the $appName agent software running in your boat. Subsequently, tracks driven with the boat are saved to your account and can be viewed in this app. For agent installation instructions, see https://www.boat-tracker.com/docs/agent."
+        s"Add the token provided after sign in to the $appName agent software running in your boat. Subsequently, tracks driven with the boat are saved to your account and can be viewed in this app. For agent installation instructions, see https://www.boat-tracker.com/docs/agent.",
+        "IP address",
+        "Port number"
       ),
       "Actions",
       "Delete",
@@ -1328,7 +1332,9 @@ object Lang:
         "Uusi nimi",
         "Avain",
         s"Lisää avain veneeseen asennettuun $appName -sovellukseen. Lisätietoja saat osoitteesta https://docs.boat-tracker.com/agent/.",
-        "Kirjautumisen jälkeen saat avaimen, jolla tallennat ajetut matkat käyttäjätunnuksellesi. Lisätietoja saat osoitteesta https://docs.boat-tracker.com/agent/."
+        "Kirjautumisen jälkeen saat avaimen, jolla tallennat ajetut matkat käyttäjätunnuksellesi. Lisätietoja saat osoitteesta https://docs.boat-tracker.com/agent/.",
+        "IP-osoite",
+        "Portti"
       ),
       "Toimenpiteet",
       "Poista",
@@ -1509,7 +1515,9 @@ object Lang:
         "Ange ett nytt namn",
         "Nyckel",
         s"Spara nyckeln i $appName-appen installerad i din båt. För mera information, se https://docs.boat-tracker.com/agent/.",
-        s"Inloggning skapar en nyckel du kan spara i $appName-appen installerad i din båt. Med nyckeln sparas körda spår under ditt användarnamn. För mera information, se https://docs.boat-tracker.com/agent/."
+        s"Inloggning skapar en nyckel du kan spara i $appName-appen installerad i din båt. Med nyckeln sparas körda spår under ditt användarnamn. För mera information, se https://docs.boat-tracker.com/agent/.",
+        "IP adress",
+        "Portnummer"
       ),
       "Ändringar",
       "Radera",

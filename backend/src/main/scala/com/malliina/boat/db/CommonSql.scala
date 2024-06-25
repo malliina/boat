@@ -9,7 +9,7 @@ object CommonSql extends CommonSql
 
 trait CommonSql:
   val boats =
-    sql"""select b.id, b.name, b.source_type, b.token, u.id uid, u.user, u.email, u.language
+    sql"""select b.id, b.name, b.source_type, b.token, b.gps_ip, b.gps_port, u.id uid, u.user, u.email, u.language
           from boats b, users u
           where b.owner = u.id"""
   def boatsByToken(token: BoatToken): ConnectionIO[Option[JoinedSource]] =

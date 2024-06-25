@@ -1,7 +1,7 @@
 package com.malliina.boat.db
 
 import java.time.Instant
-import com.malliina.boat.{Boat, BoatName, BoatPrimitives, BoatRef, BoatToken, Coord, DateVal, DeviceId, FriendRef, InviteState, JoinedTrack, Language, Mmsi, MonthVal, SourceType, TrackCanonical, TrackId, TrackName, TrackPointRow, TrackTitle, UserToken, VesselName, VesselRowId, YearVal}
+import com.malliina.boat.{Boat, BoatName, BoatPrimitives, BoatRef, BoatToken, Coord, DateVal, DeviceId, FriendRef, GPSInfo, InviteState, JoinedTrack, Language, Mmsi, MonthVal, SourceType, TrackCanonical, TrackId, TrackName, TrackPointRow, TrackTitle, UserToken, VesselName, VesselRowId, YearVal}
 import com.malliina.measure.{DistanceM, SpeedM, Temperature}
 import com.malliina.values.{Email, UserId, Username}
 import io.circe.*
@@ -14,10 +14,17 @@ case class SourceRow(
   name: BoatName,
   sourceType: SourceType,
   token: BoatToken,
+  ip: Option[String],
+  port: Option[Int],
   owner: UserId,
   added: Instant
 ):
-  def toBoat = Boat(id, name, sourceType, token, added.toEpochMilli)
+  def toBoat = Boat(id, name, sourceType, token, gps, added.toEpochMilli)
+  private def gps =
+    for
+      gpsIp <- ip
+      gpsPort <- port
+    yield GPSInfo(gpsIp, gpsPort)
 
 case class UserRow(
   id: UserId,

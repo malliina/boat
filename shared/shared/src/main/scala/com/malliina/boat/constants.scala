@@ -3,6 +3,7 @@ package com.malliina.boat
 import cats.Show
 
 import scala.concurrent.duration.{DurationInt, FiniteDuration}
+import org.typelevel.ci.CIStringSyntax
 
 object Constants extends Constants
 
@@ -16,9 +17,9 @@ trait Constants extends CookieNames with BoatHeaders:
 object BoatHeaders extends BoatHeaders
 
 trait BoatHeaders:
-  val BoatNameHeader = "X-Boat"
-  val BoatTokenHeader = "X-Token"
-  val TrackNameHeader = "X-Track"
+  val BoatNameHeader = ci"X-Boat"
+  val BoatTokenHeader = ci"X-Token"
+  val TrackNameHeader = ci"X-Track"
 
 object CookieNames extends CookieNames
 

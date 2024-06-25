@@ -87,13 +87,17 @@ class AuthService[F[_]: Sync](val users: IdentityManager[F], comps: AuthComps[F]
       .map(e => e.map(jb => jb: DeviceMeta))
       .getOrElse:
         val boatName = headers
-          .get(CIString(BoatNameHeader))
+          .get(BoatNameHeader)
           .map(h => BoatName(CIString(h.head.value)))
           .getOrElse(BoatNames.random())
         F.pure(SimpleSourceMeta(Usernames.anon, boatName, SourceType.Boat): DeviceMeta)
 
+  def boatTokenOrFail(headers: Headers) =
+    boatToken(headers).getOrElse:
+      F.raiseError(MissingCredentials(s"Missing header '$BoatTokenHeader'.", headers).toException)
+
   private def boatToken(headers: Headers): Option[F[JoinedSource]] =
-    headers.get(CIString(BoatTokenHeader)).map(h => users.authBoat(BoatToken(h.head.value)))
+    headers.get(BoatTokenHeader).map(h => users.authBoat(BoatToken(h.head.value)))
 
   private def emailOnly(headers: Headers, now: Instant): F[Email] =
     emailAuth

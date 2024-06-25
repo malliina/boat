@@ -18,7 +18,7 @@ import scala.concurrent.duration.DurationLong
 object Graph:
   val log = AppLogger(getClass)
 
-  implicit val writer: Codec[Graph] = Codec.from(
+  given Codec[Graph] = Codec.from(
     Decoder[List[ValueNode]].map(fromNodes),
     Encoder[List[ValueNode]].contramap(g => g.toList.toList)
   )
@@ -26,7 +26,8 @@ object Graph:
   private def graphFile = file("vaylat-all.json", graphLocalFile)
 
   def load[F[_]: Sync]: F[Graph] =
-    Sync[F].delay(decode[Graph](Files.readString(graphFile)).toOption.get)
+    val F = Sync[F]
+    F.rethrow(F.delay(decode[Graph](Files.readString(graphFile))))
 
   def file(name: String, to: Path): Path =
     if Files.exists(to) && Files.size(to) > 0 then

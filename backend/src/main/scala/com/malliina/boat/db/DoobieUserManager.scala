@@ -19,7 +19,7 @@ object DoobieUserManager:
       val user = ub.user
       val idx = acc.indexWhere(_.id == user.id)
       val newBoats = ub.boat.toSeq.map: b =>
-        Boat(b.id, b.name, b.sourceType, b.token, b.added.toEpochMilli)
+        b.toBoat
       val newInvites = ub.invite.toList.map: row =>
         Invite(row.boat, row.state, row.added.toEpochMilli)
       val newFriends = ub.friend.toList.map: f =>
@@ -106,6 +106,8 @@ class DoobieUserManager[F[_]](db: DoobieDatabase[F]) extends IdentityManager[F] 
                    b.name boatName,
                    b.source_type sourceType,
                    b.token boatToken,
+                   b.gps_ip,
+                   b.gps_port,
                    b.owner boatOwner,
                    b.added boatAdded,
                    ub.boat as ubBoat,
@@ -147,7 +149,7 @@ class DoobieUserManager[F[_]](db: DoobieDatabase[F]) extends IdentityManager[F] 
       .flatMap: opt =>
         opt.map(b => pure(b)).getOrElse(fail(IdentityException(InvalidToken(token))))
 
-  def boats(email: Email) = run {
+  def boats(email: Email) = run:
     def tracksIO(id: UserId) =
       sql"""${sql.nonEmptyTracks} and (b.uid = $id or b.id in (select ub.boat from users_boats ub where ub.user = $id and ub.state = $accepted)) and t.points > 10"""
         .query[JoinedTrack]
@@ -165,7 +167,6 @@ class DoobieUserManager[F[_]](db: DoobieDatabase[F]) extends IdentityManager[F] 
       val bs = collectBoats(userTracks, TimeFormatter.lang(user.language))
       val gpsDevices = devices.map(d => BoatInfo(d.device, d.boatName, d.username, d.language, Nil))
       UserBoats(user.user, user.language, bs ++ gpsDevices)
-  }
 
   def initUser(user: Username = Usernames.anon): F[NewUser] = run:
     val anon = NewUser(user, None, UserToken.random(), enabled = true)

@@ -293,6 +293,8 @@ case class JoinedSource(
   boatName: BoatName,
   sourceType: SourceType,
   boatToken: BoatToken,
+  gpsIp: Option[String],
+  gpsPort: Option[Int],
   userId: UserId,
   username: Username,
   email: Option[Email],
@@ -302,7 +304,12 @@ case class JoinedSource(
   override def user = username
   override def boat = boatName
   override def deviceName = boatName
-  def strip = DeviceRef(device, boatName, username)
+  def strip = DeviceRef(device, boatName, username, plotter)
+  private def plotter =
+    for
+      ip <- gpsIp
+      port <- gpsPort
+    yield GPSInfo(ip, port)
 
 case class TrackInput(
   name: TrackName,

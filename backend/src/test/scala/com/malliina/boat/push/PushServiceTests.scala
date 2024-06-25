@@ -8,7 +8,7 @@ import tests.BaseSuite
 
 class PushServiceTests extends BaseSuite:
   http.test("push".ignore): client =>
-    val conf = BoatConf.parseUnsafe().push.apns
+    val conf = parseUnsafe().push.apns
     val push = APNSPush.fromConf(conf, client)
     val token = APNSToken("e42535429cb5b042f4d7fbec43d90a21a9e22a33f47d939fed6f82eb37da3670")
     val task: IO[PushSummary] =
@@ -19,3 +19,6 @@ class PushServiceTests extends BaseSuite:
     task.map: result =>
       assert(result.noBadTokensOrReplacements)
       assert(result.iosSuccesses.contains(token))
+
+  def parseUnsafe() =
+    BoatConf.parseBoat().fold(err => throw err, identity)
