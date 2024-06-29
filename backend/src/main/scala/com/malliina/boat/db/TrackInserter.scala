@@ -257,7 +257,7 @@ class TrackInserter[F[_]: Async](val db: DoobieDatabase[F])
   private def joinSource(meta: SourceTrackMeta): ConnectionIO[SourceRow] =
     val user = sql"select id from users u where u.user = ${meta.user}".query[UserId].unique
     def existingBoat(uid: UserId) =
-      sql"select id, name, source_type, token, owner, added from boats b where b.name = ${meta.boat} and b.owner = $uid"
+      sql"select ${SourceRow.columns} from boats b where b.name = ${meta.boat} and b.owner = $uid"
         .query[SourceRow]
         .option
     user.flatMap: uid =>
@@ -269,7 +269,7 @@ class TrackInserter[F[_]: Async](val db: DoobieDatabase[F])
               .query[Boolean]
               .unique
               .flatMap: exists =>
-                if exists then fail(new BoatNameNotAvailableException(meta.boat, meta.user))
+                if exists then fail(BoatNameNotAvailableException(meta.boat, meta.user))
                 else
                   saveNewSource(meta.boat, meta.sourceType, uid, BoatTokens.random()).flatMap: id =>
                     boatById(id)

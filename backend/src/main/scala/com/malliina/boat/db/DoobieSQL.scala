@@ -10,7 +10,7 @@ import doobie.implicits.toSqlInterpolator
 trait DoobieSQL:
   export Mappings.given
   def boatById(id: DeviceId): ConnectionIO[SourceRow] =
-    sql"select id, name, source_type, token, gps_ip, gps_port, owner, added from boats b where b.id = $id"
+    sql"select ${SourceRow.columns} from boats b where b.id = $id"
       .query[SourceRow]
       .unique
   def computeDistance(from: Coord, to: Coord): ConnectionIO[DistanceM] =

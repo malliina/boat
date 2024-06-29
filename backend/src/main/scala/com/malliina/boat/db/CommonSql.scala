@@ -1,6 +1,6 @@
 package com.malliina.boat.db
 
-import com.malliina.boat.{BoatToken, DeviceId, JoinedSource}
+import com.malliina.boat.{BoatToken, DeviceId, JoinedSource, JoinedTrack}
 import doobie.*
 import doobie.implicits.*
 import com.malliina.boat.db.Mappings.given
@@ -9,7 +9,7 @@ object CommonSql extends CommonSql
 
 trait CommonSql:
   val boats =
-    sql"""select b.id, b.name, b.source_type, b.token, b.gps_ip, b.gps_port, u.id uid, u.user, u.email, u.language
+    sql"""select ${JoinedSource.columns}
           from boats b, users u
           where b.owner = u.id"""
   def boatsByToken(token: BoatToken): ConnectionIO[Option[JoinedSource]] =
@@ -46,9 +46,7 @@ trait CommonSql:
     sql"""select t.id, t.name, t.title, t.canonical, t.comments, t.added, t.points, t.avg_speed, t.avg_water_temp, t.avg_outside_temp, t.distance, t.start, t.end, t.secs, t.startDate, t.startMonth, t.startYear, t.boat, top.id pointId, top.longitude, top.latitude, top.coord, top.speed, top.altitude, top.outside_temperature, top.water_temp, top.depthm, top.depth_offsetm, top.battery, top.car_range, top.source_time, date(top.source_time) trackDate, top.track, top.added topAdded
           from ($topRows) top, ($timedTracks) t
           where top.track = t.id"""
-  private val trackColumns =
-    fr0"t.id tid, t.name, t.title, t.canonical, t.comments, t.added, t.points, t.avg_speed, t.avg_water_temp, t.avg_outside_temp, t.distance, t.start, t.startDate, t.startMonth, t.startYear, t.end, t.secs duration, t.speed maxBoatspeed, t.pointId, t.longitude, t.latitude, t.coord, t.speed topSpeed, t.altitude, t.outside_temperature, t.water_temp, t.depthm, t.depth_offsetm, t.battery, t.car_range, t.source_time, t.trackDate, t.track, t.topAdded, b.id boatId, b.name boatName, b.source_type, b.token, b.gps_ip, b.gps_port, b.uid, b.user owner, b.email, b.language"
-  val nonEmptyTracks = nonEmptyTracksWith(trackColumns)
+  val nonEmptyTracks = nonEmptyTracksWith(JoinedTrack.columns)
   def nonEmptyTracksWith(cols: Fragment) =
     sql"""select $cols
           from ($boats) b, ($trackHighlights) t

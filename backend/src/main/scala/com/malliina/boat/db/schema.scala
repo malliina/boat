@@ -4,6 +4,7 @@ import java.time.Instant
 import com.malliina.boat.{Boat, BoatName, BoatPrimitives, BoatRef, BoatToken, Coord, DateVal, DeviceId, FriendRef, GPSInfo, InviteState, JoinedTrack, Language, Mmsi, MonthVal, SourceType, TrackCanonical, TrackId, TrackName, TrackPointRow, TrackTitle, UserToken, VesselName, VesselRowId, YearVal}
 import com.malliina.measure.{DistanceM, SpeedM, Temperature}
 import com.malliina.values.{Email, UserId, Username}
+import doobie.implicits.toSqlInterpolator
 import io.circe.*
 import io.circe.generic.semiauto.*
 
@@ -25,6 +26,9 @@ case class SourceRow(
       gpsIp <- ip
       gpsPort <- port
     yield GPSInfo(gpsIp, gpsPort)
+
+object SourceRow:
+  val columns = fr0"b.id, b.name, b.source_type, b.token, b.gps_ip, b.gps_port, b.owner, b.added"
 
 case class UserRow(
   id: UserId,
