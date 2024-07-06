@@ -99,9 +99,8 @@ class Popups(lang: Lang) extends BoatModels:
 
   def fairwayInfo(info: FairwayInfo) =
     titledTable(info.name(lang).fold("")(identity))(
-      info.bestDepth.fold(empty) { depth =>
+      info.bestDepth.fold(empty): depth =>
         row(fairwayLang.fairwayDepth, formatDistance(depth))
-      }
     )
 
   def depthArea(depthArea: DepthArea) =

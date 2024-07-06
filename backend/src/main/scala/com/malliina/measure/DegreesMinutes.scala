@@ -8,12 +8,11 @@ sealed trait HemisphereDirection
 
 object HemisphereDirection:
   def parse(in: String): Either[SingleError, HemisphereDirection] =
-    readString(in, s"Invalid direction: '$in'.") {
+    readString(in, s"Invalid direction: '$in'."):
       case "N" => North
       case "S" => South
       case "E" => East
       case "W" => West
-    }
 
   def readString[T](in: String, onFail: => String)(pf: PartialFunction[String, T]) =
     pf.lift(in).map(Right.apply).getOrElse(Left(SingleError.input(onFail)))
@@ -22,10 +21,9 @@ sealed trait NorthOrSouth extends HemisphereDirection
 
 object NorthOrSouth:
   def apply(in: String): Either[SingleError, NorthOrSouth] =
-    readString(in, s"Invalid direction, must be 'N' or 'S': '$in'.") {
+    readString(in, s"Invalid direction, must be 'N' or 'S': '$in'."):
       case "N" => North
       case "S" => South
-    }
 
 case object North extends NorthOrSouth
 case object South extends NorthOrSouth
@@ -34,10 +32,9 @@ sealed trait EastOrWest extends HemisphereDirection
 
 object EastOrWest:
   def apply(in: String): Either[SingleError, EastOrWest] =
-    readString(in, s"Invalid direction, must be 'W' or 'E': '$in'.") {
+    readString(in, s"Invalid direction, must be 'W' or 'E': '$in'."):
       case "E" => East
       case "W" => West
-    }
 
 case object East extends EastOrWest
 case object West extends EastOrWest

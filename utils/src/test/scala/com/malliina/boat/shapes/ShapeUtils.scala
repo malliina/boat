@@ -31,7 +31,7 @@ class ShapeUtils extends FunSuite:
     val writer = new FeatureJSON()
     val collections: List[SimpleFeatureCollection] =
       store.getTypeNames.map(store.getFeatureSource).map(_.getFeatures).toList
-    val transformedCollections = collections.map { coll =>
+    val transformedCollections = collections.map: coll =>
       val outCollection = new DefaultFeatureCollection()
       val srcCrs = coll.getSchema.getCoordinateReferenceSystem
       val targetCrs = DefaultGeographicCRS.WGS84
@@ -48,18 +48,17 @@ class ShapeUtils extends FunSuite:
         outCollection.add(feature)
       srcFeatures.close()
       outCollection
-    }
     writer.writeFeatureCollection(transformedCollections.head, fileOut.toFile)
   }
 
-  test("read shape file".ignore) {
+  test("read shape file".ignore):
     val file = userHome.resolve(".boat/vaylat/vaylat.shp")
 //    val fileOut = userHome.resolve(".boat/vaylat/vaylat.json")
     val store = DataStoreFinder.getDataStore(Map("url" -> file.toUri.toString).asJava)
 //    println(store)
 //    val writer = new FeatureJSON()
     val collections = store.getTypeNames.map(store.getFeatureSource).map(_.getFeatures).toList
-    collections.map { coll =>
+    collections.map: coll =>
       val srcCrs = coll.getSchema.getCoordinateReferenceSystem
       println(srcCrs.getName)
       val targetCrs = DefaultGeographicCRS.WGS84
@@ -67,7 +66,6 @@ class ShapeUtils extends FunSuite:
       val geo: Geometry = coll.features().next().getDefaultGeometry.asInstanceOf[Geometry]
       val transformed = JTS.transform(geo, transform)
       println(transformed.toString)
-    }
     collections.head.getSchema.getCoordinateReferenceSystem
 //    JTS.transform(collections.head)
     val ref = collections.last
@@ -78,36 +76,30 @@ class ShapeUtils extends FunSuite:
       .getCoordinateReferenceSystem
     println(ref)
 //    writer.writeFeatureCollection(collections.head, fileOut.toFile)
-  }
 
-  test("read shp file".ignore) {
+  test("read shp file".ignore):
     val inFile: Path = ???
     val store = DataStoreFinder.getDataStore(Map("url" -> inFile.toUri.toString).asJava)
     val sources = store.getTypeNames.map(store.getFeatureSource).map(_.getFeatures.features())
-    sources.foreach { src =>
+    sources.foreach: src =>
       while src.hasNext do
         val feature = src.next()
         feature.getProperties.asScala
           .filter(prop => Option(prop.getValue).exists(_.toString.contains("LU-rannalla")))
-          .foreach { prop =>
+          .foreach: prop =>
             println(s"${prop.getName} = ${prop.getValue}")
-          }
-    }
-  }
 
-  test("convert dbf file from ISO-8859-1 to UTF-8".ignore) {
+  test("convert dbf file from ISO-8859-1 to UTF-8".ignore):
     changeEncoding(
       userHome.resolve(".boat/vaylat/vaylat.dbf"),
       userHome.resolve(".boat/vaylat/vaylat-utf8.dbf")
     )
-  }
 
-  test("convert limit file".ignore) {
+  test("convert limit file".ignore):
     changeEncoding(
       userHome.resolve(".boat/dbfs/rajoitusalue_a.dbf"),
       userHome.resolve(".boat/dbfs/rajoitusalue_a-utf8.dbf")
     )
-  }
 
   /** Fixes scandics in Finnish shapefiles.
     *

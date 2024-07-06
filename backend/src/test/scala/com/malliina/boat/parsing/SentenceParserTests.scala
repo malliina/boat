@@ -14,11 +14,13 @@ class SentenceParserTests extends munit.FunSuite:
   ).map(RawSentence.apply)
 
   test("parse sentences"):
-    val ok = track.map(SentenceParser.parse).collect { case Right(sentence) =>
-      sentence
-    }
+    val ok = track
+      .map(SentenceParser.parse)
+      .collect:
+        case Right(sentence) =>
+          sentence
 
-    val strs = ok.map {
+    val strs = ok.map:
       case DPTMessage(_, depth, _)               => s"GPT $depth"
       case VTGMessage(_, _, _, speed, _)         => s"VTG $speed"
       case MTWMessage(_, temp)                   => s"MTW $temp"
@@ -26,7 +28,6 @@ class SentenceParserTests extends munit.FunSuite:
       case GGAMessage(_, _, lat, lng, _, _, _, _, _, _) =>
         s"GGA ${lat.toDecimalDegrees} ${lng.toDecimalDegrees}"
       case _ => ""
-    }
     assert(strs.length == track.length)
 
   test("read and convert GGA coordinates from degrees minutes to decimal degrees"):
@@ -47,8 +48,8 @@ class SentenceParserTests extends munit.FunSuite:
     val rmc = SentenceParser
       .parse(in)
       .toSeq
-      .collectFirst { case msg @ RMCMessage(_, _, _, _, _) =>
-        msg.dateTimeUtc
-      }
+      .collectFirst:
+        case msg @ RMCMessage(_, _, _, _, _) =>
+          msg.dateTimeUtc
       .get
     assert(rmc.getHour == 20)

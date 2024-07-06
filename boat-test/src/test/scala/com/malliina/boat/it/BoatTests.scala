@@ -21,9 +21,10 @@ abstract class BoatTests extends BaseSuite with ServerSuite with BoatSockets:
   def openViewerSocket[T](httpClient: HttpClientF2[IO], creds: Option[Creds] = None)(
     code: WebSocketF[IO] => IO[T]
   ): IO[T] =
-    val headers = creds.map { c =>
-      KeyValue(HttpUtil.Authorization, HttpUtil.authorizationValue(c.user, c.pass.pass))
-    }.toList
+    val headers = creds
+      .map: c =>
+        KeyValue(HttpUtil.Authorization, HttpUtil.authorizationValue(c.user, c.pass.pass))
+      .toList
     openWebSocket(reverse.ws.updates, headers, httpClient)(code)
 
   private def openWebSocket[T](
@@ -55,12 +56,12 @@ trait BoatSockets:
   def openSocket[T](url: FullUrl, headers: List[KeyValue], httpClient: HttpClientF2[IO])(
     code: WebSocketF[IO] => IO[T]
   ): IO[T] =
-    WebSocketF.build[IO](url, headers.map(kv => kv.key -> kv.value).toMap, httpClient.client).use {
-      socket =>
-        val openEvents = socket.events.collect { case o @ Open(_, _) =>
-          o
-        }
+    WebSocketF
+      .build[IO](url, headers.map(kv => kv.key -> kv.value).toMap, httpClient.client)
+      .use: socket =>
+        val openEvents = socket.events.collect:
+          case o @ Open(_, _) =>
+            o
         openEvents.take(1).compile.toList >> code(socket)
-    }
 
 case class Creds(user: Username, pass: Password)

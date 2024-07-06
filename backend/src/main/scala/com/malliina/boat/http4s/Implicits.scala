@@ -52,14 +52,13 @@ trait JsonInstances extends CirceInstances:
     jsonEncoder[F].contramap[T](t => t.asJson)
 
   def jsonBody[F[_]: Concurrent, A](using decoder: Decoder[A]): EntityDecoder[F, A] =
-    jsonDecoder[F].flatMapR { json =>
+    jsonDecoder[F].flatMapR: json =>
       json
         .as[A]
         .fold(
           errors => DecodeResult.failureT[F, A](JsonException(errors, json)),
           ok => DecodeResult.successT(ok)
         )
-    }
 
 abstract class Implicits[F[_]]
   extends syntax.AllSyntax

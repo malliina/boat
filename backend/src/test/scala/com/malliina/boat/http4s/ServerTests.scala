@@ -15,11 +15,12 @@ class ServerTests extends MUnitSuite with ServerSuite:
     assertIO(status("/health"), Ok.code)
 
   test("call with no creds"):
-    http.get(baseUrl / "my-track").map { res =>
-      assertEquals(res.status, Unauthorized.code)
-      val errors = res.parse[Errors].toOption.get
-      assertEquals(errors.message, Auth.noCredentials)
-    }
+    http
+      .get(baseUrl / "my-track")
+      .map: res =>
+        assertEquals(res.status, Unauthorized.code)
+        val errors = res.parse[Errors].toOption.get
+        assertEquals(errors.message, Auth.noCredentials)
 
   test("GET profile with outdated jwt returns 401 with token expired"):
     http

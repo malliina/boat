@@ -52,9 +52,10 @@ class TracksImporter extends MUnitSuite:
     val user = BoatUser(trackName, BoatName(ci"Amina"), SourceType.Boat, Username("mle"))
 //    val user = BoatUser(trackName, BoatName("xrxmjq"), Username("santa@example.com"))
 //    val user = BoatUser(trackName, BoatName("hzghbu"), Username("santa@example.com"))
-    inserts.joinAsSource(user).flatMap { track =>
-      importer.save(importer.sentencesForDay(file, day), track.track.short)
-    }
+    inserts
+      .joinAsSource(user)
+      .flatMap: track =>
+        importer.save(importer.sentencesForDay(file, day), track.track.short)
 
   def splitTracksByDate(oldTrack: TrackId, db: TrackInserter[IO]) =
     def createAndUpdateTrack(date: DateVal) =

@@ -39,9 +39,8 @@ object S3Client:
     Resource.make(s3Client)(c => Sync[F].delay(c.close())).map(c => S3Client(c, bucket))
 
   extension [T](cf: CompletableFuture[T])
-    def asF[F[_]: Async]: F[T] = Async[F].async_ { cb =>
+    def asF[F[_]: Async]: F[T] = Async[F].async_ : cb =>
       cf.whenComplete((r, t) => Option(t).fold(cb(Right(r)))(t => cb(Left(t))))
-    }
 
 class S3Client[F[_]: Async](client: S3AsyncClient, bucketName: BucketName) extends FileStore[F]:
   def download(key: String): F[Path] =

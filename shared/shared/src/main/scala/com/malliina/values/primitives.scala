@@ -38,21 +38,24 @@ extension [T](e: Either[ErrorMessage, T])
 object Literals:
   object DegreesLiteral extends LiteralFloat[Degrees]:
     override def parse(in: Float)(using Quotes): Either[ErrorMessage, Expr[Degrees]] =
-      Degrees.build(in).map { _ =>
-        '{ Degrees.unsafe(${ Expr(in) }) }
-      }
+      Degrees
+        .build(in)
+        .map: _ =>
+          '{ Degrees.unsafe(${ Expr(in) }) }
 
   object LatitudeLiteral extends LiteralDouble[Latitude]:
     override def parse(in: Double)(using Quotes): Either[ErrorMessage, Expr[Latitude]] =
-      Latitude.build(in).map { _ =>
-        '{ Latitude.build(${ Expr(in) }).getUnsafe }
-      }
+      Latitude
+        .build(in)
+        .map: _ =>
+          '{ Latitude.build(${ Expr(in) }).getUnsafe }
 
   object LongitudeLiteral extends LiteralDouble[Longitude]:
     override def parse(in: Double)(using Quotes): Either[ErrorMessage, Expr[Longitude]] =
-      Longitude.build(in).map { _ =>
-        '{ Longitude.build(${ Expr(in) }).getUnsafe }
-      }
+      Longitude
+        .build(in)
+        .map: _ =>
+          '{ Longitude.build(${ Expr(in) }).getUnsafe }
 
   object ErrorMessageLiteral extends LiteralString[ErrorMessage]:
     override def parse(in: String)(using Quotes): Either[ErrorMessage, Expr[ErrorMessage]] =

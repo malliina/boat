@@ -37,7 +37,8 @@ object MapView extends CookieNames:
     .split(";")
     .toList
     .map(_.trim.split("=").toList)
-    .collect { case key :: value :: _ => key -> value }
+    .collect:
+      case key :: value :: _ => key -> value
     .toMap
 
 class MapView[F[_]: Async](

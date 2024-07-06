@@ -40,9 +40,8 @@ class AISRenderer(val map: MapboxMap, val log: BaseLogger = BaseLogger.console)
   private def trailData = FeatureCollection(
     vessels.values
       .map(_.drop(1))
-      .map { trail =>
+      .map: trail =>
         Feature.line(trail.map(_.coord))
-      }
       .toList
   )
 

@@ -17,16 +17,16 @@ class FairwayDatabaseTests extends MUnitSuite with MUnitDatabaseSuite:
     val fs = coll.features
     val svc = DoobieFairwayService(database)
 
-    val insertTask = fs.toList.traverse { f =>
-      def coords(id: FairwayId) = f.geometry.coords.map { coord =>
-        FairwayCoordInput(coord, coord.lat, coord.lng, coord.hash, id)
-      }.toList
+    val insertTask = fs.toList.traverse: f =>
+      def coords(id: FairwayId) = f.geometry.coords
+        .map: coord =>
+          FairwayCoordInput(coord, coord.lat, coord.lng, coord.hash, id)
+        .toList
       val in = f.props.as[FairwayInfo].toOption.get
       for
         id <- svc.insert(in)
         cids <- svc.insertCoords(coords(id))
       yield cids
-    }
     val inserts = for
       _ <- svc.delete
       cids <- insertTask
