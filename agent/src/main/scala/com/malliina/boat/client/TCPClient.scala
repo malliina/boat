@@ -1,7 +1,7 @@
 package com.malliina.boat.client
 
 import cats.effect.{Async, Resource, Sync}
-import com.malliina.boat.client.TcpClient.{charset, log}
+import com.malliina.boat.client.TCPClient.{charset, log}
 import com.malliina.boat.client.server.Device.GpsDevice
 import com.malliina.boat.{RawSentence, SentencesMessage}
 import com.malliina.util.AppLogger
@@ -12,10 +12,10 @@ import fs2.{Stream, text}
 import cats.syntax.all.*
 import com.comcast.ip4s.*
 import com.malliina.values.ErrorMessage
-
+import scala.concurrent.duration.DurationInt
 import java.nio.charset.StandardCharsets
 
-object TcpClient:
+object TCPClient:
   private val log = AppLogger(getClass)
 
   private val crlf = "\r\n"
@@ -32,12 +32,12 @@ object TcpClient:
   val watchMessage =
     s"${GpsDevice.watchCommand}$linefeed".getBytes(charset)
 
-  def default[F[_]: Async: Network](host: Host, port: Port): F[TcpClient[F]] = for
+  def default[F[_]: Async: Network](host: Host, port: Port): F[TCPClient[F]] = for
     topic <- Topic[F, SentencesMessage]
     signal <- SignallingRef[F, Boolean](false)
-  yield TcpClient[F](host, port, topic, signal)
+  yield TCPClient[F](host, port, topic, signal)
 
-class TcpClient[F[_]: Async: Network](
+class TCPClient[F[_]: Async: Network](
   host: Host,
   port: Port,
   topic: Topic[F, SentencesMessage],

@@ -5,7 +5,7 @@ import cats.effect.{IO, Resource}
 import com.comcast.ip4s.*
 import com.malliina.boat.CoordsEvent
 import com.malliina.boat.client.server.BoatConf
-import com.malliina.boat.client.{DeviceAgent, TcpClient}
+import com.malliina.boat.client.{DeviceAgent, TCPClient}
 import com.malliina.boat.it.EndToEndTests.log
 import com.malliina.util.AppLogger
 import fs2.Stream
@@ -39,7 +39,7 @@ class EndToEndTests extends BoatTests:
     val s = server()
     // the client validates maximum frame length, so we must not concatenate multiple sentences
     val plotterOutput: Stream[IO, Byte] = Stream.emits(
-      sentences.mkString(TcpClient.linefeed).getBytes(TcpClient.charset)
+      sentences.mkString(TCPClient.linefeed).getBytes(TCPClient.charset)
     ) ++ Stream.empty
 
     val tcpHost = host"127.0.0.1"

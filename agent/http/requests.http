@@ -1,0 +1,7 @@
+### Get conf, local
+GET http://localhost:9000/boats/me
+X-Token: {{boat-token}}
+
+### Get conf, deployed
+GET https://api.boat-tracker.com/boats/me
+X-Token: {{boat-token}}

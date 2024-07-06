@@ -1,5 +1,6 @@
 package com.malliina.boat
 
+import com.comcast.ip4s.{Host, Port}
 import com.malliina.boat.BoatPrimitives.durationFormat
 import com.malliina.measure.{DistanceM, SpeedM, Temperature}
 import com.malliina.values.*
@@ -298,8 +299,8 @@ case class JoinedSource(
   boatName: BoatName,
   sourceType: SourceType,
   boatToken: BoatToken,
-  gpsIp: Option[String],
-  gpsPort: Option[Int],
+  gpsIp: Option[Host],
+  gpsPort: Option[Port],
   userId: UserId,
   username: Username,
   email: Option[Email],

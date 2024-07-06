@@ -1,6 +1,7 @@
 package com.malliina.boat
 
 import cats.syntax.all.toFunctorOps
+import com.comcast.ip4s.{Host, Port}
 import com.malliina.boat.BoatJson.keyValued
 import com.malliina.boat.http.Limits
 import com.malliina.json.PrimitiveFormats
@@ -357,12 +358,21 @@ case class TrackMetaShort(
 ) extends TrackMetaLike
   derives Codec.AsObject
 
-case class GPSInfo(ip: String, port: Int) derives Codec.AsObject:
+case class GPSInfo(ip: Host, port: Port) derives Codec.AsObject:
   def describe = s"$ip:$port"
 
 object GPSInfo:
-  val Ip = "ip"
-  val Port = "port"
+  val IpKey = "ip"
+  val PortKey = "port"
+
+  given hostCodec: Codec[Host] = Codec.from(
+    Decoder.decodeString.emap(s => Host.fromString(s).toRight(s"Invalid host: '$s'.")),
+    Encoder.encodeString.contramap[Host](h => Host.show.show(h))
+  )
+  given portCodec: Codec[Port] = Codec.from(
+    Decoder.decodeInt.emap(i => Port.fromInt(i).toRight(s"Invalid port: '$i'.")),
+    Encoder.encodeInt.contramap[Port](p => p.value)
+  )
 
 enum PatchBoat:
   case ChangeName(name: ChangeBoatName)

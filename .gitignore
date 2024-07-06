@@ -18,3 +18,4 @@ site
 out
 .bsp
 node_modules/
+*.private.env.json

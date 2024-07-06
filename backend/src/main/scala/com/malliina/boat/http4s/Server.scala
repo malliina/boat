@@ -104,8 +104,10 @@ object Server extends IOApp:
       http <- builder.http
       _ <- Resource.eval(Logging.install(dispatcher, http))
       db <-
-        if conf.isFull || conf.db.autoMigrate then DoobieDatabase.init(conf.db)
-        else Resource.pure(DoobieDatabase.fast(conf.db))
+        log.info(s"Using database at ${conf.db.url}...")
+        val dbConf = conf.db
+        if conf.isFull || dbConf.autoMigrate then DoobieDatabase.init(dbConf)
+        else Resource.pure(DoobieDatabase.fast(dbConf))
       users = DoobieUserManager(db)
       _ <-
         if conf.isFull then Resource.eval(users.initUser()) else Resource.unit

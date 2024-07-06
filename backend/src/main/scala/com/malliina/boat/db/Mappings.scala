@@ -1,5 +1,6 @@
 package com.malliina.boat.db
 
+import com.comcast.ip4s.{Host, Port}
 import com.malliina.boat.db.Values.VesselUpdateId
 
 import java.time.{Instant, LocalDate, OffsetDateTime, ZoneOffset}
@@ -10,7 +11,7 @@ import com.malliina.values.*
 import com.vividsolutions.jts.geom.Point
 import doobie.*
 import org.typelevel.ci.CIString
-
+import cats.syntax.show.toShow
 import scala.concurrent.duration.{DurationDouble, FiniteDuration}
 
 object Mappings extends Mappings
@@ -71,6 +72,10 @@ trait Mappings:
   given Meta[Degrees] = Meta[Float].timap(Degrees.unsafe)(_.float)
   given Meta[CarUpdateId] = simple(CarUpdateId)
   given Meta[Energy] = simple(Energy)
+  given Meta[Host] =
+    Meta[String].timap(s => Host.fromString(s).getOrElse(fail(s"Invalid host: '$s'.")))(_.show)
+  given Meta[Port] =
+    Meta[Int].timap(i => Port.fromInt(i).getOrElse(fail(s"Invalid port: '$i'.")))(_.value)
 
   private def simple[T, R: Meta, C <: JsonCompanion[R, T]](c: C): Meta[T] =
     Meta[R].timap(c.apply)(c.write)
@@ -84,3 +89,5 @@ trait Mappings:
   private def toCoord(point: Point): Coord =
     val c = point.getCoordinate
     Coord(Longitude.unsafe(c.x), Latitude.unsafe(c.y))
+
+  private def fail(msg: String): Nothing = throw Exception(msg)

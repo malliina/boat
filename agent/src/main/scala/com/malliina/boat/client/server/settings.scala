@@ -34,7 +34,7 @@ case class BoatConfOld(host: Host, port: Port, token: Option[BoatToken], enabled
   def toConf = BoatConf(host, port, BoatDevice, token, enabled)
 
 object BoatConfOld:
-  import BoatConf.{hostCodec, portCodec}
+  import com.malliina.boat.GPSInfo.{hostCodec, portCodec}
   given Codec[BoatConfOld] = deriveCodec[BoatConfOld]
 
 case class BoatConf(
@@ -47,15 +47,7 @@ case class BoatConf(
   def describe = s"$host:$port-$enabled"
 
 object BoatConf:
-  implicit val hostCodec: Codec[Host] = Codec.from(
-    Decoder.decodeString.emap(s => Host.fromString(s).toRight(s"Invalid host: '$s'.")),
-    Encoder.encodeString.contramap[Host](h => Host.show.show(h))
-  )
-  implicit val portCodec: Codec[Port] = Codec.from(
-    Decoder.decodeInt.emap(i => Port.fromInt(i).toRight(s"Invalid port: '$i'.")),
-    Encoder.encodeInt.contramap[Port](p => p.value)
-  )
-
+  import com.malliina.boat.GPSInfo.{hostCodec, portCodec}
   given Codec[BoatConf] = deriveCodec[BoatConf]
 
   def anon(host: Host, port: Port) = BoatConf(host, port, Device.default, None, enabled = true)

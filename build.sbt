@@ -72,6 +72,7 @@ val cross = crossProject(JSPlatform, JVMPlatform)
     libraryDependencies ++= Seq("generic", "parser").map { m =>
       "io.circe" %%% s"circe-$m" % circeVersion
     } ++ Seq(
+      "com.comcast" %% "ip4s-core" % "3.5.0",
       "org.typelevel" %%% "case-insensitive" % "1.4.0",
       "com.malliina" %%% "primitives" % primitiveVersion,
       "com.lihaoyi" %%% "scalatags" % scalaTagsVersion,

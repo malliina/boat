@@ -2,9 +2,9 @@ package com.malliina.boat.client.server
 
 import cats.effect.Async
 import cats.syntax.all.toFlatMapOps
-import com.malliina.boat.client.TcpClient
+import com.malliina.boat.client.TCPClient
 import com.malliina.boat.client.{FormReadable, FormReader}
-import com.malliina.boat.client.TcpClient.{host, port}
+import com.malliina.boat.client.TCPClient.{host, port}
 import com.malliina.boat.client.server.AgentHtml.{asHtml, boatForm}
 import com.malliina.boat.client.server.AgentSettings.{readConf, saveAndReload}
 import com.malliina.boat.client.server.WebServer.{noCache, settingsUri}

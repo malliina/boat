@@ -14,7 +14,7 @@ object AgentWebServer extends IOApp:
     log.info("Initializing server...")
     for
       http <- HttpClientIO.resource[F]
-      agentManager <- AgentInstance.resource[F](http.client)
+      agentManager <- AgentInstance.resource[F](http)
       service = WebServer(agentManager)
       server <- EmberServerBuilder
         .default[F]

@@ -1,6 +1,7 @@
 package com.malliina.boat.http4s
 
 import cats.effect.Concurrent
+import com.comcast.ip4s.{Host, Port}
 import com.malliina.boat.http.{InvitePayload, InviteResponse, RevokeAccess}
 import com.malliina.boat.{AddSource, BoatName, BoatNames, ChangeBoatName, ChangeComments, ChangeTrackTitle, DeviceId, Errors, Forms, GPSInfo, PatchBoat, Readables, SourceType, TrackComments, TrackTitle}
 import com.malliina.values.{Email, UserId}
@@ -44,8 +45,8 @@ trait BoatDecoders[F[_]: Concurrent]:
 
   given FormReadableT[GPSInfo] = reader.emap: form =>
     for
-      ip <- form.read[String](GPSInfo.Ip)
-      port <- form.read[Int](GPSInfo.Port)
+      ip <- form.read[Host](GPSInfo.IpKey)
+      port <- form.read[Port](GPSInfo.PortKey)
     yield GPSInfo(ip, port)
 
   given FormReadableT[ChangeTrackTitle] = reader.emap: form =>

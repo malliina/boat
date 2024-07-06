@@ -9,7 +9,7 @@ import fs2.{Chunk, Stream}
 
 import java.nio.ByteBuffer
 
-class TcpClientTests extends munit.CatsEffectSuite:
+class TCPClientTests extends munit.CatsEffectSuite:
   val log = AppLogger(getClass)
 
   test("client receives sentences over TCP socket"):
@@ -21,7 +21,7 @@ class TcpClientTests extends munit.CatsEffectSuite:
     )
     // the client validates maximum frame length, so we must not concatenate multiple sentences
     val plotterOutput: Stream[IO, Array[Byte]] = Stream.emits(
-      sentences.map(s => s"$s${TcpClient.linefeed}".getBytes(TcpClient.charset)).toList
+      sentences.map(s => s"$s${TCPClient.linefeed}".getBytes(TCPClient.charset)).toList
     ) ++ Stream.empty
 
     // starts pretend-plotter
@@ -41,7 +41,7 @@ class TcpClientTests extends munit.CatsEffectSuite:
     for
       plotter <- runPlotter.start
       p <- Deferred[IO, RawSentence]
-      client <- TcpClient.default[IO](tcpHost, tcpPort)
+      client <- TCPClient.default[IO](tcpHost, tcpPort)
       connection <- client.connect(Stream.empty).compile.drain.start
       _ <- client.sentencesHub
         .take(1)
@@ -61,5 +61,5 @@ class TcpClientTests extends munit.CatsEffectSuite:
       yield assertEquals(List.empty[Unit], res)
 
   def tcpFixture(host: Host, port: Port) = ResourceFixture(
-    Resource.eval(TcpClient.default(host, port))
+    Resource.eval(TCPClient.default(host, port))
   )

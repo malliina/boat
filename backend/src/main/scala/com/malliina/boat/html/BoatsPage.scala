@@ -1,5 +1,6 @@
 package com.malliina.boat.html
 
+import cats.implicits.toShow
 import com.malliina.boat.FrontKeys.*
 import com.malliina.boat.InviteState.{Accepted, Awaiting, Other, Rejected}
 import com.malliina.boat.http.CSRFConf
@@ -41,18 +42,18 @@ object BoatsPage extends BoatImplicits with CSRFConf with HTMLConstants:
           formInput(
             boatLang.ip,
             "ip-label",
-            GPSInfo.Ip,
+            GPSInfo.IpKey,
             "form-label",
             "form-control",
             "192.168.0.1",
-            inputValue = boat.gps.map(_.ip)
+            inputValue = boat.gps.map(_.ip.show)
           )
         ),
         div(cls := "mb-3 col-md-5")(
           formInput(
             boatLang.port,
             "port-label",
-            GPSInfo.Port,
+            GPSInfo.PortKey,
             "form-label",
             "form-control",
             "10110",

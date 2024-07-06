@@ -1,5 +1,7 @@
 package com.malliina.boat.db
 
+import com.comcast.ip4s.{Host, Port}
+
 import java.time.Instant
 import com.malliina.boat.{Boat, BoatName, BoatPrimitives, BoatRef, BoatToken, Coord, DateVal, DeviceId, FriendRef, GPSInfo, InviteState, JoinedTrack, Language, Mmsi, MonthVal, SourceType, TrackCanonical, TrackId, TrackName, TrackPointRow, TrackTitle, UserToken, VesselName, VesselRowId, YearVal}
 import com.malliina.measure.{DistanceM, SpeedM, Temperature}
@@ -15,8 +17,8 @@ case class SourceRow(
   name: BoatName,
   sourceType: SourceType,
   token: BoatToken,
-  ip: Option[String],
-  port: Option[Int],
+  ip: Option[Host],
+  port: Option[Port],
   owner: UserId,
   added: Instant
 ):
