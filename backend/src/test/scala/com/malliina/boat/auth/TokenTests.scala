@@ -30,7 +30,9 @@ class TokenTests extends BaseSuite:
   http.test("validate iOS SIWA token".ignore): client =>
     val token = IdToken("changeme")
     val v = AppleTokenValidator.app(client)
-    v.validateToken(token, Instant.now()).map: outcome =>
+    v.validateToken(token, Instant.now())
+      .map: _ =>
+        ()
   http.test("validate siwa code".ignore): client =>
     val fields = Map(
       "code" -> demoConf("code"),

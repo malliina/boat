@@ -6,7 +6,7 @@ import sbtrelease.ReleaseStateTransformations.*
 import scala.sys.process.Process
 
 val webAuthVersion = "6.7.0"
-val munitVersion = "1.0.0"
+val munitVersion = "0.7.29"
 val testContainersScalaVersion = "0.41.3"
 val scalaTagsVersion = "0.12.0"
 val primitiveVersion = "3.6.0"
