@@ -5,7 +5,7 @@ libraryDependencies ++= Seq(
   "com.amazonaws" % "aws-java-sdk-s3" % "1.12.757"
 )
 
-val utilsVersion = "1.6.39-SNAPSHOT"
+val utilsVersion = "1.6.38"
 
 Seq(
   "com.malliina" %% "sbt-utils-maven" % utilsVersion,

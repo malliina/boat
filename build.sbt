@@ -251,9 +251,11 @@ val docs = project
   .settings(
     publish / skip := true,
     mdocVariables := Map(
-      "VERSION" -> (agent / version).value,
       "LATEST_AGENT_URL" -> LatestClient.default.latest
         .map(_.url)
+        .getOrElse("todo"),
+      "LATEST_AGENT_FILE" -> LatestClient.default.latest
+        .flatMap(_.uri.split('/').lastOption)
         .getOrElse("todo")
     ),
     mdocIn := (ThisBuild / baseDirectory).value / "docs-src",
