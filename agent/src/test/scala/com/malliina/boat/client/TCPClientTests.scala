@@ -60,6 +60,6 @@ class TCPClientTests extends munit.CatsEffectSuite:
         res <- tcp.connect().compile.toList
       yield assertEquals(List.empty[Unit], res)
 
-  def tcpFixture(host: Host, port: Port) = ResourceFixture(
-    Resource.eval(TCPClient.default(host, port))
+  def tcpFixture(host: Host, port: Port) = ResourceFunFixture(
+    Resource.eval(TCPClient.default[IO](host, port))
   )

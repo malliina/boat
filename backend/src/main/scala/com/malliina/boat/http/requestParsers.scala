@@ -276,7 +276,7 @@ object LimitsBuilder:
       offset <- QueryParsers.parseOrDefault(q, Limits.Offset, DefaultOffset)
     yield Limits(limit, offset)
 
-case class TimeRange(from: Option[Instant], to: Option[Instant]):
+case class TimeRange(from: Option[Instant], to: Option[Instant]) derives Codec.AsObject:
   def isEmpty = from.isEmpty && to.isEmpty
   def describe = (from, to) match
     case (Some(f), Some(t)) => s"$f - $t"

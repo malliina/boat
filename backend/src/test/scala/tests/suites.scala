@@ -14,6 +14,7 @@ import com.malliina.http.FullUrl
 import com.malliina.http.io.HttpClientF2
 import com.malliina.logback.LogbackUtils
 import com.malliina.util.AppLogger
+import munit.AnyFixture
 import okhttp3.{OkHttpClient, Protocol}
 import org.http4s.EntityDecoder
 import org.testcontainers.utility.DockerImageName
@@ -56,7 +57,7 @@ object WrappedTestConf:
 trait MUnitSuite extends munit.CatsEffectSuite:
   val userHome: Path = Paths.get(sys.props("user.home"))
   def databaseFixture(conf: => Conf) = resource(DoobieDatabase.default[IO](conf))
-  def resource[T](res: Resource[IO, T]) = ResourceFixture(res)
+  def resource[T](res: Resource[IO, T]) = ResourceFunFixture(res)
   LogbackUtils.init(rootLevel = Level.WARN)
 
 object TestConf:
@@ -106,11 +107,11 @@ trait MUnitDatabaseSuite extends DoobieSQL:
       container = Option(c)
       TestConf(c)
 
-  val dbFixture = ResourceFixture(
+  val dbFixture = ResourceFunFixture(
     Resource.eval(IO(confFixture())).flatMap(c => DoobieDatabase.init(c))
   )
 
-  override def munitFixtures: Seq[Fixture[?]] = Seq(confFixture)
+  override def munitFixtures: Seq[AnyFixture[?]] = Seq(confFixture)
 
 case class AppComponents(service: Service[IO])
 
@@ -133,7 +134,7 @@ trait Http4sSuite extends BoatDatabaseSuite:
 
   val app = ResourceSuiteLocalFixture("munit-boat-app", appResource)
 
-  override def munitFixtures: Seq[Fixture[?]] = Seq(confFixture, app)
+  override def munitFixtures: Seq[AnyFixture[?]] = Seq(confFixture, app)
 
 case class ServerTools(server: ServerComponents[IO]):
   def port = server.server.address.getPort
@@ -149,7 +150,7 @@ trait ServerSuite extends BoatDatabaseSuite with JsonInstances:
       boatConf <- Resource.eval(boatIO)
       service <- Server.server[IO](boatConf, TestComps.builder, port = port"0")
     yield ServerTools(service)
-  val server: Fixture[ServerTools] =
+  val server =
     ResourceSuiteLocalFixture("munit-server", testServerResource)
 
-  override def munitFixtures: Seq[Fixture[?]] = Seq(confFixture, server)
+  override def munitFixtures: Seq[AnyFixture[?]] = Seq(confFixture, server)
