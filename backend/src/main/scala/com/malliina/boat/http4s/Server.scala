@@ -1,7 +1,7 @@
 package com.malliina.boat.http4s
 
 import cats.data.Kleisli
-import cats.effect.kernel.{Async, Resource}
+import cats.effect.{Async, Resource}
 import cats.effect.std.Dispatcher
 import cats.effect.{ExitCode, IO, IOApp, Sync}
 import cats.syntax.all.catsSyntaxApplicativeError

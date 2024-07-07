@@ -1,9 +1,8 @@
 package com.malliina.boat
 
-import java.net.URI
-
 import org.scalajs.dom.{Element, HTMLAnchorElement, window}
 
+import java.net.URI
 import scala.util.Try
 
 trait BaseFront extends FrontKeys:

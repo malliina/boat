@@ -1,5 +1,6 @@
 package com.malliina.boat.html
 
+import cats.implicits.toShow
 import com.malliina.boat.BoatFormats.{durationHuman, formatDistance, inHours}
 import com.malliina.boat.FrontKeys.Hidden
 import com.malliina.boat.http.{SortOrder, TrackSort, TracksQuery}
@@ -180,7 +181,7 @@ object TracksPage extends BoatImplicits:
       .toMap ++ boatsQueryOf(q.sources)
 
   private def boatsQueryOf(boats: Seq[BoatName]) =
-    if boats.nonEmpty then Map(TracksQuery.BoatsKey -> boats.map(n => BoatName.write(n).toString))
+    if boats.nonEmpty then Map(TracksQuery.BoatsKey -> boats.map(n => n.show))
     else Map.empty
 
   private def withQuery(call: Uri, params: Map[String, Seq[String]]) =

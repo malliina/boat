@@ -1,6 +1,7 @@
 package com.malliina.boat
 
 import cats.Show
+import cats.implicits.toShow
 import com.malliina.values.{JsonCompanion, Readable}
 import io.circe.{Codec, Decoder, Encoder}
 import org.typelevel.ci.CIString
@@ -47,7 +48,7 @@ object TrackCanonical extends ShowableString[TrackCanonical]:
   val Key = "canonical"
   override def apply(raw: String): TrackCanonical = raw
   override def write(t: TrackCanonical): String = t
-  def fromName(name: TrackName): TrackCanonical = TrackCanonical(TrackName.write(name))
+  def fromName(name: TrackName): TrackCanonical = TrackCanonical(name.show)
 
 opaque type BoatToken = String
 object BoatToken extends ShowableString[BoatToken]:

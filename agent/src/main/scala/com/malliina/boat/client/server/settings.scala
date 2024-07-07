@@ -1,12 +1,13 @@
 package com.malliina.boat.client.server
 
+import com.comcast.ip4s.*
 import com.malliina.boat.BoatToken
 import com.malliina.boat.client.server.Device.BoatDevice
 import com.malliina.boat.client.server.WebServer.{boatCharset, defaultHash, hash, log}
 import io.circe.generic.semiauto.deriveCodec
 import io.circe.syntax.EncoderOps
 import io.circe.{Codec, Decoder, Encoder, parser}
-import com.comcast.ip4s.*
+
 import java.nio.charset.StandardCharsets
 import java.nio.file.{Files, Path, Paths}
 import scala.jdk.CollectionConverters.CollectionHasAsScala
@@ -95,12 +96,12 @@ object AgentSettings:
         .map(_ => "Error.")
     else Left("No conf")
 
-  def saveConf(conf: BoatConf): Unit = save(conf.asJson.spaces2, confFile)
+  private def saveConf(conf: BoatConf): Unit = save(conf.asJson.spaces2, confFile)
 
   def saveAndReload[F[_]](conf: BoatConf, instance: AgentInstance[F]): F[Boolean] =
     saveConf(conf)
     instance.updateIfNecessary(conf)
 
-  def save(content: String, to: Path): Unit =
+  private def save(content: String, to: Path): Unit =
     Files.write(to, content.getBytes(boatCharset))
     log.info(s"Wrote $to.")

@@ -20,7 +20,8 @@ import cats.syntax.show.toShow
 object DeviceAgent:
   private val log = AppLogger(getClass)
 
-  val Host: FullUrl = FullUrl("wss", "api.boat-tracker.com", "")
+  val HttpsHost = FullUrl.https("api.boat-tracker.com", "")
+  val Host: FullUrl = FullUrl.wss("api.boat-tracker.com", "")
 //  val Host = FullUrl("ws", "localhost:9000", "")
   val BoatUrl: FullUrl = Host / "/ws/boats"
   val DeviceUrl: FullUrl = Host / "/ws/devices"
