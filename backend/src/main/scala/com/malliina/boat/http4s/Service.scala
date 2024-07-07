@@ -337,8 +337,11 @@ class Service[F[_]: Async: Files](comps: BoatComps[F], graph: Graph)
       comps.s3
         .files()
         .flatMap: objects =>
-          val urls = objects.map(obj => Urls.hostOnly(req) / "files" / obj.key())
-          ok(Json.obj("files" -> urls.asJson))(jsonEncoder[F])
+          val baseUrl = Urls.hostOnly(req) / "files"
+          val latestObj = objects.maxByOption(_.lastModified())
+          val latestUrl = latestObj.map(l => baseUrl / l.key())
+          val urls = objects.map(obj => baseUrl / obj.key())
+          ok(Json.obj("files" -> urls.asJson, "latest" -> latestUrl.asJson))(jsonEncoder[F])
     case GET -> Root / "files" / file =>
       comps.s3
         .download(file)

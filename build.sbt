@@ -1,4 +1,5 @@
 import com.malliina.build.FileIO
+import okhttp3.OkHttpClient
 import sbtcrossproject.CrossPlugin.autoImport.{CrossType, crossProject}
 import sbtrelease.ReleasePlugin.autoImport.{ReleaseStep, releaseProcess}
 import sbtrelease.ReleaseStateTransformations.*
@@ -190,7 +191,7 @@ val agent = project
         "com.malliina" %% "primitives" % primitiveVersion,
         "com.malliina" %% "logstreams-client" % logstreamsVersion,
         "com.lihaoyi" %% "scalatags" % scalaTagsVersion,
-        "commons-codec" % "commons-codec" % "1.16.1",
+        "commons-codec" % "commons-codec" % "1.17.0",
         "org.typelevel" %% "munit-cats-effect-3" % "1.0.7" % Test
       ),
     releaseUseGlobalVersion := false,
@@ -240,6 +241,28 @@ val utils = project
 //      "javax.media" % "jai_core" % "1.1.3",
       munitDep
     )
+  )
+
+val updateDocs = taskKey[Unit]("Updates docs")
+
+val docs = project
+  .in(file("mdoc"))
+  .enablePlugins(MdocPlugin)
+  .settings(
+    publish / skip := true,
+    mdocVariables := Map(
+      "VERSION" -> (agent / version).value,
+      "LATEST_AGENT_URL" -> LatestClient.default.latest
+        .map(_.url)
+        .getOrElse("todo")
+    ),
+    mdocIn := (ThisBuild / baseDirectory).value / "docs-src",
+    mdocOut := (ThisBuild / baseDirectory).value / "docs",
+    updateDocs := {
+      val log = streams.value.log
+      val outFile = mdocOut.value
+    },
+    updateDocs := updateDocs.dependsOn(mdoc.toTask("")).value
   )
 
 val boatRoot = project
