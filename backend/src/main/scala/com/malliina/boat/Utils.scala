@@ -7,10 +7,11 @@ import org.apache.commons.text.{CharacterPredicates, RandomStringGenerator}
 import java.text.Normalizer
 
 object Utils:
-  private val generator = new RandomStringGenerator.Builder()
-    .withinRange('a', 'z')
-    .filteredBy(CharacterPredicates.LETTERS)
-    .build()
+  private val generator: RandomStringGenerator =
+    new RandomStringGenerator.Builder()
+      .withinRange('a', 'z')
+      .filteredBy(CharacterPredicates.LETTERS)
+      .get()
 
   def randomString(length: Int) = generator.generate(length).toLowerCase
 

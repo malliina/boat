@@ -19,7 +19,7 @@ class TracksImporter extends MUnitSuite:
   def dbResource = databaseFixture(testConf)
   val file = Path.fromNioPath(userHome.resolve(".boat/log.txt"))
 
-  override def munitTimeout: Duration = 6.hours
+  override def munitIOTimeout: Duration = 6.hours
 
 //  dbResource.test("import tracks from plotter log file".ignore) { db =>
 //    val day = LocalDate.of(2022, 6, 4)

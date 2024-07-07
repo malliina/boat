@@ -15,7 +15,7 @@ val logstreamsVersion = "2.8.0"
 val http4sVersion = "0.23.27"
 val logbackVersion = "1.5.6"
 val circeVersion = "0.14.9"
-val alpnVersion = "12.0.8"
+val alpnVersion = "12.0.11"
 val webAuthDep = "com.malliina" %% "web-auth" % webAuthVersion
 val webAuthTestDep = webAuthDep % Test classifier "tests"
 val munitDep = "org.scalameta" %% "munit" % munitVersion % Test
@@ -126,8 +126,8 @@ val backend = Project("boat", file("backend"))
     } ++ Seq(
       "com.vividsolutions" % "jts" % "1.13",
       "mysql" % "mysql-connector-java" % "8.0.33",
-      "org.apache.commons" % "commons-text" % "1.11.0",
-      "software.amazon.awssdk" % "s3" % "2.25.31",
+      "org.apache.commons" % "commons-text" % "1.12.0",
+      "software.amazon.awssdk" % "s3" % "2.26.16",
       "com.malliina" %% "logstreams-client" % logstreamsVersion,
       "com.malliina" %% "mobile-push-io" % "3.11.0",
       "com.malliina" %% "config" % primitiveVersion,
