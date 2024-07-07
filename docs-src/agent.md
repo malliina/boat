@@ -9,19 +9,19 @@ Raspbian.
 
 Have a Raspberry Pi available in your boat, power it up and make sure you can connect to it.
 
-1. Download the [latest version](@LATEST_AGENT_URL@) of the agent from [www.boat-tracker.com/files](https://www.boat-tracker.com/files)
-1. SSH to your Raspberry Pi
-1. Install the downloaded package: `dpkg -i <boat-agent_x.x.x_all.deb>`
-1. Open a web browser and connect to the started HTTP server on port 8080
-1. In the web form, input the IP address and HTTP port of your chartplotter
-1. Optionally, input the boat token available in the iOS app
-1. Connect this agent to the same network (WLAN or cable) as your chartplotter
+1. Download the [latest version](@LATEST_AGENT_URL@) of the agent from [www.boat-tracker.com/files](https://www.boat-tracker.com/files).
+1. SSH to your Raspberry Pi.
+1. Install the downloaded package: `dpkg -i @LATEST_AGENT_FILE@`.
+1. Open a web browser and connect to the started HTTP server on port 8080.
+1. In the web form, input the IP address and HTTP port of your chartplotter.
+1. Optionally, input the boat token available in the iOS app.
+1. Connect this agent to the same network (WLAN or cable) as your chartplotter.
 
 Following this setup:
 
-1. The agent establishes a TCP connection to your chartplotter and receives any emitted NMEA 0183 messages
-1. The agent also opens a WebSocket to the backend at wss://www.boat-tracker.com
-1. Sentences received from the chartplotter are sent over the WebSocket to the backend
+1. The agent establishes a TCP connection to your chartplotter and receives any emitted NMEA 0183 messages.
+1. The agent also opens a WebSocket to the backend at wss://www.boat-tracker.com.
+1. Sentences received from the chartplotter are sent over the WebSocket to the backend.
 
 Alternatively, you can configure the plotter IP/port -combination in a configuration file set by the `conf.dir` system
 property containing the following format:
