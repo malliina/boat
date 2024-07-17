@@ -1,13 +1,14 @@
 package com.malliina.boat.auth
 
 import com.malliina.boat.db.RefreshTokenId
-import com.malliina.boat.{BoatName, Language, MinimalUserInfo, SingleError}
+import com.malliina.boat.{BoatName, Language, MinimalUserInfo}
 import com.malliina.config.ConfigReadable
+import com.malliina.http.SingleError
 import com.malliina.values.{Email, IdToken, Password, Username}
+import com.malliina.web.JWTError
 import io.circe.Codec
 
 import java.time.Instant
-import com.malliina.web.JWTError
 
 case class SecretKey(value: String) extends AnyVal:
   override def toString = "****"

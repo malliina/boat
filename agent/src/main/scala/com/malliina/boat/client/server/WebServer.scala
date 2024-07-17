@@ -3,12 +3,12 @@ package com.malliina.boat.client.server
 import cats.effect.Async
 import cats.syntax.all.toFlatMapOps
 import com.malliina.boat.client.TCPClient
-import com.malliina.boat.client.{FormReadable, FormReader}
 import com.malliina.boat.client.TCPClient.{host, port}
 import com.malliina.boat.client.server.AgentHtml.{asHtml, boatForm}
 import com.malliina.boat.client.server.AgentSettings.{readConf, saveAndReload}
 import com.malliina.boat.client.server.WebServer.{noCache, settingsUri}
-import com.malliina.boat.{BoatToken, Errors}
+import com.malliina.boat.BoatToken
+import com.malliina.http.Errors
 import com.malliina.util.AppLogger
 import com.malliina.values.Readable
 import io.circe.syntax.EncoderOps
@@ -20,11 +20,15 @@ import org.http4s.implicits.*
 import org.http4s.server.Router
 import org.http4s.*
 import com.comcast.ip4s.{Host, Port}
+import com.malliina.http4s.FormReader
 import org.http4s.CacheDirective.*
 import org.http4s.headers.`Cache-Control`
 import org.slf4j.Logger
 
 import java.nio.charset.StandardCharsets
+
+class ErrorsException(val errors: Errors) extends Exception(errors.message.message):
+  def message = errors.message
 
 trait AppImplicits[F[_]]
   extends syntax.AllSyntax
@@ -88,5 +92,6 @@ class WebServer[F[_]: Async](agentInstance: AgentInstance[F]) extends AppImplici
       .decode(req, strict = false)
       .foldF(
         err => F.raiseError(err),
-        form => read(FormReader(form)).fold(err => F.raiseError(err.asException), ok => F.pure(ok))
+        form =>
+          read(FormReader(form)).fold(err => F.raiseError(ErrorsException(err)), ok => F.pure(ok))
       )

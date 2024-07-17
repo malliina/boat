@@ -5,7 +5,7 @@ import sbtrelease.ReleaseStateTransformations.*
 
 import scala.sys.process.Process
 
-val webAuthVersion = "6.8.0"
+val webAuthVersion = "6.9.1"
 val munitVersion = "1.0.0"
 val munitCeVersion = "2.0.0"
 val testContainersScalaVersion = "0.41.4"
@@ -115,29 +115,29 @@ val backend = Project("boat", file("backend"))
     Compile / unmanagedResourceDirectories ++= Seq(
       baseDirectory.value / "docs"
     ),
-    libraryDependencies ++= Seq("ember-server", "ember-client", "dsl", "circe").map { m =>
-      "org.http4s" %% s"http4s-$m" % http4sVersion
-    } ++ Seq("classic", "core").map { m =>
-      "ch.qos.logback" % s"logback-$m" % logbackVersion
-    } ++ Seq("server", "client").map { m =>
-      "org.eclipse.jetty" % s"jetty-alpn-java-$m" % alpnVersion
-    } ++ Seq("util-html", "database").map { m =>
-      "com.malliina" %% m % webAuthVersion
-    } ++ Seq(
-      "com.vividsolutions" % "jts" % "1.13",
-      "mysql" % "mysql-connector-java" % "8.0.33",
-      "org.apache.commons" % "commons-text" % "1.12.0",
-      "software.amazon.awssdk" % "s3" % "2.26.16",
-      "com.malliina" %% "logstreams-client" % logstreamsVersion,
-      "com.malliina" %% "mobile-push-io" % "3.11.0",
-      "com.malliina" %% "config" % primitiveVersion,
-      "org.eclipse.paho" % "org.eclipse.paho.client.mqttv3" % "1.2.5",
-      webAuthDep,
-      webAuthTestDep,
-      munitDep,
-      "com.dimafeng" %% "testcontainers-scala-mysql" % testContainersScalaVersion % Test,
-      "org.typelevel" %% "munit-cats-effect" % munitCeVersion % Test
-    ),
+    libraryDependencies ++=
+      Seq("classic", "core").map { m =>
+        "ch.qos.logback" % s"logback-$m" % logbackVersion
+      } ++ Seq("server", "client").map { m =>
+        "org.eclipse.jetty" % s"jetty-alpn-java-$m" % alpnVersion
+      } ++ Seq("util-html", "database", "util-http4s").map { m =>
+        "com.malliina" %% m % webAuthVersion
+      } ++ Seq(
+        "org.http4s" %% "http4s-ember-client" % http4sVersion,
+        "com.vividsolutions" % "jts" % "1.13",
+        "mysql" % "mysql-connector-java" % "8.0.33",
+        "org.apache.commons" % "commons-text" % "1.12.0",
+        "software.amazon.awssdk" % "s3" % "2.26.16",
+        "com.malliina" %% "logstreams-client" % logstreamsVersion,
+        "com.malliina" %% "mobile-push-io" % "3.11.0",
+        "com.malliina" %% "config" % primitiveVersion,
+        "org.eclipse.paho" % "org.eclipse.paho.client.mqttv3" % "1.2.5",
+        webAuthDep,
+        webAuthTestDep,
+        munitDep,
+        "com.dimafeng" %% "testcontainers-scala-mysql" % testContainersScalaVersion % Test,
+        "org.typelevel" %% "munit-cats-effect" % munitCeVersion % Test
+      ),
     clientProject := frontend,
     dependentModule := crossJvm,
     hashPackage := "com.malliina.assets",
@@ -182,12 +182,11 @@ val agent = project
         .withGroup(daemonUser.value)
     },
     libraryDependencies ++=
-      Seq("ember-server", "dsl", "circe").map { m =>
-        "org.http4s" %% s"http4s-$m" % http4sVersion
-      } ++ Seq("generic", "parser").map { m =>
+      Seq("generic", "parser").map { m =>
         "io.circe" %% s"circe-$m" % circeVersion
       } ++ Seq(
         "co.fs2" %% "fs2-io" % "3.10.2",
+        "com.malliina" %% "util-http4s" % webAuthVersion,
         "com.malliina" %% "primitives" % primitiveVersion,
         "com.malliina" %% "logstreams-client" % logstreamsVersion,
         "com.lihaoyi" %% "scalatags" % scalaTagsVersion,

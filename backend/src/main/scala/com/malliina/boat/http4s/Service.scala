@@ -16,6 +16,7 @@ import com.malliina.boat.http4s.BasicService.{cached, noCache, ranges}
 import com.malliina.boat.http4s.Service.{isSecured, log}
 import com.malliina.boat.parsing.CarCoord
 import com.malliina.boat.push.SourceState
+import com.malliina.http.{Errors, SingleError}
 import com.malliina.util.AppLogger
 import com.malliina.values.{Email, Readable, UserId, Username}
 import com.malliina.web.*

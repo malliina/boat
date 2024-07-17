@@ -1,8 +1,8 @@
 package com.malliina.boat.http4s
 
-import com.malliina.boat.{DeviceId, Errors, Latitude, LocationUpdate, LocationUpdates, Longitude, SingleError}
+import com.malliina.boat.{DeviceId, ErrorConstants, Latitude, LocationUpdate, LocationUpdates, Longitude}
 import com.malliina.http.io.HttpClientIO
-import com.malliina.http.FullUrl
+import com.malliina.http.{Errors, FullUrl}
 import com.malliina.measure.DistanceIntM
 import com.malliina.values.{IdToken, degrees}
 import io.circe.syntax.EncoderOps
@@ -45,7 +45,7 @@ class AzureHttpTests extends MUnitSuite:
       .map: res =>
         assertEquals(res.status, Unauthorized.code)
         assert(
-          res.parse[Errors].toOption.exists(_.errors.exists(_.key == SingleError.TokenExpiredKey))
+          res.parse[Errors].toOption.exists(_.errors.exists(_.key == ErrorConstants.TokenExpiredKey))
         )
 
   private def headers(token: IdToken = TestEmailAuth.testToken) = Map(

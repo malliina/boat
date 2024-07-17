@@ -1,6 +1,6 @@
 package com.malliina.web
 
-import com.malliina.boat.http4s.FormReadableT
+import com.malliina.http4s.FormReadableT
 import com.malliina.values.{IdToken, RefreshToken}
 import com.malliina.web.OAuthKeys.{CodeKey, State}
 import io.circe.Codec

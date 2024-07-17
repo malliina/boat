@@ -1,6 +1,7 @@
 package com.malliina.measure
 
-import com.malliina.boat.{Latitude, Longitude, SingleError}
+import com.malliina.http.SingleError
+import com.malliina.boat.{Latitude, Longitude}
 import com.malliina.measure.Inputs.*
 import HemisphereDirection.readString
 

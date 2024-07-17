@@ -1,6 +1,6 @@
 package com.malliina.web
 
-import com.malliina.boat.SingleError
+import com.malliina.http.SingleError
 import org.http4s.Headers
 
 class AuthException(val error: AuthError) extends Exception(error.message.value):

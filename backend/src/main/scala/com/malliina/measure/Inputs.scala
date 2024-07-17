@@ -1,6 +1,6 @@
 package com.malliina.measure
 
-import com.malliina.boat.SingleError
+import com.malliina.http.SingleError
 
 import scala.util.Try
 

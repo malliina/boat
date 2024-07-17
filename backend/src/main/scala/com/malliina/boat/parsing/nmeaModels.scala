@@ -2,8 +2,7 @@ package com.malliina.boat.parsing
 
 import java.time.format.{DateTimeFormatter, DateTimeParseException}
 import java.time.{LocalDate, LocalTime, OffsetDateTime, ZoneOffset}
-
-import com.malliina.boat.SingleError
+import com.malliina.http.SingleError
 import com.malliina.measure.{DistanceM, Inputs, LatitudeDM, LongitudeDM, SpeedM, Temperature}
 
 sealed trait TalkedSentence:

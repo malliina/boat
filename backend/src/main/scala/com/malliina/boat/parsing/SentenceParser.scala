@@ -1,6 +1,7 @@
 package com.malliina.boat.parsing
 
-import com.malliina.boat.{RawSentence, SingleError}
+import com.malliina.boat.RawSentence
+import com.malliina.http.SingleError
 import com.malliina.measure.Inputs.{toDouble, toInt}
 import com.malliina.measure.{DistanceDoubleM, LatitudeDM, LongitudeDM, SpeedDoubleM, TemperatureDouble}
 

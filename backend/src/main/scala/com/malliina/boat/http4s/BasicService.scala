@@ -5,8 +5,8 @@ import cats.effect.Sync
 import cats.implicits.*
 import com.malliina.boat.db.{BoatNotFoundException, IdentityException}
 import com.malliina.boat.http4s.BasicService.{log, noCache}
-import com.malliina.boat.{Errors, message}
-import com.malliina.http.ResponseException
+import com.malliina.boat.message
+import com.malliina.http.{Errors, ResponseException}
 import com.malliina.util.AppLogger
 import com.malliina.web.AuthException
 import org.http4s.*

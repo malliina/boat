@@ -13,11 +13,12 @@ import com.malliina.boat.graph.Graph
 import com.malliina.boat.html.BoatHtml
 import com.malliina.boat.http4s.JsonInstances.circeJsonEncoder
 import com.malliina.boat.push.{BoatPushService, PushEndpoint}
-import com.malliina.boat.{AppMeta, AppMode, BoatConf, Errors, Logging, S3Client, SingleError, SourceType, message}
+import com.malliina.boat.{AppMeta, AppMode, BoatConf, Logging, S3Client, SourceType, message}
 import com.malliina.database.DoobieDatabase
-import com.malliina.http.HttpClient
+import com.malliina.http.{Errors, HttpClient, SingleError}
 import com.malliina.http.io.{HttpClientF2, HttpClientIO}
 import com.malliina.util.AppLogger
+import com.malliina.values.ErrorMessage
 import com.malliina.web.*
 import fs2.compression.Compression
 import fs2.io.file.Files
@@ -106,8 +107,8 @@ object Server extends IOApp:
       db <-
         log.info(s"Using database at ${conf.db.url}...")
         val dbConf = conf.db
-        if conf.isFull || dbConf.autoMigrate then DoobieDatabase.init(dbConf)
-        else Resource.pure(DoobieDatabase.fast(dbConf))
+        if conf.isFull then DoobieDatabase.init(dbConf)
+        else Resource.eval(DoobieDatabase.fast(dbConf))
       users = DoobieUserManager(db)
       _ <-
         if conf.isFull then Resource.eval(users.initUser()) else Resource.unit
@@ -188,7 +189,7 @@ object Server extends IOApp:
       serverErrorResponse("Generic server error.")
 
   def serverErrorResponse[F[_]: Sync](msg: String) =
-    BasicService[F].serverError(Errors(SingleError(msg, "server")))
+    BasicService[F].serverError(Errors(SingleError(ErrorMessage(msg), "server")))
 
   override def run(args: List[String]): IO[ExitCode] =
     for
