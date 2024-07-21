@@ -3,7 +3,6 @@ package com.malliina.boat
 import cats.effect.Async
 import cats.syntax.all.toFunctorOps
 import com.malliina.boat.FrontKeys.{CommentsRow, TrackRow}
-import com.malliina.boat.http.CSRFConf
 import com.malliina.http.Http
 import io.circe.*
 import io.circe.syntax.EncoderOps
@@ -61,8 +60,7 @@ class TitleHandler[F[_]: Async](
   cancel: HTMLButtonElement,
   http: Http[F],
   @unused log: BaseLogger = BaseLogger.console
-) extends AjaxForm(form, editIcon, TrackRow, cancel)
-  with CSRFConf:
+) extends AjaxForm(form, editIcon, TrackRow, cancel):
   form.onsubmit = (e: Event) =>
     elemAs[HTMLInputElement](TitleInputId).map: in =>
       http.using: client =>
@@ -81,8 +79,7 @@ class CommentsHandler[F[_]: Async](
   cancel: HTMLButtonElement,
   http: Http[F],
   @unused log: BaseLogger = BaseLogger.console
-) extends AjaxForm(form, editIcon, CommentsRow, cancel)
-  with CSRFConf:
+) extends AjaxForm(form, editIcon, CommentsRow, cancel):
   form.onsubmit = (e: Event) =>
     elemAs[HTMLInputElement](CommentsInputId).map: in =>
       http.using: client =>

@@ -10,8 +10,9 @@ import com.malliina.boat.http4s.{JsonInstances, Server, ServerComponents, Servic
 import com.malliina.boat.{AisAppConf, BoatConf, LocalConf}
 import com.malliina.config.ConfigNode
 import com.malliina.database.{Conf, DoobieDatabase}
-import com.malliina.http.{Errors, FullUrl}
+import com.malliina.http.{CSRFConf, Errors, FullUrl}
 import com.malliina.http.io.HttpClientF2
+import com.malliina.http4s.CSRFUtils
 import com.malliina.logback.LogbackUtils
 import com.malliina.util.AppLogger
 import munit.AnyFixture
@@ -127,9 +128,12 @@ trait Http4sSuite extends BoatDatabaseSuite:
   self: MUnitSuite =>
 
   val appResource: Resource[IO, AppComponents] =
+    val csrfConf = CSRFConf.default
+    val csrfUtils = CSRFUtils(csrfConf)
     for
+      csrf <- Resource.eval(csrfUtils.default[IO])
       boatConf <- Resource.eval(boatIO)
-      service <- Server.appService[IO](boatConf, TestComps.builder)
+      service <- Server.appService[IO](boatConf, TestComps.builder, csrf, csrfConf)
     yield AppComponents(service)
 
   val app = ResourceSuiteLocalFixture("munit-boat-app", appResource)

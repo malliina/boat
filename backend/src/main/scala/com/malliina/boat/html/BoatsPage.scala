@@ -3,7 +3,7 @@ package com.malliina.boat.html
 import cats.implicits.toShow
 import com.malliina.boat.FrontKeys.*
 import com.malliina.boat.InviteState.{Accepted, Awaiting, Other, Rejected}
-import com.malliina.boat.http.CSRFConf
+import com.malliina.http.{CSRFToken, CSRFConf}
 import com.malliina.boat.http4s.Reverse
 import com.malliina.boat.{Boat, BoatIds, BoatNames, BoatRef, Emails, Forms, GPSInfo, InviteState, SourceType, UserInfo}
 import com.malliina.values.WrappedId
@@ -17,11 +17,11 @@ trait HTMLConstants:
   val post = "POST"
   val row = "row"
 
-object BoatsPage extends BoatImplicits with CSRFConf with HTMLConstants:
+object BoatsPage extends BoatImplicits with HTMLConstants:
   val reverse = Reverse
   val empty: Modifier = modifier()
 
-  def edit(user: UserInfo, boat: Boat) =
+  def edit(user: UserInfo, boat: Boat, csrfToken: CSRFToken, csrfConf: CSRFConf) =
     val langs = BoatLang(user.language)
     val lang = langs.lang
     val settings = lang.settings
@@ -37,6 +37,7 @@ object BoatsPage extends BoatImplicits with CSRFConf with HTMLConstants:
         action := reverse.boatEdit(boat.id),
         cls := row
       )(
+        input(tpe := "hidden", name := csrfConf.tokenName, value := csrfToken),
         hiddenInput(BoatIds.Key, boat.id),
         div(cls := "mb-3 col-md-5")(
           formInput(
@@ -68,7 +69,7 @@ object BoatsPage extends BoatImplicits with CSRFConf with HTMLConstants:
       )
     )
 
-  def apply(user: UserInfo) =
+  def apply(user: UserInfo, csrfToken: CSRFToken, csrfConf: CSRFConf) =
     val langs = BoatLang(user.language)
     val lang = langs.lang
     val webLang = langs.web
@@ -129,6 +130,7 @@ object BoatsPage extends BoatImplicits with CSRFConf with HTMLConstants:
                   action := reverse.invites,
                   cls := s"row $InviteFormClass $Hidden"
                 )(
+                  input(tpe := "hidden", name := csrfConf.tokenName, value := csrfToken),
                   hiddenInput(BoatIds.Key, boat.id),
                   labeledInput(
                     "Email",
@@ -160,6 +162,7 @@ object BoatsPage extends BoatImplicits with CSRFConf with HTMLConstants:
         )
       ),
       form(method := post, action := reverse.createBoat, cls := "row g-3 mb-5")(
+        input(tpe := "hidden", name := csrfConf.tokenName, value := csrfToken),
         radio[SourceType](
           "source-boat",
           SourceType.Key,
@@ -203,10 +206,10 @@ object BoatsPage extends BoatImplicits with CSRFConf with HTMLConstants:
                 td(cls := "table-button")(
                   div(cls := row)(
                     if i.state != Accepted then
-                      respondForm(i.boat, inviteLang.accept, accept = true)
+                      respondForm(i.boat, inviteLang.accept, accept = true, csrfToken, csrfConf)
                     else empty,
                     if i.state != Rejected then
-                      respondForm(i.boat, inviteLang.reject, accept = false)
+                      respondForm(i.boat, inviteLang.reject, accept = false, csrfToken, csrfConf)
                     else empty
                   )
                 )
@@ -244,6 +247,7 @@ object BoatsPage extends BoatImplicits with CSRFConf with HTMLConstants:
                     onsubmit := s"return confirm('$confirmRevokeText');",
                     cls := FriendsForm
                   )(
+                    input(tpe := "hidden", name := csrfConf.tokenName, value := csrfToken),
                     hiddenInput(Forms.Boat, f.boat.id),
                     hiddenInput(Forms.User, f.friend.id),
                     button(`type` := "submit", cls := "btn btn-sm btn-danger")(
@@ -277,12 +281,19 @@ object BoatsPage extends BoatImplicits with CSRFConf with HTMLConstants:
       label(cls := "form-check-label", `for` := inputId)(text)
     )
 
-  private def respondForm(boat: BoatRef, buttonText: String, accept: Boolean) =
+  private def respondForm(
+    boat: BoatRef,
+    buttonText: String,
+    accept: Boolean,
+    csrfToken: CSRFToken,
+    csrfConf: CSRFConf
+  ) =
     div(cls := "col")(
       form(
         method := post,
         action := reverse.invitesRespond
       )(
+        input(tpe := "hidden", name := csrfConf.tokenName, value := csrfToken),
         hiddenInput(Forms.Boat, boat.id),
         hiddenInput(Forms.Accept, s"$accept"),
         button(`type` := "submit", cls := "btn btn-sm btn-info")(

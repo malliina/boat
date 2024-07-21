@@ -15,8 +15,9 @@ import com.malliina.boat.http4s.JsonInstances.circeJsonEncoder
 import com.malliina.boat.push.{BoatPushService, PushEndpoint}
 import com.malliina.boat.{AppMeta, AppMode, BoatConf, Logging, S3Client, SourceType, message}
 import com.malliina.database.DoobieDatabase
-import com.malliina.http.{Errors, HttpClient, SingleError}
+import com.malliina.http.{CSRFConf, Errors, HttpClient, SingleError}
 import com.malliina.http.io.{HttpClientF2, HttpClientIO}
+import com.malliina.http4s.CSRFUtils
 import com.malliina.util.AppLogger
 import com.malliina.values.ErrorMessage
 import com.malliina.web.*
@@ -24,7 +25,7 @@ import fs2.compression.Compression
 import fs2.io.file.Files
 import fs2.io.net.Network
 import org.http4s.ember.server.EmberServerBuilder
-import org.http4s.server.middleware.{GZip, HSTS}
+import org.http4s.server.middleware.{CSRF, GZip, HSTS}
 import org.http4s.server.websocket.WebSocketBuilder2
 import org.http4s.server.{Router, Server}
 import org.http4s.{Http, HttpRoutes, Request, Response}
@@ -80,8 +81,11 @@ object Server extends IOApp:
     port: Port = port
   ): Resource[F, ServerComponents[F]] =
     val F = Sync[F]
+    val csrfConf = CSRFConf.default
+    val csrfUtils = CSRFUtils(csrfConf)
     for
-      service <- appService(conf, builder)
+      csrf <- Resource.eval(csrfUtils.default[F])
+      service <- appService(conf, builder, csrf, csrfConf)
       _ <- Resource.eval(
         F.delay(log.info(s"Binding on port $port using app version ${AppMeta.default.gitHash}..."))
       )
@@ -90,7 +94,7 @@ object Server extends IOApp:
         .withIdleTimeout(30.days)
         .withHost(host"0.0.0.0")
         .withPort(port)
-        .withHttpWebSocketApp(sockets => makeHandler(service, sockets))
+        .withHttpWebSocketApp(sockets => makeHandler(service, sockets, csrfUtils.middleware(csrf)))
         .withErrorHandler(errorHandler)
         .withShutdownTimeout(1.millis)
         .build
@@ -98,7 +102,9 @@ object Server extends IOApp:
 
   def appService[F[+_]: Async: Files](
     conf: BoatConf,
-    builder: AppCompsBuilder[F]
+    builder: AppCompsBuilder[F],
+    csrf: CSRF[F, F],
+    csrfConf: CSRFConf
   ): Resource[F, Service[F]] =
     for
       dispatcher <- Dispatcher.parallel[F]
@@ -148,8 +154,8 @@ object Server extends IOApp:
       val tracksDatabase = DoobieTracksDatabase(db)
       val push = DoobiePushDatabase(db, appComps.pushService)
       val comps = BoatComps(
-        BoatHtml.fromBuild(SourceType.Boat),
-        BoatHtml.fromBuild(SourceType.Vehicle),
+        BoatHtml.fromBuild(SourceType.Boat, csrfConf),
+        BoatHtml.fromBuild(SourceType.Vehicle, csrfConf),
         tracksDatabase,
         vesselDb,
         trackInserts,
@@ -160,36 +166,38 @@ object Server extends IOApp:
         push,
         streams
       )
-      Service(comps, graph)
+      Service(comps, graph, csrf, csrfConf)
 
   private def makeHandler[F[_]: Async: Compression: Files](
     service: Service[F],
-    sockets: WebSocketBuilder2[F]
+    sockets: WebSocketBuilder2[F],
+    csrfChecker: CSRFUtils.CSRFChecker[F]
   ): Http[F, F] =
-    GZip:
-      HSTS:
-        CSP.when(AppMode.fromBuild.isProd):
-          orNotFound:
-            Router(
-              "/" -> service.routes(sockets),
-              "/assets" -> StaticService[F].routes
-            )
+    csrfChecker:
+      GZip:
+        HSTS:
+          CSP.when(AppMode.fromBuild.isProd):
+            orNotFound:
+              Router(
+                "/" -> service.routes(sockets),
+                "/assets" -> StaticService[F].routes
+              )
 
   private def orNotFound[F[_]: Sync](rs: HttpRoutes[F]): Kleisli[F, Request[F], Response[F]] =
     Kleisli: req =>
       rs.run(req)
-        .getOrElseF(BasicService[F].notFoundReq(req))
-        .handleErrorWith(BasicService[F].errorHandler)
+        .getOrElseF(BoatBasicService[F].notFoundReq(req))
+        .handleErrorWith(BoatBasicService[F].errorHandler)
 
   private def errorHandler[F[_]: Sync]: PartialFunction[Throwable, F[Response[F]]] =
-    case ioe: IOException if ioe.message.exists(_.startsWith(BasicService.noisyErrorMessage)) =>
+    case ioe: IOException if ioe.message.exists(_.startsWith(BoatBasicService.noisyErrorMessage)) =>
       serverErrorResponse("Generic server IO error.")
     case NonFatal(t) =>
       log.error(s"Server error: '${t.getMessage}'.", t)
       serverErrorResponse("Generic server error.")
 
   def serverErrorResponse[F[_]: Sync](msg: String) =
-    BasicService[F].serverError(Errors(SingleError(ErrorMessage(msg), "server")))
+    BoatBasicService[F].serverError(Errors(SingleError(ErrorMessage(msg), "server")))
 
   override def run(args: List[String]): IO[ExitCode] =
     for

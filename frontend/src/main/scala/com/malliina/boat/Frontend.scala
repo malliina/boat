@@ -2,7 +2,7 @@ package com.malliina.boat
 
 import cats.effect.std.Dispatcher
 import cats.effect.{IO, IOApp, Resource}
-import com.malliina.http.{Http, HttpClient}
+import com.malliina.http.{CSRFConf, Http, HttpClient}
 import fs2.concurrent.Topic
 import org.scalajs.dom
 import org.scalajs.dom.MessageEvent
@@ -42,7 +42,8 @@ object Frontend extends IOApp.Simple with BodyClasses:
   val log: BaseLogger = BaseLogger.console
 
   override def run: IO[Unit] =
-    val client = HttpClient[IO]()
+    val csrfConf = CSRFConf.default
+    val client = HttpClient[IO](csrfConf)
     val resource = for
       dispatcher <- Dispatcher.parallel[IO]
       http = Http(client, dispatcher)

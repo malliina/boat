@@ -3,7 +3,6 @@ package com.malliina.http
 import cats.effect.Async
 import cats.effect.std.Dispatcher
 import cats.syntax.all.toFlatMapOps
-import com.malliina.boat.http.CSRFConf
 import io.circe.parser.decode
 import io.circe.syntax.EncoderOps
 import io.circe.{Decoder, Encoder}
@@ -24,7 +23,7 @@ class Http[F[_]: Async](val client: HttpClient[F], val dispatcher: Dispatcher[F]
   def run[R](task: F[R]): Unit = dispatcher.unsafeRunAndForget(task)
   def using[R](request: HttpClient[F] => F[R]): Unit = run(request(client))
 
-class HttpClient[F[_]: Async] extends CSRFConf:
+class HttpClient[F[_]: Async](csrf: CSRFConf):
   private val F = Async[F]
 
   def get[R: Decoder](uri: String): F[R] =
@@ -47,7 +46,7 @@ class HttpClient[F[_]: Async] extends CSRFConf:
   ): F[R] =
     val headers = Map(
       "Content-Type" -> "application/json",
-      CsrfHeaderName -> CsrfTokenNoCheck
+      csrf.headerName.toString -> csrf.noCheck
     )
     fetch(method, uri, data.asJson.noSpaces, headers = headers).flatMap: res =>
       validate[R](uri, res)

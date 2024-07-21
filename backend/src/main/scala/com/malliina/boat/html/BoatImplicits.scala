@@ -6,6 +6,7 @@ import com.malliina.boat.BoatFormats.{formatKnots, formatTemp}
 import com.malliina.boat.{DateVal, SourceType, WrappedInt}
 import com.malliina.measure.{SpeedM, Temperature}
 import com.malliina.values.WrappedString
+import com.malliina.http.CSRFToken
 import org.http4s.Uri
 import scalatags.Text.all.{Attr, AttrValue, Frag, Modifier, intFrag, stringFrag}
 import scalatags.text.Builder
@@ -16,6 +17,7 @@ object BoatImplicits extends BoatImplicits
 
 trait BoatImplicits:
   given AttrValue[Uri] = boatStringAttr(_.renderString)
+  given AttrValue[CSRFToken] = boatStringAttr(_.value)
   given Conversion[SpeedM, Frag] = (s: SpeedM) => stringFrag(formatKnots(s))
   given Conversion[Temperature, Frag] = (t: Temperature) => stringFrag(formatTemp(t))
   given Conversion[DateVal, Frag] = (d: DateVal) => stringFrag(d.iso8601)

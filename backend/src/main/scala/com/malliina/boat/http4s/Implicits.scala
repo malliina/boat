@@ -1,14 +1,15 @@
 package com.malliina.boat.http4s
 
+import cats.Applicative
 import cats.effect.Concurrent
 import com.malliina.boat.{DeviceId, TrackCanonical, TrackId, TrackName}
+import com.malliina.http4s.BasicService
 import com.malliina.values.Username
 import io.circe.syntax.EncoderOps
 import io.circe.{Decoder, Encoder, Printer}
 import org.http4s.circe.CirceInstances
-import org.http4s.dsl.Http4sDsl
 import org.http4s.headers.`Content-Type`
-import org.http4s.{Charset, DecodeResult, EntityDecoder, EntityEncoder, MediaType, syntax}
+import org.http4s.{Charset, DecodeResult, EntityDecoder, EntityEncoder, MediaType}
 import scalatags.generic.Frag
 
 trait Extractors:
@@ -60,9 +61,8 @@ trait JsonInstances extends CirceInstances:
           ok => DecodeResult.successT(ok)
         )
 
-abstract class Implicits[F[_]]
-  extends syntax.AllSyntax
-  with Http4sDsl[F]
+abstract class Implicits[F[_]: Applicative]
+  extends BasicService[F]
   with MyScalatagsInstances
   with JsonInstances
   with Extractors

@@ -4,17 +4,11 @@ import cats.effect.Concurrent
 import com.comcast.ip4s.{Host, Port}
 import com.malliina.boat.http.{InvitePayload, InviteResponse, RevokeAccess}
 import com.malliina.boat.{AddSource, BoatName, BoatNames, ChangeBoatName, ChangeComments, ChangeTrackTitle, DeviceId, Forms, GPSInfo, PatchBoat, Readables, SourceType, TrackComments, TrackTitle}
-import com.malliina.http.Errors
-import com.malliina.http4s.FormReadableT
+import com.malliina.http4s.{FormDecoders, FormReadableT}
 import com.malliina.values.{Email, UserId}
-import org.http4s.{DecodeResult, EntityDecoder, MalformedMessageBodyFailure, UrlForm}
 
-trait BoatDecoders[F[_]: Concurrent]:
+trait BoatDecoders[F[_]: Concurrent] extends FormDecoders[F]:
   import Readables.given
-
-  given [T](using reader: FormReadableT[T]): EntityDecoder[F, T] =
-    EntityDecoder[F, UrlForm].flatMapR: form =>
-      toDecodeResult(reader.read(form))
 
   private val reader = FormReadableT.reader
 
@@ -61,8 +55,3 @@ trait BoatDecoders[F[_]: Concurrent]:
     FormReadableT[ChangeBoatName]
       .map(PatchBoat.ChangeName.apply)
       .or(FormReadableT[GPSInfo].map(PatchBoat.UpdateGps.apply))
-
-  private def toDecodeResult[T](e: Either[Errors, T]): DecodeResult[F, T] = e.fold(
-    errors => DecodeResult.failureT(MalformedMessageBodyFailure(errors.message.message)),
-    ok => DecodeResult.successT(ok)
-  )

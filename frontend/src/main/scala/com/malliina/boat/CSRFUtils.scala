@@ -1,12 +1,12 @@
 package com.malliina.boat
 
-import com.malliina.boat.http.CSRFConf
+import com.malliina.http.CSRFConf
 import org.scalajs.dom
 import org.scalajs.dom.HTMLFormElement
 import org.scalajs.dom.{Element, Event}
 import scalatags.JsDom.all.*
 
-class CSRFUtils(val log: BaseLogger = BaseLogger.console) extends CSRFConf:
+class CSRFUtils(conf: CSRFConf, val log: BaseLogger = BaseLogger.console):
   val document = dom.document
 
   def installCsrf(parent: Element): Unit =
@@ -19,9 +19,9 @@ class CSRFUtils(val log: BaseLogger = BaseLogger.console) extends CSRFConf:
         )
 
   private def installTo(form: HTMLFormElement) =
-    readCookie(CsrfCookieName)
+    readCookie(conf.cookieName)
       .map: tokenValue =>
-        form.appendChild(csrfInput(CsrfTokenName, tokenValue).render)
+        form.appendChild(csrfInput(conf.tokenName, tokenValue).render)
       .getOrElse:
         log.info("CSRF token not found.")
 

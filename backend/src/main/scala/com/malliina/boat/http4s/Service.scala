@@ -12,11 +12,13 @@ import com.malliina.boat.graph.*
 import com.malliina.boat.html.{BoatHtml, BoatLang}
 import com.malliina.boat.http.*
 import com.malliina.boat.http.InviteResult.{AlreadyInvited, Invited, UnknownEmail}
-import com.malliina.boat.http4s.BasicService.{cached, noCache, ranges}
+import com.malliina.http4s.BasicService.noCache
+import com.malliina.boat.http4s.BoatBasicService.{cached, ranges}
 import com.malliina.boat.http4s.Service.{isSecured, log}
 import com.malliina.boat.parsing.CarCoord
 import com.malliina.boat.push.SourceState
-import com.malliina.http.{Errors, SingleError}
+import com.malliina.http.{CSRFConf, Errors, SingleError}
+import com.malliina.http4s.CSRFSupport
 import com.malliina.util.AppLogger
 import com.malliina.values.{Email, Readable, UserId, Username}
 import com.malliina.web.*
@@ -29,6 +31,7 @@ import io.circe.syntax.EncoderOps
 import io.circe.{Decoder, Json}
 import org.http4s.headers.{Location, `Content-Type`}
 import org.http4s.implicits.uri
+import org.http4s.server.middleware.CSRF
 import org.http4s.server.websocket.WebSocketBuilder2
 import org.http4s.websocket.WebSocketFrame
 import org.http4s.websocket.WebSocketFrame.Text
@@ -44,9 +47,14 @@ object Service:
 
   extension [F[_]](req: Request[F]) def isSecured: Boolean = Urls.isSecure(req)
 
-class Service[F[_]: Async: Files](comps: BoatComps[F], graph: Graph)
-  extends BasicService[F]
-  with BoatDecoders[F]:
+class Service[F[_]: Async: Files](
+  comps: BoatComps[F],
+  graph: Graph,
+  val csrf: CSRF[F, F],
+  csrfConf: CSRFConf
+) extends BoatBasicService[F]
+  with BoatDecoders[F]
+  with CSRFSupport[F]:
   val auth = comps.auth
   val userMgmt = auth.users
   private def html(req: Request[F]) = if isCar(req) then comps.carHtml else comps.boatHtml
@@ -149,7 +157,8 @@ class Service[F[_]: Async: Files](comps: BoatComps[F], graph: Graph)
       auth
         .profile(req)
         .flatMap: user =>
-          ok(html(req).devices(user))
+          csrfOk: token =>
+            html(req).devices(user, token)
     case req @ GET -> Root / "boats" / "me" =>
       auth
         .boatTokenOrFail(req.headers)
@@ -169,7 +178,8 @@ class Service[F[_]: Async: Files](comps: BoatComps[F], graph: Graph)
           user.boats
             .find(_.id == device)
             .map: boat =>
-              ok(html(req).editDevice(user, boat))
+              csrfOk: token =>
+                html(req).editDevice(user, boat, token, csrfConf)
             .getOrElse:
               unauthorizedNoCache(Errors("No access."))
     case req @ POST -> Root / "boats" / DeviceIdVar(device) / "edit" =>
@@ -183,7 +193,7 @@ class Service[F[_]: Async: Files](comps: BoatComps[F], graph: Graph)
             .flatMap: rows =>
               respond(req)(
                 json = ok(SimpleMessage("Done.")),
-                html = SeeOther(Location(reverse.boats))
+                html = seeOther(reverse.boats)
               )
     case req @ GET -> Root / "tracks" =>
       authedQuery(req, TracksQuery.apply).flatMap: authed =>
@@ -342,7 +352,7 @@ class Service[F[_]: Async: Files](comps: BoatComps[F], graph: Graph)
           val latestObj = objects.maxByOption(_.lastModified())
           val latestUrl = latestObj.map(l => baseUrl / l.key())
           val urls = objects.map(obj => baseUrl / obj.key())
-          ok(Json.obj("files" -> urls.asJson, "latest" -> latestUrl.asJson))(jsonEncoder[F])
+          ok(Json.obj("files" -> urls.asJson, "latest" -> latestUrl.asJson))
     case GET -> Root / "files" / file =>
       comps.s3
         .download(file)

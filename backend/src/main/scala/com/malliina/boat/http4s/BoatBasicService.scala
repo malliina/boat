@@ -4,9 +4,10 @@ import cats.data.NonEmptyList
 import cats.effect.Sync
 import cats.implicits.*
 import com.malliina.boat.db.{BoatNotFoundException, IdentityException}
-import com.malliina.boat.http4s.BasicService.{log, noCache}
+import com.malliina.boat.http4s.BoatBasicService.log
 import com.malliina.boat.message
 import com.malliina.http.{Errors, ResponseException}
+import com.malliina.http4s.BasicService.noCache
 import com.malliina.util.AppLogger
 import com.malliina.web.AuthException
 import org.http4s.*
@@ -16,12 +17,10 @@ import org.http4s.headers.*
 import java.io.IOException
 import scala.concurrent.duration.FiniteDuration
 
-object BasicService:
+object BoatBasicService:
   private val log = AppLogger(getClass)
 
   val noisyErrorMessage = "The specified network name is no longer available"
-
-  val noCache = `Cache-Control`(`no-cache`(), `no-store`, `must-revalidate`)
 
   def cached(duration: FiniteDuration) = `Cache-Control`(
     NonEmptyList.of(`max-age`(duration), `public`)
@@ -32,16 +31,10 @@ object BasicService:
     .map(_.values.map(_.mediaRange))
     .getOrElse(NonEmptyList.of(MediaRange.`*/*`))
 
-class BasicService[F[_]: Sync] extends Implicits[F]:
+class BoatBasicService[F[_]: Sync] extends Implicits[F]:
   val F = Sync[F]
   def temporaryRedirect(uri: Uri): F[Response[F]] =
     TemporaryRedirect(Location(uri)).map(_.putHeaders(noCache))
-  def seeOther(uri: Uri): F[Response[F]] =
-    SeeOther(Location(uri)).map(_.putHeaders(noCache))
-  def ok[A](a: A)(implicit w: EntityEncoder[F, A]): F[Response[F]] =
-    Ok(a, noCache)
-  def badRequest[A](a: A)(implicit w: EntityEncoder[F, A]): F[Response[F]] =
-    BadRequest(a, noCache)
   def notFoundReq(req: Request[F]): F[Response[F]] =
     notFound(Errors(s"Not found: '${req.uri}'."))
   def notFound[A](a: A)(implicit w: EntityEncoder[F, A]): F[Response[F]] =
@@ -62,7 +55,7 @@ class BasicService[F[_]: Sync] extends Implicits[F]:
       F.delay(log.error(bnfe.message, t)).flatMap(_ => notFound(Errors(bnfe.message)))
     case re: ResponseException =>
       serverErrorResponse(s"${re.getMessage} Response: '${re.response.asString}'.", re)
-    case ioe: IOException if ioe.message.exists(_.startsWith(BasicService.noisyErrorMessage)) =>
+    case ioe: IOException if ioe.message.exists(_.startsWith(BoatBasicService.noisyErrorMessage)) =>
       serverError(Errors("Service IO error."))
     case other =>
       serverErrorResponse(s"Service error: '${other.getMessage}'.", other)

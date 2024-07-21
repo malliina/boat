@@ -9,7 +9,7 @@ import com.malliina.boat.{AppConf, Boat, BuildInfo, Coord, FormsLang, FrontKeys,
 import com.malliina.html.HtmlTags
 import com.malliina.html.HtmlTags.{cssLink, deviceWidthViewport, titleTag}
 import com.malliina.html.HtmlImplicits.given
-import com.malliina.http.FullUrl
+import com.malliina.http.{CSRFConf, CSRFToken, FullUrl}
 import com.malliina.live.LiveReload
 import com.malliina.measure.DistanceM
 import org.http4s.Uri
@@ -19,8 +19,8 @@ import scalatags.Text.all.*
 import scala.language.implicitConversions
 
 object BoatHtml:
-  def fromBuild(sourceType: SourceType): BoatHtml =
-    default(BuildInfo.isProd, sourceType)
+  def fromBuild(sourceType: SourceType, csrf: CSRFConf): BoatHtml =
+    default(BuildInfo.isProd, sourceType, csrf)
 
   private def chooseFavicon(sourceType: SourceType) =
     if sourceType == SourceType.Vehicle then FileAssets.img.favicon_car_svg
@@ -28,7 +28,7 @@ object BoatHtml:
 
   def faviconPath(sourceType: SourceType) = s"assets/${chooseFavicon(sourceType)}"
 
-  def default(isProd: Boolean, sourceType: SourceType): BoatHtml =
+  def default(isProd: Boolean, sourceType: SourceType, csrf: CSRFConf): BoatHtml =
     val externalScripts = if isProd then Nil else FullUrl.build(LiveReload.script).toSeq
     val pageTitle =
       if sourceType == SourceType.Vehicle then AppConf.CarName
@@ -42,7 +42,8 @@ object BoatHtml:
       Seq(FileAssets.frontend_css, FileAssets.fonts_css, FileAssets.styles_css),
       AssetsSource(isProd),
       chooseFavicon(sourceType),
-      pageTitle
+      pageTitle,
+      csrf
     )
 
 class BoatHtml(
@@ -51,15 +52,16 @@ class BoatHtml(
   cssFiles: Seq[String],
   assets: AssetsSource,
   favicon: String,
-  pageTitle: String
+  pageTitle: String,
+  csrfConf: CSRFConf
 ):
   val reverse = Reverse
 
-  def devices(user: UserInfo) =
-    page(PageConf(BoatsPage(user), Seq(BoatsClass)))
+  def devices(user: UserInfo, token: CSRFToken) =
+    page(PageConf(BoatsPage(user, token, csrfConf), Seq(BoatsClass)))
 
-  def editDevice(user: UserInfo, boat: Boat) =
-    page(PageConf(BoatsPage.edit(user, boat), Seq(BoatsClass)))
+  def editDevice(user: UserInfo, boat: Boat, csrfToken: CSRFToken, csrfConf: CSRFConf) =
+    page(PageConf(BoatsPage.edit(user, boat, csrfToken, csrfConf), Seq(BoatsClass)))
 
   def tracks(user: UserInfo, data: TracksBundle, query: TracksQuery, lang: Lang): Frag =
     page(PageConf(TracksPage(user, data, query, lang), Seq(StatsClass)))

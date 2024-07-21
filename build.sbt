@@ -5,7 +5,7 @@ import sbtrelease.ReleaseStateTransformations.*
 
 import scala.sys.process.Process
 
-val webAuthVersion = "6.9.1"
+val webAuthVersion = "6.9.3"
 val munitVersion = "1.0.0"
 val munitCeVersion = "2.0.0"
 val testContainersScalaVersion = "0.41.4"
@@ -95,6 +95,7 @@ val frontend = project
   .settings(boatSettings)
   .settings(
     libraryDependencies ++= Seq(
+      "com.malliina" %%% "util-html" % webAuthVersion,
       "co.fs2" %%% "fs2-core" % "3.10.2",
       "org.scala-js" %%% "scalajs-dom" % "2.8.0",
       "org.scalameta" %%% "munit" % munitVersion % Test
