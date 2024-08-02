@@ -212,7 +212,7 @@ object BoatQuery:
 
   def apply(q: Query): Either[Errors, BoatQuery] =
     for
-      limits <- LimitsBuilder(q)
+      limits <- LimitsBuilder(q, defaultLimit = 100000)
       timeRange <- TimeRange(q)
       tracks <- bindSeq[TrackName](TrackName.Key, q)
       canonicals <- bindSeq[TrackCanonical](TrackCanonical.Key, q)
