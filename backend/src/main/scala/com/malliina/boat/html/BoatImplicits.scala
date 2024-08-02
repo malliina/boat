@@ -3,17 +3,25 @@ package com.malliina.boat.html
 import cats.Show
 import cats.syntax.show.toShow
 import com.malliina.boat.BoatFormats.{formatKnots, formatTemp}
+import com.malliina.boat.http4s.Reverse
 import com.malliina.boat.{DateVal, SourceType, WrappedInt}
 import com.malliina.measure.{SpeedM, Temperature}
 import com.malliina.values.WrappedString
 import com.malliina.http.CSRFToken
 import org.http4s.Uri
-import scalatags.Text.all.{Attr, AttrValue, Frag, Modifier, intFrag, stringFrag}
+import scalatags.Text.all.{Attr, AttrValue, Frag, Modifier, intFrag, modifier, stringFrag, tag}
 import scalatags.text.Builder
 
 import scala.language.implicitConversions
 
 object BoatImplicits extends BoatImplicits
+
+trait BoatSyntax extends BoatImplicits:
+  val reverse = Reverse
+  val empty = modifier()
+  val nav = tag("nav")
+
+  def classes(cs: String*) = cs.filter(_.nonEmpty).mkString(" ")
 
 trait BoatImplicits:
   given AttrValue[Uri] = boatStringAttr(_.renderString)

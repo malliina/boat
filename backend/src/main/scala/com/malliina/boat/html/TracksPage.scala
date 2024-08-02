@@ -3,9 +3,8 @@ package com.malliina.boat.html
 import cats.implicits.toShow
 import com.malliina.boat.BoatFormats.{durationHuman, formatDistance, inHours}
 import com.malliina.boat.FrontKeys.Hidden
-import com.malliina.boat.http.{SortOrder, TrackSort, TracksQuery}
-import com.malliina.boat.http4s.Reverse
-import com.malliina.boat.{BoatFormats, BoatName, Lang, MonthVal, MonthsLang, TracksBundle, UserInfo}
+import com.malliina.boat.http.{Limits, SortOrder, TrackSort, TracksQuery}
+import com.malliina.boat.{BoatLang as _, *}
 import com.malliina.measure.DistanceM
 import org.http4s.Uri
 import scalatags.Text
@@ -13,11 +12,9 @@ import scalatags.Text.all.*
 
 import scala.language.implicitConversions
 
-object TracksPage extends BoatImplicits:
-  val reverse = Reverse
+object TracksPage extends BoatSyntax:
   private val monthDataAttr = data("month")
   private val yearDataAttr = data("year")
-  val empty = modifier("")
 
   implicit def distanceKmHtml(d: DistanceM): Frag = stringFrag(formatDistance(d) + " km")
 
@@ -37,15 +34,17 @@ object TracksPage extends BoatImplicits:
       case 12 => lang.dec
       case _  => ""
 
-  def apply(user: UserInfo, tracks: TracksBundle, tracksQuery: TracksQuery, lang: Lang) =
+  def apply(user: UserInfo, tracks: TracksBundle, tracksQuery: TracksQuery, blang: BoatLang) =
+    val lang = blang.lang
     val trackLang = lang.track
     val stats = tracks.stats
     val allTime = stats.allTime
+    val pagination = Pagination(blang.web.pagination)
 
     div(cls := "container")(
       div(cls := "row")(
         div(cls := "col-md-12")(
-          h1(lang.track.trackHistory)
+          h1(trackLang.trackHistory)
         )
       ),
       div(cls := "row mb-4")(
@@ -127,32 +126,43 @@ object TracksPage extends BoatImplicits:
         )
       ),
       if tracks.tracks.nonEmpty then
-        table(cls := "table table-hover")(
-          thead(
-            tr(
-              th(lang.settings.boatLang.boat),
-              column(lang.name, TrackSort.Name, tracksQuery),
-              column(trackLang.date, TrackSort.Recent, tracksQuery),
-              column(trackLang.duration, TrackSort.Time, tracksQuery),
-              column(trackLang.distance, TrackSort.Length, tracksQuery),
-              column(trackLang.topSpeed, TrackSort.TopSpeed, tracksQuery)
+        val limits = tracksQuery.query.limits
+        val paginationControl = pagination(
+          linkUri(tracksQuery),
+          hasMore = tracks.tracks.size >= limits.limit,
+          lastOffset = None,
+          current = limits
+        )
+        modifier(
+          paginationControl,
+          table(cls := "table table-hover")(
+            thead(
+              tr(
+                th(lang.settings.boatLang.boat),
+                column(lang.name, TrackSort.Name, tracksQuery),
+                column(trackLang.date, TrackSort.Recent, tracksQuery),
+                column(trackLang.duration, TrackSort.Time, tracksQuery),
+                column(trackLang.distance, TrackSort.Length, tracksQuery),
+                column(trackLang.topSpeed, TrackSort.TopSpeed, tracksQuery)
+              )
+            ),
+            tbody(
+              tracks.tracks.map: track =>
+                val speed: String =
+                  track.topSpeed
+                    .map(BoatFormats.formatSpeed(_, track.sourceType, includeUnit = true))
+                    .getOrElse(lang.messages.notAvailable)
+                tr(
+                  td(track.boatName),
+                  td(a(href := reverse.canonical(track.canonical))(track.describe)),
+                  td(track.times.range),
+                  td(BoatFormats.formatDuration(track.duration)),
+                  td(track.distanceMeters),
+                  td(speed)
+                )
             )
           ),
-          tbody(
-            tracks.tracks.map: track =>
-              val speed: String =
-                track.topSpeed
-                  .map(BoatFormats.formatSpeed(_, track.sourceType, includeUnit = true))
-                  .getOrElse(lang.messages.notAvailable)
-              tr(
-                td(track.boatName),
-                td(a(href := reverse.canonical(track.canonical))(track.describe)),
-                td(track.times.range),
-                td(BoatFormats.formatDuration(track.duration)),
-                td(track.distanceMeters),
-                td(speed)
-              )
-          )
+          paginationControl
         )
       else p(lang.messages.noSavedTracks)
     )
@@ -166,17 +176,26 @@ object TracksPage extends BoatImplicits:
     val inverseOrder = if isAsc then SortOrder.Desc else SortOrder.Asc
     val linkQuery = query.copy(query = query.query.copy(sort = sort, order = inverseOrder))
     th(
-      link(linkQuery)(
+      linkTo(linkQuery)(
         name,
         " ",
         i(cls := s"icon-button $icon")
       )
     )
 
-  private def link(q: TracksQuery) = a(href := withQuery(reverse.tracks, queryParams(q)))
+  private def linkTo(q: TracksQuery) = a(href := linkUri(q))
+
+  private def linkUri(q: TracksQuery) = withQuery(reverse.tracks, queryParams(q))
 
   private def queryParams(q: TracksQuery) =
-    Seq(TrackSort.key -> q.query.sort.name, SortOrder.key -> q.query.order.name)
+    val query = q.query
+    val limits = query.limits
+    Seq(
+      TrackSort.key -> query.sort.name,
+      SortOrder.key -> query.order.name,
+      Limits.Limit -> s"${limits.limit}",
+      Limits.Offset -> s"${limits.offset}"
+    )
       .map((k, v) => k -> Seq(v))
       .toMap ++ boatsQueryOf(q.sources)
 
@@ -184,5 +203,5 @@ object TracksPage extends BoatImplicits:
     if boats.nonEmpty then Map(TracksQuery.BoatsKey -> boats.map(n => n.show))
     else Map.empty
 
-  private def withQuery(call: Uri, params: Map[String, Seq[String]]) =
+  private def withQuery(call: Uri, params: Map[String, Seq[String]]): Uri =
     call.withMultiValueQueryParams(params)

@@ -17,6 +17,8 @@ object BoatLang:
   object Se extends BoatLang(WebLang.Se, Lang.se)
   object En extends BoatLang(WebLang.En, Lang.en)
 
+case class PaginationLang(previous: String, next: String, first: String, last: String)
+
 case class WebLang(
   getTheApp: String,
   maritimeData: String,
@@ -30,7 +32,8 @@ case class WebLang(
   save: String,
   cancel: String,
   editTitle: String,
-  editComments: String
+  editComments: String,
+  pagination: PaginationLang
 )
 
 object WebLang:
@@ -47,7 +50,8 @@ object WebLang:
     "Tallenna",
     "Peruuta",
     "Muokkaa nimeä",
-    "Muokkaa kommentteja"
+    "Muokkaa kommentteja",
+    PaginationLang("Edellinen", "Seuraava", "Ensimmäinen", "Viimeinen")
   )
   val Se = WebLang(
     "Ladda appen",
@@ -62,7 +66,8 @@ object WebLang:
     "Spara",
     "Avbryt",
     "Redigera namn",
-    "Redigera kommentarer"
+    "Redigera kommentarer",
+    PaginationLang("Föregående", "Följande", "Första", "Sista")
   )
   val En = WebLang(
     "Get the app",
@@ -77,6 +82,7 @@ object WebLang:
     "Save",
     "Cancel",
     "Edit title",
-    "Edit comments"
+    "Edit comments",
+    PaginationLang("Previous", "Next", "First", "Last")
   )
   val default = Fi

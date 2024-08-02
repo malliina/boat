@@ -208,8 +208,8 @@ class Service[F[_]: Async: Files](
                   ok(TrackSummaries(ts.tracks.map(t => TrackSummary(t))))
                 else ok(ts),
           html =
-            val lang = BoatLang(user.language).lang
-            db.tracksBundle(user, query, lang)
+            val lang = BoatLang(user.language)
+            db.tracksBundle(user, query, lang.lang)
               .flatMap: ts =>
                 ok(html(req).tracks(user, ts, query, lang))
         )

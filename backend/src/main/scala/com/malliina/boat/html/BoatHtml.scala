@@ -63,7 +63,7 @@ class BoatHtml(
   def editDevice(user: UserInfo, boat: Boat, csrfToken: CSRFToken, csrfConf: CSRFConf) =
     page(PageConf(BoatsPage.edit(user, boat, csrfToken, csrfConf), Seq(BoatsClass)))
 
-  def tracks(user: UserInfo, data: TracksBundle, query: TracksQuery, lang: Lang): Frag =
+  def tracks(user: UserInfo, data: TracksBundle, query: TracksQuery, lang: BoatLang): Frag =
     page(PageConf(TracksPage(user, data, query, lang), Seq(StatsClass)))
 
   def signIn(lang: Lang) = page(

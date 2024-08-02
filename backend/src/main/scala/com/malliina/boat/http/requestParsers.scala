@@ -68,7 +68,10 @@ object TrackQuery:
       limits <- LimitsBuilder(q, defaultLimit)
     yield TrackQuery(sort, order, limits)
 
-case class TracksQuery(sources: Seq[BoatName], query: TrackQuery)
+case class TracksQuery(sources: Seq[BoatName], query: TrackQuery):
+  def limits = query.limits
+  def next = TracksQuery(sources, query.copy(limits = limits.next))
+  def prev = limits.prev.map(p => TracksQuery(sources, query.copy(limits = p)))
 
 object TracksQuery:
   val BoatsKey = "boats"
@@ -263,7 +266,7 @@ object BoatQuery:
     QueryParsers.parseOpt[Double](q, key)
 
 object LimitsBuilder:
-  val DefaultLimit = 100000
+  val DefaultLimit = 50
   private val DefaultOffset = 0
 
   val default = Limits(DefaultLimit, DefaultOffset)

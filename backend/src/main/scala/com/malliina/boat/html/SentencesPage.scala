@@ -3,21 +3,20 @@ package com.malliina.boat.html
 import com.malliina.boat.FrontKeys.*
 import com.malliina.boat.http.Limits
 import com.malliina.boat.http4s.Reverse
-import com.malliina.boat.{BoatFormats, FullTrack, TrackComments, TrackName, TrackRef, TrackTitle}
+import com.malliina.boat.{BoatFormats, FullTrack, TrackComments, TrackRef, TrackTitle}
 import com.malliina.measure.SpeedM
 import scalatags.Text.all.*
 
 import scala.language.implicitConversions
 
-object SentencesPage extends BoatImplicits:
-  val reverse = Reverse
-
+object SentencesPage extends BoatSyntax:
   def apply(track: FullTrack, current: Limits, lang: BoatLang): Modifier =
     val speedUnit = BoatFormats.speedUnit(track.track.sourceType)
     val trackLang = lang.lang.track
+    val pagination = Pagination(lang.web.pagination)
     div(cls := "container")(
       namedInfoBox(track.track, lang),
-      pagination(track.track, current),
+      pagination.tracks(track.track, current),
       table(cls := "table table-hover")(
         thead(
           tr(th(trackLang.coordinate), th(s"${trackLang.speed} ($speedUnit)"), th(lang.lang.time))
@@ -34,7 +33,7 @@ object SentencesPage extends BoatImplicits:
             )
         )
       ),
-      pagination(track.track, current)
+      pagination.tracks(track.track, current)
     )
 
   def namedInfoBox(track: TrackRef, lang: BoatLang): Modifier =
@@ -142,49 +141,3 @@ object SentencesPage extends BoatImplicits:
     dt(cls := "col-sm-2")(labelText),
     dd(cls := "col-sm-10")(value)
   )
-
-  private def pagination(track: TrackRef, current: Limits) =
-    val pageSize = 100
-    val trackName = track.trackName
-    val hasMore = current.offset + pageSize < track.points
-    val prevOffset = math.max(current.offset - pageSize, 0)
-    val lastOffset = ((track.points - 1) / pageSize) * pageSize
-    tag("nav")(aria.label := "Navigation")(
-      ul(cls := "pagination justify-content-center")(
-        pageLink(trackName, Limits(pageSize, 0), "First", isDisabled = current.offset == 0),
-        pageLink(
-          trackName,
-          current.copy(offset = prevOffset),
-          "Previous",
-          isDisabled = current.offset == 0
-        ),
-        pageLink(trackName, current, "" + current.page, isActive = true),
-        pageLink(
-          trackName,
-          current.copy(offset = current.offset + pageSize),
-          "Next",
-          isDisabled = !hasMore
-        ),
-        pageLink(
-          trackName,
-          Limits(pageSize, lastOffset),
-          "Last",
-          isDisabled = lastOffset == current.offset
-        )
-      )
-    )
-
-  private def pageLink(
-    track: TrackName,
-    to: Limits,
-    text: String,
-    isActive: Boolean = false,
-    isDisabled: Boolean = false
-  ) =
-    val params = Map(Limits.Limit -> s"${to.limit}", Limits.Offset -> s"${to.offset}")
-    val call = reverse.trackFull(track).withQueryParams(params)
-    val liClass = if isDisabled then "disabled" else ""
-    val _ = if isActive then "todo" else "todo"
-    li(cls := classes("page-item", liClass))(a(cls := "page-link", href := call)(text))
-
-  def classes(cs: String*) = cs.filter(_.nonEmpty).mkString(" ")
