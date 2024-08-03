@@ -11,7 +11,8 @@ object Logging:
   private val defaultLevel = if BuildInfo.mode == "test" then Level.OFF else Level.INFO
   private val userAgent = s"Boat-Tracker/${BuildInfo.version} (${BuildInfo.gitHash.take(7)})"
   private val levels = Map(
-    "org.http4s.ember.server.EmberServerBuilderCompanionPlatform" -> Level.OFF
+    "org.http4s.ember.server.EmberServerBuilderCompanionPlatform" -> Level.OFF,
+    "com.malliina.boat.ais" -> Level.WARN
   )
   def init() = LogbackUtils.init(rootLevel = defaultLevel, levelsByLogger = levels)
 
