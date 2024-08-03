@@ -106,14 +106,12 @@ class BoatMqttClient[F[_]: Async](
       s.events ++ Stream.raiseError(Exception(s"Closed '$url'."))
   private val consumeConnection = events
     .evalMap(payload => receiver.publish1(payload) <* backoff.set(initialBackoff))
-    .compile
-    .drain
   private val backoffDelay = backoff
     .getAndUpdate(_ * 2)
     .flatTap: reconnectIn =>
       F.delay(log.info(s"Reconnecting to '$url' in $reconnectIn..."))
   private val backoffs = Stream.eval(backoffDelay).repeat
-  private val consume = Stream.eval(consumeConnection).attempts(backoffs).rethrow
+  private val consume = consumeConnection.attempts(backoffs)
   private val exponential = receiver.subscribe(10).concurrently(consume).interruptWhen(interrupter)
   private val parsed: Stream[F, Either[Error, AISMessage]] =
     exponential.map: msg =>
