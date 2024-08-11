@@ -3,7 +3,6 @@ package com.malliina.boat.http
 import com.malliina.boat.{DeviceId, InviteState}
 import com.malliina.values.{Email, StringEnumCompanion, UserId}
 import io.circe.*
-import io.circe.generic.semiauto.*
 
 sealed abstract class AccessOperation(val name: String)
 

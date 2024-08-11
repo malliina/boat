@@ -4,6 +4,7 @@ import cats.implicits.*
 import com.malliina.http.{Errors, SingleError}
 import com.malliina.http4s.QueryParsers
 import com.malliina.boat.{BoatName, CarUpdateId, Constants, Coord, FromTo, FrontKeys, Latitude, Longitude, Mmsi, RouteRequest, SearchQuery, TimeFormatter, Timings, TrackCanonical, TrackName, VesselName}
+import com.malliina.measure.{DistanceIntM, DistanceM}
 import com.malliina.values.{Email, ErrorMessage}
 import io.circe.Codec
 import org.http4s.{Headers, Query, QueryParamDecoder, Request}
@@ -117,6 +118,7 @@ case class VesselQuery(
   private def describeLimits = s"limit ${limits.limit} offset ${limits.offset}"
   def describe =
     s"$describeNames$describeMmsis$describeTime$describeLimits"
+
 object VesselQuery:
   given QueryParamDecoder[Mmsi] =
     QueryParsers.decoder[Mmsi](Mmsi.parse)
@@ -139,6 +141,12 @@ case class CarQuery(limits: Limits, timeRange: TimeRange, ids: List[CarUpdateId]
 object CarQuery:
   def ids(list: List[CarUpdateId]) = CarQuery(LimitsBuilder.default, TimeRange.none, list)
 
+case class Near(coord: Coord, radius: DistanceM)
+
+object Near:
+  val Key = "near"
+  val Radius = "radius"
+
 /** @param tracks
   *   tracks to return
   * @param newest
@@ -153,7 +161,8 @@ case class BoatQuery(
   route: Option[RouteRequest],
   sample: Option[Int],
   newest: Boolean,
-  tracksLimit: Option[Int]
+  tracksLimit: Option[Int],
+  near: Option[Near]
 ):
   def neTracks = tracks.toList.toNel
   def neCanonicals = canonicals.toList.toNel
@@ -187,6 +196,8 @@ object BoatQuery:
     QueryParamDecoder.stringQueryParamDecoder.map(s => TrackName(s))
   given QueryParamDecoder[TrackCanonical] =
     QueryParamDecoder.stringQueryParamDecoder.map(s => TrackCanonical(s))
+  given QueryParamDecoder[DistanceM] =
+    QueryParamDecoder.doubleQueryParamDecoder.map(d => DistanceM(d))
   val empty = BoatQuery(
     Limits(0, 0),
     TimeRange(None, None),
@@ -195,7 +206,8 @@ object BoatQuery:
     None,
     None,
     newest = true,
-    tracksLimit = None
+    tracksLimit = None,
+    near = None
   )
 
   def tracks(tracks: Seq[TrackName]): BoatQuery =
@@ -207,7 +219,8 @@ object BoatQuery:
       None,
       Option(DefaultSample),
       newest = false,
-      tracksLimit = None
+      tracksLimit = None,
+      near = None
     )
 
   def apply(q: Query): Either[Errors, BoatQuery] =
@@ -220,7 +233,8 @@ object BoatQuery:
       sample <- LimitsBuilder.readInt(SampleKey, q)
       newest <- bindNewest(q, default = timeRange.isEmpty)
       tracksLimit <- QueryParsers.parseOptE[Int](q, TracksLimitKey)
-    yield BoatQuery(limits, timeRange, tracks, canonicals, route, sample, newest, tracksLimit)
+      near <- bindNear(q)
+    yield BoatQuery(limits, timeRange, tracks, canonicals, route, sample, newest, tracksLimit, near)
 
   def car(q: Query): Either[Errors, CarQuery] =
     for
@@ -235,35 +249,38 @@ object BoatQuery:
     QueryParsers.parseOrDefault[Boolean](q, NewestKey, default)
 
   private def bindRouteRequest(q: Query): Either[Errors, Option[RouteRequest]] =
-    val optEither = for
-      lng1 <- readLongitude("lng1", q)
-      lat1 <- readLatitude("lat1", q)
-      lng2 <- readLongitude("lng2", q)
-      lat2 <- readLatitude("lat2", q)
+    for
+      coord1 <- readCoord("lng1", "lat1", q)
+      coord2 <- readCoord("lng2", "lat2", q)
+    yield coord1.flatMap(c1 => coord2.map(c2 => RouteRequest(c1, c2)))
+
+  private def bindNear(q: Query) =
+    for
+      center <- readCoord("lng", "lat", q)
+      radius <- QueryParsers.parseOrDefault[DistanceM](q, "radius", 1.kilometers)
+    yield center.map(c => Near(c, radius))
+
+  private def readCoord(lngKey: String, latKey: String, q: Query): Either[Errors, Option[Coord]] =
+    for
+      lngResult <- transformDouble(lngKey, q)(Longitude.build)
+      latResult <- transformDouble(latKey, q)(Latitude.build)
     yield for
-      ln1 <- lng1
-      la1 <- lat1
-      ln2 <- lng2
-      la2 <- lat2
-    yield RouteRequest(Coord(ln1, la1), Coord(ln2, la2))
-    optEither
-      .map(e => e.map(req => Option(req)))
-      .getOrElse(Right(None))
-
-  private def readLongitude(key: String, q: Query) =
-    transformDouble(key, q)(Longitude.build)
-
-  private def readLatitude(key: String, q: Query) =
-    transformDouble(key, q)(Latitude.build)
+      lng <- lngResult
+      lat <- latResult
+    yield Coord(lng, lat)
 
   private def transformDouble[T](key: String, q: Query)(
     transform: Double => Either[ErrorMessage, T]
-  ) =
-    readDouble(key, q).map: e =>
-      e.flatMap(d => transform(d).left.map(err => Errors(SingleError.input(err.message))))
+  ): Either[Errors, Option[T]] =
+    readDouble(key, q).flatMap: opt =>
+      opt
+        .map: d =>
+          transform(d).left.map(err => Errors(SingleError.input(err.message))).map(t => Option(t))
+        .getOrElse:
+          Right(None)
 
-  private def readDouble(key: String, q: Query): Option[Either[Errors, Double]] =
-    QueryParsers.parseOpt[Double](q, key)
+  private def readDouble(key: String, q: Query): Either[Errors, Option[Double]] =
+    QueryParsers.parseOptE[Double](q, key)
 
 object LimitsBuilder:
   val DefaultLimit = 50
