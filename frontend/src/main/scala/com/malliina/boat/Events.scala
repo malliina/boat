@@ -1,15 +1,30 @@
 package com.malliina.boat
 
+import cats.effect.Sync
 import com.malliina.boat.BaseSocket.Ping
 import fs2.Stream
 import fs2.concurrent.Topic
 import io.circe.parser.parse
 import io.circe.{DecodingFailure, Json}
-import org.scalajs.dom.MessageEvent
 
-class Events[F[_]](messages: Topic[F, MessageEvent], log: BaseLogger = BaseLogger.console):
+class Events[F[_]: Sync](
+  socketEventsTopic: Topic[F, WebSocketEvent],
+  log: BaseLogger = BaseLogger.console
+):
+  val socketEvents = socketEventsTopic.subscribe(10)
+  val isConnected = socketEvents
+    .collect:
+      case WebSocketEvent.Open(_)    => true
+      case WebSocketEvent.Message(_) => true
+      case WebSocketEvent.Close(_)   => false
+      case WebSocketEvent.Error(_)   => false
+    .changes
+  val connectivityLogger = isConnected.tap: connected =>
+    val msg = if connected then "Connected to socket." else "Connection closed."
+    log.debug(msg)
+  val messages = socketEvents.collect:
+    case WebSocketEvent.Message(msg) => msg
   private val payloads = messages
-    .subscribe(10)
     .flatMap: msg =>
       val asString = msg.data.toString
       parse(asString).fold(

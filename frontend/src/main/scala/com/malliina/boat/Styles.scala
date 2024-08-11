@@ -3,8 +3,6 @@ package com.malliina.boat
 import io.circe.Json
 import io.circe.syntax.EncoderOps
 
-import scala.language.implicitConversions
-
 object Styles:
   given Conversion[String, Json] = _.asJson
   given Conversion[Int, Json] = _.asJson

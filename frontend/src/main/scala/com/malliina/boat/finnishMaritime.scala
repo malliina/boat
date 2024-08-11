@@ -3,7 +3,6 @@ package com.malliina.boat
 import com.malliina.boat.MaritimeJson.{nonEmptyOpt, partialReader}
 import com.malliina.measure.{DistanceM, SpeedM, DistanceDoubleM, SpeedDoubleM}
 import io.circe.*
-import io.circe.generic.semiauto.*
 
 /** @see
   *   Vesiväyläaineistojen tietosisällön kuvaus

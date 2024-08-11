@@ -15,8 +15,8 @@ import scala.scalajs.js.{Date, JSON, URIUtils}
 
 object MapView extends CookieNames:
   def default[F[_]: Async](
-    messages: Topic[F, MessageEvent],
-    http: Http[F]
+                            messages: Topic[F, WebSocketEvent],
+                            http: Http[F]
   ): Resource[F, MapView[F]] =
     val F = Async[F]
     for token <- Resource.eval(
@@ -42,11 +42,11 @@ object MapView extends CookieNames:
     .toMap
 
 class MapView[F[_]: Async](
-  accessToken: AccessToken,
-  language: Language,
-  messages: Topic[F, MessageEvent],
-  http: Http[F],
-  val log: BaseLogger = BaseLogger.console
+                            accessToken: AccessToken,
+                            language: Language,
+                            messages: Topic[F, WebSocketEvent],
+                            http: Http[F],
+                            val log: BaseLogger = BaseLogger.console
 ) extends BaseFront:
   val F = Async[F]
   mapboxGl.accessToken = accessToken.token

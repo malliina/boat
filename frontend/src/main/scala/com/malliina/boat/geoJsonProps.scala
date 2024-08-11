@@ -2,7 +2,6 @@ package com.malliina.boat
 
 import com.malliina.measure.{DistanceM, SpeedM, Temperature}
 import io.circe.*
-import io.circe.generic.semiauto.*
 
 /** JSON model for GeoJSON properties of each AIS vessel.
   *

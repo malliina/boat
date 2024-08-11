@@ -59,10 +59,10 @@ class HttpClient[F[_]: Async](csrf: CSRFConf):
         .effect
         .flatMap: str =>
           decode[R](str).fold(
-            err => F.raiseError(new JsonException(err, res)),
+            err => F.raiseError(JsonException(err, res)),
             ok => F.pure(ok)
           )
-    else F.raiseError(new StatusException(uri, res))
+    else F.raiseError(StatusException(uri, res))
 
   def fetch(
     method: HttpMethod,

@@ -3,7 +3,6 @@ package com.malliina.boat
 import org.scalajs.dom.document
 import org.scalajs.dom.window.localStorage
 import io.circe.*
-import io.circe.generic.semiauto.*
 import io.circe.syntax.EncoderOps
 import io.circe.parser.parse
 

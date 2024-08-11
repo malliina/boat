@@ -117,13 +117,12 @@ val backend = Project("boat", file("backend"))
       baseDirectory.value / "docs"
     ),
     libraryDependencies ++=
-      Seq("classic", "core").map { m =>
-        "ch.qos.logback" % s"logback-$m" % logbackVersion
-      } ++ Seq("server", "client").map { m =>
+      Seq("server", "client").map { m =>
         "org.eclipse.jetty" % s"jetty-alpn-java-$m" % alpnVersion
       } ++ Seq("util-html", "database", "util-http4s").map { m =>
         "com.malliina" %% m % webAuthVersion
       } ++ Seq(
+        "ch.qos.logback" % "logback-classic" % logbackVersion,
         "org.http4s" %% "http4s-ember-client" % http4sVersion,
         "com.vividsolutions" % "jts" % "1.13",
         "mysql" % "mysql-connector-java" % "8.0.33",
@@ -238,7 +237,6 @@ val utils = project
       "org.geotools" % s"gt-$m" % "30.2" exclude ("javax.media", "jai_core")
     } ++ Seq(
       "ch.qos.logback" % "logback-classic" % logbackVersion,
-//      "javax.media" % "jai_core" % "1.1.3",
       munitDep
     )
   )

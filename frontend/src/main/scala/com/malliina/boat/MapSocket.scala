@@ -14,7 +14,6 @@ import com.malliina.measure.{DistanceM, SpeedM}
 import com.malliina.turf.nearestPointOnLine
 import com.malliina.values.ErrorMessage
 import fs2.concurrent.Topic
-import org.scalajs.dom.MessageEvent
 
 import scala.concurrent.duration.Duration
 import scala.scalajs.js
@@ -29,13 +28,13 @@ case class TrackIds(id: TrackId, track: TrackName, source: DeviceId, start: Timi
   def all = Seq(trail, hoverable, trophy, point)
 
 class MapSocket[F[_]: Temporal: Async](
-  val map: MapboxMap,
-  pathFinder: PathFinder[F],
-  mode: MapMode,
-  messages: Topic[F, MessageEvent],
-  dispatcher: Dispatcher[F],
-  lang: Lang,
-  log: BaseLogger
+                                        val map: MapboxMap,
+                                        pathFinder: PathFinder[F],
+                                        mode: MapMode,
+                                        messages: Topic[F, WebSocketEvent],
+                                        dispatcher: Dispatcher[F],
+                                        lang: Lang,
+                                        log: BaseLogger
 ) extends BaseFront
   with GeoUtils:
   val F = Async[F]
@@ -81,7 +80,10 @@ class MapSocket[F[_]: Temporal: Async](
     onCoords(event)
   private val aisListener = events.aisEvents.tap: messages =>
     ais.onAIS(messages)
-  val task = spinnerListener.concurrently(coordsListener).concurrently(aisListener)
+  val task = spinnerListener
+    .concurrently(coordsListener)
+    .concurrently(aisListener)
+    .concurrently(events.connectivityLogger)
 
   /** Colors the track by speed.
     *

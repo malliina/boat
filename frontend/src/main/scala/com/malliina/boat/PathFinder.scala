@@ -6,7 +6,6 @@ import com.malliina.boat.BoatFormats.formatDistance
 import com.malliina.boat.PathFinder.*
 import com.malliina.http.Http
 import com.malliina.mapbox.{MapMouseEvent, MapboxMap, MapboxMarker}
-import io.circe.*
 import io.circe.syntax.EncoderOps
 import org.scalajs.dom.{HTMLDivElement, HTMLSpanElement}
 import scalatags.JsDom.all.*

@@ -3,7 +3,7 @@ package com.malliina.boat
 import cats.effect.Async
 import com.malliina.boat.Parsing.validate
 import com.malliina.mapbox.*
-import com.malliina.util.EitherOps
+import com.malliina.util.recover
 
 sealed trait ClickType:
   def target: LngLatLike

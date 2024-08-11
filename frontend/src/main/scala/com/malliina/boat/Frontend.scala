@@ -5,7 +5,6 @@ import cats.effect.{IO, IOApp, Resource}
 import com.malliina.http.{CSRFConf, Http, HttpClient}
 import fs2.concurrent.Topic
 import org.scalajs.dom
-import org.scalajs.dom.MessageEvent
 
 import scala.annotation.unused
 import scala.concurrent.duration.Duration
@@ -48,7 +47,7 @@ object Frontend extends IOApp.Simple with BodyClasses:
       dispatcher <- Dispatcher.parallel[IO]
       http = Http(client, dispatcher)
       forms = FormHandlers(http)
-      messages <- Resource.eval(Topic[IO, MessageEvent])
+      messages <- Resource.eval(Topic[IO, WebSocketEvent])
       _ <- initF(MapClass):
         for
           map <- MapView.default[IO](messages, http)

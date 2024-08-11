@@ -1,6 +1,5 @@
 package com.malliina.boat
 
-import io.circe.*
 import io.circe.parser.decode
 
 class BoatTests extends munit.FunSuite with DemoJson:
