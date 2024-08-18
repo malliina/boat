@@ -183,7 +183,8 @@ case class BoatQuery(
       if canonicals.nonEmpty then s"canonicals ${canonicals.map(c => s"'$c'").mkString(", ")} "
       else ""
     val ts = if tracks.nonEmpty then s"tracks ${tracks.map(t => s"'$t'").mkString(",")} " else ""
-    s"$timeFrom$timeTo$cs${ts}limit ${limits.limit} offset ${limits.offset} newest $newest"
+    val n = near.map(n => s"within ${n.radius} of ${n.coord} ").getOrElse("")
+    s"$timeFrom$timeTo$cs$ts${n}limit ${limits.limit} offset ${limits.offset} newest $newest"
 
 object BoatQuery:
   private val instantFormatter = DateTimeFormatter.ISO_INSTANT
@@ -231,9 +232,9 @@ object BoatQuery:
       canonicals <- bindSeq[TrackCanonical](TrackCanonical.Key, q)
       route <- bindRouteRequest(q)
       sample <- LimitsBuilder.readInt(SampleKey, q)
-      newest <- bindNewest(q, default = timeRange.isEmpty)
-      tracksLimit <- QueryParsers.parseOptE[Int](q, TracksLimitKey)
       near <- bindNear(q)
+      newest <- bindNewest(q, default = timeRange.isEmpty && near.isEmpty)
+      tracksLimit <- QueryParsers.parseOptE[Int](q, TracksLimitKey)
     yield BoatQuery(limits, timeRange, tracks, canonicals, route, sample, newest, tracksLimit, near)
 
   def car(q: Query): Either[Errors, CarQuery] =
@@ -257,7 +258,7 @@ object BoatQuery:
   private def bindNear(q: Query) =
     for
       center <- readCoord("lng", "lat", q)
-      radius <- QueryParsers.parseOrDefault[DistanceM](q, "radius", 1.kilometers)
+      radius <- QueryParsers.parseOrDefault[DistanceM](q, Near.Radius, 1.kilometers)
     yield center.map(c => Near(c, radius))
 
   private def readCoord(lngKey: String, latKey: String, q: Query): Either[Errors, Option[Coord]] =
