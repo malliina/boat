@@ -3,11 +3,10 @@ package com.malliina.boat.http4s
 import cats.effect.IO
 import com.malliina.boat.db.NewUser
 import com.malliina.boat.{BoatNames, DeviceId, ErrorConstants, Latitude, LocationUpdate, LocationUpdates, Longitude, SimpleSourceMeta, SourceType, UserToken, wh}
-import com.malliina.http.{Errors, FullUrl, OkHttpResponse}
+import com.malliina.http.{CSRFConf, Errors, FullUrl, OkHttpResponse}
 import com.malliina.measure.*
 import com.malliina.values.{IdToken, Username, degrees}
 import io.circe.syntax.EncoderOps
-import org.http4s.Status
 import org.http4s.Status.{NotFound, Ok, Unauthorized}
 import org.http4s.headers.Authorization
 import tests.{MUnitSuite, ServerSuite, TestEmailAuth, TestHttp}
@@ -43,7 +42,11 @@ class CarServerTests extends MUnitSuite with ServerSuite:
 
   test("POST call with no creds"):
     http
-      .postJson(postCarsUrl, LocationUpdates(Nil, testCarId).asJson, Map.empty)
+      .postJson(
+        postCarsUrl,
+        LocationUpdates(Nil, testCarId).asJson,
+        Map(csrf.headerName.toString -> csrf.noCheck)
+      )
       .map: res =>
         assertEquals(res.status, Unauthorized.code)
 
@@ -78,9 +81,13 @@ class CarServerTests extends MUnitSuite with ServerSuite:
   ): IO[OkHttpResponse] =
     http.postJson(url, updates.asJson, headers(token))
 
-  private def headers(token: IdToken) = Map(
-    Authorization.name.toString -> s"Bearer $token",
-    "Accept" -> "application/json"
-  )
+  private def headers(token: IdToken) =
+    Map(
+      Authorization.name.toString -> s"Bearer $token",
+      "Accept" -> "application/json",
+      csrf.headerName.toString -> csrf.noCheck
+    )
+
+  def csrf = server().server.app.csrfConf
   def baseUrl = server().baseHttpUrl
   def http = TestHttp.client

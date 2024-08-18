@@ -75,13 +75,14 @@ object Server extends IOApp:
   private val port: Port =
     sys.env.get("SERVER_PORT").flatMap(s => Port.fromString(s)).getOrElse(port"9000")
 
+  val csrfConf = CSRFConf.default
+
   def server[F[+_]: Async: Network: Files: Compression](
     conf: BoatConf,
     builder: AppCompsBuilder[F],
     port: Port = port
   ): Resource[F, ServerComponents[F]] =
     val F = Sync[F]
-    val csrfConf = CSRFConf.default
     val csrfUtils = CSRFUtils(csrfConf)
     for
       csrf <- Resource.eval(csrfUtils.default[F])

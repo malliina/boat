@@ -51,7 +51,7 @@ class Service[F[_]: Async: Files](
   comps: BoatComps[F],
   graph: Graph,
   val csrf: CSRF[F, F],
-  csrfConf: CSRFConf
+  val csrfConf: CSRFConf
 ) extends BoatBasicService[F]
   with BoatDecoders[F]
   with CSRFSupport[F]:

@@ -144,6 +144,7 @@ case class ServerTools(server: ServerComponents[IO]):
   def port = server.server.address.getPort
   def baseHttpUrl = FullUrl("http", s"localhost:$port", "")
   def baseWsUrl = FullUrl("ws", s"localhost:$port", "")
+  def csrf = server.app.csrfConf
 
 trait ServerSuite extends BoatDatabaseSuite with JsonInstances:
   self: MUnitSuite =>
