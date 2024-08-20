@@ -53,9 +53,17 @@ This will make a binary available at [www.boat-tracker.com/files](https://www.bo
 
 ### Backups
 
-Use mysqldump:
+To take a backup of the database:
 
-    ./mysqldump -u boat -p --no-tablespaces -h localhost boat > boat.sql
+    mysqldump --databases boat --no-tablespaces --host 127.0.0.1 --port 3307 --user boat -p > boat.sql
+
+When moving from MySQL to MariaDB, the following might be necessary:
+
+    sed -i 's/utf8mb4_0900_ai_ci/utf8mb4_unicode_520_ci/g' boat.sql
+
+To restore:
+
+    mysql boat < boat.sql
 
 ### SQL
 

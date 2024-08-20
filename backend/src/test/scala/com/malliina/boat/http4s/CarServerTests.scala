@@ -3,7 +3,7 @@ package com.malliina.boat.http4s
 import cats.effect.IO
 import com.malliina.boat.db.NewUser
 import com.malliina.boat.{BoatNames, DeviceId, ErrorConstants, Latitude, LocationUpdate, LocationUpdates, Longitude, SimpleSourceMeta, SourceType, UserToken, wh}
-import com.malliina.http.{CSRFConf, Errors, FullUrl, OkHttpResponse}
+import com.malliina.http.{Errors, FullUrl, OkHttpResponse}
 import com.malliina.measure.*
 import com.malliina.values.{IdToken, Username, degrees}
 import io.circe.syntax.EncoderOps
