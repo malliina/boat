@@ -5,7 +5,6 @@ import cats.syntax.show.toShow
 import com.malliina.boat.auth.AuthProvider
 import com.malliina.boat.http.CarQuery
 import com.malliina.boat.*
-import org.http4s.Uri
 import org.http4s.Uri.Path.SegmentEncoder
 import org.http4s.implicits.*
 

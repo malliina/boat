@@ -8,7 +8,6 @@ import org.http4s.Credentials.Token
 import org.http4s.headers.{Authorization, Cookie}
 import org.http4s.{Headers, HttpDate, Response, ResponseCookie}
 import io.circe.*
-import io.circe.generic.semiauto.*
 
 import scala.concurrent.duration.DurationInt
 

@@ -3,7 +3,7 @@ package com.malliina.boat.http4s
 import cats.effect.Sync
 import com.malliina.boat.auth.{BasicCredentials, EmailAuth}
 import com.malliina.boat.db.{CustomJwt, MissingCredentials}
-import com.malliina.values.{ErrorMessage, IdToken, Password, Username, err}
+import com.malliina.values.{IdToken, Password, Username, err}
 import com.malliina.web.{AppleAuthFlow, EmailAuthFlow, GoogleAuthFlow}
 import org.http4s.Credentials.Token
 import org.http4s.headers.Authorization

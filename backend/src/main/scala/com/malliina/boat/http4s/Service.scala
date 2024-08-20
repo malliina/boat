@@ -20,7 +20,7 @@ import com.malliina.boat.push.SourceState
 import com.malliina.http.{CSRFConf, Errors, SingleError}
 import com.malliina.http4s.CSRFSupport
 import com.malliina.util.AppLogger
-import com.malliina.values.{Email, Readable, UserId, Username}
+import com.malliina.values.{Email, Readable, Username}
 import com.malliina.web.*
 import com.malliina.web.OAuthKeys.{Nonce, State}
 import com.malliina.web.Utils.randomString
@@ -30,7 +30,6 @@ import io.circe.parser.parse
 import io.circe.syntax.EncoderOps
 import io.circe.{Decoder, Json}
 import org.http4s.headers.{Location, `Content-Type`}
-import org.http4s.implicits.uri
 import org.http4s.server.middleware.CSRF
 import org.http4s.server.websocket.WebSocketBuilder2
 import org.http4s.websocket.WebSocketFrame

@@ -1,7 +1,6 @@
 package com.malliina.web
 
 import com.malliina.boat.APNSConf
-import com.malliina.boat.APNSConf.teamId
 import com.malliina.push.apns.{KeyId, TeamId}
 import com.malliina.util.AppLogger
 import com.malliina.web.AppleTokenValidator.appleIssuer

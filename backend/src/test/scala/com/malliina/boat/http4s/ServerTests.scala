@@ -1,10 +1,8 @@
 package com.malliina.boat.http4s
 
-import cats.effect.IO
 import com.malliina.boat.ErrorConstants
 import com.malliina.http.Errors
 import com.malliina.values.IdToken
-import org.http4s.Status
 import org.http4s.Status.{Ok, Unauthorized}
 import org.http4s.headers.Authorization
 import tests.{MUnitSuite, ServerSuite, TestEmailAuth, TestHttp}

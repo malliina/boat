@@ -9,7 +9,6 @@ import com.malliina.boat.push.{PushEndpoint, PushSummary, SourceNotification}
 import com.malliina.http.HttpClient
 import com.malliina.http.io.HttpClientF2
 import com.malliina.values.{Email, IdToken}
-import com.malliina.web
 import com.malliina.web.{Expired, InvalidSignature, WebAuthException}
 import org.http4s.Headers
 import tests.TestEmailAuth.{expiredToken, testToken}

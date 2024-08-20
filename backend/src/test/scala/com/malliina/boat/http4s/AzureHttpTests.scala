@@ -8,7 +8,6 @@ import com.malliina.values.{IdToken, degrees}
 import io.circe.syntax.EncoderOps
 import okhttp3.{Interceptor, OkHttpClient}
 import org.http4s.Status.Unauthorized
-import org.http4s.Status
 import tests.{MUnitSuite, TestEmailAuth}
 
 import java.time.{OffsetDateTime, ZoneOffset}
@@ -45,7 +44,10 @@ class AzureHttpTests extends MUnitSuite:
       .map: res =>
         assertEquals(res.status, Unauthorized.code)
         assert(
-          res.parse[Errors].toOption.exists(_.errors.exists(_.key == ErrorConstants.TokenExpiredKey))
+          res
+            .parse[Errors]
+            .toOption
+            .exists(_.errors.exists(_.key == ErrorConstants.TokenExpiredKey))
         )
 
   private def headers(token: IdToken = TestEmailAuth.testToken) = Map(

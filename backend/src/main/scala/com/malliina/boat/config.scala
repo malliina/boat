@@ -6,7 +6,7 @@ import com.malliina.config.{ConfigError, ConfigNode, ConfigReadable, Env}
 import com.malliina.database.Conf
 import com.malliina.push.apns.{KeyId, TeamId}
 import com.malliina.util.FileUtils
-import com.malliina.values.{ErrorMessage, Readable}
+import com.malliina.values.ErrorMessage
 import com.malliina.web.{AuthConf, ClientId, ClientSecret, SignInWithApple}
 
 import java.nio.file.Path

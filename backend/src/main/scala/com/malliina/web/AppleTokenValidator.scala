@@ -3,7 +3,7 @@ package com.malliina.web
 import cats.effect.Sync
 import cats.syntax.all.{toFlatMapOps, toFunctorOps}
 import com.malliina.http.HttpClient
-import com.malliina.values.{Email, ErrorMessage, TokenValue, err}
+import com.malliina.values.{Email, TokenValue, err}
 import com.malliina.web.AppleTokenValidator.EmailVerified
 import com.malliina.web.OAuthKeys.EmailKey
 

@@ -6,7 +6,6 @@ import com.malliina.http.{FullUrl, HttpClient}
 import com.malliina.oauth.TokenResponse
 import com.malliina.util.AppLogger
 import com.malliina.values.*
-import com.malliina.web.*
 import com.malliina.web.AppleAuthFlow.{RefreshTokenValue, log, revokeUrl, staticConf}
 import com.malliina.web.OAuthKeys.*
 
