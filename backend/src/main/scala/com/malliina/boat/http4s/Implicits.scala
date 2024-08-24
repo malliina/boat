@@ -2,9 +2,9 @@ package com.malliina.boat.http4s
 
 import cats.Applicative
 import cats.effect.Concurrent
-import com.malliina.boat.{DeviceId, TrackCanonical, TrackId, TrackName}
+import com.malliina.boat.{DeviceId, S3Key, TrackCanonical, TrackId, TrackName}
 import com.malliina.http4s.BasicService
-import com.malliina.values.Username
+import com.malliina.values.{ErrorMessage, Username}
 import io.circe.syntax.EncoderOps
 import io.circe.{Decoder, Encoder, Printer}
 import org.http4s.circe.CirceInstances
@@ -18,6 +18,11 @@ trait Extractors:
   object TrackCanonicalVar extends NonEmpty(TrackCanonical.apply)
   object DeviceIdVar extends Id(DeviceId.apply)
   object TrackIdVar extends Id(TrackId.apply)
+  object S3KeyVar extends Validating(S3Key.build)
+
+  abstract class Validating[T](build: String => Either[ErrorMessage, T]):
+    def unapply(str: String): Option[T] =
+      build(str).toOption
 
   abstract class NonEmpty[T](build: String => T):
     def unapply(str: String): Option[T] =

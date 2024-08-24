@@ -1,9 +1,11 @@
 package com.malliina.boat
 
 import cats.effect.{Async, Resource, Sync}
-import cats.implicits.toFunctorOps
+import cats.implicits.{catsSyntaxApplicativeError, toFunctorOps}
 import com.malliina.boat.S3Client.{asF, log}
 import com.malliina.util.{AppLogger, FileUtils}
+import com.malliina.values.ErrorMessage
+import fs2.io.file.Path as FS2Path
 import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider
 import software.amazon.awssdk.regions.Region
 import software.amazon.awssdk.services.s3.S3AsyncClient
@@ -21,6 +23,16 @@ opaque type BucketName = String
 object BucketName:
   def make(s: String): BucketName = s
 extension (n: BucketName) def name: String = n
+
+opaque type S3Key = String
+object S3Key:
+  private val allowed = "^([a-zA-Z0-9]+[0-9a-zA-Z!_'()*.\\-]*)$".r
+
+  def build(s: String): Either[ErrorMessage, S3Key] =
+    if allowed.findFirstMatchIn(s).isDefined then Right(s)
+    else Left(ErrorMessage(s"Invalid S3 key: '$s'."))
+
+  extension (k: S3Key) def key: String = k
 
 object S3Client:
   private val log = AppLogger(getClass)
@@ -43,11 +55,22 @@ object S3Client:
       cf.whenComplete((r, t) => Option(t).fold(cb(Right(r)))(t => cb(Left(t))))
 
 class S3Client[F[_]: Async](client: S3AsyncClient, bucketName: BucketName) extends FileStore[F]:
-  def download(key: String): F[Path] =
-    val req = GetObjectRequest.builder().bucket(bucketName.name).key(key).build()
-    val dest = FileUtils.tempDir.resolve(key)
-    log.info(s"Downloaded $key from $bucketName to $dest.")
-    client.getObject(req, dest).asF.map(_ => dest)
+  def download(key: S3Key): F[Option[FS2Path]] =
+    val req = GetObjectRequest.builder().bucket(bucketName.name).key(key.key).build()
+    val dest = FileUtils.tempDir.resolve(key.key)
+    log.info(s"Downloading '$key' from '$bucketName' to '$dest'...")
+    client
+      .getObject(req, dest)
+      .asF
+      .map: res =>
+        log.info(s"Downloaded '$key' from '$bucketName' to '$dest'.")
+        Option(FS2Path.fromNioPath(dest))
+      .handleError:
+        case nske: NoSuchKeyException =>
+          None
+        case err =>
+          log.warn(s"Failed to download '$key' from '$bucketName'.", err)
+          None
 
   def upload(file: Path): F[PutObjectResponse] =
     val req =

@@ -352,12 +352,16 @@ class Service[F[_]: Async: Files](
           val latestUrl = latestObj.map(l => baseUrl / l.key())
           val urls = objects.map(obj => baseUrl / obj.key())
           ok(Json.obj("files" -> urls.asJson, "latest" -> latestUrl.asJson))
-    case GET -> Root / "files" / file =>
+    case GET -> Root / "files" / S3KeyVar(key) =>
       comps.s3
-        .download(file)
-        .flatMap: file =>
-          val stream = fs2.io.file.Files[F].readAll(fs2.io.file.Path.fromNioPath(file))
-          Ok(stream)
+        .download(key)
+        .flatMap: fileOpt =>
+          fileOpt
+            .map: file =>
+              val stream = fs2.io.file.Files[F].readAll(file)
+              ok(stream)
+            .getOrElse:
+              notFoundWith(s"File not found: '$key'.")
     case req @ GET -> Root / ".well-known" / "apple-app-site-association" =>
       fileFromPublicResources("apple-app-site-association.json", req)
     case req @ GET -> Root / ".well-known" / "assetlinks.json" =>
