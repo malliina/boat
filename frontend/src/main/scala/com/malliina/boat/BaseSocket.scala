@@ -12,9 +12,6 @@ enum WebSocketEvent(val event: Event):
   case Close(e: CloseEvent) extends WebSocketEvent(e)
   case Error(e: Event) extends WebSocketEvent(e)
 
-object BaseSocket:
-  val Ping = "ping"
-
 class BaseSocket[F[_]](
   wsPath: String,
   messages: Topic[F, WebSocketEvent],

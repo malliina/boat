@@ -1,11 +1,14 @@
 package com.malliina.boat
 
 import cats.effect.Sync
-import com.malliina.boat.BaseSocket.Ping
+import com.malliina.boat.Events.Ping
 import fs2.Stream
 import fs2.concurrent.Topic
 import io.circe.parser.parse
 import io.circe.{DecodingFailure, Json}
+
+object Events:
+  val Ping = "ping"
 
 class Events[F[_]: Sync](
   socketEventsTopic: Topic[F, WebSocketEvent],

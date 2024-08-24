@@ -2,9 +2,11 @@ package com.malliina.boat
 
 import cats.effect.Resource
 import cats.effect.kernel.Async
+import cats.implicits.toFunctorOps
 import com.malliina.datepicker.{TempusDominus, TimeLocale, TimeRestrictions, updateDate}
 import com.malliina.http.Http
 import com.malliina.mapbox.*
+import com.malliina.values.{ErrorMessage, Readable}
 import fs2.concurrent.Topic
 import io.circe.*
 import io.circe.syntax.EncoderOps
@@ -15,22 +17,18 @@ import scala.scalajs.js.{Date, JSON, URIUtils}
 
 object MapView extends CookieNames:
   def default[F[_]: Async](
-                            messages: Topic[F, WebSocketEvent],
-                            http: Http[F]
+    messages: Topic[F, WebSocketEvent],
+    http: Http[F]
   ): Resource[F, MapView[F]] =
-    val F = Async[F]
-    for token <- Resource.eval(
-        readCookie(TokenCookieName).fold(
-          nf => F.raiseError(Exception(s"Not found: '${nf.id}'.")),
-          t => F.pure(t)
-        )
-      )
-    yield
-      val lang = readCookie(LanguageName).map(Language.apply).getOrElse(Language.default)
-      MapView[F](AccessToken(token), lang, messages, http)
+    val result = readCookie[AccessToken](TokenCookieName).left
+      .map(err => Exception(err.message))
+      .map: token =>
+        val lang = readCookie[Language](LanguageName).getOrElse(Language.default)
+        MapView[F](token, lang, messages, http)
+    Resource.eval(Async[F].fromEither(result))
 
-  def readCookie(key: String): Either[NotFound, String] =
-    cookies.get(key).toRight(NotFound(key))
+  def readCookie[T](key: String)(using r: Readable[T]): Either[ErrorMessage, T] =
+    cookies.get(key).toRight(ErrorMessage(s"Not found: '$key'.")).flatMap(c => r.read(c))
 
   private def cookies: Map[String, String] = URIUtils
     .decodeURIComponent(document.cookie)
@@ -42,11 +40,11 @@ object MapView extends CookieNames:
     .toMap
 
 class MapView[F[_]: Async](
-                            accessToken: AccessToken,
-                            language: Language,
-                            messages: Topic[F, WebSocketEvent],
-                            http: Http[F],
-                            val log: BaseLogger = BaseLogger.console
+  accessToken: AccessToken,
+  language: Language,
+  messages: Topic[F, WebSocketEvent],
+  http: Http[F],
+  val log: BaseLogger = BaseLogger.console
 ) extends BaseFront:
   val F = Async[F]
   mapboxGl.accessToken = accessToken.token
@@ -67,7 +65,7 @@ class MapView[F[_]: Async](
   private val DirectionsKey = "d"
   private var isGeocoderVisible = false
 
-  elemAs[HTMLDivElement](MapId).toOption.get.onkeypress = (e: KeyboardEvent) =>
+  elemAsGet[HTMLDivElement](MapId).onkeypress = (e: KeyboardEvent) =>
     if !document.activeElement.isInstanceOf[HTMLInputElement] then
       e.key match
         case SearchKey =>
@@ -115,8 +113,16 @@ class MapView[F[_]: Async](
   map.on(
     "moveend",
     () =>
-      val camera = MapCamera(LngLat.coord(map.getCenter()), map.getZoom(), false)
+      val coord = LngLat.coord(map.getCenter())
+      val camera = MapCamera(coord, map.getZoom(), false)
       settings.save(camera)
+      http.using: client =>
+        client
+          .get[Seq[CoordsEvent]](s"history?lat=${coord.lat}&lng=${coord.lng}")
+          .map: coords =>
+            coords.map: event =>
+              log.info(s"Moveend, got ${coords.size} tracks near $coord")
+              socket.onCoordsHistory(event)
   )
 
   elem(ModalId).foreach(initModal)

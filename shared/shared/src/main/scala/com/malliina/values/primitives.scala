@@ -1,7 +1,6 @@
 package com.malliina.values
 
 import com.malliina.boat.{Coord, Latitude, Longitude}
-import com.malliina.values.Literals.ErrorMessageLiteral
 
 import scala.quoted.{Expr, Quotes, quotes}
 

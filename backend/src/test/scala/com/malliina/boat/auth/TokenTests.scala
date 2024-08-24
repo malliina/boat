@@ -33,6 +33,7 @@ class TokenTests extends BaseSuite:
     v.validateToken(token, Instant.now())
       .map: _ =>
         ()
+
   http.test("validate siwa code".ignore): client =>
     val fields = Map(
       "code" -> demoConf("code"),

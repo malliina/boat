@@ -16,8 +16,8 @@ case class MultiLineGeometry(`type`: String, coordinates: Seq[Seq[Coord]])
 
 object MultiLineGeometry:
   val Key = "MultiLineString"
-  implicit val coordJson: Codec[Coord] = Coord.jsonArray
-  implicit val json: Codec[MultiLineGeometry] = deriveCodec[MultiLineGeometry]
+  given coordJson: Codec[Coord] = Coord.jsonArray
+  given json: Codec[MultiLineGeometry] = deriveCodec[MultiLineGeometry]
 
   def apply(coordinates: Seq[Seq[Coord]]): MultiLineGeometry =
     MultiLineGeometry(Key, coordinates)
@@ -32,8 +32,8 @@ case class LineGeometry(`type`: String, coordinates: Seq[Coord]) extends Geometr
 
 object LineGeometry:
   val Key = "LineString"
-  implicit val coordJson: Codec[Coord] = Coord.jsonArray
-  implicit val json: Codec[LineGeometry] = deriveCodec[LineGeometry]
+  given coordJson: Codec[Coord] = Coord.jsonArray
+  given json: Codec[LineGeometry] = deriveCodec[LineGeometry]
 
   def apply(coords: Seq[Coord]): LineGeometry = LineGeometry(Key, coords)
 
@@ -47,8 +47,8 @@ case class PointGeometry(`type`: String, coordinates: Coord) extends Geometry(Po
 
 object PointGeometry:
   val Key = "Point"
-  implicit val coordJson: Codec[Coord] = Coord.jsonArray
-  implicit val json: Codec[PointGeometry] = deriveCodec[PointGeometry]
+  given coordJson: Codec[Coord] = Coord.jsonArray
+  given json: Codec[PointGeometry] = deriveCodec[PointGeometry]
 
   def apply(point: Coord): PointGeometry = PointGeometry(Key, point)
 
@@ -64,8 +64,8 @@ case class MultiPolygon(`type`: String, coordinates: Seq[Seq[Seq[Coord]]])
 
 object MultiPolygon:
   val Key = "MultiPolygon"
-  implicit val coordJson: Codec[Coord] = Coord.jsonArray
-  implicit val json: Codec[MultiPolygon] = deriveCodec[MultiPolygon]
+  given coordJson: Codec[Coord] = Coord.jsonArray
+  given json: Codec[MultiPolygon] = deriveCodec[MultiPolygon]
 
 case class Polygon(`type`: String, coordinates: Seq[Seq[Coord]]) extends Geometry(Polygon.Key):
   override type Self = Polygon
@@ -74,8 +74,8 @@ case class Polygon(`type`: String, coordinates: Seq[Seq[Coord]]) extends Geometr
 
 object Polygon:
   val Key = "Polygon"
-  implicit val coordJson: Codec[Coord] = Coord.jsonArray
-  implicit val json: Codec[Polygon] = deriveCodec[Polygon]
+  given coordJson: Codec[Coord] = Coord.jsonArray
+  given json: Codec[Polygon] = deriveCodec[Polygon]
 
 sealed abstract class Geometry(val typeName: String):
   type Self <: Geometry
@@ -87,22 +87,22 @@ object Geometry:
   val Type = "type"
   val all = Seq(LineGeometry, PointGeometry)
 
-  given Encoder[Geometry] = {
+  given Encoder[Geometry] =
     case lg @ LineGeometry(_, _)       => lg.asJson
     case mlg @ MultiLineGeometry(_, _) => mlg.asJson
     case pg @ PointGeometry(_, _)      => pg.asJson
     case mp @ MultiPolygon(_, _)       => mp.asJson
     case p @ Polygon(_, _)             => p.asJson
-  }
-  given Decoder[Geometry] = Decoder.decodeString.at(Geometry.Type).flatMap {
-    case LineGeometry.Key      => Decoder[LineGeometry].widen
-    case MultiLineGeometry.Key => Decoder[MultiLineGeometry].widen
-    case PointGeometry.Key     => Decoder[PointGeometry].widen
-    case MultiPolygon.Key      => Decoder[MultiPolygon].widen
-    case Polygon.Key           => Decoder[Polygon].widen
-    case other =>
-      Decoder.failed(DecodingFailure(s"Unsupported geometry type '$other'.", Nil))
-  }
+  given Decoder[Geometry] = Decoder.decodeString
+    .at(Geometry.Type)
+    .flatMap:
+      case LineGeometry.Key      => Decoder[LineGeometry].widen
+      case MultiLineGeometry.Key => Decoder[MultiLineGeometry].widen
+      case PointGeometry.Key     => Decoder[PointGeometry].widen
+      case MultiPolygon.Key      => Decoder[MultiPolygon].widen
+      case Polygon.Key           => Decoder[Polygon].widen
+      case other =>
+        Decoder.failed(DecodingFailure(s"Unsupported geometry type '$other'.", Nil))
 
 sealed abstract class IconRotationAlignment(val value: String) extends WrappedString
 
@@ -205,11 +205,10 @@ object BasePaint:
       Decoder[CirclePaint].widen,
       Decoder[OtherPaint].widen
     ).reduceLeft(_ or _)
-  given Encoder[BasePaint] = {
+  given Encoder[BasePaint] =
     case lp @ LinePaint(_, _, _, _, _) => lp.asJson
     case cp @ CirclePaint(_, _)        => cp.asJson
     case OtherPaint(data)              => data
-  }
 
 /** @see
   *   https://www.mapbox.com/mapbox-gl-js/style-spec/#layer-type
@@ -242,10 +241,9 @@ object LayerSource:
   val reader: Decoder[LayerSource] =
     List[Decoder[LayerSource]](Decoder[StringLayerSource].widen, Decoder[InlineLayerSource].widen)
       .reduceLeft(_ or _)
-  val writer: Encoder[LayerSource] = {
+  val writer: Encoder[LayerSource] =
     case sls @ StringLayerSource(_)    => sls.asJson
     case ils @ InlineLayerSource(_, _) => ils.asJson
-  }
   given Codec[LayerSource] = Codec.from[LayerSource](reader, writer)
 
 /** @see
@@ -303,7 +301,7 @@ case class Feature(
 object Feature:
   val Key = "Feature"
 
-  def point[W](coord: Coord, props: W)(implicit w: Encoder[W]): Feature =
+  def point[W: Encoder](coord: Coord, props: W): Feature =
     Feature(PointGeometry(coord), props.asJson.asObject.map(_.toMap).getOrElse(Map.empty))
   def point(coord: Coord): Feature = Feature(PointGeometry(coord), Map.empty)
   def line(coords: Seq[Coord]): Feature =
@@ -318,6 +316,7 @@ case class FeatureCollection(`type`: String, features: Seq[Feature]) derives Cod
 
 object FeatureCollection:
   val Key = "FeatureCollection"
+
   def apply(fs: Seq[Feature]): FeatureCollection = FeatureCollection(Key, fs)
 
 case class StringLayerSource(source: String) extends WrappedString with LayerSource:

@@ -6,14 +6,12 @@ import com.malliina.boat.html.BoatImplicits.given
 import com.malliina.boat.http.{Limits, TracksQuery}
 import com.malliina.boat.http4s.Reverse
 import com.malliina.boat.{AppConf, Boat, BuildInfo, Coord, FormsLang, FrontKeys, FullTrack, Lang, Shortcut, SourceType, TrackRef, TrackShortcut, TracksBundle, UserBoats, UserInfo, Usernames}
-import com.malliina.html.HtmlTags
 import com.malliina.html.HtmlTags.{cssLink, deviceWidthViewport, titleTag}
 import com.malliina.html.HtmlImplicits.given
 import com.malliina.http.{CSRFConf, CSRFToken, FullUrl}
 import com.malliina.live.LiveReload
 import com.malliina.measure.DistanceM
 import org.http4s.Uri
-import scalatags.Text
 import scalatags.Text.all.*
 
 import scala.language.implicitConversions

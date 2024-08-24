@@ -1,7 +1,6 @@
 package com.malliina.boat
 
 import cats.effect.std.Dispatcher
-import com.malliina.boat.BoatSocket.uri
 import fs2.concurrent.Topic
 
 object BoatSocket:
@@ -27,4 +26,4 @@ class BoatSocket[F[_]](path: String, messages: Topic[F, WebSocketEvent], d: Disp
     messages: Topic[F, WebSocketEvent],
     d: Dispatcher[F]
   ) =
-    this(uri(track, sample), messages, d)
+    this(BoatSocket.uri(track, sample), messages, d)

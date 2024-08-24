@@ -38,7 +38,7 @@ object JWT:
     def readString(key: String): Either[JWTError, String] =
       read(token, claims.getStringClaim(key), s"Claim missing: '$key'.")
 
-  object Parsed:
+  private object Parsed:
     def apply(token: TokenValue): Either[JWTError, Parsed] =
       for
         signed <- read(token, SignedJWT.parse(token.value), s"Invalid JWT: '$token'.")
@@ -59,7 +59,7 @@ object JWT:
         .left
         .map: errors =>
           InvalidClaims(token, ErrorMessage(s"Invalid claims: '$errors'."))
-    def parse[T](key: String)(implicit r: Readable[T]): Either[JWTError, T] =
+    def parse[T](key: String)(using r: Readable[T]): Either[JWTError, T] =
       readString(key).flatMap: s =>
         r.read(s).left.map(err => InvalidClaims(token, err))
 
@@ -90,7 +90,7 @@ class JWT(secret: SecretKey, dataKey: String = "data"):
   def sign[T: Encoder](payload: T, ttl: FiniteDuration, now: Instant = Instant.now()): IdToken =
     signWithExpiration[T](payload, now.plusSeconds(ttl.toSeconds))
 
-  def signWithExpiration[T: Encoder](payload: T, expiresAt: Instant): IdToken =
+  private def signWithExpiration[T: Encoder](payload: T, expiresAt: Instant): IdToken =
     val signer = new MACSigner(secret.value)
     val claims = new JWTClaimsSet.Builder()
       .expirationTime(Date.from(expiresAt))
@@ -104,7 +104,7 @@ class JWT(secret: SecretKey, dataKey: String = "data"):
     verifyToken(token, now).flatMap: v =>
       v.read[T](dataKey)
 
-  def verifyToken(token: TokenValue, now: Instant): Either[JWTError, JWT.Verified] =
+  private def verifyToken(token: TokenValue, now: Instant): Either[JWTError, JWT.Verified] =
     JWT
       .Parsed(token)
       .flatMap: p =>

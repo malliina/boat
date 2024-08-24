@@ -28,13 +28,13 @@ case class TrackIds(id: TrackId, track: TrackName, source: DeviceId, start: Timi
   def all = Seq(trail, hoverable, trophy, point)
 
 class MapSocket[F[_]: Temporal: Async](
-                                        val map: MapboxMap,
-                                        pathFinder: PathFinder[F],
-                                        mode: MapMode,
-                                        messages: Topic[F, WebSocketEvent],
-                                        dispatcher: Dispatcher[F],
-                                        lang: Lang,
-                                        log: BaseLogger
+  val map: MapboxMap,
+  pathFinder: PathFinder[F],
+  mode: MapMode,
+  messages: Topic[F, WebSocketEvent],
+  dispatcher: Dispatcher[F],
+  lang: Lang,
+  log: BaseLogger
 ) extends BaseFront
   with GeoUtils:
   val F = Async[F]
@@ -98,6 +98,13 @@ class MapSocket[F[_]: Temporal: Async](
 
   private def trackLineLayer(id: String, paint: LinePaint): Layer =
     Layer.line(id, emptyTrack, paint, minzoom = None)
+
+  def onCoordsHistory(event: CoordsEvent): Unit =
+    val track = event.from
+    if !trails.contains(track.track) then
+      log.info(s"Installing ${track.trackName} from ${track.times.range}...")
+      onCoords(event)
+    else ()
 
   private def onCoords(event: CoordsEvent): Unit =
     val from = event.from

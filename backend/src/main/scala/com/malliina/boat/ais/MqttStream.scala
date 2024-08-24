@@ -1,8 +1,7 @@
 package com.malliina.boat.ais
 
-import cats.effect.kernel.Resource
 import cats.effect.std.Dispatcher
-import cats.effect.{Async, Sync}
+import cats.effect.{Async, Resource, Sync}
 import cats.syntax.all.*
 import com.malliina.boat.Mmsi
 import com.malliina.boat.ais.MqttStream.{MqttPayload, log}

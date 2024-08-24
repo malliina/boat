@@ -267,7 +267,9 @@ class DoobieTracksDatabase[F[_]: Async](val db: DoobieDatabase[F])
           ts.map(_.track).distinct.toNel.map(ids => Fragments.in(fr"p.track", ids)),
           limits.from.map(f => fr"p.added >= $f"),
           limits.to.map(t => fr"p.added <= $t"),
-          limits.near.map(n => fr"st_distance_sphere(p.coord, ${n.coord}) <= ${n.radius}")
+          limits.near.map(n =>
+            fr"p.track in (select p.track from points p where st_distance_sphere(${n.coord}, p.coord) < ${n.radius})"
+          )
         )
         sql"""${sql.selectAllPoints}
                $conditions
