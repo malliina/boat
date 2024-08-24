@@ -257,7 +257,7 @@ object BoatQuery:
 
   private def bindNear(q: Query) =
     for
-      center <- readCoord("lng", "lat", q)
+      center <- readCoord(FrontKeys.Lng, FrontKeys.Lat, q)
       radius <- QueryParsers.parseOrDefault[DistanceM](q, Near.Radius, 1.kilometers)
     yield center.map(c => Near(c, radius))
 

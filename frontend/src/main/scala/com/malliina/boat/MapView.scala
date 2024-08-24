@@ -1,8 +1,8 @@
 package com.malliina.boat
 
-import cats.effect.Resource
-import cats.effect.kernel.Async
-import cats.implicits.toFunctorOps
+import cats.effect.{Async, Resource}
+import cats.implicits.{toFunctorOps, toFlatMapOps}
+import com.malliina.boat.MapView.MapEvent
 import com.malliina.datepicker.{TempusDominus, TimeLocale, TimeRestrictions, updateDate}
 import com.malliina.http.Http
 import com.malliina.mapbox.*
@@ -16,16 +16,23 @@ import scala.concurrent.duration.DurationInt
 import scala.scalajs.js.{Date, JSON, URIUtils}
 
 object MapView extends CookieNames:
+  enum MapEvent:
+    case Load
+    case MoveEnd
+
   def default[F[_]: Async](
     messages: Topic[F, WebSocketEvent],
     http: Http[F]
   ): Resource[F, MapView[F]] =
     val result = readCookie[AccessToken](TokenCookieName).left
       .map(err => Exception(err.message))
-      .map: token =>
-        val lang = readCookie[Language](LanguageName).getOrElse(Language.default)
-        MapView[F](token, lang, messages, http)
-    Resource.eval(Async[F].fromEither(result))
+    val task = for
+      mapEvents <- Topic[F, MapEvent]
+      token <- Async[F].fromEither(result)
+    yield
+      val lang = readCookie[Language](LanguageName).getOrElse(Language.default)
+      MapView[F](token, lang, messages, mapEvents, http)
+    Resource.eval(task)
 
   def readCookie[T](key: String)(using r: Readable[T]): Either[ErrorMessage, T] =
     cookies.get(key).toRight(ErrorMessage(s"Not found: '$key'.")).flatMap(c => r.read(c))
@@ -43,6 +50,7 @@ class MapView[F[_]: Async](
   accessToken: AccessToken,
   language: Language,
   messages: Topic[F, WebSocketEvent],
+  mapEvents: Topic[F, MapEvent],
   http: Http[F],
   val log: BaseLogger = BaseLogger.console
 ) extends BaseFront:
@@ -91,14 +99,21 @@ class MapView[F[_]: Async](
     case _                => TimeLocale.En
   val socket: MapSocket[F] =
     MapSocket(map, pathFinder, mode, messages, http.dispatcher, lang, log)
-  val events = socket.events.coordEvents
+  private val events = socket.events.coordEvents
     .debounce(2.seconds)
     .tap: e =>
       socket.fitToMap()
-  val runnables = events.concurrently(socket.task)
+  private val mapEventHandler = mapEvents
+    .subscribe(10)
+    .evalTap:
+      case MapEvent.MoveEnd => onMoveEnd()
+      case MapEvent.Load    => fetchHistory()
+
+  val runnables = events.concurrently(socket.task).concurrently(mapEventHandler)
   map.on(
     "load",
     () =>
+      http.dispatcher.unsafeRunAndForget(mapEvents.publish1(MapEvent.Load))
       reconnect()
       if initialSettings.customCenter then
         map.putLayer(
@@ -112,18 +127,30 @@ class MapView[F[_]: Async](
 
   map.on(
     "moveend",
-    () =>
-      val coord = LngLat.coord(map.getCenter())
-      val camera = MapCamera(coord, map.getZoom(), false)
-      settings.save(camera)
-      http.using: client =>
-        client
-          .get[Seq[CoordsEvent]](s"history?lat=${coord.lat}&lng=${coord.lng}")
-          .map: coords =>
-            coords.map: event =>
-              log.info(s"Moveend, got ${coords.size} tracks near $coord")
-              socket.onCoordsHistory(event)
+    () => http.dispatcher.unsafeRunAndForget(mapEvents.publish1(MapEvent.MoveEnd))
   )
+
+  private def onMoveEnd() =
+    val coord = LngLat.coord(map.getCenter())
+    val camera = MapCamera(coord, map.getZoom(), false)
+    settings.save(camera)
+    fetchHistory(coord)
+
+  private def fetchHistory(coord: Coord = LngLat.coord(map.getCenter())): F[Seq[Unit]] =
+    log.info(s"Fetching history near $coord...")
+    val query =
+      Map(
+        FrontKeys.Lat -> s"${coord.lat}",
+        FrontKeys.Lng -> s"${coord.lng}",
+        FrontKeys.TracksLimit -> "3"
+      )
+    val qString = query.map((k, v) => s"$k=$v").mkString("&")
+    http.client
+      .get[Seq[CoordsEvent]](s"history?$qString")
+      .map: coords =>
+        log.info(s"Fetched history, got ${coords.size} tracks near $coord")
+        coords.map: event =>
+          socket.onCoordsHistory(event)
 
   elem(ModalId).foreach(initModal)
 

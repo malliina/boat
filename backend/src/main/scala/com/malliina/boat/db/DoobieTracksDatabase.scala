@@ -5,7 +5,7 @@ import cats.effect.Async
 import cats.implicits.*
 import com.malliina.boat.*
 import com.malliina.boat.InviteState.accepted
-import com.malliina.boat.http.{BoatQuery, SortOrder, TrackQuery, TracksQuery}
+import com.malliina.boat.http.{BoatQuery, Near, SortOrder, TrackQuery, TracksQuery}
 import com.malliina.database.DoobieDatabase
 import com.malliina.measure.{DistanceM, SpeedM, Temperature}
 import com.malliina.util.AppLogger
@@ -91,6 +91,10 @@ class DoobieTracksDatabase[F[_]: Async](val db: DoobieDatabase[F])
       sql"$nonEmptyTracks and " ++ Fragments.in(fr"t.name", names)
     def tracksByCanonicals(names: NonEmptyList[TrackCanonical]) =
       sql"$nonEmptyTracks and " ++ Fragments.in(fr"t.canonical", names)
+    def tracksNear(near: Near, by: Username, limit: Option[Int]) =
+      val userTracks = tracksByUser(by, Nil)
+      val limitClause = limit.fold(Fragment.empty)(l => fr"limit $l")
+      sql"$userTracks and t.id in (select p.track from points p where st_distance_sphere(${near.coord}, p.coord) < ${near.radius}) order by t.added desc $limitClause"
     def latestTracks(name: Username, limit: Option[Int]) =
       val userTracks = tracksByUser(name, Nil)
       val limitClause = limit.fold(Fragment.empty)(l => fr"limit $l")
@@ -252,12 +256,13 @@ class DoobieTracksDatabase[F[_]: Async](val db: DoobieDatabase[F])
     yield FullTrack(stats.strip(formatter), fullCoords)
 
   def history(user: MinimalUserInfo, limits: BoatQuery): F[Seq[CoordsEvent]] = run:
+    val tracksLimit = limits.tracksLimit.orElse(Option.when(limits.newest)(5))
     val eligible = limits.neTracks
       .map(names => sql.tracksByNames(names))
       .orElse(limits.neCanonicals.map(cs => sql.tracksByCanonicals(cs)))
+      .orElse(limits.near.map(n => sql.tracksNear(n, user.username, tracksLimit)))
       .getOrElse:
-        val limit = limits.tracksLimit.orElse(Option.when(limits.newest)(5))
-        sql.latestTracks(user.username, limit)
+        sql.latestTracks(user.username, tracksLimit)
       .query[JoinedTrack]
       .to[List]
     eligible.flatMap: ts =>
@@ -266,10 +271,7 @@ class DoobieTracksDatabase[F[_]: Async](val db: DoobieDatabase[F])
         val conditions = Fragments.whereAndOpt(
           ts.map(_.track).distinct.toNel.map(ids => Fragments.in(fr"p.track", ids)),
           limits.from.map(f => fr"p.added >= $f"),
-          limits.to.map(t => fr"p.added <= $t"),
-          limits.near.map(n =>
-            fr"p.track in (select p.track from points p where st_distance_sphere(${n.coord}, p.coord) < ${n.radius})"
-          )
+          limits.to.map(t => fr"p.added <= $t")
         )
         sql"""${sql.selectAllPoints}
                $conditions
