@@ -1,12 +1,11 @@
 package com.malliina.boat.db
 
 import com.malliina.boat.http.{Limits, SortOrder, TrackQuery, TrackSort, TracksQuery}
-import com.malliina.boat.{Coord, Lang, Language, SimpleUserInfo}
+import com.malliina.boat.{Coord, Lang, Language, MUnitDatabaseSuite, MUnitSuite, SimpleUserInfo}
 import com.malliina.database.Conf
 import com.malliina.measure.{DistanceIntM, DistanceM}
 import com.malliina.values.{Username, lat, lng, lngLat}
 import doobie.implicits.toSqlInterpolator
-import tests.{MUnitDatabaseSuite, MUnitSuite}
 
 class DoobieTracksDatabaseTests extends MUnitSuite with MUnitDatabaseSuite:
   dbFixture.test("run doobie query"): doobie =>

@@ -8,7 +8,6 @@ import com.malliina.http.io.{HttpClientF2, WebSocketF}
 import com.malliina.http.io.SocketEvent.Open
 import com.malliina.values.{Password, Username}
 import org.http4s.Uri
-import tests.{BaseSuite, ServerSuite}
 
 abstract class BoatTests extends BaseSuite with ServerSuite with BoatSockets:
   export concurrent.duration.DurationInt

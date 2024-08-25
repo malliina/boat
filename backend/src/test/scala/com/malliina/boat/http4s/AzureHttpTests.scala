@@ -1,6 +1,6 @@
 package com.malliina.boat.http4s
 
-import com.malliina.boat.{DeviceId, ErrorConstants, Latitude, LocationUpdate, LocationUpdates, Longitude}
+import com.malliina.boat.{DeviceId, ErrorConstants, Latitude, LocationUpdate, LocationUpdates, Longitude, MUnitSuite, TestEmailAuth}
 import com.malliina.http.io.HttpClientIO
 import com.malliina.http.{Errors, FullUrl}
 import com.malliina.measure.DistanceIntM
@@ -8,7 +8,6 @@ import com.malliina.values.{IdToken, degrees}
 import io.circe.syntax.EncoderOps
 import okhttp3.{Interceptor, OkHttpClient}
 import org.http4s.Status.Unauthorized
-import tests.{MUnitSuite, TestEmailAuth}
 
 import java.time.{OffsetDateTime, ZoneOffset}
 

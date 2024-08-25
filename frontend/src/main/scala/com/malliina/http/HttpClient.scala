@@ -7,17 +7,27 @@ import io.circe.parser.decode
 import io.circe.syntax.EncoderOps
 import io.circe.{Decoder, Encoder}
 import org.scalajs.dom
-import org.scalajs.dom.{Headers, HttpMethod, RequestCredentials, RequestInit, Response}
+import org.scalajs.dom.{AbortController, Headers, HttpMethod, RequestCredentials, RequestInit, Response}
 
 import scala.scalajs.js
 
 extension [A](t: js.Thenable[A])
   def effect[F[_]: Async]: F[A] =
-    Async[F].async_[A]: cb =>
+    cancelable(Async[F].unit)
+
+  def cancelable[F[_]: Async](abort: AbortController): F[A] =
+    val onCancel = Async[F].delay:
+      abort.abort()
+    cancelable(onCancel)
+
+  def cancelable[F[_]: Async](onCancel: F[Unit]): F[A] =
+    val F = Async[F]
+    F.async[A]: cb =>
       t.`then`(
         a => cb(Right(a)),
         err => cb(Left(js.special.wrapAsThrowable(err)))
       )
+      F.delay[Option[F[Unit]]](Some(onCancel))
 
 class Http[F[_]: Async](val client: HttpClient[F], val dispatcher: Dispatcher[F]):
   def run[R](task: F[R]): Unit = dispatcher.unsafeRunAndForget(task)
@@ -72,6 +82,7 @@ class HttpClient[F[_]: Async](csrf: CSRFConf):
     credentials: RequestCredentials = RequestCredentials.include
   ): F[Response] =
     val promise = F.delay:
+      val aborter = AbortController()
       val req = new RequestInit {}
       req.method = method
       req.body = data
@@ -79,8 +90,9 @@ class HttpClient[F[_]: Async](csrf: CSRFConf):
       val hs = new Headers()
       headers.foreach((name, value) => hs.append(name, value))
       req.headers = hs
-      dom.fetch(url, req)
-    promise.flatMap(_.effect)
+      req.signal = aborter.signal
+      dom.fetch(url, req).cancelable(aborter)
+    promise.flatten
 
 class JsonException(val error: io.circe.Error, val res: dom.Response) extends Exception
 

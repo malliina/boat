@@ -1,13 +1,12 @@
 package com.malliina.boat.auth
 
 import cats.effect.IO
-import com.malliina.boat.LocalConf
+import com.malliina.boat.{BaseSuite, LocalConf}
 import com.malliina.config.ConfigNode
 import com.malliina.http.FullUrl
 import com.malliina.http.HttpClient
 import com.malliina.values.IdToken
 import com.malliina.web.{AppleTokenValidator, ClientId, GoogleAuthFlow, SignInWithApple}
-import tests.BaseSuite
 
 import java.nio.file.Path
 import java.time.Instant

@@ -3,10 +3,9 @@ package com.malliina.boat.db
 import cats.effect.IO
 import com.malliina.boat.db.TestData.{london, sanfran}
 import com.malliina.boat.parsing.{BoatStats, FullCoord}
-import com.malliina.boat.{BoatNames, BoatUser, Coord, DeviceId, Language, SourceType, TrackId, TrackMetaShort, TrackNames, TrackRef, UserToken, UserUtils}
+import com.malliina.boat.{BoatNames, BoatUser, Coord, DeviceId, Language, MUnitDatabaseSuite, MUnitSuite, SourceType, TrackId, TrackMetaShort, TrackNames, TrackRef, UserToken, UserUtils}
 import com.malliina.measure.{DistanceIntM, SpeedIntM, SpeedM, Temperature}
 import com.malliina.values.{Email, RefreshToken, Username}
-import tests.{MUnitDatabaseSuite, MUnitSuite}
 
 import java.time.{LocalDate, LocalTime}
 

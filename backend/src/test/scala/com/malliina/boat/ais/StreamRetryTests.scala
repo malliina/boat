@@ -1,7 +1,7 @@
 package com.malliina.boat.ais
 
 import cats.effect.{IO, Ref}
-import tests.MUnitSuite
+import com.malliina.boat.MUnitSuite
 
 import scala.concurrent.duration.{DurationInt, FiniteDuration}
 

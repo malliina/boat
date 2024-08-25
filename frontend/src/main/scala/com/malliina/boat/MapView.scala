@@ -7,6 +7,7 @@ import com.malliina.datepicker.{TempusDominus, TimeLocale, TimeRestrictions, upd
 import com.malliina.http.Http
 import com.malliina.mapbox.*
 import com.malliina.values.{ErrorMessage, Readable}
+import fs2.Stream
 import fs2.concurrent.Topic
 import io.circe.*
 import io.circe.syntax.EncoderOps
@@ -17,8 +18,8 @@ import scala.scalajs.js.{Date, JSON, URIUtils}
 
 object MapView extends CookieNames:
   enum MapEvent:
-    case Load
-    case MoveEnd
+    case Load(center: Coord)
+    case MoveEnd(center: Coord)
 
   def default[F[_]: Async](
     messages: Topic[F, WebSocketEvent],
@@ -105,15 +106,20 @@ class MapView[F[_]: Async](
       socket.fitToMap()
   private val mapEventHandler = mapEvents
     .subscribe(10)
-    .evalTap:
-      case MapEvent.MoveEnd => onMoveEnd()
-      case MapEvent.Load    => fetchHistory()
+    .map:
+      case MapEvent.Load(center) => center
+      case MapEvent.MoveEnd(center) =>
+        onMoveEnd(center)
+        center
+//    .changes
+    .switchMap: center =>
+      Stream.eval(fetchHistory(center))
 
   val runnables = events.concurrently(socket.task).concurrently(mapEventHandler)
   map.on(
     "load",
     () =>
-      http.dispatcher.unsafeRunAndForget(mapEvents.publish1(MapEvent.Load))
+      http.dispatcher.unsafeRunAndForget(mapEvents.publish1(MapEvent.Load(mapCenter)))
       reconnect()
       if initialSettings.customCenter then
         map.putLayer(
@@ -127,17 +133,20 @@ class MapView[F[_]: Async](
 
   map.on(
     "moveend",
-    () => http.dispatcher.unsafeRunAndForget(mapEvents.publish1(MapEvent.MoveEnd))
+    () =>
+      http.dispatcher.unsafeRunAndForget(
+        mapEvents.publish1(MapEvent.MoveEnd(mapCenter))
+      )
   )
 
-  private def onMoveEnd() =
-    val coord = LngLat.coord(map.getCenter())
+  private def mapCenter = LngLat.coord(map.getCenter())
+
+  private def onMoveEnd(coord: Coord) =
     val camera = MapCamera(coord, map.getZoom(), false)
     settings.save(camera)
     fetchHistory(coord)
 
-  private def fetchHistory(coord: Coord = LngLat.coord(map.getCenter())): F[Seq[Unit]] =
-    log.info(s"Fetching history near $coord...")
+  private def fetchHistory(coord: Coord): F[Seq[Unit]] =
     val query =
       Map(
         FrontKeys.Lat -> s"${coord.lat}",

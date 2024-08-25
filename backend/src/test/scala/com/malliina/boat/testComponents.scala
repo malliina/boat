@@ -1,7 +1,7 @@
-package tests
+package com.malliina.boat
 
 import cats.effect.{IO, Resource, Sync}
-import com.malliina.boat.BoatConf
+import com.malliina.boat.TestEmailAuth.{expiredToken, testToken}
 import com.malliina.boat.auth.{EmailAuth, JWT}
 import com.malliina.boat.db.{CustomJwt, IdentityException, JWTError, PushDevice}
 import com.malliina.boat.http4s.{AppComps, AppCompsBuilder, Auth}
@@ -11,7 +11,6 @@ import com.malliina.http.io.HttpClientF2
 import com.malliina.values.{Email, IdToken}
 import com.malliina.web.{Expired, InvalidSignature, WebAuthException}
 import org.http4s.Headers
-import tests.TestEmailAuth.{expiredToken, testToken}
 
 import java.time.Instant
 import java.time.temporal.ChronoUnit

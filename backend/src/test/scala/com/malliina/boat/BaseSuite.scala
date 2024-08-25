@@ -1,4 +1,4 @@
-package tests
+package com.malliina.boat
 
 import cats.effect.IO
 import com.malliina.boat.http4s.Reverse

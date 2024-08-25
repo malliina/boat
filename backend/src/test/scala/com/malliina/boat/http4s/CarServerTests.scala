@@ -2,14 +2,13 @@ package com.malliina.boat.http4s
 
 import cats.effect.IO
 import com.malliina.boat.db.NewUser
-import com.malliina.boat.{BoatNames, DeviceId, ErrorConstants, Latitude, LocationUpdate, LocationUpdates, Longitude, SimpleSourceMeta, SourceType, UserToken, wh}
+import com.malliina.boat.{BoatNames, DeviceId, ErrorConstants, Latitude, LocationUpdate, LocationUpdates, Longitude, MUnitSuite, ServerSuite, SimpleSourceMeta, SourceType, TestEmailAuth, TestHttp, UserToken, wh}
 import com.malliina.http.{Errors, FullUrl, OkHttpResponse}
 import com.malliina.measure.*
 import com.malliina.values.{IdToken, Username, degrees}
 import io.circe.syntax.EncoderOps
 import org.http4s.Status.{NotFound, Ok, Unauthorized}
 import org.http4s.headers.Authorization
-import tests.{MUnitSuite, ServerSuite, TestEmailAuth, TestHttp}
 
 import java.time.{OffsetDateTime, ZoneOffset}
 

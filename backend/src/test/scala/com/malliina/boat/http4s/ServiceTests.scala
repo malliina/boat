@@ -6,7 +6,7 @@ import com.malliina.boat.db.NewUser
 import com.malliina.boat.http.ContentVersions
 import com.malliina.boat.http4s.JsonInstances.jsonBody
 import com.malliina.boat.parsing.{BoatStats, FullCoord}
-import com.malliina.boat.{BoatName, BoatNames, BoatResponse, BoatUser, Coord, DeviceId, SourceType, TrackNames, TrackSummaries, Tracks, UserToken}
+import com.malliina.boat.{BoatName, BoatNames, BoatResponse, BoatUser, Coord, DeviceId, Http4sSuite, MUnitSuite, SourceType, TestEmailAuth, TrackNames, TrackSummaries, Tracks, UserToken}
 import com.malliina.measure.{DistanceIntM, SpeedIntM, TemperatureInt}
 import com.malliina.values.Username
 import io.circe.Json
@@ -18,7 +18,6 @@ import org.http4s.client.*
 import org.http4s.client.dsl.io.*
 import org.http4s.headers.{Accept, Authorization}
 import org.http4s.implicits.{mediaType, uri}
-import tests.{Http4sSuite, MUnitSuite, TestEmailAuth}
 
 import java.time.{LocalDate, LocalTime}
 

@@ -1,4 +1,4 @@
-package tests
+package com.malliina.boat
 
 import cats.effect.IO
 import cats.effect.kernel.Resource
@@ -7,11 +7,10 @@ import com.comcast.ip4s.port
 import com.dimafeng.testcontainers.MySQLContainer
 import com.malliina.boat.db.DoobieSQL
 import com.malliina.boat.http4s.{JsonInstances, Server, ServerComponents, Service}
-import com.malliina.boat.{AisAppConf, BoatConf, LocalConf}
 import com.malliina.config.ConfigNode
 import com.malliina.database.{Conf, DoobieDatabase}
-import com.malliina.http.{CSRFConf, Errors, FullUrl}
 import com.malliina.http.io.HttpClientF2
+import com.malliina.http.{CSRFConf, Errors, FullUrl}
 import com.malliina.http4s.CSRFUtils
 import com.malliina.logback.LogbackUtils
 import com.malliina.util.AppLogger

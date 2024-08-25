@@ -9,7 +9,6 @@ import io.circe.parser.parse
 import io.circe.{Decoder, DecodingFailure}
 import org.eclipse.paho.client.mqttv3.*
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence
-import tests.MUnitSuite
 
 import java.time.Instant
 

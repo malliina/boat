@@ -2,13 +2,12 @@ package com.malliina.boat.db
 
 import cats.effect.IO
 import cats.implicits.*
-import com.malliina.boat.{BoatName, BoatUser, DateVal, DeviceId, RawSentence, SourceType, TrackId, TrackInput, TrackNames}
+import com.malliina.boat.{BoatName, BoatUser, DateVal, DeviceId, MUnitSuite, RawSentence, SourceType, TrackId, TrackInput, TrackNames, WrappedTestConf}
 import com.malliina.database.DoobieDatabase
 import com.malliina.values.Username
 import fs2.Chunk
 import fs2.io.file.Path
 import org.typelevel.ci.CIStringSyntax
-import tests.{MUnitSuite, WrappedTestConf}
 
 import java.time.LocalDate
 import scala.annotation.unused

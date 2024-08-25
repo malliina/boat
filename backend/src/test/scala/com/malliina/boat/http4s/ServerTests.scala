@@ -1,11 +1,10 @@
 package com.malliina.boat.http4s
 
-import com.malliina.boat.ErrorConstants
+import com.malliina.boat.{ErrorConstants, MUnitSuite, ServerSuite, TestEmailAuth, TestHttp}
 import com.malliina.http.Errors
 import com.malliina.values.IdToken
 import org.http4s.Status.{Ok, Unauthorized}
 import org.http4s.headers.Authorization
-import tests.{MUnitSuite, ServerSuite, TestEmailAuth, TestHttp}
 
 class ServerTests extends MUnitSuite with ServerSuite:
   def meUrl = baseUrl.append(Reverse.me.renderString)
