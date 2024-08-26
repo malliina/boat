@@ -286,7 +286,7 @@ class DoobieTracksDatabase[F[_]: Async](val db: DoobieDatabase[F])
               val tracks = collected.map(_.from.track).distinct.size
               val coords = collected.map(_.coords.size).sum
               log.info(
-                s"Collected $coords coords for $tracks tracks using query ${query.describe} in ${duration.toMillis} millis."
+                s"Collected $coords coords from $tracks tracks for '${user.username}' using query ${query.describe} in ${duration.toMillis} millis."
               )
             collected
 
