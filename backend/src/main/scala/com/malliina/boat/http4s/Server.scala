@@ -18,6 +18,7 @@ import com.malliina.database.DoobieDatabase
 import com.malliina.http.{CSRFConf, Errors, HttpClient, SingleError}
 import com.malliina.http.io.{HttpClientF2, HttpClientIO}
 import com.malliina.http4s.CSRFUtils
+import com.malliina.http4s.CSRFUtils.CSRFChecker
 import com.malliina.util.AppLogger
 import com.malliina.values.ErrorMessage
 import com.malliina.web.*
@@ -95,11 +96,22 @@ object Server extends IOApp:
         .withIdleTimeout(30.days)
         .withHost(host"0.0.0.0")
         .withPort(port)
-        .withHttpWebSocketApp(sockets => makeHandler(service, sockets, csrfUtils.middleware(csrf)))
+        .withHttpWebSocketApp: sockets =>
+          makeHandler(service, sockets, csrfMiddleware(csrfUtils.middleware(csrf)))
         .withErrorHandler(errorHandler)
         .withShutdownTimeout(1.millis)
         .build
     yield ServerComponents(service, server)
+
+  private def csrfMiddleware[F[_]](fallback: CSRFChecker[F]): CSRFChecker[F] =
+    http =>
+      Kleisli: req =>
+        val path = req.uri.path.segments.map(_.encoded).toList
+        // Apple POSTs the callback; can't modify their request; it would fail CSRF check by default; so need to
+        // make an exception for them
+        val isAppleCallback = path == List("sign-in", "callbacks", "apple")
+        if isAppleCallback then http(req)
+        else fallback(http)(req)
 
   def appService[F[+_]: Async: Files](
     conf: BoatConf,
