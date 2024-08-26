@@ -10,10 +10,11 @@ import com.malliina.database.DoobieDatabase
 import com.malliina.measure.{DistanceM, SpeedM, Temperature}
 import com.malliina.util.AppLogger
 import com.malliina.values.Username
+import DoobieTracksDatabase.log
 import doobie.*
 import doobie.implicits.*
 
-import scala.concurrent.duration.{DurationInt, DurationLong, FiniteDuration}
+import scala.concurrent.duration.{DurationInt, FiniteDuration}
 
 object DoobieTracksDatabase:
   private val log = AppLogger(getClass)
@@ -35,7 +36,6 @@ object DoobieTracksDatabase:
   /** Collects `rows` into coord events, maintaining order.
     */
   private def collectTrackCoords(rows: Seq[TrackCoord], language: Language): Seq[CoordsEvent] =
-    val start = System.currentTimeMillis()
     val formatter = TimeFormatter.lang(language)
     val result = rows.foldLeft(Vector.empty[CoordsEvent]): (acc, tc) =>
       val from = tc.track
@@ -60,10 +60,6 @@ object DoobieTracksDatabase:
         val old = acc(idx)
         acc.updated(idx, old.copy(coords = old.coords :+ coord))
       else acc :+ CoordsEvent(List(coord), from.strip(formatter))
-    val end = System.currentTimeMillis()
-    val duration = (end - start).millis
-    if duration > 500.millis then
-      log.warn(s"Collected ${rows.length} coords in ${duration.toMillis} ms.")
     result
 
 class DoobieTracksDatabase[F[_]: Async](val db: DoobieDatabase[F])
@@ -255,12 +251,12 @@ class DoobieTracksDatabase[F[_]: Async](val db: DoobieDatabase[F])
         else collected.pure[ConnectionIO]
     yield FullTrack(stats.strip(formatter), fullCoords)
 
-  def history(user: MinimalUserInfo, limits: BoatQuery): F[Seq[CoordsEvent]] = run:
-    val tracksLimit = limits.tracksLimit.orElse(Option.when(limits.newest)(5))
-    val eligible = limits.neTracks
+  def history(user: MinimalUserInfo, query: BoatQuery): F[Seq[CoordsEvent]] = run:
+    val tracksLimit = query.tracksLimit.orElse(Option.when(query.newest)(5))
+    val eligible = query.neTracks
       .map(names => sql.tracksByNames(names))
-      .orElse(limits.neCanonicals.map(cs => sql.tracksByCanonicals(cs)))
-      .orElse(limits.near.map(n => sql.tracksNear(n, user.username, tracksLimit)))
+      .orElse(query.neCanonicals.map(cs => sql.tracksByCanonicals(cs)))
+      .orElse(query.near.map(n => sql.tracksNear(n, user.username, tracksLimit)))
       .getOrElse:
         sql.latestTracks(user.username, tracksLimit)
       .query[JoinedTrack]
@@ -270,21 +266,29 @@ class DoobieTracksDatabase[F[_]: Async](val db: DoobieDatabase[F])
       else
         val conditions = Fragments.whereAndOpt(
           ts.map(_.track).distinct.toNel.map(ids => Fragments.in(fr"p.track", ids)),
-          limits.from.map(f => fr"p.added >= $f"),
-          limits.to.map(t => fr"p.added <= $t")
+          query.from.map(f => fr"p.added >= $f"),
+          query.to.map(t => fr"p.added <= $t")
         )
         sql"""${sql.selectAllPoints}
                $conditions
                order by p.added, p.track_index
-               limit ${limits.limit}
-               offset ${limits.offset}"""
+               limit ${query.limit}
+               offset ${query.offset}"""
           .query[TrackPointRow]
           .to[List]
           .map: ps =>
             val tracksById = ts.groupBy(_.track)
             val coords = ps.flatMap: pointRow =>
               tracksById.get(pointRow.track).map(t => TrackCoord(t.head, pointRow))
-            DoobieTracksDatabase.collectTrackCoords(coords, user.language)
+            val (collected, duration) = Utils.timed:
+              DoobieTracksDatabase.collectTrackCoords(coords, user.language)
+            if duration > 1.second then
+              val tracks = collected.map(_.from.track).distinct.size
+              val coords = collected.map(_.coords.size).sum
+              log.info(
+                s"Collected $coords coords for $tracks tracks using query ${query.describe} in ${duration.toMillis} millis."
+              )
+            collected
 
   private def single(oneRowSql: Fragment, language: Language) = run:
     oneRowSql.query[JoinedTrack].unique.map(row => row.strip(TimeFormatter.lang(language)))

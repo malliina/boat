@@ -5,6 +5,7 @@ import cats.syntax.show.toShow
 import org.apache.commons.text.{CharacterPredicates, RandomStringGenerator}
 
 import java.text.Normalizer
+import scala.concurrent.duration.{DurationLong, FiniteDuration}
 
 object Utils:
   private val generator: RandomStringGenerator =
@@ -24,3 +25,9 @@ object Utils:
       .toLowerCase
       .replaceAll("[^-a-zA-Z0-9]", "-")
       .trim
+
+  def timed[T](code: => T): (T, FiniteDuration) =
+    val start = System.currentTimeMillis()
+    val t = code
+    val duration = (System.currentTimeMillis() - start).millis
+    (t, duration)

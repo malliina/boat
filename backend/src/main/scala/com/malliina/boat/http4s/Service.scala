@@ -391,13 +391,14 @@ class Service[F[_]: Async: Files](
         .authOrAnon(req.headers)
         .flatMap: user =>
           val username = user.username
+          val isAnon = username == Usernames.anon
           BoatQuery(req.uri.query)
             .map: boatQuery =>
-              log.info(s"Viewer '$username' joined with query ${boatQuery.describe}.")
+              if !isAnon then
+                log.info(s"Viewer '$username' joined with query ${boatQuery.describe}.")
               val historicalLimits =
-                if boatQuery.tracks.nonEmpty && username == Usernames.anon then
-                  BoatQuery.tracks(boatQuery.tracks)
-                else if username == Usernames.anon then BoatQuery.empty
+                if boatQuery.tracks.nonEmpty && isAnon then BoatQuery.tracks(boatQuery.tracks)
+                else if isAnon then BoatQuery.empty
                 else boatQuery
               val historyIO = db
                 .history(user, historicalLimits)
@@ -430,8 +431,9 @@ class Service[F[_]: Async: Files](
               webSocket(
                 sockets,
                 eventSource,
-                message => F.delay(log.info(message)),
-                onClose = F.delay(log.info(s"Viewer '$username' left."))
+                message => F.delay(log.debug(message)),
+                onClose = F.delay:
+                  if !isAnon then log.info(s"Viewer '$username' left.")
               )
             .recover: errors =>
               log.warn(s"User '$username' sent a bad boat query, failing. (${errors.message})")
