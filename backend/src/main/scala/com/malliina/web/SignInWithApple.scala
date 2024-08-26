@@ -74,4 +74,5 @@ class SignInWithApple(conf: Conf):
       .build()
     val signable = SignedJWT(header, claims)
     signable.sign(signer)
+    log.info(s"Created SIWA secret token for client '${conf.clientId}' and team '${conf.teamId}'.")
     ClientSecret(signable.serialize())
