@@ -42,7 +42,7 @@ object SignInWithApple:
     def siwa(enabled: Boolean, privateKey: Path): Conf = Conf(
       enabled,
       privateKey,
-      KeyId("8MPB7UVCG4"),
+      KeyId("2HRJXFM6UG"),
       APNSConf.teamId,
       ClientId("com.malliina.boat.client")
     )
@@ -74,5 +74,8 @@ class SignInWithApple(conf: Conf):
       .build()
     val signable = SignedJWT(header, claims)
     signable.sign(signer)
-    log.info(s"Created SIWA secret token for client '${conf.clientId}' and team '${conf.teamId}'.")
-    ClientSecret(signable.serialize())
+    val secret = ClientSecret(signable.serialize())
+    log.info(
+      s"Created SIWA secret with key '${conf.keyId}' for client '${conf.clientId}' and team '${conf.teamId}'."
+    )
+    secret
