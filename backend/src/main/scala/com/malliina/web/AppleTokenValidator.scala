@@ -34,9 +34,9 @@ class AppleTokenValidator[F[_]: Sync](
       for
         v <- outcome
         email <- v.readString(EmailKey).map(Email.apply)
-        emailVerified <- v.readString(EmailVerified)
+        emailVerified <- v.readBoolean(EmailVerified)
         result <-
-          if emailVerified.toLowerCase == "true" then Right(email)
+          if emailVerified then Right(email)
           else Left(InvalidClaims(token, err"Email not verified."))
       yield result
 
