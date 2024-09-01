@@ -260,6 +260,7 @@ trait DeviceMeta:
   def user: Username
   def boat: BoatName
   def sourceType: SourceType
+  def describe = s"'$boat' by '$user'"
   def withTrack(track: TrackName) = BoatUser(track, boat, sourceType, user)
 
 trait IdentifiedDeviceMeta extends DeviceMeta:

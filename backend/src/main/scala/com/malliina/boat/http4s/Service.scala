@@ -452,39 +452,47 @@ class Service[F[_]: Async: Files](
                   sockets,
                   toClients,
                   message =>
-                    log.debug(s"Boat '${boat.boat}' by '${boat.user}' says '$message'.")
-                    val parsed = parseUnsafe(message)
-                    streams.boatIn
-                      .publish1(BoatEvent(parsed, meta))
-                      .map: e =>
-                        e.fold(
-                          err =>
-                            log
-                              .warn(s"Failed to publish '$message' by ${boat.boat}, topic closed."),
-                          identity
-                        )
+                    log.debug(s"Boat ${boat.describe} says '$message'.")
+                    parse(message).fold(
+                      parseFailure =>
+                        F.raiseError(
+                          Exception(s"Unacceptable message from ${boat.describe}: '$message'.")
+                        ),
+                      parsed =>
+                        streams.boatIn
+                          .publish1(BoatEvent(parsed, meta))
+                          .map: e =>
+                            e.fold(
+                              err =>
+                                log.warn(
+                                  s"Failed to publish '$message' by ${boat.describe}, topic closed."
+                                ),
+                              identity
+                            )
+                    )
                   ,
                   onClose = F
-                    .delay(log.info(s"Boat '${boat.boat}' by '${boat.user}' left."))
+                    .delay(log.info(s"Boat ${boat.describe} left."))
                     .flatMap: _ =>
                       push.push(meta, SourceState.Disconnected).map(_ => ())
+                    .handleError: err =>
+                      log.warn(s"Failed to notify of disconnection of ${boat.describe}.", err)
                 ).onError: t =>
-                  F.delay(
-                    log.info(s"Boat '${boat.boat}' by '${boat.user}' left exceptionally.", t)
-                  ).flatMap(_ => push.push(meta, SourceState.Disconnected).map(_ => ()))
+                  F.delay(log.info(s"Boat ${boat.describe} left exceptionally.", t))
+                    .flatMap: _ =>
+                      push.push(meta, SourceState.Disconnected).map(_ => ())
+                    .handleError: err =>
+                      log.info(s"Failed to handler error of ${boat.describe}.", err)
 
   def routes(sockets: WebSocketBuilder2[F]): HttpRoutes[F] =
-    normalRoutes <+> socketRoutes(sockets)
+    normalRoutes.combineK(socketRoutes(sockets))
 
   private def pushNotification(meta: UserDevice) =
     push
       .push(meta, SourceState.Connected)
-      .as[Unit](())
+      .void
       .handleErrorWith: t =>
         F.delay(log.error(s"Failed to push all device notifications for '${meta.deviceName}'.", t))
-
-  private def parseUnsafe(message: String) =
-    parse(message).fold(err => throw Exception(s"Not JSON: '$message'. $err"), identity)
 
   private def webSocket(
     sockets: WebSocketBuilder2[F],
