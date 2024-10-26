@@ -353,15 +353,17 @@ class Service[F[_]: Async: Files](
           val urls = objects.map(obj => baseUrl / obj.key())
           ok(Json.obj("files" -> urls.asJson, "latest" -> latestUrl.asJson))
     case GET -> Root / "files" / S3KeyVar(key) =>
-      comps.s3
-        .download(key)
-        .flatMap: fileOpt =>
-          fileOpt
-            .map: file =>
-              val stream = fs2.io.file.Files[F].readAll(file)
-              ok(stream)
-            .getOrElse:
-              notFoundWith(s"File not found: '$key'.")
+      if key.key.endsWith(".deb") then
+        comps.s3
+          .download(key)
+          .flatMap: fileOpt =>
+            fileOpt
+              .map: file =>
+                val stream = fs2.io.file.Files[F].readAll(file)
+                ok(stream)
+              .getOrElse:
+                notFoundWith(s"File not found: '$key'.")
+      else badRequest(Errors(s"Invalid key."))
     case req @ GET -> Root / ".well-known" / "apple-app-site-association" =>
       fileFromPublicResources("apple-app-site-association.json", req)
     case req @ GET -> Root / ".well-known" / "assetlinks.json" =>
@@ -412,9 +414,10 @@ class Service[F[_]: Async: Files](
                   val sampled = es.toList.map(_.sample(actualSample))
                   val sampledCount = sampled.map(_.coords.length).sum
                   val trackIds = sampled.map(_.from.track).sorted.distinct.mkString(", ")
-                  log.info(
-                    s"Returning history of $sampledCount/$coordsCount coords for track IDs $trackIds for user ${user.username}."
-                  )
+                  if !isAnon then
+                    log.info(
+                      s"Returning history of $sampledCount/$coordsCount coords for track IDs $trackIds for user ${user.username}."
+                    )
                   sampled
               val simpleQuery = boatQuery.simple
               val historyOrNoData: F[Seq[FrontEvent]] = historyIO.map: ces =>
