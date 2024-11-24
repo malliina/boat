@@ -1,0 +1,2 @@
+### Reverse geocode
+https://api.mapbox.com/search/geocode/v6/reverse?longitude=24.88260391&latitude=60.15126954&access_token={{access_token}}&limit=1

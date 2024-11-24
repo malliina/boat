@@ -13,7 +13,7 @@ import com.malliina.boat.graph.Graph
 import com.malliina.boat.html.BoatHtml
 import com.malliina.boat.http4s.JsonInstances.circeJsonEncoder
 import com.malliina.boat.push.{BoatPushService, PushEndpoint}
-import com.malliina.boat.{AppMeta, AppMode, BoatConf, Logging, S3Client, SourceType, message}
+import com.malliina.boat.{AppMeta, AppMode, BoatConf, Logging, MapboxClient, S3Client, SourceType, message}
 import com.malliina.database.DoobieDatabase
 import com.malliina.http.{CSRFConf, Errors, HttpClient, SingleError}
 import com.malliina.http.io.{HttpClientF2, HttpClientIO}
@@ -177,7 +177,8 @@ object Server extends IOApp:
         conf.mapbox.token,
         s3,
         push,
-        streams
+        streams,
+        MapboxClient(conf.mapbox.token, http)
       )
       Service(comps, graph, csrf, csrfConf)
 

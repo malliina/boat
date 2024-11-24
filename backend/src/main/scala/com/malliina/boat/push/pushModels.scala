@@ -1,6 +1,7 @@
 package com.malliina.boat.push
 
 import com.malliina.boat.BoatName
+import com.malliina.boat.MapboxClient.ReverseGeocode
 import com.malliina.boat.http.Named
 import com.malliina.values.{ErrorMessage, ValidatingCompanion}
 import io.circe.Codec
@@ -22,10 +23,13 @@ object SourceState extends ValidatingCompanion[String, SourceState]:
 case class SourceNotification(
   title: String,
   boatName: BoatName,
-  state: SourceState
+  state: SourceState,
+  geo: Option[ReverseGeocode]
 ) derives Codec.AsObject:
-  private val describeState = if state == SourceState.Connected then "on the move!" else state.name
-  def message = s"$boatName $describeState"
+  private val describeState = if state == SourceState.Connected then "on the move" else state.name
+  def prefix = s"$boatName $describeState"
+  def suffix = geo.fold("")(a => s" at ${a.address}")
+  def message = s"$prefix$suffix"
 
 object SourceNotification:
   val Message = "message"

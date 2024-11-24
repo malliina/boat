@@ -1,8 +1,8 @@
 package com.malliina.boat.db
 
-import cats.data.NonEmptyList
-import cats.effect.{Async, Sync}
+import cats.effect.Async
 import cats.syntax.all.{catsSyntaxList, toFlatMapOps, toFunctorOps, toTraverseOps}
+import com.malliina.boat.MapboxClient.ReverseGeocode
 import com.malliina.boat.db.DoobiePushDatabase.log
 import com.malliina.boat.push.*
 import com.malliina.boat.{AppConf, PushId, PushToken, SourceType, UserDevice}
@@ -18,7 +18,7 @@ object DoobiePushDatabase:
 class DoobiePushDatabase[F[_]: Async](db: DoobieDatabase[F], push: PushEndpoint[F])
   extends PushService[F]
   with DoobieSQL:
-  val F = Sync[F]
+  val F = Async[F]
 
   def enable(input: PushInput): F[PushId] = db.run:
     val existing = sql"""select id
@@ -52,9 +52,9 @@ class DoobiePushDatabase[F[_]: Async](db: DoobieDatabase[F], push: PushEndpoint[
 
   /** Pushes at most once every five minutes to a given device.
     */
-  def push(device: UserDevice, state: SourceState): F[PushSummary] =
+  def push(device: UserDevice, state: SourceState, geo: Option[ReverseGeocode]): F[PushSummary] =
     val title = if device.sourceType == SourceType.Vehicle then AppConf.CarName else AppConf.Name
-    val notification = SourceNotification(title, device.deviceName, state)
+    val notification = SourceNotification(title, device.deviceName, state, geo)
     val deviceId = device.device
     val devices = db.run:
       // pushes at most once every five minutes as per the "not exists" clause

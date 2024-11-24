@@ -302,7 +302,9 @@ class Service[F[_]: Async: Files](
                   .flatMap: inserteds =>
                     val duration = System.currentTimeMillis() - start
                     ok(SimpleMessage(s"Saved ${inserteds.size} updates in $duration ms."))
-                val pushTask = if result.isResumed then F.pure(()) else pushNotification(meta)
+                val pushTask =
+                  if result.isResumed then F.pure(())
+                  else pushConnected(meta, body.updates.headOption.map(_.coord))
                 pushTask >> insertion
           .getOrElse:
             notFound(Errors(SingleError.input(s"Car not found: '${body.carId}'.")))
@@ -450,7 +452,7 @@ class Service[F[_]: Async: Files](
             .joinAsSource(boat)
             .flatMap: result =>
               val meta = result.track
-              pushNotification(meta).flatMap: _ =>
+              pushConnected(meta, at = None).flatMap: _ =>
                 webSocket(
                   sockets,
                   toClients,
@@ -477,25 +479,33 @@ class Service[F[_]: Async: Files](
                   onClose = F
                     .delay(log.info(s"Boat ${boat.describe} left."))
                     .flatMap: _ =>
-                      push.push(meta, SourceState.Disconnected).map(_ => ())
+                      push.push(meta, SourceState.Disconnected, geo = None).map(_ => ())
                     .handleError: err =>
                       log.warn(s"Failed to notify of disconnection of ${boat.describe}.", err)
                 ).onError: t =>
                   F.delay(log.info(s"Boat ${boat.describe} left exceptionally.", t))
                     .flatMap: _ =>
-                      push.push(meta, SourceState.Disconnected).map(_ => ())
+                      push.push(meta, SourceState.Disconnected, geo = None).map(_ => ())
                     .handleError: err =>
                       log.info(s"Failed to handler error of ${boat.describe}.", err)
 
   def routes(sockets: WebSocketBuilder2[F]): HttpRoutes[F] =
     normalRoutes.combineK(socketRoutes(sockets))
 
-  private def pushNotification(meta: UserDevice) =
-    push
-      .push(meta, SourceState.Connected)
-      .void
-      .handleErrorWith: t =>
-        F.delay(log.error(s"Failed to push all device notifications for '${meta.deviceName}'.", t))
+  private def pushConnected(meta: UserDevice, at: Option[Coord]) =
+    val reverseGeo = at
+      .map: coord =>
+        comps.mapbox.reverseGeocode(coord)
+      .getOrElse:
+        F.pure(None)
+    reverseGeo.flatMap: geo =>
+      push
+        .push(meta, SourceState.Connected, geo)
+        .void
+        .handleErrorWith: t =>
+          F.delay(
+            log.error(s"Failed to push all device notifications for '${meta.deviceName}'.", t)
+          )
 
   private def webSocket(
     sockets: WebSocketBuilder2[F],
