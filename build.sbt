@@ -5,14 +5,14 @@ import sbtrelease.ReleaseStateTransformations.*
 
 import scala.sys.process.Process
 
-val webAuthVersion = "6.9.3"
-val munitVersion = "1.0.2"
+val webAuthVersion = "6.9.4"
+val munitVersion = "1.0.3"
 val munitCeVersion = "2.0.0"
 val testContainersScalaVersion = "0.41.4"
 val scalaTagsVersion = "0.13.1"
 val primitiveVersion = "3.7.3"
 val logstreamsVersion = "2.8.0"
-val http4sVersion = "0.23.27"
+val http4sVersion = "0.23.30"
 val logbackVersion = "1.5.6"
 val circeVersion = "0.14.9"
 val alpnVersion = "12.0.14"
@@ -28,7 +28,7 @@ ThisBuild / parallelExecution := false
 Global / concurrentRestrictions += Tags.limit(Tags.Test, 1)
 
 val scala213 = "2.13.14"
-val scala3 = "3.4.0"
+val scala3 = "3.6.2"
 
 inThisBuild(
   Seq(

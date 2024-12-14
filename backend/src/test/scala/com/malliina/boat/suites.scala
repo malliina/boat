@@ -17,6 +17,7 @@ import com.malliina.util.AppLogger
 import munit.AnyFixture
 import okhttp3.{OkHttpClient, Protocol}
 import org.http4s.EntityDecoder
+import org.http4s.server.middleware.CSRF
 import org.testcontainers.utility.DockerImageName
 
 import java.nio.file.{Path, Paths}
@@ -130,7 +131,9 @@ trait Http4sSuite extends BoatDatabaseSuite:
     val csrfConf = CSRFConf.default
     val csrfUtils = CSRFUtils(csrfConf)
     for
-      csrf <- Resource.eval(csrfUtils.default[IO])
+      csrf <- Resource.eval[IO, CSRF[IO, IO]](
+        csrfUtils.default[IO](onFailure = CSRFUtils.defaultFailure[IO])
+      )
       boatConf <- Resource.eval(boatIO)
       service <- Server.appService[IO](boatConf, TestComps.builder, csrf, csrfConf)
     yield AppComponents(service)

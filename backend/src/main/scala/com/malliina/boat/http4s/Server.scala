@@ -86,7 +86,9 @@ object Server extends IOApp:
     val F = Sync[F]
     val csrfUtils = CSRFUtils(csrfConf)
     for
-      csrf <- Resource.eval(csrfUtils.default[F])
+      csrf <- Resource.eval[F, CSRF[F, F]](
+        csrfUtils.default[F](onFailure = CSRFUtils.defaultFailure[F])
+      )
       service <- appService(conf, builder, csrf, csrfConf)
       _ <- Resource.eval(
         F.delay(log.info(s"Binding on port $port using app version ${AppMeta.default.gitHash}..."))

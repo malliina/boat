@@ -10,7 +10,7 @@ import com.malliina.database.DoobieDatabase
 import com.malliina.util.AppLogger
 import com.malliina.values.UserId
 import doobie.Fragments
-import doobie.syntax.all.toSqlInterpolator
+import doobie.implicits.*
 
 object DoobiePushDatabase:
   private val log = AppLogger(getClass)

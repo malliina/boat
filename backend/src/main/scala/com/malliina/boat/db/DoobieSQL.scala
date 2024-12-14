@@ -5,7 +5,7 @@ import cats.syntax.all.catsSyntaxApplicativeId
 import com.malliina.boat.{Coord, DeviceId}
 import com.malliina.measure.DistanceM
 import doobie.ConnectionIO
-import doobie.implicits.toSqlInterpolator
+import doobie.implicits.*
 
 trait DoobieSQL:
   export Mappings.given

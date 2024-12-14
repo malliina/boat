@@ -7,7 +7,7 @@ import com.malliina.boat.ais.AISSource
 import com.malliina.boat.db.{TrackInsertsDatabase, VesselDatabase}
 import com.malliina.boat.http4s.BoatStreams.{log, rights}
 import com.malliina.boat.parsing.*
-import com.malliina.boat.{BoatEvent, BoatJsonError, CoordsEvent, FrontEvent, InputEvent, InsertedPoint, SentencesMessage, TimeFormatter, TimedCoord, VesselMessages}
+import com.malliina.boat.{BoatEvent, BoatJsonError, CoordsEvent, FrontEvent, InputEvent, InsertedPoint, SentencesMessage, TimeFormatter, VesselMessages}
 import com.malliina.util.AppLogger
 import fs2.Stream
 import fs2.concurrent.Topic

@@ -1,7 +1,7 @@
 package com.malliina.boat.it
 
 import cats.effect.kernel.Deferred
-import cats.effect.{IO, Resource}
+import cats.effect.IO
 import com.comcast.ip4s.*
 import com.malliina.boat.CoordsEvent
 import com.malliina.boat.client.server.BoatConf
