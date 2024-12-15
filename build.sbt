@@ -5,17 +5,18 @@ import sbtrelease.ReleaseStateTransformations.*
 
 import scala.sys.process.Process
 
-val webAuthVersion = "6.9.4"
+val fs2Version = "3.11.0"
+val webAuthVersion = "6.9.5"
 val munitVersion = "1.0.3"
 val munitCeVersion = "2.0.0"
 val testContainersScalaVersion = "0.41.4"
 val scalaTagsVersion = "0.13.1"
-val primitiveVersion = "3.7.3"
-val logstreamsVersion = "2.8.0"
+val primitiveVersion = "3.7.4"
+val logstreamsVersion = "2.8.1"
 val http4sVersion = "0.23.30"
-val logbackVersion = "1.5.6"
-val circeVersion = "0.14.9"
-val alpnVersion = "12.0.14"
+val logbackVersion = "1.5.12"
+val circeVersion = "0.14.10"
+val alpnVersion = "12.0.16"
 val webAuthDep = "com.malliina" %% "web-auth" % webAuthVersion
 val webAuthTestDep = webAuthDep % Test classifier "tests"
 val munitDep = "org.scalameta" %% "munit" % munitVersion % Test
@@ -73,8 +74,8 @@ val cross = crossProject(JSPlatform, JVMPlatform)
     libraryDependencies ++= Seq("generic", "parser").map { m =>
       "io.circe" %%% s"circe-$m" % circeVersion
     } ++ Seq(
-      "com.comcast" %% "ip4s-core" % "3.5.0",
-      "org.typelevel" %%% "case-insensitive" % "1.4.0",
+      "com.comcast" %% "ip4s-core" % "3.6.0",
+      "org.typelevel" %%% "case-insensitive" % "1.4.2",
       "com.malliina" %%% "primitives" % primitiveVersion,
       "com.lihaoyi" %%% "scalatags" % scalaTagsVersion,
       "org.scalameta" %%% "munit" % munitVersion % Test
@@ -96,7 +97,7 @@ val frontend = project
   .settings(
     libraryDependencies ++= Seq(
       "com.malliina" %%% "util-html" % webAuthVersion,
-      "co.fs2" %%% "fs2-core" % "3.10.2",
+      "co.fs2" %%% "fs2-core" % fs2Version,
       "org.scala-js" %%% "scalajs-dom" % "2.8.0",
       "org.scalameta" %%% "munit" % munitVersion % Test
     ),
@@ -126,10 +127,10 @@ val backend = Project("boat", file("backend"))
         "org.http4s" %% "http4s-ember-client" % http4sVersion,
         "com.vividsolutions" % "jts" % "1.13",
         "mysql" % "mysql-connector-java" % "8.0.33",
-        "org.apache.commons" % "commons-text" % "1.12.0",
-        "software.amazon.awssdk" % "s3" % "2.29.1",
+        "org.apache.commons" % "commons-text" % "1.13.0",
+        "software.amazon.awssdk" % "s3" % "2.29.34",
         "com.malliina" %% "logstreams-client" % logstreamsVersion,
-        "com.malliina" %% "mobile-push-io" % "3.11.0",
+        "com.malliina" %% "mobile-push-io" % "3.11.1",
         "com.malliina" %% "config" % primitiveVersion,
         "org.eclipse.paho" % "org.eclipse.paho.client.mqttv3" % "1.2.5",
         webAuthDep,
@@ -185,12 +186,12 @@ val agent = project
       Seq("generic", "parser").map { m =>
         "io.circe" %% s"circe-$m" % circeVersion
       } ++ Seq(
-        "co.fs2" %% "fs2-io" % "3.10.2",
+        "co.fs2" %% "fs2-io" % fs2Version,
         "com.malliina" %% "util-http4s" % webAuthVersion,
         "com.malliina" %% "primitives" % primitiveVersion,
         "com.malliina" %% "logstreams-client" % logstreamsVersion,
         "com.lihaoyi" %% "scalatags" % scalaTagsVersion,
-        "commons-codec" % "commons-codec" % "1.17.0",
+        "commons-codec" % "commons-codec" % "1.17.1",
         "org.typelevel" %% "munit-cats-effect" % munitCeVersion % Test
       ),
     releaseUseGlobalVersion := false,

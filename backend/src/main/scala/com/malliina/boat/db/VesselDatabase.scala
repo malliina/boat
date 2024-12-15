@@ -11,6 +11,7 @@ import com.malliina.util.AppLogger
 import doobie.*
 import doobie.free.preparedstatement.PreparedStatementIO
 import doobie.implicits.*
+import doobie.util.log.{LoggingInfo, Parameters}
 
 import scala.annotation.unused
 
@@ -109,4 +110,10 @@ class BoatVesselDatabase[F[_]: Async](db: DoobieDatabase[F])
             HPS.set(pos + 8, info.eta) *>
             HPS.set(pos + 9, info.timestampMillis)
         (newAcc, pos + 10)
-    HC.updateWithGeneratedKeys[VesselRowId](List("id"))(sql, prep._1, 512)
+    HC.stream[VesselRowId](
+      FC.prepareStatement(sql, List("id").toArray),
+      prep._1,
+      FPS.executeUpdate *> FPS.getGeneratedKeys,
+      chunkSize = 512,
+      loggingInfo = LoggingInfo(sql, Parameters.Batch(() => List(Nil)), "save")
+    )

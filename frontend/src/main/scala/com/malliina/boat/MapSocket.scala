@@ -2,7 +2,7 @@ package com.malliina.boat
 
 import cats.data.NonEmptyList
 import cats.effect.std.Dispatcher
-import cats.effect.{Async, Temporal}
+import cats.effect.Async
 import cats.syntax.list.*
 import cats.syntax.show.toShow
 import com.malliina.boat.BoatFormats.*
@@ -27,7 +27,7 @@ case class TrackIds(id: TrackId, track: TrackName, source: DeviceId, start: Timi
   def point = s"boat-$track"
   def all = Seq(trail, hoverable, trophy, point)
 
-class MapSocket[F[_]: Temporal: Async](
+class MapSocket[F[_]: Async](
   val map: MapboxMap,
   pathFinder: PathFinder[F],
   mode: MapMode,
@@ -80,6 +80,7 @@ class MapSocket[F[_]: Temporal: Async](
     onCoords(event)
   private val aisListener = events.aisEvents.tap: messages =>
     ais.onAIS(messages)
+
   val task = spinnerListener
     .concurrently(coordsListener)
     .concurrently(aisListener)

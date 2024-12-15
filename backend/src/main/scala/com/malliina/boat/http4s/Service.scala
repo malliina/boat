@@ -353,7 +353,7 @@ class Service[F[_]: Async: Files](
           val latestObj = objects.maxByOption(_.lastModified())
           val latestUrl = latestObj.map(l => baseUrl / l.key())
           val urls = objects.map(obj => baseUrl / obj.key())
-          ok(Json.obj("files" -> urls.asJson, "latest" -> latestUrl.asJson))
+          ok(Json.obj("files" -> urls.asJson, "latest" -> latestUrl.asJson))(using jsonEncoder[F])
     case GET -> Root / "files" / S3KeyVar(key) =>
       if key.key.endsWith(".deb") then
         comps.s3

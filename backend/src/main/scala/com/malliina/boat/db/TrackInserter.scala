@@ -13,6 +13,7 @@ import com.malliina.values.UserId
 import doobie.*
 import doobie.free.preparedstatement.PreparedStatementIO
 import doobie.implicits.*
+import doobie.util.log.{LoggingInfo, Parameters}
 
 import scala.annotation.tailrec
 
@@ -130,8 +131,13 @@ class TrackInserter[F[_]: Async](val db: DoobieDatabase[F])
   ): fs2.Stream[ConnectionIO, SentenceKey] =
     val params = pairs.toList.map(_ => "(?,?)").mkString(",")
     val sql = s"insert into sentences(sentence, track) values$params"
-    val prep = makeParams(pairs.toList)
-    HC.updateWithGeneratedKeys[SentenceKey](List("id"))(sql, prep, 512)
+    HC.stream[SentenceKey](
+      FC.prepareStatement(sql, List("id").toArray),
+      makeParams(pairs.toList),
+      FPS.executeUpdate *> FPS.getGeneratedKeys,
+      chunkSize = 512,
+      loggingInfo = LoggingInfo(sql, Parameters.Batch(() => List(Nil)), "save")
+    )
 
   @tailrec
   private def makeParams(
@@ -188,10 +194,12 @@ class TrackInserter[F[_]: Async](val db: DoobieDatabase[F])
       .map: rs =>
         val params = rows.map(_ => "(?,?)").mkString(",")
         val sql = s"insert into sentence_points(sentence, point) values$params"
-        HC.updateWithGeneratedKeys[(SentenceKey, TrackPointId)](List("sentence", "point"))(
-          sql,
+        HC.stream[(SentenceKey, TrackPointId)](
+          FC.prepareStatement(sql, List("sentence", "point").toArray),
           makeSpParams(rows),
-          512
+          FPS.executeUpdate *> FPS.getGeneratedKeys,
+          chunkSize = 512,
+          loggingInfo = LoggingInfo(sql, Parameters.Batch(() => List(Nil)), "insert")
         ).compile
           .toList
       .getOrElse:
