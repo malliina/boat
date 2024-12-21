@@ -57,6 +57,7 @@ class MapView[F[_]: Async](
 ) extends BaseFront:
   val F = Async[F]
   mapboxGl.accessToken = accessToken.token
+  val lang = Lang(language)
 
   private val initialSettings = MapCamera()
   private val mapOptions = MapOptions(
@@ -67,6 +68,7 @@ class MapView[F[_]: Async](
     hash = true
   )
   val map = MapboxMap(mapOptions)
+  val parking = Parking(map, lang)
   private val geocoder = MapboxGeocoder.finland(accessToken)
   val pathFinder = PathFinder(map, http)
   val settings = MapSettings
@@ -91,7 +93,6 @@ class MapView[F[_]: Async](
 
   def mode = if Option(href.getFragment).isDefined then MapMode.Stay else MapMode.Fit
   def sample = queryInt(SampleKey).getOrElse(1)
-  val lang = Lang(language)
   val formsLang = lang.settings.forms
   val locale = language match
     case Language.swedish => TimeLocale.Sv

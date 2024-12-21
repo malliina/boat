@@ -53,11 +53,6 @@ object Frontend extends IOApp.Simple with BodyClasses:
           map <- MapView.default[IO](messages, http)
           _ <- map.runnables.runInBackground
         yield ()
-      _ <- initF(ParkingClass):
-        for
-          map <- Resource.eval(ParkingView.default[IO](messages, http))
-          _ <- map.runnables.runInBackground
-        yield ()
       _ <- initF(ChartsClass):
         ChartsView
           .default(messages, dispatcher)
