@@ -206,7 +206,9 @@ object Server extends IOApp:
         .handleErrorWith(BoatBasicService[F].errorHandler)
 
   private def errorHandler[F[_]: Sync]: PartialFunction[Throwable, F[Response[F]]] =
-    case ioe: IOException if ioe.message.exists(_.startsWith(BoatBasicService.noisyErrorMessage)) =>
+    case ioe: IOException
+        if ioe.message
+          .exists(msg => BoatBasicService.noisyErrorMessages.exists(n => msg.startsWith(n))) =>
       serverErrorResponse("Generic server IO error.")
     case NonFatal(t) =>
       log.error(s"Server error: '${t.getMessage}'.", t)

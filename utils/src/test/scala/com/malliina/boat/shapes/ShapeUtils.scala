@@ -17,16 +17,19 @@ import org.geotools.referencing.CRS
 import org.geotools.referencing.crs.DefaultGeographicCRS
 import org.locationtech.jts.geom.Geometry
 
-import scala.jdk.CollectionConverters.{CollectionHasAsScala, MapHasAsJava}
+import scala.jdk.CollectionConverters.{CollectionHasAsScala, MapHasAsJava, IteratorHasAsScala}
 
 class ShapeUtils extends FunSuite:
   val userHome = Paths.get(sys.props("user.home"))
 
-  test("write shapefile to geojson with geographic WGS84".ignore) {
-    val file = userHome.resolve(".boat/vaylat/vaylat.shp")
-    val fileOut = userHome.resolve(".boat/vaylat/vaylat-geo.json")
+  test("write shapefile to geojson with geographic WGS84") {
+    val file = userHome.resolve(".boat/Pysakointipaikat_aluePolygon.shp")
+    val fileOut = userHome.resolve(".boat/Pysakointipaikat_alue.json")
     val store = DataStoreFinder.getDataStore(Map("url" -> file.toUri.toString).asJava)
-    //    println(store)
+    val exists = Files.exists(file)
+    println(
+      s"Exists $exists at $file stores ${DataStoreFinder.getAvailableDataStores.asScala.toList}"
+    )
     //    store.getFeatureWriterAppend()
     val writer = new FeatureJSON()
     val collections: List[SimpleFeatureCollection] =

@@ -96,7 +96,7 @@ class GraphTests extends munit.CatsEffectSuite:
   )
 
   def fromResource(filename: String) =
-    val file = Graph.file(filename, LocalConf.appDir.resolve(filename))
+    val file = Resources.file(filename, LocalConf.appDir.resolve(filename))
     val result = decode[FeatureCollection](Files.readString(file))
     val coll = result.fold(
       err => throw Exception(s"Failed to decode $file: $err"),

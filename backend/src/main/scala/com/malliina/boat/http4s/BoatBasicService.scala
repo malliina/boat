@@ -20,7 +20,8 @@ import scala.concurrent.duration.FiniteDuration
 object BoatBasicService:
   private val log = AppLogger(getClass)
 
-  val noisyErrorMessage = "The specified network name is no longer available"
+  val noisyErrorMessages =
+    Seq("The specified network name is no longer available", "Connection reset")
 
   def cached(duration: FiniteDuration) = `Cache-Control`(
     NonEmptyList.of(`max-age`(duration), `public`)
@@ -55,7 +56,9 @@ class BoatBasicService[F[_]: Sync] extends Implicits[F]:
       F.delay(log.error(bnfe.message, t)).flatMap(_ => notFound(Errors(bnfe.message)))
     case re: ResponseException =>
       serverErrorResponse(s"${re.getMessage} Response: '${re.response.asString}'.", re)
-    case ioe: IOException if ioe.message.exists(_.startsWith(BoatBasicService.noisyErrorMessage)) =>
+    case ioe: IOException
+        if ioe.message
+          .exists(msg => BoatBasicService.noisyErrorMessages.exists(n => msg.startsWith(n))) =>
       serverError(Errors("Service IO error."))
     case other =>
       serverErrorResponse(s"Service error: '${other.getMessage}'.", other)

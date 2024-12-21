@@ -3,6 +3,7 @@ package com.malliina.mapbox
 import cats.effect.Async
 import cats.syntax.all.toFunctorOps
 import com.malliina.boat.{AccessToken, Coord, Feature, FeatureCollection, JsonError, Latitude, Layer, Longitude, Parsing}
+import com.malliina.http.FullUrl
 import com.malliina.{OptionDoubleOps, OptionOps, OptionStringOps}
 import org.scalajs.dom
 import org.scalajs.dom.{HTMLCanvasElement, html}
@@ -145,6 +146,7 @@ class MapboxMap(@unused options: MapOptions) extends js.Object:
   def fitBounds(bounds: LngLatBounds, options: SimplePaddingOptions): Unit = js.native
   def loadImage(url: String, callback: js.Function2[js.Any, js.Any, Unit]): Unit = js.native
   def addImage(id: String, image: js.Any): Unit = js.native
+  def addSource(id: String, source: js.Any): Unit = js.native
   def getSource(id: String): js.UndefOr[GeoJsonSource] = js.native
   def addLayer(layer: js.Any): Unit = js.native
   def getLayer(id: String): js.UndefOr[js.Any] = js.native
@@ -200,6 +202,10 @@ object MapboxMap:
 
     def onHover(layerId: String)(in: MapMouseEvent => Unit, out: MapMouseEvent => Unit): Unit =
       self.on("mousemove", layerId, e => in(e))
+      self.on("mouseleave", layerId, e => out(e))
+
+    def onHoverEnter(layerId: String)(in: MapMouseEvent => Unit, out: MapMouseEvent => Unit): Unit =
+      self.on("mouseenter", layerId, e => in(e))
       self.on("mouseleave", layerId, e => out(e))
 
     def onHoverCursorPointer(layerId: String) = onHover(layerId)(

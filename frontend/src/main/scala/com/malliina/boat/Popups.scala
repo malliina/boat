@@ -1,6 +1,7 @@
 package com.malliina.boat
 
 import cats.syntax.show.toShow
+import com.malliina.boat.parking.ParkingProps
 import com.malliina.measure.{DistanceM, SpeedM}
 import scalatags.JsDom.all.*
 
@@ -12,6 +13,16 @@ class Popups(lang: Lang) extends BoatModels:
   private val aisLang = lang.ais
   val specialWords = lang.specialWords
   private val limitsLang = lang.limits
+
+  private val parkingLang = lang.cars.parking
+
+  def parking(props: ParkingProps) =
+    titledTable(parkingLang.parking)(
+      props.label.fold(empty)(text => row(parkingLang.description, text)),
+      props.validity.fold(empty)(v => row(parkingLang.validity, v)),
+      props.duration.fold(empty)(d => row(parkingLang.duration, d)),
+      props.residentialParkingSign.fold(empty)(rp => row(parkingLang.residentialParkingSign, rp))
+    )
 
   def track(point: PointProps) =
     val isBoat = point.sourceType == SourceType.Boat

@@ -71,6 +71,9 @@ class BoatHtml(
   def list(track: FullTrack, current: Limits, lang: BoatLang) =
     page(PageConf(SentencesPage(track, current, lang), Seq(FormsClass)))
 
+  def parking(lang: BoatLang) =
+    page(PageConf(ParkingPage(lang), Seq(ParkingClass)))
+
   def chart(track: TrackRef, lang: BoatLang) =
     page(Charts.chart(track, lang))
 

@@ -21,7 +21,7 @@ object StaticService:
 class StaticService[F[_]: Async: Files] extends BoatBasicService[F]:
   private val fontExtensions = List(".woff", ".woff2", ".eot", ".ttf")
   private val supportedStaticExtensions =
-    List(".html", ".js", ".map", ".css", ".png", ".ico", ".svg", ".map") ++ fontExtensions
+    List(".html", ".js", ".map", ".css", ".png", ".ico", ".svg", ".map", ".json") ++ fontExtensions
 
   private val assetsDir = fs2.io.file.Path(BuildInfo.assetsDir.getAbsolutePath)
   private val publicDir = fs2.io.file.Path(BuildInfo.publicDir)

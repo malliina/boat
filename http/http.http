@@ -6,3 +6,12 @@ GET https://api.hel.fi/servicemap/v2/administrative_division/?type=parking_area&
 
 ### Capacity
 GET https://pubapi.parkkiopas.fi/public/v1/parking_area/?format=json
+
+### WFS
+GET https://kartta.hel.fi/ws/geoserver/avoindata/wfs?request=getFeature&typename=avoindata:Pysakointipaikat_alue
+
+### WFS JSON
+GET https://kartta.hel.fi/ws/geoserver/avoindata/wfs?request=getFeature&typename=avoindata:Pysakointipaikat_alue&outputFormat=application/json
+
+### WFS shape zip
+GET https://kartta.hel.fi/ws/geoserver/avoindata/wfs?request=getFeature&typename=avoindata:Pysakointipaikat_alue&outputFormat=SHAPE-ZIP

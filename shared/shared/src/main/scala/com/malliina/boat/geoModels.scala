@@ -1,6 +1,7 @@
 package com.malliina.boat
 
 import cats.syntax.all.toFunctorOps
+import com.malliina.http.FullUrl
 import com.malliina.values.*
 import io.circe.generic.semiauto.deriveCodec
 import io.circe.syntax.EncoderOps
@@ -190,6 +191,9 @@ object LinePaint:
 // Bailout
 case class OtherPaint(data: Json) extends BasePaint
 
+case class FillPaint(`fill-color`: String, `fill-opacity`: Option[Double] = None) extends BasePaint
+  derives Codec.AsObject
+
 object OtherPaint:
   given Codec[OtherPaint] = Codec.from(
     Decoder.decodeJson.map(json => OtherPaint(json)),
@@ -203,11 +207,13 @@ object BasePaint:
     List[Decoder[BasePaint]](
       Decoder[LinePaint].widen,
       Decoder[CirclePaint].widen,
-      Decoder[OtherPaint].widen
+      Decoder[OtherPaint].widen,
+      Decoder[FillPaint].widen
     ).reduceLeft(_ or _)
   given Encoder[BasePaint] =
     case lp @ LinePaint(_, _, _, _, _) => lp.asJson
     case cp @ CirclePaint(_, _)        => cp.asJson
+    case fp @ FillPaint(_, _)          => fp.asJson
     case OtherPaint(data)              => data
 
 /** @see
@@ -265,11 +271,26 @@ object Layer:
     data: FeatureCollection,
     paint: BasePaint = LinePaint.thin(),
     minzoom: Option[Double] = None
-  ) =
+  ): Layer =
     Layer(
       id,
       LayerType.Line,
       InlineLayerSource(data),
+      Option(LineLayout.round),
+      Option(paint),
+      minzoom
+    )
+
+  def lineSource(
+    id: String,
+    source: String,
+    paint: BasePaint = LinePaint.thin(),
+    minzoom: Option[Double] = None
+  ): Layer =
+    Layer(
+      id,
+      LayerType.Line,
+      StringLayerSource(source),
       Option(LineLayout.round),
       Option(paint),
       minzoom
@@ -333,6 +354,8 @@ object InlineLayerSource:
 
   def apply(data: FeatureCollection): InlineLayerSource =
     InlineLayerSource("geojson", data)
+
+case class UrlSource(`type`: String, data: FullUrl) derives Codec.AsObject
 
 sealed trait Outcome
 

@@ -160,4 +160,5 @@ trait BodyClasses:
   val ChartsClass = "charts"
   val FormsClass = "forms"
   val MapClass = "map"
+  val ParkingClass = "parking"
   val StatsClass = "stats"

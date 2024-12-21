@@ -970,6 +970,43 @@ case class CalendarLang(months: MonthsLang) derives Codec.AsObject
 
 case class AppMetaLang(appName: String, version: String, build: String) derives Codec.AsObject
 
+case class ParkingLang(
+  parking: String,
+  description: String,
+  validity: String,
+  duration: String,
+  residentialParkingSign: String,
+  updated: String
+) derives Codec.AsObject
+
+object ParkingLang:
+  val en = ParkingLang(
+    "Parking",
+    "Description",
+    "Validity",
+    "Duration",
+    "Residential parking sign",
+    "Updated"
+  )
+  val se = ParkingLang(
+    "Parkering",
+    "Beskrivning",
+    "Giltigt",
+    "Längd",
+    "Boendeparkeringstecken",
+    "Uppdaterat"
+  )
+  val fi = ParkingLang(
+    "Pysäköinti",
+    "Kuvaus",
+    "Voimassaolo",
+    "Kesto",
+    "Asukaspysäköintitunnus",
+    "Päivitetty"
+  )
+
+case class CarsLang(parking: ParkingLang) derives Codec.AsObject
+
 case class Lang(
   appName: String,
   map: String,
@@ -991,7 +1028,8 @@ case class Lang(
   settings: SettingsLang,
   limits: LimitLang,
   labels: LabelsLang,
-  calendar: CalendarLang
+  calendar: CalendarLang,
+  cars: CarsLang
 ) derives Codec.AsObject
 
 object Lang:
@@ -1183,7 +1221,8 @@ object Lang:
     ),
     LimitLang.en,
     LabelsLang("Statistics", "Monthly", "Yearly", "All time"),
-    CalendarLang(MonthsLang.en)
+    CalendarLang(MonthsLang.en),
+    CarsLang(ParkingLang.en)
   )
 
   val fi = Lang(
@@ -1371,7 +1410,8 @@ object Lang:
     ),
     LimitLang.fi,
     LabelsLang("Tilastot", "Kuukausittain", "Vuosittain", "Kaikki"),
-    CalendarLang(MonthsLang.fi)
+    CalendarLang(MonthsLang.fi),
+    CarsLang(ParkingLang.fi)
   )
 
   val se = Lang(
@@ -1554,6 +1594,7 @@ object Lang:
     ),
     LimitLang.se,
     LabelsLang("Statistik", "Per månad", "Per år", "Alla tider"),
-    CalendarLang(MonthsLang.se)
+    CalendarLang(MonthsLang.se),
+    CarsLang(ParkingLang.se)
   )
   val default = fi
