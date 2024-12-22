@@ -76,7 +76,7 @@ class Service[F[_]: Async: Files](
     case GET -> Root / "health" => ok(AppMeta.default)
     case req @ GET -> Root / "favicon.ico" =>
       val sourceType = if isCar(req) then SourceType.Vehicle else SourceType.Boat
-      temporaryRedirect(Uri.unsafeFromString(s"/${BoatHtml.faviconPath(sourceType)}"))
+      temporaryRedirect(BoatHtml.faviconPath(sourceType))
     case req @ GET -> Root / "pingAuth" =>
       auth.profile(req).flatMap(_ => ok(AppMeta.default))
     case req @ GET -> Root / "users" / "me" =>

@@ -17,11 +17,10 @@ sealed trait FairwayLighting
 
 object FairwayLighting:
   implicit val reader: Decoder[FairwayLighting] =
-    partialReader[Double, FairwayLighting](d => s"Unknown fairway lighting: '$d'.") {
+    partialReader[Double, FairwayLighting](d => s"Unknown fairway lighting: '$d'."):
       case 0 => UnknownLighting
       case 1 => Lighting
       case 2 => NoLighting
-    }
   case object NoLighting extends FairwayLighting
   case object Lighting extends FairwayLighting
   case object UnknownLighting extends FairwayLighting
@@ -40,10 +39,9 @@ sealed trait FairwaySeaType
 
 object FairwaySeaType:
   implicit val reader: Decoder[FairwaySeaType] =
-    partialReader[Double, FairwaySeaType](d => s"Unknown fairway sea type: '$d'.") {
+    partialReader[Double, FairwaySeaType](d => s"Unknown fairway sea type: '$d'."):
       case 1 => SeaFairway
       case 2 => InnerFairway
-    }
   // Meriväylä
   case object SeaFairway extends FairwaySeaType
   // Sisävesiväylä
@@ -64,7 +62,8 @@ object FairwaySeaType:
 sealed abstract class SeaArea(val value: Int)
 
 object SeaArea:
-  implicit val reader: Decoder[SeaArea] = Decoder.decodeDouble.map { d => fromIntOrOther(d.toInt) }
+  implicit val reader: Decoder[SeaArea] = Decoder.decodeDouble.map: d =>
+    fromIntOrOther(d.toInt)
   val all: Seq[SeaArea] = Seq(
     Unknown,
     Perameri,
@@ -173,14 +172,14 @@ object FairwayInfo:
       )
 
 object MaritimeJson:
-  val nonEmpty: Decoder[String] = Decoder.decodeString.emap { str =>
+  val nonEmpty: Decoder[String] = Decoder.decodeString.emap: str =>
     val trimmed = str.trim
     if trimmed.nonEmpty then Right(trimmed)
     else Left("Empty string. Non-empty required.")
-  }
   val nonEmptyOpt: Decoder[Option[String]] = Decoder.decodeOption(nonEmpty)
 
   def partialReader[In: Decoder, Out](
     onError: In => String
   )(pf: PartialFunction[In, Out]): Decoder[Out] =
-    Decoder[In].emap { in => pf.lift(in).toRight(onError(in)) }
+    Decoder[In].emap: in =>
+      pf.lift(in).toRight(onError(in))

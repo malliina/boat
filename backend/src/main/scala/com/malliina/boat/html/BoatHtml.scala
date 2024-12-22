@@ -24,7 +24,8 @@ object BoatHtml:
     if sourceType == SourceType.Vehicle then FileAssets.img.favicon_car_svg
     else FileAssets.img.favicon_boat_png
 
-  def faviconPath(sourceType: SourceType) = s"assets/${chooseFavicon(sourceType)}"
+  def faviconPath(sourceType: SourceType) =
+    AssetsSource.prefix.addPath(chooseFavicon(sourceType))
 
   def default(isProd: Boolean, sourceType: SourceType, csrf: CSRFConf): BoatHtml =
     val externalScripts = if isProd then Nil else FullUrl.build(LiveReload.script).toSeq
