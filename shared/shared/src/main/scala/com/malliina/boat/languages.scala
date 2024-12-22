@@ -907,7 +907,7 @@ case class MonthsLang(
   nov: String,
   dec: String
 ) derives Codec.AsObject:
-  def apply(month: MonthVal) = month.value match
+  def apply(month: MonthVal): String = month.month match
     case 1  => jan
     case 2  => feb
     case 3  => mar

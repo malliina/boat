@@ -9,16 +9,16 @@ import org.scalajs.dom.{CanvasRenderingContext2D, HTMLCanvasElement}
 
 object ChartsView extends BaseFront:
   def default[F[_]: Sync: Concurrent](
-                                       messages: Topic[F, WebSocketEvent],
-                                       d: Dispatcher[F]
+    messages: Topic[F, WebSocketEvent],
+    d: Dispatcher[F]
   ): Either[NotFound, ChartsView[F]] =
     elemAs[HTMLCanvasElement](ChartsId).map: canvas =>
       ChartsView(canvas, messages, d)
 
 class ChartsView[F[_]: Sync: Concurrent](
-                                          canvas: HTMLCanvasElement,
-                                          messages: Topic[F, WebSocketEvent],
-                                          d: Dispatcher[F]
+  canvas: HTMLCanvasElement,
+  messages: Topic[F, WebSocketEvent],
+  d: Dispatcher[F]
 ) extends BaseFront:
   val ctx = canvas.getContext("2d").asInstanceOf[CanvasRenderingContext2D]
   val socket = parseUri.toOption.map: track =>
@@ -36,11 +36,11 @@ class ChartsView[F[_]: Sync: Concurrent](
   *   1 = full accuracy, None = intelligent
   */
 class ChartSocket[F[_]: Sync: Concurrent](
-                                           ctx: CanvasRenderingContext2D,
-                                           track: TrackName,
-                                           sample: Option[Int],
-                                           messages: Topic[F, WebSocketEvent],
-                                           d: Dispatcher[F]
+  ctx: CanvasRenderingContext2D,
+  track: TrackName,
+  sample: Option[Int],
+  messages: Topic[F, WebSocketEvent],
+  d: Dispatcher[F]
 ) extends BoatSocket(Name(track), sample, messages, d):
   val events = Events(messages)
   val task = events.coordEvents

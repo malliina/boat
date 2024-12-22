@@ -5,13 +5,14 @@ import com.malliina.boat.db.Values.VesselUpdateId
 
 import java.time.{Instant, LocalDate, OffsetDateTime, ZoneOffset}
 import com.malliina.boat.parsing.GPSFix
-import com.malliina.boat.{AisUpdateId, BoatName, BoatToken, CarUpdateId, Coord, CoordHash, DateVal, DeviceId, Energy, FairwayLighting, InviteState, Language, Latitude, Longitude, MobileDevice, MonthVal, PushId, PushToken, RawSentence, SeaArea, SentenceKey, SourceType, TrackCanonical, TrackId, TrackName, TrackPointId, TrackTitle, UserToken, VesselRowId, YearVal}
+import com.malliina.boat.{AisUpdateId, BoatName, BoatToken, CarUpdateId, Coord, CoordHash, DateVal, DeviceId, Energy, FairwayLighting, InviteState, Language, Latitude, Longitude, MobileDevice, MonthVal, PushId, PushToken, RawSentence, SeaArea, SentenceKey, SourceType, TrackCanonical, TrackId, TrackName, TrackPointId, TrackTitle, UserToken, VesselName, VesselRowId, YearVal}
 import com.malliina.measure.{DistanceM, SpeedDoubleM, SpeedM, Temperature}
 import com.malliina.values.*
 import com.vividsolutions.jts.geom.Point
 import doobie.*
 import org.typelevel.ci.CIString
 import cats.syntax.show.toShow
+
 import scala.concurrent.duration.{DurationDouble, FiniteDuration}
 
 object Mappings extends Mappings
@@ -39,6 +40,7 @@ trait Mappings:
   given Meta[VesselRowId] = simple(VesselRowId)
   given Meta[AisUpdateId] = simple(AisUpdateId)
   given Meta[VesselUpdateId] = Meta[Long].timap(VesselUpdateId.apply)(_.raw)
+  given Meta[VesselName] = simple(VesselName)
   given Meta[FairwayId] = simple(FairwayId)
   given Meta[FairwayCoordId] = simple(FairwayCoordId)
   given Meta[TrackName] = simple(TrackName)
@@ -54,7 +56,7 @@ trait Mappings:
   given Meta[Username] = wrapped(Username.apply)
   given Meta[Email] = wrapped(Email.apply)
   given Meta[Language] = wrapped(Language.apply)
-  given Meta[CoordHash] = Meta[String].timap(CoordHash.apply)(_.hash)
+  given Meta[CoordHash] = Meta[String].timap(CoordHash.fromString)(_.hash)
   given Meta[Temperature] = Meta[Double].timap(Temperature.apply)(_.celsius)
   given Meta[DistanceM] = Meta[Double].timap(DistanceM.apply)(_.meters)
   given Meta[FiniteDuration] =

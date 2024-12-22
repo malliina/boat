@@ -238,11 +238,14 @@ object VesselLocation:
       timestamp <- propsCursor.downField("timestampExternal").as[Long]
     yield VesselLocation(mmsi, coord, sog, cog, heading, timestamp)
 
-case class VesselName(name: String) extends WrappedString:
-  override def value = name
+opaque type VesselName = String
 
-object VesselName extends StringCompanion[VesselName]:
+object VesselName extends ShowableString[VesselName]:
   val Key = "name"
+
+  override def apply(raw: String): VesselName = raw
+  override def write(t: VesselName): String = t
+  extension (vn: VesselName) def name: String = vn
 
 case class VesselMetadataV2(
   name: VesselName,
@@ -292,12 +295,16 @@ object VesselMetadata:
       timestamp <- c.downField("timestamp").as[Long]
       imo <- c.downField("imo").as[Long]
       eta <- c.downField("eta").as[Long]
-      draft <- c.downField("draught").as[Int].map { int =>
-        DistanceM(int.toDouble / 10)
-      }
-      destination <- c.downField("destination").as[String].map { s =>
-        if s.trim.nonEmpty then Option(s.trim) else None
-      }
+      draft <- c
+        .downField("draught")
+        .as[Int]
+        .map: int =>
+          DistanceM(int.toDouble / 10)
+      destination <- c
+        .downField("destination")
+        .as[String]
+        .map: s =>
+          if s.trim.nonEmpty then Option(s.trim) else None
       shipType <- c.downField("shipType").as[Int].map(int => ShipType(int))
       callSign <- c.downField("callSign").as[String]
     yield VesselMetadata(
@@ -315,9 +322,8 @@ object VesselMetadata:
 case class VesselStatus(json: Json) extends AISMessage
 
 object VesselStatus:
-  implicit val decoder: Decoder[VesselStatus] = Decoder.decodeJson.map { json =>
+  given Decoder[VesselStatus] = Decoder.decodeJson.map: json =>
     VesselStatus(json)
-  }
 
 object LocationsV2:
   def unapply(in: String): Boolean =

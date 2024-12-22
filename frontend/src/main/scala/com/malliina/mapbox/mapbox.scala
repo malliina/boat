@@ -3,7 +3,6 @@ package com.malliina.mapbox
 import cats.effect.Async
 import cats.syntax.all.toFunctorOps
 import com.malliina.boat.{AccessToken, Coord, Feature, FeatureCollection, JsonError, Latitude, Layer, Longitude, Parsing}
-import com.malliina.http.FullUrl
 import com.malliina.{OptionDoubleOps, OptionOps, OptionStringOps}
 import org.scalajs.dom
 import org.scalajs.dom.{HTMLCanvasElement, html}
@@ -91,17 +90,20 @@ trait PopupOptions extends js.Object:
   def className: js.UndefOr[String] = js.native
   def offset: js.UndefOr[Double] = js.native
   def closeButton: Boolean = js.native
+  def maxWidth: String = js.native
 
 object PopupOptions:
   def apply(
     className: Option[String] = None,
     offset: Option[Double] = None,
-    closeButton: Boolean = false
+    closeButton: Boolean = false,
+    maxWidth: String = "240px"
   ): PopupOptions =
     literal(
       className = className.any,
       offset = offset.any,
-      closeButton = closeButton
+      closeButton = closeButton,
+      maxWidth = maxWidth
     ).asInstanceOf[PopupOptions]
 
 @js.native
@@ -121,6 +123,8 @@ object MapboxPopup:
   implicit class PopupExt(val self: MapboxPopup) extends AnyVal:
     def show[T <: dom.Element](htmlPayload: TypedTag[T], coord: LngLatLike, on: MapboxMap): Unit =
       html(htmlPayload).setLngLat(coord).setMaxWidth("none").addTo(on)
+    def show2[T <: dom.Element](htmlPayload: TypedTag[T], coord: LngLatLike, on: MapboxMap): Unit =
+      html(htmlPayload).setLngLat(coord).addTo(on)
     def html[T <: dom.Element](html: TypedTag[T]): MapboxPopup =
       self.setHTML(html.render.outerHTML)
     def showText(text: String, coord: LngLatLike, on: MapboxMap): Unit =

@@ -10,56 +10,60 @@ import com.malliina.values.*
 import io.circe.generic.semiauto.deriveCodec
 import io.circe.syntax.EncoderOps
 import io.circe.{Codec, Decoder, DecodingFailure, Encoder, Json}
-import scalatags.generic.Bundle
 
 import scala.concurrent.duration.Duration
 import scala.language.implicitConversions
 import scala.math.Ordering.Double.TotalOrdering
 
-case class DayVal(day: Int) extends AnyVal with WrappedInt:
-  override def value = day
+opaque type DayVal = Int
 
 object DayVal extends JsonCompanion[Int, DayVal]:
-  override def write(t: DayVal) = t.day
+  override def apply(raw: Int): DayVal = raw
+  override def write(t: DayVal): Int = t
+  extension (dv: DayVal) def day: Int = dv
 
-case class MonthVal(month: Int) extends AnyVal with WrappedInt:
-  override def value = month
+opaque type MonthVal = Int
 
 object MonthVal extends JsonCompanion[Int, MonthVal]:
+  override def apply(raw: Int): MonthVal = raw
   override def write(t: MonthVal) = t.month
+  extension (mv: MonthVal) def month: Int = mv
 
-case class YearVal(year: Int) extends AnyVal with WrappedInt:
-  override def value = year
+opaque type YearVal = Int
 
 object YearVal extends JsonCompanion[Int, YearVal]:
-  override def write(t: YearVal) = t.year
+  override def apply(raw: Int): YearVal = raw
+  override def write(t: YearVal) = t
+  extension (yv: YearVal) def year: Int = yv
 
-trait WrappedInt extends Any:
-  def value: Int
-  override def toString = s"$value"
-
-case class Bearing(bearing: Int) extends AnyVal
+opaque type Bearing = Int
 
 object Bearing:
-  val north = apply(0)
-  val east = apply(90)
-  val south = apply(180)
-  val west = apply(270)
+  val north: Bearing = 0
+  val east: Bearing = 90
+  val south: Bearing = 180
+  val west: Bearing = 270
 
-case class FormattedTime(time: String) extends AnyVal with WrappedString:
-  override def value = time
+opaque type FormattedTime = String
 
-object FormattedTime extends StringCompanion[FormattedTime]
+object FormattedTime extends ShowableString[FormattedTime]:
+  override def apply(raw: String): FormattedTime = raw
+  override def write(t: FormattedTime): String = t
+  extension (ft: FormattedTime) def time: String = ft
 
-case class FormattedDate(date: String) extends AnyVal with WrappedString:
-  override def value = date
+opaque type FormattedDate = String
 
-object FormattedDate extends StringCompanion[FormattedDate]
+object FormattedDate extends ShowableString[FormattedDate]:
+  override def apply(raw: String): FormattedDate = raw
+  override def write(t: FormattedDate): String = t
+  extension (fd: FormattedDate) def date: String = fd
 
-case class FormattedDateTime(dateTime: String) extends AnyVal with WrappedString:
-  override def value = dateTime
+opaque type FormattedDateTime = String
 
-object FormattedDateTime extends StringCompanion[FormattedDateTime]
+object FormattedDateTime extends ShowableString[FormattedDateTime]:
+  override def apply(raw: String): FormattedDateTime = raw
+  override def write(t: FormattedDateTime): String = t
+  extension (fdt: FormattedDateTime) def dateTime: String = fdt
 
 case class Timing(
   date: FormattedDate,
@@ -76,6 +80,7 @@ case class Times(start: Timing, end: Timing, range: String) derives Codec.AsObje
   *   latitude aka y
   */
 opaque type Latitude = Double
+
 object Latitude extends ValidatedDouble[Latitude]:
   override def build(input: Double): Either[ErrorMessage, Latitude] =
     if input >= -90 && input <= 90 then Right(input)
@@ -90,6 +95,7 @@ object Latitude extends ValidatedDouble[Latitude]:
   *   longitude aka x
   */
 opaque type Longitude = Double
+
 object Longitude extends ValidatedDouble[Longitude]:
   override def build(input: Double): Either[ErrorMessage, Longitude] =
     if input >= -180 && input <= 180 then Right(input)
@@ -98,8 +104,13 @@ object Longitude extends ValidatedDouble[Longitude]:
   def unsafe(d: Double): Longitude = d
   extension (lng: Longitude) def lng: Double = lng
 
-case class CoordHash(hash: String) extends AnyVal:
-  override def toString: String = hash
+opaque type CoordHash = String
+
+object CoordHash:
+  def fromString(s: String): CoordHash = s
+  def from(c: Coord): CoordHash = c.approx
+
+  extension (ch: CoordHash) def hash: String = ch
 
 case class Coord(lng: Longitude, lat: Latitude):
   override def toString = s"($lng, $lat)"
@@ -111,7 +122,7 @@ case class Coord(lng: Longitude, lat: Latitude):
     val latStr = Coord.format(lat.lat)
     s"$lngStr,$latStr"
 
-  val hash = CoordHash(approx)
+  val hash: CoordHash = CoordHash.from(this)
 
 object Coord:
   val Key = "coord"
@@ -612,12 +623,8 @@ abstract class ValidatedDouble[T](implicit
   def fromString(s: String) =
     s.toDoubleOption.toRight(ErrorMessage(s"Not a double: '$s'.")).flatMap(build)
 
-class ModelHtml[Builder, Output <: FragT, FragT](val bundle: Bundle[Builder, Output, FragT]):
-  import bundle.all.{Frag, stringFrag}
-
-  implicit def wrappedFrag[T <: WrappedString](t: T): Frag = stringFrag(t.value)
-
 sealed abstract class SourceType(val name: String)
+
 object SourceType extends StringEnumCompanion[SourceType]:
   val Key = "sourceType"
   case object Vehicle extends SourceType("vehicle")

@@ -18,10 +18,11 @@ class Popups(lang: Lang) extends BoatModels:
 
   def parking(props: ParkingProps) =
     titledTable(parkingLang.parking)(
-      props.label.fold(empty)(text => row(parkingLang.description, text)),
-      props.validity.fold(empty)(v => row(parkingLang.validity, v)),
-      props.duration.fold(empty)(d => row(parkingLang.duration, d)),
-      props.residentialParkingSign.fold(empty)(rp => row(parkingLang.residentialParkingSign, rp))
+      props.label.fold(empty): text =>
+        row(parkingLang.description, text, valueClass = Option("tooltip-value")),
+      rowOpt(parkingLang.validity, props.validity),
+      rowOpt(parkingLang.duration, props.duration),
+      rowOpt(parkingLang.residentialParkingSign, props.residentialParkingSign)
     )
 
   def track(point: PointProps) =
@@ -38,9 +39,9 @@ class Popups(lang: Lang) extends BoatModels:
           row(trackLang.depth, point.depth.short)
         )
       else empty,
-      point.battery.fold(empty)(b => row(trackLang.battery, b.formatKwh)),
-      point.outsideTemp.fold(empty)(ot => row(trackLang.temperature, ot.formatCelsius)),
-      point.altitude.fold(empty)(a => row(trackLang.env.altitude, formatDistance(a))),
+      rowOpt(trackLang.battery, point.battery.map(_.formatKwh)),
+      rowOpt(trackLang.temperature, point.outsideTemp.map(_.formatCelsius)),
+      rowOpt(trackLang.env.altitude, point.altitude.map(formatDistance)),
       tr(td(colspan := 2)(point.dateTime))
     )
 
@@ -52,7 +53,7 @@ class Popups(lang: Lang) extends BoatModels:
   def ais(vessel: VesselInfo) =
 //    val unknownShip = vessel.shipType.isInstanceOf[ShipType.Unknown]
     titledTable(vessel.name)(
-      vessel.destination.fold(empty)(d => row(aisLang.destination, d)),
+      rowOpt(aisLang.destination, vessel.destination),
 //      if !unknownShip then row(aisLang.shipType, vessel.shipType.name(lang.shipTypes)) else empty,
       row(trackLang.speed, formatSpeed(vessel.sog)),
       row(aisLang.draft, formatDistance(vessel.draft)),
@@ -76,26 +77,23 @@ class Popups(lang: Lang) extends BoatModels:
   def mark(symbol: MarineSymbol) =
     titledTable(symbol.name(lang).fold("")(identity))(
       row(markLang.aidType, symbol.aidType.translate(markLang.aidTypes)),
-      symbol.construction
-        .fold(empty)(c => row(markLang.construction, c.translate(markLang.structures))),
+      rowOpt(markLang.construction, symbol.construction.map(_.translate(markLang.structures))),
       if symbol.navMark == NavMark.NotApplicable then empty
       else row(markLang.navigation, symbol.navMark.translate(markLang.navTypes)),
-      symbol.location(lang).fold(empty)(l => row(markLang.location, l)),
+      rowOpt(markLang.location, symbol.location(lang)),
       row(markLang.owner, symbol.ownerName(specialWords)),
       row(markLang.lit, if symbol.lit then markLang.yes else markLang.no)
     )
 
   def minimalMark(symbol: MinimalMarineSymbol) =
     titledTable(symbol.name(lang).fold("")(identity))(
-      symbol.trafficMarkType.fold(empty)(tmt =>
-        row(markLang.markType, tmt.translate(limitsLang.types))
-      ),
-      symbol.speed.fold(empty)(speed => row(limitsLang.magnitude, s"${speed.toKmh.toInt} km/h")),
-      symbol.location(lang).fold(empty)(l => row(markLang.location, l)),
+      rowOpt(markLang.markType, symbol.trafficMarkType.map(_.translate(limitsLang.types))),
+      rowOpt(limitsLang.magnitude, symbol.speed.map(speed => s"${speed.toKmh.toInt} km/h")),
+      rowOpt(markLang.location, symbol.location(lang)),
       symbol.influence.fold(empty)(i => row(markLang.influence, i.translate(fairwayLang.zones))),
       row(markLang.owner, symbol.ownerName(specialWords)),
-      symbol.extraInfo1.fold(empty)(e1 => row(markLang.extraInfo1, e1)),
-      symbol.extraInfo2.fold(empty)(e2 => row(markLang.extraInfo2, e2))
+      rowOpt(markLang.extraInfo1, symbol.extraInfo1),
+      rowOpt(markLang.extraInfo2, symbol.extraInfo2)
     )
 
   def fairway(fairway: FairwayArea, more: Modifier*) =
@@ -103,8 +101,7 @@ class Popups(lang: Lang) extends BoatModels:
       row(fairwayLang.fairwayType, fairway.fairwayType.translate(fairwayLang.types)),
       row(fairwayLang.fairwayDepth, asMeters(fairway.fairwayDepth)),
       row(fairwayLang.harrowDepth, asMeters(fairway.harrowDepth)),
-      fairway.markType
-        .fold(empty)(markType => row(markLang.markType, markType.translate(markLang.types))),
+      rowOpt(markLang.markType, fairway.markType.map(mt => mt.translate(markLang.types))),
       more
     )
 
@@ -127,9 +124,9 @@ class Popups(lang: Lang) extends BoatModels:
 
   private def limitContent(limit: LimitArea) = modifier(
     row(limitsLang.limit, describeItems(limit.describeTypes(limitsLang.types))),
-    limit.limit.fold(empty)(speed => row(limitsLang.magnitude, s"${speed.toKmh.toInt} km/h")),
-    limit.location.fold(empty)(l => row(limitsLang.location, l)),
-    limit.fairwayName.fold(empty)(f => row(limitsLang.fairwayName, f))
+    rowOpt(limitsLang.magnitude, limit.limit.map(speed => s"${speed.toKmh.toInt} km/h")),
+    rowOpt(limitsLang.location, limit.location),
+    rowOpt(limitsLang.fairwayName, limit.fairwayName)
   )
 
   private def describeItems(items: Seq[String]): Modifier =
@@ -157,5 +154,8 @@ class Popups(lang: Lang) extends BoatModels:
       )
     )
 
-  private def row(title: String, value: Modifier) =
-    tr(td(`class` := "popup-label")(title), td(value))
+  private def rowOpt(title: String, value: Option[String]) =
+    value.fold(empty)(v => row(title, v))
+
+  private def row(title: String, value: Modifier, valueClass: Option[String] = None) =
+    tr(td(`class` := "popup-label")(title), valueClass.fold(td(value))(vc => td(cls := vc)(value)))
