@@ -22,7 +22,7 @@ import scala.jdk.CollectionConverters.{CollectionHasAsScala, MapHasAsJava, Itera
 class ShapeUtils extends FunSuite:
   val userHome = Paths.get(sys.props("user.home"))
 
-  test("write shapefile to geojson with geographic WGS84") {
+  test("write shapefile to geojson with geographic WGS84".ignore) {
     val file = userHome.resolve(".boat/Pysakointipaikat_aluePolygon.shp")
     val fileOut = userHome.resolve(".boat/Pysakointipaikat_alue.json")
     val store = DataStoreFinder.getDataStore(Map("url" -> file.toUri.toString).asJava)
