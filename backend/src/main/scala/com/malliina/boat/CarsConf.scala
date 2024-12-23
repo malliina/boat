@@ -47,6 +47,7 @@ case class PermissionsLang(
   car: PermissionContent,
   location: PermissionContent,
   background: PermissionContent,
+  foreground: PermissionContent,
   all: PermissionContent
 ) derives Codec.AsObject
 
@@ -129,6 +130,10 @@ object CarLanguages:
           "This app needs background location access."
         ),
         PermissionContent(
+          "Grant access to run as a service",
+          "This app runs as a service in order to keep track of the car location also when the app is in the background."
+        ),
+        PermissionContent(
           "Grant app access to location and car",
           "This app needs access to location and car properties in order to save them to your Car-Map account."
         )
@@ -203,6 +208,10 @@ object CarLanguages:
           "Appen behöver tillgång till platsdata när den är i bakgrunden."
         ),
         PermissionContent(
+          "Ge appen rättigheter att fungera som en tjänst",
+          "Appen håller koll på bilens plats också i bakgrunden."
+        ),
+        PermissionContent(
           "Ge appen rättigheter till plats och bildata",
           "Appen behöver rättigheter för att kunna spara plats och bildata till ditt Car-Map konto."
         )
@@ -275,6 +284,10 @@ object CarLanguages:
         PermissionContent(
           "Anna sovellukselle lukuoikeudet sijaintitietoihin taustalla",
           "Sovellus tarvitsee oikeudet sijaintitietoihin taustalla."
+        ),
+        PermissionContent(
+          "Anna sovellukselle oikeudet toimia taustalla",
+          "Sovellus tallentaa auton sijainnin myös taustalla."
         ),
         PermissionContent(
           "Anna sovellukselle oikeudet lukea auton sijainti ja muut tiedot",
