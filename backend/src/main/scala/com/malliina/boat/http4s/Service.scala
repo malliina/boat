@@ -302,13 +302,14 @@ class Service[F[_]: Async: Files](
                   .flatMap: inserteds =>
                     val duration = System.currentTimeMillis() - start
                     ok(SimpleMessage(s"Saved ${inserteds.size} updates in $duration ms."))
+                  .onError: t =>
+                    F.delay(log.error(s"Failed to save car locations. Got '${body.asJson}'.", t))
                 val pushTask =
                   if result.isResumed then F.pure(())
                   else pushConnected(meta, body.updates.headOption.map(_.coord))
                 pushTask >> insertion
           .getOrElse:
             notFound(Errors(SingleError.input(s"Car not found: '${body.carId}'.")))
-//    case req @ GET -> Root / "parking" =>
     case req @ GET -> Root / "sign-in" =>
       val timeNow = now()
       req.cookies
