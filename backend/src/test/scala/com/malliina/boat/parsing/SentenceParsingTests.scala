@@ -41,7 +41,8 @@ class SentenceParsingTests extends BaseSuite:
           testDepth.offset,
           keys.map(SentenceKey.apply)
         ),
-        from
+        from,
+        None
       )
 
     val expected = List(
@@ -71,6 +72,6 @@ class SentenceParsingTests extends BaseSuite:
       )
     )
     val manager = TrackManager()
-    val processed = parsed.flatMap(s => fs2.Stream.emits(manager.update(s))).take(4)
+    val processed = parsed.flatMap(s => fs2.Stream.emits(manager.update(s, None))).take(4)
     val actual = processed.compile.toList.unsafeRunSync()
     assert(actual == expected)

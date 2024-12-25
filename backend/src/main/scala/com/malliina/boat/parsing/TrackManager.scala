@@ -1,6 +1,6 @@
 package com.malliina.boat.parsing
 
-import com.malliina.boat.TrackId
+import com.malliina.boat.{TrackId, UserAgent}
 
 import scala.annotation.unused
 
@@ -18,15 +18,15 @@ class TrackManager extends SentenceAggregator[TrackId, ParsedCoord, FullCoord]:
   // latest suitable date, if any
   private var latestDateTime: Map[TrackId, ParsedDateTime] = Map.empty
 
-  def update(event: ParsedSentence): List[FullCoord] = event match
+  def update(event: ParsedSentence, userAgent: Option[UserAgent]): List[FullCoord] = event match
     case pd @ ParsedDateTime(_, _, _) =>
       val track = pd.track
       latestDateTime = latestDateTime.updated(track, pd)
-      completed(track)
+      completed(track, userAgent)
     case pbs @ ParsedBoatSpeed(_, _) =>
       val track = pbs.track
       latestBoatSpeed = latestBoatSpeed.updated(track, pbs)
-      completed(track)
+      completed(track, userAgent)
     case ParsedWaterSpeed(_, _) =>
       // does not seem to contain data, let's ignore it for now
       //      latestWaterSpeed = latestWaterSpeed.updated(from.track, knots)
@@ -34,14 +34,14 @@ class TrackManager extends SentenceAggregator[TrackId, ParsedCoord, FullCoord]:
     case wd @ WaterDepth(_, _, _) =>
       val track = wd.track
       latestDepth = latestDepth.updated(track, wd)
-      completed(track)
+      completed(track, userAgent)
     case wt @ WaterTemperature(_, _) =>
       val track = wt.track
       latestWaterTemp = latestWaterTemp.updated(track, wt)
-      completed(track)
+      completed(track, userAgent)
     case coord @ ParsedCoord(_, _, _) =>
       val track = coord.track
-      val emittable = complete(track, List(coord))
+      val emittable = complete(track, List(coord), userAgent)
       if emittable.isEmpty then
         coords = coords.updated(track, coords.getOrElse(track, Nil) :+ coord)
       emittable
@@ -49,7 +49,11 @@ class TrackManager extends SentenceAggregator[TrackId, ParsedCoord, FullCoord]:
   /** @return
     *   true if complete, false otherwise
     */
-  override def complete(track: TrackId, buffer: List[ParsedCoord]): List[FullCoord] =
+  override def complete(
+    track: TrackId,
+    buffer: List[ParsedCoord],
+    userAgent: Option[UserAgent]
+  ): List[FullCoord] =
     (for
       dateTime <- latestDateTime.get(track)
       speed <- latestBoatSpeed.get(track)
@@ -64,6 +68,7 @@ class TrackManager extends SentenceAggregator[TrackId, ParsedCoord, FullCoord]:
         temp.temp,
         depth.depth,
         depth.offset,
-        sentenceKeys
+        sentenceKeys,
+        userAgent
       )
     ).getOrElse(Nil)

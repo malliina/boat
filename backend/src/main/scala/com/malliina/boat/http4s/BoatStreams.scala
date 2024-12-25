@@ -51,12 +51,12 @@ class BoatStreams[F[_]: Async](
   private val sentencesSource = boatIn
     .subscribe(maxQueued = 100)
     .collect:
-      case be @ BoatEvent(_, _) =>
+      case be @ BoatEvent(_, _, _) =>
         be
     .map: boatEvent =>
       boatEvent.message
         .as[SentencesMessage]
-        .map(_.toTrackEvent(boatEvent.from.short))
+        .map(_.toTrackEvent(boatEvent.from.short, boatEvent.userAgent))
         .left
         .map: err =>
           log.warn(s"Parse error $err for $boatEvent")
@@ -69,9 +69,9 @@ class BoatStreams[F[_]: Async](
           BoatParser
             .parseMulti(keyed)
             .toList
-            .flatMap: s =>
+            .flatMap: parsed =>
               // Because mapAsync(1), we can do non-thread-safe state management here
-              trackState.update(s)
+              trackState.update(parsed, s.userAgent)
     .flatMap(list => Stream.emits(list))
   private val inserted = emittable
     .mapAsync(1)(coord => saveRecovered(coord))

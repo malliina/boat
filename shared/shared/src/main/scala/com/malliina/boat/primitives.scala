@@ -2,7 +2,7 @@ package com.malliina.boat
 
 import cats.Show
 import cats.implicits.toShow
-import com.malliina.values.{JsonCompanion, Readable}
+import com.malliina.values.{ErrorMessage, JsonCompanion, Readable, err}
 import io.circe.{Codec, Decoder, Encoder}
 import org.typelevel.ci.CIString
 
@@ -75,3 +75,11 @@ opaque type PushToken = String
 object PushToken extends ShowableString[PushToken]:
   override def apply(raw: String): PushToken = raw
   override def write(t: PushToken): String = t
+
+opaque type UserAgent = String
+object UserAgent extends ShowableString[UserAgent]:
+  override def apply(raw: String): UserAgent = raw
+  override def build(input: String): Either[ErrorMessage, UserAgent] =
+    if input.isEmpty then Left(err"Input cannot be empty.")
+    else Right(input.trim.take(128))
+  override def write(t: UserAgent): String = t

@@ -154,11 +154,12 @@ class TrackInserter[F[_]: Async](val db: DoobieDatabase[F])
 
   def saveCoords(coord: PointInsert): F[InsertedPoint] = run:
     val track = coord.track
-    val trail =
+    val previous =
       sql"""select coord, track_index
             from points p
-            where p.track = $track"""
-    val previous = sql"$trail order by p.track_index desc limit 1".query[PreviousPoint].option
+            where p.track = $track order by p.track_index desc limit 1"""
+        .query[PreviousPoint]
+        .option
     for
       prev <- previous
       diff <- prev.map(p => computeDistance(p.coord, coord.coord)).getOrElse(pure(DistanceM.zero))
@@ -225,7 +226,7 @@ class TrackInserter[F[_]: Async](val db: DoobieDatabase[F])
   ): ConnectionIO[TrackPointId] =
     val b = c.boatStats
     val car = c.carStats
-    sql"""insert into points(longitude, latitude, coord, speed, water_temp, depthm, depth_offsetm, altitude, accuracy, bearing, bearing_accuracy, battery, car_range, outside_temperature, night_mode, source_time, track, track_index, diff)
+    sql"""insert into points(longitude, latitude, coord, speed, water_temp, depthm, depth_offsetm, altitude, accuracy, bearing, bearing_accuracy, battery, car_range, outside_temperature, night_mode, source_time, track, track_index, diff, user_agent)
           values(${c.lng},
             ${c.lat},
             ${c.coord},
@@ -244,7 +245,8 @@ class TrackInserter[F[_]: Async](val db: DoobieDatabase[F])
             ${c.sourceTime},
             ${c.track},
             $atIndex,
-            $diff)""".update
+            $diff,
+            ${c.userAgent})""".update
       .withUniqueGeneratedKeys[TrackPointId]("id")
 
   def dates(track: TrackId): ConnectionIO[List[DateVal]] =

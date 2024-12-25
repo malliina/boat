@@ -1,6 +1,6 @@
 package com.malliina.boat.parsing
 
-import com.malliina.boat.{Coord, Energy, InsertedPoint, KeyedSentence, LocationUpdate, RawSentence, SentenceKey, TimeFormatter, TimedCoord, TrackId, TrackMetaShort, TrackPointId}
+import com.malliina.boat.{Coord, Energy, InsertedPoint, KeyedSentence, LocationUpdate, RawSentence, SentenceKey, TimeFormatter, TimedCoord, TrackId, TrackMetaShort, TrackPointId, UserAgent}
 import com.malliina.measure.{DistanceM, SpeedM, Temperature}
 import com.malliina.values.{Degrees, ErrorMessage}
 
@@ -24,9 +24,18 @@ case class ParsedCoord(coord: Coord, ggaTime: LocalTime, sentence: KeyedSentence
     waterTemp: Temperature,
     depth: DistanceM,
     depthOffset: DistanceM,
-    parts: Seq[SentenceKey]
+    parts: Seq[SentenceKey],
+    userAgent: Option[UserAgent]
   ): FullCoord =
-    FullCoord(coord, time, date, boatSpeed, BoatStats(waterTemp, depth, depthOffset, parts), from)
+    FullCoord(
+      coord,
+      time,
+      date,
+      boatSpeed,
+      BoatStats(waterTemp, depth, depthOffset, parts),
+      from,
+      userAgent
+    )
 
 case class ParsedDateTime(date: LocalDate, time: LocalTime, sentence: KeyedSentence)
   extends ParsedSentence
@@ -67,6 +76,7 @@ trait PointInsert:
   def carStats: Option[CarStats]
   def sourceTime: Instant
   def track: TrackId
+  def userAgent: Option[UserAgent]
   def timed(id: TrackPointId, formatter: TimeFormatter): TimedCoord
 
 case class CarCoord(
@@ -74,7 +84,8 @@ case class CarCoord(
   speed: Option[SpeedM],
   stats: CarStats,
   sourceTime: Instant,
-  track: TrackId
+  track: TrackId,
+  userAgent: Option[UserAgent]
 ) extends PointInsert:
   override def speedOpt: Option[SpeedM] = speed
   override def boatStats: Option[BoatStats] = None
@@ -97,7 +108,7 @@ case class CarCoord(
   )
 
 object CarCoord:
-  def fromUpdate(loc: LocationUpdate, track: TrackId) = CarCoord(
+  def fromUpdate(loc: LocationUpdate, track: TrackId, userAgent: Option[UserAgent]) = CarCoord(
     loc.coord,
     loc.speed,
     CarStats(
@@ -111,7 +122,8 @@ object CarCoord:
       loc.nightMode
     ),
     loc.date.toInstant,
-    track
+    track,
+    userAgent
   )
 
 case class FullCoord(
@@ -120,7 +132,8 @@ case class FullCoord(
   date: LocalDate,
   speed: SpeedM,
   boat: BoatStats,
-  from: TrackMetaShort
+  from: TrackMetaShort,
+  userAgent: Option[UserAgent]
 ) extends PointInsert:
   val dateTime = date.atTime(time)
   val sourceTime = dateTime.toInstant(ZoneOffset.UTC)

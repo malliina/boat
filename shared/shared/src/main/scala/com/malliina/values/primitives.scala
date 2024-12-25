@@ -1,6 +1,6 @@
 package com.malliina.values
 
-import com.malliina.boat.{Coord, Latitude, Longitude}
+import com.malliina.boat.{Coord, Latitude, Longitude, UserAgent}
 
 import scala.quoted.{Expr, Quotes, quotes}
 
@@ -30,6 +30,8 @@ extension (s: String)
 extension (inline ctx: StringContext)
   inline def err(inline args: Any*): ErrorMessage =
     ${ Literals.ErrorMessageLiteralCtx('ctx, 'args) }
+  inline def ua(inline args: Any*): UserAgent =
+    ${ Literals.UserAgentLiteral('ctx, 'args) }
 
 extension [T](e: Either[ErrorMessage, T])
   def getUnsafe: T = e.fold(err => throw IllegalArgumentException(err.message), identity)
@@ -63,8 +65,17 @@ object Literals:
 
   object ErrorMessageLiteralCtx extends LiteralStringContext[ErrorMessage]:
     override def parse(in: String)(using Quotes): Either[ErrorMessage, Expr[ErrorMessage]] =
-      if in.nonEmpty then Right('{ ErrorMessage(${ Expr(in) }) })
-      else Left(ErrorMessage("Error message must be non-empty."))
+      ErrorMessage
+        .build(in)
+        .map: _ =>
+          '{ ErrorMessage.build(${ Expr(in) }).getUnsafe }
+
+  object UserAgentLiteral extends LiteralStringContext[UserAgent]:
+    override def parse(in: String)(using Quotes): Either[ErrorMessage, Expr[UserAgent]] =
+      UserAgent
+        .build(in)
+        .map: _ =>
+          '{ UserAgent.build(${ Expr(in) }).getUnsafe }
 
 trait LiteralInt[T]:
   def parse(in: Int)(using Quotes): Either[ErrorMessage, Expr[T]]

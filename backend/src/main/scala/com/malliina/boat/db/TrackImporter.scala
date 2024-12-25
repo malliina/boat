@@ -5,7 +5,7 @@ import cats.kernel.Eq
 import cats.syntax.all.toFunctorOps
 import com.malliina.boat.db.TrackImporter.{dateEq, log}
 import com.malliina.boat.parsing.*
-import com.malliina.boat.{InsertedPoint, KeyedSentence, RawSentence, SentencesEvent, TrackMetaShort}
+import com.malliina.boat.{InsertedPoint, InsertedSentences, RawSentence, SentencesEvent, TrackMetaShort, UserAgent}
 import com.malliina.util.AppLogger
 import fs2.{Chunk, Pipe, Stream, text}
 import fs2.io.file.{Files, Path}
@@ -31,15 +31,19 @@ class TrackImporter[F[_]: Files: Temporal](inserts: TrackInsertsDatabase[F])
     * @return
     *   number of points saved
     */
-  def saveFile(file: Path, track: TrackMetaShort): F[Long] = save(sentences(file), track)
+  def saveFile(file: Path, track: TrackMetaShort): F[Long] = save(sentences(file), track, None)
 
-  def save(source: Stream[F, RawSentence], track: TrackMetaShort): F[Long] =
+  def save(
+    source: Stream[F, RawSentence],
+    track: TrackMetaShort,
+    userAgent: Option[UserAgent]
+  ): F[Long] =
     val describe = s"track ${track.trackName} with boat ${track.boatName} by ${track.username}"
     val start = System.currentTimeMillis()
     val task = source
       .filter(_ != RawSentence.initialZda)
       .groupWithin(100, 500.millis)
-      .map(chunk => SentencesEvent(chunk.toList, track))
+      .map(chunk => SentencesEvent(chunk.toList, track, userAgent))
       .through(processor)
       .fold(0): (acc, point) =>
         val duration = 1.0d * (System.currentTimeMillis() - start) / 1000d
@@ -56,13 +60,17 @@ class TrackImporter[F[_]: Files: Temporal](inserts: TrackInsertsDatabase[F])
       .through(sentenceCompiler)
       .through(pointInserter)
 
-  private def sentenceInserter: Pipe[F, SentencesEvent, Seq[KeyedSentence]] =
-    _.evalMap(e => inserts.saveSentences(e))
+  private def sentenceInserter: Pipe[F, SentencesEvent, InsertedSentences] =
+    _.evalMap(e => inserts.saveSentences(e).map((kss) => InsertedSentences(kss, e.userAgent)))
 
-  private def sentenceCompiler: Pipe[F, Seq[KeyedSentence], FullCoord] =
+  private def sentenceCompiler: Pipe[F, InsertedSentences, FullCoord] =
     val state = TrackManager()
     _.flatMap: sentences =>
-      Stream.emits(BoatParser.parseMulti(sentences).flatMap(parsed => state.update(parsed)))
+      Stream.emits(
+        BoatParser
+          .parseMulti(sentences.sentences)
+          .flatMap(parsed => state.update(parsed, sentences.userAgent))
+      )
 
   private def pointInserter: Pipe[F, FullCoord, InsertedPoint] =
     _.mapAsync(1)(coord => inserts.saveCoords(coord))

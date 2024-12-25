@@ -5,7 +5,7 @@ import com.malliina.boat.db.Values.VesselUpdateId
 
 import java.time.{Instant, LocalDate, OffsetDateTime, ZoneOffset}
 import com.malliina.boat.parsing.GPSFix
-import com.malliina.boat.{AisUpdateId, BoatName, BoatToken, CarUpdateId, Coord, CoordHash, DateVal, DeviceId, Energy, FairwayLighting, InviteState, Language, Latitude, Longitude, MobileDevice, MonthVal, PushId, PushToken, RawSentence, SeaArea, SentenceKey, SourceType, TrackCanonical, TrackId, TrackName, TrackPointId, TrackTitle, UserToken, VesselName, VesselRowId, YearVal}
+import com.malliina.boat.{AisUpdateId, BoatName, BoatToken, CarUpdateId, Coord, CoordHash, DateVal, DeviceId, Energy, FairwayLighting, InviteState, Language, Latitude, Longitude, MobileDevice, MonthVal, PushId, PushToken, RawSentence, SeaArea, SentenceKey, SourceType, TrackCanonical, TrackId, TrackName, TrackPointId, TrackTitle, UserAgent, UserToken, VesselName, VesselRowId, YearVal}
 import com.malliina.measure.{DistanceM, SpeedDoubleM, SpeedM, Temperature}
 import com.malliina.values.*
 import com.vividsolutions.jts.geom.Point
@@ -78,6 +78,7 @@ trait Mappings:
     Meta[String].timap(s => Host.fromString(s).getOrElse(fail(s"Invalid host: '$s'.")))(_.show)
   given Meta[Port] =
     Meta[Int].timap(i => Port.fromInt(i).getOrElse(fail(s"Invalid port: '$i'.")))(_.value)
+  given Meta[UserAgent] = simple(UserAgent)
 
   private def simple[T, R: Meta, C <: JsonCompanion[R, T]](c: C): Meta[T] =
     Meta[R].timap(c.apply)(c.write)

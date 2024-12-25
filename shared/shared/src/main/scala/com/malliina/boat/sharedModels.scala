@@ -493,7 +493,11 @@ case class CoordsBatch(events: Seq[CoordsEvent]) extends FrontEvent derives Code
   override def isIntendedFor(user: MinimalUserInfo): Boolean =
     events.forall(_.isIntendedFor(user))
 
-case class SentencesEvent(sentences: Seq[RawSentence], from: TrackMetaShort) extends BoatFrontEvent
+case class SentencesEvent(
+  sentences: Seq[RawSentence],
+  from: TrackMetaShort,
+  userAgent: Option[UserAgent]
+) extends BoatFrontEvent
 
 object SentencesEvent:
   val Key = "sentences"
@@ -560,16 +564,17 @@ object FrontEvent:
     Decoder[NoDataEvent].widen
   ).reduceLeft(_ or _)
   given Encoder[FrontEvent] =
-    case se @ SentencesEvent(_, _) => se.asJson
-    case ce @ CoordsEvent(_, _)    => ce.asJson
-    case cb @ CoordsBatch(_)       => cb.asJson
-    case pe @ PingEvent(_, _)      => pe.asJson
-    case vs @ VesselMessages(_)    => vs.asJson
-    case le @ LoadingEvent(_)      => le.asJson
-    case nd @ NoDataEvent(_)       => nd.asJson
+    case se @ SentencesEvent(_, _, _) => se.asJson
+    case ce @ CoordsEvent(_, _)       => ce.asJson
+    case cb @ CoordsBatch(_)          => cb.asJson
+    case pe @ PingEvent(_, _)         => pe.asJson
+    case vs @ VesselMessages(_)       => vs.asJson
+    case le @ LoadingEvent(_)         => le.asJson
+    case nd @ NoDataEvent(_)          => nd.asJson
 
 case class SentencesMessage(sentences: Seq[RawSentence]):
-  def toTrackEvent(from: TrackMetaShort) = SentencesEvent(sentences, from)
+  def toTrackEvent(from: TrackMetaShort, userAgent: Option[UserAgent]) =
+    SentencesEvent(sentences, from, userAgent)
 
 object SentencesMessage:
   val Key = "sentences"

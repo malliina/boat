@@ -54,7 +54,7 @@ class TracksImporter extends MUnitSuite:
     inserts
       .joinAsSource(user)
       .flatMap: track =>
-        importer.save(importer.sentencesForDay(file, day), track.track.short)
+        importer.save(importer.sentencesForDay(file, day), track.track.short, None)
 
   def splitTracksByDate(oldTrack: TrackId, db: TrackInserter[IO]) =
     def createAndUpdateTrack(date: DateVal) =

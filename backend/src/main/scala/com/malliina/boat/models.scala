@@ -268,8 +268,8 @@ case class JoinResult(track: TrackMeta, isResumed: Boolean)
 sealed trait InputEvent
 
 case object EmptyEvent extends InputEvent
-case class BoatEvent(message: Json, from: TrackMeta) extends InputEvent
-case class DeviceEvent(message: Json, from: IdentifiedDeviceMeta) extends InputEvent
+case class BoatEvent(message: Json, from: TrackMeta, userAgent: Option[UserAgent])
+  extends InputEvent
 
 case class BoatJsonError(error: DecodingFailure, boat: BoatEvent)
 
@@ -359,6 +359,8 @@ object SentenceKey extends BoatLong[SentenceKey]:
   override def write(t: SentenceKey): Long = t
 
 case class KeyedSentence(key: SentenceKey, sentence: RawSentence, from: TrackMetaShort)
+
+case class InsertedSentences(sentences: Seq[KeyedSentence], userAgent: Option[UserAgent])
 
 case class SentenceRow(id: SentenceKey, sentence: RawSentence, track: TrackId, added: Instant)
   derives Codec.AsObject:

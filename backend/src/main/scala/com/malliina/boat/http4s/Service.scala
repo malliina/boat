@@ -14,7 +14,7 @@ import com.malliina.boat.http.*
 import com.malliina.boat.http.InviteResult.{AlreadyInvited, Invited, UnknownEmail}
 import com.malliina.http4s.BasicService.noCache
 import com.malliina.boat.http4s.BoatBasicService.{cached, ranges}
-import com.malliina.boat.http4s.Service.{isSecured, log}
+import com.malliina.boat.http4s.Service.{isSecured, log, userAgent}
 import com.malliina.boat.parsing.CarCoord
 import com.malliina.boat.push.SourceState
 import com.malliina.http.{CSRFConf, Errors, SingleError}
@@ -29,7 +29,8 @@ import fs2.{Pipe, Stream}
 import io.circe.parser.parse
 import io.circe.syntax.EncoderOps
 import io.circe.{Decoder, Json}
-import org.http4s.headers.{Location, `Content-Type`}
+import org.http4s.headers.{Location, `Content-Type`, `User-Agent`}
+import org.http4s.implicits.http4sHeaderSyntax
 import org.http4s.server.middleware.CSRF
 import org.http4s.server.websocket.WebSocketBuilder2
 import org.http4s.websocket.WebSocketFrame
@@ -44,7 +45,11 @@ import scala.concurrent.duration.DurationInt
 object Service:
   private val log = AppLogger(getClass)
 
-  extension [F[_]](req: Request[F]) def isSecured: Boolean = Urls.isSecure(req)
+  extension [F[_]](req: Request[F])
+    def isSecured: Boolean = Urls.isSecure(req)
+    def userAgent = req.headers
+      .get[`User-Agent`]
+      .flatMap(h => UserAgent.build(h.value).toOption)
 
 class Service[F[_]: Async: Files](
   comps: BoatComps[F],
@@ -298,7 +303,7 @@ class Service[F[_]: Async: Files](
                 )
                 val insertion = body.updates
                   .traverse: loc =>
-                    streams.saveCarCoord(CarCoord.fromUpdate(loc, meta.track))
+                    streams.saveCarCoord(CarCoord.fromUpdate(loc, meta.track, req.userAgent))
                   .flatMap: inserteds =>
                     val duration = System.currentTimeMillis() - start
                     ok(SimpleMessage(s"Saved ${inserteds.size} updates in $duration ms."))
@@ -467,7 +472,7 @@ class Service[F[_]: Async: Files](
                         ),
                       parsed =>
                         streams.boatIn
-                          .publish1(BoatEvent(parsed, meta))
+                          .publish1(BoatEvent(parsed, meta, req.userAgent))
                           .map: e =>
                             e.fold(
                               err =>
