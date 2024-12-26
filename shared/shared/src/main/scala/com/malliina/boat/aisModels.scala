@@ -125,10 +125,12 @@ object PosType:
     case 15 => InternalGNSS
     case n  => Other(n)
 
-case class Mmsi(id: Long) extends WrappedId
+opaque type Mmsi = Long
 
-object Mmsi extends IdCompanion[Mmsi]:
+object Mmsi extends JsonCompanion[Long, Mmsi]:
   val Key = "mmsi"
+  override def apply(raw: Long): Mmsi = raw
+  override def write(t: Mmsi): Long = t
 
   def parse(str: String): Either[ErrorMessage, Mmsi] =
     str.toLongOption.toRight(ErrorMessage(s"Invalid Mmsi: '$str'.")).flatMap(build)

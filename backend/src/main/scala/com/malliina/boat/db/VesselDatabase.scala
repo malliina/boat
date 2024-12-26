@@ -22,7 +22,7 @@ trait VesselDatabase[F[_]]:
 object BoatVesselDatabase:
   private val log = AppLogger(getClass)
 
-  def collect(rows: List[VesselRow]): List[VesselHistory] =
+  private def collect(rows: List[VesselRow]): List[VesselHistory] =
     rows
       .foldLeft(Vector.empty[VesselHistory]): (acc, row) =>
         val idx = acc.indexWhere(_.mmsi == row.mmsi)
@@ -39,25 +39,40 @@ class BoatVesselDatabase[F[_]: Async](db: DoobieDatabase[F])
   override def load(query: VesselQuery): F[List[VesselHistory]] = db.run:
     val time = query.time
     val limits = query.limits
-    val conditions = Fragments.whereAndOpt(
+    val whereMmsis = Fragments.whereAndOpt(
       query.names.toList.toNel.map(ns => Fragments.in(fr"v.name", ns)),
-      query.mmsis.toList.toNel.map(ms => Fragments.in(fr"v.mmsi", ms)),
-      time.from.map(f => fr"u.added >= $f"),
-      time.to.map(t => fr"u.added <= $t")
+      query.mmsis.toList.toNel.map(ms => Fragments.in(fr"v.mmsi", ms))
     )
-    val start = System.currentTimeMillis()
-    sql"""select u.id, v.mmsi, v.name, u.coord, u.sog, u.cog, v.draft, u.destination, u.heading, u.eta, u.added
-          from mmsis v join mmsi_updates u on v.mmsi = u.mmsi $conditions
-          order by u.added desc
-          limit ${limits.limit} offset ${limits.offset}"""
-      .query[VesselRow]
-      .to[List]
-      .map: rows =>
-        val durationMs = System.currentTimeMillis() - start
-        log.info(
-          s"Searched for vessels with ${query.describe}. Got ${rows.length} rows in $durationMs ms."
-        )
-        collect(rows)
+    val mmsiFilter =
+      if query.names.nonEmpty || query.mmsis.nonEmpty then
+        sql"""select v.mmsi from mmsis v $whereMmsis"""
+          .query[Mmsi]
+          .to[List]
+      else pure(Nil)
+    mmsiFilter.flatMap: mmsis =>
+      val whereUpdates = Fragments.whereAndOpt(
+        time.from.map(f => fr"mu.added >= $f"),
+        time.to.map(t => fr"mu.added <= $t"),
+        mmsis.toNel.map(list => Fragments.in(fr"mu.mmsi", list))
+      )
+      val start = System.currentTimeMillis()
+      sql"""select u.id, v.mmsi, v.name, u.coord, u.sog, u.cog, v.draft, u.destination, u.heading, u.eta, u.added
+            from mmsis v
+            join (select mu.id, mu.mmsi, mu.destination, mu.heading, mu.coord, mu.sog, mu.cog, mu.eta, mu.added
+                  from mmsi_updates mu
+                  $whereUpdates
+                  order by mu.added desc
+                  limit ${limits.limit} offset ${limits.offset}) u on v.mmsi = u.mmsi
+            order by u.added desc
+            """
+        .query[VesselRow]
+        .to[List]
+        .map: rows =>
+          val durationMs = System.currentTimeMillis() - start
+          log.info(
+            s"Searched for vessels with ${query.describe}. Got ${rows.length} rows in $durationMs ms."
+          )
+          collect(rows)
 
   def save(messages: Seq[VesselInfo]): F[List[VesselUpdateId]] =
     val io = for

@@ -5,7 +5,7 @@ import com.malliina.boat.db.Values.VesselUpdateId
 
 import java.time.{Instant, LocalDate, OffsetDateTime, ZoneOffset}
 import com.malliina.boat.parsing.GPSFix
-import com.malliina.boat.{AisUpdateId, BoatName, BoatToken, CarUpdateId, Coord, CoordHash, DateVal, DeviceId, Energy, FairwayLighting, InviteState, Language, Latitude, Longitude, MobileDevice, MonthVal, PushId, PushToken, RawSentence, SeaArea, SentenceKey, SourceType, TrackCanonical, TrackId, TrackName, TrackPointId, TrackTitle, UserAgent, UserToken, VesselName, VesselRowId, YearVal}
+import com.malliina.boat.{AisUpdateId, BoatName, BoatToken, CarUpdateId, Coord, CoordHash, DateVal, DeviceId, Energy, FairwayLighting, InviteState, Language, Latitude, Longitude, Mmsi, MobileDevice, MonthVal, PushId, PushToken, RawSentence, SeaArea, SentenceKey, SourceType, TrackCanonical, TrackId, TrackName, TrackPointId, TrackTitle, UserAgent, UserToken, VesselName, VesselRowId, YearVal}
 import com.malliina.measure.{DistanceM, SpeedDoubleM, SpeedM, Temperature}
 import com.malliina.values.*
 import com.vividsolutions.jts.geom.Point
@@ -40,6 +40,7 @@ trait Mappings:
   given Meta[VesselRowId] = simple(VesselRowId)
   given Meta[AisUpdateId] = simple(AisUpdateId)
   given Meta[VesselUpdateId] = Meta[Long].timap(VesselUpdateId.apply)(_.raw)
+  given Meta[Mmsi] = simple(Mmsi)
   given Meta[VesselName] = simple(VesselName)
   given Meta[FairwayId] = simple(FairwayId)
   given Meta[FairwayCoordId] = simple(FairwayCoordId)

@@ -150,7 +150,7 @@ object BoatConf:
   )
 
   private def devDatabaseConf(password: String) = Conf(
-    "jdbc:mysql://localhost:3306/boat",
+    "jdbc:mysql://localhost:3307/boat",
     "boat",
     password,
     Conf.MySQLDriver,

@@ -101,7 +101,7 @@ class MapView[F[_]: Async](
     case _                => TimeLocale.En
   val socket: MapSocket[F] =
     MapSocket(map, pathFinder, mode, messages, http.dispatcher, lang, log)
-  private val events = socket.events.coordEvents
+  val events = socket.events.coordEvents
     .debounce(2.seconds)
     .tap: e =>
       socket.fitToMap()
