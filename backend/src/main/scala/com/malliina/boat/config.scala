@@ -6,7 +6,7 @@ import com.malliina.config.{ConfigError, ConfigNode, ConfigReadable, Env}
 import com.malliina.database.Conf
 import com.malliina.push.apns.{KeyId, TeamId}
 import com.malliina.util.FileUtils
-import com.malliina.values.ErrorMessage
+import com.malliina.values.{ErrorMessage, Password}
 import com.malliina.web.{AuthConf, ClientId, ClientSecret, SignInWithApple}
 
 import java.nio.file.Path
@@ -104,7 +104,7 @@ object BoatConf:
     val isStaging = envName.contains("staging")
     val isProd = envName.contains("prod")
     for
-      dbPass <- c.parse[String]("db.pass")
+      dbPass <- c.parse[Password]("db.pass")
       mapboxToken <- c.parse[AccessToken]("mapbox.token")
       secret <-
         if BuildInfo.isProd then c.parse[SecretKey]("secret")
@@ -139,20 +139,20 @@ object BoatConf:
       )
     )
 
-  private def prodDbConf(password: String, maxPoolSize: Int) = Conf(
+  private def prodDbConf(password: Password, maxPoolSize: Int) = Conf(
     "jdbc:mysql://localhost:3306/boat",
     "boat",
-    password,
+    password.pass,
     Conf.MySQLDriver,
     maxPoolSize = maxPoolSize,
     autoMigrate = true,
     schemaTable = "flyway_schema_history2"
   )
 
-  private def devDatabaseConf(password: String) = Conf(
-    "jdbc:mysql://localhost:3306/boat",
+  private def devDatabaseConf(password: Password) = Conf(
+    "jdbc:mysql://localhost:3307/boat",
     "boat",
-    password,
+    password.pass,
     Conf.MySQLDriver,
     maxPoolSize = 2,
     autoMigrate = false,

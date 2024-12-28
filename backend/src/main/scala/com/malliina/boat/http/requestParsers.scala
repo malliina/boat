@@ -106,6 +106,18 @@ abstract class EnumLike[T <: Named]:
         e.flatMap: s =>
           all.find(_.name == s).toRight(Errors(SingleError.input(s"Unknown $key value: '$s'.")))
 
+case class VesselsQuery(term: Option[String], limits: Limits) derives Codec.AsObject
+
+object VesselsQuery:
+//  given QueryParamDecoder[NonBlank] =
+//    QueryParsers.decoder[NonBlank](NonBlank.apply)
+
+  def query(q: Query): Either[Errors, VesselsQuery] =
+    for
+      term <- QueryParsers.parseOptE[String](q, "term")
+      limits <- LimitsBuilder(q)
+    yield VesselsQuery(term.filter(_.nonEmpty), limits)
+
 case class VesselQuery(
   names: Seq[VesselName],
   mmsis: Seq[Mmsi],

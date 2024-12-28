@@ -149,6 +149,11 @@ object VesselUpdate:
 case class VesselHistory(mmsi: Mmsi, name: VesselName, draft: DistanceM, updates: Seq[VesselUpdate])
   derives Codec.AsObject
 
+case class VesselResult(mmsi: Mmsi, name: VesselName, draft: DistanceM, added: Instant)
+  derives Codec.AsObject
+
+case class VesselsResponse(vessels: List[VesselResult]) derives Codec.AsObject
+
 object Values:
   opaque type RowsChanged = Int
 

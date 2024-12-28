@@ -4,8 +4,8 @@ import cats.effect.Async
 import cats.implicits.*
 import com.malliina.boat.db.BoatVesselDatabase.{collect, log}
 import com.malliina.boat.db.Values.{RowsChanged, VesselUpdateId}
-import com.malliina.boat.http.VesselQuery
-import com.malliina.boat.{Mmsi, VesselInfo, VesselRowId}
+import com.malliina.boat.http.{VesselQuery, VesselsQuery}
+import com.malliina.boat.{Mmsi, VesselInfo, VesselName, VesselRowId}
 import com.malliina.database.DoobieDatabase
 import com.malliina.util.AppLogger
 import doobie.*
@@ -16,6 +16,7 @@ import doobie.util.log.{LoggingInfo, Parameters}
 import scala.annotation.unused
 
 trait VesselDatabase[F[_]]:
+  def vessels(query: VesselsQuery): F[List[VesselResult]]
   def load(query: VesselQuery): F[List[VesselHistory]]
   def save(messages: Seq[VesselInfo]): F[List[VesselUpdateId]]
 
@@ -36,6 +37,17 @@ object BoatVesselDatabase:
 class BoatVesselDatabase[F[_]: Async](db: DoobieDatabase[F])
   extends VesselDatabase[F]
   with DoobieSQL:
+
+  def vessels(query: VesselsQuery): F[List[VesselResult]] = db.run:
+    val limits = query.limits
+    val where = Fragments.whereAndOpt(
+      query.term.map(t => s"$t%").map(t => fr"v.name like $t")
+    )
+    sql"""select v.mmsi, v.name, v.draft, v.added
+          from mmsis v $where
+          order by v.name
+          limit ${limits.limit} offset ${limits.offset}""".query[VesselResult].to[List]
+
   override def load(query: VesselQuery): F[List[VesselHistory]] = db.run:
     val time = query.time
     val limits = query.limits

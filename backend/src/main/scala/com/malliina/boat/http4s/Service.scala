@@ -247,6 +247,12 @@ class Service[F[_]: Async: Files](
         ref <- db.ref(trackName, lang)
         response <- ok(html(req).chart(ref, BoatLang(lang)))
       yield response
+    case req @ GET -> Root / "vessels" / "names" =>
+      for
+        authed <- authedQuery(req, VesselsQuery.query)
+        rows <- comps.vessels.vessels(authed.query)
+        response <- ok(VesselsResponse(rows))
+      yield response
     case req @ GET -> Root / "vessels" =>
       val handler = for
         authed <- authedQuery(req, VesselQuery.query)
