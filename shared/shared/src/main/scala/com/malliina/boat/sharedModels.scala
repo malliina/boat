@@ -460,6 +460,10 @@ case class TrackSummaries(tracks: Seq[TrackSummary]) derives Codec.AsObject
 
 case class Tracks(tracks: Seq[TrackRef]) derives Codec.AsObject
 
+case class Vessel(mmsi: Mmsi, name: VesselName, draft: DistanceM) derives Codec.AsObject
+
+case class Vessels(vessels: List[Vessel]) derives Codec.AsObject
+
 case class CoordsEvent(coords: List[TimedCoord], from: TrackRef) extends BoatFrontEvent:
   def isEmpty = coords.isEmpty
   def sample(every: Int): CoordsEvent =

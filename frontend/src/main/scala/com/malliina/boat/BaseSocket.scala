@@ -17,18 +17,16 @@ class BaseSocket[F[_]](
   messages: Topic[F, WebSocketEvent],
   d: Dispatcher[F],
   val log: BaseLogger = BaseLogger.console
-):
+) extends BaseDispatcher(d):
   val socket: dom.WebSocket = openSocket(wsPath)
 
   private def openSocket(pathAndQuery: String) =
     val url = wsBaseUrl.append(pathAndQuery)
     val socket = new dom.WebSocket(url.url)
-    socket.onopen = (e: Event) => d.unsafeRunAndForget(messages.publish1(WebSocketEvent.Open(e)))
-    socket.onmessage = (e: MessageEvent) =>
-      d.unsafeRunAndForget(messages.publish1(WebSocketEvent.Message(e)))
-    socket.onclose = (e: CloseEvent) =>
-      d.unsafeRunAndForget(messages.publish1(WebSocketEvent.Close(e)))
-    socket.onerror = (e: Event) => d.unsafeRunAndForget(messages.publish1(WebSocketEvent.Error(e)))
+    socket.onopen = (e: Event) => messages.dispatch(WebSocketEvent.Open(e))
+    socket.onmessage = (e: MessageEvent) => messages.dispatch(WebSocketEvent.Message(e))
+    socket.onclose = (e: CloseEvent) => messages.dispatch(WebSocketEvent.Close(e))
+    socket.onerror = (e: Event) => messages.dispatch(WebSocketEvent.Error(e))
     socket
 
   private def wsBaseUrl: FullUrl =
@@ -37,3 +35,9 @@ class BaseSocket[F[_]](
     FullUrl(wsProto, location.host, "")
 
   def close(): Unit = socket.close()
+
+class BaseDispatcher[F[_]](d: Dispatcher[F]):
+  def dispatch[T](task: F[T]): Unit = d.unsafeRunAndForget(task)
+
+  extension [T](topic: Topic[F, T])
+    def dispatch(t: T): Unit = d.unsafeRunAndForget(topic.publish1(t))

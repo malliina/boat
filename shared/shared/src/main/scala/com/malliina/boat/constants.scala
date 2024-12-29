@@ -34,6 +34,10 @@ trait DatePickerKeys:
   val ShortcutsId = "time-shortcuts-select"
   val LoadingSpinnerId = "loading-spinner"
 
+trait VesselSearchKeys:
+  val VesselInputId = "vessels-input"
+  val VesselOptionsId = "vessels-options"
+
 trait Named:
   def name: String
 
@@ -78,6 +82,7 @@ trait FrontKeys
   with NavKeys
   with AboutKeys
   with DatePickerKeys
+  with VesselSearchKeys
   with FilterKeys:
   val ChartsId = "charts"
   val Close = "close"

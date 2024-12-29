@@ -1,8 +1,9 @@
 package com.malliina.boat
 
 import cats.effect.{Async, Resource}
-import cats.implicits.{toFunctorOps, toFlatMapOps}
+import cats.implicits.{toFlatMapOps, toFunctorOps}
 import com.malliina.boat.MapView.MapEvent
+import com.malliina.boat.MapView.MapEvent.SearchVessels
 import com.malliina.datepicker.{TempusDominus, TimeLocale, TimeRestrictions, updateDate}
 import com.malliina.http.Http
 import com.malliina.mapbox.*
@@ -12,6 +13,8 @@ import fs2.concurrent.Topic
 import io.circe.*
 import io.circe.syntax.EncoderOps
 import org.scalajs.dom.*
+import scalatags.JsDom.all.*
+import BoatModels.showAttr
 
 import scala.concurrent.duration.DurationInt
 import scala.scalajs.js.{Date, JSON, URIUtils}
@@ -20,6 +23,7 @@ object MapView extends CookieNames:
   enum MapEvent:
     case Load(center: Coord)
     case MoveEnd(center: Coord)
+    case SearchVessels(term: Option[String])
 
   def default[F[_]: Async](
     messages: Topic[F, WebSocketEvent],
@@ -54,7 +58,9 @@ class MapView[F[_]: Async](
   mapEvents: Topic[F, MapEvent],
   http: Http[F],
   val log: BaseLogger = BaseLogger.console
-) extends BaseFront:
+) extends BaseDispatcher(http.dispatcher)
+  with BaseFront:
+  given AttrValue[VesselName] = showAttr[VesselName]
   val F = Async[F]
   mapboxGl.accessToken = accessToken.token
   val lang = Lang(language)
@@ -102,25 +108,30 @@ class MapView[F[_]: Async](
   val socket: MapSocket[F] =
     MapSocket(map, pathFinder, mode, messages, http.dispatcher, lang, log)
   val events = socket.events.coordEvents
-    .debounce(2.seconds)
+    .debounce(1.seconds)
     .tap: e =>
       socket.fitToMap()
-  private val mapEventHandler = mapEvents
-    .subscribe(10)
-    .map:
+  private val eventStream = mapEvents.subscribe(10)
+  private val mapEventHandler = eventStream
+    .collect:
       case MapEvent.Load(center) => center
       case MapEvent.MoveEnd(center) =>
-        onMoveEnd(center)
+        saveCamera(center)
         center
-//    .changes
     .switchMap: center =>
       Stream.eval(fetchHistory(center))
+  private val searches = eventStream
+    .collect:
+      case SearchVessels(term) => term
+    .switchMap: term =>
+      Stream.eval(searchVessels(term))
 
-  val runnables = events.concurrently(socket.task).concurrently(mapEventHandler)
+  val runnables =
+    events.concurrently(socket.task).concurrently(mapEventHandler).concurrently(searches)
   map.on(
     "load",
     () =>
-      http.dispatcher.unsafeRunAndForget(mapEvents.publish1(MapEvent.Load(mapCenter)))
+      mapEvents.dispatch(MapEvent.Load(mapCenter))
       reconnect()
       if initialSettings.customCenter then
         map.putLayer(
@@ -134,18 +145,14 @@ class MapView[F[_]: Async](
 
   map.on(
     "moveend",
-    () =>
-      http.dispatcher.unsafeRunAndForget(
-        mapEvents.publish1(MapEvent.MoveEnd(mapCenter))
-      )
+    () => mapEvents.dispatch(MapEvent.MoveEnd(mapCenter))
   )
 
   private def mapCenter = LngLat.coord(map.getCenter())
 
-  private def onMoveEnd(coord: Coord) =
+  private def saveCamera(coord: Coord): Unit =
     val camera = MapCamera(coord, map.getZoom(), false)
     settings.save(camera)
-    fetchHistory(coord)
 
   private def fetchHistory(coord: Coord): F[Seq[Unit]] =
     val query =
@@ -161,6 +168,25 @@ class MapView[F[_]: Async](
         log.info(s"Fetched history, got ${coords.size} tracks near $coord")
         coords.map: event =>
           socket.onCoordsHistory(event)
+
+  elemAs[HTMLInputElement](VesselInputId).map: in =>
+    in.onkeyup = e =>
+      // A mouse click also triggers this event for some reason...
+      val isKeyboard = e.isInstanceOf[KeyboardEvent]
+      if isKeyboard then
+        val term = Option(in.value).filter(_.nonEmpty)
+        mapEvents.dispatch(SearchVessels(term))
+
+  private def searchVessels(term: Option[String]): F[Either[NotFound, Unit]] =
+    val uri = term.fold("vessels/names")(t => s"vessels/names?term=$t")
+    http.client
+      .get[Vessels](uri)
+      .map: vessels =>
+        elemAs[HTMLDataListElement](VesselOptionsId).map: datalist =>
+          datalist.innerHTML = ""
+          vessels.vessels.map: v =>
+            datalist.appendChild(option(value := v.name).render)
+          log.info(s"Options has ${datalist.options.size} items")
 
   elem(ModalId).foreach(initModal)
 
@@ -246,9 +272,9 @@ class MapView[F[_]: Async](
       htmlElem(contentId).foreach: content =>
         link.addOnClick(_ => toggleClass(content, Visible))
         window.addOnClick: e =>
-          if e.target.isOutside(content) && e.target.isOutside(link) && content.classList.contains(
-              Visible
-            )
+          if e.target.isOutside(content) &&
+            e.target.isOutside(link) &&
+            content.classList.contains(Visible)
           then content.classList.remove(Visible)
 
   private def toggleClass(e: HTMLElement, className: String): Unit =

@@ -1,8 +1,7 @@
 package com.malliina.boat
 
 import com.malliina.boat.FrontKeys.Hidden
-import org.scalajs.dom.{Element, Event}
-import org.scalajs.dom.{DOMList, EventTarget, HTMLElement, Node}
+import org.scalajs.dom.{DOMList, Element, Event, EventTarget, HTMLElement, Node}
 
 given [T <: Node]: Conversion[DOMList[T], NodeListSeq[T]] = domList => NodeListSeq(domList)
 

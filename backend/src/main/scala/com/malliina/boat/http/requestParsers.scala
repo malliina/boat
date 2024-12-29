@@ -109,9 +109,6 @@ abstract class EnumLike[T <: Named]:
 case class VesselsQuery(term: Option[String], limits: Limits) derives Codec.AsObject
 
 object VesselsQuery:
-//  given QueryParamDecoder[NonBlank] =
-//    QueryParsers.decoder[NonBlank](NonBlank.apply)
-
   def query(q: Query): Either[Errors, VesselsQuery] =
     for
       term <- QueryParsers.parseOptE[String](q, "term")
