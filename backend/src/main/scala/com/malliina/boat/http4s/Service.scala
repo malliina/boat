@@ -64,6 +64,7 @@ class Service[F[_]: Async: Files](
   private def html(req: Request[F]) = if isCar(req) then comps.carHtml else comps.boatHtml
   private def isCar(req: Request[F]): Boolean = Urls.hostOnly(req).host.endsWith("car-map.com")
   val db = comps.db
+  val vessels = comps.vessels
   val inserts = comps.inserts
   val streams = comps.streams
   val push = comps.push
@@ -250,15 +251,15 @@ class Service[F[_]: Async: Files](
     case req @ GET -> Root / "vessels" / "names" =>
       for
         authed <- authedQuery(req, VesselsQuery.query)
-        rows <- comps.vessels.vessels(authed.query)
+        rows <- vessels.vessels(authed.query)
         response <- ok(VesselsResponse(rows))
       yield response
     case req @ GET -> Root / "vessels" =>
       val handler = for
         authed <- authedQuery(req, VesselQuery.query)
-        rows <- comps.vessels.load(authed.query)
+        rows <- vessels.load(authed.query)
         response <- respond(req)(
-          json = ok(rows),
+          json = ok(VesselHistoryResponse(rows)),
           html = ok(
             html(req).map(
               authed.user.userBoats,
@@ -409,6 +410,7 @@ class Service[F[_]: Async: Files](
         .flatMap: user =>
           val username = user.username
           val isAnon = username == Usernames.anon
+          val formatter = TimeFormatter.lang(user.language)
           BoatQuery(req.uri.query)
             .map: boatQuery =>
               if !isAnon then
@@ -435,13 +437,25 @@ class Service[F[_]: Async: Files](
                     )
                   sampled
               val simpleQuery = boatQuery.simple
-              val historyOrNoData: F[Seq[FrontEvent]] = historyIO.map: ces =>
-                if ces.isEmpty then Seq(NoDataEvent(simpleQuery))
-                else ces
+              val aisTrails: F[VesselTrailsEvent] = vessels
+                .load(boatQuery)
+                .map: vs =>
+                  val trails = vs.map: vh =>
+                    val ups = vh.updates.map: up =>
+                      VesselPoint(up.coord, formatter.timing(up.added))
+                    VesselTrail(vh.mmsi, vh.name, vh.draft, ups)
+                  VesselTrailsEvent(trails)
+              val historyData: F[Seq[FrontEvent]] =
+                if boatQuery.hasVesselFilters then aisTrails.map(e => Seq(e))
+                else historyIO.map[Seq[FrontEvent]](identity)
+              val historyOrNoData: F[Seq[FrontEvent]] = historyData.map: es =>
+                if es.isEmpty then Seq(NoDataEvent(simpleQuery))
+                else es
               val history = Stream.evalSeq(historyOrNoData)
 
-              val formatter = TimeFormatter.lang(user.language)
-              val updates = streams.clientEvents(formatter)
+              val updates =
+                if boatQuery.hasVesselFilters then Stream.never[F]
+                else streams.clientEvents(formatter)
               val eventSource = (Stream(LoadingEvent(simpleQuery)) ++ history ++ updates)
                 .mergeHaltBoth(pings)
                 .filter(_.isIntendedFor(user))

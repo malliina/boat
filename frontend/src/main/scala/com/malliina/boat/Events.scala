@@ -53,7 +53,8 @@ class Events[F[_]: Sync](
     case ce @ CoordsEvent(coords, _) if coords.nonEmpty => Stream(ce)
     case CoordsBatch(coords) if coords.nonEmpty         => Stream.emits(coords)
     case other                                          => Stream.empty
-
+  val vesselEvents = frontEvents.collect:
+    case VesselTrailsEvent(vessels) => vessels
   val aisEvents: Stream[F, Seq[VesselInfo]] = frontEvents.collect:
     case VesselMessages(messages) => messages
 

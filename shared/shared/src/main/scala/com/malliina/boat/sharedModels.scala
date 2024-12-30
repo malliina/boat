@@ -549,6 +549,19 @@ object VesselMessages:
   val empty = VesselMessages(Nil)
   given Codec[VesselMessages] = keyValued(Key, deriveCodec[VesselMessages])
 
+case class VesselPoint(coord: Coord, added: Timing) derives Codec.AsObject
+
+case class VesselTrail(mmsi: Mmsi, name: VesselName, draft: DistanceM, updates: Seq[VesselPoint])
+  derives Codec.AsObject
+
+case class VesselTrailsEvent(vessels: Seq[VesselTrail]) extends FrontEvent:
+  override def isIntendedFor(user: MinimalUserInfo): Boolean = true
+
+object VesselTrailsEvent:
+  val Key = "ais"
+
+  given Codec[VesselTrailsEvent] = keyValued(Key, deriveCodec[VesselTrailsEvent])
+
 sealed trait BoatFrontEvent extends FrontEvent:
   def from: TrackMetaLike
   override def isIntendedFor(user: MinimalUserInfo): Boolean =
@@ -565,7 +578,8 @@ object FrontEvent:
     Decoder[PingEvent].widen,
     Decoder[CoordsEvent].widen,
     Decoder[LoadingEvent].widen,
-    Decoder[NoDataEvent].widen
+    Decoder[NoDataEvent].widen,
+    Decoder[VesselTrailsEvent].widen
   ).reduceLeft(_ or _)
   given Encoder[FrontEvent] =
     case se @ SentencesEvent(_, _, _) => se.asJson
@@ -575,6 +589,7 @@ object FrontEvent:
     case vs @ VesselMessages(_)       => vs.asJson
     case le @ LoadingEvent(_)         => le.asJson
     case nd @ NoDataEvent(_)          => nd.asJson
+    case vt @ VesselTrailsEvent(_)    => vt.asJson
 
 case class SentencesMessage(sentences: Seq[RawSentence]):
   def toTrackEvent(from: TrackMetaShort, userAgent: Option[UserAgent]) =

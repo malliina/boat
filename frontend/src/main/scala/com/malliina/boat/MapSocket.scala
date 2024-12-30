@@ -78,11 +78,14 @@ class MapSocket[F[_]: Async](
     if show then spinner.show() else spinner.hide()
   private val coordsListener = events.coordEvents.tap: event =>
     onCoords(event)
+  private val vesselsListener = events.vesselEvents.tap: event =>
+    onVessels(event)
   private val aisListener = events.aisEvents.tap: messages =>
     ais.onAIS(messages)
 
   val task = spinnerListener
     .concurrently(coordsListener)
+    .concurrently(vesselsListener)
     .concurrently(aisListener)
     .concurrently(events.connectivityLogger)
 
@@ -99,6 +102,16 @@ class MapSocket[F[_]: Async](
 
   private def trackLineLayer(id: String, paint: LinePaint): Layer =
     Layer.line(id, emptyTrack, paint, minzoom = None)
+
+  private def onVessels(vessels: Seq[VesselTrail]) =
+    vessels.map: trail =>
+      val layer = lineLayer(s"vessel-${trail.mmsi}")
+      map.putLayer(layer)
+      map
+        .findSource(layer.id)
+        .foreach: geoJson =>
+          val feature = Feature.line(trail.updates.map(_.coord))
+          geoJson.updateData(FeatureCollection(Seq(feature)))
 
   def onCoordsHistory(event: CoordsEvent): Unit =
     val track = event.from

@@ -224,8 +224,8 @@ class MapView[F[_]: Async](
                       Timings.From -> dateHandler.from,
                       Timings.To -> dateHandler.to,
                       TracksLimit -> None,
-                      Vessel -> name,
-                      MmsiKey -> mmsi
+                      VesselName.Key -> name,
+                      Mmsi.Key -> mmsi
                     )
                     reconnect()
           inp.parentNode.appendChild(autocomplete)

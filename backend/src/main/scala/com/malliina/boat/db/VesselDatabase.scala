@@ -4,8 +4,8 @@ import cats.effect.Async
 import cats.implicits.*
 import com.malliina.boat.db.BoatVesselDatabase.{collect, log}
 import com.malliina.boat.db.Values.{RowsChanged, VesselUpdateId}
-import com.malliina.boat.http.{VesselQuery, VesselsQuery}
-import com.malliina.boat.{Mmsi, VesselInfo, VesselName, VesselRowId}
+import com.malliina.boat.http.{VesselFilters, VesselsQuery}
+import com.malliina.boat.{Mmsi, VesselInfo, VesselRowId}
 import com.malliina.database.DoobieDatabase
 import com.malliina.util.AppLogger
 import doobie.*
@@ -17,7 +17,7 @@ import scala.annotation.unused
 
 trait VesselDatabase[F[_]]:
   def vessels(query: VesselsQuery): F[List[VesselResult]]
-  def load(query: VesselQuery): F[List[VesselHistory]]
+  def load(query: VesselFilters): F[List[VesselHistory]]
   def save(messages: Seq[VesselInfo]): F[List[VesselUpdateId]]
 
 object BoatVesselDatabase:
@@ -48,15 +48,15 @@ class BoatVesselDatabase[F[_]: Async](db: DoobieDatabase[F])
           order by v.name
           limit ${limits.limit} offset ${limits.offset}""".query[VesselResult].to[List]
 
-  override def load(query: VesselQuery): F[List[VesselHistory]] = db.run:
-    val time = query.time
+  override def load(query: VesselFilters): F[List[VesselHistory]] = db.run:
+    val time = query.timeRange
     val limits = query.limits
     val whereMmsis = Fragments.whereAndOpt(
-      query.names.toList.toNel.map(ns => Fragments.in(fr"v.name", ns)),
+      query.vessels.toList.toNel.map(ns => Fragments.in(fr"v.name", ns)),
       query.mmsis.toList.toNel.map(ms => Fragments.in(fr"v.mmsi", ms))
     )
     val mmsiFilter =
-      if query.names.nonEmpty || query.mmsis.nonEmpty then
+      if query.vessels.nonEmpty || query.mmsis.nonEmpty then
         sql"""select v.mmsi from mmsis v $whereMmsis"""
           .query[Mmsi]
           .to[List]

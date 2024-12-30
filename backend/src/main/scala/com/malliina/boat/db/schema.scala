@@ -142,12 +142,15 @@ case class VesselUpdate(
   eta: Long,
   added: Instant
 ) derives Codec.AsObject
+
 object VesselUpdate:
   def from(row: VesselRow): VesselUpdate =
     VesselUpdate(row.coord, row.sog, row.cog, row.destination, row.heading, row.eta, row.added)
 
 case class VesselHistory(mmsi: Mmsi, name: VesselName, draft: DistanceM, updates: Seq[VesselUpdate])
   derives Codec.AsObject
+
+case class VesselHistoryResponse(vessels: Seq[VesselHistory]) derives Codec.AsObject
 
 case class VesselResult(mmsi: Mmsi, name: VesselName, draft: DistanceM, added: Instant)
   derives Codec.AsObject

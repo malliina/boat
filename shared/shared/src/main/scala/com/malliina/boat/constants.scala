@@ -75,8 +75,6 @@ trait FilterKeys:
   val Newest = "newest"
   val SampleKey = "sample"
   val TracksLimit = "tracksLimit"
-  val Vessel = "vessel"
-  val MmsiKey = "mmsi"
 
 object FrontKeys extends FrontKeys
 

@@ -40,7 +40,7 @@ trait Mappings:
   given Meta[VesselRowId] = simple(VesselRowId)
   given Meta[AisUpdateId] = simple(AisUpdateId)
   given Meta[VesselUpdateId] = Meta[Long].timap(VesselUpdateId.apply)(_.raw)
-  given Meta[Mmsi] = simple(Mmsi)
+  given Meta[Mmsi] = Meta[String].timap(s => Mmsi.parse(s).getUnsafe)(m => Mmsi.show.show(m))
   given Meta[VesselName] = simple(VesselName)
   given Meta[FairwayId] = simple(FairwayId)
   given Meta[FairwayCoordId] = simple(FairwayCoordId)

@@ -133,7 +133,7 @@ object Mmsi extends JsonCompanion[Long, Mmsi]:
   override def apply(raw: Long): Mmsi = raw
   override def write(t: Mmsi): Long = t
 
-  given Show[Mmsi] = (m: Mmsi) => s"$m"
+  given show: Show[Mmsi] = (m: Mmsi) => s"$m"
 
   def parse(str: String): Either[ErrorMessage, Mmsi] =
     str.toLongOption.toRight(ErrorMessage(s"Invalid Mmsi: '$str'.")).flatMap(build)
@@ -246,7 +246,7 @@ object VesselLocation:
 opaque type VesselName = String
 
 object VesselName extends ShowableString[VesselName]:
-  val Key = "name"
+  val Key = "vessel"
 
   override def apply(raw: String): VesselName = raw
   override def write(t: VesselName): String = t

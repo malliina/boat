@@ -115,15 +115,24 @@ object VesselsQuery:
       limits <- LimitsBuilder(q)
     yield VesselsQuery(term.filter(_.nonEmpty), limits)
 
+trait VesselFilters:
+  def vessels: Seq[VesselName]
+  def mmsis: Seq[Mmsi]
+  def timeRange: TimeRange
+  def limits: Limits
+
+  def describe: String
+
 case class VesselQuery(
-  names: Seq[VesselName],
+  vessels: Seq[VesselName],
   mmsis: Seq[Mmsi],
-  time: TimeRange,
+  timeRange: TimeRange,
   limits: Limits
-) derives Codec.AsObject:
-  private def describeNames = if names.isEmpty then "" else s"names ${names.mkString(", ")} "
+) extends VesselFilters
+  derives Codec.AsObject:
+  private def describeNames = if vessels.isEmpty then "" else s"names ${vessels.mkString(", ")} "
   private def describeMmsis = if mmsis.isEmpty then "" else s"mmsis ${mmsis.mkString(", ")} "
-  private def describeTime = if time.isEmpty then "" else s"time ${time.describe} "
+  private def describeTime = if timeRange.isEmpty then "" else s"time ${timeRange.describe} "
   private def describeLimits = s"limit ${limits.limit} offset ${limits.offset}"
   def describe =
     s"$describeNames$describeMmsis$describeTime$describeLimits"
@@ -171,8 +180,11 @@ case class BoatQuery(
   sample: Option[Int],
   newest: Boolean,
   tracksLimit: Option[Int],
-  near: Option[Near]
-):
+  near: Option[Near],
+  vessels: Seq[VesselName],
+  mmsis: Seq[Mmsi]
+) extends VesselFilters:
+  def hasVesselFilters = vessels.nonEmpty || mmsis.nonEmpty
   def neTracks = tracks.toList.toNel
   def neCanonicals = canonicals.toList.toNel
   def limit = limits.limit
@@ -186,14 +198,28 @@ case class BoatQuery(
     )
     SearchQuery(limits, fromTo, tracks, canonicals, route, sample, newest)
   def describe: String =
-    val timeFrom = from.map(f => s"from $f ").getOrElse("")
-    val timeTo = to.map(t => s"to $t ").getOrElse("")
+    val timeFrom = from.map(f => s"from $f").getOrElse("")
+    val timeTo = to.map(t => s"to $t").getOrElse("")
     val cs =
-      if canonicals.nonEmpty then s"canonicals ${canonicals.map(c => s"'$c'").mkString(", ")} "
+      if canonicals.nonEmpty then s"canonicals ${canonicals.map(c => s"'$c'").mkString(", ")}"
       else ""
-    val ts = if tracks.nonEmpty then s"tracks ${tracks.map(t => s"'$t'").mkString(",")} " else ""
-    val n = near.map(n => s"within ${n.radius} of ${n.coord} ").getOrElse("")
-    s"$timeFrom$timeTo$cs$ts${n}limit ${limits.limit} offset ${limits.offset} newest $newest"
+    val ts = if tracks.nonEmpty then s"tracks ${tracks.map(t => s"'$t'").mkString(",")}" else ""
+    val n = near.map(n => s"within ${n.radius} of ${n.coord}").getOrElse("")
+    val describeLimit = s"limit ${limits.limit} offset ${limits.offset}"
+    val describeNewest = s"newest $newest"
+    val describeVessels = if vessels.isEmpty then "" else s"names ${vessels.mkString(", ")}"
+    val describeMmsis = if mmsis.isEmpty then "" else s"mmsis ${mmsis.mkString(", ")}"
+    Seq(
+      timeFrom,
+      timeTo,
+      cs,
+      ts,
+      n,
+      describeLimit,
+      describeNewest,
+      describeVessels,
+      describeMmsis
+    ).filter(_.nonEmpty).mkString(" ")
 
 object BoatQuery:
   private val instantFormatter = DateTimeFormatter.ISO_INSTANT
@@ -208,6 +234,11 @@ object BoatQuery:
     QueryParamDecoder.stringQueryParamDecoder.map(s => TrackCanonical(s))
   given QueryParamDecoder[DistanceM] =
     QueryParamDecoder.doubleQueryParamDecoder.map(d => DistanceM(d))
+  given QueryParamDecoder[Mmsi] =
+    QueryParsers.decoder[Mmsi](Mmsi.parse)
+  given QueryParamDecoder[VesselName] =
+    QueryParsers.decoder[VesselName](VesselName.build)
+
   val empty = BoatQuery(
     Limits(0, 0),
     TimeRange(None, None),
@@ -217,7 +248,9 @@ object BoatQuery:
     None,
     newest = true,
     tracksLimit = None,
-    near = None
+    near = None,
+    vessels = Nil,
+    mmsis = Nil
   )
 
   def tracks(tracks: Seq[TrackName]): BoatQuery =
@@ -230,7 +263,9 @@ object BoatQuery:
       Option(DefaultSample),
       newest = false,
       tracksLimit = None,
-      near = None
+      near = None,
+      vessels = Nil,
+      mmsis = Nil
     )
 
   def apply(q: Query): Either[Errors, BoatQuery] =
@@ -244,7 +279,21 @@ object BoatQuery:
       near <- bindNear(q)
       newest <- bindNewest(q, default = timeRange.isEmpty && near.isEmpty)
       tracksLimit <- QueryParsers.parseOptE[Int](q, TracksLimitKey)
-    yield BoatQuery(limits, timeRange, tracks, canonicals, route, sample, newest, tracksLimit, near)
+      vessels <- bindSeq[VesselName](VesselName.Key, q)
+      mmsis <- bindSeq[Mmsi](Mmsi.Key, q)
+    yield BoatQuery(
+      limits,
+      timeRange,
+      tracks,
+      canonicals,
+      route,
+      sample,
+      newest,
+      tracksLimit,
+      near,
+      vessels,
+      mmsis
+    )
 
   def car(q: Query): Either[Errors, CarQuery] =
     for
