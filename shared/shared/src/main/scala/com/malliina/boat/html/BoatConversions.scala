@@ -1,7 +1,7 @@
 package com.malliina.boat.html
 
 import cats.Show
-import com.malliina.boat.{DayVal, FormattedDate, FormattedDateTime, FormattedTime, MonthVal, VesselName, YearVal}
+import com.malliina.boat.{DayVal, FormattedDate, FormattedDateTime, FormattedTime, Mmsi, MonthVal, VesselName, YearVal}
 import scalatags.generic.Bundle
 
 abstract class BoatConversions[Builder, Output <: FragT, FragT](
@@ -16,7 +16,8 @@ abstract class BoatConversions[Builder, Output <: FragT, FragT](
   given Conversion[FormattedTime, Frag] = (ft: FormattedTime) => stringFrag(ft.time)
   given Conversion[FormattedDate, Frag] = (fd: FormattedDate) => stringFrag(fd.date)
   given Conversion[FormattedDateTime, Frag] = (fdt: FormattedDateTime) => stringFrag(fdt.dateTime)
-  given Conversion[VesselName, Frag] = (vn: VesselName) => stringFrag(vn.name)
+  given vesselFrag: Conversion[VesselName, Frag] = (vn: VesselName) => stringFrag(vn.name)
+  given mmsiFrag: Conversion[Mmsi, Frag] = showFrag[Mmsi]
 
   def showFrag[T: Show]: Conversion[T, Frag] = (t: T) => Show[T].show(t)
   def showAttr[T: Show]: AttrValue[T] = makeStringAttr[T](t => Show[T].show(t))

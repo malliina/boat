@@ -15,15 +15,22 @@ class NodeListSeq[T <: Node](nodes: DOMList[T]) extends IndexedSeq[T]:
 
 extension (e: Element)
   def hide(): Unit =
-    val classes = e.classList
-    if !classes.contains(Hidden) then classes.add(Hidden)
+    ensure(Hidden)
 
-  def show(): Unit = e.classList.remove(Hidden)
+  def show(): Unit =
+    ensureNot(Hidden)
 
   def toggle(cls: String = Hidden): Unit =
     val classes = e.classList
     if !classes.contains(cls) then classes.add(cls)
     else classes.remove(cls)
+
+  def ensure(cls: String): Unit =
+    val classes = e.classList
+    if !classes.contains(cls) then classes.add(cls)
+
+  def ensureNot(cls: String): Unit =
+    e.classList.remove(cls)
 
 extension (et: EventTarget)
   def addOnClick(code: Event => Unit): Unit = addClickListener[Event](code)

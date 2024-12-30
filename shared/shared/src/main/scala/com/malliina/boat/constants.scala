@@ -36,6 +36,8 @@ trait DatePickerKeys:
 
 trait VesselSearchKeys:
   val VesselInputId = "vessels-input"
+  val VesselsSuggestion = "autocomplete-suggestion"
+  val VesselsSuggestions = "autocomplete-suggestions"
   val VesselOptionsId = "vessels-options"
 
 trait Named:
@@ -73,6 +75,8 @@ trait FilterKeys:
   val Newest = "newest"
   val SampleKey = "sample"
   val TracksLimit = "tracksLimit"
+  val Vessel = "vessel"
+  val MmsiKey = "mmsi"
 
 object FrontKeys extends FrontKeys
 

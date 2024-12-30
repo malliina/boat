@@ -28,7 +28,7 @@ class FormHandlers[F[_]: Async](http: Http[F]) extends BaseFront:
   def inviteOthers() =
     for
       parent <- elemsByClass[Element](FormParent)
-      form <- parent.getElementsByClassName(InviteFormClass).map(_.asInstanceOf[HTMLFormElement])
+      form <- parent.elementsByClass[HTMLFormElement](InviteFormClass)
       open <- parent.elementByClass(InviteFormOpen)
       cancel <- parent.elementByClass(FormCancel)
 //      delete <- parent.elementByClass(DeleteForm)
@@ -36,6 +36,11 @@ class FormHandlers[F[_]: Async](http: Http[F]) extends BaseFront:
 
 extension (e: Element)
   def elementByClass(cls: String): Option[Element] = e.getElementsByClassName(cls).headOption
+  def elementsByClass[T <: Element](cls: String): List[T] =
+    e.getElementsByClassName(cls).toList.map(_.asInstanceOf[T])
+  def inputs: List[HTMLInputElement] = elementsByTag[HTMLInputElement]("input")
+  def elementsByTag[T <: Element](cls: String): List[T] =
+    e.getElementsByTagName(cls).toList.map(_.asInstanceOf[T])
 
 class InviteHandler(
   form: HTMLFormElement,

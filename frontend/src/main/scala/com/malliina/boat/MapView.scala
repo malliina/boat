@@ -2,8 +2,9 @@ package com.malliina.boat
 
 import cats.effect.{Async, Resource}
 import cats.implicits.{toFlatMapOps, toFunctorOps}
+import com.malliina.boat.BoatModels.{showAttr, mmsiFrag, vesselFrag}
 import com.malliina.boat.MapView.MapEvent
-import com.malliina.boat.MapView.MapEvent.SearchVessels
+import com.malliina.boat.MapView.MapEvent.ListVessels
 import com.malliina.datepicker.{TempusDominus, TimeLocale, TimeRestrictions, updateDate}
 import com.malliina.http.Http
 import com.malliina.mapbox.*
@@ -14,7 +15,6 @@ import io.circe.*
 import io.circe.syntax.EncoderOps
 import org.scalajs.dom.*
 import scalatags.JsDom.all.*
-import BoatModels.showAttr
 
 import scala.concurrent.duration.DurationInt
 import scala.scalajs.js.{Date, JSON, URIUtils}
@@ -23,7 +23,8 @@ object MapView extends CookieNames:
   enum MapEvent:
     case Load(center: Coord)
     case MoveEnd(center: Coord)
-    case SearchVessels(term: Option[String])
+    case ListVessels(term: Option[String])
+    case SearchVessel(name: String)
 
   def default[F[_]: Async](
     messages: Topic[F, WebSocketEvent],
@@ -61,6 +62,7 @@ class MapView[F[_]: Async](
 ) extends BaseDispatcher(http.dispatcher)
   with BaseFront:
   given AttrValue[VesselName] = showAttr[VesselName]
+  given AttrValue[Mmsi] = showAttr[Mmsi]
   val F = Async[F]
   mapboxGl.accessToken = accessToken.token
   val lang = Lang(language)
@@ -122,7 +124,8 @@ class MapView[F[_]: Async](
       Stream.eval(fetchHistory(center))
   private val searches = eventStream
     .collect:
-      case SearchVessels(term) => term
+      case ListVessels(term) => term.map(_.trim)
+    .changes
     .switchMap: term =>
       Stream.eval(searchVessels(term))
 
@@ -169,24 +172,76 @@ class MapView[F[_]: Async](
         coords.map: event =>
           socket.onCoordsHistory(event)
 
+  private var activeIndex: Option[Int] = None
+
   elemAs[HTMLInputElement](VesselInputId).map: in =>
-    in.onkeyup = e =>
-      // A mouse click also triggers this event for some reason...
-      val isKeyboard = e.isInstanceOf[KeyboardEvent]
-      if isKeyboard then
-        val term = Option(in.value).filter(_.nonEmpty)
-        mapEvents.dispatch(SearchVessels(term))
+    in.oninput = e =>
+      activeIndex = None
+      val term = Option(in.value).filter(_.nonEmpty)
+      mapEvents.dispatch(ListVessels(term))
+    in.onkeydown = e =>
+      val list =
+        Option(document.getElementById(VesselOptionsId)).toList
+          .flatMap(e => e.elementsByClass[HTMLDivElement](VesselsSuggestion))
+      activeIndex =
+        if list.isEmpty then None
+        else
+          e.keyCode match
+            case 40 => activeIndex.map(_ + 1).filter(_ < list.size).orElse(Option(0))
+            case 38 => activeIndex.map(_ - 1).filter(_ >= 0).orElse(Option(list.size - 1))
+            case 13 =>
+              e.preventDefault()
+              activeIndex
+                .filter(_ < list.size)
+                .foreach: idx =>
+                  list(idx).click()
+              None
+            case other => activeIndex
+      list.zipWithIndex.map: (elem, idx) =>
+        val isActive = activeIndex.contains(idx)
+        val activeClass = "autocomplete-active"
+        if isActive then elem.ensure(activeClass) else elem.ensureNot(activeClass)
 
   private def searchVessels(term: Option[String]): F[Either[NotFound, Unit]] =
     val uri = term.fold("vessels/names")(t => s"vessels/names?term=$t")
+    hideSuggestions()
     http.client
       .get[Vessels](uri)
       .map: vessels =>
-        elemAs[HTMLDataListElement](VesselOptionsId).map: datalist =>
-          datalist.innerHTML = ""
-          vessels.vessels.map: v =>
-            datalist.appendChild(option(value := v.name).render)
-          log.info(s"Options has ${datalist.options.size} items")
+        elemAs[HTMLInputElement](VesselInputId).map: inp =>
+          val autocomplete = suggestions(vessels.vessels).render
+          autocomplete
+            .elementsByClass[HTMLDivElement](VesselsSuggestion)
+            .foreach: s =>
+              s.addOnClick: e =>
+                hideSuggestions()
+                val name = Option(s.getAttribute("data-name")).filter(_.nonEmpty)
+                val mmsi = Option(s.getAttribute("data-mmsi")).filter(_.nonEmpty)
+                elemAs[HTMLInputElement](VesselInputId).foreach: in =>
+                  name.foreach: n =>
+                    in.value = n
+                    QueryString.transact(
+                      Timings.From -> dateHandler.from,
+                      Timings.To -> dateHandler.to,
+                      TracksLimit -> None,
+                      Vessel -> name,
+                      MmsiKey -> mmsi
+                    )
+                    reconnect()
+          inp.parentNode.appendChild(autocomplete)
+          log.info(s"Options has ${vessels.vessels.size} items")
+
+  private def suggestions(vessels: Seq[Vessel]) =
+    div(id := VesselOptionsId, cls := VesselsSuggestions)(
+      vessels.map: v =>
+        div(data("mmsi") := v.mmsi, data("name") := v.name, cls := VesselsSuggestion)(
+          s"${v.name} (${v.mmsi})"
+        )
+    )
+
+  private def hideSuggestions(): Unit =
+    elemAs[HTMLDivElement](VesselOptionsId).foreach: prev =>
+      prev.parentNode.removeChild(prev)
 
   elem(ModalId).foreach(initModal)
 
@@ -244,9 +299,7 @@ class MapView[F[_]: Async](
     document
       .getElementsByClassName(className)
       .map(
-        _.getElementsByTagName("input")
-          .map(_.asInstanceOf[HTMLInputElement])
-          .headOption
+        _.inputs.headOption
           .map: in =>
             e.preventDefault()
             in.focus()
@@ -256,10 +309,10 @@ class MapView[F[_]: Async](
     window.addOnClick: e =>
       if e.target == modal then modal.hide()
     modal
-      .getElementsByClassName(Close)
+      .elementsByClass[HTMLSpanElement](Close)
       .headOption
       .foreach: node =>
-        node.asInstanceOf[HTMLSpanElement].onclick = _ => modal.hide()
+        node.onclick = _ => modal.hide()
     elemAs[HTMLSpanElement](Question).foreach: q =>
       q.onclick = _ => modal.show()
 

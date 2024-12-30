@@ -9,5 +9,6 @@ import "./list.css"
 import "./auth.css"
 import "./privacy-policy.css"
 import "./parking.css"
+import "./autocomplete.css"
 
 console.log("Styles only.")

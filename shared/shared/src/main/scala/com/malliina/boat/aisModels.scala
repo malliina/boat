@@ -1,5 +1,6 @@
 package com.malliina.boat
 
+import cats.Show
 import com.malliina.boat.ShipType.*
 import com.malliina.json.PrimitiveFormats
 import com.malliina.measure.{DistanceM, SpeedM}
@@ -131,6 +132,8 @@ object Mmsi extends JsonCompanion[Long, Mmsi]:
   val Key = "mmsi"
   override def apply(raw: Long): Mmsi = raw
   override def write(t: Mmsi): Long = t
+
+  given Show[Mmsi] = (m: Mmsi) => s"$m"
 
   def parse(str: String): Either[ErrorMessage, Mmsi] =
     str.toLongOption.toRight(ErrorMessage(s"Invalid Mmsi: '$str'.")).flatMap(build)

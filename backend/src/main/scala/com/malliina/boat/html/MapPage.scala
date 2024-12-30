@@ -143,16 +143,13 @@ object MapPage extends BoatSyntax:
     )
 
   private def vesselSearch =
-    div(cls := "vessels-container")(
-      label(`for` := VesselInputId, cls := "form-label")("Vessels"),
+    div(cls := "autocomplete-container")(
       input(
         id := VesselInputId,
         cls := "form-control",
-        list := VesselOptionsId,
         autocomplete := "off",
-        placeholder := "Vessel name..."
-      ),
-      datalist(id := VesselOptionsId)(
+        placeholder := "Vessel name...",
+        tpe := "text"
       )
     )
 
