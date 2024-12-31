@@ -69,10 +69,11 @@ class MapSocket[F[_]: Async](
 
   private val showSpinner: fs2.Stream[F, Boolean] = events.frontEvents
     .collect:
-      case CoordsBatch(events) => false
-      case CoordsEvent(_, _)   => false
-      case LoadingEvent(_)     => true
-      case NoDataEvent(_)      => false
+      case CoordsBatch(events)  => false
+      case CoordsEvent(_, _)    => false
+      case VesselTrailsEvent(_) => false
+      case LoadingEvent(_)      => true
+      case NoDataEvent(_)       => false
     .changes
   private val spinnerListener = showSpinner.tap: show =>
     if show then spinner.show() else spinner.hide()
@@ -106,12 +107,15 @@ class MapSocket[F[_]: Async](
   private def onVessels(vessels: Seq[VesselTrail]) =
     vessels.map: trail =>
       val layer = lineLayer(s"vessel-${trail.mmsi}")
-      map.putLayer(layer)
+      val src = map.findSource(layer.id)
+      if src.isEmpty then map.putLayer(layer)
       map
         .findSource(layer.id)
         .foreach: geoJson =>
-          val feature = Feature.line(trail.updates.map(_.coord))
+          val coords = trail.updates.map(_.coord)
+          val feature = Feature.line(coords)
           geoJson.updateData(FeatureCollection(Seq(feature)))
+          fitTo(coords)
 
   def onCoordsHistory(event: CoordsEvent): Unit =
     val track = event.from
@@ -328,21 +332,24 @@ class MapSocket[F[_]: Async](
       val lengths = eligibleTrails.map((_, cs) => cs.coords.size).mkString(", ")
       log.info(s"Fitting to map from ${eligibleTrails.size} trails of lengths $lengths...")
       val trail = eligibleTrails.values.flatMap(_.coords).map(_.coord)
-      trail.headOption.foreach: head =>
-        val init = LngLatBounds(head)
-        val bs: LngLatBounds = trail
-          .drop(1)
-          .foldLeft(init): (bounds, c) =>
-            bounds.extend(LngLat(c))
-        try map.fitBounds(bs, SimplePaddingOptions(60))
-        catch
-          case e: Exception =>
-            val sw = bs.getSouthWest()
-            val nw = bs.getNorthWest()
-            val ne = bs.getNorthEast()
-            val se = bs.getSouthEast()
-            log.error(s"Unable to fit using $sw $nw $ne $se", e)
+      fitTo(trail.toList)
     else log.info(s"Not fitting, map mode is $mapMode")
+
+  private def fitTo(coords: Seq[Coord]): Unit =
+    coords.headOption.foreach: head =>
+      val init = LngLatBounds(head)
+      val bs: LngLatBounds = coords
+        .drop(1)
+        .foldLeft(init): (bounds, c) =>
+          bounds.extend(LngLat(c))
+      try map.fitBounds(bs, SimplePaddingOptions(60))
+      catch
+        case e: Exception =>
+          val sw = bs.getSouthWest()
+          val nw = bs.getNorthWest()
+          val ne = bs.getNorthEast()
+          val se = bs.getSouthEast()
+          log.error(s"Unable to fit using $sw $nw $ne $se", e)
 
   private def calcDistance(ts: Seq[TrackRef]) = DistanceM(
     if ts.isEmpty then 0d else ts.map(_.distanceMeters.toMeters).sum
