@@ -3,7 +3,7 @@ package com.malliina.boat.it
 import cats.effect.kernel.Deferred
 import cats.effect.IO
 import com.comcast.ip4s.*
-import com.malliina.boat.CoordsEvent
+import com.malliina.boat.{CoordsEvent, TestHttp}
 import com.malliina.boat.client.server.BoatConf
 import com.malliina.boat.client.{DeviceAgent, TCPClient}
 import com.malliina.boat.it.EndToEndTests.log
@@ -35,7 +35,8 @@ class EndToEndTests extends BoatTests:
     *   1. Client (frontend) opens socket to boat backend
     *   1. Client receives coordinates event from backend based on sentences
     */
-  http.test("plotter to frontend"): httpClient =>
+  test("plotter to frontend"):
+    val httpClient = TestHttp.client
     val s = server()
     // the client validates maximum frame length, so we must not concatenate multiple sentences
     val plotterOutput: Stream[IO, Byte] = Stream.emits(
