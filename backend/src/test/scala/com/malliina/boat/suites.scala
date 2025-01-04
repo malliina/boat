@@ -23,6 +23,7 @@ import org.testcontainers.utility.DockerImageName
 import java.nio.file.{Path, Paths}
 import java.util
 import java.util.concurrent.TimeUnit
+import scala.concurrent.duration.{DurationInt, FiniteDuration}
 import scala.util.Try
 
 case class TestBoatConf(testdb: Conf)
@@ -157,7 +158,18 @@ trait ServerSuite extends BoatDatabaseSuite with JsonInstances:
       boatConf <- Resource.eval(boatIO)
       service <- Server.server[IO](boatConf, TestComps.builder, port = port"0")
     yield ServerTools(service)
+
+  def serverWithReleaseTimeout = releaseTimeout(testServerResource, 10.seconds)
+
   val server =
-    ResourceSuiteLocalFixture("munit-server", testServerResource)
+    ResourceSuiteLocalFixture("munit-server", serverWithReleaseTimeout)
+
+  private def releaseTimeout[R](r: Resource[IO, R], duration: FiniteDuration): Resource[IO, R] =
+    Resource
+      .eval(r.allocated)
+      .flatMap: (r1, fin) =>
+        Resource.make(IO.pure(r1))(rel =>
+          fin.timeoutTo(duration, IO(println(s"Resource release timed out after $duration.")))
+        )
 
   override def munitFixtures: Seq[AnyFixture[?]] = Seq(confFixture, server)
