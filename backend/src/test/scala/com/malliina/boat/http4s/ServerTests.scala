@@ -1,28 +1,29 @@
 package com.malliina.boat.http4s
 
+import cats.effect.IO
 import com.malliina.boat.{ErrorConstants, MUnitSuite, ServerSuite, TestEmailAuth, TestHttp}
-import com.malliina.http.Errors
+import com.malliina.http.{Errors, OkHttpResponse}
 import com.malliina.values.IdToken
 import org.http4s.Status.{Ok, Unauthorized}
+import org.http4s.Uri
 import org.http4s.headers.Authorization
+import org.http4s.implicits.uri
+
+import scala.concurrent.duration.DurationInt
 
 class ServerTests extends MUnitSuite with ServerSuite:
-  def meUrl = baseUrl.append(Reverse.me.renderString)
-
   test("can call server"):
-    assertIO(status("/health"), Ok.code)
+    assertIO(status(uri"/health"), Ok.code)
 
   test("call with no creds"):
-    http
-      .get(baseUrl / "my-track")
+    get(uri"/my-track")
       .map: res =>
         assertEquals(res.status, Unauthorized.code)
         val errors = res.parse[Errors].toOption.get
         assertEquals(errors.message, Auth.noCredentials)
 
   test("GET profile with outdated jwt returns 401 with token expired"):
-    http
-      .get(meUrl, headers(TestEmailAuth.expiredToken))
+    get(Reverse.me, headers(TestEmailAuth.expiredToken))
       .map: res =>
         assertEquals(res.status, Unauthorized.code)
         assert(
@@ -34,8 +35,8 @@ class ServerTests extends MUnitSuite with ServerSuite:
 
   test("apple app association"):
     for
-      _ <- assertIO(status(".well-known/apple-app-site-association"), Ok.code)
-      _ <- assertIO(status(".well-known/assetlinks.json"), Ok.code)
+      _ <- assertIO(status(uri"/.well-known/apple-app-site-association"), Ok.code)
+      _ <- assertIO(status(uri"/.well-known/assetlinks.json"), Ok.code)
     yield 42
 
   private def headers(token: IdToken = TestEmailAuth.testToken) = Map(
@@ -43,9 +44,18 @@ class ServerTests extends MUnitSuite with ServerSuite:
     "Accept" -> "application/json"
   )
 
-  private def status(path: String) =
-    val url = baseUrl / path
-    http.get(url).map(r => r.code)
+  private def status(uri: Uri) =
+    get(uri).map(r => r.code)
+
+  private def get(uri: Uri, headers: Map[String, String] = Map.empty): IO[OkHttpResponse] =
+    val url = baseUrl.append(uri.renderString)
+    val duration = 10.seconds
+    http
+      .get(url, headers)
+      .timeoutTo(
+        duration,
+        IO.raiseError(Exception(s"Request to '$url' timed out after $duration."))
+      )
 
   def baseUrl = server().baseHttpUrl
   def http = TestHttp.client
