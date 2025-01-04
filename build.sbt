@@ -250,10 +250,14 @@ val docs = project
   .settings(
     publish / skip := true,
     mdocVariables := Map(
-      "LATEST_AGENT_URL" -> LatestClient.default.latest
+      "LATEST_AGENT_URL" -> LatestClient
+        .default(sLog.value)
+        .latest
         .map(_.url)
         .getOrElse("todo"),
-      "LATEST_AGENT_FILE" -> LatestClient.default.latest
+      "LATEST_AGENT_FILE" -> LatestClient
+        .default(sLog.value)
+        .latest
         .flatMap(_.uri.split('/').lastOption)
         .getOrElse("todo")
     ),

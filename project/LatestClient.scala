@@ -2,9 +2,12 @@ import LatestClient.Files
 import com.malliina.http.{FullUrl, OkClient}
 import io.circe.Codec
 import io.circe.generic.semiauto.deriveCodec
+import sbt.internal.util.ManagedLogger
+import sbt.util.Logger
 
-import scala.concurrent.Await
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.DurationInt
+import scala.concurrent.{Await, Future}
 
 object LatestClient {
   case class Files(latest: Option[FullUrl])
@@ -13,11 +16,16 @@ object LatestClient {
     implicit val json: Codec[Files] = deriveCodec[Files]
   }
 
-  def default = new LatestClient(OkClient.default)
+  def default(log: Logger) = new LatestClient(OkClient.default, log)
 }
 
-class LatestClient(http: OkClient) {
+class LatestClient(http: OkClient, log: Logger) {
+  val url = FullUrl.https("www.boat-tracker.com", "/files")
+
   def latest: Option[FullUrl] = Await.result(files, 10.seconds).latest
 
-  def files = http.getAs[Files](FullUrl.https("www.boat-tracker.com", "/files"))
+  def files: Future[Files] = http.getAs[Files](url).recover { case t =>
+    log.error(s"Failed to fetch files from '$url'. $t")
+    Files(None)
+  }
 }
