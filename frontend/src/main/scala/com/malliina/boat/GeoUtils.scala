@@ -1,6 +1,6 @@
 package com.malliina.boat
 
-import com.malliina.mapbox.MapboxMap
+import com.malliina.mapbox.{LngLat, LngLatBounds, MapboxMap, SimplePaddingOptions}
 import io.circe.*
 import io.circe.syntax.EncoderOps
 
@@ -25,6 +25,22 @@ trait GeoUtils:
       .getOrElse:
         map.putLayer(layer)
         Outcome.Added
+
+  def fitTo(coords: Seq[Coord]): Unit =
+    coords.headOption.foreach: head =>
+      val init = LngLatBounds(head)
+      val bs: LngLatBounds = coords
+        .drop(1)
+        .foldLeft(init): (bounds, c) =>
+          bounds.extend(LngLat(c))
+      try map.fitBounds(bs, SimplePaddingOptions(60))
+      catch
+        case e: Exception =>
+          val sw = bs.getSouthWest()
+          val nw = bs.getNorthWest()
+          val ne = bs.getNorthEast()
+          val se = bs.getSouthEast()
+//          log.error(s"Unable to fit using $sw $nw $ne $se", e)
 
   def drawLine(id: String, geoJson: FeatureCollection, paint: LinePaint = LinePaint.thin()) =
     updateOrSet(Layer.line(id, geoJson, paint, None))
@@ -55,6 +71,9 @@ trait GeoUtils:
   def lineFor(coords: Seq[Coord]): FeatureCollection =
     collectionFor(LineGeometry(coords), Map.empty)
 
+  def boatSymbolLayer(id: String, coord: Coord) =
+    Layer.symbol(id, pointFor(coord), ImageLayout(boatIconId, `icon-size` = 0.7))
+
   def pointFor(coord: Coord, props: Map[String, Json] = Map.empty) =
     collectionFor(PointGeometry(coord), props)
 
@@ -63,3 +82,15 @@ trait GeoUtils:
 
   private def collectionFor(geo: Geometry, props: Map[String, Json]): FeatureCollection =
     FeatureCollection(Seq(Feature(geo, props)))
+
+  // https://www.movable-type.co.uk/scripts/latlong.html
+  def bearing(from: Coord, to: Coord): Double =
+    val dLon = to.lng.lng - from.lng.lng
+    val y = Math.sin(dLon) * Math.cos(to.lat.lat)
+    val x = Math.cos(from.lat.lat) * Math.sin(to.lat.lat) - Math.sin(from.lat.lat) * Math.cos(
+      to.lat.lat
+    ) * Math.cos(dLon)
+    val brng = toDeg(Math.atan2(y, x))
+    360 - ((brng + 360) % 360)
+
+  private def toDeg(rad: Double) = rad * 180 / Math.PI

@@ -24,6 +24,7 @@ class MapMouseListener[F[_]: Async](
   map: MapboxMap,
   pathFinder: PathFinder[F],
   ais: AISRenderer,
+  vesselSearch: VesselSearch[F],
   html: Popups,
   val log: BaseLogger = BaseLogger.console
 ) extends FrontKeys:
@@ -51,7 +52,9 @@ class MapMouseListener[F[_]: Async](
           val target =
             symbolFeature.geometry.coords.headOption.map(LngLatLike.apply).getOrElse(e.lngLat)
           val props = symbolFeature.props
-          if symbolFeature.layer.exists(_.id == AISRenderer.AisVesselLayer) then
+          if symbolFeature.layer.exists: id =>
+              vesselSearch.symbolIds.contains(id.id) || id.id == AISRenderer.AisVesselLayer
+          then
             // AIS
             validate[VesselProps](props).map(vp => VesselClick(vp, target))
           else if symbolFeature.layer.exists(_.id.startsWith(TrophyPrefix)) then
@@ -116,7 +119,8 @@ class MapMouseListener[F[_]: Async](
                   .map: info =>
                     popup.show(html.ais(info), target, map)
                   .recover: err =>
-                    log.info(s"Vessel info not available for '$boat'. $err.")
+                    popup.show(html.aisSimple(boat.mmsi, boat.name), target, map)
+//                    log.info(s"Vessel info not available for '$boat'. $err.")
               case SymbolClick(marker, target) =>
                 popup.show(html.mark(marker), target, map)
               case MinimalClick(marker, target) =>

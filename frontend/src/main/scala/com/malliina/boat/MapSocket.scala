@@ -46,8 +46,9 @@ class MapSocket[F[_]: Async](
   private val trackPopup = MapboxPopup(PopupOptions())
   private val boatPopup = MapboxPopup(PopupOptions(className = Option("popup-boat")))
   private val ais = AISRenderer(map)
+  private val vesselSearch = VesselSearch(events.vesselEvents, map)
   private val html = Popups(lang)
-  private val popups = MapMouseListener[F](map, pathFinder, ais, html)
+  private val popups = MapMouseListener[F](map, pathFinder, ais, vesselSearch, html)
 
   private var mapMode: MapMode = mode
 
@@ -79,14 +80,12 @@ class MapSocket[F[_]: Async](
     if show then spinner.show() else spinner.hide()
   private val coordsListener = events.coordEvents.tap: event =>
     onCoords(event)
-  private val vesselsListener = events.vesselEvents.tap: event =>
-    onVessels(event)
   private val aisListener = events.aisEvents.tap: messages =>
     ais.onAIS(messages)
 
   val task = spinnerListener
     .concurrently(coordsListener)
-    .concurrently(vesselsListener)
+    .concurrently(vesselSearch.task)
     .concurrently(aisListener)
     .concurrently(events.connectivityLogger)
 
@@ -103,19 +102,6 @@ class MapSocket[F[_]: Async](
 
   private def trackLineLayer(id: String, paint: LinePaint): Layer =
     Layer.line(id, emptyTrack, paint, minzoom = None)
-
-  private def onVessels(vessels: Seq[VesselTrail]) =
-    vessels.map: trail =>
-      val layer = lineLayer(s"vessel-${trail.mmsi}")
-      val src = map.findSource(layer.id)
-      if src.isEmpty then map.putLayer(layer)
-      map
-        .findSource(layer.id)
-        .foreach: geoJson =>
-          val coords = trail.updates.map(_.coord)
-          val feature = Feature.line(coords)
-          geoJson.updateData(FeatureCollection(Seq(feature)))
-          fitTo(coords)
 
   def onCoordsHistory(event: CoordsEvent): Unit =
     val track = event.from
@@ -335,22 +321,6 @@ class MapSocket[F[_]: Async](
       fitTo(trail.toList)
     else log.info(s"Not fitting, map mode is $mapMode")
 
-  private def fitTo(coords: Seq[Coord]): Unit =
-    coords.headOption.foreach: head =>
-      val init = LngLatBounds(head)
-      val bs: LngLatBounds = coords
-        .drop(1)
-        .foldLeft(init): (bounds, c) =>
-          bounds.extend(LngLat(c))
-      try map.fitBounds(bs, SimplePaddingOptions(60))
-      catch
-        case e: Exception =>
-          val sw = bs.getSouthWest()
-          val nw = bs.getNorthWest()
-          val ne = bs.getNorthEast()
-          val se = bs.getSouthEast()
-          log.error(s"Unable to fit using $sw $nw $ne $se", e)
-
   private def calcDistance(ts: Seq[TrackRef]) = DistanceM(
     if ts.isEmpty then 0d else ts.map(_.distanceMeters.toMeters).sum
   )
@@ -369,20 +339,6 @@ class MapSocket[F[_]: Async](
     if on.length > idx then Right(NearestResult(on.toList(idx), nearestResult.properties.dist))
     else Left(ErrorMessage(s"No trail at $fromCoord."))
 
-  // https://www.movable-type.co.uk/scripts/latlong.html
-  private def bearing(from: Coord, to: Coord): Double =
-    val dLon = to.lng.lng - from.lng.lng
-    val y = Math.sin(dLon) * Math.cos(to.lat.lat)
-    val x = Math.cos(from.lat.lat) * Math.sin(to.lat.lat) - Math.sin(from.lat.lat) * Math.cos(
-      to.lat.lat
-    ) * Math.cos(dLon)
-    val brng = toDeg(Math.atan2(y, x))
-    360 - ((brng + 360) % 360)
-
-  private def toDeg(rad: Double) = rad * 180 / Math.PI
-
-  private def boatSymbolLayer(id: String, coord: Coord) =
-    Layer.symbol(id, pointFor(coord), ImageLayout(boatIconId, `icon-size` = 0.7))
   private def carSymbolLayer(id: String, coord: Coord) =
     Layer.symbol(id, pointFor(coord), ImageLayout(carIconId, `icon-size` = 0.5))
   private def trophySymbolLayer(id: String, coord: Coord) =

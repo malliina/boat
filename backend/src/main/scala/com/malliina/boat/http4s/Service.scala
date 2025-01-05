@@ -442,7 +442,7 @@ class Service[F[_]: Async: Files](
                 .map: vs =>
                   val trails = vs.map: vh =>
                     val ups = vh.updates.map: up =>
-                      VesselPoint(up.coord, formatter.timing(up.added))
+                      VesselPoint(up.coord, up.heading, formatter.timing(up.added))
                     VesselTrail(vh.mmsi, vh.name, vh.draft, ups)
                   VesselTrailsEvent(trails)
               val historyData: F[Seq[FrontEvent]] =
