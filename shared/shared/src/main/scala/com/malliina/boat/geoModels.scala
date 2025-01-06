@@ -86,7 +86,6 @@ sealed abstract class Geometry(val typeName: String):
 
 object Geometry:
   val Type = "type"
-  val all = Seq(LineGeometry, PointGeometry)
 
   given Encoder[Geometry] =
     case lg @ LineGeometry(_, _)       => lg.asJson

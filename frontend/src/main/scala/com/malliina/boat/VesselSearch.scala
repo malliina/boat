@@ -2,18 +2,23 @@ package com.malliina.boat
 
 import cats.effect.Sync
 import com.malliina.mapbox.MapboxMap
+import com.malliina.values.ErrorMessage
 import fs2.Stream
 
 class VesselSearch[F[_]: Sync](vessels: Stream[F, Seq[VesselTrail]], val map: MapboxMap)
   extends GeoUtils:
   private var symbolLayerIds: Set[String] = Set.empty
 
+  private var storage = Map.empty[Mmsi, VesselTrail]
+
   def symbolIds = symbolLayerIds
+  def info(mmsi: Mmsi) = storage.get(mmsi).toRight(ErrorMessage("MMSI not found: '$mmsi'."))
 
   val task = vessels.tap: event =>
     onVessels(event)
 
   private def onVessels(vessels: Seq[VesselTrail]) =
+    storage = storage ++ vessels.map(v => v.mmsi -> v).toMap
     vessels.map: trail =>
       val prefix = s"vessel-${trail.mmsi}"
       val ups = trail.updates

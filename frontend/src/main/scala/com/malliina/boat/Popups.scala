@@ -61,14 +61,15 @@ class Popups(lang: Lang) extends BoatModels:
       // row(lang.duration, vessel.eta)
     )
 
-  def aisSimple(mmsi: Mmsi, name: VesselName) =
+  def aisSimple(vessel: VesselTrail) =
     //    val unknownShip = vessel.shipType.isInstanceOf[ShipType.Unknown]
-    titledTable(name)(
+    titledTable(vessel.name)(
 //      rowOpt(aisLang.destination, vessel.destination),
       //      if !unknownShip then row(aisLang.shipType, vessel.shipType.name(lang.shipTypes)) else empty,
 //      row(trackLang.speed, formatSpeed(vessel.sog)),
-//      row(aisLang.draft, formatDistance(vessel.draft)),
-//      row(lang.time, vessel.timestampFormatted)
+      row(aisLang.draft, formatDistance(vessel.draft)),
+      vessel.updates.headOption.fold(empty): latest =>
+        row(lang.time, latest.added.dateTime)
       // row(lang.duration, vessel.eta)
     )
 
