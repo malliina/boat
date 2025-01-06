@@ -130,6 +130,7 @@ object MapPage extends BoatSyntax:
         input(
           id := inputId,
           cls := "form-control",
+          aria.autocomplete := "none",
           data("td-target") := s"#$divId"
         ),
         span(
@@ -148,6 +149,7 @@ object MapPage extends BoatSyntax:
         id := VesselInputId,
         cls := "form-control",
         autocomplete := "off",
+        aria.autocomplete := "none",
         placeholder := "Vessel name...",
         tpe := "text"
       )
