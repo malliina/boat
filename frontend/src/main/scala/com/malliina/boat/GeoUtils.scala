@@ -1,16 +1,18 @@
 package com.malliina.boat
 
+import cats.data.NonEmptyList
+import com.malliina.geojson.{GeoLineString, GeoPoint}
 import com.malliina.mapbox.{LngLat, LngLatBounds, MapboxMap, SimplePaddingOptions}
-import io.circe.*
+import com.malliina.turf.nearestPointOnLine
+import com.malliina.values.ErrorMessage
 import io.circe.syntax.EncoderOps
+import io.circe.{Encoder, Json}
 
-trait GeoUtils:
+class GeoUtils(map: MapboxMap, val log: BaseLogger):
   val boatIconId = "boat-resized-opt-30"
   val carIconId = "car4"
   val trophyIconId = "trophy-gold-path"
   val deviceIconId = "device-icon"
-
-  def map: MapboxMap
 
   def updateOrSet(layer: Layer): Outcome =
     map
@@ -40,7 +42,7 @@ trait GeoUtils:
           val nw = bs.getNorthWest()
           val ne = bs.getNorthEast()
           val se = bs.getSouthEast()
-//          log.error(s"Unable to fit using $sw $nw $ne $se", e)
+          log.error(s"Unable to fit using $sw $nw $ne $se", e)
 
   def drawLine(id: String, geoJson: FeatureCollection, paint: LinePaint = LinePaint.thin()) =
     updateOrSet(Layer.line(id, geoJson, paint, None))
@@ -94,3 +96,17 @@ trait GeoUtils:
     360 - ((brng + 360) % 360)
 
   private def toDeg(rad: Double) = rad * 180 / Math.PI
+
+  def nearest[T](fromCoord: Coord, on: NonEmptyList[T])(
+    c: T => Coord
+  ): Either[ErrorMessage, NearestResult[T]] =
+    val coords = on.map(c)
+    val all = GeoLineString(coords.toList)
+    log.info(s"Searching nearest update among ${coords.size} coords...")
+    val turfPoint = GeoPoint(fromCoord)
+    val nearestResult = nearestPointOnLine(all, turfPoint)
+    val str = scalajs.js.JSON.stringify(nearestResult)
+    log.info(s"Nearest json $str")
+    val idx = nearestResult.properties.index
+    if on.length > idx then Right(NearestResult(on.toList(idx), nearestResult.properties.dist))
+    else Left(ErrorMessage(s"No trail at $fromCoord."))

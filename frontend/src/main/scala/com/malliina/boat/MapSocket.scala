@@ -1,6 +1,5 @@
 package com.malliina.boat
 
-import cats.data.NonEmptyList
 import cats.effect.std.Dispatcher
 import cats.effect.Async
 import cats.syntax.list.*
@@ -8,10 +7,8 @@ import cats.syntax.show.toShow
 import com.malliina.boat.BoatFormats.*
 import com.malliina.boat.FrontKeys.TrophyPrefix
 import com.malliina.boat.SourceType.Vehicle
-import com.malliina.geojson.{GeoLineString, GeoPoint}
 import com.malliina.mapbox.*
 import com.malliina.measure.{DistanceM, SpeedM}
-import com.malliina.turf.nearestPointOnLine
 import com.malliina.values.ErrorMessage
 import fs2.concurrent.Topic
 
@@ -35,8 +32,9 @@ class MapSocket[F[_]: Async](
   dispatcher: Dispatcher[F],
   lang: Lang,
   log: BaseLogger
-) extends BaseFront
-  with GeoUtils:
+) extends BaseFront:
+  val utils = GeoUtils(map, log)
+  import utils.*
   val F = Async[F]
   val events = Events(messages)
   private var socket: Option[BoatSocket[F]] = None
@@ -45,9 +43,9 @@ class MapSocket[F[_]: Async](
   private val emptyTrack = lineForTrack(Nil)
   private val trackPopup = MapboxPopup(PopupOptions())
   private val boatPopup = MapboxPopup(PopupOptions(className = Option("popup-boat")))
-  private val ais = AISRenderer(map)
-  private val vesselSearch = VesselSearch(events.vesselEvents, map)
   private val html = Popups(lang)
+  private val ais = AISRenderer(map)
+  private val vesselSearch = VesselSearch(events.vesselEvents, html, map)
   private val popups = MapMouseListener[F](map, pathFinder, ais, vesselSearch, html)
 
   private var mapMode: MapMode = mode
@@ -324,20 +322,6 @@ class MapSocket[F[_]: Async](
   private def calcDistance(ts: Seq[TrackRef]) = DistanceM(
     if ts.isEmpty then 0d else ts.map(_.distanceMeters.toMeters).sum
   )
-
-  private def nearest[T](fromCoord: Coord, on: NonEmptyList[T])(
-    c: T => Coord
-  ): Either[ErrorMessage, NearestResult[T]] =
-    val coords = on.map(c)
-    val all = GeoLineString(coords.toList)
-    log.info(s"Searching nearest update among ${coords.size} coords...")
-    val turfPoint = GeoPoint(fromCoord)
-    val nearestResult = nearestPointOnLine(all, turfPoint)
-    val str = scalajs.js.JSON.stringify(nearestResult)
-    log.info(s"Nearest json $str")
-    val idx = nearestResult.properties.index
-    if on.length > idx then Right(NearestResult(on.toList(idx), nearestResult.properties.dist))
-    else Left(ErrorMessage(s"No trail at $fromCoord."))
 
   private def carSymbolLayer(id: String, coord: Coord) =
     Layer.symbol(id, pointFor(coord), ImageLayout(carIconId, `icon-size` = 0.5))

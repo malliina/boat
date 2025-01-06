@@ -549,7 +549,15 @@ object VesselMessages:
   val empty = VesselMessages(Nil)
   given Codec[VesselMessages] = keyValued(Key, deriveCodec[VesselMessages])
 
-case class VesselPoint(coord: Coord, heading: Option[Int], added: Timing) derives Codec.AsObject
+case class VesselPoint(
+  coord: Coord,
+  sog: SpeedM,
+  cog: Double,
+  destination: Option[String],
+  heading: Option[Int],
+  eta: Long,
+  added: Timing
+) derives Codec.AsObject
 
 case class VesselTrail(mmsi: Mmsi, name: VesselName, draft: DistanceM, updates: Seq[VesselPoint])
   derives Codec.AsObject

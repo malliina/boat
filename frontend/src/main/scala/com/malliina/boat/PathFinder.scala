@@ -21,9 +21,10 @@ object PathFinder:
 class PathFinder[F[_]: Async](
   val map: MapboxMap,
   http: Http[F],
-  @unused log: BaseLogger = BaseLogger.console
-) extends GeoUtils
-  with BaseFront:
+  log: BaseLogger = BaseLogger.console
+) extends BaseFront:
+  val utils = GeoUtils(map, log)
+  import utils.{drawLine, lineFor}
   private val mapContainer = elemAsGet[HTMLDivElement](MapId)
   private val routesContainer = elemAsGet[HTMLDivElement](RoutesContainer)
   var isEnabled: Boolean = false

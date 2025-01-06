@@ -10,9 +10,8 @@ object AISRenderer:
 
   val MaxTrailLength = 100
 
-class AISRenderer(val map: MapboxMap, val log: BaseLogger = BaseLogger.console)
-  extends GeoUtils
-  with Parsing:
+class AISRenderer(val map: MapboxMap, val log: BaseLogger = BaseLogger.console) extends Parsing:
+  val utils = GeoUtils(map, log)
   // How much memory does this consume, assume 5000 Mmsis?
   private var vessels = Map.empty[Mmsi, List[VesselInfo]]
 
@@ -51,15 +50,15 @@ class AISRenderer(val map: MapboxMap, val log: BaseLogger = BaseLogger.console)
         msg.mmsi -> (msg :: vessels.getOrElse(msg.mmsi, Nil)).take(MaxTrailLength)
       .toMap
     vessels = vessels ++ updated
-    val iconUpdateOutcome = updateOrSet(
+    val iconUpdateOutcome = utils.updateOrSet(
       Layer.symbol(
         AisVesselLayer,
         locationData,
-        ImageLayout(boatIconId, `icon-size` = 1, Option(Seq("get", VesselInfo.HeadingKey)))
+        ImageLayout(utils.boatIconId, `icon-size` = 1, Option(Seq("get", VesselInfo.HeadingKey)))
       )
     )
     if iconUpdateOutcome == Outcome.Added then initHover(AisVesselLayer)
-    updateOrSet(
+    utils.updateOrSet(
       Layer.line(AisTrailLayer, trailData, minzoom = Option(10))
     )
 

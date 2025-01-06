@@ -141,7 +141,7 @@ class MapView[F[_]: Async](
         map.putLayer(
           Layer.symbol(
             "custom-center",
-            pathFinder.pointFor(initialSettings.center),
+            pathFinder.utils.pointFor(initialSettings.center),
             ImageLayout("border-dot-13", `icon-size` = 1)
           )
         )
