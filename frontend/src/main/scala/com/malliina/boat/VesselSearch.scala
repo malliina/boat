@@ -1,7 +1,7 @@
 package com.malliina.boat
 
 import cats.effect.Sync
-import com.malliina.mapbox.{MapboxMap, MapboxPopup, PopupOptions}
+import com.malliina.mapbox.{LngLat, MapboxMap, MapboxPopup, PopupOptions}
 import com.malliina.values.ErrorMessage
 import fs2.Stream
 import cats.syntax.list.*
@@ -32,18 +32,28 @@ class VesselSearch[F[_]: Sync](
       val feature = Feature.line(coords)
       val layer = Layer.line(s"$prefix-trail", FeatureCollection(Seq(feature)))
       val lineOutcome = updateOrSet(layer)
-      if lineOutcome == Outcome.Added then
+      val hoverableLayer = Layer.line(
+        s"$prefix-hoverable",
+        FeatureCollection(Seq(feature)),
+        LinePaint(LinePaint.blackColor, `line-width` = 5, `line-opacity` = 0)
+      )
+      val hoverOutcome = updateOrSet(hoverableLayer)
+      if hoverOutcome == Outcome.Added then
         map.onHoverCursorPointer(layer.id)
-        map.onHover(layer.id)(
+        map.onHoverEnter(hoverableLayer.id)(
           in =>
             val hover = in.lngLat
             for
               coord <- Coord.build(hover.lng, hover.lat)
-              trail <- storage.get(mmsi).toRight(s"Trail not found for '$mmsi'.")
+              trail <- storage.get(mmsi).toRight(s"Trail not found for vessel '$mmsi'.")
               updates <- trail.updates.toList.toNel
-                .toRight(ErrorMessage(s"No coords for $mmsi."))
+                .toRight(ErrorMessage(s"No coords for vessel '$mmsi'."))
             yield nearest(coord, updates)(_.coord).map: near =>
-              trailPopup.show(html.aisSimple(trail.copy(updates = List(near.result))), hover, map)
+              trailPopup.show(
+                html.aisSimple(trail.copy(updates = List(near.result))),
+                LngLat(near.result.coord),
+                map
+              )
           ,
           out => trailPopup.remove()
         )
