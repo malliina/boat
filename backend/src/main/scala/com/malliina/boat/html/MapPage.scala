@@ -68,8 +68,7 @@ object MapPage extends BoatSyntax:
               fontAwesomeLink(a, GraphLinkId, "chart-area", Hidden, "Graph"),
               standaloneQuestion("question-nav")
             ),
-            datesContainer(lang.settings.forms),
-            vesselSearch,
+            filtersContainer(lang.settings.forms),
             routeContainer
           )
         .getOrElse:
@@ -93,29 +92,33 @@ object MapPage extends BoatSyntax:
     span(id := RouteDuration, cls := "nav-text route-duration")("")
   )
 
-  private def datesContainer(formsLang: FormsLang) =
+  private def filtersContainer(formsLang: FormsLang) =
     div(id := DatesContainer, cls := s"row $DatesContainer")(
       timePicker(formsLang.from, FromTimePickerId, "me-2"),
       timePicker(formsLang.to, ToTimePickerId, "me-2"),
-      div(cls := "time-shortcuts time-picker-container col-sm-6 col-md-4 mt-2 mb-0 mt-sm-0")(
-        select(
-          id := ShortcutsId,
-          cls := "form-select form-select-sm",
-          aria.label := "Select time shortcut"
-        )(
-          option(selected)(formsLang.shortcuts),
-          (1 to 5).map: n =>
-            option(value := TrackShortcut(n))(s"${formsLang.latestPlural} $n"),
-          Seq(
-            Shortcut.Last30min -> formsLang.last30min,
-            Shortcut.Last2h -> formsLang.last2h,
-            Shortcut.Last12h -> formsLang.last12h,
-            Shortcut.Last24h -> formsLang.last24h,
-            Shortcut.Last48h -> formsLang.last48h
-          ).map((shortcut, word) => option(value := shortcut)(word))
-        )
-      ),
+      shortcutsSelect(formsLang),
+      vesselSearch,
       div(id := LoadingSpinnerId, cls := "loader col-sm-6 col-md-4 mx-2 mb-0 mt-sm-0")
+    )
+
+  private def shortcutsSelect(formsLang: FormsLang) =
+    div(cls := "time-shortcuts time-picker-container col-sm-6 col-md-4 mt-2 mb-0 mt-sm-0 me-2")(
+      select(
+        id := ShortcutsId,
+        cls := "form-select form-select-sm",
+        aria.label := "Select time shortcut"
+      )(
+        option(selected)(formsLang.shortcuts),
+        (1 to 5).map: n =>
+          option(value := TrackShortcut(n))(s"${formsLang.latestPlural} $n"),
+        Seq(
+          Shortcut.Last30min -> formsLang.last30min,
+          Shortcut.Last2h -> formsLang.last2h,
+          Shortcut.Last12h -> formsLang.last12h,
+          Shortcut.Last24h -> formsLang.last24h,
+          Shortcut.Last48h -> formsLang.last48h
+        ).map((shortcut, word) => option(value := shortcut)(word))
+      )
     )
 
   private def timePicker(labelText: String, divId: String, clazz: String) =
@@ -144,10 +147,12 @@ object MapPage extends BoatSyntax:
     )
 
   private def vesselSearch =
-    div(cls := "autocomplete-container")(
+    div(
+      cls := "autocomplete-container col-sm-6 col-md-4 mt-2 mb-0 mt-sm-0 me-2"
+    )(
       input(
         id := VesselInputId,
-        cls := "form-control",
+        cls := "form-control form-control-sm",
         autocomplete := "off",
         aria.autocomplete := "none",
         placeholder := "Vessel name...",

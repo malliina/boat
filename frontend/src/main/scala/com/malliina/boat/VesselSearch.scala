@@ -1,10 +1,12 @@
 package com.malliina.boat
 
 import cats.effect.Sync
-import com.malliina.mapbox.{LngLat, MapboxMap, MapboxPopup, PopupOptions}
+import com.malliina.mapbox.{LngLat, LngLatLike, MapboxMap, MapboxPopup, PopupOptions}
 import com.malliina.values.ErrorMessage
 import fs2.Stream
 import cats.syntax.list.*
+
+import scala.scalajs.js.JSON
 
 class VesselSearch[F[_]: Sync](
   vessels: Stream[F, Seq[VesselTrail]],
@@ -35,7 +37,7 @@ class VesselSearch[F[_]: Sync](
       val hoverableLayer = Layer.line(
         s"$prefix-hoverable",
         FeatureCollection(Seq(feature)),
-        LinePaint(LinePaint.blackColor, `line-width` = 5, `line-opacity` = 0)
+        LinePaint(LinePaint.blackColor, `line-width` = 10, `line-opacity` = 0)
       )
       val hoverOutcome = updateOrSet(hoverableLayer)
       if hoverOutcome == Outcome.Added then
@@ -48,12 +50,18 @@ class VesselSearch[F[_]: Sync](
               trail <- storage.get(mmsi).toRight(s"Trail not found for vessel '$mmsi'.")
               updates <- trail.updates.toList.toNel
                 .toRight(ErrorMessage(s"No coords for vessel '$mmsi'."))
-            yield nearest(coord, updates)(_.coord).map: near =>
-              trailPopup.show(
-                html.aisSimple(trail.copy(updates = List(near.result))),
-                LngLat(near.result.coord),
-                map
-              )
+            yield nearest(coord, updates)(_.coord)
+              .map: near =>
+                val nearest = LngLatLike(near.result.coord)
+                val nearJson = JSON.stringify(nearest)
+                val hoverJson = JSON.stringify(hover)
+                // The popup might be rendered below the mouse cursor, causing a mouseleave event, causing the popup to be removed before ever being visible
+                trailPopup.show(
+                  html.aisSimple(trail.copy(updates = List(near.result))),
+//                  nearest,
+                  hover,
+                  map
+                )
           ,
           out => trailPopup.remove()
         )

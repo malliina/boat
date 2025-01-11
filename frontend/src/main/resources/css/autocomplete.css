@@ -1,6 +1,7 @@
 .autocomplete-container {
   position: relative;
   display: inline-block;
+  max-width: 300px;
 }
 
 .autocomplete-suggestions {

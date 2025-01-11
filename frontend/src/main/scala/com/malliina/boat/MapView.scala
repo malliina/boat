@@ -231,7 +231,6 @@ class MapView[F[_]: Async](
                     )
                     reconnect()
           inp.parentNode.appendChild(autocomplete)
-          log.info(s"Options has ${vessels.vessels.size} items")
 
   private def suggestions(vessels: Seq[Vessel]) =
     div(id := VesselOptionsId, cls := VesselsSuggestions)(
