@@ -8,7 +8,7 @@ on:
 jobs:
   build:
     name: Build
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
 
     steps:
       - uses: actions/checkout@v4
@@ -17,6 +17,7 @@ jobs:
           distribution: zulu
           java-version: 17
           cache: sbt
+      - uses: sbt/setup-sbt@v1
       - name: Release agent
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
