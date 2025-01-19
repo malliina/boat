@@ -2,8 +2,8 @@ package com.malliina.boat.db
 
 import cats.effect.IO
 import cats.implicits.*
-import com.malliina.boat.{BoatName, BoatUser, DateVal, DeviceId, MUnitSuite, RawSentence, SourceType, TrackId, TrackInput, TrackNames, WrappedTestConf}
-import com.malliina.database.DoobieDatabase
+import com.malliina.boat.{BoatName, BoatUser, DateVal, DeviceId, MUnitSuite, RawSentence, SourceType, TrackId, TrackInput, TrackNames}
+import com.malliina.database.{Conf, DoobieDatabase}
 import com.malliina.values.Username
 import fs2.Chunk
 import fs2.io.file.Path
@@ -14,7 +14,7 @@ import scala.annotation.unused
 import scala.concurrent.duration.{Duration, DurationInt}
 
 class TracksImporter extends MUnitSuite:
-  def testConf = WrappedTestConf.parse().map(_.boat.testdb).fold(e => throw e, identity)
+  def testConf: Conf = ???
   def dbResource = databaseFixture(testConf)
   val file = Path.fromNioPath(userHome.resolve(".boat/log.txt"))
 

@@ -4,6 +4,7 @@ import cats.effect.kernel.Sync
 import com.malliina.boat.auth.SecretKey
 import com.malliina.config.{ConfigError, ConfigNode, ConfigReadable, Env}
 import com.malliina.database.Conf
+import com.malliina.http.UrlSyntax.url
 import com.malliina.push.apns.{KeyId, TeamId}
 import com.malliina.util.FileUtils
 import com.malliina.values.{ErrorMessage, Password}
@@ -33,9 +34,9 @@ object AppMode:
 object LocalConf:
   private val homeDir = FileUtils.userHome
   val appDir = homeDir.resolve(".boat")
-  private val localConfFile = appDir.resolve("boat.conf")
   val isProd = BuildInfo.mode == "prod"
-  val localConf = ConfigNode.default(localConfFile)
+  def local(file: String) = ConfigNode.default(appDir.resolve(file))
+  val localConf = local("boat.conf")
   val conf = if isProd then ConfigNode.load("application-prod.conf") else localConf
 
 case class MapboxConf(token: AccessToken)
@@ -91,17 +92,28 @@ object BoatConf:
   def parseF[F[_]: Sync] = Sync[F].fromEither(parseBoat())
 
   def parseBoat(): Either[ConfigError, BoatConf] =
+    val envName = Env.read[String]("ENV_NAME")
+    val isStaging = envName.contains("staging")
     for
       boat <- LocalConf.conf.parse[ConfigNode]("boat")
-      conf <- parse(boat)
+      conf <- parse(
+        boat,
+        dbPass =>
+          if AppMode.fromBuild.isProd then prodDbConf(dbPass, if isStaging then 2 else 10)
+          else devDatabaseConf(dbPass),
+        AisAppConf.default,
+        isTest = false
+      )
     yield conf
 
-  private def parse(
-    c: ConfigNode
+  def parse(
+    c: ConfigNode,
+    dbConf: Password => Conf,
+    ais: AisAppConf,
+    isTest: Boolean
   ): Either[ConfigError, BoatConf] =
     val isProdBuild = AppMode.fromBuild.isProd
     val envName = Env.read[String]("ENV_NAME")
-    val isStaging = envName.contains("staging")
     val isProd = envName.contains("prod")
     for
       dbPass <- c.parse[Password]("db.pass")
@@ -117,13 +129,12 @@ object BoatConf:
       apnsPrivateKey <- c.parse[Path]("push.apns.privateKey")
       fcmApiKey <- c.parse[String]("push.fcm.apiKey")
     yield BoatConf(
-      isTest = false,
+      isTest,
       isProdBuild,
       MapboxConf(mapboxToken),
-      AisAppConf.default,
+      ais,
       secret,
-      if isProdBuild then prodDbConf(dbPass, if isStaging then 2 else 10)
-      else devDatabaseConf(dbPass),
+      dbConf(dbPass),
       GoogleConf(
         AppleConf.default,
         WebConf(WebConf.googleId, webSecret)
@@ -140,9 +151,9 @@ object BoatConf:
     )
 
   private def prodDbConf(password: Password, maxPoolSize: Int) = Conf(
-    "jdbc:mysql://localhost:3306/boat",
+    url"jdbc:mysql://localhost:3306/boat",
     "boat",
-    password.pass,
+    password,
     Conf.MySQLDriver,
     maxPoolSize = maxPoolSize,
     autoMigrate = true,
@@ -150,9 +161,9 @@ object BoatConf:
   )
 
   private def devDatabaseConf(password: Password) = Conf(
-    "jdbc:mysql://localhost:3307/boat",
+    url"jdbc:mysql://localhost:3307/boat",
     "boat",
-    password.pass,
+    password,
     Conf.MySQLDriver,
     maxPoolSize = 2,
     autoMigrate = false,

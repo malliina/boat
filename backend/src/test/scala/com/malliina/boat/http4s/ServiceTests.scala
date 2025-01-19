@@ -6,7 +6,7 @@ import com.malliina.boat.db.NewUser
 import com.malliina.boat.http.ContentVersions
 import com.malliina.boat.http4s.JsonInstances.jsonBody
 import com.malliina.boat.parsing.{BoatStats, FullCoord}
-import com.malliina.boat.{BoatName, BoatNames, BoatResponse, BoatUser, Coord, DeviceId, Http4sSuite, MUnitSuite, SourceType, TestEmailAuth, TrackNames, TrackSummaries, Tracks, UserToken}
+import com.malliina.boat.*
 import com.malliina.measure.{DistanceIntM, SpeedIntM, TemperatureInt}
 import com.malliina.values.Username
 import io.circe.Json

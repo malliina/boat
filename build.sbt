@@ -6,15 +6,14 @@ import sbtrelease.ReleaseStateTransformations.*
 import scala.sys.process.Process
 
 val fs2Version = "3.11.0"
-val webAuthVersion = "6.9.5"
-val munitVersion = "1.0.3"
+val webAuthVersion = "6.9.6"
+val munitVersion = "1.0.4"
 val munitCeVersion = "2.0.0"
-val testContainersScalaVersion = "0.41.4"
 val scalaTagsVersion = "0.13.1"
-val primitiveVersion = "3.7.4"
-val logstreamsVersion = "2.8.1"
+val primitiveVersion = "3.7.5"
+val logstreamsVersion = "2.8.2"
 val http4sVersion = "0.23.30"
-val logbackVersion = "1.5.12"
+val logbackVersion = "1.5.16"
 val circeVersion = "0.14.10"
 val alpnVersion = "12.0.16"
 val webAuthDep = "com.malliina" %% "web-auth" % webAuthVersion
@@ -128,15 +127,14 @@ val backend = Project("boat", file("backend"))
         "com.vividsolutions" % "jts" % "1.13",
         "mysql" % "mysql-connector-java" % "8.0.33",
         "org.apache.commons" % "commons-text" % "1.13.0",
-        "software.amazon.awssdk" % "s3" % "2.29.34",
+        "software.amazon.awssdk" % "s3" % "2.30.2",
         "com.malliina" %% "logstreams-client" % logstreamsVersion,
-        "com.malliina" %% "mobile-push-io" % "3.11.1",
+        "com.malliina" %% "mobile-push-io" % "3.11.2",
         "com.malliina" %% "config" % primitiveVersion,
         "org.eclipse.paho" % "org.eclipse.paho.client.mqttv3" % "1.2.5",
         webAuthDep,
         webAuthTestDep,
         munitDep,
-        "com.dimafeng" %% "testcontainers-scala-mysql" % testContainersScalaVersion % Test,
         "org.typelevel" %% "munit-cats-effect" % munitCeVersion % Test
       ),
     clientProject := frontend,
@@ -191,7 +189,7 @@ val agent = project
         "com.malliina" %% "primitives" % primitiveVersion,
         "com.malliina" %% "logstreams-client" % logstreamsVersion,
         "com.lihaoyi" %% "scalatags" % scalaTagsVersion,
-        "commons-codec" % "commons-codec" % "1.17.1",
+        "commons-codec" % "commons-codec" % "1.17.2",
         "org.typelevel" %% "munit-cats-effect" % munitCeVersion % Test
       ),
     releaseUseGlobalVersion := false,

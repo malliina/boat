@@ -1,12 +1,10 @@
 package com.malliina.boat
 
 import cats.effect.Sync
-import com.malliina.mapbox.{LngLat, LngLatLike, MapboxMap, MapboxPopup, PopupOptions}
+import com.malliina.mapbox.{MapboxMap, MapboxPopup, PopupOptions}
 import com.malliina.values.ErrorMessage
 import fs2.Stream
 import cats.syntax.list.*
-
-import scala.scalajs.js.JSON
 
 class VesselSearch[F[_]: Sync](
   vessels: Stream[F, Seq[VesselTrail]],
@@ -33,7 +31,7 @@ class VesselSearch[F[_]: Sync](
       val coords = trail.updates.map(_.coord)
       val feature = Feature.line(coords)
       val layer = Layer.line(s"$prefix-trail", FeatureCollection(Seq(feature)))
-      val lineOutcome = updateOrSet(layer)
+      val _ = updateOrSet(layer)
       val hoverableLayer = Layer.line(
         s"$prefix-hoverable",
         FeatureCollection(Seq(feature)),
@@ -52,13 +50,9 @@ class VesselSearch[F[_]: Sync](
                 .toRight(ErrorMessage(s"No coords for vessel '$mmsi'."))
             yield nearest(coord, updates)(_.coord)
               .map: near =>
-                val nearest = LngLatLike(near.result.coord)
-                val nearJson = JSON.stringify(nearest)
-                val hoverJson = JSON.stringify(hover)
                 // The popup might be rendered below the mouse cursor, causing a mouseleave event, causing the popup to be removed before ever being visible
                 trailPopup.show(
                   html.aisSimple(trail.copy(updates = List(near.result))),
-//                  nearest,
                   hover,
                   map
                 )

@@ -1,13 +1,18 @@
 package com.malliina.boat.db
 
-import com.malliina.boat.http.{Limits, SortOrder, TrackQuery, TrackSort, TracksQuery}
-import com.malliina.boat.{Coord, Lang, Language, MUnitDatabaseSuite, MUnitSuite, SimpleUserInfo}
+import ch.qos.logback.classic.Level
+import com.malliina.boat.*
+import com.malliina.boat.http.*
 import com.malliina.database.Conf
+import com.malliina.http.UrlSyntax.url
+import com.malliina.logback.LogbackUtils
 import com.malliina.measure.{DistanceIntM, DistanceM}
-import com.malliina.values.{Username, lat, lng, lngLat}
+import com.malliina.values.*
 import doobie.implicits.toSqlInterpolator
 
 class DoobieTracksDatabaseTests extends MUnitSuite with MUnitDatabaseSuite:
+  LogbackUtils.init(rootLevel = Level.OFF)
+
   dbFixture.test("run doobie query"): doobie =>
     val service = DoobieTracksDatabase(doobie)
     val res = service.hm.unsafeRunSync()
@@ -15,9 +20,9 @@ class DoobieTracksDatabaseTests extends MUnitSuite with MUnitDatabaseSuite:
 
 class DoobieTests extends MUnitSuite with Mappings:
   val conf = Conf(
-    "jdbc:mysql://localhost:3306/boat",
+    url"jdbc:mysql://localhost:3306/boat",
     "changeme",
-    "changeme",
+    Password("changeme"),
     Conf.MySQLDriver,
     maxPoolSize = 5,
     autoMigrate = true,
