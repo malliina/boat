@@ -14,8 +14,8 @@ class Events[F[_]: Sync](
   socketEventsTopic: Topic[F, WebSocketEvent],
   log: BaseLogger = BaseLogger.console
 ):
-  val socketEvents = socketEventsTopic.subscribe(10)
-  val isConnected = socketEvents
+  private val socketEvents = socketEventsTopic.subscribe(10)
+  private val isConnected = socketEvents
     .collect:
       case WebSocketEvent.Open(_)    => true
       case WebSocketEvent.Message(_) => true

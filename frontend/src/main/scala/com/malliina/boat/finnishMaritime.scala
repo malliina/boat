@@ -57,8 +57,16 @@ object NavMark:
 
 /** Rakennetieto (RAKT_TYYP)
   */
-sealed trait ConstructionInfo:
-  import ConstructionInfo.*
+enum ConstructionInfo:
+  case BuoyBeacon, IceBuoy, BeaconBuoy, SuperBeacon, ExteriorLight, DayBoard, HelicopterPlatform,
+    RadioMast, WaterTower, SmokePipe, RadarTower, ChurchTower, SuperBuoy, EdgeCairn, CompassCheck,
+    BorderMark
+  // rajalinjamerkki
+  case BorderLineMark
+  // kanavan reunavalo
+  case ChannelEdgeLight
+  case Tower
+
   def translate(in: ConstructionLang) = this match
     case BuoyBeacon         => in.buoyBeacon
     case IceBuoy            => in.iceBuoy
@@ -81,28 +89,6 @@ sealed trait ConstructionInfo:
     case Tower              => in.tower
 
 object ConstructionInfo:
-  case object BuoyBeacon extends ConstructionInfo
-  case object IceBuoy extends ConstructionInfo
-  case object BeaconBuoy extends ConstructionInfo
-  case object SuperBeacon extends ConstructionInfo
-  case object ExteriorLight extends ConstructionInfo
-  case object DayBoard extends ConstructionInfo
-  case object HelicopterPlatform extends ConstructionInfo
-  case object RadioMast extends ConstructionInfo
-  case object WaterTower extends ConstructionInfo
-  case object SmokePipe extends ConstructionInfo
-  case object RadarTower extends ConstructionInfo
-  case object ChurchTower extends ConstructionInfo
-  case object SuperBuoy extends ConstructionInfo
-  case object EdgeCairn extends ConstructionInfo
-  case object CompassCheck extends ConstructionInfo
-  case object BorderMark extends ConstructionInfo
-  // rajalinjamerkki
-  case object BorderLineMark extends ConstructionInfo
-  // kanavan reunavalo
-  case object ChannelEdgeLight extends ConstructionInfo
-  case object Tower extends ConstructionInfo
-
   private val fromInt: PartialFunction[Int, ConstructionInfo] = {
     case 1  => BuoyBeacon
     case 2  => IceBuoy
@@ -124,13 +110,15 @@ object ConstructionInfo:
     case 19 => ChannelEdgeLight
     case 20 => Tower
   }
-  implicit val decoder: Decoder[ConstructionInfo] = Decoder.decodeInt.emap: int =>
+  given Decoder[ConstructionInfo] = Decoder.decodeInt.emap: int =>
     fromInt.lift(int).toRight(s"Unknown construction type: '$int'.")
 
 /** Turvalaitteen tyyppi (TY_JNR)
   */
-sealed trait AidType:
-  import AidType.*
+enum AidType:
+  case Unknown, Lighthouse, SectorLight, LeadingMark, DirectionalLight, MinorLight, OtherMark,
+    EdgeMark, RadarTarget, Buoy, Beacon, SignatureLighthouse, Cairn
+
   def translate(in: AidTypeLang): String = this match
     case Unknown             => in.unknown
     case Lighthouse          => in.lighthouse
@@ -147,20 +135,6 @@ sealed trait AidType:
     case Cairn               => in.cairn
 
 object AidType:
-  case object Unknown extends AidType
-  case object Lighthouse extends AidType
-  case object SectorLight extends AidType
-  case object LeadingMark extends AidType
-  case object DirectionalLight extends AidType
-  case object MinorLight extends AidType
-  case object OtherMark extends AidType
-  case object EdgeMark extends AidType
-  case object RadarTarget extends AidType
-  case object Buoy extends AidType
-  case object Beacon extends AidType
-  case object SignatureLighthouse extends AidType
-  case object Cairn extends AidType
-
   private val fromInt: PartialFunction[Int, AidType] =
     case 0  => Unknown
     case 1  => Lighthouse
@@ -175,10 +149,13 @@ object AidType:
     case 10 => Beacon
     case 11 => SignatureLighthouse
     case 13 => Cairn
-  implicit val decoder: Decoder[AidType] = Decoder.decodeInt.emap: int =>
+  given Decoder[AidType] = Decoder.decodeInt.emap: int =>
     fromInt.lift(int).toRight(s"Unknown aid type: '$int'.")
 
-sealed trait Flotation:
+enum Flotation:
+  case Floating, Solid
+  case Other(name: String)
+
   def floatingOrSolid = this == Flotation.Solid || this == Flotation.Floating
   def translate(in: FlotationLang) = this match
     case Flotation.Floating => in.floating
@@ -186,11 +163,7 @@ sealed trait Flotation:
     case Flotation.Other(_) => in.other
 
 object Flotation:
-  case object Floating extends Flotation
-  case object Solid extends Flotation
-  case class Other(name: String) extends Flotation
-
-  implicit val reader: Decoder[Flotation] = Decoder.decodeString.map:
+  given Decoder[Flotation] = Decoder.decodeString.map:
     case "KELLUVA" => Floating
     // not a typo
     case "KIINTE" => Solid
@@ -230,7 +203,7 @@ object TrafficMarkType:
     case 6  => NoWaves
     case 11 => SpeedLimit
     case _  => Other
-  implicit val reader: Decoder[TrafficMarkType] = Decoder.decodeInt.emap: int =>
+  given Decoder[TrafficMarkType] = Decoder.decodeInt.emap: int =>
     fromInt.lift(int).toRight(s"Unknown traffic mark type: '$int'.")
   case object SpeedLimit extends TrafficMarkType
   case object NoWaves extends TrafficMarkType
@@ -348,7 +321,11 @@ object DepthArea:
       max <- c.downField("DRVAL2").as[DistanceM]
     yield DepthArea(min, max)
 
-sealed abstract class QualityClass(val value: Int)
+enum QualityClass(val value: Int):
+  case Unknown extends QualityClass(0)
+  case One extends QualityClass(1)
+  case Two extends QualityClass(2)
+  case Three extends QualityClass(3)
 
 object QualityClass:
   val all = Seq(Unknown, One, Two, Three)
@@ -359,13 +336,10 @@ object QualityClass:
       .map(Right(_))
       .getOrElse(Left(s"Invalid quality class: '$i'."))
 
-  case object Unknown extends QualityClass(0)
-  case object One extends QualityClass(1)
-  case object Two extends QualityClass(2)
-  case object Three extends QualityClass(3)
+enum FairwayType:
+  case Navigation, Anchoring, Meetup, HarborPool, Turn, Channel, CoastTraffic, Core, Special, Lock,
+    ConfirmedExtra, Helcom, Pilot
 
-sealed trait FairwayType:
-  import FairwayType.*
   def translate(in: FairwayTypeLang): String = this match
     case Navigation     => in.navigation
     case Anchoring      => in.anchoring
@@ -397,24 +371,11 @@ object FairwayType:
     case 12 => Helcom
     case 13 => Pilot
 
-  implicit val decoder: Decoder[FairwayType] = Decoder.decodeInt.emap: int =>
+  given Decoder[FairwayType] = Decoder.decodeInt.emap: int =>
     fromInt.lift(int).toRight(s"Unknown fairway type: '$int'.")
 
-  case object Navigation extends FairwayType
-  case object Anchoring extends FairwayType
-  case object Meetup extends FairwayType
-  case object HarborPool extends FairwayType
-  case object Turn extends FairwayType
-  case object Channel extends FairwayType
-  case object CoastTraffic extends FairwayType
-  case object Core extends FairwayType
-  case object Special extends FairwayType
-  case object Lock extends FairwayType
-  case object ConfirmedExtra extends FairwayType
-  case object Helcom extends FairwayType
-  case object Pilot extends FairwayType
-
-sealed trait FairwayState
+enum FairwayState:
+  case Confirmed, Aihio, MayChange, ChangeAihio, MayBeRemoved, Removed
 
 object FairwayState:
   private val fromInt: PartialFunction[Int, FairwayState] =
@@ -427,15 +388,9 @@ object FairwayState:
   given Decoder[FairwayState] = Decoder.decodeInt.emap: int =>
     fromInt.lift(int).toRight(s"Unknown fairway state: '$int'.")
 
-  case object Confirmed extends FairwayState
-  case object Aihio extends FairwayState
-  case object MayChange extends FairwayState
-  case object ChangeAihio extends FairwayState
-  case object MayBeRemoved extends FairwayState
-  case object Removed extends FairwayState
+enum MarkType:
+  case Unknown, Lateral, Cardinal
 
-sealed trait MarkType:
-  import MarkType.*
   def translate(in: MarkTypeLang): String = this match
     case Unknown  => in.unknown
     case Lateral  => in.lateral
@@ -446,12 +401,9 @@ object MarkType:
     case 0 => Unknown
     case 1 => Lateral
     case 2 => Cardinal
+
   given Decoder[MarkType] = Decoder.decodeInt.emap: int =>
     fromInt.lift(int).toRight(s"Unknown mark type: '$int'.")
-
-  case object Unknown extends MarkType
-  case object Lateral extends MarkType
-  case object Cardinal extends MarkType
 
 /** <p>Väyläalue, farledsområde.
   *
@@ -497,8 +449,9 @@ object FairwayArea:
       mark
     )
 
-sealed trait ZoneOfInfluence:
-  import ZoneOfInfluence.*
+enum ZoneOfInfluence:
+  case Area, Fairway, AreaAndFairway
+
   def translate(in: ZonesLang): String = this match
     case Area                    => in.area
     case ZoneOfInfluence.Fairway => in.fairway
@@ -511,12 +464,20 @@ object ZoneOfInfluence:
       case "V"  => Fairway
       case "AV" => AreaAndFairway
 
-  case object Area extends ZoneOfInfluence
-  case object Fairway extends ZoneOfInfluence
-  case object AreaAndFairway extends ZoneOfInfluence
-
-sealed trait LimitType:
-  import LimitType.*
+enum LimitType:
+  case SpeedLimit
+  case NoWaves
+  case NoWindSurfing
+  case NoJetSkiing
+  case NoMotorPower
+  case NoAnchoring
+  case NoStopping
+  // Kiinnittymiskielto
+  case NoAttachment
+  case NoOvertaking
+  // Kohtaamiskielto
+  case NoRendezVous
+  case SpeedRecommendation
 
   def describe(lang: LimitTypes): String = this match
     case SpeedLimit          => lang.speedLimit
@@ -532,21 +493,7 @@ sealed trait LimitType:
     case SpeedRecommendation => lang.speedRecommendation
 
 object LimitType:
-  case object SpeedLimit extends LimitType
-  case object NoWaves extends LimitType
-  case object NoWindSurfing extends LimitType
-  case object NoJetSkiing extends LimitType
-  case object NoMotorPower extends LimitType
-  case object NoAnchoring extends LimitType
-  case object NoStopping extends LimitType
-  // Kiinnittymiskielto
-  case object NoAttachment extends LimitType
-  case object NoOvertaking extends LimitType
-  // Kohtaamiskielto
-  case object NoRendezVous extends LimitType
-  case object SpeedRecommendation extends LimitType
-
-  implicit val reader: Decoder[LimitType] =
+  given Decoder[LimitType] =
     partialReader[String, LimitType](str => s"Unknown limit type: '$str'.")(parse)
 
   def parse: PartialFunction[String, LimitType] =

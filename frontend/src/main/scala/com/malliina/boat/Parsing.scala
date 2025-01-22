@@ -1,8 +1,8 @@
 package com.malliina.boat
 
-import io.circe.*
 import io.circe.parser.decode
 import io.circe.syntax.EncoderOps
+import io.circe.{Decoder, DecodingFailure, Encoder, Json, Printer}
 
 import scala.scalajs.js
 import scala.scalajs.js.JSON
@@ -20,7 +20,7 @@ trait Parsing:
 
   private def stringifyAny(any: js.Any) = JSON.stringify(any)
 
-  def stringify[T: Encoder](t: T) = t.asJson.printWith(printer)
+  def stringify[T: Encoder](t: T): String = t.asJson.printWith(printer)
 
   def validate[T: Decoder](json: Json): Either[JsonError, T] =
     json.as[T].left.map(err => JsonError(DecodingFailure(err.message, Nil), json))

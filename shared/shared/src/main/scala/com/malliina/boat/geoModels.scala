@@ -104,16 +104,15 @@ object Geometry:
       case other =>
         Decoder.failed(DecodingFailure(s"Unsupported geometry type '$other'.", Nil))
 
-sealed abstract class IconRotationAlignment(val value: String) extends WrappedString
+enum IconRotationAlignment(val value: String):
+  case Map extends IconRotationAlignment("map")
+  case Viewport extends IconRotationAlignment("viewport")
+  case Auto extends IconRotationAlignment("auto")
 
 object IconRotationAlignment extends StringEnumCompanion[IconRotationAlignment]:
   val all = Seq(Map, Viewport, Auto)
 
-  override def write(t: IconRotationAlignment) = t.value
-
-  case object Map extends IconRotationAlignment("map")
-  case object Viewport extends IconRotationAlignment("viewport")
-  case object Auto extends IconRotationAlignment("auto")
+  override def write(t: IconRotationAlignment): String = t.value
 
 case class LineLayout(`line-join`: String, `line-cap`: String, `line-sort-key`: Option[Double])
   extends Layout derives Codec.AsObject
@@ -218,7 +217,16 @@ object BasePaint:
 /** @see
   *   https://www.mapbox.com/mapbox-gl-js/style-spec/#layer-type
   */
-sealed abstract class LayerType(val name: String)
+enum LayerType(val name: String):
+  case Background extends LayerType("background")
+  case Fill extends LayerType("fill")
+  case Line extends LayerType("line")
+  case Symbol extends LayerType("symbol")
+  case Raster extends LayerType("raster")
+  case Circle extends LayerType("circle")
+  case FillExtrusion extends LayerType("fill-extrusion")
+  case HeatMap extends LayerType("heatmap")
+  case HillShade extends LayerType("hillshade")
 
 object LayerType extends ValidatingCompanion[String, LayerType]:
   val all = Seq(Background, Fill, Line, Symbol, Raster, Circle, FillExtrusion, HeatMap, HillShade)
@@ -229,16 +237,6 @@ object LayerType extends ValidatingCompanion[String, LayerType]:
       .toRight(ErrorMessage(s"Unknown layer type: '$input'."))
 
   override def write(t: LayerType): String = t.name
-
-  case object Background extends LayerType("background")
-  case object Fill extends LayerType("fill")
-  case object Line extends LayerType("line")
-  case object Symbol extends LayerType("symbol")
-  case object Raster extends LayerType("raster")
-  case object Circle extends LayerType("circle")
-  case object FillExtrusion extends LayerType("fill-extrusion")
-  case object HeatMap extends LayerType("heatmap")
-  case object HillShade extends LayerType("hillshade")
 
 sealed trait LayerSource
 
@@ -252,7 +250,7 @@ object LayerSource:
   given Codec[LayerSource] = Codec.from[LayerSource](reader, writer)
 
 /** @see
-  *   https://www.mapbox.com/mapbox-gl-js/style-spec/#layers
+  *   https://docs.mapbox.com/style-spec/reference/layers/
   */
 case class Layer(
   id: String,

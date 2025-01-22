@@ -2,7 +2,7 @@ package com.malliina.boat.html
 
 import cats.implicits.toShow
 import com.malliina.boat.BoatFormats.{durationHuman, formatDistance, inHours}
-import com.malliina.boat.FrontKeys.Hidden
+import com.malliina.boat.FrontKeys.{Hidden, MonthRow, YearData, YearRow}
 import com.malliina.boat.http.{Limits, SortOrder, TrackSort, TracksQuery}
 import com.malliina.boat.{BoatLang as _, *}
 import com.malliina.measure.DistanceM
@@ -14,7 +14,7 @@ import scala.language.implicitConversions
 
 object TracksPage extends BoatSyntax:
   private val monthDataAttr = data("month")
-  private val yearDataAttr = data("year")
+  private val yearDataAttr = data(YearData)
 
   implicit def distanceKmHtml(d: DistanceM): Frag = stringFrag(formatDistance(d) + " km")
 
@@ -86,7 +86,7 @@ object TracksPage extends BoatSyntax:
             tbody(
               stats.yearly.map: year =>
                 modifier(
-                  tr(cls := "year-row", yearDataAttr := year.year)(
+                  tr(cls := YearRow, yearDataAttr := year.year)(
                     td(year.year),
                     td(year.distance),
                     td(durationHuman(year.duration)),
@@ -96,7 +96,7 @@ object TracksPage extends BoatSyntax:
                   ),
                   year.monthly.map: month =>
                     tr(
-                      cls := s"month-row $Hidden",
+                      cls := s"$MonthRow $Hidden",
                       yearDataAttr := year.year,
                       monthDataAttr := month.month
                     )(

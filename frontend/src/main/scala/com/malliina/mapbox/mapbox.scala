@@ -3,7 +3,6 @@ package com.malliina.mapbox
 import cats.effect.Async
 import cats.syntax.all.toFunctorOps
 import com.malliina.boat.{AccessToken, Coord, Feature, FeatureCollection, JsonError, Latitude, Layer, Longitude, Parsing}
-import com.malliina.{OptionDoubleOps, OptionOps, OptionStringOps}
 import org.scalajs.dom
 import org.scalajs.dom.{HTMLCanvasElement, html}
 import scalatags.JsDom.TypedTag
@@ -35,7 +34,7 @@ object GeocoderOptions:
     literal(
       accessToken = accessToken,
       countries = countries.mkString(","),
-      mapboxgl = mapboxgl.any
+      mapboxgl = mapboxgl.orUndefined
     ).asInstanceOf[GeocoderOptions]
 
 @js.native
@@ -79,8 +78,9 @@ object MapboxMarker:
   def apply[T <: dom.Element](html: TypedTag[T], coord: Coord, on: MapboxMap): MapboxMarker =
     new MapboxMarker(MarkerOptions(html)).at(coord).addTo(on)
 
-  implicit class MarkerExt(val self: MapboxMarker) extends AnyVal:
-    def at(coord: Coord): MapboxMarker = self.setLngLat(LngLatLike(coord.lng, coord.lat))
+  extension (self: MapboxMarker)
+    def at(coord: Coord): MapboxMarker =
+      self.setLngLat(LngLatLike(coord.lng, coord.lat))
     def coord: Coord =
       val lngLat = self.getLngLat()
       Coord(Longitude.unsafe(lngLat.lng), Latitude.unsafe(lngLat.lat))
@@ -100,8 +100,8 @@ object PopupOptions:
     maxWidth: String = "240px"
   ): PopupOptions =
     literal(
-      className = className.any,
-      offset = offset.any,
+      className = className.orUndefined,
+      offset = offset.orUndefined,
       closeButton = closeButton,
       maxWidth = maxWidth
     ).asInstanceOf[PopupOptions]
@@ -118,9 +118,7 @@ class MapboxPopup(@unused options: PopupOptions) extends js.Object:
   def setMaxWidth(v: String): MapboxPopup = js.native
 
 object MapboxPopup:
-  def apply(options: PopupOptions): MapboxPopup = new MapboxPopup(options)
-
-  implicit class PopupExt(val self: MapboxPopup) extends AnyVal:
+  extension (self: MapboxPopup)
     def show[T <: dom.Element](htmlPayload: TypedTag[T], coord: LngLatLike, on: MapboxMap): Unit =
       html(htmlPayload).setLngLat(coord).setMaxWidth("none").addTo(on)
     def show2[T <: dom.Element](htmlPayload: TypedTag[T], coord: LngLatLike, on: MapboxMap): Unit =
@@ -184,11 +182,12 @@ class MapboxMap(@unused options: MapOptions) extends js.Object:
 
 object MapboxMap:
 
-  implicit class MapExt(val self: MapboxMap) extends AnyVal:
+  extension (self: MapboxMap)
     def bearing = self.getBearing()
 
     def putLayer(layer: Layer): Unit =
-      self.addLayer(JSON.parse(Parsing.stringify(layer)))
+      val str = Parsing.stringify(layer)
+      self.addLayer(JSON.parse(str))
 
     def removeLayerAndSourceIfExists(id: String): Unit =
       self
@@ -212,7 +211,7 @@ object MapboxMap:
       self.on("mouseenter", layerId, e => in(e))
       self.on("mouseleave", layerId, e => out(e))
 
-    def onHoverCursorPointer(layerId: String) = onHover(layerId)(
+    def onHoverCursorPointer(layerId: String): Unit = onHover(layerId)(
       in => self.getCanvas().style.cursor = "pointer",
       out => self.getCanvas().style.cursor = ""
     )
@@ -283,7 +282,7 @@ trait FitOptions extends js.Object:
 
 object FitOptions:
   def apply(padding: Int, linear: Boolean = false, maxZoom: Option[Double] = None): FitOptions =
-    literal(padding = PaddingOptions(padding), linear = linear, maxZoom = maxZoom.any)
+    literal(padding = PaddingOptions(padding), linear = linear, maxZoom = maxZoom.orUndefined)
       .asInstanceOf[FitOptions]
 
 @js.native
@@ -309,7 +308,7 @@ trait GeoJsonSource extends js.Object:
   def setData(data: js.Any): Unit = js.native
 
 object GeoJsonSource:
-  implicit class GeoJsonSourceExt(val source: GeoJsonSource) extends AnyVal:
+  extension (source: GeoJsonSource)
     def updateData(data: FeatureCollection): Unit =
       source.setData(Parsing.toJson(data))
 
@@ -342,7 +341,6 @@ trait MapMouseEvent extends js.Object:
 @js.native
 trait PixelCoord extends js.Object:
   def x: Int = js.native
-
   def y: Int = js.native
 
 @js.native

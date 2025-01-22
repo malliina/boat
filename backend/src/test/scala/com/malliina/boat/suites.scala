@@ -6,7 +6,7 @@ import cats.effect.kernel.Resource
 import ch.qos.logback.classic.Level
 import com.comcast.ip4s.port
 import com.malliina.boat.db.DoobieSQL
-import com.malliina.boat.http4s.{JsonInstances, Server, ServerComponents, ServerResources, Service}
+import com.malliina.boat.http4s.{JsonInstances, ServerComponents, ServerResources, Service}
 import com.malliina.config.{ConfigError, ConfigNode, MissingValue}
 import com.malliina.database.{Conf, DoobieDatabase}
 import com.malliina.http.UrlSyntax.url
@@ -92,6 +92,7 @@ trait BoatDatabaseSuite extends MUnitDatabaseSuite:
 // https://github.com/typelevel/munit-cats-effect
 trait Http4sSuite extends BoatDatabaseSuite:
   self: MUnitSuite =>
+  object TestServer extends ServerResources
   val appResource: Resource[IO, AppComponents] =
     val csrfConf = CSRFConf.default
     val csrfUtils = CSRFUtils(csrfConf)
@@ -100,7 +101,7 @@ trait Http4sSuite extends BoatDatabaseSuite:
         csrfUtils.default[IO](onFailure = CSRFUtils.defaultFailure[IO])
       )
       boatConf <- Resource.eval(boatIO)
-      service <- Server.appService[IO](boatConf, TestComps.builder, csrf, csrfConf)
+      service <- TestServer.appService[IO](boatConf, TestComps.builder, csrf, csrfConf)
     yield AppComponents(service)
 
   val app = ResourceSuiteLocalFixture("munit-boat-app", appResource)

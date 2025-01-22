@@ -87,19 +87,8 @@ class MapSocket[F[_]: Async](
     .concurrently(aisListener)
     .concurrently(events.connectivityLogger)
 
-  /** Colors the track by speed.
-    *
-    * @see
-    *   https://docs.mapbox.com/mapbox-gl-js/example/heatmap-layer/
-    * @param id
-    *   layer ID
-    */
-  private def lineLayer(id: String, opacity: Double = 1d) =
-    trackLineLayer(id, LinePaint(LinePaint.blackColor, 1, opacity))
-//  trackLineLayer(id, LinePaint(PropertyValue.Custom(Styles.colorBySpeed), 1, 1))
-
-  private def trackLineLayer(id: String, paint: LinePaint): Layer =
-    Layer.line(id, emptyTrack, paint, minzoom = None)
+  private def trackLineLayer(id: String, paint: LinePaint, minzoom: Option[Double] = None): Layer =
+    Layer.line(id, emptyTrack, paint, minzoom)
 
   def onCoordsHistory(event: CoordsEvent): Unit =
     val track = event.from
@@ -150,7 +139,7 @@ class MapSocket[F[_]: Async](
         .filter(map.hasLayer)
         .foreach(id => map.removeLayer(id))
       log.debug(s"Crafting new track for boat '$boat'...")
-      map.putLayer(lineLayer(track))
+      map.putLayer(trackLineLayer(track, LinePaint(LinePaint.blackColor, 1, 1.0d), Option(8d)))
       // adds a thicker, transparent trail on top of the visible one, which represents the mouse-hoverable area
       map.putLayer(trackLineLayer(hoverableTrack, LinePaint(LinePaint.blackColor, 5, 0)))
       coords.lastOption.foreach: coord =>

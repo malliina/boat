@@ -10,10 +10,11 @@ class BoatTests extends munit.FunSuite with DemoJson:
       .sliding(2)
       .collect:
         case Seq(a, b) if b < a => b - a
-    assert(decrements.sum.abs == expected)
+    assertEquals(decrements.sum.abs, expected)
+
   test("serialize GeoJSON"):
     val _ = LineGeometry("LineString", Seq(Coord.buildOrFail(24, 60)))
-    assert(1 == 1)
+    assertEquals(1, 1)
 
   test("parse mark"):
     val mark = decode[MarineSymbol](markJson)

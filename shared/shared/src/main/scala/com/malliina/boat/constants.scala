@@ -85,7 +85,8 @@ trait FrontKeys
   with AboutKeys
   with DatePickerKeys
   with VesselSearchKeys
-  with FilterKeys:
+  with FilterKeys
+  with StatsKeys:
   val ChartsId = "charts"
   val Close = "close"
   val Enabled = "enabled"
@@ -169,3 +170,9 @@ trait BodyClasses:
   val MapClass = "map"
   val ParkingClass = "parking"
   val StatsClass = "stats"
+
+trait StatsKeys:
+  val YearRow = "year-row"
+  val MonthRow = "month-row"
+  val YearData = "year"
+  def DataYear = s"data-$YearData"

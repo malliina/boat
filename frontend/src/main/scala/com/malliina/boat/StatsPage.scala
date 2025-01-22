@@ -2,11 +2,11 @@ package com.malliina.boat
 
 class StatsPage extends BaseFront:
   document
-    .getElementsByClassName("year-row")
+    .getElementsByClassName(YearRow)
     .foreach: row =>
       row.addOnClick: e =>
-        val clickedYear = row.getAttribute("data-year")
+        val clickedYear = row.getAttribute(DataYear)
         document
-          .getElementsByClassName("month-row")
+          .getElementsByClassName(MonthRow)
           .foreach: monthRow =>
-            if monthRow.getAttribute("data-year") == clickedYear then monthRow.toggle()
+            if monthRow.getAttribute(DataYear) == clickedYear then monthRow.toggle()

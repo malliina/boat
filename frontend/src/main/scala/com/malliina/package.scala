@@ -1,12 +1,9 @@
-package com
+package com.malliina
 
 import scala.scalajs.js
 
-package object malliina:
-  // Yeah I don't know any better
-  implicit class OptionOps[T <: js.Any](val o: Option[T]) extends AnyVal:
-    def any: js.Any = o.map(t => t: js.Any).getOrElse(js.undefined)
-  implicit class OptionStringOps(val o: Option[String]) extends AnyVal:
-    def any: js.Any = o.map(t => t: js.Any).getOrElse(js.undefined)
-  implicit class OptionDoubleOps(val o: Option[Double]) extends AnyVal:
-    def any: js.Any = o.map(t => t: js.Any).getOrElse(js.undefined)
+// Yeah I don't know any better
+extension [T <: js.Any](o: Option[T])
+  def any: js.Any = o.map(t => t: js.Any).getOrElse(js.undefined)
+extension (o: Option[String]) def anys: js.Any = o.map(t => t: js.Any).getOrElse(js.undefined)
+extension (o: Option[Double]) def anyd: js.Any = o.map(t => t: js.Any).getOrElse(js.undefined)
