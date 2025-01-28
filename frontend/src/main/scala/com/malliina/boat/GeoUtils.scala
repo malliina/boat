@@ -105,8 +105,6 @@ class GeoUtils(map: MapboxMap, val log: BaseLogger):
     log.info(s"Searching nearest update among ${coords.size} coords...")
     val turfPoint = GeoPoint(fromCoord)
     val nearestResult = nearestPointOnLine(all, turfPoint)
-    val str = scalajs.js.JSON.stringify(nearestResult)
-    log.info(s"Nearest json $str")
     val idx = nearestResult.properties.index
     if on.length > idx then Right(NearestResult(on.toList(idx), nearestResult.properties.dist))
     else Left(ErrorMessage(s"No trail at $fromCoord."))

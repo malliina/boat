@@ -20,9 +20,16 @@ object GeoType:
   val Properties = "properties"
 
 @js.native
-trait GeoLineString extends GeoType:
-  def geometry: GeoLineGeometry = js.native
+trait GeoFeature[G <: GeoGeometry] extends GeoType:
+  def geometry: G
   def properties: js.Object = js.native
+
+@js.native
+trait GeoGeometry extends GeoType
+
+@js.native
+trait GeoLineString extends GeoFeature[GeoLineGeometry]:
+  def geometry: GeoLineGeometry = js.native
 
 object GeoLineString:
   def apply(coords: Seq[Coord]): GeoLineString =
@@ -33,7 +40,7 @@ object GeoLineString:
       .asInstanceOf[GeoLineString]
 
 @js.native
-trait GeoLineGeometry extends GeoType:
+trait GeoLineGeometry extends GeoGeometry:
   def coordinates: js.Array[js.Array[Double]] = js.native
 
 object GeoLineGeometry:
@@ -42,9 +49,8 @@ object GeoLineGeometry:
       .asInstanceOf[GeoLineGeometry]
 
 @js.native
-trait GeoPoint extends GeoType:
+trait GeoPoint extends GeoFeature[GeoPointGeometry]:
   def geometry: GeoPointGeometry = js.native
-  def properties: js.Object = js.native
 
 object GeoPoint:
   def apply(coord: Coord): GeoPoint =
@@ -55,7 +61,7 @@ object GeoPoint:
       .asInstanceOf[GeoPoint]
 
 @js.native
-trait GeoPointGeometry extends GeoType:
+trait GeoPointGeometry extends GeoGeometry:
   def coordinates: js.Array[Double] = js.native
 
 object GeoPointGeometry:

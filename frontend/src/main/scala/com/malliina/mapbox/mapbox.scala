@@ -2,7 +2,11 @@ package com.malliina.mapbox
 
 import cats.effect.Async
 import cats.syntax.all.toFunctorOps
-import com.malliina.boat.{AccessToken, Coord, Feature, FeatureCollection, JsonError, Latitude, Layer, Longitude, Parsing}
+import com.malliina.boat.{AccessToken, Coord, Feature, FeatureCollection, Latitude, Layer, Longitude}
+import com.malliina.geojson.GeoFeature
+import com.malliina.http.FullUrl
+import com.malliina.json.JsonError
+import com.malliina.json.Parsing.{as, asJs}
 import org.scalajs.dom
 import org.scalajs.dom.{HTMLCanvasElement, html}
 import scalatags.JsDom.TypedTag
@@ -11,8 +15,7 @@ import scala.annotation.unused
 import scala.scalajs.js
 import scala.scalajs.js.Dynamic.literal
 import scala.scalajs.js.JSConverters.*
-import scala.scalajs.js.JSON
-import scala.scalajs.js.annotation.JSImport
+import scala.scalajs.js.annotation.{JSImport, JSName}
 
 @js.native
 @JSImport("mapbox-gl", JSImport.Default)
@@ -181,13 +184,11 @@ class MapboxMap(@unused options: MapOptions) extends js.Object:
   def off(name: String, layer: String, func: js.Function0[Unit]): Unit = js.native
 
 object MapboxMap:
-
   extension (self: MapboxMap)
     def bearing = self.getBearing()
 
     def putLayer(layer: Layer): Unit =
-      val str = Parsing.stringify(layer)
-      self.addLayer(JSON.parse(str))
+      self.addLayer(layer.asJs)
 
     def removeLayerAndSourceIfExists(id: String): Unit =
       self
@@ -200,8 +201,7 @@ object MapboxMap:
       point: PixelCoord,
       options: QueryOptions = QueryOptions.all
     ): Either[JsonError, Seq[Feature]] =
-      val fs = self.queryRenderedFeatures(point, options)
-      Parsing.asJson[Seq[Feature]](fs)
+      self.queryRenderedFeatures(point, options).as[Seq[Feature]]
 
     def onHover(layerId: String)(in: MapMouseEvent => Unit, out: MapMouseEvent => Unit): Unit =
       self.on("mousemove", layerId, e => in(e))
@@ -305,12 +305,17 @@ object EaseOptions:
 
 @js.native
 trait GeoJsonSource extends js.Object:
+  @JSName("type")
+  def `type`: String = js.native
+  def data: String = js.native
   def setData(data: js.Any): Unit = js.native
 
 object GeoJsonSource:
+  def apply(url: FullUrl): GeoJsonSource =
+    literal(`type` = "geojson", data = url.url).asInstanceOf[GeoJsonSource]
   extension (source: GeoJsonSource)
     def updateData(data: FeatureCollection): Unit =
-      source.setData(Parsing.toJson(data))
+      source.setData(data.asJs)
 
 @js.native
 @JSImport("mapbox-gl", "LngLat")
@@ -336,7 +341,11 @@ object LngLatLike:
 trait MapMouseEvent extends js.Object:
   def lngLat: LngLatLike = js.native
   def point: PixelCoord = js.native
-  def features: js.Any = js.native
+  def features: js.UndefOr[js.Array[GeoFeature[?]]] = js.native
+
+object MapMouseEvent:
+  extension (mme: MapMouseEvent)
+    def featuresSeq: Seq[GeoFeature[?]] = mme.features.toList.flatMap(_.toList)
 
 @js.native
 trait PixelCoord extends js.Object:

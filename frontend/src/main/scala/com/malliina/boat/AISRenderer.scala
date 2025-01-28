@@ -1,7 +1,8 @@
 package com.malliina.boat
 
 import com.malliina.boat.AISRenderer.{AisTrailLayer, AisVesselLayer, MaxTrailLength}
-import com.malliina.mapbox.{MapboxMap, MapboxPopup, PopupOptions, QueryOptions}
+import com.malliina.json.Parsing.as
+import com.malliina.mapbox.{MapboxMap, MapboxPopup, PopupOptions}
 import com.malliina.values.ErrorMessage
 
 object AISRenderer:
@@ -10,7 +11,7 @@ object AISRenderer:
 
   val MaxTrailLength = 100
 
-class AISRenderer(val map: MapboxMap, val log: BaseLogger = BaseLogger.console) extends Parsing:
+class AISRenderer(val map: MapboxMap, val log: BaseLogger = BaseLogger.console):
   val utils = GeoUtils(map, log)
   // How much memory does this consume, assume 5000 Mmsis?
   private var vessels = Map.empty[Mmsi, List[VesselInfo]]
@@ -64,8 +65,8 @@ class AISRenderer(val map: MapboxMap, val log: BaseLogger = BaseLogger.console) 
 
   private def initHover(id: String): Unit = map.onHover(id)(
     in =>
-      map
-        .queryRendered(in.point, QueryOptions.layer(id))
+      in.features
+        .as[Seq[Feature]]
         .map: fs =>
           fs.flatMap(_.props.as[VesselProps].toOption)
             .headOption

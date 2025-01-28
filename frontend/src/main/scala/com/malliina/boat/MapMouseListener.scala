@@ -1,7 +1,8 @@
 package com.malliina.boat
 
 import cats.effect.Async
-import com.malliina.boat.Parsing.validate
+import com.malliina.json.JsonError
+import com.malliina.json.Parsing.validate
 import com.malliina.mapbox.*
 import com.malliina.util.recover
 

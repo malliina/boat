@@ -1,7 +1,6 @@
 package com.malliina.boat
 
 import cats.syntax.all.toFunctorOps
-import com.malliina.http.FullUrl
 import com.malliina.values.*
 import io.circe.generic.semiauto.deriveCodec
 import io.circe.syntax.EncoderOps
@@ -125,8 +124,7 @@ case class ImageLayout(
   `icon-size`: Double, // Scale, I guess
   `icon-rotate`: Option[Seq[String]] = None,
   `icon-rotation-alignment`: IconRotationAlignment = IconRotationAlignment.Map
-) extends Layout
-  derives Codec.AsObject
+) extends Layout derives Codec.AsObject
 
 object ImageLayout:
   val IconRotate = "icon-rotate"
@@ -176,8 +174,7 @@ case class LinePaint(
   `line-opacity`: Double,
   `line-gap-width`: Double = 0,
   `line-dasharray`: Option[List[Int]] = None
-) extends BasePaint
-  derives Codec.AsObject
+) extends BasePaint derives Codec.AsObject
 
 object LinePaint:
   val blackColor = PropertyValue.Literal("#000")
@@ -314,7 +311,7 @@ case class Feature(
     geometry = geometry.updateCoords(coords)
   )
 
-  def props = properties.asJson
+  def props: Json = properties.asJson
 
 object Feature:
   val Key = "Feature"
@@ -351,8 +348,6 @@ object InlineLayerSource:
 
   def apply(data: FeatureCollection): InlineLayerSource =
     InlineLayerSource("geojson", data)
-
-case class UrlSource(`type`: String, data: FullUrl) derives Codec.AsObject
 
 sealed trait Outcome
 

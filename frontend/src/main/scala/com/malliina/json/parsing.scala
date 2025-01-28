@@ -1,6 +1,7 @@
-package com.malliina.boat
+package com.malliina.json
 
 import io.circe.parser.decode
+import io.circe.scalajs.{convertJsonToJs, decodeJs}
 import io.circe.syntax.EncoderOps
 import io.circe.{Decoder, DecodingFailure, Encoder, Json, Printer}
 
@@ -11,6 +12,18 @@ object Parsing extends Parsing
 
 trait Parsing:
   private val printer = Printer.noSpaces.copy(dropNullValues = true)
+
+  extension [T: Encoder](t: T) def asJs: js.Any = convertJsonToJs(t.asJson.deepDropNullValues)
+
+  extension (any: js.Any)
+    def as[T: Decoder]: Either[JsonError, T] =
+      Parsing.asJson[T](any)
+
+    def decoded[T: Decoder]: Either[JsonError, T] = decodeJs[T](any).left.map:
+      case ce: io.circe.Error =>
+        JsonError(ce)
+      case err =>
+        JsonError(io.circe.ParsingFailure(s"Failed to parse JavaScript object.", err))
 
   def toJson[T: Encoder](t: T): js.Dynamic =
     JSON.parse(t.asJson.printWith(printer))
