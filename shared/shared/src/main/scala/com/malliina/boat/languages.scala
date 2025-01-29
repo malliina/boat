@@ -2,8 +2,8 @@ package com.malliina.boat
 
 import com.malliina.http.FullUrl
 import com.malliina.values.Email
-import io.circe.*
-import io.circe.generic.semiauto.*
+import io.circe.generic.semiauto.deriveCodec
+import io.circe.{Codec, Encoder}
 
 case class TrafficSignTypeLang(
   unknown: String,

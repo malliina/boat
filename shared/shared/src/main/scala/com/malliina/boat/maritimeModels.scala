@@ -2,9 +2,7 @@ package com.malliina.boat
 
 import com.malliina.boat.MaritimeJson.partialReader
 import com.malliina.measure.DistanceM
-
-import io.circe.*
-import io.circe.generic.semiauto.*
+import io.circe.{Decoder, HCursor}
 
 trait NameLike:
   def nameFi: Option[String]

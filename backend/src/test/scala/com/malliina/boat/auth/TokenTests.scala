@@ -61,7 +61,7 @@ class TokenTests extends BaseSuite:
     val _ = boatConf.parse[ConfigNode]("demo").toOption.get
     client
       .postForm(
-        FullUrl("https", "appleid.apple.com", "/auth/token"),
+        FullUrl.https("appleid.apple.com", "/auth/token"),
         Map(
           "client_id" -> siwaConf.clientId.value,
           "client_secret" -> privateKey.value

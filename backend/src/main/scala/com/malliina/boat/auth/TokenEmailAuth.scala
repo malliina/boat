@@ -7,8 +7,9 @@ import com.malliina.boat.db.{CustomJwt, IdentityException, MissingCredentials}
 import com.malliina.boat.http4s.Auth
 import com.malliina.http.HttpClient
 import com.malliina.util.AppLogger
-import com.malliina.values.{Email, ErrorMessage, IdToken, err}
-import com.malliina.web.{AuthError, ClientId, GoogleAuthFlow, Expired, InvalidClaims, KeyClient, MicrosoftAuthFlow, WebAuthException}
+import com.malliina.values.Literals.err
+import com.malliina.values.{Email, ErrorMessage, IdToken}
+import com.malliina.web.{AuthError, ClientId, Expired, GoogleAuthFlow, InvalidClaims, KeyClient, MicrosoftAuthFlow, WebAuthException}
 import org.http4s.Headers
 
 import java.time.Instant

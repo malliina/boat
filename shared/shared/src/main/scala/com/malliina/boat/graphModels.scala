@@ -1,8 +1,9 @@
 package com.malliina.boat
 
 import com.malliina.measure.DistanceM
-import io.circe.*
-import io.circe.generic.semiauto.*
+import io.circe.generic.semiauto.deriveCodec
+import io.circe.{Codec, Decoder, Encoder}
+
 import scala.concurrent.duration.FiniteDuration
 
 object DurationDoubleFormat:

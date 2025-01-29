@@ -18,25 +18,21 @@ object Degrees extends ValidatingCompanion[Float, Degrees]:
     s"Invalid degrees: '$in'. Must be [$min, $max]."
   )
 extension (d: Degrees) def float: Float = d
-extension (i: Float) inline def degrees: Degrees = ${ Literals.DegreesLiteral('i) }
+extension (i: Float) inline def degrees: Degrees = ${ BoatLiterals.DegreesLiteral('i) }
 extension (i: Double)
-  inline def lat: Latitude = ${ Literals.LatitudeLiteral('i) }
-  inline def lng: Longitude = ${ Literals.LongitudeLiteral('i) }
+  inline def lat: Latitude = ${ BoatLiterals.LatitudeLiteral('i) }
+  inline def lng: Longitude = ${ BoatLiterals.LongitudeLiteral('i) }
   inline infix def lngLat(lat: Double): Coord = Coord(i.lng, lat.lat)
 
-extension (s: String)
-  inline def err: ErrorMessage = ${ Literals.ErrorMessageLiteral('s) }
-  def error = ErrorMessage(s)
+extension (s: String) def error = ErrorMessage(s)
 extension (inline ctx: StringContext)
-  inline def err(inline args: Any*): ErrorMessage =
-    ${ Literals.ErrorMessageLiteralCtx('ctx, 'args) }
   inline def ua(inline args: Any*): UserAgent =
-    ${ Literals.UserAgentLiteral('ctx, 'args) }
+    ${ BoatLiterals.UserAgentLiteral('ctx, 'args) }
 
 extension [T](e: Either[ErrorMessage, T])
   def getUnsafe: T = e.fold(err => throw IllegalArgumentException(err.message), identity)
 
-object Literals:
+object BoatLiterals:
   object DegreesLiteral extends LiteralFloat[Degrees]:
     override def parse(in: Float)(using Quotes): Either[ErrorMessage, Expr[Degrees]] =
       Degrees
@@ -57,18 +53,6 @@ object Literals:
         .build(in)
         .map: _ =>
           '{ Longitude.build(${ Expr(in) }).getUnsafe }
-
-  object ErrorMessageLiteral extends LiteralString[ErrorMessage]:
-    override def parse(in: String)(using Quotes): Either[ErrorMessage, Expr[ErrorMessage]] =
-      if in.nonEmpty then Right('{ ErrorMessage(${ Expr(in) }) })
-      else Left(ErrorMessage("Error message must be non-empty."))
-
-  object ErrorMessageLiteralCtx extends LiteralStringContext[ErrorMessage]:
-    override def parse(in: String)(using Quotes): Either[ErrorMessage, Expr[ErrorMessage]] =
-      ErrorMessage
-        .build(in)
-        .map: _ =>
-          '{ ErrorMessage.build(${ Expr(in) }).getUnsafe }
 
   object UserAgentLiteral extends LiteralStringContext[UserAgent]:
     override def parse(in: String)(using Quotes): Either[ErrorMessage, Expr[UserAgent]] =

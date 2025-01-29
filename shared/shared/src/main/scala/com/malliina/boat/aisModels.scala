@@ -5,8 +5,8 @@ import com.malliina.boat.ShipType.*
 import com.malliina.json.PrimitiveFormats
 import com.malliina.measure.{DistanceM, SpeedM}
 import com.malliina.values.*
-import io.circe.*
-import io.circe.generic.semiauto.*
+import io.circe.generic.semiauto.deriveCodec
+import io.circe.{Codec, Decoder, Encoder, HCursor, Json}
 
 import scala.concurrent.duration.Duration
 

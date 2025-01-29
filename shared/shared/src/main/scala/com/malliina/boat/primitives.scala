@@ -2,7 +2,8 @@ package com.malliina.boat
 
 import cats.Show
 import cats.implicits.toShow
-import com.malliina.values.{ErrorMessage, JsonCompanion, Readable, err}
+import com.malliina.values.{ErrorMessage, JsonCompanion, Readable}
+import com.malliina.values.Literals.err
 import io.circe.{Codec, Decoder, Encoder}
 import org.typelevel.ci.CIString
 

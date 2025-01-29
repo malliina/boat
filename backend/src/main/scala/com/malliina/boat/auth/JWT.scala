@@ -1,7 +1,8 @@
 package com.malliina.boat.auth
 
 import com.malliina.util.AppLogger
-import com.malliina.values.{ErrorMessage, IdToken, Readable, TokenValue, err}
+import com.malliina.values.Literals.err
+import com.malliina.values.{ErrorMessage, IdToken, Readable, TokenValue}
 import com.malliina.web.{Expired, InvalidClaims, InvalidSignature, Issuer, JWTError, MissingData, ParseError}
 import com.nimbusds.jose.crypto.{MACSigner, MACVerifier}
 import com.nimbusds.jose.util.JSONObjectUtils

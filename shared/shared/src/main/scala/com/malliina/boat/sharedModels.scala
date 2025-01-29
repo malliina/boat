@@ -346,8 +346,7 @@ case class UserInfo(
   addedMillis: Long,
   invites: Seq[Invite],
   friends: Seq[FriendInvite]
-) extends EmailUser
-  derives Codec.AsObject:
+) extends EmailUser derives Codec.AsObject:
   override val authorized: Seq[BoatName] = boats.map(_.name) ++ invites.map(_.boat.name)
   def userBoats = UserBoats(username, language, Nil) // Nil is wrong, but fine for now
 
@@ -367,8 +366,7 @@ case class TrackMetaShort(
   boat: DeviceId,
   boatName: BoatName,
   username: Username
-) extends TrackMetaLike
-  derives Codec.AsObject
+) extends TrackMetaLike derives Codec.AsObject
 
 case class GPSInfo(ip: Host, port: Port) derives Codec.AsObject:
   def describe = s"$ip:$port"
