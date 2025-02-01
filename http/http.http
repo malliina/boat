@@ -4,8 +4,11 @@ GET https://api.mapbox.com/search/geocode/v6/reverse?longitude=24.88260391&latit
 ### Parking
 GET https://api.hel.fi/servicemap/v2/administrative_division/?type=parking_area&page=1&page_size=500&geometry=true&unit_include=name%2Clocation%2Cstreet_address%2Caddress_zip%2Cmunicipality&extra__class=2&municipality=helsinki
 
+### Parking WFS
+GET https://kartta.hel.fi/ws/geoserver/avoindata/wfs?request=getFeature&typeNames=avoindata:Pysakointipaikat_alue&outputFormat=application/json&srsName=EPSG:4326
+
 ### Capacity
-GET https://pubapi.parkkiopas.fi/public/v1/parking_area/?format=json
+GET https://pubapi.parkkiopas.fi/public/v1/parking_area/?format=json&page=19
 
 ### WFS
 GET https://kartta.hel.fi/ws/geoserver/avoindata/wfs?request=getFeature&typename=avoindata:Pysakointipaikat_alue

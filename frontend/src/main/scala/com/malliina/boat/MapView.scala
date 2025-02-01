@@ -6,6 +6,7 @@ import com.malliina.boat.BoatModels.showAttr
 import com.malliina.boat.MapView.MapEvent
 import com.malliina.boat.MapView.MapEvent.ListVessels
 import com.malliina.boat.http.Limits
+import com.malliina.boat.parking.Parking
 import com.malliina.datepicker.{TempusDominus, TimeLocale, TimeRestrictions, updateDate}
 import com.malliina.http.Http
 import com.malliina.mapbox.*

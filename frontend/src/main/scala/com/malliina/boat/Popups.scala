@@ -16,13 +16,14 @@ class Popups(lang: Lang) extends BoatModels:
 
   private val parkingLang = lang.cars.parking
 
-  def parking(props: ParkingProps) =
+  def parking(props: ParkingProps, capacity: Option[Int]) =
     titledTable(parkingLang.parking)(
       props.label.fold(empty): text =>
         row(parkingLang.description, text, valueClass = Option("tooltip-value")),
       rowOpt(parkingLang.validity, props.validity),
       rowOpt(parkingLang.duration, props.duration),
-      rowOpt(parkingLang.residentialParkingSign, props.residentialParkingSign)
+      rowOpt(parkingLang.residentialParkingSign, props.residentialParkingSign),
+      rowOpt(parkingLang.capacity, capacity.map(c => s"$c"))
     )
 
   def track(point: PointProps) =

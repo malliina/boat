@@ -15,7 +15,7 @@ object LatestClient {
     implicit val json: Codec[Files] = deriveCodec[Files]
   }
 
-  def default(log: Logger) = new LatestClient(OkClient.default, log)
+  def default(log: Logger): LatestClient = new LatestClient(OkClient.default, log)
 }
 
 class LatestClient(http: OkClient, log: Logger) {

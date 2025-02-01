@@ -292,6 +292,11 @@ class Service[F[_]: Async: Files](
         .recover(err => badRequest(Errors(err.message)))
     case GET -> Root / "cars" / "conf" =>
       ok(CarsConf.default)
+    case GET -> Root / "cars" / "parkings" / "capacity" =>
+      comps.parking
+        .capacity()
+        .flatMap: json =>
+          ok(json)
     case req @ POST -> Root / "cars" / "locations" =>
       jsonAction[LocationUpdates](req): (body, user) =>
         val start = System.currentTimeMillis()

@@ -2,8 +2,16 @@ package com.malliina.boat.parking
 
 import io.circe.{Codec, Decoder}
 
+case class CapacityProps(capacityEstimate: Option[Int])
+
+object CapacityProps:
+  private case class CapacityPropsJson(capacity_estimate: Option[Int]) derives Codec.AsObject
+
+  given Decoder[CapacityProps] = Decoder[CapacityPropsJson].map: json =>
+    CapacityProps(json.capacity_estimate)
+
 case class ParkingProps(
-  id: Option[Int],
+//  id: Option[Int],
   text: Option[String],
   validity: Option[String],
   duration: Option[String],
@@ -11,6 +19,9 @@ case class ParkingProps(
   propsType: Option[String],
   updatedDate: Option[String]
 ):
+  def isEmpty =
+    Seq(text, validity, duration, residentialParkingSign, propsType, updatedDate).forall: field =>
+      field.isEmpty
   def label = text.orElse(propsType)
 
 object ParkingProps:
@@ -42,7 +53,7 @@ object ParkingProps:
 
   given Decoder[ParkingProps] = Decoder[ParkingPropsJson].map: json =>
     ParkingProps(
-      json.id,
+//      json.id,
       json.luokka_nimi,
       json.voimassaolo,
       json.kesto,

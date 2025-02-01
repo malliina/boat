@@ -13,6 +13,7 @@ import com.malliina.boat.graph.Graph
 import com.malliina.boat.html.BoatHtml
 import com.malliina.boat.http4s.JsonInstances.circeJsonEncoder
 import com.malliina.boat.http4s.Server.getClass
+import com.malliina.boat.parking.Parking
 import com.malliina.database.DoobieDatabase
 import com.malliina.http.{CSRFConf, Errors, SingleError}
 import com.malliina.http4s.CSRFUtils
@@ -144,7 +145,8 @@ trait ServerResources:
         s3,
         push,
         streams,
-        MapboxClient(conf.mapbox.token, http)
+        MapboxClient(conf.mapbox.token, http),
+        Parking(http)
       )
       Service(comps, graph, csrf, csrfConf)
 

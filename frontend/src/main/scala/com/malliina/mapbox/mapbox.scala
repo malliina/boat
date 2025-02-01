@@ -179,6 +179,8 @@ class MapboxMap(@unused options: MapOptions) extends js.Object:
   def on(name: String, func: js.Function1[MapMouseEvent, Unit]): Unit = js.native
   def on(name: String, func: js.Function0[Unit]): Unit = js.native
   def on(name: String, layer: String, func: js.Function1[MapMouseEvent, Unit]): Unit = js.native
+  def on(name: String, layerIds: js.Array[String], func: js.Function1[MapMouseEvent, Unit]): Unit =
+    js.native
   def off(name: String, layer: String, func: js.Function1[MapMouseEvent, Unit]): Unit = js.native
   def on(name: String, layer: String, func: js.Function0[Unit]): Unit = js.native
   def off(name: String, layer: String, func: js.Function0[Unit]): Unit = js.native
@@ -208,8 +210,13 @@ object MapboxMap:
       self.on("mouseleave", layerId, e => out(e))
 
     def onHoverEnter(layerId: String)(in: MapMouseEvent => Unit, out: MapMouseEvent => Unit): Unit =
-      self.on("mouseenter", layerId, e => in(e))
-      self.on("mouseleave", layerId, e => out(e))
+      onHoverEnter(Seq(layerId))(in, out)
+
+    def onHoverEnter(
+      layerIds: Seq[String]
+    )(in: MapMouseEvent => Unit, out: MapMouseEvent => Unit): Unit =
+      self.on("mouseenter", layerIds.toJSArray, e => in(e))
+      self.on("mouseleave", layerIds.toJSArray, e => out(e))
 
     def onHoverCursorPointer(layerId: String): Unit = onHover(layerId)(
       in => self.getCanvas().style.cursor = "pointer",

@@ -8,6 +8,7 @@ import com.malliina.boat.ais.BoatMqttClient.*
 import com.malliina.boat.ais.MqttStream.MqttPayload
 import com.malliina.boat.{AISMessage, Locations, LocationsV2, Metadata, MetadataV2, Mmsi, MmsiVesselLocation, MmsiVesselMetadata, StatusTopic, TimeFormatter, VesselInfo, VesselLocation, VesselLocationV2, VesselMetadata, VesselMetadataV2, VesselStatus}
 import com.malliina.http.FullUrl
+import com.malliina.http.UrlSyntax.wss
 import com.malliina.util.AppLogger
 import fs2.Stream
 import fs2.concurrent.{SignallingRef, Topic}
@@ -36,8 +37,8 @@ object BoatMqttClient:
   val AllDataTopic = "vessels-v2/#"
   val MetadataTopic = "vessels/+/metadata"
 
-  val TestUrl = FullUrl.wss("meri-test.digitraffic.fi:443", "/mqtt")
-  val ProdUrl = FullUrl.wss("meri.digitraffic.fi:443", "/mqtt")
+  val TestUrl = wss"meri-test.digitraffic.fi:443/mqtt"
+  val ProdUrl = wss"meri.digitraffic.fi:443/mqtt"
 
   private val initialBackoff = 30.seconds
 

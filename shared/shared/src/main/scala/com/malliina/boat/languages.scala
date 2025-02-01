@@ -976,7 +976,8 @@ case class ParkingLang(
   validity: String,
   duration: String,
   residentialParkingSign: String,
-  updated: String
+  updated: String,
+  capacity: String
 ) derives Codec.AsObject
 
 object ParkingLang:
@@ -986,7 +987,8 @@ object ParkingLang:
     "Validity",
     "Duration",
     "Residential parking sign",
-    "Updated"
+    "Updated",
+    "Capacity"
   )
   val se = ParkingLang(
     "Parkering",
@@ -994,7 +996,8 @@ object ParkingLang:
     "Giltigt",
     "Längd",
     "Boendeparkeringstecken",
-    "Uppdaterat"
+    "Uppdaterat",
+    "Lediga platser"
   )
   val fi = ParkingLang(
     "Pysäköinti",
@@ -1002,7 +1005,8 @@ object ParkingLang:
     "Voimassaolo",
     "Kesto",
     "Asukaspysäköintitunnus",
-    "Päivitetty"
+    "Päivitetty",
+    "Vapaita paikkoja"
   )
 
 case class CarsLang(parking: ParkingLang) derives Codec.AsObject
