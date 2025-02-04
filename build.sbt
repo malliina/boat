@@ -5,20 +5,26 @@ import sbtrelease.ReleaseStateTransformations.*
 
 import scala.sys.process.Process
 
-val fs2Version = "3.11.0"
-val webAuthVersion = "6.9.6"
-val munitVersion = "1.0.4"
-val munitCeVersion = "2.0.0"
-val scalaTagsVersion = "0.13.1"
-val primitiveVersion = "3.7.5"
-val logstreamsVersion = "2.8.2"
-val http4sVersion = "0.23.30"
-val logbackVersion = "1.5.16"
-val circeVersion = "0.14.10"
-val alpnVersion = "12.0.16"
-val webAuthDep = "com.malliina" %% "web-auth" % webAuthVersion
+val versions = new {
+  val scala213 = "2.13.14"
+  val scala3 = "3.6.2"
+
+  val alpn = "12.0.16"
+  val circe = "0.14.10"
+  val fs2 = "3.11.0"
+  val http4s = "0.23.30"
+  val logback = "1.5.16"
+  val logstreams = "2.8.3"
+  val munit = "1.1.0"
+  val munitCe = "2.0.0"
+  val primitives = "3.7.7"
+  val scalaTags = "0.13.1"
+  val webAuth = "6.9.8"
+}
+
+val webAuthDep = "com.malliina" %% "web-auth" % versions.webAuth
 val webAuthTestDep = webAuthDep % Test classifier "tests"
-val munitDep = "org.scalameta" %% "munit" % munitVersion % Test
+val munitDep = "org.scalameta" %% "munit" % versions.munit % Test
 
 val buildAndUpload = taskKey[String]("Uploads to S3, returns a URL")
 val upFiles = taskKey[Seq[String]]("lists")
@@ -27,13 +33,10 @@ val deployDocs = taskKey[Unit]("Deploys documentation")
 ThisBuild / parallelExecution := false
 Global / concurrentRestrictions += Tags.limit(Tags.Test, 1)
 
-val scala213 = "2.13.14"
-val scala3 = "3.6.2"
-
 inThisBuild(
   Seq(
     organization := "com.malliina",
-    scalaVersion := scala3,
+    scalaVersion := versions.scala3,
     scalacOptions := Seq("-unchecked", "-deprecation"),
     deployDocs := Process("mkdocs gh-deploy").run(streams.value.log).exitValue(),
     Compile / packageDoc / publishArtifact := false,
@@ -71,13 +74,13 @@ val cross = crossProject(JSPlatform, JVMPlatform)
   .settings(boatSettings)
   .settings(
     libraryDependencies ++= Seq("generic", "parser").map { m =>
-      "io.circe" %%% s"circe-$m" % circeVersion
+      "io.circe" %%% s"circe-$m" % versions.circe
     } ++ Seq(
       "com.comcast" %% "ip4s-core" % "3.6.0",
       "org.typelevel" %%% "case-insensitive" % "1.4.2",
-      "com.malliina" %%% "primitives" % primitiveVersion,
-      "com.lihaoyi" %%% "scalatags" % scalaTagsVersion,
-      "org.scalameta" %%% "munit" % munitVersion % Test
+      "com.malliina" %%% "primitives" % versions.primitives,
+      "com.lihaoyi" %%% "scalatags" % versions.scalaTags,
+      "org.scalameta" %%% "munit" % versions.munit % Test
     )
   )
 
@@ -95,10 +98,10 @@ val frontend = project
   .settings(boatSettings)
   .settings(
     libraryDependencies ++= Seq(
-      "com.malliina" %%% "util-html" % webAuthVersion,
-      "co.fs2" %%% "fs2-core" % fs2Version,
+      "com.malliina" %%% "util-html" % versions.webAuth,
+      "co.fs2" %%% "fs2-core" % versions.fs2,
       "org.scala-js" %%% "scalajs-dom" % "2.8.0",
-      "org.scalameta" %%% "munit" % munitVersion % Test
+      "org.scalameta" %%% "munit" % versions.munit % Test
     ),
     runNpmInstall := RollupPlugin.npmInstall(npmRoot.value, streams.value.log),
     updatePackageLockJson := FileIO.copyIfChanged(
@@ -118,24 +121,24 @@ val backend = Project("boat", file("backend"))
     ),
     libraryDependencies ++=
       Seq("server", "client").map { m =>
-        "org.eclipse.jetty" % s"jetty-alpn-java-$m" % alpnVersion
+        "org.eclipse.jetty" % s"jetty-alpn-java-$m" % versions.alpn
       } ++ Seq("util-html", "database", "util-http4s").map { m =>
-        "com.malliina" %% m % webAuthVersion
+        "com.malliina" %% m % versions.webAuth
       } ++ Seq(
-        "ch.qos.logback" % "logback-classic" % logbackVersion,
-        "org.http4s" %% "http4s-ember-client" % http4sVersion,
+        "ch.qos.logback" % "logback-classic" % versions.logback,
+        "org.http4s" %% "http4s-ember-client" % versions.http4s,
         "com.vividsolutions" % "jts" % "1.13",
         "mysql" % "mysql-connector-java" % "8.0.33",
         "org.apache.commons" % "commons-text" % "1.13.0",
-        "software.amazon.awssdk" % "s3" % "2.30.2",
-        "com.malliina" %% "logstreams-client" % logstreamsVersion,
-        "com.malliina" %% "mobile-push-io" % "3.11.2",
-        "com.malliina" %% "config" % primitiveVersion,
+        "software.amazon.awssdk" % "s3" % "2.30.12",
+        "com.malliina" %% "logstreams-client" % versions.logstreams,
+        "com.malliina" %% "mobile-push-io" % "3.11.4",
+        "com.malliina" %% "config" % versions.primitives,
         "org.eclipse.paho" % "org.eclipse.paho.client.mqttv3" % "1.2.5",
         webAuthDep,
         webAuthTestDep,
         munitDep,
-        "org.typelevel" %% "munit-cats-effect" % munitCeVersion % Test
+        "org.typelevel" %% "munit-cats-effect" % versions.munitCe % Test
       ),
     clientProject := frontend,
     dependentModule := crossJvm,
@@ -182,15 +185,15 @@ val agent = project
     },
     libraryDependencies ++=
       Seq("generic", "parser").map { m =>
-        "io.circe" %% s"circe-$m" % circeVersion
+        "io.circe" %% s"circe-$m" % versions.circe
       } ++ Seq(
-        "co.fs2" %% "fs2-io" % fs2Version,
-        "com.malliina" %% "util-http4s" % webAuthVersion,
-        "com.malliina" %% "primitives" % primitiveVersion,
-        "com.malliina" %% "logstreams-client" % logstreamsVersion,
-        "com.lihaoyi" %% "scalatags" % scalaTagsVersion,
-        "commons-codec" % "commons-codec" % "1.17.2",
-        "org.typelevel" %% "munit-cats-effect" % munitCeVersion % Test
+        "co.fs2" %% "fs2-io" % versions.fs2,
+        "com.malliina" %% "util-http4s" % versions.webAuth,
+        "com.malliina" %% "primitives" % versions.primitives,
+        "com.malliina" %% "logstreams-client" % versions.logstreams,
+        "com.lihaoyi" %% "scalatags" % versions.scalaTags,
+        "commons-codec" % "commons-codec" % "1.18.0",
+        "org.typelevel" %% "munit-cats-effect" % versions.munitCe % Test
       ),
     releaseUseGlobalVersion := false,
     buildAndUpload := {
@@ -235,7 +238,7 @@ val utils = project
     libraryDependencies ++= Seq("shapefile", "geojson").map { m =>
       "org.geotools" % s"gt-$m" % "30.2" exclude ("javax.media", "jai_core")
     } ++ Seq(
-      "ch.qos.logback" % "logback-classic" % logbackVersion,
+      "ch.qos.logback" % "logback-classic" % versions.logback,
       munitDep
     )
   )
