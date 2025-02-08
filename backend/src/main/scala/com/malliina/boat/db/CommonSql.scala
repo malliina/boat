@@ -15,10 +15,17 @@ trait CommonSql:
   def boatsByToken(token: BoatToken): ConnectionIO[Option[JoinedSource]] =
     sql"""$boats and b.token = $token""".query[JoinedSource].option
   def boatsById(id: DeviceId) = sql"$boats and b.id = $id".query[JoinedSource].unique
+  // The latter part of the union includes tracks with points but no speed
   private val topPoints =
-    sql"""select track, max(speed) maxSpeed, p.id point
-          from points p
-          group by track"""
+    sql"""select p.id point, p.track
+          from points p,
+               (select track, max(speed) maxSpeed from points group by track) tops
+          where p.track = tops.track and p.speed = tops.maxSpeed
+          union
+          select p2.id point, p2.track
+          from points p2,
+               (select track, max(speed) maxSpeed from points group by track) tops2
+          where p2.track = tops2.track and tops2.maxSpeed is null"""
   val selectAllPoints =
     sql"""select id, longitude, latitude, coord, speed, altitude, outside_temperature, water_temp, depthm, depth_offsetm, battery, car_range, source_time, track, track_index, diff, added
           from points p"""
