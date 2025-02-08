@@ -4,7 +4,7 @@ import com.malliina.boat.db.*
 import com.malliina.boat.html.BoatHtml
 import com.malliina.boat.parking.Parking
 import com.malliina.boat.push.PushService
-import com.malliina.boat.{AccessToken, MapboxClient, S3Client}
+import com.malliina.boat.{AccessToken, Geocoder, S3Client}
 
 case class BoatComps[F[_]](
   boatHtml: BoatHtml,
@@ -18,6 +18,6 @@ case class BoatComps[F[_]](
   s3: S3Client[F],
   push: PushService[F],
   streams: BoatStreams[F],
-  mapbox: MapboxClient[F],
+  mapbox: Geocoder[F],
   parking: Parking[F]
 )

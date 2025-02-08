@@ -16,12 +16,9 @@ trait CommonSql:
     sql"""$boats and b.token = $token""".query[JoinedSource].option
   def boatsById(id: DeviceId) = sql"$boats and b.id = $id".query[JoinedSource].unique
   private val topPoints =
-    sql"""select winners.track track, min(winners.id) point
-          from (select p.id, p.track
-                from points p,
-                    (select track, max(speed) maxSpeed from points group by track) tops
-                where p.track = tops.track and p.speed = tops.maxSpeed) winners
-          group by winners.track"""
+    sql"""select track, max(speed) maxSpeed, p.id point
+          from points p
+          group by track"""
   val selectAllPoints =
     sql"""select id, longitude, latitude, coord, speed, altitude, outside_temperature, water_temp, depthm, depth_offsetm, battery, car_range, source_time, track, track_index, diff, added
           from points p"""

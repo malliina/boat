@@ -57,6 +57,20 @@ class CarServerTests extends MUnitSuite with ServerSuite:
       )
 
   test("POST call with working jwt"):
+    successfulTest(carId => LocationUpdates(Nil, carId))
+
+  test("POST call with working jwt and update with no speed"):
+    val json =
+      """
+        |{ "updates" : [ { "longitude" : -122.084, "latitude" : 37.421998333333335, "altitudeMeters" : 5.0, "accuracyMeters" : 5.0, "bearing" : null, "bearingAccuracyDegrees" : null, "speed" : null, "batteryLevel" : null, "batteryCapacity" : null, "rangeRemaining" : null, "outsideTemperature" : 25.0, "nightMode" : false, "date" : "2025-02-08T16:43:14.517+02:00" } ], "carId" : 1324 }""".stripMargin
+    val ups = io.circe.parser.decode[LocationUpdates](json).fold(err => throw err, identity)
+    successfulTest(carId => ups.copy(carId = carId))
+
+  test("POST car locations for non-owned car fails"):
+    postCarLocation(LocationUpdates(List(loc), DeviceId(123))).map: res =>
+      assertEquals(res.status, NotFound.code)
+
+  def successfulTest(ups: DeviceId => LocationUpdates) =
     val user = Username("test@example.com")
     val service = server().server.app
     val meta = SimpleSourceMeta(user, BoatNames.random(), SourceType.Vehicle)
@@ -66,12 +80,8 @@ class CarServerTests extends MUnitSuite with ServerSuite:
         NewUser(user, Option(TestEmailAuth[IO].testEmail), UserToken.random(), enabled = true)
       )
       car <- service.inserts.joinAsSource(meta)
-      res <- postCarLocation(LocationUpdates(Nil, car.track.device))
+      res <- postCarLocation(ups(car.track.device))
     yield assertEquals(res.status, Ok.code)
-
-  test("POST car locations for non-owned car fails"):
-    postCarLocation(LocationUpdates(List(loc), DeviceId(123))).map: res =>
-      assertEquals(res.status, NotFound.code)
 
   private def postCarLocation(
     updates: LocationUpdates,

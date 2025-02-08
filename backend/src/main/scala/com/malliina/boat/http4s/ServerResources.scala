@@ -43,7 +43,7 @@ trait ServerResources:
 
   val csrfConf = CSRFConf.default
 
-  def server[F[+_]: Async: Network: Files: Compression](
+  def server[F[+_]: { Async, Network, Files, Compression }](
     conf: BoatConf,
     builder: AppCompsBuilder[F],
     port: Port = port
@@ -80,7 +80,7 @@ trait ServerResources:
         if isAppleCallback then http(req)
         else fallback(http)(req)
 
-  def appService[F[+_]: Async: Files](
+  def appService[F[+_]: { Async, Files }](
     conf: BoatConf,
     builder: AppCompsBuilder[F],
     csrf: CSRF[F, F],
@@ -145,12 +145,12 @@ trait ServerResources:
         s3,
         push,
         streams,
-        MapboxClient(conf.mapbox.token, http),
+        if conf.isTest then Geocoder.noop else MapboxClient(conf.mapbox.token, http),
         Parking(http)
       )
       Service(comps, graph, csrf, csrfConf)
 
-  private def makeHandler[F[_]: Async: Compression: Files](
+  private def makeHandler[F[_]: { Async, Compression, Files }](
     service: Service[F],
     sockets: WebSocketBuilder2[F],
     csrfChecker: CSRFUtils.CSRFChecker[F]

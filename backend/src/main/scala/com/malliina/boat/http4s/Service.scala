@@ -51,7 +51,7 @@ object Service:
       .get[`User-Agent`]
       .flatMap(h => UserAgent.build(h.value).toOption)
 
-class Service[F[_]: Async: Files](
+class Service[F[_]: { Async, Files }](
   comps: BoatComps[F],
   graph: Graph,
   val csrf: CSRF[F, F],

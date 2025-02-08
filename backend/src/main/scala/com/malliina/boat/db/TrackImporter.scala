@@ -19,7 +19,7 @@ object TrackImporter:
   implicit val dateEq: Eq[LocalDate] =
     Eq.by[LocalDate, (Int, Int, Int)](d => (d.getYear, d.getMonthValue, d.getDayOfMonth))
 
-class TrackImporter[F[_]: Files: Temporal](inserts: TrackInsertsDatabase[F])
+class TrackImporter[F[_]: { Files, Temporal }](inserts: TrackInsertsDatabase[F])
   extends TrackStreams[F]:
 
   /** Saves sentences in `file` to the database `track`.
@@ -56,12 +56,11 @@ class TrackImporter[F[_]: Files: Temporal](inserts: TrackInsertsDatabase[F])
     task.compile.toList.map(_.head)
 
   private def processor: Pipe[F, SentencesEvent, InsertedPoint] =
-    _.through(sentenceInserter)
+    _.through(
+      _.evalMap(e => inserts.saveSentences(e).map(kss => InsertedSentences(kss, e.userAgent)))
+    )
       .through(sentenceCompiler)
-      .through(pointInserter)
-
-  private def sentenceInserter: Pipe[F, SentencesEvent, InsertedSentences] =
-    _.evalMap(e => inserts.saveSentences(e).map((kss) => InsertedSentences(kss, e.userAgent)))
+      .through(_.mapAsync(1)(coord => inserts.saveCoords(coord)))
 
   private def sentenceCompiler: Pipe[F, InsertedSentences, FullCoord] =
     val state = TrackManager()
@@ -71,9 +70,6 @@ class TrackImporter[F[_]: Files: Temporal](inserts: TrackInsertsDatabase[F])
           .parseMulti(sentences.sentences)
           .flatMap(parsed => state.update(parsed, sentences.userAgent))
       )
-
-  private def pointInserter: Pipe[F, FullCoord, InsertedPoint] =
-    _.mapAsync(1)(coord => inserts.saveCoords(coord))
 
 class TrackStreams[F[_]: Files]:
   def sentencesForDay(file: Path, day: LocalDate): Stream[F, RawSentence] =

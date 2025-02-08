@@ -119,7 +119,7 @@ trait ServerSuite extends BoatDatabaseSuite with JsonInstances:
   given EntityDecoder[IO, Errors] = jsonBody[IO, Errors]
 
   object TestServer extends ServerResources:
-    LogbackUtils.init(rootLevel = Level.OFF)
+    LogbackUtils.init(rootLevel = Level.INFO)
 
   def testServerResource: Resource[IO, ServerTools] =
     for
