@@ -185,6 +185,7 @@ class TrackInserter[F[_]: Async](val db: DoobieDatabase[F])
       _ <- insertSentencePoints(
         coord.boatStats.toList.flatMap(_.parts).map(key => (key, point))
       )
+      _ = log.debug(s"Inserted $point to $track, fetching by that ID...")
       ref <- trackById(track)
     yield InsertedPoint(point, ref)
 
