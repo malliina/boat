@@ -23,8 +23,8 @@ class Parking(map: MapboxMap, language: Lang, val log: BaseLogger = BaseLogger.c
       installHoverListener()
   )
 
-  val capacityLayerId = "capacity-layer"
-  val parkingsLayerId = "parkings-layer"
+  private val capacityLayerId = "capacity-layer"
+  private val parkingsLayerId = "parkings-layer"
 
   private def installCapacity(): Unit =
     val source = "capacity"
@@ -81,6 +81,6 @@ class Parking(map: MapboxMap, language: Lang, val log: BaseLogger = BaseLogger.c
                 )
       ,
       outEvent =>
-        log.info(s"Hovered out.")
+        log.info("Hovered out.")
         popup.remove()
     )

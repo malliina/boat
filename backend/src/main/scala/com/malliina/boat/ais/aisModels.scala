@@ -16,9 +16,7 @@ case class MqttSettings(
   qos: MqttQoS = MqttQoS.AtMostOnce
 )
 
-sealed abstract class MqttQoS(val level: Int)
-
-object MqttQoS:
-  case object AtMostOnce extends MqttQoS(0)
-  case object AtLeastOnce extends MqttQoS(1)
-  case object ExactlyOnce extends MqttQoS(2)
+enum MqttQoS(val level: Int):
+  case AtMostOnce extends MqttQoS(0)
+  case AtLeastOnce extends MqttQoS(1)
+  case ExactlyOnce extends MqttQoS(2)

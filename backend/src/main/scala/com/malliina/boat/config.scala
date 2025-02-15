@@ -161,11 +161,11 @@ object BoatConf:
   )
 
   private def devDatabaseConf(password: Password) = Conf(
-    url"jdbc:mysql://localhost:3307/boat",
+    url"jdbc:mysql://localhost:3306/boat",
     "boat",
     password,
     Conf.MySQLDriver,
     maxPoolSize = 2,
-    autoMigrate = false,
+    autoMigrate = true,
     schemaTable = "flyway_schema_history2"
   )

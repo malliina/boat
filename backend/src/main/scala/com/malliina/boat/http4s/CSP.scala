@@ -7,13 +7,13 @@ import org.typelevel.ci.CIStringSyntax
 
 object CSP:
   private val csps = Seq(
-    "default-src 'self' 'unsafe-inline' *.mapbox.com https://cdn.boat-tracker.com",
-    "font-src 'self' data: https://fonts.gstatic.com https://use.fontawesome.com https://cdn.boat-tracker.com",
-    "style-src 'self' 'unsafe-inline' https://maxcdn.bootstrapcdn.com https://fonts.googleapis.com *.mapbox.com https://use.fontawesome.com https://cdn.boat-tracker.com",
+    "default-src 'self' 'unsafe-inline' *.mapbox.com",
+    "font-src 'self' data: https://fonts.gstatic.com https://use.fontawesome.com",
+    "style-src 'self' 'unsafe-inline' https://maxcdn.bootstrapcdn.com https://fonts.googleapis.com *.mapbox.com https://use.fontawesome.com",
     "connect-src * https://*.tiles.mapbox.com https://api.mapbox.com",
-    "img-src 'self' data: blob: https://cdn.boat-tracker.com",
+    "img-src 'self' data: blob:",
     "child-src blob:",
-    "script-src 'unsafe-eval' 'self' *.mapbox.com npmcdn.com https://cdnjs.cloudflare.com https://cdn.boat-tracker.com"
+    "script-src 'unsafe-eval' 'self' *.mapbox.com npmcdn.com https://cdnjs.cloudflare.com"
   )
   private val headerValue = csps.mkString("; ")
   val header = Headers(Header.Raw(ci"Content-Security-Policy", headerValue))

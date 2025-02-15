@@ -8,7 +8,7 @@ import com.malliina.measure.*
 import com.malliina.values.{IdToken, Username, degrees}
 import io.circe.syntax.EncoderOps
 import org.http4s.Status.{NotFound, Ok, Unauthorized}
-import org.http4s.headers.Authorization
+import org.http4s.headers.{Accept, Authorization}
 
 import java.time.{OffsetDateTime, ZoneOffset}
 
@@ -93,7 +93,7 @@ class CarServerTests extends MUnitSuite with ServerSuite:
   private def headers(token: IdToken) =
     Map(
       Authorization.name.toString -> s"Bearer $token",
-      "Accept" -> "application/json",
+      Accept.headerInstance.name.toString -> "application/json",
       csrf.headerName.toString -> csrf.noCheck
     )
 

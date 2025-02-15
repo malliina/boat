@@ -15,6 +15,7 @@ import com.malliina.boat.http.InviteResult.{AlreadyInvited, Invited, UnknownEmai
 import com.malliina.http4s.BasicService.noCache
 import com.malliina.boat.http4s.BoatBasicService.{cached, ranges}
 import com.malliina.boat.http4s.Service.{isSecured, log, userAgent}
+import com.malliina.boat.parking.Parking.ParkingResponse
 import com.malliina.boat.parsing.CarCoord
 import com.malliina.boat.push.SourceState
 import com.malliina.http.{CSRFConf, Errors, SingleError}
@@ -297,6 +298,15 @@ class Service[F[_]: { Async, Files }](
         .capacity()
         .flatMap: json =>
           ok(json)
+    case req @ GET -> Root / "cars" / "parkings" / "search" =>
+      Near(req.uri.query)
+        .map: query =>
+          comps.parking
+            .near(query.coord, query.radius)
+            .flatMap: results =>
+              ok(ParkingResponse(results))
+        .recover: err =>
+          badRequest(Errors(err.message))
     case req @ POST -> Root / "cars" / "locations" =>
       jsonAction[LocationUpdates](req): (body, user) =>
         val start = System.currentTimeMillis()

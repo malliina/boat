@@ -130,7 +130,7 @@ val backend = Project("boat", file("backend"))
         "com.vividsolutions" % "jts" % "1.13",
         "mysql" % "mysql-connector-java" % "8.0.33",
         "org.apache.commons" % "commons-text" % "1.13.0",
-        "software.amazon.awssdk" % "s3" % "2.30.12",
+        "software.amazon.awssdk" % "s3" % "2.30.20",
         "com.malliina" %% "logstreams-client" % versions.logstreams,
         "com.malliina" %% "mobile-push-io" % "3.11.4",
         "com.malliina" %% "config" % versions.primitives,

@@ -15,6 +15,26 @@ import java.time.format.{DateTimeFormatter, DateTimeParseException}
 import java.time.temporal.ChronoUnit
 import scala.concurrent.duration.DurationInt
 
+object QueryDecoders extends QueryDecoders
+
+private trait QueryDecoders:
+  given QueryParamDecoder[TrackName] =
+    QueryParamDecoder.stringQueryParamDecoder.map(s => TrackName(s))
+
+  given QueryParamDecoder[TrackCanonical] =
+    QueryParamDecoder.stringQueryParamDecoder.map(s => TrackCanonical(s))
+
+  given QueryParamDecoder[DistanceM] =
+    QueryParamDecoder.doubleQueryParamDecoder.map(d => DistanceM(d))
+
+  given QueryParamDecoder[Mmsi] =
+    QueryParsers.decoder[Mmsi](Mmsi.parse)
+
+  given QueryParamDecoder[VesselName] =
+    QueryParsers.decoder[VesselName](VesselName.build)
+
+import QueryDecoders.given
+
 case class BoatEmailRequest[T](user: Email, query: T, headers: Headers)
   extends BoatRequest[T, Email]
 
@@ -128,8 +148,7 @@ case class VesselQuery(
   mmsis: Seq[Mmsi],
   timeRange: TimeRange,
   limits: Limits
-) extends VesselFilters
-  derives Codec.AsObject:
+) extends VesselFilters derives Codec.AsObject:
   private def describeNames = if vessels.isEmpty then "" else s"names ${vessels.mkString(", ")} "
   private def describeMmsis = if mmsis.isEmpty then "" else s"mmsis ${mmsis.mkString(", ")} "
   private def describeTime = if timeRange.isEmpty then "" else s"time ${timeRange.describe} "
@@ -164,6 +183,18 @@ case class Near(coord: Coord, radius: DistanceM)
 object Near:
   val Key = "near"
   val Radius = "radius"
+
+  def apply(q: Query): Either[Errors, Near] =
+    for
+      from <- BoatQuery.bindCoord(FrontKeys.Lng, FrontKeys.Lat, q)
+      radius <- QueryParsers.parseOrDefault[DistanceM](q, Near.Radius, 1.kilometers)
+    yield Near(from, radius)
+
+  def opt(q: Query): Either[Errors, Option[Near]] =
+    for
+      from <- BoatQuery.readCoordOpt(FrontKeys.Lng, FrontKeys.Lat, q)
+      radius <- QueryParsers.parseOrDefault[DistanceM](q, Near.Radius, 1.kilometers)
+    yield from.map(c => Near(c, radius))
 
 /** @param tracks
   *   tracks to return
@@ -228,16 +259,6 @@ object BoatQuery:
   private val SampleKey = FrontKeys.SampleKey
   private val TracksLimitKey = FrontKeys.TracksLimit
   private val DefaultSample = Constants.DefaultSample
-  given QueryParamDecoder[TrackName] =
-    QueryParamDecoder.stringQueryParamDecoder.map(s => TrackName(s))
-  given QueryParamDecoder[TrackCanonical] =
-    QueryParamDecoder.stringQueryParamDecoder.map(s => TrackCanonical(s))
-  given QueryParamDecoder[DistanceM] =
-    QueryParamDecoder.doubleQueryParamDecoder.map(d => DistanceM(d))
-  given QueryParamDecoder[Mmsi] =
-    QueryParsers.decoder[Mmsi](Mmsi.parse)
-  given QueryParamDecoder[VesselName] =
-    QueryParsers.decoder[VesselName](VesselName.build)
 
   val empty = BoatQuery(
     Limits(0, 0),
@@ -276,7 +297,7 @@ object BoatQuery:
       canonicals <- bindSeq[TrackCanonical](TrackCanonical.Key, q)
       route <- bindRouteRequest(q)
       sample <- LimitsBuilder.readInt(SampleKey, q)
-      near <- bindNear(q)
+      near <- Near.opt(q)
       newest <- bindNewest(q, default = timeRange.isEmpty && near.isEmpty)
       tracksLimit <- QueryParsers.parseOptE[Int](q, TracksLimitKey)
       vessels <- bindSeq[VesselName](VesselName.Key, q)
@@ -309,17 +330,23 @@ object BoatQuery:
 
   private def bindRouteRequest(q: Query): Either[Errors, Option[RouteRequest]] =
     for
-      coord1 <- readCoord("lng1", "lat1", q)
-      coord2 <- readCoord("lng2", "lat2", q)
+      coord1 <- readCoordOpt("lng1", "lat1", q)
+      coord2 <- readCoordOpt("lng2", "lat2", q)
     yield coord1.flatMap(c1 => coord2.map(c2 => RouteRequest(c1, c2)))
 
-  private def bindNear(q: Query) =
-    for
-      center <- readCoord(FrontKeys.Lng, FrontKeys.Lat, q)
-      radius <- QueryParsers.parseOrDefault[DistanceM](q, Near.Radius, 1.kilometers)
-    yield center.map(c => Near(c, radius))
+  def bindCoord(
+    lngKey: String,
+    latKey: String,
+    q: Query
+  ): Either[Errors, Coord] =
+    readCoordOpt(lngKey, latKey, q).flatMap: opt =>
+      opt.toRight(Errors(s"Specify $lngKey and $latKey."))
 
-  private def readCoord(lngKey: String, latKey: String, q: Query): Either[Errors, Option[Coord]] =
+  def readCoordOpt(
+    lngKey: String,
+    latKey: String,
+    q: Query
+  ): Either[Errors, Option[Coord]] =
     for
       lngResult <- transformDouble(lngKey, q)(Longitude.build)
       latResult <- transformDouble(latKey, q)(Latitude.build)

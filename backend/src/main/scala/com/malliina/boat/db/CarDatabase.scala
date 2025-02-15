@@ -21,32 +21,26 @@ class CarDatabase[F[_]: Async](val db: DoobieDatabase[F]) extends DoobieSQL:
   private val maxTimeBetweenCarUpdates = Constants.MaxTimeBetweenCarUpdates
 
   def save(locs: LocationUpdates, userInfo: MinimalUserInfo, user: UserId): F[List[CarRow]] =
-    saveToDatabase(locs, userInfo, user)
-
-  private def saveToDatabase(
-    locs: LocationUpdates,
-    userInfo: MinimalUserInfo,
-    user: UserId
-  ): F[List[CarRow]] = db.run:
-    val carId = locs.carId
-    val ownershipCheck =
-      sql"select exists(select b.id from boats b where b.id = $carId and b.owner = $user)"
-        .query[Boolean]
-        .unique
-    val insertion = locs.updates.traverse: loc =>
-      for
-        prev <-
-          sql"""select p.coord
+    db.run:
+      val carId = locs.carId
+      val ownershipCheck =
+        sql"select exists(select b.id from boats b where b.id = $carId and b.owner = $user)"
+          .query[Boolean]
+          .unique
+      val insertion = locs.updates.traverse: loc =>
+        for
+          prev <-
+            sql"""select p.coord
                   from car_points p
                   where p.device = ${locs.carId} and timestampdiff(SECOND, p.gps_time, ${loc.date}) < $maxTimeBetweenCarUpdates
                   order by p.added desc limit 1"""
-            .query[Coord]
-            .option
-        diff <- prev
-          .map(p => computeDistance(p, loc.coord))
-          .getOrElse(pure(DistanceM.zero))
-        insertion <-
-          sql"""insert into car_points(longitude, latitude, coord, gps_time, diff, device, altitude, accuracy, bearing, bearing_accuracy, speed, battery, capacity, car_range, outside_temperature, night_mode)
+              .query[Coord]
+              .option
+          diff <- prev
+            .map(p => computeDistance(p, loc.coord))
+            .getOrElse(pure(DistanceM.zero))
+          insertion <-
+            sql"""insert into car_points(longitude, latitude, coord, gps_time, diff, device, altitude, accuracy, bearing, bearing_accuracy, speed, battery, capacity, car_range, outside_temperature, night_mode)
                   values(${loc.longitude}, ${loc.latitude}, ${loc.coord}, ${loc.date}, $diff, $carId, ${loc.altitudeMeters}, ${loc.accuracyMeters}, ${loc.bearing}, ${loc.bearingAccuracyDegrees},
                     ${loc.speed},
                     ${loc.batteryLevel},
@@ -55,15 +49,15 @@ class CarDatabase[F[_]: Async](val db: DoobieDatabase[F]) extends DoobieSQL:
                     ${loc.outsideTemperature},
                     ${loc.nightMode})
            """.update.withUniqueGeneratedKeys[CarUpdateId]("id")
-      yield insertion
-    for
-      exists <- ownershipCheck
-      _ <- if exists then pure(()) else fail(BoatNotFoundException(carId, user))
-      ids <- insertion
-      inserted <- if ids.isEmpty then pure(Nil) else historyQuery(CarQuery.ids(ids), userInfo)
-    yield
-      if ids.nonEmpty then log.debug(s"Inserted to car $carId IDs ${ids.mkString(", ")}.")
-      inserted
+        yield insertion
+      for
+        exists <- ownershipCheck
+        _ <- if exists then pure(()) else fail(BoatNotFoundException(carId, user))
+        ids <- insertion
+        inserted <- if ids.isEmpty then pure(Nil) else historyQuery(CarQuery.ids(ids), userInfo)
+      yield
+        if ids.nonEmpty then log.debug(s"Inserted to car $carId IDs ${ids.mkString(", ")}.")
+        inserted
 
   private def historyQuery(filters: CarQuery, user: MinimalUserInfo) =
     val time = filters.timeRange
