@@ -37,7 +37,7 @@ class Parking[F[_]: Async](
   private val capacityLayerId = "capacity-layer"
   private val parkingsLayerId = "parkings-layer"
   private val parkingDirectionsId = "parking-directions-layer"
-  private val baseUrl = location.origin.getOrElse(s"${location.protocol}//${location.host}")
+  private val baseUrl = location.origin // .getOrElse(s"${location.protocol}//${location.host}")
 
   def search(from: Coord = coord(map.getCenter())): Unit =
     val uri = s"/cars/parkings/search?${FrontKeys.Lat}=${from.lat}&${FrontKeys.Lng}=${from.lng}"
