@@ -2,6 +2,7 @@ package com.malliina.boat.parking
 
 import cats.effect.{Async, Sync}
 import cats.syntax.all.{toFlatMapOps, toFunctorOps}
+import com.malliina.boat.Geocoder
 import com.malliina.boat.{CapacityProps, Coord, Earth, FeatureCollection, LocalConf, MultiPolygon, NearestCoord, ParkingCapacity, ParkingDirections, Polygon, Resources}
 import com.malliina.http.FullUrl
 import com.malliina.http.UrlSyntax.https
@@ -9,7 +10,7 @@ import com.malliina.http.io.HttpClientF2
 import com.malliina.measure.{DistanceIntM, DistanceM}
 import io.circe.parser.decode
 import io.circe.{Decoder, Json}
-
+import cats.syntax.all.toTraverseOps
 import java.nio.file.Files
 
 object Parking extends Resources:
@@ -21,12 +22,12 @@ object Parking extends Resources:
     val F = Sync[F]
     F.rethrow(F.blocking(decode[Json](Files.readString(parkingFile))))
 
-class Parking[F[_]: Async](http: HttpClientF2[F]):
+class Parking[F[_]: Async](http: HttpClientF2[F], geo: Geocoder[F]):
   private val firstPage: FullUrl = https"pubapi.parkkiopas.fi/public/v1/parking_area/?format=json"
 
   def near(coord: Coord, radius: DistanceM = 300.meters): F[Seq[ParkingDirections]] =
-    capacity().map: fc =>
-      fc.features
+    capacity().flatMap: fc =>
+      val withoutGeocoding = fc.features
         .flatMap: f =>
           val areas = f.geometry match
             case MultiPolygon(tpe, coordinates) => coordinates.flatten
@@ -37,12 +38,17 @@ class Parking[F[_]: Async](http: HttpClientF2[F]):
             .filter(_ => capacity > 0)
             .flatMap: area =>
               area
-                .map(c => NearestCoord(c, Earth.distance(coord, c)))
+                .map(c => NearestCoord(c, Earth.distance(coord, c), None))
                 .filter(n => n.distance < radius)
                 .minByOption(_.distance)
                 .map: nearest =>
                   ParkingDirections(coord, area, nearest, capacity)
         .sortBy(pd => pd.nearest.distance)
+      withoutGeocoding.traverse: pd =>
+        geo
+          .reverseGeocode(pd.nearest.coord)
+          .map: opt =>
+            pd.withAddress(opt.map(_.address))
 
   def capacity(): F[FeatureCollection] = capacities(firstPage, Nil).map: cs =>
     FeatureCollection(cs.flatMap(_.features))

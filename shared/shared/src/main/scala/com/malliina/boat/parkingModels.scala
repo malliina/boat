@@ -14,9 +14,10 @@ object CapacityProps:
   given Decoder[CapacityProps] = Decoder[CapacityPropsJson].map: json =>
     CapacityProps(json.capacity_estimate)
 
-case class NearestCoord(coord: Coord, distance: DistanceM) derives Codec.AsObject
+case class NearestCoord(coord: Coord, distance: DistanceM, address: Option[String]) derives Codec.AsObject
 
 case class ParkingDirections(from: Coord, to: Seq[Coord], nearest: NearestCoord, capacity: Int)
-  derives Codec.AsObject
+  derives Codec.AsObject:
+  def withAddress(address: Option[String]) = copy(nearest = nearest.copy(address = address))
 
 case class ParkingResponse(directions: Seq[ParkingDirections]) derives Codec.AsObject
