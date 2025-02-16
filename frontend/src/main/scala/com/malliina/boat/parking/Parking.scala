@@ -1,14 +1,26 @@
 package com.malliina.boat.parking
 
+import cats.effect.Async
+import cats.implicits.toFunctorOps
 import com.malliina.boat.LayerType.Fill
-import com.malliina.boat.{BaseLogger, Feature, FillPaint, Lang, Layer, Popups, StringLayerSource}
-import com.malliina.http.FullUrl
+import com.malliina.boat.{BaseLogger, Coord, Feature, FeatureCollection, FillPaint, FrontKeys, GeoUtils, Lang, Layer, LineGeometry, LinePaint, ParkingResponse, Popups, StringLayerSource}
+import com.malliina.http.{FullUrl, Http}
 import com.malliina.http.UrlSyntax.https
 import com.malliina.json.Parsing.as
+import com.malliina.mapbox.LngLat.coord
 import com.malliina.mapbox.{GeoJsonSource, MapboxMap, MapboxPopup, PopupOptions}
+import io.circe.syntax.EncoderOps
 import org.scalajs.dom.window
 
-class Parking(map: MapboxMap, language: Lang, val log: BaseLogger = BaseLogger.console):
+import scala.scalajs.js.JSON
+
+class Parking[F[_]: Async](
+  map: MapboxMap,
+  language: Lang,
+  val log: BaseLogger = BaseLogger.console,
+  http: Http[F]
+):
+  val utils = GeoUtils(map, log)
   val location = window.location
   private val parkingsUrl: FullUrl =
     https"kartta.hel.fi/ws/geoserver/avoindata/wfs?request=getFeature&typeNames=avoindata:Pysakointipaikat_alue&outputFormat=application/json&srsName=EPSG:4326"
@@ -22,14 +34,29 @@ class Parking(map: MapboxMap, language: Lang, val log: BaseLogger = BaseLogger.c
       installCapacity()
       installHoverListener()
   )
-
   private val capacityLayerId = "capacity-layer"
   private val parkingsLayerId = "parkings-layer"
+  private val parkingDirectionsId = "parking-directions-layer"
+  private val baseUrl = location.origin.getOrElse(s"${location.protocol}//${location.host}")
+
+  def search(from: Coord = coord(map.getCenter())): Unit =
+    val uri = s"/cars/parkings/search?${FrontKeys.Lat}=${from.lat}&${FrontKeys.Lng}=${from.lng}"
+    http.using: client =>
+      client
+        .get[ParkingResponse](uri)
+        .map: res =>
+          res.directions.headOption.map: best =>
+            val f = Feature(
+              LineGeometry(Seq(best.from, best.nearest.coord)),
+              Map("distance" -> best.nearest.distance.asJson)
+            )
+            val fc = FeatureCollection(Seq(f))
+            utils.drawLine(parkingDirectionsId, fc, LinePaint.dashed())
 
   private def installCapacity(): Unit =
     val source = "capacity"
     FullUrl
-      .build(location.origin)
+      .build(baseUrl)
       .map: origin =>
         val capacityUrl = origin / "cars" / "parkings" / "capacity"
         map.addSource(source, GeoJsonSource(capacityUrl))
@@ -59,6 +86,7 @@ class Parking(map: MapboxMap, language: Lang, val log: BaseLogger = BaseLogger.c
   private def installHoverListener(): Unit =
     map.onHoverEnter(Seq(parkingsLayerId, capacityLayerId))(
       inEvent =>
+        log.debug(s"Hover over ${JSON.stringify(inEvent.features)}")
         inEvent.features
           .as[Seq[Feature]]
           .map: fs =>

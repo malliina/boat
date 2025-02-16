@@ -462,7 +462,8 @@ case class FairwayLang(
   types: FairwayTypeLang
 ) derives Codec.AsObject
 
-case class AisLang(draft: String, destination: String, shipType: String) derives Codec.AsObject
+case class AisLang(draft: String, destination: String, shipType: String, searchPlaceholder: String)
+  derives Codec.AsObject
 
 case class EnvLang(altitude: String) derives Codec.AsObject
 
@@ -1141,7 +1142,8 @@ object Lang:
     ais = AisLang(
       draft = "Draft",
       destination = "Destination",
-      shipType = "Ship type"
+      shipType = "Ship type",
+      searchPlaceholder = "Vessel name..."
     ),
     shipTypes = ShipTypesLang.en,
     attributions = AttributionInfo.en,
@@ -1323,9 +1325,10 @@ object Lang:
       extraInfo2 = "Lisätieto 2"
     ),
     ais = AisLang(
-      draft = "Syväys",
-      destination = "Määränpää",
-      shipType = "Alus"
+      "Syväys",
+      "Määränpää",
+      "Alus",
+      "Aluksen nimi..."
     ),
     shipTypes = ShipTypesLang.fi,
     AttributionInfo.fi,
@@ -1512,9 +1515,10 @@ object Lang:
       extraInfo2 = "Extra info 2"
     ),
     ais = AisLang(
-      draft = "Djupgående",
-      destination = "Destination",
-      shipType = "Fartyg"
+      "Djupgående",
+      "Destination",
+      "Fartyg",
+      "Fartygets namn..."
     ),
     shipTypes = ShipTypesLang.se,
     AttributionInfo.se,

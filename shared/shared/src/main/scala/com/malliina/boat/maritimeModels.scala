@@ -14,7 +14,7 @@ trait NameLike:
 sealed trait FairwayLighting
 
 object FairwayLighting:
-  implicit val reader: Decoder[FairwayLighting] =
+  given reader: Decoder[FairwayLighting] =
     partialReader[Double, FairwayLighting](d => s"Unknown fairway lighting: '$d'."):
       case 0 => UnknownLighting
       case 1 => Lighting
@@ -36,7 +36,7 @@ object FairwayLighting:
 sealed trait FairwaySeaType
 
 object FairwaySeaType:
-  implicit val reader: Decoder[FairwaySeaType] =
+  given reader: Decoder[FairwaySeaType] =
     partialReader[Double, FairwaySeaType](d => s"Unknown fairway sea type: '$d'."):
       case 1 => SeaFairway
       case 2 => InnerFairway
@@ -60,7 +60,7 @@ object FairwaySeaType:
 sealed abstract class SeaArea(val value: Int)
 
 object SeaArea:
-  implicit val reader: Decoder[SeaArea] = Decoder.decodeDouble.map: d =>
+  given reader: Decoder[SeaArea] = Decoder.decodeDouble.map: d =>
     fromIntOrOther(d.toInt)
   val all: Seq[SeaArea] = Seq(
     Unknown,
@@ -141,7 +141,7 @@ case class FairwayInfo(
 
 object FairwayInfo:
   import MaritimeJson.nonEmptyOpt
-  implicit val decoder: Decoder[FairwayInfo] = new Decoder[FairwayInfo]:
+  given decoder: Decoder[FairwayInfo] = new Decoder[FairwayInfo]:
     final def apply(c: HCursor): Decoder.Result[FairwayInfo] =
       for
         fi <- c.downField("VAY_NIMISU").as[Option[String]](nonEmptyOpt)

@@ -33,9 +33,7 @@ case class AccessResult(existed: Boolean) derives Codec.AsObject
 
 case class EmailUser(user: UserId, email: Email)
 
-sealed trait InviteResult
-
-object InviteResult:
-  case class UnknownEmail(email: Email) extends InviteResult
-  case class Invited(user: UserId, to: DeviceId) extends InviteResult
-  case class AlreadyInvited(user: UserId, to: DeviceId) extends InviteResult
+enum InviteResult:
+  case UnknownEmail(email: Email) extends InviteResult
+  case Invited(user: UserId, to: DeviceId) extends InviteResult
+  case AlreadyInvited(user: UserId, to: DeviceId) extends InviteResult

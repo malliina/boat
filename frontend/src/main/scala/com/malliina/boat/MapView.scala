@@ -78,12 +78,13 @@ class MapView[F[_]: Async](
     hash = true
   )
   val map = MapboxMap(mapOptions)
-  val parking = Parking(map, lang)
+  val parking = Parking(map, lang, http = http)
   private val geocoder = MapboxGeocoder.finland(accessToken)
   val pathFinder = PathFinder(map, http)
   val settings = MapSettings
   private val SearchKey = "s"
   private val DirectionsKey = "d"
+  private val ParkingsKey = "p"
   private var isGeocoderVisible = false
 
   elemAsGet[HTMLDivElement](MapId).onkeypress = (e: KeyboardEvent) =>
@@ -98,6 +99,8 @@ class MapView[F[_]: Async](
           isGeocoderVisible = !isGeocoderVisible
         case DirectionsKey =>
           pathFinder.toggleState()
+        case ParkingsKey =>
+          parking.search()
         case _ =>
           ()
 

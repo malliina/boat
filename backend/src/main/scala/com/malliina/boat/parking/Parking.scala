@@ -2,14 +2,13 @@ package com.malliina.boat.parking
 
 import cats.effect.{Async, Sync}
 import cats.syntax.all.{toFlatMapOps, toFunctorOps}
-import com.malliina.boat.parking.Parking.{CapacityProps, NearestCoord, ParkingCapacity, ParkingDirections}
-import com.malliina.boat.{Coord, Earth, Feature, FeatureCollection, LocalConf, MultiPolygon, Polygon, Resources}
+import com.malliina.boat.{CapacityProps, Coord, Earth, FeatureCollection, LocalConf, MultiPolygon, NearestCoord, ParkingCapacity, ParkingDirections, Polygon, Resources}
 import com.malliina.http.FullUrl
 import com.malliina.http.UrlSyntax.https
 import com.malliina.http.io.HttpClientF2
-import io.circe.parser.decode
-import io.circe.{Codec, Decoder, Json}
 import com.malliina.measure.{DistanceIntM, DistanceM}
+import io.circe.parser.decode
+import io.circe.{Decoder, Json}
 
 import java.nio.file.Files
 
@@ -21,23 +20,6 @@ object Parking extends Resources:
   def load[F[_]: Sync]: F[Json] =
     val F = Sync[F]
     F.rethrow(F.blocking(decode[Json](Files.readString(parkingFile))))
-
-  case class ParkingCapacity(next: Option[FullUrl], features: Seq[Feature]) derives Codec.AsObject
-
-  case class CapacityProps(capacityEstimate: Option[Int])
-
-  object CapacityProps:
-    private case class CapacityPropsJson(capacity_estimate: Option[Int]) derives Codec.AsObject
-
-    given Decoder[CapacityProps] = Decoder[CapacityPropsJson].map: json =>
-      CapacityProps(json.capacity_estimate)
-
-  case class NearestCoord(coord: Coord, distance: DistanceM) derives Codec.AsObject
-
-  case class ParkingDirections(from: Coord, to: Seq[Coord], nearest: NearestCoord, capacity: Int)
-    derives Codec.AsObject
-
-  case class ParkingResponse(directions: Seq[ParkingDirections]) derives Codec.AsObject
 
 class Parking[F[_]: Async](http: HttpClientF2[F]):
   private val firstPage: FullUrl = https"pubapi.parkkiopas.fi/public/v1/parking_area/?format=json"

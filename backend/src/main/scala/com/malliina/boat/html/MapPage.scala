@@ -3,7 +3,7 @@ package com.malliina.boat.html
 import com.malliina.boat.FrontKeys.*
 import com.malliina.boat.Latitude.lat
 import com.malliina.boat.Longitude.lng
-import com.malliina.boat.{Coord, FormsLang, FrontKeys, Shortcut, TrackShortcut, UserBoats, Usernames}
+import com.malliina.boat.{AisLang, Coord, FormsLang, FrontKeys, Shortcut, TrackShortcut, UserBoats, Usernames}
 import com.malliina.measure.DistanceM
 import scalatags.Text.all.*
 
@@ -68,7 +68,7 @@ object MapPage extends BoatSyntax:
               fontAwesomeLink(a, GraphLinkId, "chart-area", Hidden, "Graph"),
               standaloneQuestion("question-nav")
             ),
-            filtersContainer(lang.settings.forms),
+            filtersContainer(lang.settings.forms, lang.ais),
             routeContainer
           )
         .getOrElse:
@@ -92,12 +92,12 @@ object MapPage extends BoatSyntax:
     span(id := RouteDuration, cls := "nav-text route-duration")("")
   )
 
-  private def filtersContainer(formsLang: FormsLang) =
+  private def filtersContainer(formsLang: FormsLang, aisLang: AisLang) =
     div(id := DatesContainer, cls := s"row $DatesContainer")(
       timePicker(formsLang.from, FromTimePickerId, "me-2"),
       timePicker(formsLang.to, ToTimePickerId, "me-2"),
       shortcutsSelect(formsLang),
-      vesselSearch,
+      vesselSearch(aisLang),
       div(id := LoadingSpinnerId, cls := "loader col-sm-6 col-md-4 mx-2 mb-0 mt-sm-0")
     )
 
@@ -146,7 +146,7 @@ object MapPage extends BoatSyntax:
       )
     )
 
-  private def vesselSearch =
+  private def vesselSearch(aisLang: AisLang) =
     div(
       cls := "autocomplete-container col-sm-6 col-md-4 mt-2 mb-0 mt-sm-0 me-2"
     )(
@@ -155,7 +155,7 @@ object MapPage extends BoatSyntax:
         cls := "form-control form-control-sm",
         autocomplete := "off",
         aria.autocomplete := "none",
-        placeholder := "Vessel name...",
+        placeholder := aisLang.searchPlaceholder,
         tpe := "text"
       )
     )

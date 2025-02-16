@@ -15,7 +15,6 @@ import com.malliina.boat.http.InviteResult.{AlreadyInvited, Invited, UnknownEmai
 import com.malliina.http4s.BasicService.noCache
 import com.malliina.boat.http4s.BoatBasicService.{cached, ranges}
 import com.malliina.boat.http4s.Service.{isSecured, log, userAgent}
-import com.malliina.boat.parking.Parking.ParkingResponse
 import com.malliina.boat.parsing.CarCoord
 import com.malliina.boat.push.SourceState
 import com.malliina.http.{CSRFConf, Errors, SingleError}
