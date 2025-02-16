@@ -59,7 +59,8 @@ case class CarSettingsLang(
   tracks: String,
   noTracks: String,
   parking: String,
-  availableSpots: String
+  availableSpots: String,
+  noParkingAvailable: String
 ) derives Codec.AsObject
 
 case class CarLanguage(code: Language, name: String) derives Codec.AsObject
@@ -113,7 +114,8 @@ object CarLanguages:
         "Tracks",
         "No tracks.",
         "Parking",
-        "available spots"
+        "available spots",
+        "No parking spots available"
       ),
       PermissionsLang(
         "Grant permissions",
@@ -193,7 +195,8 @@ object CarLanguages:
         "Resor",
         "Inga resor.",
         "Parkering",
-        "lediga platser"
+        "lediga platser",
+        "Inga lediga parkeringsplatser"
       ),
       PermissionsLang(
         "Ge rättigheter",
@@ -273,7 +276,8 @@ object CarLanguages:
         "Ajot",
         "Ei ajoja.",
         "Pysäköinti",
-        "vapaata paikkaa"
+        "vapaata paikkaa",
+        "Ei vapaita pysäköintipaikkoja"
       ),
       PermissionsLang(
         "Anna oikeuksia",
