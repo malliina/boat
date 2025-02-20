@@ -121,7 +121,7 @@ object CarLanguages:
         "available spots",
         "No parking spots available.",
         "Navigate",
-        "Search parking spots",
+        "Search",
         "Available parking spots will appear here...",
         "Failed to load parking spots."
       ),
@@ -206,7 +206,7 @@ object CarLanguages:
         "lediga platser",
         "Inga lediga parkeringsplatser.",
         "Navigera",
-        "Sök parkeringsplatser",
+        "Sök",
         "Parkeringsplatser visas här...",
         "Laddning av parkeringsplatser misslyckades."
       ),
@@ -291,7 +291,7 @@ object CarLanguages:
         "vapaata paikkaa",
         "Ei vapaita pysäköintipaikkoja.",
         "Navigoi",
-        "Etsi pysäköintipaikkoja",
+        "Hae",
         "Pysäköintipaikat näkyvät tässä...",
         "Pysäköintipaikkojen haku epäonnistui."
       ),
