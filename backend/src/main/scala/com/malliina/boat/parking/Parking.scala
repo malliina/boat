@@ -1,16 +1,16 @@
 package com.malliina.boat.parking
 
 import cats.effect.{Async, Sync}
-import cats.syntax.all.{toFlatMapOps, toFunctorOps}
-import com.malliina.boat.Geocoder
-import com.malliina.boat.{CapacityProps, Coord, Earth, FeatureCollection, LocalConf, MultiPolygon, NearestCoord, ParkingCapacity, ParkingDirections, Polygon, Resources}
+import cats.syntax.all.{toFlatMapOps, toFunctorOps, toTraverseOps}
+import com.malliina.boat.http.Near
+import com.malliina.boat.{CapacityProps, Earth, FeatureCollection, Geocoder, LocalConf, MultiPolygon, NearestCoord, ParkingCapacity, ParkingDirections, Polygon, Resources}
 import com.malliina.http.FullUrl
 import com.malliina.http.UrlSyntax.https
 import com.malliina.http.io.HttpClientF2
-import com.malliina.measure.{DistanceIntM, DistanceM}
+import com.malliina.measure.DistanceM
 import io.circe.parser.decode
 import io.circe.{Decoder, Json}
-import cats.syntax.all.toTraverseOps
+
 import java.nio.file.Files
 
 object Parking extends Resources:
@@ -25,7 +25,8 @@ object Parking extends Resources:
 class Parking[F[_]: Async](http: HttpClientF2[F], geo: Geocoder[F]):
   private val firstPage: FullUrl = https"pubapi.parkkiopas.fi/public/v1/parking_area/?format=json"
 
-  def near(coord: Coord, radius: DistanceM = 300.meters): F[Seq[ParkingDirections]] =
+  def near(query: Near): F[Seq[ParkingDirections]] =
+    val coord = query.coord
     capacity().flatMap: fc =>
       val withoutGeocoding = fc.features
         .flatMap: f =>
@@ -39,11 +40,12 @@ class Parking[F[_]: Async](http: HttpClientF2[F], geo: Geocoder[F]):
             .flatMap: area =>
               area
                 .map(c => NearestCoord(c, Earth.distance(coord, c), None))
-                .filter(n => n.distance < radius)
+                .filter(n => n.distance < query.radius)
                 .minByOption(_.distance)
                 .map: nearest =>
                   ParkingDirections(coord, area, nearest, capacity)
         .sortBy(pd => pd.nearest.distance)
+        .take(query.limit)
       withoutGeocoding.traverse: pd =>
         geo
           .reverseGeocode(pd.nearest.coord)

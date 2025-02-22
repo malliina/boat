@@ -60,7 +60,7 @@ object WebConf:
     "497623115973-c6v1e9khup8bqj41vf228o2urnv86muh.apps.googleusercontent.com"
   )
 
-case class GoogleConf(ios: AppleConf, web: WebConf):
+case class GoogleConf(ios: AppleConf, web: WebConf, mapsKey: AccessToken):
   def webAuthConf = AuthConf(web.id, web.secret)
 
 case class APNSConf(enabled: Boolean, privateKey: Path, keyId: KeyId, teamId: TeamId)
@@ -122,6 +122,7 @@ object BoatConf:
         if BuildInfo.isProd then c.parse[SecretKey]("secret")
         else c.opt[SecretKey]("secret").map(_.getOrElse(SecretKey.dev))
       webSecret <- c.parse[ClientSecret]("google.web.secret")
+      googleMapsKey <- c.parse[AccessToken]("google.maps.key")
       microsoft <- c.parse[ConfigNode]("microsoft")
       microsoftBoatSecret <- microsoft.parse[ClientSecret]("boat.secret")
       microsoftCarSecret <- microsoft.parse[ClientSecret]("car.secret")
@@ -137,7 +138,8 @@ object BoatConf:
       dbConf(dbPass),
       GoogleConf(
         AppleConf.default,
-        WebConf(WebConf.googleId, webSecret)
+        WebConf(WebConf.googleId, webSecret),
+        googleMapsKey
       ),
       MicrosoftConf(
         WebConf(WebConf.microsoftBoatId, microsoftBoatSecret),

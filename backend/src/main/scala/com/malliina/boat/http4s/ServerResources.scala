@@ -133,7 +133,8 @@ trait ServerResources:
       val auths = AuthService(users, authComps)
       val tracksDatabase = DoobieTracksDatabase(db)
       val push = DoobiePushDatabase(db, appComps.pushService)
-      val reverseGeo = if conf.isTest then Geocoder.noop else MapboxClient(conf.mapbox.token, http)
+      val reverseGeo =
+        if conf.isTest then Geocoder.noop else MapboxGeocoder(conf.mapbox.token, http)
       val comps = BoatComps(
         BoatHtml.fromBuild(SourceType.Boat, csrfConf),
         BoatHtml.fromBuild(SourceType.Vehicle, csrfConf),

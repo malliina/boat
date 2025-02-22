@@ -301,7 +301,7 @@ class Service[F[_]: { Async, Files }](
       Near(req.uri.query)
         .map: query =>
           comps.parking
-            .near(query.coord, query.radius)
+            .near(query)
             .flatMap: results =>
               ok(ParkingResponse(results))
         .recover: err =>

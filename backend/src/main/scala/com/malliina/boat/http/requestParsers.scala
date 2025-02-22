@@ -178,7 +178,8 @@ case class CarQuery(limits: Limits, timeRange: TimeRange, ids: List[CarUpdateId]
 object CarQuery:
   def ids(list: List[CarUpdateId]) = CarQuery(LimitsBuilder.default, TimeRange.none, list)
 
-case class Near(coord: Coord, radius: DistanceM)
+case class Near(coord: Coord, radius: DistanceM, limits: Limits):
+  def limit = limits.limit
 
 object Near:
   val Key = "near"
@@ -188,13 +189,15 @@ object Near:
     for
       from <- BoatQuery.bindCoord(FrontKeys.Lng, FrontKeys.Lat, q)
       radius <- QueryParsers.parseOrDefault[DistanceM](q, Near.Radius, 1.kilometers)
-    yield Near(from, radius)
+      limits <- LimitsBuilder(q, defaultLimit = 20)
+    yield Near(from, radius, limits)
 
   def opt(q: Query): Either[Errors, Option[Near]] =
     for
       from <- BoatQuery.readCoordOpt(FrontKeys.Lng, FrontKeys.Lat, q)
       radius <- QueryParsers.parseOrDefault[DistanceM](q, Near.Radius, 1.kilometers)
-    yield from.map(c => Near(c, radius))
+      limits <- LimitsBuilder(q, defaultLimit = 20)
+    yield from.map(c => Near(c, radius, limits))
 
 /** @param tracks
   *   tracks to return

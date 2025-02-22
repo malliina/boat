@@ -1,7 +1,6 @@
 package com.malliina.boat.push
 
-import com.malliina.boat.BoatName
-import com.malliina.boat.MapboxClient.ReverseGeocode
+import com.malliina.boat.{BoatName, ReverseGeocode}
 import com.malliina.boat.http.Named
 import com.malliina.values.{ErrorMessage, ValidatingCompanion}
 import io.circe.Codec

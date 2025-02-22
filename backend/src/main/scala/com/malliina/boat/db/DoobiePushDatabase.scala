@@ -2,8 +2,8 @@ package com.malliina.boat.db
 
 import cats.effect.Async
 import cats.syntax.all.{catsSyntaxList, toFlatMapOps, toFunctorOps, toTraverseOps}
-import com.malliina.boat.MapboxClient.ReverseGeocode
 import com.malliina.boat.db.DoobiePushDatabase.log
+import com.malliina.boat.ReverseGeocode
 import com.malliina.boat.push.*
 import com.malliina.boat.{AppConf, PushId, PushToken, SourceType, UserDevice}
 import com.malliina.database.DoobieDatabase
