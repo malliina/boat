@@ -12,5 +12,17 @@
         "DF:F9:0D:EC:C2:03:A3:BB:E5:58:68:F8:E9:B1:FE:68:BB:50:63:ED:E5:D2:F5:7B:8E:C9:57:FD:DD:CE:E0:7F"
       ]
     }
+  },
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.skogberglabs.polestar",
+      "sha256_cert_fingerprints": [
+        "DC:E5:24:BA:41:65:09:91:38:8F:26:B5:A5:12:7F:1C:3B:28:4F:D2:6D:48:A6:A1:E6:22:0B:52:8A:8F:39:E3"
+      ]
+    }
   }
 ]
