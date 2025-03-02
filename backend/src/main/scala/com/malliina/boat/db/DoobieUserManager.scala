@@ -149,7 +149,7 @@ class DoobieUserManager[F[_]](db: DoobieDatabase[F]) extends IdentityManager[F] 
       .flatMap: opt =>
         opt.map(b => pure(b)).getOrElse(fail(IdentityException(InvalidToken(token))))
 
-  def boats(email: Email) = run:
+  def boats(email: Email): F[UserBoats] = run:
     def tracksIO(id: UserId) =
       sql"""${sql.nonEmptyTracks} and (b.uid = $id or b.id in (select ub.boat from users_boats ub where ub.user = $id and ub.state = $accepted)) and t.points > 10"""
         .query[JoinedTrack]
@@ -269,10 +269,11 @@ class DoobieUserManager[F[_]](db: DoobieDatabase[F]) extends IdentityManager[F] 
         log.info(s"Created user '${user.user}' with ID '$userId'.")
         userId
 
-  private def getOrCreate(email: Email): ConnectionIO[UserId] = for
-    existing <- userByEmail(email).option
-    userId <- existing.map(u => pure(u.id)).getOrElse(addUserWithBoat(email))
-  yield userId
+  private def getOrCreate(email: Email): ConnectionIO[UserId] =
+    for
+      existing <- userByEmail(email).option
+      userId <- existing.map(u => pure(u.id)).getOrElse(addUserWithBoat(email))
+    yield userId
 
   private def addUserWithBoat(email: Email) =
     log.info(s"Adding user '$email' with a randomly generated boat...")

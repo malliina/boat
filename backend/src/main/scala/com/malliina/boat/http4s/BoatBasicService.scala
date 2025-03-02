@@ -37,12 +37,12 @@ class BoatBasicService[F[_]: Sync] extends Implicits[F]:
   def temporaryRedirect(uri: Uri): F[Response[F]] =
     TemporaryRedirect(Location(uri)).map(_.putHeaders(noCache))
   def notFoundReq(req: Request[F]): F[Response[F]] =
-    notFound(Errors(s"Not found: '${req.uri}'."))
+    notFound(Errors(s"Not found: '${req.method} ${req.uri}'."))
   def notFound[A](a: A)(implicit w: EntityEncoder[F, A]): F[Response[F]] =
     NotFound(a, noCache)
   def serverError[A](a: A)(implicit w: EntityEncoder[F, A]): F[Response[F]] =
     InternalServerError(a, noCache)
-  def errorHandler(t: Throwable): F[Response[F]] = t match
+  def errorHandler(t: Throwable, req: Request[F]): F[Response[F]] = t match
     case ir: InvalidRequest =>
       F
         .delay(log.warn(ir.message, ir))
@@ -55,21 +55,27 @@ class BoatBasicService[F[_]: Sync] extends Implicits[F]:
     case bnfe: BoatNotFoundException =>
       F.delay(log.error(bnfe.message, t)).flatMap(_ => notFound(Errors(bnfe.message)))
     case re: ResponseException =>
-      serverErrorResponse(s"${re.getMessage} Response: '${re.response.asString}'.", re)
+      serverErrorResponse(
+        s"${re.getMessage} Response: '${re.response.asString}' for '${req.method} ${req.uri}'.",
+        re
+      )
     case ioe: IOException
         if ioe.message
           .exists(msg => BoatBasicService.noisyErrorMessages.exists(n => msg.startsWith(n))) =>
       serverError(Errors("Service IO error."))
     case other =>
-      serverErrorResponse(s"Service error: '${other.getMessage}'.", other)
+      serverErrorResponse(
+        s"Service error: '${other.getMessage}' for '${req.method} ${req.uri}'.",
+        other
+      )
 
-  private def serverErrorResponse(msg: String, t: Throwable) =
+  private def serverErrorResponse(msg: String, t: Throwable): F[Response[F]] =
     F
       .delay(log.error(msg, t))
       .flatMap: _ =>
         serverError(Errors(s"Server error: '${t.getMessage}'."))
 
-  def unauthorizedNoCache(errors: Errors) =
+  def unauthorizedNoCache(errors: Errors): F[Response[F]] =
     Unauthorized(
       `WWW-Authenticate`(NonEmptyList.of(Challenge("Bearer", "Social login"))),
       errors,

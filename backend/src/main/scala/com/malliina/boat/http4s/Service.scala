@@ -570,7 +570,7 @@ class Service[F[_]: { Async, Files }](
         F.delay(log.debug(s"Unknown WebSocket frame: $f"))
     sockets.withOnClose(onClose).build(toClient, fromClient)
 
-  private def index(req: Request[F]) =
+  private def index(req: Request[F]): F[Response[F]] =
     auth
       .optionalWebAuth(req)
       .flatMap: result =>
@@ -634,7 +634,7 @@ class Service[F[_]: { Async, Files }](
 
   private def jsonAction[T: Decoder](req: Request[F])(
     code: (T, UserInfo) => F[Response[F]]
-  ) =
+  ): F[Response[F]] =
     auth
       .profile(req)
       .flatMap: user =>

@@ -171,7 +171,7 @@ trait ServerResources:
     Kleisli: req =>
       rs.run(req)
         .getOrElseF(BoatBasicService[F].notFoundReq(req))
-        .handleErrorWith(BoatBasicService[F].errorHandler)
+        .handleErrorWith(t => BoatBasicService[F].errorHandler(t, req))
 
   private def errorHandler[F[_]: Sync]: PartialFunction[Throwable, F[Response[F]]] =
     case ioe: IOException
