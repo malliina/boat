@@ -4,14 +4,13 @@ import com.malliina.boat.{DeviceId, InviteState}
 import com.malliina.values.{Email, StringEnumCompanion, UserId}
 import io.circe.*
 
-sealed abstract class AccessOperation(val name: String)
+enum AccessOperation(val name: String):
+  case Grant extends AccessOperation("grant")
+  case Revoke extends AccessOperation("revoke")
 
 object AccessOperation extends StringEnumCompanion[AccessOperation]:
-  case object Grant extends AccessOperation("grant")
-  case object Revoke extends AccessOperation("revoke")
-
-  override def all = Seq(Grant, Revoke)
-  override def write(t: AccessOperation) = t.name
+  override def all: Seq[AccessOperation] = Seq(Grant, Revoke)
+  override def write(t: AccessOperation): String = t.name
 
 case class BoatInvite(email: Email) derives Codec.AsObject
 

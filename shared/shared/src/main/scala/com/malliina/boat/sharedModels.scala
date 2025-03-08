@@ -280,14 +280,19 @@ trait IdentifiedDeviceMeta extends DeviceMeta:
 case class SimpleSourceMeta(user: Username, boat: BoatName, sourceType: SourceType)
   extends DeviceMeta
 
-sealed abstract class MobileDevice(val name: String):
+enum MobileDevice(val name: String):
+  case IOS extends MobileDevice("ios")
+  case IOSActivityStart extends MobileDevice("ios-activity-start")
+  case IOSActivityUpdate extends MobileDevice("ios-activity-update")
+  case Android extends MobileDevice("android")
+  case Unknown(s: String) extends MobileDevice(s)
   override def toString: String = name
 
-object MobileDevice extends ValidatingCompanion[String, MobileDevice]:
+object MobileDevice extends StringEnumCompanion[MobileDevice]:
   val Key = "device"
-  val all: Seq[MobileDevice] = Seq(IOS, Android)
+  val all: Seq[MobileDevice] = Seq(IOS, IOSActivityStart, IOSActivityUpdate, Android)
 
-  def apply(s: String): MobileDevice = build(s).getOrElse(Unknown(s))
+  def orUnknown(s: String): MobileDevice = build(s).getOrElse(Unknown(s))
 
   override def build(input: String): Either[ErrorMessage, MobileDevice] =
     all
@@ -295,10 +300,6 @@ object MobileDevice extends ValidatingCompanion[String, MobileDevice]:
       .toRight(ErrorMessage(s"Unknown device type: '$input'."))
 
   override def write(t: MobileDevice): String = t.name
-
-  case object IOS extends MobileDevice("ios")
-  case object Android extends MobileDevice("android")
-  case class Unknown(s: String) extends MobileDevice(s)
 
 case class Boat(
   id: DeviceId,
@@ -653,29 +654,29 @@ abstract class ValidatedDouble[T](implicit
   def fromString(s: String) =
     s.toDoubleOption.toRight(ErrorMessage(s"Not a double: '$s'.")).flatMap(build)
 
-sealed abstract class SourceType(val name: String)
+enum SourceType(val name: String):
+  case Vehicle extends SourceType("vehicle")
+  case Boat extends SourceType("boat")
+  case Other(n: String) extends SourceType(n)
 
 object SourceType extends StringEnumCompanion[SourceType]:
   val Key = "sourceType"
-  case object Vehicle extends SourceType("vehicle")
-  case object Boat extends SourceType("boat")
-  case class Other(n: String) extends SourceType(n)
+
   def orOther(in: String): SourceType = build(in).getOrElse(Other(in))
   override def all = Seq(Vehicle, Boat)
   override def write(t: SourceType) = t.name
 
-sealed abstract class InviteState(val name: String)
+enum InviteState(val name: String):
+  case Awaiting extends InviteState("awaiting")
+  case Accepted extends InviteState("accepted")
+  case Rejected extends InviteState("rejected")
+  case Other(n: String) extends InviteState(n)
 
 object InviteState extends StringEnumCompanion[InviteState]:
   val awaiting: InviteState = Awaiting
   val accepted: InviteState = Accepted
-  case object Awaiting extends InviteState("awaiting")
-  case object Accepted extends InviteState("accepted")
-  case object Rejected extends InviteState("rejected")
-  case class Other(n: String) extends InviteState(n)
 
   def orOther(in: String): InviteState = build(in).getOrElse(Other(in))
-
   override def all = Seq(Awaiting, Accepted, Rejected)
   override def write(t: InviteState) = t.name
 

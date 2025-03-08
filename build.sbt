@@ -6,18 +6,22 @@ import sbtrelease.ReleaseStateTransformations.*
 import scala.sys.process.Process
 
 val versions = new {
-  val scala213 = "2.13.14"
+  val scala213 = "2.13.16"
   val scala3 = "3.6.2"
 
   val alpn = "12.0.16"
+  val ci = "1.4.2"
   val circe = "0.14.10"
   val fs2 = "3.11.0"
   val http4s = "0.23.30"
-  val logback = "1.5.16"
+  val ip4s = "3.6.0"
+  val logback = "1.5.17"
   val logstreams = "2.8.3"
+  val mobilePush = "3.12.0"
   val munit = "1.1.0"
   val munitCe = "2.0.0"
   val primitives = "3.7.7"
+  val s3 = "2.30.36"
   val scalaTags = "0.13.1"
   val webAuth = "6.9.8"
 }
@@ -76,8 +80,8 @@ val cross = crossProject(JSPlatform, JVMPlatform)
     libraryDependencies ++= Seq("generic", "parser").map { m =>
       "io.circe" %%% s"circe-$m" % versions.circe
     } ++ Seq(
-      "com.comcast" %% "ip4s-core" % "3.6.0",
-      "org.typelevel" %%% "case-insensitive" % "1.4.2",
+      "com.comcast" %% "ip4s-core" % versions.ip4s,
+      "org.typelevel" %%% "case-insensitive" % versions.ci,
       "com.malliina" %%% "primitives" % versions.primitives,
       "com.lihaoyi" %%% "scalatags" % versions.scalaTags,
       "org.scalameta" %%% "munit" % versions.munit % Test
@@ -130,9 +134,9 @@ val backend = Project("boat", file("backend"))
         "com.vividsolutions" % "jts" % "1.13",
         "mysql" % "mysql-connector-java" % "8.0.33",
         "org.apache.commons" % "commons-text" % "1.13.0",
-        "software.amazon.awssdk" % "s3" % "2.30.20",
+        "software.amazon.awssdk" % "s3" % versions.s3,
         "com.malliina" %% "logstreams-client" % versions.logstreams,
-        "com.malliina" %% "mobile-push-io" % "3.11.4",
+        "com.malliina" %% "mobile-push-io" % versions.mobilePush,
         "com.malliina" %% "config" % versions.primitives,
         "org.eclipse.paho" % "org.eclipse.paho.client.mqttv3" % "1.2.5",
         webAuthDep,

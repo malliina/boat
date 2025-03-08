@@ -31,7 +31,7 @@ trait Mappings:
   given Meta[GPSFix] = Meta[String].timap(GPSFix.orOther)(_.value)
   given Meta[PushId] = simple(PushId)
   given Meta[PushToken] = simple(PushToken)
-  given Meta[MobileDevice] = Meta[String].timap(MobileDevice.apply)(_.name)
+  given Meta[MobileDevice] = Meta[String].timap(MobileDevice.orUnknown)(_.name)
   given Meta[SeaArea] = Meta[Int].timap(SeaArea.fromIntOrOther)(_.value)
   given Meta[FairwayLighting] =
     Meta[Int].timap(FairwayLighting.fromInt)(FairwayLighting.toInt)
