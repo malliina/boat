@@ -16,7 +16,11 @@ import java.time.Instant
 import java.time.temporal.ChronoUnit
 
 class NoopPushEndpoint[F[_]: Sync] extends PushEndpoint[F]:
-  override def push(notification: SourceNotification, to: PushDevice): F[PushSummary] =
+  override def push(
+    notification: SourceNotification,
+    to: PushDevice,
+    now: Instant
+  ): F[PushSummary] =
     Sync[F].pure(PushSummary.empty)
 
 object TestEmailAuth:

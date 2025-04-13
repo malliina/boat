@@ -1,10 +1,17 @@
 package com.malliina.boat.push
 
 import com.malliina.boat.db.PushInput
-import com.malliina.boat.{PushId, PushToken, ReverseGeocode, UserDevice}
+import com.malliina.boat.{PushId, PushToken, ReverseGeocode, TrackMeta}
 import com.malliina.values.UserId
+
+import java.time.Instant
 
 trait PushService[F[_]]:
   def enable(input: PushInput): F[PushId]
   def disable(token: PushToken, user: UserId): F[Boolean]
-  def push(device: UserDevice, state: SourceState, geo: Option[ReverseGeocode]): F[PushSummary]
+  def push(
+    device: TrackMeta,
+    state: SourceState,
+    geo: Option[ReverseGeocode],
+    now: Instant
+  ): F[PushSummary]

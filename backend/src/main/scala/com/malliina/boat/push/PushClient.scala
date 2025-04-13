@@ -9,6 +9,8 @@ import com.malliina.push.gcm.MappedGCMResponse
 import com.malliina.push.gcm.MappedGCMResponse.TokenReplacement
 import com.malliina.util.FileUtils
 
+import java.time.Instant
+
 case class PushTokenReplacement(oldToken: PushToken, newToken: PushToken, device: MobileDevice)
 
 object PushTokenReplacement:
@@ -58,4 +60,4 @@ trait PushClient[F[_], T <: Token]:
   def push(notification: SourceNotification, to: T): F[PushSummary]
 
 trait PushEndpoint[F[_]]:
-  def push(notification: SourceNotification, to: PushDevice): F[PushSummary]
+  def push(notification: SourceNotification, to: PushDevice, now: Instant): F[PushSummary]

@@ -308,6 +308,7 @@ class Service[F[_]: { Async, Files }](
           badRequest(Errors(err.message))
     case req @ POST -> Root / "cars" / "locations" =>
       jsonAction[LocationUpdates](req): (body, user) =>
+        val now = Instant.now()
         val start = System.currentTimeMillis()
         user.boats
           .find(_.id == body.carId)
@@ -332,7 +333,7 @@ class Service[F[_]: { Async, Files }](
                     F.delay(log.error(s"Failed to save car locations. Got '${body.asJson}'.", t))
                 val pushTask =
                   if result.isResumed then F.pure(())
-                  else pushConnected(meta, body.updates.headOption.map(_.coord))
+                  else pushConnected(meta, body.updates.headOption.map(_.coord), now)
                 pushTask >> insertion
           .getOrElse:
             notFound(Errors(SingleError.input(s"Car not found: '${body.carId}'.")))
@@ -496,12 +497,13 @@ class Service[F[_]: { Async, Files }](
       auth
         .authBoat(req.headers)
         .flatMap: boat =>
+          val now = Instant.now()
           log.info(s"Boat '${boat.boat}' by '${boat.user}' connected.")
           inserts
             .joinAsSource(boat)
             .flatMap: result =>
               val meta = result.track
-              pushConnected(meta, at = None).flatMap: _ =>
+              pushConnected(meta, at = None, now = now).flatMap: _ =>
                 webSocket(
                   sockets,
                   toClients,
@@ -528,20 +530,20 @@ class Service[F[_]: { Async, Files }](
                   onClose = F
                     .delay(log.info(s"Boat ${boat.describe} left."))
                     .flatMap: _ =>
-                      push.push(meta, SourceState.Disconnected, geo = None).map(_ => ())
+                      push.push(meta, SourceState.Disconnected, geo = None, now = now).map(_ => ())
                     .handleError: err =>
                       log.warn(s"Failed to notify of disconnection of ${boat.describe}.", err)
                 ).onError: t =>
                   F.delay(log.info(s"Boat ${boat.describe} left exceptionally.", t))
                     .flatMap: _ =>
-                      push.push(meta, SourceState.Disconnected, geo = None).map(_ => ())
+                      push.push(meta, SourceState.Disconnected, geo = None, now = now).map(_ => ())
                     .handleError: err =>
                       log.info(s"Failed to handler error of ${boat.describe}.", err)
 
   def routes(sockets: WebSocketBuilder2[F]): HttpRoutes[F] =
     normalRoutes.combineK(socketRoutes(sockets))
 
-  private def pushConnected(meta: UserDevice, at: Option[Coord]) =
+  private def pushConnected(meta: TrackMeta, at: Option[Coord], now: Instant) =
     val reverseGeo = at
       .map: coord =>
         comps.mapbox.reverseGeocode(coord)
@@ -549,7 +551,7 @@ class Service[F[_]: { Async, Files }](
         F.pure(None)
     reverseGeo.flatMap: geo =>
       push
-        .push(meta, SourceState.Connected, geo)
+        .push(meta, SourceState.Connected, geo, now)
         .void
         .handleErrorWith: t =>
           F.delay(

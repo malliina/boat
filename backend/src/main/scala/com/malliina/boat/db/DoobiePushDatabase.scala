@@ -3,14 +3,16 @@ package com.malliina.boat.db
 import cats.effect.Async
 import cats.syntax.all.{catsSyntaxList, toFlatMapOps, toFunctorOps, toTraverseOps}
 import com.malliina.boat.db.DoobiePushDatabase.log
-import com.malliina.boat.ReverseGeocode
 import com.malliina.boat.push.*
-import com.malliina.boat.{AppConf, PushId, PushToken, SourceType, UserDevice}
+import com.malliina.boat.{AppConf, PushId, PushToken, ReverseGeocode, SourceType, TrackMeta}
 import com.malliina.database.DoobieDatabase
 import com.malliina.util.AppLogger
 import com.malliina.values.UserId
 import doobie.Fragments
 import doobie.implicits.*
+
+import java.time.Instant
+import scala.concurrent.duration.DurationInt
 
 object DoobiePushDatabase:
   private val log = AppLogger(getClass)
@@ -52,9 +54,15 @@ class DoobiePushDatabase[F[_]: Async](db: DoobieDatabase[F], push: PushEndpoint[
 
   /** Pushes at most once every five minutes to a given device.
     */
-  def push(device: UserDevice, state: SourceState, geo: Option[ReverseGeocode]): F[PushSummary] =
+  def push(
+    device: TrackMeta,
+    state: SourceState,
+    geo: Option[ReverseGeocode],
+    now: Instant
+  ): F[PushSummary] =
     val title = if device.sourceType == SourceType.Vehicle then AppConf.CarName else AppConf.Name
-    val notification = SourceNotification(title, device.deviceName, state, geo)
+    val notification =
+      SourceNotification(title, device.deviceName, state, device.distance, 0.seconds, geo)
     val deviceId = device.device
     val devices = db.run:
       // pushes at most once every five minutes as per the "not exists" clause
@@ -72,7 +80,7 @@ class DoobiePushDatabase[F[_]: Async](db: DoobieDatabase[F], push: PushEndpoint[
         log.info(s"Recorded push history for device '$deviceId' (${device.deviceName}).")
     for
       tokens <- devices
-      results <- tokens.traverse(token => push.push(notification, token))
+      results <- tokens.traverse(token => push.push(notification, token, now))
       summary = results.fold(PushSummary.empty)(_ ++ _)
       _ <- handle(summary)
       _ <- if tokens.nonEmpty then bookkeeping else F.unit

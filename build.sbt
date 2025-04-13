@@ -7,7 +7,7 @@ import scala.sys.process.Process
 
 val versions = new {
   val scala213 = "2.13.16"
-  val scala3 = "3.6.2"
+  val scala3 = "3.6.4"
 
   val alpn = "12.0.16"
   val ci = "1.4.2"
@@ -15,13 +15,13 @@ val versions = new {
   val fs2 = "3.11.0"
   val http4s = "0.23.30"
   val ip4s = "3.6.0"
-  val logback = "1.5.17"
+  val logback = "1.5.18"
   val logstreams = "2.8.3"
   val mobilePush = "3.12.0"
   val munit = "1.1.0"
-  val munitCe = "2.0.0"
+  val munitCe = "2.1.0"
   val primitives = "3.7.7"
-  val s3 = "2.30.36"
+  val s3 = "2.31.20"
   val scalaTags = "0.13.1"
   val webAuth = "6.9.8"
 }
@@ -133,7 +133,7 @@ val backend = Project("boat", file("backend"))
         "org.http4s" %% "http4s-ember-client" % versions.http4s,
         "com.vividsolutions" % "jts" % "1.13",
         "mysql" % "mysql-connector-java" % "8.0.33",
-        "org.apache.commons" % "commons-text" % "1.13.0",
+        "org.apache.commons" % "commons-text" % "1.13.1",
         "software.amazon.awssdk" % "s3" % versions.s3,
         "com.malliina" %% "logstreams-client" % versions.logstreams,
         "com.malliina" %% "mobile-push-io" % versions.mobilePush,
@@ -214,8 +214,6 @@ val agent = project
       setReleaseVersion,
       commitReleaseVersion,
       tagRelease,
-      //    ReleaseStep(action = releaseStepCommand("buildAndUpload")),
-      //    publishArtifacts, // : ReleaseStep, checks whether `publishTo` is properly set up
       setNextVersion,
       commitNextVersion,
       pushChanges // : ReleaseStep, also checks that an upstream branch is properly configured

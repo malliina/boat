@@ -8,12 +8,33 @@ import com.malliina.push.apns.*
 import com.malliina.util.AppLogger
 import io.circe.syntax.EncoderOps
 
+import java.time.Instant
+import scala.concurrent.duration.{DurationInt, FiniteDuration}
+
+enum APSEventType:
+  case Start, Update, End
+
 trait APNS[F[_]]:
   def push(notification: SourceNotification, to: APNSToken): F[PushSummary]
+  def pushLiveActivity(
+    notification: SourceNotification,
+    to: APNSToken,
+    event: APSEventType,
+    now: Instant
+  ): F[PushSummary]
 
 class NoopAPNS[F[_]: Applicative] extends APNS[F]:
   override def push(notification: SourceNotification, to: APNSToken): F[PushSummary] =
-    Applicative[F].pure(PushSummary.empty)
+    noop
+
+  override def pushLiveActivity(
+    notification: SourceNotification,
+    to: APNSToken,
+    event: APSEventType,
+    now: Instant
+  ): F[PushSummary] = noop
+
+  def noop = Applicative[F].pure(PushSummary.empty)
 
 object APNSPush:
   private val log = AppLogger(getClass)
@@ -34,6 +55,8 @@ object APNSPush:
 class APNSPush[F[_]: Monad](prod: APNSHttpClientF[F]) extends PushClient[F, APNSToken] with APNS[F]:
   val topic = APNSTopic("com.malliina.BoatTracker")
 
+  val attributesType = "BoatWidgetAttributes"
+
   def push(notification: SourceNotification, to: APNSToken): F[PushSummary] =
     val message = APNSMessage(
       APSPayload(
@@ -42,6 +65,50 @@ class APNSPush[F[_]: Monad](prod: APNSHttpClientF[F]) extends PushClient[F, APNS
       Map("meta" -> notification.asJson)
     )
     val request = APNSRequest.withTopic(topic, message)
+    push(request, to)
+
+  override def pushLiveActivity(
+    notification: SourceNotification,
+    to: APNSToken,
+    event: APSEventType,
+    now: Instant
+  ): F[PushSummary] =
+    val payload = event match
+      case APSEventType.Start =>
+        APSPayload.startLiveActivity(
+          now,
+          LiveActivityState.attributeType,
+          toActivityState(notification, "on the move"),
+          Right(AlertPayload(notification.message, title = Option(notification.title))),
+          Option(now.plus(5.minutes))
+        )
+      case APSEventType.Update =>
+        APSPayload.updateLiveActivity(
+          now,
+          toActivityState(notification, "still on the move"),
+          alert = None,
+          staleDate = Option(now.plus(5.minutes)),
+          dismissalDate = None
+        )
+      case APSEventType.End =>
+        APSPayload.endLiveActivity(
+          now,
+          toActivityState(notification, "no longer moving"),
+          Option(now.plus(5.minutes))
+        )
+    val message = APNSMessage(payload, Map("meta" -> notification.asJson))
+    val request = APNSRequest.liveActivity(topic, message)
+    push(request, to)
+
+  private def toActivityState(notification: SourceNotification, message: String) =
+    LiveActivityState(
+      notification.boatName,
+      message,
+      notification.distance,
+      notification.duration
+    )
+
+  def push(request: APNSRequest, to: APNSToken): F[PushSummary] =
     prod
       .push(to, request)
       .map: e =>
@@ -50,3 +117,5 @@ class APNSPush[F[_]: Monad](prod: APNSHttpClientF[F]) extends PushClient[F, APNS
           id => APNSHttpResult(to, Option(id), None)
         )
         PushSummary(Seq(result), Nil)
+
+extension (i: Instant) def plus(duration: FiniteDuration) = i.plusSeconds(duration.toSeconds)

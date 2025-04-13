@@ -1,11 +1,16 @@
 package com.malliina.boat.push
 
-import com.malliina.boat.{BoatName, ReverseGeocode}
 import com.malliina.boat.http.Named
+import com.malliina.boat.{BoatName, BoatPrimitives, ReverseGeocode}
+import com.malliina.measure.DistanceM
 import com.malliina.values.{ErrorMessage, ValidatingCompanion}
 import io.circe.Codec
 
-sealed abstract class SourceState(val name: String) extends Named
+import scala.concurrent.duration.FiniteDuration
+
+enum SourceState(val name: String) extends Named:
+  case Connected extends SourceState("connected")
+  case Disconnected extends SourceState("disconnected")
 
 object SourceState extends ValidatingCompanion[String, SourceState]:
   val Key = "state"
@@ -16,13 +21,12 @@ object SourceState extends ValidatingCompanion[String, SourceState]:
 
   override def write(t: SourceState): String = t.name
 
-  case object Connected extends SourceState("connected")
-  case object Disconnected extends SourceState("disconnected")
-
 case class SourceNotification(
   title: String,
   boatName: BoatName,
   state: SourceState,
+  distance: DistanceM,
+  duration: FiniteDuration,
   geo: Option[ReverseGeocode]
 ) derives Codec.AsObject:
   private val describeState = if state == SourceState.Connected then "on the move" else state.name
@@ -33,3 +37,15 @@ case class SourceNotification(
 object SourceNotification:
   val Message = "message"
   val Title = "title"
+
+given Codec[FiniteDuration] = BoatPrimitives.durationFormat
+
+case class LiveActivityState(
+  boatName: BoatName,
+  message: String,
+  distance: DistanceM,
+  duration: FiniteDuration
+) derives Codec.AsObject
+
+object LiveActivityState:
+  val attributeType = "BoatWidgetAttributes"
