@@ -77,6 +77,22 @@ object PushToken extends ShowableString[PushToken]:
   override def apply(raw: String): PushToken = raw
   override def write(t: PushToken): String = t
 
+opaque type LiveActivityId = String
+object LiveActivityId extends ShowableString[LiveActivityId]:
+  override def apply(raw: String): LiveActivityId = raw
+  override def build(input: String): Either[ErrorMessage, LiveActivityId] =
+    if input.isBlank then Left(err"Input cannot be blank.")
+    else Right(input)
+  override def write(t: LiveActivityId): String = t
+
+opaque type PhoneId = String
+object PhoneId extends ShowableString[PhoneId]:
+  override def apply(raw: String): PhoneId = raw
+  override def build(input: String): Either[ErrorMessage, PhoneId] =
+    if input.isBlank then Left(err"Input cannot be blank.")
+    else Right(input)
+  override def write(t: PhoneId): String = t
+
 opaque type UserAgent = String
 object UserAgent extends ShowableString[UserAgent]:
   override def apply(raw: String): UserAgent = raw

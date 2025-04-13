@@ -1,6 +1,6 @@
 package com.malliina.boat.db
 
-import com.malliina.boat.{Coord, CoordHash, Mmsi, MobileDevice, PushId, PushToken, UserToken, Utils, VesselName}
+import com.malliina.boat.{Coord, CoordHash, LiveActivityId, Mmsi, MobileDevice, PhoneId, PushId, PushToken, UserToken, Utils, VesselName}
 import com.malliina.measure.{DistanceM, SpeedM, Temperature}
 import com.malliina.values.{Email, JsonCompanion, RefreshToken, UserId, Username}
 
@@ -10,11 +10,18 @@ case class PushDevice(
   id: PushId,
   token: PushToken,
   device: MobileDevice,
+  liveActivityId: Option[LiveActivityId],
   user: UserId,
   added: Instant
 )
 
-case class PushInput(token: PushToken, device: MobileDevice, user: UserId)
+case class PushInput(
+  token: PushToken,
+  device: MobileDevice,
+  deviceId: Option[PhoneId],
+  liveActivityId: Option[LiveActivityId],
+  user: UserId
+)
 
 case class DbTrackInfo(
   avgWaterTemp: Option[Temperature],

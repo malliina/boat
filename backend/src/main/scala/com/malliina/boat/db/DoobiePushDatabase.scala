@@ -2,6 +2,7 @@ package com.malliina.boat.db
 
 import cats.effect.Async
 import cats.syntax.all.{catsSyntaxList, toFlatMapOps, toFunctorOps, toTraverseOps}
+import com.malliina.boat.MobileDevice.{IOSActivityStart, IOSActivityUpdate}
 import com.malliina.boat.db.DoobiePushDatabase.log
 import com.malliina.boat.push.*
 import com.malliina.boat.{AppConf, PushId, PushToken, ReverseGeocode, SourceType, TrackMeta}
@@ -36,12 +37,39 @@ class DoobiePushDatabase[F[_]: Async](db: DoobieDatabase[F], push: PushEndpoint[
           )
           pure(id)
         .getOrElse:
-          sql"""insert into push_clients(token, device, user)
-                values(${input.token}, ${input.device}, ${input.user})""".update
-            .withUniqueGeneratedKeys[PushId]("id")
-            .map: id =>
-              log.info(s"Enabled notifications for ${input.device} token '${input.token}'.")
-              id
+          val user = input.user
+          val pushToStartDeletion = input.deviceId
+            .filter(_ => input.device == IOSActivityStart)
+            .fold(pure(0)): deviceId =>
+              sql"""delete from push_clients where device_id = $deviceId and user = $user""".update.run
+          val activityUpdateDeletion = input.liveActivityId
+            .filter(_ => input.device == IOSActivityUpdate)
+            .fold(pure(0)): activityId =>
+              sql"""delete from push_clients where live_activity = $activityId and user = $user""".update.run
+          val insertion =
+            sql"""insert into push_clients(token, device, device_id, live_activity, user)
+                  values(${input.token}, ${input.device}, ${input.deviceId}, ${input.liveActivityId}, $user)""".update
+              .withUniqueGeneratedKeys[PushId]("id")
+          for
+            startDeletion <- pushToStartDeletion
+            updateDeletion <- activityUpdateDeletion
+            id <- insertion
+          yield
+            val describeStartDeletion =
+              if startDeletion > 0 then s"Deleted $startDeletion old Live Activity start token(s)."
+              else ""
+            val describeActivity = input.liveActivityId.fold("")(id => s"Live Activity ID '$id'.")
+            val describeDeletion =
+              if updateDeletion > 0 then
+                s"Deleted $updateDeletion old Live Activity update token(s)."
+              else ""
+            val basic =
+              s"Enabled ${input.device} notifications for user $user with token '${input.token}'."
+            val msg = Seq(basic, describeActivity, describeDeletion, describeStartDeletion)
+              .filter(_.nonEmpty)
+              .mkString(" ")
+            log.info(msg)
+            id
 
   def disable(token: PushToken, user: UserId): F[Boolean] = db.run:
     sql"delete from push_clients where token = $token and user = $user".update.run.map: rows =>
@@ -66,7 +94,7 @@ class DoobiePushDatabase[F[_]: Async](db: DoobieDatabase[F], push: PushEndpoint[
     val deviceId = device.device
     val devices = db.run:
       // pushes at most once every five minutes as per the "not exists" clause
-      sql"""select id, token, device, user, added
+      sql"""select id, token, device, device_id, live_activity, user, added
             from push_clients
             where user = ${device.userId} and
             not exists(select timestampdiff(SECOND, max(h.added), now())

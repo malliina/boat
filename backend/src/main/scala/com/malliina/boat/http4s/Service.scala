@@ -108,8 +108,15 @@ class Service[F[_]: { Async, Files }](
       auth.delete(req.headers, now()).flatMap(_ => ok(SimpleMessage("Deleted.")))
     case req @ POST -> Root / "users" / "notifications" =>
       jsonAction[PushPayload](req): (payload, user) =>
+        val in = PushInput(
+          payload.token,
+          payload.device,
+          payload.deviceId,
+          payload.liveActivityId,
+          user.id
+        )
         push
-          .enable(PushInput(payload.token, payload.device, user.id))
+          .enable(in)
           .flatMap: _ =>
             ok(SimpleMessage("Enabled."))
     case req @ POST -> Root / "users" / "notifications" / "disable" =>
