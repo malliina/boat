@@ -272,13 +272,18 @@ trait DeviceMeta:
   def boat: BoatName
   def sourceType: SourceType
   def describe = s"'$boat' by '$user'"
-  def withTrack(track: TrackName) = BoatUser(track, boat, sourceType, user)
+  def language: Language
+  def withTrack(track: TrackName) = BoatUser(track, boat, sourceType, user, language)
 
 trait IdentifiedDeviceMeta extends DeviceMeta:
   def device: DeviceId
 
-case class SimpleSourceMeta(user: Username, boat: BoatName, sourceType: SourceType)
-  extends DeviceMeta
+case class SimpleSourceMeta(
+  user: Username,
+  boat: BoatName,
+  sourceType: SourceType,
+  language: Language
+) extends DeviceMeta
 
 enum MobileDevice(val name: String):
   case IOS extends MobileDevice("ios")
@@ -437,8 +442,13 @@ case class TrackResponse(track: TrackRef) derives Codec.AsObject
 
 case class InsertedTrackPoint(point: TrackPointId, track: TrackRef)
 
-case class BoatUser(track: TrackName, boat: BoatName, sourceType: SourceType, user: Username)
-  extends SourceTrackMeta
+case class BoatUser(
+  track: TrackName,
+  boat: BoatName,
+  sourceType: SourceType,
+  user: Username,
+  language: Language
+) extends SourceTrackMeta
 
 case class BoatInfo(
   boatId: DeviceId,

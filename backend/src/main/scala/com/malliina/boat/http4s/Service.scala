@@ -112,7 +112,7 @@ class Service[F[_]: { Async, Files }](
           payload.token,
           payload.device,
           payload.deviceId,
-          payload.liveActivityId,
+          payload.trackName,
           user.id
         )
         push
@@ -317,10 +317,12 @@ class Service[F[_]: { Async, Files }](
       jsonAction[LocationUpdates](req): (body, user) =>
         val now = Instant.now()
         val start = System.currentTimeMillis()
+        val lang = BoatLang(user.language)
         user.boats
           .find(_.id == body.carId)
           .map: device =>
-            val deviceMeta = SimpleSourceMeta(user.username, device.name, device.sourceType)
+            val deviceMeta =
+              SimpleSourceMeta(user.username, device.name, device.sourceType, user.language)
             inserts
               .joinAsSource(deviceMeta)
               .flatMap: result =>
@@ -340,7 +342,8 @@ class Service[F[_]: { Async, Files }](
                     F.delay(log.error(s"Failed to save car locations. Got '${body.asJson}'.", t))
                 val pushTask =
                   if result.isResumed then F.pure(())
-                  else pushConnected(meta, body.updates.headOption.map(_.coord), now)
+                  else
+                    pushConnected(meta, body.updates.headOption.map(_.coord), lang.lang.push, now)
                 pushTask >> insertion
           .getOrElse:
             notFound(Errors(SingleError.input(s"Car not found: '${body.carId}'.")))
@@ -504,13 +507,15 @@ class Service[F[_]: { Async, Files }](
       auth
         .authBoat(req.headers)
         .flatMap: boat =>
+          val lang = BoatLang(boat.language)
+          val pushLang = lang.lang.push
           val now = Instant.now()
           log.info(s"Boat '${boat.boat}' by '${boat.user}' connected.")
           inserts
             .joinAsSource(boat)
             .flatMap: result =>
               val meta = result.track
-              pushConnected(meta, at = None, now = now).flatMap: _ =>
+              pushConnected(meta, at = None, pushLang, now = now).flatMap: _ =>
                 webSocket(
                   sockets,
                   toClients,
@@ -537,20 +542,36 @@ class Service[F[_]: { Async, Files }](
                   onClose = F
                     .delay(log.info(s"Boat ${boat.describe} left."))
                     .flatMap: _ =>
-                      push.push(meta, SourceState.Disconnected, geo = None, now = now).map(_ => ())
+                      push
+                        .push(
+                          meta,
+                          SourceState.Disconnected,
+                          geo = None,
+                          lang = pushLang,
+                          now = now
+                        )
+                        .map(_ => ())
                     .handleError: err =>
                       log.warn(s"Failed to notify of disconnection of ${boat.describe}.", err)
                 ).onError: t =>
                   F.delay(log.info(s"Boat ${boat.describe} left exceptionally.", t))
                     .flatMap: _ =>
-                      push.push(meta, SourceState.Disconnected, geo = None, now = now).map(_ => ())
+                      push
+                        .push(
+                          meta,
+                          SourceState.Disconnected,
+                          geo = None,
+                          lang = pushLang,
+                          now = now
+                        )
+                        .map(_ => ())
                     .handleError: err =>
                       log.info(s"Failed to handler error of ${boat.describe}.", err)
 
   def routes(sockets: WebSocketBuilder2[F]): HttpRoutes[F] =
     normalRoutes.combineK(socketRoutes(sockets))
 
-  private def pushConnected(meta: TrackMeta, at: Option[Coord], now: Instant) =
+  private def pushConnected(meta: TrackMeta, at: Option[Coord], lang: PushLang, now: Instant) =
     val reverseGeo = at
       .map: coord =>
         comps.mapbox.reverseGeocode(coord)
@@ -558,7 +579,7 @@ class Service[F[_]: { Async, Files }](
         F.pure(None)
     reverseGeo.flatMap: geo =>
       push
-        .push(meta, SourceState.Connected, geo, now)
+        .push(meta, SourceState.Connected, geo, lang, now)
         .void
         .handleErrorWith: t =>
           F.delay(

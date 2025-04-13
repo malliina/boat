@@ -6,7 +6,7 @@ import com.malliina.boat.Constants.{BoatNameHeader, BoatTokenHeader}
 import com.malliina.boat.auth.{AuthProvider, BoatJwt, SettingsPayload}
 import com.malliina.boat.db.{IdentityManager, MissingCredentials, MissingCredentialsException, SIWADatabase}
 import com.malliina.boat.http.UserRequest
-import com.malliina.boat.{BoatName, BoatNames, BoatToken, DeviceMeta, JoinedSource, MinimalUserInfo, SimpleSourceMeta, SourceType, UserBoats, UserInfo, Usernames}
+import com.malliina.boat.{BoatName, BoatNames, BoatToken, DeviceMeta, JoinedSource, Language, MinimalUserInfo, SimpleSourceMeta, SourceType, UserBoats, UserInfo, Usernames}
 import com.malliina.values.Email
 import com.malliina.web.{Code, RevokeResult}
 import org.http4s.headers.Cookie
@@ -90,7 +90,9 @@ class AuthService[F[_]: Sync](val users: IdentityManager[F], comps: AuthComps[F]
           .get(BoatNameHeader)
           .map(h => BoatName(CIString(h.head.value)))
           .getOrElse(BoatNames.random())
-        F.pure(SimpleSourceMeta(Usernames.anon, boatName, SourceType.Boat): DeviceMeta)
+        F.pure(
+          SimpleSourceMeta(Usernames.anon, boatName, SourceType.Boat, Language.default): DeviceMeta
+        )
 
   def boatTokenOrFail(headers: Headers) =
     boatToken(headers).getOrElse:

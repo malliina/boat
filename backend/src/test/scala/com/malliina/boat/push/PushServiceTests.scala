@@ -1,7 +1,7 @@
 package com.malliina.boat.push
 
 import cats.effect.IO
-import com.malliina.boat.{AppConf, BaseSuite, BoatConf, BoatName}
+import com.malliina.boat.{AppConf, BaseSuite, BoatConf, BoatName, PushLang, TrackName}
 import com.malliina.measure.DistanceIntM
 import com.malliina.push.apns.APNSToken
 import org.typelevel.ci.CIStringSyntax
@@ -18,10 +18,12 @@ class PushServiceTests extends BaseSuite:
         SourceNotification(
           AppConf.Name,
           BoatName(ci"TestBoat"),
+          TrackName("track1"),
           SourceState.Connected,
           0.meters,
           0.seconds,
-          None
+          None,
+          PushLang.en
         ),
         token
       )

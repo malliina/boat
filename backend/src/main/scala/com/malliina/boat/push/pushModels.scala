@@ -1,7 +1,7 @@
 package com.malliina.boat.push
 
 import com.malliina.boat.http.Named
-import com.malliina.boat.{BoatName, BoatPrimitives, ReverseGeocode}
+import com.malliina.boat.{BoatName, BoatPrimitives, PushLang, ReverseGeocode, TrackName}
 import com.malliina.measure.DistanceM
 import com.malliina.values.{ErrorMessage, ValidatingCompanion}
 import io.circe.Codec
@@ -24,15 +24,18 @@ object SourceState extends ValidatingCompanion[String, SourceState]:
 case class SourceNotification(
   title: String,
   boatName: BoatName,
+  trackName: TrackName,
   state: SourceState,
   distance: DistanceM,
   duration: FiniteDuration,
-  geo: Option[ReverseGeocode]
+  geo: Option[ReverseGeocode],
+  lang: PushLang
 ) derives Codec.AsObject:
-  private val describeState = if state == SourceState.Connected then "on the move" else state.name
-  def prefix = s"$boatName $describeState"
-  def suffix = geo.fold("")(a => s" at ${a.address}")
-  def message = s"$prefix$suffix"
+  def message =
+    val describe = if state == SourceState.Connected then lang.onTheMove else lang.stoppedMoving
+    val prefix = s"$boatName $describe"
+    val suffix = geo.fold("")(a => s" ${lang.near} ${a.address}")
+    s"$prefix$suffix"
 
 object SourceNotification:
   val Message = "message"
@@ -40,12 +43,14 @@ object SourceNotification:
 
 given Codec[FiniteDuration] = BoatPrimitives.durationFormat
 
+case class LiveActivityAttributes(boatName: BoatName, trackName: TrackName) derives Codec.AsObject
+
+object LiveActivityAttributes:
+  val attributeType = "BoatWidgetAttributes"
+
 case class LiveActivityState(
-  boatName: BoatName,
   message: String,
   distance: DistanceM,
-  duration: FiniteDuration
+  duration: FiniteDuration,
+  address: Option[String]
 ) derives Codec.AsObject
-
-object LiveActivityState:
-  val attributeType = "BoatWidgetAttributes"

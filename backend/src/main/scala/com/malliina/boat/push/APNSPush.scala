@@ -73,19 +73,21 @@ class APNSPush[F[_]: Monad](prod: APNSHttpClientF[F]) extends PushClient[F, APNS
     event: APSEventType,
     now: Instant
   ): F[PushSummary] =
+    val lang = notification.lang
     val payload = event match
       case APSEventType.Start =>
         APSPayload.startLiveActivity(
           now,
-          LiveActivityState.attributeType,
-          toActivityState(notification, "on the move"),
+          LiveActivityAttributes.attributeType,
+          LiveActivityAttributes(notification.boatName, notification.trackName),
+          toActivityState(notification, lang.onTheMove),
           Right(AlertPayload(notification.message, title = Option(notification.title))),
           Option(now.plus(5.minutes))
         )
       case APSEventType.Update =>
         APSPayload.updateLiveActivity(
           now,
-          toActivityState(notification, "still on the move"),
+          toActivityState(notification, lang.onTheMove),
           alert = None,
           staleDate = Option(now.plus(5.minutes)),
           dismissalDate = None
@@ -93,8 +95,8 @@ class APNSPush[F[_]: Monad](prod: APNSHttpClientF[F]) extends PushClient[F, APNS
       case APSEventType.End =>
         APSPayload.endLiveActivity(
           now,
-          toActivityState(notification, "no longer moving"),
-          Option(now.plus(5.minutes))
+          toActivityState(notification, lang.stoppedMoving),
+          dismissalDate = Option(now.plus(5.minutes))
         )
     val message = APNSMessage(payload, Map("meta" -> notification.asJson))
     val request = APNSRequest.liveActivity(topic, message)
@@ -102,10 +104,10 @@ class APNSPush[F[_]: Monad](prod: APNSHttpClientF[F]) extends PushClient[F, APNS
 
   private def toActivityState(notification: SourceNotification, message: String) =
     LiveActivityState(
-      notification.boatName,
       message,
       notification.distance,
-      notification.duration
+      notification.duration,
+      notification.geo.map(_.address)
     )
 
   def push(request: APNSRequest, to: APNSToken): F[PushSummary] =

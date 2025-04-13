@@ -283,7 +283,8 @@ case class PushPayload(
   token: PushToken,
   device: MobileDevice,
   deviceId: Option[PhoneId],
-  liveActivityId: Option[LiveActivityId]
+  liveActivityId: Option[LiveActivityId],
+  trackName: Option[TrackName]
 ) derives Codec.AsObject
 
 case class DisablePush(token: PushToken) derives Codec.AsObject

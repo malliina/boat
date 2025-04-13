@@ -5,7 +5,7 @@ import cats.syntax.all.{catsSyntaxList, toFlatMapOps, toFunctorOps, toTraverseOp
 import com.malliina.boat.MobileDevice.{IOSActivityStart, IOSActivityUpdate}
 import com.malliina.boat.db.DoobiePushDatabase.log
 import com.malliina.boat.push.*
-import com.malliina.boat.{AppConf, PushId, PushToken, ReverseGeocode, SourceType, TrackMeta}
+import com.malliina.boat.{AppConf, MobileDevice, PushId, PushLang, PushToken, ReverseGeocode, SourceType, TrackMeta}
 import com.malliina.database.DoobieDatabase
 import com.malliina.util.AppLogger
 import com.malliina.values.UserId
@@ -86,21 +86,34 @@ class DoobiePushDatabase[F[_]: Async](db: DoobieDatabase[F], push: PushEndpoint[
     device: TrackMeta,
     state: SourceState,
     geo: Option[ReverseGeocode],
+    lang: PushLang,
     now: Instant
   ): F[PushSummary] =
     val title = if device.sourceType == SourceType.Vehicle then AppConf.CarName else AppConf.Name
     val notification =
-      SourceNotification(title, device.deviceName, state, device.distance, 0.seconds, geo)
+      SourceNotification(
+        title,
+        device.deviceName,
+        device.trackName,
+        state,
+        device.distance,
+        0.seconds,
+        geo,
+        lang
+      )
     val deviceId = device.device
     val devices = db.run:
       // pushes at most once every five minutes as per the "not exists" clause
       sql"""select id, token, device, device_id, live_activity, user, added
             from push_clients
-            where user = ${device.userId} and
-            not exists(select timestampdiff(SECOND, max(h.added), now())
-                       from push_history h
-                       where h.device = $deviceId
-                       having timestampdiff(SECOND, max(h.added), now()) < 300)"""
+            where user = ${device.userId}
+              and ((device = ${MobileDevice.IOSActivityUpdate} and live_activity = ${device.trackName})
+                or (not device = ${MobileDevice.IOSActivityUpdate} and not device = ${MobileDevice.IOSActivityStart})
+                or (device = ${MobileDevice.IOSActivityStart} and not exists(select pc1.id from push_clients pc1 join push_clients pc2 on pc1.device_id = pc2.device_id where pc1.device = ${MobileDevice.IOSActivityStart} and pc2.device = ${MobileDevice.IOSActivityUpdate} and pc2.live_activity = ${device.trackName})))
+              and not exists(select timestampdiff(SECOND, max(h.added), now())
+                             from push_history h
+                             where h.device = $deviceId
+                             having timestampdiff(SECOND, max(h.added), now()) < 300)"""
         .query[PushDevice]
         .to[List]
     val bookkeeping = db.run:

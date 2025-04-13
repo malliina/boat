@@ -2,7 +2,7 @@ package com.malliina.boat.db
 
 import cats.effect.IO
 import cats.implicits.*
-import com.malliina.boat.{BoatName, BoatUser, DateVal, DeviceId, MUnitSuite, RawSentence, SourceType, TrackId, TrackInput, TrackNames}
+import com.malliina.boat.{BoatName, BoatUser, DateVal, DeviceId, Language, MUnitSuite, RawSentence, SourceType, TrackId, TrackInput, TrackNames}
 import com.malliina.database.{Conf, DoobieDatabase}
 import com.malliina.values.Username
 import fs2.Chunk
@@ -48,7 +48,7 @@ class TracksImporter extends MUnitSuite:
     val inserts = TrackInserter(db)
     val importer = TrackImporter(inserts)
     val trackName = TrackNames.random()
-    val user = BoatUser(trackName, BoatName(ci"Amina"), SourceType.Boat, Username("mle"))
+    val user = BoatUser(trackName, BoatName(ci"Amina"), SourceType.Boat, Username("mle"), Language.default)
 //    val user = BoatUser(trackName, BoatName("xrxmjq"), Username("santa@example.com"))
 //    val user = BoatUser(trackName, BoatName("hzghbu"), Username("santa@example.com"))
     inserts

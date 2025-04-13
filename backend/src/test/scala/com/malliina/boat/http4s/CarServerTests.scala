@@ -2,7 +2,7 @@ package com.malliina.boat.http4s
 
 import cats.effect.IO
 import com.malliina.boat.db.NewUser
-import com.malliina.boat.{BoatNames, DeviceId, ErrorConstants, Latitude, LocationUpdate, LocationUpdates, Longitude, MUnitSuite, ServerSuite, SimpleSourceMeta, SourceType, TestEmailAuth, TestHttp, UserToken, wh}
+import com.malliina.boat.{BoatNames, DeviceId, ErrorConstants, Language, Latitude, LocationUpdate, LocationUpdates, Longitude, MUnitSuite, ServerSuite, SimpleSourceMeta, SourceType, TestEmailAuth, TestHttp, UserToken, wh}
 import com.malliina.http.{Errors, FullUrl, OkHttpResponse}
 import com.malliina.measure.*
 import com.malliina.values.{IdToken, Username, degrees}
@@ -73,7 +73,7 @@ class CarServerTests extends MUnitSuite with ServerSuite:
   def successfulTest(ups: DeviceId => LocationUpdates) =
     val user = Username("test@example.com")
     val service = server().server.app
-    val meta = SimpleSourceMeta(user, BoatNames.random(), SourceType.Vehicle)
+    val meta = SimpleSourceMeta(user, BoatNames.random(), SourceType.Vehicle, Language.default)
     for
       _ <- service.userMgmt.deleteUser(user)
       _ <- service.userMgmt.addUser(

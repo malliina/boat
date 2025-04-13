@@ -1,7 +1,7 @@
 package com.malliina.boat.push
 
 import com.malliina.boat.db.PushInput
-import com.malliina.boat.{PushId, PushToken, ReverseGeocode, TrackMeta}
+import com.malliina.boat.{PushId, PushLang, PushToken, ReverseGeocode, TrackMeta}
 import com.malliina.values.UserId
 
 import java.time.Instant
@@ -13,5 +13,6 @@ trait PushService[F[_]]:
     device: TrackMeta,
     state: SourceState,
     geo: Option[ReverseGeocode],
+    lang: PushLang,
     now: Instant
   ): F[PushSummary]

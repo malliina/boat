@@ -60,7 +60,7 @@ class ServiceTests extends MUnitSuite with Http4sSuite:
         NewUser(user, Option(TestEmailAuth[IO].testEmail), UserToken.random(), enabled = true)
       )
       track <- inserts.joinAsSource(
-        BoatUser(TrackNames.random(), BoatNames.random(), SourceType.Boat, user)
+        BoatUser(TrackNames.random(), BoatNames.random(), SourceType.Boat, user, Language.default)
       )
       coord = FullCoord(
         Coord.buildOrFail(60, 24),

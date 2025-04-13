@@ -32,7 +32,7 @@ class TracksDatabaseTests extends MUnitSuite with MUnitDatabaseSuite:
     val bid = boat.id
     val action: IO[TrackRef] = for
       result <- inserts.joinAsSource(
-        BoatUser(TrackNames.random(), boat.name, SourceType.Boat, user.username)
+        BoatUser(TrackNames.random(), boat.name, SourceType.Boat, user.username, Language.default)
       )
       t = result.track
       tid = t.track
@@ -62,7 +62,13 @@ class TracksDatabaseTests extends MUnitSuite with MUnitDatabaseSuite:
       uid = u.toOption.get.id
       t <- tdb
         .joinAsSource(
-          BoatUser(trackName, BoatNames.random(), SourceType.Boat, u.toOption.get.user)
+          BoatUser(
+            trackName,
+            BoatNames.random(),
+            SourceType.Boat,
+            u.toOption.get.user,
+            Language.default
+          )
         )
         .map(_.track)
       _ <- tdb.saveCoords(fakeCoord(london, 10.kmh, t.track, t.boat))
