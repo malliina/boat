@@ -3,7 +3,7 @@ package com.malliina.boat.db
 import com.malliina.boat.InviteState.accepted
 import com.malliina.boat.db.DoobieUserManager.{collectBoats, log}
 import com.malliina.boat.http.InviteResult.{AlreadyInvited, Invited, UnknownEmail}
-import com.malliina.boat.http.{AccessResult, InviteInfo, InviteResult}
+import com.malliina.boat.http.{AccessResult, InviteInfo, InviteResult, LimitLike}
 import com.malliina.boat.{Boat, BoatInfo, BoatNames, BoatToken, BoatTokens, DeviceId, FriendInvite, Invite, InviteState, JoinedSource, JoinedTrack, Language, TimeFormatter, UserBoats, UserInfo, UserToken, Usernames}
 import com.malliina.database.DoobieDatabase
 import com.malliina.util.AppLogger
@@ -149,9 +149,9 @@ class DoobieUserManager[F[_]](db: DoobieDatabase[F]) extends IdentityManager[F] 
       .flatMap: opt =>
         opt.map(b => pure(b)).getOrElse(fail(IdentityException(InvalidToken(token))))
 
-  def boats(email: Email): F[UserBoats] = run:
+  def boats(email: Email, limits: LimitLike): F[UserBoats] = run:
     def tracksIO(id: UserId) =
-      sql"""${sql.nonEmptyTracks} and (b.uid = $id or b.id in (select ub.boat from users_boats ub where ub.user = $id and ub.state = $accepted)) and t.points > 10"""
+      sql"""${sql.nonEmptyTracks(Option(limits))} and (b.uid = $id or b.id in (select ub.boat from users_boats ub where ub.user = $id and ub.state = $accepted)) and t.points > 10"""
         .query[JoinedTrack]
         .to[List]
     def deviceRowsIO(email: Email) =

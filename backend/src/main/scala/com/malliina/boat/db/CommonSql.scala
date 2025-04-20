@@ -4,6 +4,7 @@ import com.malliina.boat.{BoatToken, DeviceId, JoinedSource, JoinedTrack}
 import doobie.*
 import doobie.implicits.*
 import com.malliina.boat.db.Mappings.given
+import com.malliina.boat.http.LimitLike
 
 object CommonSql extends CommonSql
 
@@ -45,19 +46,20 @@ trait CommonSql:
                  year(min(source_time))                                  startYear
           from points p
           group by track"""
-  private val timedTracks =
+  private def timedTracks(limits: Option[LimitLike]) =
+    val limitClause = limits.fold(Fragment.empty)(l => fr" limit ${l.limit} offset ${l.offset}")
     sql"""select t.id, t.name, t.title, t.canonical, t.comments, t.added, t.points, t.avg_speed, t.avg_water_temp, t.avg_outside_temp, t.distance, times.secs secs, times.start, times.end, times.startDate, times.startMonth, times.startYear, t.boat
            from tracks t,
            ($minMaxTimes) times
-           where t.id = times.track"""
-  private val trackHighlights =
+           where t.id = times.track and t.points > 10 order by t.added desc$limitClause"""
+  private def trackHighlights(limits: Option[LimitLike]) =
     sql"""select t.id, t.name, t.title, t.canonical, t.comments, t.added, t.points, t.avg_speed, t.avg_water_temp, t.avg_outside_temp, t.distance, t.start, t.end, t.secs, t.startDate, t.startMonth, t.startYear, t.boat, top.id pointId, top.longitude, top.latitude, top.coord, top.speed, top.altitude, top.outside_temperature, top.water_temp, top.depthm, top.depth_offsetm, top.battery, top.car_range, top.source_time, date(top.source_time) trackDate, top.track, top.added topAdded
-          from ($topRows) top, ($timedTracks) t
+          from ($topRows) top, (${timedTracks(limits)}) t
           where top.track = t.id"""
-  val nonEmptyTracks = nonEmptyTracksWith(JoinedTrack.columns)
-  def nonEmptyTracksWith(cols: Fragment) =
+  def nonEmptyTracks(limits: Option[LimitLike]) = nonEmptyTracksWith(JoinedTrack.columns, limits)
+  def nonEmptyTracksWith(cols: Fragment, limits: Option[LimitLike]) =
     sql"""select $cols
-          from ($boats) b, ($trackHighlights) t
+          from ($boats) b, (${trackHighlights(limits)}) t
           where b.id = t.boat"""
 
   val pointColumns =

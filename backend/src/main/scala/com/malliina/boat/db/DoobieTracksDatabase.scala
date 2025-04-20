@@ -5,7 +5,7 @@ import cats.effect.Async
 import cats.implicits.*
 import com.malliina.boat.*
 import com.malliina.boat.InviteState.accepted
-import com.malliina.boat.http.{BoatQuery, Near, SortOrder, TrackQuery, TracksQuery}
+import com.malliina.boat.http.{BoatQuery, LimitLike, Limits, Near, SortOrder, TrackQuery, TracksQuery}
 import com.malliina.database.DoobieDatabase
 import com.malliina.measure.{DistanceM, SpeedM, Temperature}
 import com.malliina.util.AppLogger
@@ -78,23 +78,21 @@ class DoobieTracksDatabase[F[_]: Async](val db: DoobieDatabase[F])
     def topPointByTrack(name: TrackName) =
       val selectPoints = pointsByTrack(name)
       sql"$selectPoints order by p.speed desc limit 1"
-    def tracksByUser(user: Username, boats: Seq[BoatName]) =
+    def tracksByUser(user: Username, boats: Seq[BoatName], limits: Option[LimitLike]) =
       val boatFilter =
         boats.toList.toNel.map(list => Fragments.in(fr"b.name", list)).getOrElse(fr"true")
-      sql"$nonEmptyTracks and $boatFilter and (b.user = $user or b.id in (select ub2.boat from users u2, users_boats ub2 where u2.id = ub2.user and u2.user = $user and ub2.state = $accepted))"
-    def trackByName(name: TrackName) = sql"$nonEmptyTracks and t.name = $name"
+      sql"${nonEmptyTracks(limits)} and $boatFilter and (b.user = $user or b.id in (select ub2.boat from users u2, users_boats ub2 where u2.id = ub2.user and u2.user = $user and ub2.state = $accepted))"
+    def trackByName(name: TrackName) =
+      sql"${nonEmptyTracks(None)} and t.name = $name"
     def tracksByNames(names: NonEmptyList[TrackName]) =
-      sql"$nonEmptyTracks and " ++ Fragments.in(fr"t.name", names)
+      sql"${nonEmptyTracks(None)} and " ++ Fragments.in(fr"t.name", names)
     def tracksByCanonicals(names: NonEmptyList[TrackCanonical]) =
-      sql"$nonEmptyTracks and " ++ Fragments.in(fr"t.canonical", names)
-    def tracksNear(near: Near, by: Username, limit: Option[Int]) =
-      val userTracks = tracksByUser(by, Nil)
-      val limitClause = limit.fold(Fragment.empty)(l => fr"limit $l")
-      sql"$userTracks and t.id in (select p.track from points p where st_distance_sphere(${near.coord}, p.coord) < ${near.radius}) order by t.added desc $limitClause"
-    def latestTracks(name: Username, limit: Option[Int]) =
-      val userTracks = tracksByUser(name, Nil)
-      val limitClause = limit.fold(Fragment.empty)(l => fr"limit $l")
-      sql"$userTracks order by t.added desc $limitClause"
+      sql"${nonEmptyTracks(None)} and " ++ Fragments.in(fr"t.canonical", names)
+    def tracksNear(near: Near, by: Username, limits: LimitLike) =
+      val userTracks = tracksByUser(by, Nil, None)
+      sql"$userTracks and t.id in (select p.track from points p where st_distance_sphere(${near.coord}, p.coord) < ${near.radius}) order by t.added desc limit ${limits.limit} offset ${limits.offset}"
+    def latestTracks(name: Username, limits: Option[LimitLike]) =
+      tracksByUser(name, Nil, limits)
     import com.malliina.boat.http.TrackSort.*
 
     def tracksFor(user: Username, tracksFilter: TracksQuery) =
@@ -107,7 +105,7 @@ class DoobieTracksDatabase[F[_]: Async](val db: DoobieDatabase[F])
         case TopSpeed => fr"topSpeed $order, t.id $order"
         case Length   => fr"t.distance $order, t.id $order"
         case _        => fr"t.start $order, t.id $order"
-      val unsorted = tracksByUser(user, tracksFilter.sources)
+      val unsorted = tracksByUser(user, tracksFilter.sources, None)
       val limits = filter.limits
       sql"""$unsorted order by $sortColumns limit ${limits.limit} offset ${limits.offset}"""
 
@@ -134,7 +132,7 @@ class DoobieTracksDatabase[F[_]: Async](val db: DoobieDatabase[F])
 
   private def statsIO(user: MinimalUserInfo, tracksQuery: TracksQuery, lang: Lang) =
     val filter = tracksQuery.query
-    val tracks = sql.tracksByUser(user.username, tracksQuery.sources)
+    val tracks = sql.tracksByUser(user.username, tracksQuery.sources, None)
     val zeroDistance = DistanceM.zero
     val zeroDuration: FiniteDuration = 0.seconds
     val now = DateVal.now()
@@ -253,12 +251,15 @@ class DoobieTracksDatabase[F[_]: Async](val db: DoobieDatabase[F])
 
   def history(user: MinimalUserInfo, query: BoatQuery): F[Seq[CoordsEvent]] = run:
     val tracksLimit = query.tracksLimit.orElse(Option.when(query.newest)(5))
+    val limits = Limits(tracksLimit.getOrElse(5), 0)
     val eligible = query.neTracks
       .map(names => sql.tracksByNames(names))
       .orElse(query.neCanonicals.map(cs => sql.tracksByCanonicals(cs)))
-      .orElse(query.near.map(n => sql.tracksNear(n, user.username, tracksLimit)))
+      .orElse(
+        query.near.map(n => sql.tracksNear(n, user.username, limits))
+      )
       .getOrElse:
-        sql.latestTracks(user.username, tracksLimit)
+        sql.latestTracks(user.username, Option(limits))
       .query[JoinedTrack]
       .to[List]
     eligible.flatMap: ts =>

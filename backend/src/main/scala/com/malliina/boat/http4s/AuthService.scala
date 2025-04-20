@@ -5,7 +5,7 @@ import cats.syntax.all.{catsSyntaxApplicativeError, toFlatMapOps, toFunctorOps, 
 import com.malliina.boat.Constants.{BoatNameHeader, BoatTokenHeader}
 import com.malliina.boat.auth.{AuthProvider, BoatJwt, SettingsPayload}
 import com.malliina.boat.db.{IdentityManager, MissingCredentials, MissingCredentialsException, SIWADatabase}
-import com.malliina.boat.http.UserRequest
+import com.malliina.boat.http.{Limits, UserRequest}
 import com.malliina.boat.{BoatName, BoatNames, BoatToken, DeviceMeta, JoinedSource, Language, MinimalUserInfo, SimpleSourceMeta, SourceType, UserBoats, UserInfo, Usernames}
 import com.malliina.values.Email
 import com.malliina.web.{Code, RevokeResult}
@@ -119,7 +119,7 @@ class AuthService[F[_]: Sync](val users: IdentityManager[F], comps: AuthComps[F]
     val headers = req.headers
     authSession(headers)
       .map: email =>
-        users.boats(email).map(boats => Right(Option(boats)))
+        users.boats(email, Limits(10, 0)).map(boats => Right(Option(boats)))
       .getOrElse:
         val providerCookieName = comps.web.cookieNames.provider
         // Why not always do this?

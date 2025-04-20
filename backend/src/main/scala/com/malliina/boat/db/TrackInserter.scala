@@ -26,9 +26,9 @@ class TrackInserter[F[_]: Async](val db: DoobieDatabase[F])
   import db.run
   private val minSpeed: SpeedM = 1.kmh
 
-  private val trackIds = CommonSql.nonEmptyTracksWith(fr0"t.id")
+  private val trackIds = CommonSql.nonEmptyTracksWith(fr0"t.id", None)
   private def trackById(id: TrackId): ConnectionIO[JoinedTrack] =
-    sql"${CommonSql.nonEmptyTracks} and t.id = $id".query[JoinedTrack].unique
+    sql"${CommonSql.nonEmptyTracks(None)} and t.id = $id".query[JoinedTrack].unique
 
   private def trackMetas(more: Fragment): Query0[TrackMeta] =
     sql"""select t.id, t.name, t.title, t.canonical, t.comments, t.added, t.avg_speed, t.avg_water_temp, t.avg_outside_temp, t.points, t.distance, b.id boatId, b.name boatName, b.source_type, b.token boatToken, u.id userId, u.user, u.email
