@@ -104,6 +104,9 @@ trait ServerResources:
       streams <- BoatStreams.resource(trackInserts, vesselDb, ais)
       s3 <- S3Client.build[F]()
       graph <- Resource.eval(Graph.load[F])
+      reverseGeo <- Resource.eval:
+        if conf.isTest then Async[F].pure(Geocoder.noop)
+        else ThrottlingGeocoder.default(conf.mapbox.token, http)
     yield
       val appComps = builder.build(conf, http)
       val jwt = JWT(conf.secret)
@@ -133,8 +136,6 @@ trait ServerResources:
       val auths = AuthService(users, authComps)
       val tracksDatabase = DoobieTracksDatabase(db)
       val push = DoobiePushDatabase(db, appComps.pushService)
-      val reverseGeo =
-        if conf.isTest then Geocoder.noop else MapboxGeocoder(conf.mapbox.token, http)
       val comps = BoatComps(
         BoatHtml.fromBuild(SourceType.Boat, csrfConf),
         BoatHtml.fromBuild(SourceType.Vehicle, csrfConf),
