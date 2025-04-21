@@ -151,9 +151,11 @@ class DoobieUserManager[F[_]](db: DoobieDatabase[F]) extends IdentityManager[F] 
 
   def boats(email: Email, limits: LimitLike): F[UserBoats] = run:
     def tracksIO(id: UserId) =
-      sql"""${sql.nonEmptyTracks(Option(limits))} and (b.uid = $id or b.id in (select ub.boat from users_boats ub where ub.user = $id and ub.state = $accepted)) and t.points > 10"""
+      val baseQuery = sql.nonEmptyTracks(Option(limits))
+      sql"""$baseQuery and (b.uid = $id or b.id in (select ub.boat from users_boats ub where ub.user = $id and ub.state = $accepted)) and t.points > 10"""
         .query[JoinedTrack]
         .to[List]
+
     def deviceRowsIO(email: Email) =
       sql"""${sql.boats} and u.email = $email and b.id not in (select boat from tracks)"""
         .query[JoinedSource]
