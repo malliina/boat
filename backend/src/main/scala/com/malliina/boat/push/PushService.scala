@@ -12,6 +12,7 @@ trait PushService[F[_]]:
   def push(
     device: TrackMeta,
     state: SourceState,
+    isResumed: Boolean,
     geo: Option[ReverseGeocode],
     lang: PushLang,
     now: Instant

@@ -98,31 +98,33 @@ class Service[F[_]: { Async, Files }](
     case req @ POST -> Root / "users" / "me" / "tokens" =>
       auth.recreate(req.headers).flatMap(boatJwt => ok(boatJwt))
     case req @ PUT -> Root / "users" / "me" =>
-      jsonAction[ChangeLanguage](req): (newLanguage, user) =>
+      jsonAction[ChangeLanguage](req): input =>
+        val newLanguage = input.payload
         userMgmt
-          .changeLanguage(user.id, newLanguage.language)
+          .changeLanguage(input.user.id, newLanguage.language)
           .flatMap: changed =>
             val msg = if changed then s"Changed language to ${newLanguage.language}." else NoChange
             ok(SimpleMessage(msg))
     case req @ POST -> Root / "users" / "me" / "delete" =>
       auth.delete(req.headers, now()).flatMap(_ => ok(SimpleMessage("Deleted.")))
     case req @ POST -> Root / "users" / "notifications" =>
-      jsonAction[PushPayload](req): (payload, user) =>
+      jsonAction[PushPayload](req): input =>
+        val payload = input.payload
         val in = PushInput(
           payload.token,
           payload.device,
           payload.deviceId,
           payload.trackName,
-          user.id
+          input.user.id
         )
         push
           .enable(in)
           .flatMap: _ =>
             ok(SimpleMessage("Enabled."))
     case req @ POST -> Root / "users" / "notifications" / "disable" =>
-      jsonAction[DisablePush](req): (payload, user) =>
+      jsonAction[DisablePush](req): input =>
         push
-          .disable(payload.token, user.id)
+          .disable(input.payload.token, input.user.id)
           .flatMap: disabled =>
             val msg = if disabled then "Disabled." else NoChange
             ok(SimpleMessage(msg))
@@ -314,9 +316,10 @@ class Service[F[_]: { Async, Files }](
         .recover: err =>
           badRequest(Errors(err.message))
     case req @ POST -> Root / "cars" / "locations" =>
-      jsonAction[LocationUpdates](req): (body, user) =>
-        val now = Instant.now()
+      jsonAction[LocationUpdates](req): input =>
         val start = System.currentTimeMillis()
+        val user = input.user
+        val body = input.payload
         val lang = BoatLang(user.language)
         user.boats
           .find(_.id == body.carId)
@@ -340,10 +343,13 @@ class Service[F[_]: { Async, Files }](
                     ok(SimpleMessage(s"Saved ${inserteds.size} updates in $duration ms."))
                   .onError: t =>
                     F.delay(log.error(s"Failed to save car locations. Got '${body.asJson}'.", t))
-                val pushTask =
-                  if result.isResumed then F.pure(())
-                  else
-                    pushConnected(meta, body.updates.headOption.map(_.coord), lang.lang.push, now)
+                val pushTask = pushGeocoded(
+                  meta,
+                  result.isResumed,
+                  body.updates.headOption.map(_.coord),
+                  lang.lang.push,
+                  input.receivedAt
+                )
                 pushTask >> insertion
           .getOrElse:
             notFound(Errors(SingleError.input(s"Car not found: '${body.carId}'.")))
@@ -515,71 +521,91 @@ class Service[F[_]: { Async, Files }](
             .joinAsSource(boat)
             .flatMap: result =>
               val meta = result.track
-              pushConnected(meta, at = None, pushLang, now = now).flatMap: _ =>
-                webSocket(
-                  sockets,
-                  toClients,
-                  message =>
-                    log.debug(s"Boat ${boat.describe} says '$message'.")
-                    parse(message).fold(
-                      parseFailure =>
-                        F.raiseError(
-                          Exception(s"Unacceptable message from ${boat.describe}: '$message'.")
-                        ),
-                      parsed =>
-                        streams.boatIn
-                          .publish1(BoatEvent(parsed, meta, req.userAgent))
-                          .map: e =>
-                            e.fold(
-                              err =>
-                                log.warn(
-                                  s"Failed to publish '$message' by ${boat.describe}, topic closed."
-                                ),
-                              identity
-                            )
-                    )
-                  ,
-                  onClose = F
-                    .delay(log.info(s"Boat ${boat.describe} left."))
-                    .flatMap: _ =>
-                      push
-                        .push(
-                          meta,
-                          SourceState.Disconnected,
-                          geo = None,
-                          lang = pushLang,
-                          now = now
-                        )
-                        .map(_ => ())
-                    .handleError: err =>
-                      log.warn(s"Failed to notify of disconnection of ${boat.describe}.", err)
-                ).onError: t =>
-                  F.delay(log.info(s"Boat ${boat.describe} left exceptionally.", t))
-                    .flatMap: _ =>
-                      push
-                        .push(
-                          meta,
-                          SourceState.Disconnected,
-                          geo = None,
-                          lang = pushLang,
-                          now = now
-                        )
-                        .map(_ => ())
-                    .handleError: err =>
-                      log.info(s"Failed to handler error of ${boat.describe}.", err)
+              pushGeocoded(meta, result.isResumed, at = None, lang = pushLang, now = now).flatMap:
+                _ =>
+                  webSocket(
+                    sockets,
+                    toClients,
+                    message =>
+                      log.debug(s"Boat ${boat.describe} says '$message'.")
+                      parse(message).fold(
+                        parseFailure =>
+                          F.raiseError(
+                            Exception(s"Unacceptable message from ${boat.describe}: '$message'.")
+                          ),
+                        parsed =>
+                          val pushUpdate = pushGeocoded(
+                            meta,
+                            isResumed = true,
+                            at = None,
+                            lang = pushLang,
+                            now = Instant.now()
+                          )
+                          val publishEvent = streams.boatIn
+                            .publish1(BoatEvent(parsed, meta, req.userAgent))
+                            .map: e =>
+                              e.fold(
+                                err =>
+                                  log.warn(
+                                    s"Failed to publish '$message' by ${boat.describe}, topic closed."
+                                  ),
+                                identity
+                              )
+                          pushUpdate >> publishEvent
+                      )
+                    ,
+                    onClose = F
+                      .delay(log.info(s"Boat ${boat.describe} left."))
+                      .flatMap: _ =>
+                        push
+                          .push(
+                            meta,
+                            SourceState.Disconnected,
+                            isResumed = false,
+                            geo = None,
+                            lang = pushLang,
+                            now = now
+                          )
+                          .map(_ => ())
+                      .handleError: err =>
+                        log.warn(s"Failed to notify of disconnection of ${boat.describe}.", err)
+                  ).onError: t =>
+                    F.delay(log.info(s"Boat ${boat.describe} left exceptionally.", t))
+                      .flatMap: _ =>
+                        push
+                          .push(
+                            meta,
+                            SourceState.Disconnected,
+                            isResumed = false,
+                            geo = None,
+                            lang = pushLang,
+                            now = now
+                          )
+                          .map(_ => ())
+                      .handleError: err =>
+                        log.info(s"Failed to handler error of ${boat.describe}.", err)
 
   def routes(sockets: WebSocketBuilder2[F]): HttpRoutes[F] =
     normalRoutes.combineK(socketRoutes(sockets))
 
-  private def pushConnected(meta: TrackMeta, at: Option[Coord], lang: PushLang, now: Instant) =
+  private def pushGeocoded(
+    meta: TrackMeta,
+    isResumed: Boolean,
+    at: Option[Coord],
+    lang: PushLang,
+    now: Instant
+  ) =
     val reverseGeo = at
       .map: coord =>
-        comps.mapbox.reverseGeocode(coord)
+        comps.mapbox
+          .reverseGeocode(coord)
+          .handleErrorWith: e =>
+            F.delay(log.error(s"Geo lookup of $coord failed.", e)) >> F.pure(None)
       .getOrElse:
         F.pure(None)
     reverseGeo.flatMap: geo =>
       push
-        .push(meta, SourceState.Connected, geo, lang, now)
+        .push(meta, SourceState.Connected, isResumed, geo, lang, now)
         .void
         .handleErrorWith: t =>
           F.delay(
@@ -663,12 +689,12 @@ class Service[F[_]: { Async, Files }](
             badRequest(Errors(SingleError.input("Invalid form input.")))
 
   private def jsonAction[T: Decoder](req: Request[F])(
-    code: (T, UserInfo) => F[Response[F]]
+    code: JsonRequest[F, T, UserInfo] => F[Response[F]]
   ): F[Response[F]] =
     auth
       .profile(req)
       .flatMap: user =>
-        req.decodeJson[T].flatMap(t => code(t, user))
+        req.decodeJson[T].flatMap(t => code(JsonRequest(user, t, req, Instant.now())))
 
   private def respond(
     req: Request[F]

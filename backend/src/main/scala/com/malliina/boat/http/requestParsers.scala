@@ -48,6 +48,8 @@ trait BoatRequest[T, U]:
 case class UserRequest[F[_], U](user: U, req: Request[F]):
   def headers = req.headers
 
+case class JsonRequest[F[_], T, U](user: U, payload: T, req: Request[F], receivedAt: Instant)
+
 sealed abstract class TrackSort(val name: String) extends Named
 
 object TrackSort extends EnumLike[TrackSort]:

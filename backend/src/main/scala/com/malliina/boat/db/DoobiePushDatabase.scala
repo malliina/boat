@@ -85,6 +85,7 @@ class DoobiePushDatabase[F[_]: Async](db: DoobieDatabase[F], push: PushEndpoint[
   def push(
     device: TrackMeta,
     state: SourceState,
+    isResumed: Boolean,
     geo: Option[ReverseGeocode],
     lang: PushLang,
     now: Instant
@@ -108,7 +109,7 @@ class DoobiePushDatabase[F[_]: Async](db: DoobieDatabase[F], push: PushEndpoint[
             from push_clients
             where user = ${device.userId}
               and ((device = ${MobileDevice.IOSActivityUpdate} and live_activity = ${device.trackName})
-                or (not device = ${MobileDevice.IOSActivityUpdate} and not device = ${MobileDevice.IOSActivityStart})
+                or (not device = ${MobileDevice.IOSActivityUpdate} and not device = ${MobileDevice.IOSActivityStart} and not $isResumed)
                 or (device = ${MobileDevice.IOSActivityStart} and not exists(select pc1.id from push_clients pc1 join push_clients pc2 on pc1.device_id = pc2.device_id where pc1.device = ${MobileDevice.IOSActivityStart} and pc2.device = ${MobileDevice.IOSActivityUpdate} and pc2.live_activity = ${device.trackName})))
               and not exists(select timestampdiff(SECOND, max(h.added), now())
                              from push_history h
@@ -146,7 +147,9 @@ class DoobiePushDatabase[F[_]: Async](db: DoobieDatabase[F], push: PushEndpoint[
             pure(0)
         val updateIO = summary.replacements.toList
           .traverse: repl =>
-            sql"update push_clients set token = ${repl.newToken} where token = ${repl.oldToken} and device = ${repl.device}".update.run
+            sql"""update push_clients
+                  set token = ${repl.newToken}
+                  where token = ${repl.oldToken} and device = ${repl.device}""".update.run
               .map: updated =>
                 if updated > 0 then
                   log.info(s"Updated token to '${repl.newToken}' from '${repl.oldToken}'.")
