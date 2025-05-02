@@ -12,16 +12,17 @@ val versions = new {
   val alpn = "12.0.16"
   val ci = "1.4.2"
   val circe = "0.14.12"
+  val codec = "1.18.0"
   val fs2 = "3.11.0"
   val http4s = "0.23.30"
   val ip4s = "3.6.0"
   val logback = "1.5.18"
   val logstreams = "2.8.3"
   val mobilePush = "3.13.1"
-  val munit = "1.1.0"
+  val munit = "1.1.1"
   val munitCe = "2.1.0"
-  val primitives = "3.7.8"
-  val s3 = "2.31.20"
+  val primitives = "3.7.9"
+  val s3 = "2.31.33"
   val scalaTags = "0.13.1"
   val webAuth = "6.9.8"
 }
@@ -90,6 +91,20 @@ val cross = crossProject(JSPlatform, JVMPlatform)
 
 val crossJvm = cross.jvm
 val crossJs = cross.js
+
+val polestar = project
+  .in(file("polestar"))
+  .settings(
+    libraryDependencies ++= Seq("generic", "parser").map { m =>
+      "io.circe" %%% s"circe-$m" % versions.circe
+    } ++ Seq(
+      "ch.qos.logback" % "logback-classic" % versions.logback,
+      "commons-codec" % "commons-codec" % versions.codec,
+      "com.malliina" %% "okclient-io" % versions.primitives,
+      "org.scalameta" %% "munit" % versions.munit % Test,
+      "org.typelevel" %% "munit-cats-effect" % versions.munitCe % Test
+    )
+  )
 
 val runNpmInstall = taskKey[Unit]("Updates the package-lock.json file")
 val updatePackageLockJson = taskKey[Unit]("Updates the package-lock.json file")
@@ -196,7 +211,7 @@ val agent = project
         "com.malliina" %% "primitives" % versions.primitives,
         "com.malliina" %% "logstreams-client" % versions.logstreams,
         "com.lihaoyi" %% "scalatags" % versions.scalaTags,
-        "commons-codec" % "commons-codec" % "1.18.0",
+        "commons-codec" % "commons-codec" % versions.codec,
         "org.typelevel" %% "munit-cats-effect" % versions.munitCe % Test
       ),
     releaseUseGlobalVersion := false,
@@ -275,7 +290,7 @@ val docs = project
 
 val boatRoot = project
   .in(file("."))
-  .aggregate(backend, frontend, agent, it, utils)
+  .aggregate(backend, frontend, agent, it, utils, polestar)
   .settings(boatSettings)
 
 Global / onChangedBuildSource := ReloadOnSourceChanges

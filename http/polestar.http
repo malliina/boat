@@ -1,0 +1,17 @@
+### Config
+GET https://polestarid.eu.polestar.com/.well-known/openid-configuration
+
+### Auth
+GET https://polestarid.eu.polestar.com/as/authorization.oauth2?client_id=l3oopkc_10&
+  redirect_uri=https://www.polestar.com/sign-in-callback&response_type=code&
+  scope=openid%20profile%20email%20customer:attributes&state=abc123&code_challenge=aaaaaaaaaabbbbbbbbbbccccccccccddddddddddeee&code_challenge_method=S256&response_mode=query
+
+### Resume
+POST https://polestarid.eu.polestar.com/as/lUwSHbT0fj/resume/as/authorization.ping?language=fi&market=fi
+Content-Type: application/x-www-form-urlencoded
+
+pf.username=michael.skogberg@outlook.com &
+pf.pass=2UTqW0G3d2IO4VxG2Kko
+
+### Callback
+POST https://www.polestar.com/sign-in-callback?code=PbO3BOyqGwczgQsTpjSHiFciR42urSve3PcYAFqj&state=c0335a2f26584f3aae065af38b106caa
