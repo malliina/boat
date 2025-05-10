@@ -1,0 +1,15 @@
+query GetBatteryData($vin:String!) {
+  getBatteryData(vin:$vin) {
+    averageEnergyConsumptionKwhPer100Km
+    batteryChargeLevelPercentage
+    chargerConnectionStatus
+    chargingCurrentAmps
+    chargingPowerWatts
+    chargingStatus
+    estimatedChargingTimeMinutesToTargetDistance
+    estimatedChargingTimeToFullMinutes
+    estimatedDistanceToEmptyKm
+    estimatedDistanceToEmptyMiles
+    eventUpdatedTimestamp { iso unix }
+  }
+}

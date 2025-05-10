@@ -1,30 +1,47 @@
 package com.malliina.polestar
 
 import cats.effect.IO
-import com.malliina.http.OkClient
-import com.malliina.polestar.Polestar.Creds
-import com.malliina.values.{Password, Username}
+import ch.qos.logback.classic.Level
+import com.malliina.logback.LogbackUtils
+import com.malliina.values.RefreshToken
 
 class PolestarTests extends munit.CatsEffectSuite:
-  val http = ResourceFunFixture(Polestar.resource[IO])
+  val creds = PolestarConfig.conf
+  val tokens = ResourceFunFixture(Polestar.httpResource[IO].map(http => TokenClient(http)))
+  val http = ResourceFunFixture(Polestar.resource[IO](creds))
 
-  http.test("Generate verifier".ignore): client =>
+  override def beforeAll(): Unit =
+    LogbackUtils.init(rootLevel = Level.INFO)
+    super.beforeAll()
+
+  tokens.test("Generate verifier".ignore): client =>
     val v = client.generateVerifier
     assertEquals(v.length, 43)
 
-  http.test("Fetch resume path".ignore): client =>
+  tokens.test("Tokens".ignore): client =>
     client
-      .resumePath(client.generateState, client.generateVerifier)
-      .map: v =>
-        println(v)
-        assertEquals(v.length, 43)
-
-  http.test("Code".ignore): client =>
-    client
-      .code(Creds(Username("todo"), Password("todo")))
-      .map: code =>
-        println(code)
+      .fetchTokens(creds)
+      .map: tokens =>
+        println(s"Tokens '$tokens'.")
         assertEquals(1, 1)
+
+  tokens.test("Refresh token".ignore): client =>
+    val token = RefreshToken("changeme")
+    client
+      .refresh(token)
+      .map: tokens =>
+        println(tokens)
+        assertEquals(1, 1)
+
+  http.test("Get graphql".ignore): client =>
+    val task = for
+      cars <- client.fetchCars()
+      car = cars.head
+      tele <- client.fetchTelematics(car.vin)
+    yield (car, tele)
+    task.map: (car, tele) =>
+      println(car)
+      println(tele)
 
   val str =
     """

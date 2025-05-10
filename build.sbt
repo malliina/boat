@@ -15,7 +15,7 @@ val versions = new {
   val codec = "1.18.0"
   val fs2 = "3.11.0"
   val http4s = "0.23.30"
-  val ip4s = "3.6.0"
+  val ip4s = "3.7.0"
   val logback = "1.5.18"
   val logstreams = "2.8.3"
   val mobilePush = "3.13.1"
@@ -98,9 +98,12 @@ val polestar = project
     libraryDependencies ++= Seq("generic", "parser").map { m =>
       "io.circe" %%% s"circe-$m" % versions.circe
     } ++ Seq(
+      "co.fs2" %% "fs2-io" % versions.fs2,
       "ch.qos.logback" % "logback-classic" % versions.logback,
       "commons-codec" % "commons-codec" % versions.codec,
       "com.malliina" %% "okclient-io" % versions.primitives,
+      "com.malliina" %% "config" % versions.primitives,
+      "com.malliina" %% "logstreams-client" % versions.logstreams,
       "org.scalameta" %% "munit" % versions.munit % Test,
       "org.typelevel" %% "munit-cats-effect" % versions.munitCe % Test
     )
