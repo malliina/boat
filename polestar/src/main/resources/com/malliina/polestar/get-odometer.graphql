@@ -1,0 +1,9 @@
+query GetOdometerData($vin:String!) {
+  getOdometerData(vin:$vin) {
+    averageSpeedKmPerHour
+    eventUpdatedTimestamp { iso unix }
+    odometerMeters
+    tripMeterAutomaticKm
+    tripMeterManualKm
+  }
+}

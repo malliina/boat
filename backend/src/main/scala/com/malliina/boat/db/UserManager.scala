@@ -38,8 +38,9 @@ trait UserManager[F[_]]:
 
 trait TokenManager[F[_]]:
   def register(email: Email): F[UserRow]
-  def save(token: RefreshToken, user: UserId): F[RefreshRow]
+  def save(token: RefreshToken, service: RefreshService, user: UserId): F[RefreshRow]
   def remove(token: RefreshTokenId): F[Int]
+  def removeTokens(user: UserId, service: RefreshService): F[Int]
   def load(token: RefreshTokenId): F[RefreshRow]
   def updateValidation(token: RefreshTokenId): F[RefreshRow]
-  def refreshTokens(user: UserId): F[List[RefreshToken]]
+  def refreshTokens(user: UserId, service: RefreshService): F[List[RefreshToken]]

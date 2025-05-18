@@ -1,5 +1,6 @@
 package com.malliina.boat.http4s
 
+import com.malliina.boat.cars.PolestarService
 import com.malliina.boat.db.*
 import com.malliina.boat.html.BoatHtml
 import com.malliina.boat.parking.Parking
@@ -19,5 +20,6 @@ case class BoatComps[F[_]](
   push: PushService[F],
   streams: BoatStreams[F],
   mapbox: Geocoder[F],
-  parking: Parking[F]
+  parking: Parking[F],
+  polestar: PolestarService[F]
 )

@@ -3,9 +3,10 @@ package com.malliina.boat.http4s
 import cats.effect.Concurrent
 import com.comcast.ip4s.{Host, Port}
 import com.malliina.boat.http.{InvitePayload, InviteResponse, RevokeAccess}
-import com.malliina.boat.{AddSource, BoatName, BoatNames, ChangeBoatName, ChangeComments, ChangeTrackTitle, DeviceId, Forms, GPSInfo, PatchBoat, Readables, SourceType, TrackComments, TrackTitle}
+import com.malliina.boat.{AddSource, BoatName, BoatNames, ChangeBoatName, ChangeComments, ChangeTrackTitle, DeviceId, Forms, GPSInfo, Passwords, PatchBoat, Readables, SourceType, TrackComments, TrackTitle, Usernames}
 import com.malliina.http4s.{FormDecoders, FormReadableT}
-import com.malliina.values.{Email, UserId}
+import com.malliina.polestar.Polestar
+import com.malliina.values.{Email, Password, UserId, Username}
 
 trait BoatDecoders[F[_]: Concurrent] extends FormDecoders[F]:
   import Readables.given
@@ -55,3 +56,9 @@ trait BoatDecoders[F[_]: Concurrent] extends FormDecoders[F]:
     FormReadableT[ChangeBoatName]
       .map(PatchBoat.ChangeName.apply)
       .or(FormReadableT[GPSInfo].map(PatchBoat.UpdateGps.apply))
+
+  given FormReadableT[Polestar.Creds] = reader.emap: form =>
+    for
+      user <- form.read[Username](Usernames.Key)
+      pass <- form.read[Password](Passwords.Key)
+    yield Polestar.Creds(user, pass)

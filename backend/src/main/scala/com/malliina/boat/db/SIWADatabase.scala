@@ -35,7 +35,7 @@ class SIWADatabase[F[_]: Sync](
       tokens <- siwa.refreshToken(code, extraParams)
       email <- tokenValidator.validateOrFail(tokens.idToken, now)
       user <- users.register(email)
-      saved <- users.save(tokens.refreshToken, user.id)
+      saved <- users.save(tokens.refreshToken, RefreshService.SIWA, user.id)
     yield
       val claims = BoatJwtClaims(email, saved.id, saved.lastVerification)
       BoatJwt(claims.email, jwt.write(claims, now))

@@ -19,7 +19,7 @@ class TracksDatabaseTests extends MUnitSuite with MUnitDatabaseSuite:
     val email = Email("santa@example.com")
     val action = for
       u <- users.register(email)
-      res <- users.save(RefreshToken("test-token"), u.id)
+      res <- users.save(RefreshToken("test-token"), RefreshService.SIWA, u.id)
     yield res
     action.unsafeRunSync()
 

@@ -2,7 +2,7 @@ package com.malliina.boat.db
 
 import com.malliina.boat.{Coord, CoordHash, Mmsi, MobileDevice, PhoneId, PushId, PushToken, TrackName, UserToken, Utils, VesselName}
 import com.malliina.measure.{DistanceM, SpeedM, Temperature}
-import com.malliina.values.{Email, JsonCompanion, RefreshToken, UserId, Username}
+import com.malliina.values.{Email, JsonCompanion, RefreshToken, StringEnumCompanion, UserId, Username}
 
 import java.time.Instant
 
@@ -48,6 +48,15 @@ object RefreshTokenId extends JsonCompanion[String, RefreshTokenId]:
   override def write(t: RefreshTokenId): String = t
 
   def random(): RefreshTokenId = RefreshTokenId(Utils.randomString(32))
+
+enum RefreshService(val name: String):
+  case SIWA extends RefreshService("siwa")
+  case Polestar extends RefreshService("polestar")
+  override def toString = name
+
+object RefreshService extends StringEnumCompanion[RefreshService]:
+  override def all: Seq[RefreshService] = Seq(SIWA, Polestar)
+  override def write(t: RefreshService): String = t.name
 
 case class RefreshRow(
   id: RefreshTokenId,

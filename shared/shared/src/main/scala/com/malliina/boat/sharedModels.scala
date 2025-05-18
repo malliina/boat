@@ -241,7 +241,11 @@ object RawSentence extends ShowableString[RawSentence]:
   override def write(t: RawSentence): String = t
 
 object Usernames:
+  val Key = "username"
   val anon = Username("anon")
+
+object Passwords:
+  val Key = "password"
 
 case class Language(code: String) extends AnyVal with WrappedString:
   override def value = code
@@ -315,6 +319,8 @@ case class Boat(
   addedMillis: Long
 ) derives Codec.AsObject
 
+case class Car(vin: VIN, registrationNumber: RegistrationNumber) derives Codec.AsObject
+
 trait MinimalUserInfo:
   def username: Username
   def language: Language
@@ -348,6 +354,8 @@ case class UserInfo(
   email: Email,
   language: Language,
   boats: Seq[Boat],
+  hasCars: Boolean,
+  cars: Seq[Car],
   enabled: Boolean,
   addedMillis: Long,
   invites: Seq[Invite],

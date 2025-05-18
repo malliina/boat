@@ -38,9 +38,9 @@ object Reverse:
   val notificationsDisable = uri"/users/notifications/disable"
   val boats = uri"/boats"
   val createBoat = boats
-  def boat(id: DeviceId) = uri"/boats" / id
-  def boatDelete(id: DeviceId) = uri"/boats" / id / "delete"
-  def boatEdit(id: DeviceId) = uri"/boats" / id / "edit"
+  def boat(id: DeviceId) = boats / id
+  def boatDelete(id: DeviceId) = boats / id / "delete"
+  def boatEdit(id: DeviceId) = boats / id / "edit"
   val history = uri"/history"
   val tracks = uri"/tracks"
   def track(id: TrackId) = tracks / id
@@ -63,8 +63,10 @@ object Reverse:
   val docsSupport = uri"/docs/support"
   val legal = uri"/legal/privacy"
   val files = uri"/files"
-  val postCars = uri"/cars/locations"
-  val historyCars = uri"/cars/history"
+  val cars = uri"/cars"
+  val createCar = cars
+  val postCars = cars / "locations"
+  val historyCars = cars / "history"
   def history(q: CarQuery) =
     val t = q.timeRange
     val iso = DateTimeFormatter.ISO_OFFSET_DATE_TIME

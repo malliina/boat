@@ -3,9 +3,9 @@ package com.malliina.boat.html
 import cats.implicits.toShow
 import com.malliina.boat.FrontKeys.*
 import com.malliina.boat.InviteState.{Accepted, Awaiting, Other, Rejected}
-import com.malliina.http.{CSRFToken, CSRFConf}
+import com.malliina.http.{CSRFConf, CSRFToken}
 import com.malliina.boat.http4s.Reverse
-import com.malliina.boat.{Boat, BoatIds, BoatNames, BoatRef, Emails, Forms, GPSInfo, InviteState, SourceType, UserInfo}
+import com.malliina.boat.{Boat, BoatIds, BoatNames, BoatRef, Emails, Forms, GPSInfo, InviteState, Passwords, SourceType, UserInfo, Usernames}
 import com.malliina.values.WrappedId
 import scalatags.Text
 import scalatags.Text.all.*
@@ -75,6 +75,7 @@ object BoatsPage extends BoatImplicits with HTMLConstants:
     val webLang = langs.web
     val settings = lang.settings
     val boatLang = settings.boatLang
+    val carLang = settings.polestar
     val inviteLang = settings.invite
     given Conversion[InviteState, Modifier] =
       case Awaiting => inviteLang.awaiting
@@ -181,6 +182,58 @@ object BoatsPage extends BoatImplicits with HTMLConstants:
         ),
         div(cls := "col-sm-3 pl-sm-0 pt-2 pt-sm-0")(
           button(`type` := "submit", cls := "btn btn-sm btn-primary")(webLang.save)
+        )
+      ),
+      div(cls := s"$row mb-3")(
+        div(cls := "col-md-12")(
+          h2(carLang.cars)
+        )
+      ),
+      if user.cars.isEmpty then
+        div(cls := s"$row mb-3")(
+          p("No cars.")
+        )
+      else
+        user.cars.map: car =>
+          div(cls := s"$row mb-3")(
+            p(car.registrationNumber)
+          )
+      ,
+      div(cls := s"$row mb-3")(
+        div(cls := "col-md-12")(
+          h2(carLang.polestar)
+        )
+      ),
+      form(method := post, action := reverse.createCar, cls := "row g-3 mb-5")(
+        input(tpe := "hidden", name := csrfConf.tokenName, value := csrfToken),
+        div(cls := s"$row mb-3")(
+          labeledInput(
+            carLang.username,
+            "polestar-username-label",
+            Usernames.Key,
+            "col-form-label col-form-label-sm col-sm-3 col-lg-2",
+            "form-control form-control-sm",
+            "account@polestar.com",
+            "email",
+            inputDivClass = "col-sm-7 col-lg-4"
+          )
+        ),
+        div(cls := s"$row mb-3")(
+          labeledInput(
+            carLang.password,
+            "polestar-password-label",
+            Passwords.Key,
+            "col-form-label col-form-label-sm col-sm-3 col-lg-2",
+            "form-control form-control-sm",
+            "",
+            "password",
+            inputDivClass = "col-sm-7 col-lg-4"
+          )
+        ),
+        div(cls := row)(
+          div(cls := "col-sm-3 pl-sm-0 pt-2 pt-sm-0")(
+            button(`type` := "submit", cls := "btn btn-sm btn-primary")(carLang.save)
+          )
         )
       ),
       div(cls := row)(
@@ -318,10 +371,11 @@ object BoatsPage extends BoatImplicits with HTMLConstants:
     labelClass: String,
     inputClass: String,
     placeholderValue: String,
-    inputType: String = "text"
+    inputType: String = "text",
+    inputDivClass: String = "col-sm-7"
   ) = modifier(
     label(cls := labelClass, `for` := inputId)(labelText),
-    div(cls := "col-sm-7")(
+    div(cls := inputDivClass)(
       input(
         `type` := inputType,
         id := inputId,

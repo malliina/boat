@@ -8,6 +8,7 @@ import com.comcast.ip4s.{Port, host, port}
 import com.malliina.boat.*
 import com.malliina.boat.ais.BoatMqttClient
 import com.malliina.boat.auth.JWT
+import com.malliina.boat.cars.PolestarService
 import com.malliina.boat.db.*
 import com.malliina.boat.graph.Graph
 import com.malliina.boat.html.BoatHtml
@@ -18,6 +19,7 @@ import com.malliina.database.DoobieDatabase
 import com.malliina.http.{CSRFConf, Errors, SingleError}
 import com.malliina.http4s.CSRFUtils
 import com.malliina.http4s.CSRFUtils.CSRFChecker
+import com.malliina.polestar.Polestar
 import com.malliina.util.AppLogger
 import com.malliina.values.ErrorMessage
 import com.malliina.web.*
@@ -43,7 +45,7 @@ trait ServerResources:
 
   val csrfConf = CSRFConf.default
 
-  def server[F[+_]: { Async, Network, Files, Compression }](
+  def server[F[+_]: {Async, Network, Files, Compression}](
     conf: BoatConf,
     builder: AppCompsBuilder[F],
     port: Port = port
@@ -80,7 +82,7 @@ trait ServerResources:
         if isAppleCallback then http(req)
         else fallback(http)(req)
 
-  def appService[F[+_]: { Async, Files }](
+  def appService[F[+_]: {Async, Files}](
     conf: BoatConf,
     builder: AppCompsBuilder[F],
     csrf: CSRF[F, F],
@@ -89,6 +91,7 @@ trait ServerResources:
     for
       dispatcher <- Dispatcher.parallel[F]
       http <- builder.http
+      polestar <- Polestar.resource[F]
       _ <- Resource.eval(Logging.install(dispatcher, http))
       db <-
         log.info(s"Using database at ${conf.db.url}...")
@@ -133,7 +136,8 @@ trait ServerResources:
         AppleAuthFlow(appleAppConf, appleValidator, http),
         appComps.customJwt
       )
-      val auths = AuthService(users, authComps)
+      val polestarService = PolestarService(users, polestar)
+      val auths = AuthService(users, polestarService, authComps)
       val tracksDatabase = DoobieTracksDatabase(db)
       val push = DoobiePushDatabase(db, appComps.pushService)
       val comps = BoatComps(
@@ -149,11 +153,12 @@ trait ServerResources:
         push,
         streams,
         reverseGeo,
-        Parking(http, reverseGeo)
+        Parking(http, reverseGeo),
+        polestarService
       )
       Service(comps, graph, csrf, csrfConf)
 
-  private def makeHandler[F[_]: { Async, Compression, Files }](
+  private def makeHandler[F[_]: {Async, Compression, Files}](
     service: Service[F],
     sockets: WebSocketBuilder2[F],
     csrfChecker: CSRFUtils.CSRFChecker[F]
