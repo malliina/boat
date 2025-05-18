@@ -53,6 +53,8 @@ object DoobieUserManager:
             email,
             user.language,
             newBoats,
+            ub.hasCars,
+            Nil,
             user.enabled,
             user.added.toEpochMilli,
             newInvites,
@@ -119,7 +121,8 @@ class DoobieUserManager[F[_]](db: DoobieDatabase[F]) extends IdentityManager[F] 
                    fu.id as fuId,
                    fu.email as fuEmail,
                    fub.state as fubState,
-                   fub.added as fubAdded
+                   fub.added as fubAdded,
+                   not isnull(rt.id) as hasCars
             from users u
             left join boats b on b.owner = u.id
             left join users_boats ub on u.id = ub.user
@@ -127,7 +130,10 @@ class DoobieUserManager[F[_]](db: DoobieDatabase[F]) extends IdentityManager[F] 
             left join users_boats fub on fub.boat = b.id
             left join boats fubb on fub.boat = fubb.id
             left join users fu on fub.user = fu.id
-            where u.id = $id""".query[JoinedUser].to[List]
+            left join refresh_tokens rt on rt.owner = u.id and rt.service = ${RefreshService.Polestar}
+            where u.id = $id"""
+        .query[JoinedUser]
+        .to[List]
     val task = for
       userId <- getOrCreate(email)
       info <- by(userId).map(DoobieUserManager.collectUsers)
@@ -204,18 +210,21 @@ class DoobieUserManager[F[_]](db: DoobieDatabase[F]) extends IdentityManager[F] 
       if wasChanged then log.info(s"Changed language of user ID '$user' to '$to'.")
       wasChanged
 
-  def save(token: RefreshToken, user: UserId): F[RefreshRow] = run:
-    log.info(s"Saving refresh token for '$user'...")
+  def save(token: RefreshToken, service: RefreshService, user: UserId): F[RefreshRow] = run:
+    log.info(s"Saving $service refresh token for '$user'...")
     val tokenId = RefreshTokenId.random()
     val insertion =
-      sql"""insert into refresh_tokens(id, refresh_token, owner)
-            values($tokenId, $token, $user)""".update.run
+      sql"""insert into refresh_tokens(id, refresh_token, owner, service)
+            values($tokenId, $token, $user, $service)""".update.run
     insertion.flatMap: _ =>
-      log.info(s"Saved refresh token with ID '$tokenId' for user $user.")
+      log.info(s"Saved $service refresh token with ID '$tokenId' for user $user.")
       loadTokenIO(tokenId)
 
   def remove(token: RefreshTokenId): F[Int] = run:
     sql"""delete from refresh_tokens where id = $token""".update.run
+
+  def removeTokens(user: UserId, service: RefreshService): F[Int] = run:
+    sql"""delete from refresh_tokens where owner = $user and service = $service""".update.run
 
   def load(token: RefreshTokenId): F[RefreshRow] = run(loadTokenIO(token))
 
@@ -224,8 +233,8 @@ class DoobieUserManager[F[_]](db: DoobieDatabase[F]) extends IdentityManager[F] 
       sql"""update refresh_tokens set last_verification = now() where id = $token""".update.run
     up.flatMap(_ => loadTokenIO(token))
 
-  def refreshTokens(user: UserId): F[List[RefreshToken]] = run:
-    sql"""select refresh_token from refresh_tokens where owner = $user"""
+  def refreshTokens(user: UserId, service: RefreshService): F[List[RefreshToken]] = run:
+    sql"""select refresh_token from refresh_tokens where owner = $user and service = $service"""
       .query[RefreshToken]
       .to[List]
 

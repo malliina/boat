@@ -1,26 +1,11 @@
 package com.malliina.polestar
 
-import cats.Show
+import com.malliina.boat.{RegistrationNumber, VIN}
 import com.malliina.http.FullUrl
 import com.malliina.measure.{DistanceIntM, DistanceM}
-import com.malliina.values.Literals.err
-import com.malliina.values.{ErrorMessage, JsonCompanion}
 import io.circe.Codec
 
 import java.time.{Instant, LocalDate}
-
-opaque type VIN = String
-
-object VIN extends JsonCompanion[String, VIN]:
-  given Show[VIN] = Show(t => write(t))
-
-  override def apply(str: String): VIN = str
-
-  override def build(input: String): Either[ErrorMessage, VIN] =
-    if input.isBlank then Left(err"VIN must not be blank.")
-    else Right(input.trim)
-
-  override def write(t: VIN): String = t
 
 case class OpenIdConfiguration(authorization_endpoint: FullUrl, token_endpoint: FullUrl)
   derives Codec.AsObject:
@@ -51,21 +36,21 @@ case class CarContent(
   images: CarImages
 ) derives Codec.AsObject
 
-case class CarInfo(
+case class PolestarCarInfo(
   vin: VIN,
   currentPlannedDeliveryDate: Option[LocalDate],
   factoryCompleteDate: Option[LocalDate],
   registrationDate: Option[LocalDate],
   deliveryDate: Option[LocalDate],
   modelYear: String,
-  registrationNo: String,
+  registrationNo: RegistrationNumber,
   content: CarContent,
   energy: CarEnergy,
   drivetrain: String,
   software: CarSoftware
 ) derives Codec.AsObject
 
-case class CarsData(getConsumerCarsV2: Seq[CarInfo]) derives Codec.AsObject
+case class CarsData(getConsumerCarsV2: Seq[PolestarCarInfo]) derives Codec.AsObject
 
 case class CarsResponse(data: CarsData) derives Codec.AsObject
 
@@ -97,3 +82,5 @@ case class CarTelematics(health: Health, battery: Battery, odometer: Odometer)
 case class TelematicsData(carTelematics: CarTelematics) derives Codec.AsObject
 
 case class TelematicsResponse(data: TelematicsData) derives Codec.AsObject
+
+class PolestarAuthException(message: String) extends Exception(message)

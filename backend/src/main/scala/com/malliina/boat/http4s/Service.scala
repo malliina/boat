@@ -19,6 +19,7 @@ import com.malliina.boat.parsing.CarCoord
 import com.malliina.boat.push.SourceState
 import com.malliina.http.{CSRFConf, Errors, SingleError}
 import com.malliina.http4s.CSRFSupport
+import com.malliina.polestar.Polestar
 import com.malliina.util.AppLogger
 import com.malliina.values.{Email, Readable, Username}
 import com.malliina.web.*
@@ -51,7 +52,7 @@ object Service:
       .get[`User-Agent`]
       .flatMap(h => UserAgent.build(h.value).toOption)
 
-class Service[F[_]: { Async, Files }](
+class Service[F[_]: {Async, Files}](
   comps: BoatComps[F],
   graph: Graph,
   val csrf: CSRF[F, F],
@@ -299,6 +300,12 @@ class Service[F[_]: { Async, Files }](
                   case UnresolvedTo(t)   => badRequest(Errors(s"Unresolvable to '$t'."))
                   case EmptyGraph        => serverError(Errors("Graph engine not available."))
         .recover(err => badRequest(Errors(err.message)))
+    case req @ POST -> Root / "cars" =>
+      formAction[Polestar.Creds](req): (creds, user) =>
+        comps.polestar
+          .save(creds, user.id)
+          .flatMap: tokens =>
+            seeOther(reverse.boats)
     case GET -> Root / "cars" / "conf" =>
       ok(CarsConf.default)
     case GET -> Root / "cars" / "parkings" / "capacity" =>

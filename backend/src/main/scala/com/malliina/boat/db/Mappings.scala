@@ -27,6 +27,7 @@ trait Mappings:
 
   given Meta[TrackPointId] = simple(TrackPointId)
   given Meta[RefreshTokenId] = simple(RefreshTokenId)
+  given Meta[RefreshService] = validated(RefreshService)
   given Meta[DeviceId] = simple(DeviceId)
   given Meta[GPSFix] = Meta[String].timap(GPSFix.orOther)(_.value)
   given Meta[PushId] = simple(PushId)
@@ -85,6 +86,9 @@ trait Mappings:
 
   private def simple[T, R: Meta, C <: JsonCompanion[R, T]](c: C): Meta[T] =
     Meta[R].timap(c.apply)(c.write)
+
+  private def validated[T, R: Meta, C <: ValidatingCompanion[R, T]](c: C): Meta[T] =
+    Meta[R].timap(r => c.build(r).fold(err => fail(err.message), identity))(c.write)
 
   private def wrapped[T <: WrappedString](build: String => T): Meta[T] =
     Meta[String].timap(build)(_.value)

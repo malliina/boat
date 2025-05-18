@@ -605,6 +605,17 @@ case class BoatLang(
   port: String
 ) derives Codec.AsObject
 
+case class PolestarLang(
+  cars: String,
+  noCars: String,
+  vin: String,
+  registrationNumber: String,
+  polestar: String,
+  username: String,
+  password: String,
+  save: String
+) derives Codec.AsObject
+
 case class InviteLang(
   invites: String,
   noInvites: String,
@@ -657,6 +668,7 @@ case class SettingsLang(
   noTracksHelp: String,
   formats: FormatsLang,
   boatLang: BoatLang,
+  polestar: PolestarLang,
   actions: String,
   delete: String,
   invite: InviteLang,
@@ -1200,6 +1212,16 @@ object Lang:
         "IP address",
         "Port number"
       ),
+      PolestarLang(
+        "Cars",
+        "No cars.",
+        "VIN",
+        "Registration",
+        "Polestar ID",
+        "Username",
+        "Password",
+        "Save"
+      ),
       "Actions",
       "Delete",
       InviteLang(
@@ -1391,6 +1413,16 @@ object Lang:
         "IP-osoite",
         "Portti"
       ),
+      PolestarLang(
+        "Autot",
+        "Ei autoja.",
+        "VIN",
+        "Rekisteritunnus",
+        "Polestar ID",
+        "Käyttäjätunnus",
+        "Salasana",
+        "Tallenna"
+      ),
       "Toimenpiteet",
       "Poista",
       InviteLang(
@@ -1576,6 +1608,16 @@ object Lang:
         s"Inloggning skapar en nyckel du kan spara i $appName-appen installerad i din båt. Med nyckeln sparas körda spår under ditt användarnamn. För mera information, se https://docs.boat-tracker.com/agent/.",
         "IP adress",
         "Portnummer"
+      ),
+      PolestarLang(
+        "Bilar",
+        "Inga bilar.",
+        "VIN",
+        "Registreringsnummer",
+        "Polestar ID",
+        "Användarnamn",
+        "Lösenord",
+        "Spara"
       ),
       "Ändringar",
       "Radera",

@@ -21,7 +21,7 @@ val versions = new {
   val mobilePush = "3.13.1"
   val munit = "1.1.1"
   val munitCe = "2.1.0"
-  val primitives = "3.7.9"
+  val primitives = "3.7.10"
   val s3 = "2.31.33"
   val scalaTags = "0.13.1"
   val webAuth = "6.9.8"
@@ -94,6 +94,7 @@ val crossJs = cross.js
 
 val polestar = project
   .in(file("polestar"))
+  .dependsOn(crossJvm)
   .settings(
     libraryDependencies ++= Seq("generic", "parser").map { m =>
       "io.circe" %%% s"circe-$m" % versions.circe
@@ -135,7 +136,7 @@ val frontend = project
 
 val backend = Project("boat", file("backend"))
   .enablePlugins(ServerPlugin, DebPlugin)
-  .dependsOn(crossJvm)
+  .dependsOn(polestar)
   .settings(jvmSettings ++ boatSettings)
   .settings(
     Compile / unmanagedResourceDirectories ++= Seq(

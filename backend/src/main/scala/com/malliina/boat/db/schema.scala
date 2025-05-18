@@ -115,7 +115,8 @@ case class JoinedUser(
   user: UserRow,
   boat: Option[SourceRow],
   invite: Option[InviteRow],
-  friend: Option[FriendRow]
+  friend: Option[FriendRow],
+  hasCars: Boolean
 )
 
 case class VesselRow(

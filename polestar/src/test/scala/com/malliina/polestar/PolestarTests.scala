@@ -3,41 +3,41 @@ package com.malliina.polestar
 import cats.effect.IO
 import ch.qos.logback.classic.Level
 import com.malliina.logback.LogbackUtils
-import com.malliina.values.RefreshToken
+import com.malliina.values.{AccessToken, RefreshToken}
 
 class PolestarTests extends munit.CatsEffectSuite:
   val creds = PolestarConfig.conf
-  val tokens = ResourceFunFixture(Polestar.httpResource[IO].map(http => TokenClient(http)))
-  val http = ResourceFunFixture(Polestar.resource[IO](creds))
+  val polestar = ResourceFunFixture(Polestar.resource[IO])
 
   override def beforeAll(): Unit =
     LogbackUtils.init(rootLevel = Level.INFO)
     super.beforeAll()
 
-  tokens.test("Generate verifier".ignore): client =>
-    val v = client.generateVerifier
+  polestar.test("Generate verifier".ignore): client =>
+    val v = client.auth.generateVerifier
     assertEquals(v.length, 43)
 
-  tokens.test("Tokens".ignore): client =>
-    client
+  polestar.test("Tokens".ignore): client =>
+    client.auth
       .fetchTokens(creds)
       .map: tokens =>
         println(s"Tokens '$tokens'.")
         assertEquals(1, 1)
 
-  tokens.test("Refresh token".ignore): client =>
+  polestar.test("Refresh token".ignore): client =>
     val token = RefreshToken("changeme")
-    client
+    client.auth
       .refresh(token)
       .map: tokens =>
         println(tokens)
         assertEquals(1, 1)
 
-  http.test("Get graphql".ignore): client =>
+  polestar.test("Get graphql".ignore): client =>
+    val token = AccessToken("todo")
     val task = for
-      cars <- client.fetchCars()
+      cars <- client.fetchCars(token)
       car = cars.head
-      tele <- client.fetchTelematics(car.vin)
+      tele <- client.fetchTelematics(car.vin, token)
     yield (car, tele)
     task.map: (car, tele) =>
       println(car)
