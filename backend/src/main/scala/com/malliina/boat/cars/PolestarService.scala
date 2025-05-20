@@ -41,7 +41,7 @@ class PolestarService[F[_]: Async](
       ts <- polestar.auth.refresh(refreshToken)
       saved <- storeNewTokens(ts, owner)
     yield
-      log.info(s"Refreshed Polestar tokens for '$owner")
+      log.info(s"Refreshed $service tokens for '$owner'.")
       saved
 
   private def storeNewTokens(updated: Tokens, owner: UserId): F[Tokens] =
@@ -56,6 +56,10 @@ class PolestarService[F[_]: Async](
     tokensFor(owner).flatMap: tokens =>
       task(tokens.accessToken).handleErrorWith:
         case re: ResponseException if re.response.code == 401 =>
+          log.info(
+            s"Refreshing $service tokens for $owner because request to '${re.error.url}' returned 401...",
+            re
+          )
           refresh(tokens.refreshToken, owner).flatMap: updated =>
             task(updated.accessToken)
         case t =>
@@ -66,7 +70,7 @@ class PolestarService[F[_]: Async](
       .get(owner)
       .map(F.pure)
       .getOrElse:
-        db.refreshTokens(owner, RefreshService.Polestar)
+        db.refreshTokens(owner, service)
           .flatMap: rts =>
             rts.headOption
               .map: rt =>
