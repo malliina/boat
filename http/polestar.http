@@ -246,8 +246,21 @@ Authorization: Bearer {{polestar-token}}
 Content-Type: application/json
 
 {
-  "query": "query CarTelematics($vin:String!) { carTelematics(vin:$vin) { health { daysToService } battery { batteryChargeLevelPercentage chargerConnectionStatus averageEnergyConsumptionKwhPer100Km chargingStatus estimatedDistanceToEmptyKm } odometer { averageSpeedKmPerHour odometerMeters } } }",
+  "query": "query CarTelematicsV2($vins: [String!]!) { carTelematicsV2(vins: $vins) { health { vin daysToService } battery { vin batteryChargeLevelPercentage chargingStatus estimatedDistanceToEmptyKm } odometer { vin odometerMeters } } }",
   "variables": {
-    "vin": "{{polestar-vin}}"
+    "vins": ["{{polestar-vin}}"]
+  }
+}
+
+### Telematics HTTP 2
+POST https://pc-api.polestar.com/eu-north-1/mystar-v2/
+Accept: application/graphql-response+json
+Authorization: Bearer {{polestar-token}}
+Content-Type: application/json
+
+{
+  "query": "query CarTelematicsV2($vins: [String!]!) { carTelematicsV2(vins: $vins) { health {daysToService } } }",
+  "variables": {
+    "vins": ["{{polestar-vin}}"]
   }
 }

@@ -64,3 +64,10 @@ class PolestarTests extends munit.CatsEffectSuite:
     val action = str match
       case s"""${init}window.globalContext${json}action: "${path}",${rest}""" => path
     assertEquals(action, "/as/kgis8e0qyx/resume/as/authorization.ping")
+
+  test("Decode telematics"):
+    val response =
+      scala.io.Source.fromResource("com/malliina/polestar/get-telematics-response.json").mkString
+    import io.circe.parser.decode
+    val decoded = decode[TelematicsResponse](response)
+    println(decoded)

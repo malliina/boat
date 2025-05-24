@@ -1,11 +1,16 @@
 package com.malliina.boat.cars
 
-import com.malliina.values.UserId
+import com.malliina.boat.VIN
+import com.malliina.values.{ErrorMessage, UserId}
 
-abstract class PolestarException(message: String, cause: Option[Exception])
-  extends Exception(message, cause.orNull)
+class PolestarException(message: ErrorMessage, cause: Option[Exception])
+  extends Exception(message.message, cause.orNull)
 
-class NoTokens(owner: UserId) extends PolestarException(s"No tokens for '$owner'.", None)
+class NoTokens(owner: UserId)
+  extends PolestarException(ErrorMessage(s"No tokens for '$owner'."), None)
 
 class RefreshFailed(owner: UserId, cause: Exception)
-  extends PolestarException(s"Failed to refresh tokens for '$owner'.", Option(cause))
+  extends PolestarException(ErrorMessage(s"Failed to refresh tokens for '$owner'."), Option(cause))
+
+class CarException(message: ErrorMessage, val vin: VIN, cause: Option[Exception])
+  extends Exception(message.message, cause.orNull)

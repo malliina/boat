@@ -3,7 +3,7 @@ package com.malliina.polestar
 import cats.effect.Async
 import cats.effect.kernel.Resource
 import cats.syntax.all.toFunctorOps
-import com.malliina.boat.VIN
+import com.malliina.boat.{CarsTelematics, VIN}
 import com.malliina.http.UrlSyntax.https
 import com.malliina.http.io.HttpClientIO
 import com.malliina.http.{FullUrl, HttpClient}
@@ -43,10 +43,10 @@ class Polestar[F[_]: Async](http: HttpClient[F]):
     graphQuery[CarsResponse](GraphQuery(carsQuery, None), token)
       .map(_.data.getConsumerCarsV2)
 
-  def fetchTelematics(vin: VIN, token: AccessToken): F[CarTelematics] =
-    val query = GraphQuery(telematicsQuery, Option(VINVariable(vin)))
+  def fetchTelematics(vin: VIN, token: AccessToken): F[CarsTelematics] =
+    val query = GraphQuery(telematicsQuery, Option(VINSVariable(Seq(vin))))
     graphQuery[TelematicsResponse](query, token)
-      .map(_.data.carTelematics)
+      .map(_.data.carTelematicsV2)
 
   private def graphQuery[T: Decoder](q: GraphQuery, token: AccessToken): F[T] =
     http.postAs[GraphQuery, T](

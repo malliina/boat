@@ -1,33 +1,28 @@
-query CarTelematics($vin:String!) {
-  carTelematics(vin: $vin) {
+query CarTelematicsV2($vins: [String!]!) {
+  carTelematicsV2(vins: $vins) {
     health {
+      vin
       brakeFluidLevelWarning
       daysToService
       distanceToServiceKm
       engineCoolantLevelWarning
-      eventUpdatedTimestamp { iso unix }
+      timestamp { seconds nanos }
       oilLevelWarning
       serviceWarning
     }
     battery {
-      averageEnergyConsumptionKwhPer100Km
+      vin
       batteryChargeLevelPercentage
-      chargerConnectionStatus
-      chargingCurrentAmps
-      chargingPowerWatts
       chargingStatus
-      estimatedChargingTimeMinutesToTargetDistance
       estimatedChargingTimeToFullMinutes
       estimatedDistanceToEmptyKm
       estimatedDistanceToEmptyMiles
-      eventUpdatedTimestamp { iso unix }
+      timestamp { seconds nanos }
     }
     odometer {
-      averageSpeedKmPerHour
-      eventUpdatedTimestamp { iso unix }
+      vin
+      timestamp { seconds nanos }
       odometerMeters
-      tripMeterAutomaticKm
-      tripMeterManualKm
     }
   }
 }

@@ -137,7 +137,7 @@ trait ServerResources:
         appComps.customJwt
       )
       val polestarService = PolestarService(users, polestar)
-      val auths = AuthService(users, polestarService, authComps)
+      val auths = AuthService(users, authComps)
       val tracksDatabase = DoobieTracksDatabase(db)
       val push = DoobiePushDatabase(db, appComps.pushService)
       val comps = BoatComps(

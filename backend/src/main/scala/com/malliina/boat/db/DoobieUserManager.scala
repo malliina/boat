@@ -54,7 +54,6 @@ object DoobieUserManager:
             user.language,
             newBoats,
             ub.hasCars,
-            Nil,
             user.enabled,
             user.added.toEpochMilli,
             newInvites,

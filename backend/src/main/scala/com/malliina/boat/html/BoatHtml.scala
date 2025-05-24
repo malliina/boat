@@ -5,7 +5,7 @@ import com.malliina.boat.FrontKeys.*
 import com.malliina.boat.html.BoatImplicits.given
 import com.malliina.boat.http.{Limits, TracksQuery}
 import com.malliina.boat.http4s.Reverse
-import com.malliina.boat.{AppConf, Boat, BuildInfo, Coord, FullTrack, Lang, SourceType, TrackRef, TracksBundle, UserBoats, UserInfo}
+import com.malliina.boat.{AppConf, Boat, BuildInfo, Car, Coord, FullTrack, Lang, SourceType, TrackRef, TracksBundle, UserBoats, UserInfo}
 import com.malliina.html.HtmlImplicits.given
 import com.malliina.html.HtmlTags.{cssLink, deviceWidthViewport, titleTag}
 import com.malliina.http.{CSRFConf, CSRFToken, FullUrl}
@@ -55,8 +55,8 @@ class BoatHtml(
 ):
   val reverse = Reverse
 
-  def devices(user: UserInfo, token: CSRFToken) =
-    page(PageConf(BoatsPage(user, token, csrfConf), Seq(BoatsClass)))
+  def devices(user: UserInfo, cars: Seq[Car], token: CSRFToken) =
+    page(PageConf(BoatsPage(user, cars, token, csrfConf), Seq(BoatsClass)))
 
   def editDevice(user: UserInfo, boat: Boat, csrfToken: CSRFToken, csrfConf: CSRFConf) =
     page(PageConf(BoatsPage.edit(user, boat, csrfToken, csrfConf), Seq(BoatsClass)))

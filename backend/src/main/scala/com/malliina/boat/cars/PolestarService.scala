@@ -1,33 +1,58 @@
 package com.malliina.boat.cars
 
 import cats.effect.Async
+import cats.implicits.toTraverseOps
 import cats.syntax.all.{catsSyntaxApplicativeError, toFlatMapOps, toFunctorOps}
-import com.malliina.boat.VIN
+import com.malliina.boat.{Car, CarTelematics, CarsTelematics, VIN}
 import com.malliina.boat.db.{RefreshService, TokenManager}
 import com.malliina.http.ResponseException
 import com.malliina.polestar.Polestar.Tokens
-import com.malliina.polestar.{CarTelematics, Polestar, PolestarCarInfo}
+import com.malliina.polestar.{Polestar, PolestarCarInfo}
 import com.malliina.values.{AccessToken, RefreshToken, UserId}
 import com.malliina.util.AppLogger
-import com.malliina.boat.cars.PolestarService.log
+import com.malliina.boat.cars.PolestarService.{log, toCar}
 
 object PolestarService:
   private val log = AppLogger(getClass)
+
+  private def toCar(car: PolestarCarInfo, telematics: CarTelematics): Car =
+    val content = car.content
+    Car(
+      car.vin,
+      car.registrationNo,
+      car.modelYear,
+      car.software.version,
+      content.interior.name,
+      content.exterior.name,
+      content.images.studio.url,
+      telematics
+    )
 
 class PolestarService[F[_]: Async](
   db: TokenManager[F],
   polestar: Polestar[F]
 ):
   private val F = Async[F]
-  val service = RefreshService.Polestar
+  private val service = RefreshService.Polestar
   private var cache: Map[UserId, Tokens] = Map.empty
 
+  def carsAndTelematics(owner: UserId): F[Seq[Car]] =
+    cars(owner).flatMap: cs =>
+      cs.traverse: car =>
+        val vin = car.vin
+        telematics(vin, owner).flatMap: t =>
+          t.forVin(vin)
+            .fold(
+              error => F.raiseError(CarException(error, vin, None)),
+              carTelematics => F.pure(toCar(car, carTelematics))
+            )
+
   def cars(owner: UserId): F[Seq[PolestarCarInfo]] =
-    request(owner): token =>
+    request(owner, "cars"): token =>
       polestar.fetchCars(token)
 
-  def telematics(vin: VIN, owner: UserId): F[CarTelematics] =
-    request(owner): token =>
+  def telematics(vin: VIN, owner: UserId): F[CarsTelematics] =
+    request(owner, "telematics"): token =>
       polestar.fetchTelematics(vin, token)
 
   def save(creds: Polestar.Creds, owner: UserId): F[Tokens] =
@@ -52,16 +77,19 @@ class PolestarService[F[_]: Async](
       cache = cache.updated(owner, updated)
       updated
 
-  private def request[T](owner: UserId)(task: AccessToken => F[T]): F[T] =
+  private def request[T](owner: UserId, label: String)(task: AccessToken => F[T]): F[T] =
     tokensFor(owner).flatMap: tokens =>
       task(tokens.accessToken).handleErrorWith:
         case re: ResponseException if re.response.code == 401 =>
           log.info(
-            s"Refreshing $service tokens for $owner because request to '${re.error.url}' returned 401...",
+            s"Refreshing $service tokens for $owner because $label request to '${re.error.url}' returned 401...",
             re
           )
-          refresh(tokens.refreshToken, owner).flatMap: updated =>
-            task(updated.accessToken)
+          refresh(tokens.refreshToken, owner)
+            .adaptErr:
+              case e: Exception => RefreshFailed(owner, e)
+            .flatMap: updated =>
+              task(updated.accessToken)
         case t =>
           F.raiseError(t)
 

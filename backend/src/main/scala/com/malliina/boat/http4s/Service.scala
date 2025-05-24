@@ -172,8 +172,11 @@ class Service[F[_]: {Async, Files}](
       auth
         .profile(req)
         .flatMap: user =>
-          csrfOk: token =>
-            html(req).devices(user, token)
+          comps.polestar
+            .carsAndTelematics(user.id)
+            .flatMap: cars =>
+              csrfOk: token =>
+                html(req).devices(user, cars, token)
     case req @ GET -> Root / "boats" / "me" =>
       auth
         .boatTokenOrFail(req.headers)

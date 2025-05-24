@@ -5,7 +5,7 @@ import com.malliina.boat.FrontKeys.*
 import com.malliina.boat.InviteState.{Accepted, Awaiting, Other, Rejected}
 import com.malliina.http.{CSRFConf, CSRFToken}
 import com.malliina.boat.http4s.Reverse
-import com.malliina.boat.{Boat, BoatIds, BoatNames, BoatRef, Emails, Forms, GPSInfo, InviteState, Passwords, SourceType, UserInfo, Usernames}
+import com.malliina.boat.{Boat, BoatIds, BoatNames, BoatRef, Car, Emails, Forms, GPSInfo, InviteState, Passwords, SourceType, UserInfo, Usernames, VIN}
 import com.malliina.values.WrappedId
 import scalatags.Text
 import scalatags.Text.all.*
@@ -69,7 +69,12 @@ object BoatsPage extends BoatImplicits with HTMLConstants:
       )
     )
 
-  def apply(user: UserInfo, csrfToken: CSRFToken, csrfConf: CSRFConf) =
+  def apply(
+    user: UserInfo,
+    cars: Seq[Car],
+    csrfToken: CSRFToken,
+    csrfConf: CSRFConf
+  ) =
     val langs = BoatLang(user.language)
     val lang = langs.lang
     val webLang = langs.web
@@ -100,7 +105,6 @@ object BoatsPage extends BoatImplicits with HTMLConstants:
         ),
         tbody(
           user.boats.map: boat =>
-//            val confirmDeletionText = s"${settings.delete} ${boat.name}?"
             tr(
               tdMiddle(
                 if boat.sourceType == SourceType.Vehicle then boatLang.car else boatLang.boat
@@ -109,18 +113,6 @@ object BoatsPage extends BoatImplicits with HTMLConstants:
               tdMiddle(boat.token),
               tdMiddle(a(href := reverse.boatEdit(boat.id), cls := "align-middle")(settings.edit)),
               td(cls := s"$row table-button $FormParent")(
-//                div(cls := "col")(
-//                  form(
-//                    method := post,
-//                    action := reverse.boatDelete(boat.id),
-//                    onsubmit := s"return confirm('$confirmDeletionText');",
-//                    cls := DeleteForm
-//                  )(
-//                    button(`type` := "submit", cls := "btn btn-sm btn-danger")(
-//                      settings.delete
-//                    )
-//                  )
-//                ),
                 div(cls := "col")(
                   button(`type` := "button", cls := s"btn btn-sm btn-info $InviteFormOpen")(
                     settings.invite.invite
@@ -189,14 +181,30 @@ object BoatsPage extends BoatImplicits with HTMLConstants:
           h2(carLang.cars)
         )
       ),
-      if user.cars.isEmpty then
+      if cars.isEmpty then
         div(cls := s"$row mb-3")(
           p("No cars.")
         )
       else
-        user.cars.map: car =>
-          div(cls := s"$row mb-3")(
-            p(car.registrationNumber)
+        cars.map: car =>
+          val t = car.telematics
+          val telematicsFields = Seq[Modifier](
+            t.battery.batteryChargeLevelPercentage,
+            t.odometer.odometerMeters,
+            t.health.daysToService
+          )
+          div(cls := s"$row col-xl-6 mb-3")(
+            (Seq[Modifier](
+              car.registrationNumber,
+              car.vin,
+              car.modelYear,
+              car.softwareVersion,
+              car.interiorSpec,
+              car.exteriorSpec
+            ) ++ telematicsFields).map: text =>
+              div(cls := "col-12 col-sm-6 col-md-4 text-center")(
+                p(text)
+              )
           )
       ,
       div(cls := s"$row mb-3")(

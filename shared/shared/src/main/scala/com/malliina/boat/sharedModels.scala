@@ -4,6 +4,7 @@ import cats.syntax.all.toFunctorOps
 import com.comcast.ip4s.{Host, Port}
 import com.malliina.boat.BoatJson.keyValued
 import com.malliina.boat.http.Limits
+import com.malliina.http.FullUrl
 import com.malliina.json.PrimitiveFormats
 import com.malliina.measure.{DistanceM, SpeedM, Temperature}
 import com.malliina.values.*
@@ -319,7 +320,16 @@ case class Boat(
   addedMillis: Long
 ) derives Codec.AsObject
 
-case class Car(vin: VIN, registrationNumber: RegistrationNumber) derives Codec.AsObject
+case class Car(
+  vin: VIN,
+  registrationNumber: RegistrationNumber,
+  modelYear: String,
+  softwareVersion: String,
+  interiorSpec: String,
+  exteriorSpec: String,
+  studioImage: FullUrl,
+  telematics: CarTelematics
+) derives Codec.AsObject
 
 trait MinimalUserInfo:
   def username: Username
@@ -355,7 +365,7 @@ case class UserInfo(
   language: Language,
   boats: Seq[Boat],
   hasCars: Boolean,
-  cars: Seq[Car],
+//  cars: Seq[Car],
   enabled: Boolean,
   addedMillis: Long,
   invites: Seq[Invite],

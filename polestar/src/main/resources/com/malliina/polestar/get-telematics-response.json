@@ -1,0 +1,45 @@
+{
+  "data": {
+    "carTelematicsV2": {
+      "health": [
+        {
+          "vin": "changeme",
+          "brakeFluidLevelWarning": "BRAKE_FLUID_LEVEL_WARNING_NO_WARNING",
+          "daysToService": 539,
+          "distanceToServiceKm": 26351,
+          "engineCoolantLevelWarning": "ENGINE_COOLANT_LEVEL_WARNING_NO_WARNING",
+          "timestamp": {
+            "seconds": "1748011923",
+            "nanos": 51671863
+          },
+          "oilLevelWarning": "OIL_LEVEL_WARNING_NO_WARNING",
+          "serviceWarning": "SERVICE_WARNING_NO_WARNING"
+        }
+      ],
+      "battery": [
+        {
+          "vin": "changeme",
+          "batteryChargeLevelPercentage": 84,
+          "chargingStatus": "CHARGING_STATUS_IDLE",
+          "estimatedChargingTimeToFullMinutes": 0,
+          "estimatedDistanceToEmptyKm": 320,
+          "estimatedDistanceToEmptyMiles": 200,
+          "timestamp": {
+            "seconds": "1748030840",
+            "nanos": 60205550
+          }
+        }
+      ],
+      "odometer": [
+        {
+          "vin": "changeme",
+          "timestamp": {
+            "seconds": "1748011923",
+            "nanos": 51671863
+          },
+          "odometerMeters": 25151300
+        }
+      ]
+    }
+  }
+}

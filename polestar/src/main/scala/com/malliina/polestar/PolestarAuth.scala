@@ -102,7 +102,7 @@ class PolestarAuth[F[_]: Async](val http: HttpClient[F]):
     http.getAs[OpenIdConfiguration](configUrl)
 
   private def fromEither[T](e: Either[ErrorMessage, T]): F[T] =
-    F.fromEither(e.left.map(e => PolestarAuthException(e.message)))
+    F.fromEither(e.left.map(e => PolestarAuthException(e.message, None)))
 
   private def query(url: FullUrl) =
     url.url

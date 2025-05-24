@@ -4,10 +4,9 @@ import cats.effect.Sync
 import cats.syntax.all.{catsSyntaxApplicativeError, toFlatMapOps, toFunctorOps, toTraverseOps}
 import com.malliina.boat.Constants.{BoatNameHeader, BoatTokenHeader}
 import com.malliina.boat.auth.{AuthProvider, BoatJwt, SettingsPayload}
-import com.malliina.boat.cars.{PolestarException, PolestarService}
 import com.malliina.boat.db.{IdentityManager, MissingCredentials, MissingCredentialsException, RefreshService, SIWADatabase}
 import com.malliina.boat.http.{Limits, UserRequest}
-import com.malliina.boat.{BoatName, BoatNames, BoatToken, Car, DeviceMeta, JoinedSource, Language, MinimalUserInfo, SimpleSourceMeta, SourceType, UserBoats, UserInfo, Usernames}
+import com.malliina.boat.{BoatName, BoatNames, BoatToken, DeviceMeta, JoinedSource, Language, MinimalUserInfo, SimpleSourceMeta, SourceType, UserBoats, UserInfo, Usernames}
 import com.malliina.values.Email
 import com.malliina.web.{Code, RevokeResult}
 import org.http4s.headers.Cookie
@@ -18,7 +17,6 @@ import java.time.Instant
 
 class AuthService[F[_]: Sync](
   val users: IdentityManager[F],
-  polestar: PolestarService[F],
   comps: AuthComps[F]
 ):
   val F = Sync[F]
@@ -54,16 +52,7 @@ class AuthService[F[_]: Sync](
     for
       email <- emailOnly(headers, now)
       userInfo <- users.userInfo(email)
-      cars <-
-        if userInfo.hasCars then
-          polestar
-            .cars(userInfo.id)
-            .recover:
-              case pe: PolestarException => Nil
-        else F.pure(Nil)
-    yield
-      val cs = cars.map(c => Car(c.vin, c.registrationNo))
-      userInfo.copy(cars = cs)
+    yield userInfo
 
   def recreate(headers: Headers, now: Instant = Instant.now()): F[BoatJwt] =
     Auth
