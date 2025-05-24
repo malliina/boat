@@ -89,6 +89,8 @@ case class BoatConf(
   def isFull = isProdBuild || isTest
 
 object BoatConf:
+  val mariaDbDriver = "org.mariadb.jdbc.Driver"
+
   def parseF[F[_]: Sync] = Sync[F].fromEither(parseBoat())
 
   def parseBoat(): Either[ConfigError, BoatConf] =
@@ -153,20 +155,20 @@ object BoatConf:
     )
 
   private def prodDbConf(password: Password, maxPoolSize: Int) = Conf(
-    url"jdbc:mysql://localhost:3306/boat",
+    url"jdbc:mariadb://localhost:3306/boat",
     "boat",
     password,
-    Conf.MySQLDriver,
+    mariaDbDriver,
     maxPoolSize = maxPoolSize,
     autoMigrate = true,
     schemaTable = "flyway_schema_history2"
   )
 
   private def devDatabaseConf(password: Password) = Conf(
-    url"jdbc:mysql://localhost:3306/boat",
+    url"jdbc:mariadb://localhost:3306/boat",
     "boat",
     password,
-    Conf.MySQLDriver,
+    mariaDbDriver,
     maxPoolSize = 2,
     autoMigrate = true,
     schemaTable = "flyway_schema_history2"

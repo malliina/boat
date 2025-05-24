@@ -677,7 +677,7 @@ abstract class ValidatedDouble[T](implicit
   d: Decoder[Double],
   e: Encoder[Double],
   r: Readable[Double]
-) extends ValidatingCompanion[Double, T]()(d, e, TotalOrdering, r):
+) extends ValidatingCompanion[Double, T]()(using d, e, TotalOrdering, r):
   extension (t: T) def value: Double = write(t)
   def fromString(s: String) =
     s.toDoubleOption.toRight(ErrorMessage(s"Not a double: '$s'.")).flatMap(build)

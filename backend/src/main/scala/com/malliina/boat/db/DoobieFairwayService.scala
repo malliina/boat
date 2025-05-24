@@ -1,7 +1,6 @@
 package com.malliina.boat.db
 
 import cats.data.NonEmptyList
-import cats.effect.Async
 import cats.implicits.*
 import com.malliina.boat.db.DoobieFairwayService.collect
 import com.malliina.boat.{CoordHash, FairwayInfo}
@@ -18,7 +17,7 @@ object DoobieFairwayService:
         acc.updated(idx, old.copy(fairways = old.fairways :+ cf.fairway))
       else acc :+ CoordFairways(cf.coord, Seq(cf.fairway))
 
-class DoobieFairwayService[F[_]: Async](db: DoobieDatabase[F]) extends FairwaySource[F]:
+class DoobieFairwayService[F[_]](db: DoobieDatabase[F]) extends FairwaySource[F]:
   private def byCoords(coords: NonEmptyList[CoordHash]) =
     val inClause = Fragments.in(fr"fc.coord_hash", coords)
     sql"""select fc.coord_hash, f.id, f.name_fi, f.name_se, f.start, f.end, f.depth, f.depth2, f.depth3, f.lighting, f.class_text, f.sea_area, f.state

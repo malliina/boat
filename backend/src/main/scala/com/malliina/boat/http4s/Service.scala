@@ -137,9 +137,9 @@ class Service[F[_]: {Async, Files}](
             val message = res match
               case UnknownEmail(email) =>
                 s"Unknown email: '$email'."
-              case Invited(uid, to) =>
+              case Invited(_, to) =>
                 s"User ${user.email} invited ${inviteInfo.email} to boat ${inviteInfo.boat}."
-              case AlreadyInvited(uid, to) =>
+              case AlreadyInvited(_, to) =>
                 s"User ${inviteInfo.email} already invited to ${inviteInfo.boat}."
             log.info(message)
             seeOther(reverse.boats)
@@ -147,7 +147,7 @@ class Service[F[_]: {Async, Files}](
       formAction[RevokeAccess](req): (revokeInfo, user) =>
         userMgmt
           .revokeAccess(revokeInfo.to, revokeInfo.from, user.id)
-          .flatMap: res =>
+          .flatMap: _ =>
             seeOther(reverse.boats)
     case req @ POST -> Root / "invites" / "respond" =>
       formAction[InviteResponse](req): (response, user) =>
@@ -157,7 +157,7 @@ class Service[F[_]: {Async, Files}](
             user.id,
             if response.accept then InviteState.Accepted else InviteState.Rejected
           )
-          .flatMap(res => seeOther(reverse.boats))
+          .flatMap(_ => seeOther(reverse.boats))
     case req @ GET -> Root / "conf" =>
       respondCustom(req)(
         json = rs =>
@@ -208,7 +208,7 @@ class Service[F[_]: {Async, Files}](
         .flatMap: user =>
           inserts
             .removeDevice(device, user.id)
-            .flatMap: rows =>
+            .flatMap: _ =>
               respond(req)(
                 json = ok(SimpleMessage("Done.")),
                 html = seeOther(reverse.boats)
@@ -282,7 +282,7 @@ class Service[F[_]: {Async, Files}](
         )
       yield response
       handler.recoverWith:
-        case t =>
+        case _ =>
           redirectToLogin
     case req @ GET -> Root / "stats" =>
       authedQuery(req, TracksQuery.apply).flatMap: authed =>
@@ -307,7 +307,7 @@ class Service[F[_]: {Async, Files}](
       formAction[Polestar.Creds](req): (creds, user) =>
         comps.polestar
           .save(creds, user.id)
-          .flatMap: tokens =>
+          .flatMap: _ =>
             seeOther(reverse.boats)
     case GET -> Root / "cars" / "conf" =>
       ok(CarsConf.default)
@@ -539,7 +539,7 @@ class Service[F[_]: {Async, Files}](
                     message =>
                       log.debug(s"Boat ${boat.describe} says '$message'.")
                       parse(message).fold(
-                        parseFailure =>
+                        _ =>
                           F.raiseError(
                             Exception(s"Unacceptable message from ${boat.describe}: '$message'.")
                           ),
@@ -662,7 +662,7 @@ class Service[F[_]: {Async, Files}](
             ok(html(req).map(maybeBoat.getOrElse(UserBoats.anon))).map: res =>
               val cookied = res.addCookie(tokenCookie).addCookie(languageCookie)
               auth.saveSettings(SettingsPayload(u, lang, authorizedBoats), cookied, isSecure)
-          .recover(mc => redirectToLogin)
+          .recover(_ => redirectToLogin)
 
   private def trackAction[T: Decoder](req: Request[F])(
     code: (T, UserInfo) => F[JoinedTrack]

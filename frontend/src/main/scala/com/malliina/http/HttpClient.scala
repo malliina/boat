@@ -29,7 +29,7 @@ extension [A](t: js.Thenable[A])
       )
       F.delay[Option[F[Unit]]](Some(onCancel))
 
-class Http[F[_]: Async](val client: HttpClient[F], val dispatcher: Dispatcher[F]):
+class Http[F[_]](val client: HttpClient[F], val dispatcher: Dispatcher[F]):
   def run[R](task: F[R]): Unit = dispatcher.unsafeRunAndForget(task)
   def using[R](request: HttpClient[F] => F[R]): Unit = run(request(client))
 

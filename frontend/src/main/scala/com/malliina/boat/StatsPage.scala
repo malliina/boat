@@ -4,7 +4,7 @@ class StatsPage extends BaseFront:
   document
     .getElementsByClassName(YearRow)
     .foreach: row =>
-      row.addOnClick: e =>
+      row.addOnClick: _ =>
         val clickedYear = row.getAttribute(DataYear)
         document
           .getElementsByClassName(MonthRow)

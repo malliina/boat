@@ -66,10 +66,10 @@ private class MqttStream[F[_]: Async](
             log.warn(s"Connection lost to '$broker'.", exception)
             cb(Left(exception))
       )
-    .onError(t => close)
+    .onError(_ => close)
   // Converts a callback-based Unit-typed API to IO, making events available in topic `in`.
   val start = for
-    installCallback <- F.delay:
+    _ <- F.delay:
       client.setCallback(new MqttCallback:
         def messageArrived(topic: String, message: MqttMessage): Unit =
           val payload = MqttPayload(topic, message.getPayload)

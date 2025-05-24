@@ -241,15 +241,15 @@ object MarineSymbol:
   implicit val decoder: Decoder[MarineSymbol] = (c: HCursor) =>
     for
       owner <- c.downField("OMISTAJA").as[String]
-      topSign <- c.downField("HUIPPUMERK").as[Boolean](boolNum)
-      fasadi <- c.downField("FASADIVALO").as[Boolean](boolNum)
-      nameFi <- c.downField("NIMIS").as[Option[String]](nonEmptyOpt)
-      nameSe <- c.downField("NIMIR").as[Option[String]](nonEmptyOpt)
-      locationFi <- c.downField("SIJAINTIS").as[Option[String]](nonEmptyOpt)
-      locationSe <- c.downField("SIJAINTIR").as[Option[String]](nonEmptyOpt)
+      topSign <- c.downField("HUIPPUMERK").as[Boolean](using boolNum)
+      fasadi <- c.downField("FASADIVALO").as[Boolean](using boolNum)
+      nameFi <- c.downField("NIMIS").as[Option[String]](using nonEmptyOpt)
+      nameSe <- c.downField("NIMIR").as[Option[String]](using nonEmptyOpt)
+      locationFi <- c.downField("SIJAINTIS").as[Option[String]](using nonEmptyOpt)
+      locationSe <- c.downField("SIJAINTIR").as[Option[String]](using nonEmptyOpt)
       flotation <- c.downField("SUBTYPE").as[Flotation]
       state <- c.downField("TILA").as[String]
-      lit <- c.downField("VALAISTU").as[Boolean](boolString)
+      lit <- c.downField("VALAISTU").as[Boolean](using boolString)
       aidType <- c.downField("TY_JNR").as[AidType]
       navMark <- c.downField("NAVL_TYYP").as[NavMark]
       construction <- c.downField("RAKT_TYYP").as[Option[ConstructionInfo]]
@@ -290,15 +290,15 @@ object MinimalMarineSymbol:
   given Decoder[MinimalMarineSymbol] = (c: HCursor) =>
     for
       owner <- c.downField("OMISTAJA").as[String]
-      nameFi <- c.downField("NIMIS").as[Option[String]](nonEmptyOpt)
-      nameSe <- c.downField("NIMIR").as[Option[String]](nonEmptyOpt)
-      locationFi <- c.downField("SIJAINTIS").as[Option[String]](nonEmptyOpt)
-      locationSe <- c.downField("SIJAINTIR").as[Option[String]](nonEmptyOpt)
+      nameFi <- c.downField("NIMIS").as[Option[String]](using nonEmptyOpt)
+      nameSe <- c.downField("NIMIR").as[Option[String]](using nonEmptyOpt)
+      locationFi <- c.downField("SIJAINTIS").as[Option[String]](using nonEmptyOpt)
+      locationSe <- c.downField("SIJAINTIR").as[Option[String]](using nonEmptyOpt)
       influence <- c.downField("VAIKUTUSAL").as[Option[ZoneOfInfluence]]
       markType <- c.downField("VLM_LAJI").as[Option[TrafficMarkType]]
       limit <- c.downField("RA_ARVO").as[Option[Double]]
-      extraInfo1 <- c.downField("LISATIETOS").as[Option[String]](nonEmptyOpt)
-      extraInfo2 <- c.downField("LISATIETOR").as[Option[String]](nonEmptyOpt)
+      extraInfo1 <- c.downField("LISATIETOS").as[Option[String]](using nonEmptyOpt)
+      extraInfo2 <- c.downField("LISATIETOR").as[Option[String]](using nonEmptyOpt)
     yield MinimalMarineSymbol(
       owner,
       nameFi,
@@ -562,9 +562,9 @@ object LimitArea:
           .flatMap(s => LimitType.fromString(s).left.map(e => DecodingFailure(e, Nil)))
       limit <- c.downField("SUURUUS").as[Option[Double]].map(_.map(_.kmh))
       length <- c.downField("PITUUS").as[Option[Double]].map(_.map(_.meters))
-      responsible <- c.downField("MERK_VAST").as[Option[String]](nonEmptyOpt)
-      location <- c.downField("NIMI_SIJAI").as[Option[String]](nonEmptyOpt)
-      fairwayName <- c.downField("VAY_NIMISU").as[Option[String]](nonEmptyOpt)
+      responsible <- c.downField("MERK_VAST").as[Option[String]](using nonEmptyOpt)
+      location <- c.downField("NIMI_SIJAI").as[Option[String]](using nonEmptyOpt)
+      fairwayName <- c.downField("VAY_NIMISU").as[Option[String]](using nonEmptyOpt)
       publishDate <- c.downField("IRROTUS_PV").as[String]
     yield LimitArea(types, limit, length, responsible, location, fairwayName, publishDate)
 

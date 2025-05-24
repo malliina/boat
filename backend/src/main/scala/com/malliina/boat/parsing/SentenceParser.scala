@@ -77,8 +77,8 @@ object SentenceParser extends NMEA0183Parser:
         mapFailures:
           for
             time <- ZDAMessage.parseTimeUtc(utc)
-            lat <- LatitudeDM.parse(latDM)
-            lng <- LongitudeDM.parse(lngDM)
+            _ <- LatitudeDM.parse(latDM)
+            _ <- LongitudeDM.parse(lngDM)
             kn <- toDouble(knots)
             c <- toDouble(course)
             d <- RMCMessage.parseDate(date)

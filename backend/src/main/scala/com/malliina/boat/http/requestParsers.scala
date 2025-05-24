@@ -394,7 +394,7 @@ case class TimeRange(from: Option[Instant], to: Option[Instant]) derives Codec.A
     case (Some(f), Some(t)) => s"$f - $t"
     case (None, Some(t))    => s"- $t"
     case (Some(f), None)    => s"$f -"
-    case other              => ""
+    case _                  => ""
 
 object TimeRange:
   private val From = Timings.From

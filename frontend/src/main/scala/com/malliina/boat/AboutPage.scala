@@ -1,10 +1,9 @@
 package com.malliina.boat
 
-import cats.effect.Async
 import com.malliina.http.Http
 import org.scalajs.dom.HTMLInputElement
 
-class AboutPage[F[_]: Async](http: Http[F]) extends BaseFront:
+class AboutPage[F[_]](http: Http[F]) extends BaseFront:
   document
     .getElementsByName(LanguageRadios)
     .foreach: radio =>

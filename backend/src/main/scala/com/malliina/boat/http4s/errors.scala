@@ -13,7 +13,7 @@ class JsonException(val error: DecodingFailure, val json: Json) extends DecodeFa
   override def message: String = s"JSON exception for '$json'. $detailed"
   override def cause: Option[Throwable] = None
   override def toHttpResponse[F[_]](httpVersion: HttpVersion): Response[F] =
-    Response(Status.BadRequest, httpVersion).withEntity(JsonException.errors(error))(
+    Response(Status.BadRequest, httpVersion).withEntity(JsonException.errors(error))(using
       JsonInstances.jsonEncoderOf[F, Errors]
     )
 

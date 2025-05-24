@@ -16,7 +16,7 @@ import scala.concurrent.duration.Duration
 
 case class ServerComponents[F[_]](app: Service[F], server: Server)
 
-trait AppCompsBuilder[F[_]: Sync]:
+trait AppCompsBuilder[F[_]]:
   def http: Resource[F, HttpClientF2[F]]
   def build(conf: BoatConf, http: HttpClient[F]): AppComps[F]
 

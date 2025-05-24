@@ -56,7 +56,7 @@ class DateHandler:
         val newDate = he.date.toOption.filter(_ != null)
 //        log.info(s"New date $newDate")
         if isFrom then selectedFrom = newDate else selectedTo = newDate
-        newDate.foreach: date =>
+        newDate.foreach: _ =>
           other.updateOptions(
             DateHandler.timeOptions(
               if isFrom then TimeRestrictions(min = newDate, max = None)

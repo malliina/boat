@@ -95,7 +95,7 @@ class PolestarAuth[F[_]: Async](val http: HttpClient[F]):
     CBase64.encodeBase64URLSafeString(digest)
 
   private def findAction(text: String, username: Username) = text match
-    case s"""${init}window.globalContext${json}action: "${path}",${rest}""" => Right(path)
+    case s"""${_}window.globalContext${_}action: "${path}",${_}""" => Right(path)
     case _ => Left(ErrorMessage(s"Action not found from '$text' in auth of '$username'."))
 
   private def openIdConfiguration =

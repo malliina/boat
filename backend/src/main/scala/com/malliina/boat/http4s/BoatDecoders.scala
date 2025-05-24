@@ -1,6 +1,5 @@
 package com.malliina.boat.http4s
 
-import cats.effect.Concurrent
 import com.comcast.ip4s.{Host, Port}
 import com.malliina.boat.http.{InvitePayload, InviteResponse, RevokeAccess}
 import com.malliina.boat.{AddSource, BoatName, BoatNames, ChangeBoatName, ChangeComments, ChangeTrackTitle, DeviceId, Forms, GPSInfo, Passwords, PatchBoat, Readables, SourceType, TrackComments, TrackTitle, Usernames}
@@ -8,7 +7,7 @@ import com.malliina.http4s.{FormDecoders, FormReadableT}
 import com.malliina.polestar.Polestar
 import com.malliina.values.{Email, Password, UserId, Username}
 
-trait BoatDecoders[F[_]: Concurrent] extends FormDecoders[F]:
+trait BoatDecoders[F[_]] extends FormDecoders[F]:
   import Readables.given
 
   private val reader = FormReadableT.reader

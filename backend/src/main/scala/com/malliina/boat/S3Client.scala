@@ -62,11 +62,11 @@ class S3Client[F[_]: Async](client: S3AsyncClient, bucketName: BucketName) exten
     client
       .getObject(req, dest)
       .asF
-      .map: res =>
+      .map: _ =>
         log.info(s"Downloaded '$key' from '$bucketName' to '$dest'.")
         Option(FS2Path.fromNioPath(dest))
       .handleError:
-        case nske: NoSuchKeyException =>
+        case _: NoSuchKeyException =>
           None
         case err =>
           log.warn(s"Failed to download '$key' from '$bucketName'.", err)

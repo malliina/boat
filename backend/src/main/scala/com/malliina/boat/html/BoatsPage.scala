@@ -401,7 +401,7 @@ object BoatsPage extends BoatImplicits with HTMLConstants:
     labelClass: String,
     inputClass: String,
     placeholderValue: String,
-    inputValue: Option[String] = None,
+    inputValue: Option[String],
     inputType: String = "text"
   ) = modifier(
     label(cls := labelClass, `for` := inputId)(labelText),

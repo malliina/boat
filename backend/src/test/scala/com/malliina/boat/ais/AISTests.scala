@@ -40,14 +40,13 @@ class AISTests extends MUnitSuite:
         val string = new String(message.getPayload, StandardCharset.UTF_8)
         val json = parse(string).toOption.get
         val result: Decoder.Result[AISMessage] = topic match
-          case Locations()   => json.as[VesselLocation](VesselLocation.readerGeoJson)
-          case Metadata()    => json.as[VesselMetadata](VesselMetadata.readerGeoJson)
+          case Locations()   => json.as[VesselLocation](using VesselLocation.readerGeoJson)
+          case Metadata()    => json.as[VesselMetadata](using VesselMetadata.readerGeoJson)
           case StatusTopic() => json.as[VesselStatus]
           case other => Left(DecodingFailure(s"Unknown topic: '$other'. JSON: '$json'.", Nil))
         if result.isRight then println(result)
 
-      override def deliveryComplete(token: IMqttDeliveryToken): Unit = ()
-    )
+      override def deliveryComplete(token: IMqttDeliveryToken): Unit = ())
     val opts = new MqttConnectOptions
     opts.setCleanSession(true)
     opts.setUserName(user)

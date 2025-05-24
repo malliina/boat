@@ -189,7 +189,7 @@ object ChartSpecs:
         ChartTitle(false, ""),
         true,
         true,
-        ctx => {}
+        _ => {}
       )
     )
   ): ChartSpecs =

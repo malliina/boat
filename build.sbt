@@ -7,24 +7,29 @@ import scala.sys.process.Process
 
 val versions = new {
   val scala213 = "2.13.16"
-  val scala3 = "3.6.4"
+  val scala3 = "3.7.0"
 
   val alpn = "12.0.16"
   val ci = "1.4.2"
   val circe = "0.14.12"
   val codec = "1.18.0"
+  val commonsText = "1.13.1"
   val fs2 = "3.11.0"
   val http4s = "0.23.30"
   val ip4s = "3.7.0"
+  val jts = "1.13"
   val logback = "1.5.18"
   val logstreams = "2.8.3"
-  val mobilePush = "3.13.1"
+  val mariadb = "3.5.3"
+  val mobilePush = "3.13.2"
   val munit = "1.1.1"
   val munitCe = "2.1.0"
+  val paho = "1.2.5"
   val primitives = "3.7.10"
-  val s3 = "2.31.33"
+  val s3 = "2.31.50"
+  val scalaJsDom = "2.8.0"
   val scalaTags = "0.13.1"
-  val webAuth = "6.9.8"
+  val webAuth = "6.9.9"
 }
 
 val webAuthDep = "com.malliina" %% "web-auth" % versions.webAuth
@@ -123,7 +128,7 @@ val frontend = project
     libraryDependencies ++= Seq(
       "com.malliina" %%% "util-html" % versions.webAuth,
       "co.fs2" %%% "fs2-core" % versions.fs2,
-      "org.scala-js" %%% "scalajs-dom" % "2.8.0",
+      "org.scala-js" %%% "scalajs-dom" % versions.scalaJsDom,
       "org.scalameta" %%% "munit" % versions.munit % Test
     ),
     runNpmInstall := RollupPlugin.npmInstall(npmRoot.value, streams.value.log),
@@ -150,14 +155,14 @@ val backend = Project("boat", file("backend"))
       } ++ Seq(
         "ch.qos.logback" % "logback-classic" % versions.logback,
         "org.http4s" %% "http4s-ember-client" % versions.http4s,
-        "com.vividsolutions" % "jts" % "1.13",
-        "mysql" % "mysql-connector-java" % "8.0.33",
-        "org.apache.commons" % "commons-text" % "1.13.1",
+        "com.vividsolutions" % "jts" % versions.jts,
+        "org.mariadb.jdbc" % "mariadb-java-client" % versions.mariadb,
+        "org.apache.commons" % "commons-text" % versions.commonsText,
         "software.amazon.awssdk" % "s3" % versions.s3,
         "com.malliina" %% "logstreams-client" % versions.logstreams,
         "com.malliina" %% "mobile-push-io" % versions.mobilePush,
         "com.malliina" %% "config" % versions.primitives,
-        "org.eclipse.paho" % "org.eclipse.paho.client.mqttv3" % "1.2.5",
+        "org.eclipse.paho" % "org.eclipse.paho.client.mqttv3" % versions.paho,
         webAuthDep,
         webAuthTestDep,
         munitDep,

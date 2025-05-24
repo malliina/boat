@@ -45,19 +45,15 @@ extension (e: Element)
 class InviteHandler(
   form: HTMLFormElement,
   open: Element,
-  cancel: Element,
-//  delete: Element,
-  @unused log: BaseLogger = BaseLogger.console
+  cancel: Element
 ) extends BaseFront:
   open.addOnClick: _ =>
     form.show()
     open.hide()
-//    delete.hide()
 
   cancel.addOnClick: _ =>
     form.hide()
     open.show()
-//    delete.show()
 
 class TitleHandler[F[_]: Async](
   form: HTMLFormElement,
@@ -82,8 +78,7 @@ class CommentsHandler[F[_]: Async](
   form: HTMLFormElement,
   editIcon: Element,
   cancel: HTMLButtonElement,
-  http: Http[F],
-  @unused log: BaseLogger = BaseLogger.console
+  http: Http[F]
 ) extends AjaxForm(form, editIcon, CommentsRow, cancel):
   form.onsubmit = (e: Event) =>
     elemAs[HTMLInputElement](CommentsInputId).map: in =>

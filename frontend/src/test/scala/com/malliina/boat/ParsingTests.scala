@@ -3,7 +3,6 @@ package com.malliina.boat
 import com.malliina.boat.LayerType.Line
 import com.malliina.json.Parsing.asJs
 
-import scala.scalajs.js
 import scala.scalajs.js.JSON
 
 class ParsingTests extends munit.FunSuite:

@@ -9,7 +9,7 @@ class TCPTests extends munit.CatsEffectSuite:
     val port = port"10110"
     for
       client <- TCPClient.default[IO](host, port)
-      connection <- client.connect().compile.drain.start
+      _ <- client.connect().compile.drain.start
       msgs <- client.sentencesHub
         .take(10)
         .compile

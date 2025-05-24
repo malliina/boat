@@ -116,7 +116,7 @@ class MapView[F[_]: Async](
     MapSocket(map, pathFinder, mode, messages, http.dispatcher, lang, log)
   val events = socket.events.coordEvents
     .debounce(1.seconds)
-    .tap: e =>
+    .tap: _ =>
       socket.fitToMap()
   private val eventStream = mapEvents.subscribe(10)
   private val mapEventHandler = eventStream
@@ -180,7 +180,7 @@ class MapView[F[_]: Async](
   private var activeIndex: Option[Int] = None
 
   elemAs[HTMLInputElement](VesselInputId).map: in =>
-    in.oninput = e =>
+    in.oninput = _ =>
       activeIndex = None
       val term = Option(in.value).filter(_.nonEmpty)
       mapEvents.dispatch(ListVessels(term))
@@ -201,7 +201,7 @@ class MapView[F[_]: Async](
                 .foreach: idx =>
                   list(idx).click()
               None
-            case other => activeIndex
+            case _ => activeIndex
       list.zipWithIndex.map: (elem, idx) =>
         val isActive = activeIndex.contains(idx)
         val activeClass = "autocomplete-active"
@@ -218,7 +218,7 @@ class MapView[F[_]: Async](
           autocomplete
             .elementsByClass[HTMLDivElement](VesselsSuggestion)
             .foreach: s =>
-              s.addOnClick: e =>
+              s.addOnClick: _ =>
                 hideSuggestions()
                 val name = Option(s.getAttribute("data-name")).filter(_.nonEmpty)
                 val mmsi = Option(s.getAttribute("data-mmsi")).filter(_.nonEmpty)
@@ -258,8 +258,8 @@ class MapView[F[_]: Async](
   private val oneDayMs = 86400000L
   private val dateHandler = DateHandler()
   for
-    fromElem <- elemAs[Element](FromTimePickerId)
-    toElem <- elemAs[Element](ToTimePickerId)
+    _ <- elemAs[Element](FromTimePickerId)
+    _ <- elemAs[Element](ToTimePickerId)
     shortcutsElem <- elemAs[HTMLSelectElement](ShortcutsId)
   yield
     val tomorrow = new Date(Date.now() + oneDayMs)
@@ -269,7 +269,7 @@ class MapView[F[_]: Async](
       datesChanged(from, dateHandler.to)
     val _ = dateHandler.subscribeDate(toPicker, fromPicker, isFrom = false, locale = locale): to =>
       datesChanged(dateHandler.from, to)
-    shortcutsElem.onchange = e =>
+    shortcutsElem.onchange = _ =>
       val value = shortcutsElem.value
       Shortcut
         .fromString(value)

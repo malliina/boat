@@ -57,7 +57,7 @@ class VesselSearch[F[_]: Sync](
                   map
                 )
           ,
-          out => trailPopup.remove()
+          _ => trailPopup.remove()
         )
       ups.headOption.foreach: latestPoint =>
         val latestCoord = latestPoint.coord

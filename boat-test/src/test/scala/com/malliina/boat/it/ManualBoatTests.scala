@@ -54,5 +54,5 @@ class ManualBoatTests extends BoatTests:
 
   http.test("boat can connect".ignore): httpClient =>
     val token = BoatToken("todo")
-    openBoat(url, Right(token), httpClient): boat =>
+    openBoat(url, Right(token), httpClient): _ =>
       IO.sleep(10.seconds)

@@ -1,7 +1,6 @@
 package com.malliina.boat.db
 
 import cats.data.NonEmptyList
-import cats.effect.Async
 import cats.syntax.list.catsSyntaxList
 import cats.syntax.traverse.toTraverseOps
 import com.malliina.boat.*
@@ -17,7 +16,7 @@ import doobie.implicits.*
 object CarDatabase:
   private val log = AppLogger(getClass)
 
-class CarDatabase[F[_]: Async](val db: DoobieDatabase[F]) extends DoobieSQL:
+class CarDatabase[F[_]](val db: DoobieDatabase[F]) extends DoobieSQL:
   private val maxTimeBetweenCarUpdates = Constants.MaxTimeBetweenCarUpdates
 
   def save(locs: LocationUpdates, userInfo: MinimalUserInfo, user: UserId): F[List[CarRow]] =

@@ -1,6 +1,5 @@
 package com.malliina.boat
 
-import cats.effect.Async
 import com.malliina.json.JsonError
 import com.malliina.json.Parsing.validate
 import com.malliina.mapbox.*
@@ -21,7 +20,7 @@ case class LimitClick(limit: LimitArea, target: LngLatLike) extends ClickType
 case class LimitedFairwayClick(limit: LimitArea, area: FairwayArea, target: LngLatLike)
   extends ClickType
 
-class MapMouseListener[F[_]: Async](
+class MapMouseListener[F[_]](
   map: MapboxMap,
   pathFinder: PathFinder[F],
   ais: AISRenderer,

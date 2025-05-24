@@ -52,7 +52,7 @@ class Events[F[_]: Sync](
   val coordEvents = frontEvents.flatMap:
     case ce @ CoordsEvent(coords, _) if coords.nonEmpty => Stream(ce)
     case CoordsBatch(coords) if coords.nonEmpty         => Stream.emits(coords)
-    case other                                          => Stream.empty
+    case _                                              => Stream.empty
   val vesselEvents = frontEvents.collect:
     case VesselTrailsEvent(vessels) => vessels
   val aisEvents: Stream[F, Seq[VesselInfo]] = frontEvents.collect:
@@ -61,4 +61,5 @@ class Events[F[_]: Sync](
   private def onJsonException(asString: String, e: io.circe.Error): Unit =
     log.info(s"JSON error for '$asString'. $e")
   protected def onJsonFailure(result: DecodingFailure, value: Json): Unit =
+    val _ = value
     log.info(s"JSON error $result")

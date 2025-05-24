@@ -8,10 +8,10 @@ import io.circe.{Codec, Decoder, Encoder}
 import org.typelevel.ci.CIString
 
 abstract class ShowableString[T] extends JsonCompanion[String, T]:
-  given Show[T] = Show(t => write(t))
+  given Show[T] = Show.show(t => write(t))
 
 abstract class ShowableLong[T] extends JsonCompanion[Long, T]:
-  given Show[T] = Show(t => write(t).toString)
+  given Show[T] = Show.show(t => write(t).toString)
 
 given Codec[CIString] = Codec.from(
   Decoder.decodeString.map(s => CIString(s)),

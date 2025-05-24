@@ -233,7 +233,7 @@ object VesselLocation:
   val readerGeoJson: Decoder[VesselLocation] = (c: HCursor) =>
     for
       mmsi <- c.downField("mmsi").as[Mmsi]
-      coord <- c.downField("geometry").downField("coordinates").as[Coord](Coord.jsonArray)
+      coord <- c.downField("geometry").downField("coordinates").as[Coord](using Coord.jsonArray)
       props <- c.downField("properties").as[Json]
       propsCursor = props.hcursor
       sog <- propsCursor.downField("sog").as[Double].map(_.knots)

@@ -20,10 +20,10 @@ class DoobieTracksDatabaseTests extends MUnitSuite with MUnitDatabaseSuite:
 
 class DoobieTests extends MUnitSuite with Mappings:
   val conf = Conf(
-    url"jdbc:mysql://localhost:3306/boat",
+    url"jdbc:mariadb://localhost:3306/boat",
     "changeme",
     Password("changeme"),
-    Conf.MySQLDriver,
+    BoatConf.mariaDbDriver,
     maxPoolSize = 5,
     autoMigrate = true,
     schemaTable = "flyway_schema_history2"

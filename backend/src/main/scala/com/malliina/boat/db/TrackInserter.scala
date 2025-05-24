@@ -1,7 +1,6 @@
 package com.malliina.boat.db
 
 import cats.data.NonEmptyList
-import cats.effect.Async
 import cats.implicits.*
 import com.malliina.boat.*
 import com.malliina.boat.db.TrackInserter.log
@@ -20,9 +19,7 @@ import scala.annotation.tailrec
 object TrackInserter:
   private val log = AppLogger(getClass)
 
-class TrackInserter[F[_]: Async](val db: DoobieDatabase[F])
-  extends TrackInsertsDatabase[F]
-  with DoobieSQL:
+class TrackInserter[F[_]](val db: DoobieDatabase[F]) extends TrackInsertsDatabase[F] with DoobieSQL:
   import db.run
   private val minSpeed: SpeedM = 1.kmh
 
@@ -178,7 +175,7 @@ class TrackInserter[F[_]: Async](val db: DoobieDatabase[F])
           .query[DbTrackInfo]
           .option
           .map(_.getOrElse(DbTrackInfo(None, None, DistanceM.zero, 0)))
-      rows <-
+      _ <-
         sql"""update tracks
               set avg_water_temp = ${info.avgWaterTemp}, avg_outside_temp = ${info.avgOutsideTemp}, avg_speed = $avgSpeed, points = ${info.points}, distance = ${info.distance}
               where id = $track""".update.run
@@ -193,7 +190,7 @@ class TrackInserter[F[_]: Async](val db: DoobieDatabase[F])
     rows: List[(SentenceKey, TrackPointId)]
   ): ConnectionIO[List[(SentenceKey, TrackPointId)]] =
     rows.toNel
-      .map: rs =>
+      .map: _ =>
         val params = rows.map(_ => "(?,?)").mkString(",")
         val sql = s"insert into sentence_points(sentence, point) values$params"
         HC.stream[(SentenceKey, TrackPointId)](

@@ -81,7 +81,7 @@ class TCPClient[F[_]: Async: Network](
         Resource.eval(delay(log.info(s"Connecting to $hostPort..."))) >>
           Network[F].client(SocketAddress(host, port))
       )
-      .evalTap(socket => delay(log.info(s"Connected to $hostPort.")))
+      .evalTap(_ => delay(log.info(s"Connected to $hostPort.")))
       .handleErrorWith: e =>
         Stream
           .eval(signal.get)

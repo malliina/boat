@@ -71,8 +71,8 @@ class PolestarService[F[_]: Async](
 
   private def storeNewTokens(updated: Tokens, owner: UserId): F[Tokens] =
     for
-      removedCount <- db.removeTokens(owner, service)
-      saved <- db.save(updated.refreshToken, service, owner)
+      _ <- db.removeTokens(owner, service)
+      _ <- db.save(updated.refreshToken, service, owner)
     yield
       cache = cache.updated(owner, updated)
       updated

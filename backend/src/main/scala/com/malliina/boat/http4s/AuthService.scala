@@ -113,7 +113,7 @@ class AuthService[F[_]: Sync](
       .handleErrorWith:
         case mce: MissingCredentialsException =>
           authSession(headers).fold(
-            err => F.raiseError(mce),
+            _ => F.raiseError(mce),
             email => F.pure(email)
           )
         case t =>

@@ -39,7 +39,7 @@ class ServerTests extends MUnitSuite with ServerSuite:
       _ <- assertIO(status(uri"/.well-known/assetlinks.json"), Ok.code)
     yield 42
 
-  private def headers(token: IdToken = TestEmailAuth.testToken) = Map(
+  private def headers(token: IdToken) = Map(
     Authorization.name.toString -> s"Bearer $token",
     "Accept" -> "application/json"
   )

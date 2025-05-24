@@ -25,7 +25,7 @@ object VIN extends CICompanion[VIN]:
   override def write(t: VIN): CIString = t
 
 abstract class CICompanion[T] extends JsonCompanion[CIString, T]:
-  given Show[T] = Show(t => write(t).toString)
+  given Show[T] = Show.show(t => write(t).toString)
 
 trait VINSpec:
   def vin: VIN

@@ -3,7 +3,6 @@ package com.malliina.boat.graph
 import com.malliina.boat.{Coord, Earth, Link, RouteSpec}
 import com.malliina.measure.DistanceM
 import io.circe.*
-import io.circe.generic.semiauto.*
 
 case class Line(from: Coord, to: Coord):
   def x1 = from.lng.lng

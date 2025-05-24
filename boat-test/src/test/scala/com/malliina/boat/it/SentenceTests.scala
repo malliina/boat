@@ -36,7 +36,7 @@ class SentenceTests extends BoatTests:
                   assertEquals(coords.coords.map(_.coord), expectedCoords)
           for
             _ <- viewer.start
-            res <- messages
+            _ <- messages
           yield messages
 
   // Ignored because the design is the opposite of the test

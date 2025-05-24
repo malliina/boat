@@ -37,7 +37,7 @@ object BoatStreams:
     yield BoatStreams(db, aisDb, ais, in, saved)
 
   def rights[F[_], L, R](src: Stream[F, Either[L, R]]): Stream[F, R] = src.flatMap: e =>
-    e.fold(l => Stream.empty, r => Stream(r))
+    e.fold(_ => Stream.empty, r => Stream(r))
 
 class BoatStreams[F[_]: Async](
   db: TrackInsertsDatabase[F],

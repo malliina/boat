@@ -86,4 +86,4 @@ class RateLimiter[F[_]: Async](window: FiniteDuration, semaphore: Semaphore[F]):
       out.flatMap: acquired =>
         if acquired then semaphore.release.delayBy(window).start.uncancelable.void
         else Async[F].unit
-    case other => Async[F].unit
+    case _ => Async[F].unit

@@ -61,7 +61,7 @@ class EndToEndTests extends BoatTests:
             DeviceAgent
               .fromConf[IO](BoatConf.anon(tcpHost, tcpPort), serverUrl, httpClient.client)
               .use: agent =>
-                agent.connect.compile.resource.lastOrError.use: e =>
+                agent.connect.compile.resource.lastOrError.use: _ =>
                   log.info(s"Agent complete")
                   firstMessage.get
           val viewer = openViewerSocket(httpClient, None): socket =>

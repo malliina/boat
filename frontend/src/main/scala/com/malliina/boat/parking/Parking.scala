@@ -108,7 +108,7 @@ class Parking[F[_]: Async](
                   map
                 )
       ,
-      outEvent =>
+      _ =>
         log.info("Hovered out.")
         popup.remove()
     )

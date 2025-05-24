@@ -83,7 +83,7 @@ object AgentSettings:
               .left
               .map(_ => "JSON error.")
               .left
-              .flatMap: err =>
+              .flatMap: _ =>
                 json
                   .as[BoatConfOld]
                   .left

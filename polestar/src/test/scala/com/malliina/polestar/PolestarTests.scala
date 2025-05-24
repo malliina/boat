@@ -62,7 +62,7 @@ class PolestarTests extends munit.CatsEffectSuite:
 
   test("Find action"):
     val action = str match
-      case s"""${init}window.globalContext${json}action: "${path}",${rest}""" => path
+      case s"""${_}window.globalContext${_}action: "${path}",${_}""" => path
     assertEquals(action, "/as/kgis8e0qyx/resume/as/authorization.ping")
 
   test("Decode telematics"):

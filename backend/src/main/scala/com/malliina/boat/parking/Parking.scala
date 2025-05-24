@@ -31,9 +31,9 @@ class Parking[F[_]: Async](http: HttpClientF2[F], geo: Geocoder[F]):
       val withoutGeocoding = fc.features
         .flatMap: f =>
           val areas = f.geometry match
-            case MultiPolygon(tpe, coordinates) => coordinates.flatten
-            case Polygon(tpe, coordinates)      => coordinates
-            case _                              => Nil
+            case MultiPolygon(_, coordinates) => coordinates.flatten
+            case Polygon(_, coordinates)      => coordinates
+            case _                            => Nil
           val capacity = f.props.as[CapacityProps].toOption.flatMap(_.capacityEstimate).getOrElse(0)
           areas
             .filter(_ => capacity > 0)
@@ -55,7 +55,7 @@ class Parking[F[_]: Async](http: HttpClientF2[F], geo: Geocoder[F]):
   def capacity(): F[FeatureCollection] = capacities(firstPage, Nil).map: cs =>
     FeatureCollection(cs.flatMap(_.features))
 
-  private def capacities(next: FullUrl, acc: Seq[ParkingCapacity] = Nil): F[Seq[ParkingCapacity]] =
+  private def capacities(next: FullUrl, acc: Seq[ParkingCapacity]): F[Seq[ParkingCapacity]] =
     http
       .getAs[ParkingCapacity](next)
       .flatMap: page =>

@@ -22,7 +22,7 @@ class StreamRetryTests extends MUnitSuite:
     val start = System.currentTimeMillis()
     fs2.Stream
       .eval(unstable(start))
-      .handleErrorWith(t => fs2.Stream.empty)
+      .handleErrorWith(_ => fs2.Stream.empty)
       .repeat
       .compile
       .drain

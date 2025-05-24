@@ -1,7 +1,7 @@
 package com.malliina.boat.client.server
 
 import cats.effect.{Async, ExitCode, IO, IOApp}
-import com.comcast.ip4s.{Port, host, port}
+import com.comcast.ip4s.{host, port}
 import com.malliina.http.io.HttpClientIO
 import com.malliina.util.AppLogger
 import fs2.io.net.Network

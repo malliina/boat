@@ -1,6 +1,5 @@
 package com.malliina.boat.db
 
-import cats.effect.IO
 import cats.implicits.*
 import com.malliina.boat.{FairwayInfo, FeatureCollection, MUnitDatabaseSuite, MUnitSuite}
 import doobie.implicits.*

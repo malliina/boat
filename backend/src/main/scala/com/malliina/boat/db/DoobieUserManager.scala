@@ -4,7 +4,7 @@ import com.malliina.boat.InviteState.accepted
 import com.malliina.boat.db.DoobieUserManager.{collectBoats, log}
 import com.malliina.boat.http.InviteResult.{AlreadyInvited, Invited, UnknownEmail}
 import com.malliina.boat.http.{AccessResult, InviteInfo, InviteResult, LimitLike}
-import com.malliina.boat.{Boat, BoatInfo, BoatNames, BoatToken, BoatTokens, DeviceId, FriendInvite, Invite, InviteState, JoinedSource, JoinedTrack, Language, TimeFormatter, UserBoats, UserInfo, UserToken, Usernames}
+import com.malliina.boat.{BoatInfo, BoatNames, BoatToken, BoatTokens, DeviceId, FriendInvite, Invite, InviteState, JoinedSource, JoinedTrack, Language, TimeFormatter, UserBoats, UserInfo, UserToken, Usernames}
 import com.malliina.database.DoobieDatabase
 import com.malliina.util.AppLogger
 import com.malliina.values.{Email, RefreshToken, UserId, Username}
@@ -91,7 +91,7 @@ class DoobieUserManager[F[_]](db: DoobieDatabase[F]) extends IdentityManager[F] 
     userByEmailIO(email)
   def register(email: Email): F[UserRow] = run:
     for
-      id <- getOrCreate(email)
+      _ <- getOrCreate(email)
       user <- userByEmailIO(email)
     yield user
   def userInfo(email: Email): F[UserInfo] = run:
@@ -179,7 +179,7 @@ class DoobieUserManager[F[_]](db: DoobieDatabase[F]) extends IdentityManager[F] 
     val anon = NewUser(user, None, UserToken.random(), enabled = true)
     for
       exists <- userByName(user).query[UserRow].option
-      ok <- exists.map(u => pure(u.user)).getOrElse(userInsertion(anon))
+      _ <- exists.map(u => pure(u.user)).getOrElse(userInsertion(anon))
     yield anon
 
   def addUser(user: NewUser): F[Either[AlreadyExists, UserRow]] = run:
@@ -314,7 +314,7 @@ class DoobieUserManager[F[_]](db: DoobieDatabase[F]) extends IdentityManager[F] 
         sql"""select b.id from boats b where b.id = $boat and b.owner = $principal"""
           .query[DeviceId]
           .option
-      boatId <-
+      _ <-
         owns
           .map(pure)
           .getOrElse(fail(PermissionException(principal, boat, from)))

@@ -1,6 +1,5 @@
 package com.malliina.boat
 
-import com.malliina.boat.graph.Graph.getClass
 import com.malliina.storage.StorageLong
 import com.malliina.util.AppLogger
 

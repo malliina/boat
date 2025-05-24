@@ -42,7 +42,7 @@ class TCPClientTests extends munit.CatsEffectSuite:
       plotter <- runPlotter.start
       p <- Deferred[IO, RawSentence]
       client <- TCPClient.default[IO](tcpHost, tcpPort)
-      connection <- client.connect(Stream.empty).compile.drain.start
+      _ <- client.connect(Stream.empty).compile.drain.start
       _ <- client.sentencesHub
         .take(1)
         .evalMap(msg => msg.sentences.headOption.fold(IO.unit)(raw => p.complete(raw)))

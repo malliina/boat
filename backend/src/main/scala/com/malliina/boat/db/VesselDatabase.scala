@@ -1,6 +1,5 @@
 package com.malliina.boat.db
 
-import cats.effect.Async
 import cats.implicits.*
 import com.malliina.boat.db.BoatVesselDatabase.{collect, log}
 import com.malliina.boat.db.Values.{RowsChanged, VesselUpdateId}
@@ -34,9 +33,7 @@ object BoatVesselDatabase:
         else acc :+ VesselHistory(row.mmsi, row.name, row.draft, List(entry))
       .toList
 
-class BoatVesselDatabase[F[_]: Async](db: DoobieDatabase[F])
-  extends VesselDatabase[F]
-  with DoobieSQL:
+class BoatVesselDatabase[F[_]](db: DoobieDatabase[F]) extends VesselDatabase[F] with DoobieSQL:
 
   def vessels(query: VesselsQuery): F[List[VesselResult]] = db.run:
     val limits = query.limits
@@ -88,7 +85,7 @@ class BoatVesselDatabase[F[_]: Async](db: DoobieDatabase[F])
 
   def save(messages: Seq[VesselInfo]): F[List[VesselUpdateId]] =
     val io = for
-      rowCount <- saveVessels(messages)
+      _ <- saveVessels(messages)
       ids <- saveUpdates(messages)
     yield ids
     db.run(io)

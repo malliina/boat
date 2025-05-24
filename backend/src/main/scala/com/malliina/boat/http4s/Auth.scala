@@ -1,6 +1,5 @@
 package com.malliina.boat.http4s
 
-import cats.effect.Sync
 import com.malliina.boat.auth.{BasicCredentials, EmailAuth}
 import com.malliina.boat.db.{CustomJwt, MissingCredentials}
 import com.malliina.values.Literals.err
@@ -22,7 +21,7 @@ object Auth:
 
   def token(hs: Headers): Either[MissingCredentials, IdToken] =
     headerCredentials(hs).flatMap:
-      case Token(scheme, token) =>
+      case Token(_, token) =>
         Right(IdToken(token))
       case _ =>
         Left(MissingCredentials("Basic auth expected.", hs))
@@ -32,7 +31,7 @@ object Auth:
     .map(h => h.credentials)
     .toRight(MissingCredentials(noCredentials, hs))
 
-case class AuthComps[F[_]: Sync](
+case class AuthComps[F[_]](
   google: EmailAuth[F],
   web: Http4sAuth[F],
   googleFlow: GoogleAuthFlow[F],

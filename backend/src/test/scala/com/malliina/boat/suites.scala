@@ -49,7 +49,7 @@ trait MUnitDatabaseSuite extends DoobieSQL:
   val testConf: ConfigNode = LocalConf.local("test-boat.conf")
 
   val confFixture: Fixture[Conf] = new Fixture[Conf]("database"):
-    var conf: Either[ConfigError, Conf] = Left(MissingValue(NonEmptyList.of("password")))
+    private var conf: Either[ConfigError, Conf] = Left(MissingValue(NonEmptyList.of("password")))
 
     def apply(): Conf = conf.fold(err => throw err, ok => ok)
 
@@ -62,10 +62,10 @@ trait MUnitDatabaseSuite extends DoobieSQL:
     override def afterAll(): Unit = ()
 
     private def testDatabaseConf(password: Password) = Conf(
-      url"jdbc:mysql://127.0.0.1:3306/testboat",
+      url"jdbc:mariadb://127.0.0.1:3306/testboat",
       "testboat",
       password,
-      Conf.MySQLDriver,
+      BoatConf.mariaDbDriver,
       maxPoolSize = 2,
       autoMigrate = true,
       schemaTable = "flyway_schema_history2"
@@ -85,7 +85,7 @@ trait BoatDatabaseSuite extends MUnitDatabaseSuite:
     conf <- IO(confFixture())
     node <- IO.fromEither(testConf.parse[ConfigNode]("boat"))
     boatConf <- IO.fromEither(
-      BoatConf.parse(node, pass => conf, ais = AisAppConf(false), isTest = true)
+      BoatConf.parse(node, _ => conf, ais = AisAppConf(false), isTest = true)
     )
   yield boatConf
 
@@ -136,7 +136,7 @@ trait ServerSuite extends BoatDatabaseSuite with JsonInstances:
     Resource
       .eval(r.allocated)
       .flatMap: (r1, fin) =>
-        Resource.make(IO.pure(r1))(rel =>
+        Resource.make(IO.pure(r1))(_ =>
           fin.timeoutTo(duration, IO(println(s"Resource release timed out after $duration.")))
         )
 

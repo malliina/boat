@@ -45,7 +45,7 @@ class TrackImporter[F[_]: { Files, Temporal }](inserts: TrackInsertsDatabase[F])
       .groupWithin(100, 500.millis)
       .map(chunk => SentencesEvent(chunk.toList, track, userAgent))
       .through(processor)
-      .fold(0): (acc, point) =>
+      .fold(0): (acc, _) =>
         val duration = 1.0d * (System.currentTimeMillis() - start) / 1000d
         val pps = if duration > 0 then 1.0d * acc / duration else 0
         if acc == 0 then log.info(s"Saving points to $describe...")

@@ -141,40 +141,39 @@ case class FairwayInfo(
 
 object FairwayInfo:
   import MaritimeJson.nonEmptyOpt
-  given decoder: Decoder[FairwayInfo] = new Decoder[FairwayInfo]:
-    final def apply(c: HCursor): Decoder.Result[FairwayInfo] =
-      for
-        fi <- c.downField("VAY_NIMISU").as[Option[String]](nonEmptyOpt)
-        se <- c.downField("VAY_NIMIRU").as[Option[String]](nonEmptyOpt)
-        start <- c.downField("SELOSTE_AL").as[Option[String]](nonEmptyOpt)
-        end <- c.downField("SELOSTE_PA").as[Option[String]](nonEmptyOpt)
-        depth <- c.downField("KULKUSYV1").as[Option[DistanceM]]
-        depth2 <- c.downField("KULKUSYV2").as[Option[DistanceM]]
-        depth3 <- c.downField("KULKUSYV3").as[Option[DistanceM]]
-        lighting <- c.downField("VALAISTUS").as[FairwayLighting]
-        clazz <- c.downField("VAYLA_LK").as[String]
-        seaArea <- c.downField("MERIAL_NR").as[SeaArea]
-        state <- c.downField("TILA").as[Double]
-      yield FairwayInfo(
-        fi,
-        se,
-        start,
-        end,
-        depth,
-        depth2,
-        depth3,
-        lighting,
-        clazz,
-        seaArea,
-        state
-      )
+  given decoder: Decoder[FairwayInfo] = (c: HCursor) =>
+    for
+      fi <- c.downField("VAY_NIMISU").as[Option[String]](using nonEmptyOpt)
+      se <- c.downField("VAY_NIMIRU").as[Option[String]](using nonEmptyOpt)
+      start <- c.downField("SELOSTE_AL").as[Option[String]](using nonEmptyOpt)
+      end <- c.downField("SELOSTE_PA").as[Option[String]](using nonEmptyOpt)
+      depth <- c.downField("KULKUSYV1").as[Option[DistanceM]]
+      depth2 <- c.downField("KULKUSYV2").as[Option[DistanceM]]
+      depth3 <- c.downField("KULKUSYV3").as[Option[DistanceM]]
+      lighting <- c.downField("VALAISTUS").as[FairwayLighting]
+      clazz <- c.downField("VAYLA_LK").as[String]
+      seaArea <- c.downField("MERIAL_NR").as[SeaArea]
+      state <- c.downField("TILA").as[Double]
+    yield FairwayInfo(
+      fi,
+      se,
+      start,
+      end,
+      depth,
+      depth2,
+      depth3,
+      lighting,
+      clazz,
+      seaArea,
+      state
+    )
 
 object MaritimeJson:
   val nonEmpty: Decoder[String] = Decoder.decodeString.emap: str =>
     val trimmed = str.trim
     if trimmed.nonEmpty then Right(trimmed)
     else Left("Empty string. Non-empty required.")
-  val nonEmptyOpt: Decoder[Option[String]] = Decoder.decodeOption(nonEmpty)
+  val nonEmptyOpt: Decoder[Option[String]] = Decoder.decodeOption(using nonEmpty)
 
   def partialReader[In: Decoder, Out](
     onError: In => String
