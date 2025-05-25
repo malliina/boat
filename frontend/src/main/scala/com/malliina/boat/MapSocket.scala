@@ -8,7 +8,7 @@ import com.malliina.boat.BoatFormats.*
 import com.malliina.boat.FrontKeys.TrophyPrefix
 import com.malliina.boat.SourceType.Vehicle
 import com.malliina.mapbox.*
-import com.malliina.measure.{DistanceM, SpeedM}
+import com.malliina.measure.{DistanceIntM, DistanceM, SpeedM}
 import com.malliina.values.ErrorMessage
 import fs2.concurrent.Topic
 
@@ -233,14 +233,16 @@ class MapSocket[F[_]: Async](
     elem(ConsumptionId).foreach: e =>
       if from.sourceType == SourceType.Vehicle then
         e.show()
+        // Consider computing kWh/100km in the backend
         val carTrails = trails.values.toList
-          .filter(_.from.sourceType == SourceType.Vehicle)
-        val consumptions: Seq[Energy] = trails.values
-          .filter(_.from.sourceType == SourceType.Vehicle)
-          .toList
+          .filter(t =>
+            t.from.sourceType == SourceType.Vehicle && t.from.distanceMeters > 300.meters
+          )
+        val consumptions: Seq[Energy] = carTrails
           .map: cs =>
             val decrements: Iterator[Energy] = cs.coords
               .flatMap[Energy](_.battery)
+              .filter(_.wattHours > 0)
               .sliding(2)
               .collect:
                 case Seq(b1, b2) if b2 < b1 => b2.minus(b1)
