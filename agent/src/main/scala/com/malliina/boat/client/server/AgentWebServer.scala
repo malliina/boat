@@ -10,7 +10,7 @@ import org.http4s.ember.server.EmberServerBuilder
 object AgentWebServer extends IOApp:
   private val log = AppLogger(getClass)
 
-  private def serverResource[F[_]: Async: Network] =
+  private def serverResource[F[_]: {Async, Network}] =
     log.info("Initializing server...")
     for
       http <- HttpClientIO.resource[F]

@@ -176,7 +176,7 @@ class Service[F[_]: {Async, Files}](
             .carsAndTelematics(user.id)
             .flatMap: cars =>
               csrfOk: token =>
-                html(req).devices(user, cars, token)
+                html(req).carsAndBoats(user, cars, token)
     case req @ GET -> Root / "boats" / "me" =>
       auth
         .boatTokenOrFail(req.headers)

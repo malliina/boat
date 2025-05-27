@@ -605,15 +605,23 @@ case class BoatLang(
   port: String
 ) derives Codec.AsObject
 
+case class CarInfoLang(batteryPercentage: String, estimatedRange: String, odometer: String, daysToService: String)
+  derives Codec.AsObject
+
 case class PolestarLang(
   cars: String,
   noCars: String,
   vin: String,
   registrationNumber: String,
+  modelYear: String,
+  softwareVersion: String,
+  interior: String,
+  exterior: String,
   polestar: String,
   username: String,
   password: String,
-  save: String
+  save: String,
+  info: CarInfoLang
 ) derives Codec.AsObject
 
 case class InviteLang(
@@ -1217,10 +1225,15 @@ object Lang:
         "No cars.",
         "VIN",
         "Registration",
+        "Model year",
+        "Software version",
+        "Interior",
+        "Exterior",
         "Polestar ID",
         "Username",
         "Password",
-        "Save"
+        "Save",
+        CarInfoLang("Battery percentage", "Range", "Odometer", "Days to service")
       ),
       "Actions",
       "Delete",
@@ -1418,10 +1431,15 @@ object Lang:
         "Ei autoja.",
         "VIN",
         "Rekisteritunnus",
+        "Mallivuosi",
+        "Ohjelmistoversio",
+        "Sisätilat",
+        "Ulkotilat",
         "Polestar ID",
         "Käyttäjätunnus",
         "Salasana",
-        "Tallenna"
+        "Tallenna",
+        CarInfoLang("Akun varaustaso", "Toimintamatka", "Kilometrit", "Päiviä huoltoon")
       ),
       "Toimenpiteet",
       "Poista",
@@ -1614,10 +1632,15 @@ object Lang:
         "Inga bilar.",
         "VIN",
         "Registreringsnummer",
+        "Modellår",
+        "Mjukvaruversion",
+        "Interiör",
+        "Exteriör",
         "Polestar ID",
         "Användarnamn",
         "Lösenord",
-        "Spara"
+        "Spara",
+        CarInfoLang("Batterinivå", "Räckvidd", "Odometer", "Dagar till service")
       ),
       "Ändringar",
       "Radera",

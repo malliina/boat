@@ -1,13 +1,13 @@
 package com.malliina.boat
 
 import cats.effect.Async
+import cats.implicits.toFunctorOps
+import com.malliina.boat.GoogleGeocoder.AddressType.StreetAddress
 import com.malliina.boat.GoogleGeocoder.GeocoderResults
 import com.malliina.http.HttpClient
 import com.malliina.http.UrlSyntax.https
 import com.malliina.values.StringEnumCompanion
 import io.circe.Codec
-import cats.implicits.toFunctorOps
-import com.malliina.boat.GoogleGeocoder.AddressType.StreetAddress
 
 object GoogleGeocoder:
   enum AddressType(val name: String):

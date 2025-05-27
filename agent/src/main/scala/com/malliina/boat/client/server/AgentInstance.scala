@@ -16,7 +16,7 @@ import fs2.io.net.Network
 object AgentInstance:
   private val log = AppLogger(getClass)
 
-  def resource[F[_]: Async: Network](
+  def resource[F[_]: {Async, Network}](
     http: HttpClientF2[F]
   ): Resource[F, AgentInstance[F]] =
     val conf = AgentSettings

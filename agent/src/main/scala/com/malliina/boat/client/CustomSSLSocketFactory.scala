@@ -8,12 +8,12 @@ import javax.net.ssl.*
 object CustomSSLSocketFactory:
   def forUri(uri: URI) = forHost(uri.getHost)
 
-  def forHost(host: String): CustomSSLSocketFactory =
+  private def forHost(host: String): CustomSSLSocketFactory =
     val sniHost = new SNIHostName(host)
     val matcher = SNIHostName.createSNIMatcher(host.replace(".", "\\."))
     withSNI(matcher, sniHost)
 
-  def withSNI(sniMatcher: SNIMatcher, sniHost: SNIHostName): CustomSSLSocketFactory =
+  private def withSNI(sniMatcher: SNIMatcher, sniHost: SNIHostName): CustomSSLSocketFactory =
     val sslParameters = new SSLParameters()
 
     sslParameters.setSNIMatchers(util.Arrays.asList(sniMatcher))

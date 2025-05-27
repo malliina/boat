@@ -26,7 +26,7 @@ object DeviceAgent:
   val BoatUrl: FullUrl = Host / "/ws/boats"
   val DeviceUrl: FullUrl = Host / "/ws/devices"
 
-  def fromConf[F[_]: Async: Network](
+  def fromConf[F[_]: {Async, Network}](
     conf: BoatConf,
     url: FullUrl,
     http: OkHttpClient

@@ -2,10 +2,10 @@ package com.malliina.boat.http4s
 
 import cats.effect.IO
 import com.malliina.boat.db.NewUser
-import com.malliina.boat.{BoatNames, DeviceId, ErrorConstants, Language, Latitude, LocationUpdate, LocationUpdates, Longitude, MUnitSuite, ServerSuite, SimpleSourceMeta, SourceType, TestEmailAuth, TestHttp, UserToken, wh}
+import com.malliina.boat.*
 import com.malliina.http.{Errors, FullUrl, OkHttpResponse}
 import com.malliina.measure.*
-import com.malliina.values.{IdToken, Username, degrees}
+import com.malliina.values.{IdToken, Username, degrees, lat, lng}
 import io.circe.syntax.EncoderOps
 import org.http4s.Status.{NotFound, Ok, Unauthorized}
 import org.http4s.headers.{Accept, Authorization}
@@ -15,8 +15,8 @@ import java.time.{OffsetDateTime, ZoneOffset}
 class CarServerTests extends MUnitSuite with ServerSuite:
   val testCarId = DeviceId(1)
   val loc = LocationUpdate(
-    Longitude.unsafe(24),
-    Latitude.unsafe(60),
+    24.lng,
+    60.lat,
     Option(1.meters),
     Option(5.meters),
     Option(128f.degrees),

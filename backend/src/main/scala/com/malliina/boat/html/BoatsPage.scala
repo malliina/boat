@@ -6,6 +6,7 @@ import com.malliina.boat.InviteState.{Accepted, Awaiting, Other, Rejected}
 import com.malliina.http.{CSRFConf, CSRFToken}
 import com.malliina.boat.http4s.Reverse
 import com.malliina.boat.{Boat, BoatIds, BoatNames, BoatRef, Car, Emails, Forms, GPSInfo, InviteState, Passwords, SourceType, UserInfo, Usernames, VIN}
+import com.malliina.measure.DistanceM
 import com.malliina.values.WrappedId
 import scalatags.Text
 import scalatags.Text.all.*
@@ -20,6 +21,8 @@ trait HTMLConstants:
 object BoatsPage extends BoatImplicits with HTMLConstants:
   val reverse = Reverse
   val empty: Modifier = modifier()
+
+  given Conversion[DistanceM, Frag] = intDistanceKm
 
   def edit(user: UserInfo, boat: Boat, csrfToken: CSRFToken, csrfConf: CSRFConf) =
     val langs = BoatLang(user.language)
@@ -186,24 +189,28 @@ object BoatsPage extends BoatImplicits with HTMLConstants:
           p("No cars.")
         )
       else
+        val plang = lang.settings.polestar
+        val infoLang = plang.info
         cars.map: car =>
           val t = car.telematics
-          val telematicsFields = Seq[Modifier](
-            t.battery.batteryChargeLevelPercentage,
-            t.odometer.odometerMeters,
-            t.health.daysToService
+          val telematicsFields = Seq[(String, Modifier)](
+            infoLang.batteryPercentage -> s"${t.battery.batteryChargeLevelPercentage}%",
+            infoLang.estimatedRange -> t.battery.range,
+            infoLang.odometer -> t.odometer.odometer,
+            infoLang.daysToService -> t.health.daysToService
           )
           div(cls := s"$row col-xl-6 mb-3")(
-            (Seq[Modifier](
-              car.registrationNumber,
-              car.vin,
-              car.modelYear,
-              car.softwareVersion,
-              car.interiorSpec,
-              car.exteriorSpec
-            ) ++ telematicsFields).map: text =>
-              div(cls := "col-12 col-sm-6 col-md-4 text-center")(
-                p(text)
+            (Seq[(String, Modifier)](
+              plang.registrationNumber -> car.registrationNumber,
+              plang.vin -> car.vin,
+              plang.modelYear -> car.modelYear,
+              plang.softwareVersion -> car.softwareVersion,
+              plang.interior -> car.interiorSpec,
+              plang.exterior -> car.exteriorSpec
+            ) ++ telematicsFields).map: (key, value) =>
+              div(cls := "d-flex flex-column col-12 col-sm-6 col-md-4 text-center mb-2")(
+                div(cls := "fw-semibold")(key),
+                div(cls := "p-2")(value)
               )
           )
       ,
@@ -414,6 +421,3 @@ object BoatsPage extends BoatImplicits with HTMLConstants:
       inputValue.fold(empty)(v => value := v)
     )
   )
-
-//  def csrfInput(token: CSRF.Token) =
-//    input(`type` := "hidden", name := token.name, value := token.value)

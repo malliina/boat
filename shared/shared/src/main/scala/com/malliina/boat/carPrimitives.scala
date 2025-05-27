@@ -34,6 +34,9 @@ case class Health(
   vin: VIN,
   daysToService: Int,
   brakeFluidLevelWarning: String,
+  engineCoolantLevelWarning: String,
+  serviceWarning: String,
+  oilLevelWarning: String,
   distanceToServiceKm: Int,
   timestamp: Updated
 ) extends VINSpec derives Codec.AsObject
@@ -46,7 +49,8 @@ case class Battery(
   chargingStatus: String,
   estimatedDistanceToEmptyKm: Int,
   timestamp: Updated
-) extends VINSpec derives Codec.AsObject
+) extends VINSpec derives Codec.AsObject:
+  def range = estimatedDistanceToEmptyKm.kilometers
 
 case class Odometer(
   vin: VIN,

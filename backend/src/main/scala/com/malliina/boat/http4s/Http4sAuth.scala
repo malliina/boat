@@ -28,8 +28,7 @@ class Http4sAuth[F[_]](
     .toRight(MissingCredentials("Missing Authorization header", headers))
     .flatMap(_.credentials match
       case Token(_, token) => Right(IdToken(token))
-      case _               => Left(MissingCredentials("Missing token.", headers))
-    )
+      case _               => Left(MissingCredentials("Missing token.", headers)))
 
   def withSession[T: Encoder](t: T, isSecure: Boolean, res: Response[F]): res.Self =
     withJwt(cookieNames.authState, t, isSecure, res)

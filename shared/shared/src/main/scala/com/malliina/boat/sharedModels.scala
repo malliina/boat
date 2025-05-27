@@ -365,7 +365,6 @@ case class UserInfo(
   language: Language,
   boats: Seq[Boat],
   hasCars: Boolean,
-//  cars: Seq[Car],
   enabled: Boolean,
   addedMillis: Long,
   invites: Seq[Invite],

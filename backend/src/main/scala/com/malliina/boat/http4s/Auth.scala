@@ -26,7 +26,7 @@ object Auth:
       case _ =>
         Left(MissingCredentials("Basic auth expected.", hs))
 
-  def headerCredentials(hs: Headers): Either[MissingCredentials, Credentials] = hs
+  private def headerCredentials(hs: Headers): Either[MissingCredentials, Credentials] = hs
     .get[Authorization]
     .map(h => h.credentials)
     .toRight(MissingCredentials(noCredentials, hs))

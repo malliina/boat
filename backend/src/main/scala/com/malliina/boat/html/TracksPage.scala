@@ -16,7 +16,7 @@ object TracksPage extends BoatSyntax:
   private val monthDataAttr = data("month")
   private val yearDataAttr = data(YearData)
 
-  implicit def distanceKmHtml(d: DistanceM): Frag = stringFrag(formatDistance(d) + " km")
+  given Conversion[DistanceM, Frag] = distanceKm
 
   private def translate(month: MonthVal, lang: MonthsLang): String =
     month.month match

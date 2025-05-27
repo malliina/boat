@@ -55,7 +55,7 @@ class BoatHtml(
 ):
   val reverse = Reverse
 
-  def devices(user: UserInfo, cars: Seq[Car], token: CSRFToken) =
+  def carsAndBoats(user: UserInfo, cars: Seq[Car], token: CSRFToken) =
     page(PageConf(BoatsPage(user, cars, token, csrfConf), Seq(BoatsClass)))
 
   def editDevice(user: UserInfo, boat: Boat, csrfToken: CSRFToken, csrfConf: CSRFConf) =

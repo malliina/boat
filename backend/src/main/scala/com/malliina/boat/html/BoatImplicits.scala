@@ -2,10 +2,10 @@ package com.malliina.boat.html
 
 import cats.Show
 import cats.syntax.show.toShow
-import com.malliina.boat.BoatFormats.{formatKnots, formatTemp}
+import com.malliina.boat.BoatFormats.{formatDistance, formatKnots, formatTemp}
 import com.malliina.boat.http4s.Reverse
 import com.malliina.boat.{BoatModels, DateVal, DayVal, MonthVal, SourceType, YearVal}
-import com.malliina.measure.{SpeedM, Temperature}
+import com.malliina.measure.{DistanceM, SpeedM, Temperature}
 import com.malliina.values.{ValidatingCompanion, WrappedString}
 import com.malliina.http.CSRFToken
 import org.http4s.Uri
@@ -38,6 +38,12 @@ trait BoatImplicits:
   given wrappedStringAttr[T <: WrappedString]: AttrValue[T] = boatStringAttr(_.value)
   given AttrValue[SourceType] = boatStringAttr(_.name)
   given [T: Show]: AttrValue[T] = boatStringAttr(t => t.show)
+
+  val distanceKm: Conversion[DistanceM, Frag] = (d: DistanceM) =>
+    stringFrag(s"${formatDistance(d)} km")
+
+  val intDistanceKm: Conversion[DistanceM, Frag] = (d: DistanceM) =>
+    stringFrag(s"${d.toKilometers.toInt} km")
 
   private def intAttr[T, C <: ValidatingCompanion[Int, T]](c: C) =
     boatStringAttr[T](v => s"${c.write(v)}")
