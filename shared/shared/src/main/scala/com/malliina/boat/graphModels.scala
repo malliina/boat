@@ -6,13 +6,6 @@ import io.circe.{Codec, Decoder, Encoder}
 
 import scala.concurrent.duration.FiniteDuration
 
-object DurationDoubleFormat:
-  import concurrent.duration.DurationDouble
-  given json: Codec[FiniteDuration] = Codec.from[FiniteDuration](
-    Decoder.decodeDouble.map(_.seconds),
-    Encoder.encodeDouble.contramap(fd => 1.0d * fd.toMillis / 1000)
-  )
-
 case class Link(to: Coord, cost: DistanceM) derives Codec.AsObject
 
 case class RouteSpec(links: List[Link], cost: DistanceM):
@@ -25,7 +18,7 @@ case class RouteSpec(links: List[Link], cost: DistanceM):
 
 object RouteSpec:
   val Cost = "cost"
-  given Codec[FiniteDuration] = DurationDoubleFormat.json
+  given Codec[FiniteDuration] = BoatFormats.durationDouble
   given Codec[RouteSpec] = deriveCodec[RouteSpec]
 
 case class RouteResult(
@@ -37,5 +30,5 @@ case class RouteResult(
 )
 
 object RouteResult:
-  given Codec[FiniteDuration] = DurationDoubleFormat.json
+  given Codec[FiniteDuration] = BoatFormats.durationDouble
   given Codec[RouteResult] = deriveCodec[RouteResult]

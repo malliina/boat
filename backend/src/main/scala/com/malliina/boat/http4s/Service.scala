@@ -19,6 +19,7 @@ import com.malliina.boat.parsing.CarCoord
 import com.malliina.boat.push.SourceState
 import com.malliina.http.{CSRFConf, Errors, SingleError}
 import com.malliina.http4s.CSRFSupport
+import com.malliina.measure.DistanceM
 import com.malliina.polestar.Polestar
 import com.malliina.util.AppLogger
 import com.malliina.values.{Email, Readable, Username}
@@ -41,7 +42,7 @@ import org.typelevel.ci.CIString
 
 import java.time.Instant
 import scala.annotation.unused
-import scala.concurrent.duration.DurationInt
+import scala.concurrent.duration.{DurationInt, FiniteDuration}
 
 object Service:
   private val log = AppLogger(getClass)
@@ -348,19 +349,22 @@ class Service[F[_]: {Async, Files}](
                 val insertion = body.updates
                   .traverse: loc =>
                     streams.saveCarCoord(CarCoord.fromUpdate(loc, meta.track, req.userAgent))
-                  .flatMap: inserteds =>
-                    val duration = System.currentTimeMillis() - start
-                    ok(SimpleMessage(s"Saved ${inserteds.size} updates in $duration ms."))
                   .onError: t =>
                     F.delay(log.error(s"Failed to save car locations. Got '${body.asJson}'.", t))
-                val pushTask = pushGeocoded(
+                def pushTask(latest: JoinedTrack) = pushGeocoded(
                   meta,
-                  result.isResumed,
+                  latest.distance,
+                  latest.duration,
                   body.updates.headOption.map(_.coord),
                   lang.lang.push,
                   input.receivedAt
                 )
-                pushTask >> insertion
+                for
+                  inserteds <- insertion
+                  _ <- inserteds.lastOption.map(i => pushTask(i.track)).getOrElse(F.pure(()))
+                  duration = System.currentTimeMillis() - start
+                  response <- ok(SimpleMessage(s"Saved ${inserteds.size} updates in $duration ms."))
+                yield response
           .getOrElse:
             notFound(Errors(SingleError.input(s"Car not found: '${body.carId}'.")))
     case req @ GET -> Root / "sign-in" =>
@@ -531,8 +535,8 @@ class Service[F[_]: {Async, Files}](
             .joinAsSource(boat)
             .flatMap: result =>
               val meta = result.track
-              pushGeocoded(meta, result.isResumed, at = None, lang = pushLang, now = now).flatMap:
-                _ =>
+              pushGeocoded(meta, DistanceM.zero, 0.seconds, at = None, lang = pushLang, now = now)
+                .flatMap: _ =>
                   webSocket(
                     sockets,
                     toClients,
@@ -544,13 +548,17 @@ class Service[F[_]: {Async, Files}](
                             Exception(s"Unacceptable message from ${boat.describe}: '$message'.")
                           ),
                         parsed =>
-                          val pushUpdate = pushGeocoded(
-                            meta,
-                            isResumed = true,
-                            at = None,
-                            lang = pushLang,
-                            now = Instant.now()
-                          )
+                          val pushUpdate = db
+                            .ref(meta.trackName, boat.language)
+                            .flatMap: ref =>
+                              pushGeocoded(
+                                meta,
+                                ref.distanceMeters,
+                                ref.duration,
+                                at = None,
+                                lang = pushLang,
+                                now = Instant.now()
+                              )
                           val publishEvent = streams.boatIn
                             .publish1(BoatEvent(parsed, meta, req.userAgent))
                             .map: e =>
@@ -571,7 +579,8 @@ class Service[F[_]: {Async, Files}](
                           .push(
                             meta,
                             SourceState.Disconnected,
-                            isResumed = false,
+                            DistanceM.zero,
+                            0.seconds,
                             geo = None,
                             lang = pushLang,
                             now = now
@@ -586,7 +595,8 @@ class Service[F[_]: {Async, Files}](
                           .push(
                             meta,
                             SourceState.Disconnected,
-                            isResumed = false,
+                            DistanceM.zero,
+                            0.seconds,
                             geo = None,
                             lang = pushLang,
                             now = now
@@ -600,7 +610,8 @@ class Service[F[_]: {Async, Files}](
 
   private def pushGeocoded(
     meta: TrackMeta,
-    isResumed: Boolean,
+    distance: DistanceM,
+    duration: FiniteDuration,
     at: Option[Coord],
     lang: PushLang,
     now: Instant
@@ -615,7 +626,7 @@ class Service[F[_]: {Async, Files}](
         F.pure(None)
     reverseGeo.flatMap: geo =>
       push
-        .push(meta, SourceState.Connected, isResumed, geo, lang, now)
+        .push(meta, SourceState.Connected, distance, duration, geo, lang, now)
         .void
         .handleErrorWith: t =>
           F.delay(

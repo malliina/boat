@@ -1,7 +1,7 @@
 package com.malliina.boat.html
 
 import cats.implicits.toShow
-import com.malliina.boat.BoatFormats.{durationHuman, formatDistance, inHours}
+import com.malliina.boat.BoatFormats.{durationHuman, inHours}
 import com.malliina.boat.FrontKeys.{Hidden, MonthRow, YearData, YearRow}
 import com.malliina.boat.http.{Limits, SortOrder, TrackSort, TracksQuery}
 import com.malliina.boat.{BoatLang as _, *}

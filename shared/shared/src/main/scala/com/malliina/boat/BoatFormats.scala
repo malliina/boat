@@ -1,10 +1,16 @@
 package com.malliina.boat
 
 import com.malliina.measure.{DistanceM, SpeedM, Temperature}
+import io.circe.{Codec, Decoder, Encoder}
 
-import scala.concurrent.duration.Duration
+import scala.concurrent.duration.{Duration, DurationDouble, FiniteDuration}
 
 object BoatFormats:
+  given durationDouble: Codec[FiniteDuration] = Codec.from[FiniteDuration](
+    Decoder.decodeDouble.map(_.seconds),
+    Encoder.encodeDouble.contramap(fd => 1.0d * fd.toMillis / 1000)
+  )
+
   def formatSpeed(s: SpeedM, source: SourceType, includeUnit: Boolean) =
     val unitSuffix =
       if includeUnit then s" ${speedUnit(source)}"

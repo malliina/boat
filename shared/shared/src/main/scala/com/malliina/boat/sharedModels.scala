@@ -12,7 +12,7 @@ import io.circe.generic.semiauto.deriveCodec
 import io.circe.syntax.EncoderOps
 import io.circe.{Codec, Decoder, DecodingFailure, Encoder, Json}
 
-import scala.concurrent.duration.Duration
+import scala.concurrent.duration.{Duration, FiniteDuration}
 import scala.language.implicitConversions
 import scala.math.Ordering.Double.TotalOrdering
 
@@ -381,7 +381,7 @@ trait TrackMetaLike:
   def username: Username
 
 trait TrackLike extends TrackMetaLike:
-  def duration: Duration
+  def duration: FiniteDuration
 
 case class TrackMetaShort(
   track: TrackId,
@@ -435,7 +435,7 @@ case class TrackRef(
   sourceType: SourceType,
   username: Username,
   points: Int,
-  duration: Duration,
+  duration: FiniteDuration,
   distanceMeters: DistanceM,
   topSpeed: Option[SpeedM],
   avgSpeed: Option[SpeedM],
@@ -447,7 +447,7 @@ case class TrackRef(
   def describe = trackTitle.map(TrackTitle.write).getOrElse(TrackName.write(trackName))
 
 object TrackRef:
-  given Codec[Duration] = PrimitiveFormats.durationCodec
+  given Codec[FiniteDuration] = BoatFormats.durationDouble
   val modern: Codec[TrackRef] = deriveCodec[TrackRef]
   given Codec[TrackRef] = Codec.from(
     modern,

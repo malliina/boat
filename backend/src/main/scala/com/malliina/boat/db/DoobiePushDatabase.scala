@@ -7,13 +7,14 @@ import com.malliina.boat.db.DoobiePushDatabase.log
 import com.malliina.boat.push.*
 import com.malliina.boat.{AppConf, MobileDevice, PushId, PushLang, PushToken, ReverseGeocode, SourceType, TrackMeta}
 import com.malliina.database.DoobieDatabase
+import com.malliina.measure.DistanceM
 import com.malliina.util.AppLogger
 import com.malliina.values.UserId
 import doobie.Fragments
 import doobie.implicits.*
 
 import java.time.Instant
-import scala.concurrent.duration.DurationInt
+import scala.concurrent.duration.FiniteDuration
 
 object DoobiePushDatabase:
   private val log = AppLogger(getClass)
@@ -85,7 +86,8 @@ class DoobiePushDatabase[F[_]: Async](db: DoobieDatabase[F], push: PushEndpoint[
   def push(
     device: TrackMeta,
     state: SourceState,
-    isResumed: Boolean,
+    distance: DistanceM,
+    duration: FiniteDuration,
     geo: Option[ReverseGeocode],
     lang: PushLang,
     now: Instant
@@ -97,8 +99,8 @@ class DoobiePushDatabase[F[_]: Async](db: DoobieDatabase[F], push: PushEndpoint[
         device.deviceName,
         device.trackName,
         state,
-        device.distance,
-        0.seconds,
+        distance,
+        duration,
         geo,
         lang
       )
@@ -108,13 +110,28 @@ class DoobiePushDatabase[F[_]: Async](db: DoobieDatabase[F], push: PushEndpoint[
       sql"""select id, token, device, device_id, live_activity, user, added
             from push_clients
             where user = ${device.userId}
-              and ((device = ${MobileDevice.IOSActivityUpdate} and live_activity = ${device.trackName})
-                or (not device = ${MobileDevice.IOSActivityUpdate} and not device = ${MobileDevice.IOSActivityStart} and not $isResumed)
-                or (device = ${MobileDevice.IOSActivityStart} and not exists(select pc1.id from push_clients pc1 join push_clients pc2 on pc1.device_id = pc2.device_id where pc1.device = ${MobileDevice.IOSActivityStart} and pc2.device = ${MobileDevice.IOSActivityUpdate} and pc2.live_activity = ${device.trackName})))
+              and not device = ${MobileDevice.IOSActivityUpdate}
+              and not device = ${MobileDevice.IOSActivityStart}
               and not exists(select timestampdiff(SECOND, max(h.added), now())
                              from push_history h
                              where h.device = $deviceId
                              having timestampdiff(SECOND, max(h.added), now()) < 300)"""
+        .query[PushDevice]
+        .to[List]
+    // At most once every 5 seconds
+    val liveActivityDevices = db.run:
+      sql"""select id, token, device, device_id, live_activity, user, added
+            from push_clients
+            where user = ${device.userId}
+              and ((device = ${MobileDevice.IOSActivityUpdate} and live_activity = ${device.trackName})
+                or (device = ${MobileDevice.IOSActivityStart}
+                    and not exists(select pc1.id
+                                   from push_clients pc1 join push_clients pc2 on pc1.device_id = pc2.device_id
+                                   where pc1.device = ${MobileDevice.IOSActivityStart} and pc2.device = ${MobileDevice.IOSActivityUpdate} and pc2.live_activity = ${device.trackName})))
+              and not exists(select timestampdiff(SECOND, max(h.added), now())
+                             from push_history h
+                             where h.device = $deviceId
+                             having timestampdiff(SECOND, max(h.added), now()) < 5)"""
         .query[PushDevice]
         .to[List]
     val bookkeeping = db.run:
@@ -122,7 +139,11 @@ class DoobiePushDatabase[F[_]: Async](db: DoobieDatabase[F], push: PushEndpoint[
         log.info(s"Recorded push history for device '$deviceId' (${device.deviceName}).")
     for
       tokens <- devices
-      results <- tokens.traverse(token => push.push(notification, token, now))
+      liveActivityTokens <- liveActivityDevices
+      pushable = liveActivityTokens ++ tokens.filterNot(t =>
+        t.phoneId.exists(pid => liveActivityTokens.exists(_.phoneId.contains(pid)))
+      )
+      results <- pushable.traverse(token => push.push(notification, token, now))
       summary = results.fold(PushSummary.empty)(_ ++ _)
       _ <- handle(summary)
       _ <- if tokens.nonEmpty then bookkeeping else F.unit
