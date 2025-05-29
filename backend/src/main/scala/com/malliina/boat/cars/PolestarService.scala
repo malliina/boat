@@ -65,9 +65,7 @@ class PolestarService[F[_]: Async](
     for
       ts <- polestar.auth.refresh(refreshToken)
       saved <- storeNewTokens(ts, owner)
-    yield
-      log.info(s"Refreshed $service tokens for '$owner'.")
-      saved
+    yield saved
 
   private def storeNewTokens(updated: Tokens, owner: UserId): F[Tokens] =
     for

@@ -216,14 +216,17 @@ class DoobieUserManager[F[_]](db: DoobieDatabase[F]) extends IdentityManager[F] 
       sql"""insert into refresh_tokens(id, refresh_token, owner, service)
             values($tokenId, $token, $user, $service)""".update.run
     insertion.flatMap: _ =>
-      log.info(s"Saved $service refresh token with ID '$tokenId' for user $user.")
+      log.info(s"Saved $service refresh token with ID '$tokenId' for user '$user'.")
       loadTokenIO(tokenId)
 
   def remove(token: RefreshTokenId): F[Int] = run:
     sql"""delete from refresh_tokens where id = $token""".update.run
 
   def removeTokens(user: UserId, service: RefreshService): F[Int] = run:
-    sql"""delete from refresh_tokens where owner = $user and service = $service""".update.run
+    sql"""delete from refresh_tokens where owner = $user and service = $service""".update.run.map:
+      rows =>
+        if rows > 0 then log.info(s"Removed $rows $service refresh token(s) for '$user'.")
+        rows
 
   def load(token: RefreshTokenId): F[RefreshRow] = run(loadTokenIO(token))
 
@@ -238,7 +241,6 @@ class DoobieUserManager[F[_]](db: DoobieDatabase[F]) extends IdentityManager[F] 
       .to[List]
 
   private def loadTokenIO(id: RefreshTokenId) =
-    log.info(s"Loading token '$id'...")
     sql"""select id, refresh_token, owner, last_verification, now() > date_add(last_verification, interval 1 day) as can_verify, added
           from refresh_tokens
           where id = $id
