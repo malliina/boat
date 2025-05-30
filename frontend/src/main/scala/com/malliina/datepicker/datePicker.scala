@@ -2,7 +2,7 @@ package com.malliina.datepicker
 
 import org.scalajs.dom.Element
 
-import scala.annotation.unused
+import scala.annotation.nowarn
 import scala.scalajs.js
 import scala.scalajs.js.Date
 import scala.scalajs.js.Dynamic.literal
@@ -181,7 +181,7 @@ trait Dates extends js.Object:
 
 @js.native
 @JSImport("@eonasdan/tempus-dominus", "TempusDominus")
-class TempusDominus(@unused e: Element, @unused options: TimeOptions) extends js.Object:
+class TempusDominus(@nowarn e: Element, @nowarn options: TimeOptions) extends js.Object:
   var viewDate: js.UndefOr[DateTime] = js.native
   def updateOptions(opts: TimeOptions, reset: Boolean): Unit = js.native
   def picked: js.UndefOr[js.Array[Date]] = js.native

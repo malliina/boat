@@ -8,8 +8,6 @@ import io.circe.*
 import io.circe.syntax.EncoderOps
 import org.scalajs.dom.*
 
-import scala.annotation.unused
-
 class FormHandlers[F[_]: Async](http: Http[F]) extends BaseFront:
   def titles(): Either[NotFound, TitleHandler[F]] =
     for
@@ -59,8 +57,7 @@ class TitleHandler[F[_]: Async](
   form: HTMLFormElement,
   editIcon: Element,
   cancel: HTMLButtonElement,
-  http: Http[F],
-  @unused log: BaseLogger = BaseLogger.console
+  http: Http[F]
 ) extends AjaxForm(form, editIcon, TrackRow, cancel):
   form.onsubmit = (e: Event) =>
     elemAs[HTMLInputElement](TitleInputId).map: in =>

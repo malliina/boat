@@ -2,7 +2,7 @@ package com.malliina.chartjs
 
 import org.scalajs.dom.CanvasRenderingContext2D
 
-import scala.annotation.unused
+import scala.annotation.nowarn
 import scala.scalajs.js
 import scala.scalajs.js.Dynamic.literal
 import scala.scalajs.js.JSConverters.*
@@ -197,7 +197,7 @@ object ChartSpecs:
 
 @js.native
 @JSImport("chart.js", "Chart")
-class Chart(@unused ctx: CanvasRenderingContext2D, @unused options: ChartSpecs) extends js.Object:
+class Chart(@nowarn ctx: CanvasRenderingContext2D, @nowarn options: ChartSpecs) extends js.Object:
   def data: ChartData = js.native
   def update(): Unit = js.native
 

@@ -11,7 +11,7 @@ import org.scalajs.dom
 import org.scalajs.dom.{HTMLCanvasElement, html}
 import scalatags.JsDom.TypedTag
 
-import scala.annotation.unused
+import scala.annotation.nowarn
 import scala.scalajs.js
 import scala.scalajs.js.Dynamic.literal
 import scala.scalajs.js.JSConverters.*
@@ -42,7 +42,7 @@ object GeocoderOptions:
 
 @js.native
 @JSImport("@mapbox/mapbox-gl-geocoder", JSImport.Default)
-class MapboxGeocoder(@unused options: GeocoderOptions) extends js.Object:
+class MapboxGeocoder(@nowarn options: GeocoderOptions) extends js.Object:
   def clear: Unit = js.native
 
 object MapboxGeocoder:
@@ -62,7 +62,7 @@ object MarkerOptions:
 
 @js.native
 @JSImport("mapbox-gl", "Marker")
-class MapboxMarker(@unused options: MarkerOptions) extends js.Object:
+class MapboxMarker(@nowarn options: MarkerOptions) extends js.Object:
   def setLngLat(coord: LngLatLike): MapboxMarker = js.native
   def getLngLat(): LngLat = js.native
   def setPopup(popup: MapboxPopup): MapboxMarker = js.native
@@ -111,7 +111,7 @@ object PopupOptions:
 
 @js.native
 @JSImport("mapbox-gl", "Popup")
-class MapboxPopup(@unused options: PopupOptions) extends js.Object:
+class MapboxPopup(@nowarn options: PopupOptions) extends js.Object:
   def setLngLat(coord: LngLatLike): MapboxPopup = js.native
   def setHTML(html: String): MapboxPopup = js.native
   def setText(text: String): MapboxPopup = js.native
@@ -143,7 +143,7 @@ object QueryOptions:
 
 @js.native
 @JSImport("mapbox-gl", "Map")
-class MapboxMap(@unused options: MapOptions) extends js.Object:
+class MapboxMap(@nowarn options: MapOptions) extends js.Object:
   def addControl(control: MapboxGeocoder): MapboxMap = js.native
   def removeControl(control: MapboxGeocoder): MapboxMap = js.native
   def flyTo(options: FlyOptions): Unit = js.native
@@ -219,8 +219,8 @@ object MapboxMap:
       self.on("mouseleave", layerIds.toJSArray, e => out(e))
 
     def onHoverCursorPointer(layerId: String): Unit = onHover(layerId)(
-      in => self.getCanvas().style.cursor = "pointer",
-      out => self.getCanvas().style.cursor = ""
+      _ => self.getCanvas().style.cursor = "pointer",
+      _ => self.getCanvas().style.cursor = ""
     )
 
     def initImage[F[_]: Async](uri: String, iconId: String): F[Unit] =
@@ -242,7 +242,7 @@ object MapboxMap:
 
 @js.native
 @JSImport("mapbox-gl", "LngLatBounds")
-class LngLatBounds(@unused sw: LngLatLike, @unused ne: LngLatLike) extends js.Object:
+class LngLatBounds(@nowarn sw: LngLatLike, ne: LngLatLike) extends js.Object:
   def extend(bounds: LngLatBounds): LngLatBounds = js.native
   def extend(bounds: LngLat): LngLatBounds = js.native
   def isEmpty: Boolean = js.native
@@ -326,7 +326,7 @@ object GeoJsonSource:
 
 @js.native
 @JSImport("mapbox-gl", "LngLat")
-class LngLat(@unused lng: Double, @unused lat: Double) extends LngLatLike
+class LngLat(@nowarn lng: Double, @nowarn lat: Double) extends LngLatLike
 
 object LngLat:
   def apply(coord: Coord): LngLat = new LngLat(coord.lng.lng, coord.lat.lat)
