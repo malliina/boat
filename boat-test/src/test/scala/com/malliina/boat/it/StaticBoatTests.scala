@@ -6,6 +6,8 @@ import com.malliina.util.AppLogger
 import fs2.Stream
 import fs2.concurrent.SignallingRef
 
+import scala.concurrent.duration.FiniteDuration
+
 class StaticBoatTests extends BoatTests:
   val log = AppLogger(getClass)
 
@@ -20,15 +22,13 @@ class StaticBoatTests extends BoatTests:
     "$GPGGA,141209,6009.3630,N,02453.7997,E,1,12,0.60,-3,M,19.6,M,,*4F"
   ).map(RawSentence.apply)
 
-  // TODO fix this test
-  test("GPS reporting".ignore):
+  test("GPS reporting"):
     val client = TestHttp.client
     val boatName = BoatNames.random()
     SignallingRef[IO, Boolean](false).flatMap: complete =>
       openTestBoat(boatName, client): boat =>
         Deferred[IO, CoordsEvent].flatMap: coordPromise =>
           Deferred[IO, Boolean].flatMap: viewing =>
-            val testMessage = SentencesMessage(testTrack.take(6))
             val testCoord = Coord.buildOrFail(24.89171, 60.1532)
             val viewer = openViewerSocket(client, None): socket =>
               viewing.complete(true) >>
@@ -43,7 +43,7 @@ class StaticBoatTests extends BoatTests:
                   .compile
                   .drain
             val messages = viewing.get >> boat
-              .send(testMessage)
+              .send(SentencesMessage(testTrack.take(6)))
               .flatMap: sent =>
                 assert(sent)
                 coordPromise.get.map: coordsEvent =>

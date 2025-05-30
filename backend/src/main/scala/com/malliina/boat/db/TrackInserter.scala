@@ -126,28 +126,8 @@ class TrackInserter[F[_]](val db: DoobieDatabase[F]) extends TrackInsertsDatabas
   private def save(
     pairs: NonEmptyList[(RawSentence, TrackId)]
   ): fs2.Stream[ConnectionIO, SentenceKey] =
-    val params = pairs.toList.map(_ => "(?,?)").mkString(",")
-    val sql = s"insert into sentences(sentence, track) values$params"
-    HC.stream[SentenceKey](
-      FC.prepareStatement(sql, List("id").toArray),
-      makeParams(pairs.toList),
-      FPS.executeUpdate *> FPS.getGeneratedKeys,
-      chunkSize = 512,
-      loggingInfo = LoggingInfo(sql, Parameters.Batch(() => List(Nil)), "save")
-    )
-
-  @tailrec
-  private def makeParams(
-    pairs: List[(RawSentence, TrackId)],
-    acc: PreparedStatementIO[Unit] = ().pure[PreparedStatementIO],
-    pos: Int = 0
-  ): PreparedStatementIO[Unit] =
-    pairs match
-      case (s, t) :: tail =>
-        val nextAcc = acc *> HPS.set(pos + 1, s) *> HPS.set(pos + 2, t)
-        makeParams(tail, nextAcc, pos + 2)
-      case Nil =>
-        acc
+    val sql = s"insert into sentences(sentence, track) values (?, ?)"
+    Update[(RawSentence, TrackId)](sql).updateManyWithGeneratedKeys[SentenceKey]("id")(pairs.toList)
 
   def saveCoords(coord: PointInsert): F[InsertedPoint] = run:
     val track = coord.track
