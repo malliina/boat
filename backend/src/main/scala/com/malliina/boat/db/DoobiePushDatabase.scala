@@ -5,16 +5,12 @@ import cats.syntax.all.{catsSyntaxList, toFlatMapOps, toFunctorOps, toTraverseOp
 import com.malliina.boat.MobileDevice.{IOSActivityStart, IOSActivityUpdate}
 import com.malliina.boat.db.DoobiePushDatabase.log
 import com.malliina.boat.push.*
-import com.malliina.boat.{AppConf, MobileDevice, PushId, PushLang, PushToken, ReverseGeocode, SourceType, TrackMeta}
+import com.malliina.boat.{AppConf, MobileDevice, PushId, PushToken, ReverseGeocode, SourceType}
 import com.malliina.database.DoobieDatabase
-import com.malliina.measure.DistanceM
 import com.malliina.util.AppLogger
 import com.malliina.values.UserId
 import doobie.Fragments
 import doobie.implicits.*
-
-import java.time.Instant
-import scala.concurrent.duration.FiniteDuration
 
 object DoobiePushDatabase:
   private val log = AppLogger(getClass)
@@ -83,26 +79,19 @@ class DoobiePushDatabase[F[_]: Async](db: DoobieDatabase[F], push: PushEndpoint[
 
   /** Pushes at most once every five minutes to a given device.
     */
-  def push(
-    device: TrackMeta,
-    state: SourceState,
-    distance: DistanceM,
-    duration: FiniteDuration,
-    geo: Option[ReverseGeocode],
-    lang: PushLang,
-    now: Instant
-  ): F[PushSummary] =
+  def push(state: PushState, geo: Option[ReverseGeocode]): F[PushSummary] =
+    val device = state.device
     val title = if device.sourceType == SourceType.Vehicle then AppConf.CarName else AppConf.Name
     val notification =
       SourceNotification(
         title,
         device.deviceName,
         device.trackName,
-        state,
-        distance,
-        duration,
+        state.state,
+        state.distance,
+        state.duration,
         geo,
-        lang
+        state.lang
       )
     val deviceId = device.device
     val devices = db.run:
@@ -112,6 +101,7 @@ class DoobiePushDatabase[F[_]: Async](db: DoobieDatabase[F], push: PushEndpoint[
             where user = ${device.userId}
               and not device = ${MobileDevice.IOSActivityUpdate}
               and not device = ${MobileDevice.IOSActivityStart}
+              and not ${state.isResumed}
               and not exists(select timestampdiff(SECOND, max(h.added), now())
                              from push_history h
                              where h.device = $deviceId
@@ -143,7 +133,7 @@ class DoobiePushDatabase[F[_]: Async](db: DoobieDatabase[F], push: PushEndpoint[
       pushable = liveActivityTokens ++ tokens.filterNot(t =>
         t.phoneId.exists(pid => liveActivityTokens.exists(_.phoneId.contains(pid)))
       )
-      results <- pushable.traverse(token => push.push(notification, token, now))
+      results <- pushable.traverse(token => push.push(notification, token, state.now))
       summary = results.fold(PushSummary.empty)(_ ++ _)
       _ <- handle(summary)
       _ <- if tokens.nonEmpty then bookkeeping else F.unit

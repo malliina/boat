@@ -16,7 +16,7 @@ import com.malliina.http4s.BasicService.noCache
 import com.malliina.boat.http4s.BoatBasicService.{cached, ranges}
 import com.malliina.boat.http4s.Service.{isSecured, log, userAgent}
 import com.malliina.boat.parsing.CarCoord
-import com.malliina.boat.push.SourceState
+import com.malliina.boat.push.{PushState, SourceState}
 import com.malliina.http.{CSRFConf, Errors, SingleError}
 import com.malliina.http4s.CSRFSupport
 import com.malliina.measure.DistanceM
@@ -42,7 +42,7 @@ import org.typelevel.ci.CIString
 
 import java.time.Instant
 import scala.annotation.unused
-import scala.concurrent.duration.{DurationInt, FiniteDuration}
+import scala.concurrent.duration.DurationInt
 
 object Service:
   private val log = AppLogger(getClass)
@@ -351,14 +351,19 @@ class Service[F[_]: {Async, Files}](
                     streams.saveCarCoord(CarCoord.fromUpdate(loc, meta.track, req.userAgent))
                   .onError: t =>
                     F.delay(log.error(s"Failed to save car locations. Got '${body.asJson}'.", t))
-                def pushTask(latest: JoinedTrack) = pushGeocoded(
-                  meta,
-                  latest.distance,
-                  latest.duration,
-                  body.updates.headOption.map(_.coord),
-                  lang.lang.push,
-                  input.receivedAt
-                )
+                def pushTask(latest: JoinedTrack) =
+                  val state = PushState(
+                    meta,
+                    SourceState.Connected,
+                    latest.distance,
+                    latest.duration,
+                    result.isResumed,
+                    body.updates.headOption.map(_.coord),
+                    lang.lang.push,
+                    input.receivedAt
+                  )
+                  pushGeocoded(state)
+
                 for
                   inserteds <- insertion
                   _ <- inserteds.lastOption.map(i => pushTask(i.track)).getOrElse(F.pure(()))
@@ -535,7 +540,17 @@ class Service[F[_]: {Async, Files}](
             .joinAsSource(boat)
             .flatMap: result =>
               val meta = result.track
-              pushGeocoded(meta, DistanceM.zero, 0.seconds, at = None, lang = pushLang, now = now)
+              val state = PushState(
+                meta,
+                SourceState.Connected,
+                DistanceM.zero,
+                0.seconds,
+                result.isResumed,
+                at = None,
+                lang = pushLang,
+                now = now
+              )
+              pushGeocoded(state)
                 .flatMap: _ =>
                   webSocket(
                     sockets,
@@ -549,16 +564,19 @@ class Service[F[_]: {Async, Files}](
                           ),
                         parsed =>
                           val pushUpdate = db
-                            .ref(meta.trackName, boat.language)
+                            .refOpt(meta.trackName, boat.language)
                             .flatMap: ref =>
-                              pushGeocoded(
+                              val updatedState = PushState(
                                 meta,
-                                ref.distanceMeters,
-                                ref.duration,
+                                SourceState.Connected,
+                                ref.map(_.distanceMeters).getOrElse(DistanceM.zero),
+                                ref.map(_.duration).getOrElse(0.seconds),
+                                isResumed = true,
                                 at = None,
                                 lang = pushLang,
                                 now = Instant.now()
                               )
+                              pushGeocoded(updatedState)
                           val publishEvent = streams.boatIn
                             .publish1(BoatEvent(parsed, meta, req.userAgent))
                             .map: e =>
@@ -575,32 +593,36 @@ class Service[F[_]: {Async, Files}](
                     onClose = F
                       .delay(log.info(s"Boat ${boat.describe} left."))
                       .flatMap: _ =>
+                        val state = PushState(
+                          meta,
+                          SourceState.Disconnected,
+                          DistanceM.zero,
+                          0.seconds,
+                          isResumed = false,
+                          at = None,
+                          lang = pushLang,
+                          now = now
+                        )
                         push
-                          .push(
-                            meta,
-                            SourceState.Disconnected,
-                            DistanceM.zero,
-                            0.seconds,
-                            geo = None,
-                            lang = pushLang,
-                            now = now
-                          )
+                          .push(state, geo = None)
                           .map(_ => ())
                       .handleError: err =>
                         log.warn(s"Failed to notify of disconnection of ${boat.describe}.", err)
                   ).onError: t =>
                     F.delay(log.info(s"Boat ${boat.describe} left exceptionally.", t))
                       .flatMap: _ =>
+                        val state = PushState(
+                          meta,
+                          SourceState.Disconnected,
+                          DistanceM.zero,
+                          0.seconds,
+                          isResumed = false,
+                          at = None,
+                          lang = pushLang,
+                          now = now
+                        )
                         push
-                          .push(
-                            meta,
-                            SourceState.Disconnected,
-                            DistanceM.zero,
-                            0.seconds,
-                            geo = None,
-                            lang = pushLang,
-                            now = now
-                          )
+                          .push(state, geo = None)
                           .map(_ => ())
                       .handleError: err =>
                         log.info(s"Failed to handler error of ${boat.describe}.", err)
@@ -608,15 +630,8 @@ class Service[F[_]: {Async, Files}](
   def routes(sockets: WebSocketBuilder2[F]): HttpRoutes[F] =
     normalRoutes.combineK(socketRoutes(sockets))
 
-  private def pushGeocoded(
-    meta: TrackMeta,
-    distance: DistanceM,
-    duration: FiniteDuration,
-    at: Option[Coord],
-    lang: PushLang,
-    now: Instant
-  ) =
-    val reverseGeo = at
+  private def pushGeocoded(state: PushState) =
+    val reverseGeo = state.at
       .map: coord =>
         comps.mapbox
           .reverseGeocode(coord)
@@ -626,11 +641,14 @@ class Service[F[_]: {Async, Files}](
         F.pure(None)
     reverseGeo.flatMap: geo =>
       push
-        .push(meta, SourceState.Connected, distance, duration, geo, lang, now)
+        .push(state, geo)
         .void
         .handleErrorWith: t =>
           F.delay(
-            log.error(s"Failed to push all device notifications for '${meta.deviceName}'.", t)
+            log.error(
+              s"Failed to push all device notifications for '${state.device.deviceName}'.",
+              t
+            )
           )
 
   private def webSocket(

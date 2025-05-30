@@ -216,6 +216,9 @@ class DoobieTracksDatabase[F[_]: Async](val db: DoobieDatabase[F])
   def ref(track: TrackName, language: Language): F[TrackRef] =
     single(sql.trackByName(track), language)
 
+  def refOpt(track: TrackName, language: Language): F[Option[TrackRef]] =
+    option(sql.trackByName(track), language)
+
   def canonical(trackCanonical: TrackCanonical, language: Language): F[TrackRef] =
     single(sql.tracksByCanonicals(NonEmptyList.of(trackCanonical)), language)
 
@@ -293,6 +296,12 @@ class DoobieTracksDatabase[F[_]: Async](val db: DoobieDatabase[F])
 
   private def single(oneRowSql: Fragment, language: Language) = run:
     oneRowSql.query[JoinedTrack].unique.map(row => row.strip(TimeFormatter.lang(language)))
+
+  private def option(oneRowSql: Fragment, language: Language) = run:
+    oneRowSql
+      .query[JoinedTrack]
+      .option
+      .map(opt => opt.map(row => row.strip(TimeFormatter.lang(language))))
 
   def tracksFor(user: MinimalUserInfo, filter: TracksQuery): F[Tracks] = run:
     tracksForIO(user, filter)
