@@ -646,7 +646,7 @@ class Service[F[_]: {Async, Files}](
         .handleErrorWith: t =>
           F.delay(
             log.error(
-              s"Failed to push all device notifications for '${state.device.deviceName}'.",
+              s"Failed to push all device notifications for '${state.track.deviceName}'.",
               t
             )
           )

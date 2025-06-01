@@ -9,7 +9,7 @@ import java.time.Instant
 import scala.concurrent.duration.FiniteDuration
 
 case class PushState(
-  device: TrackMeta,
+  track: TrackMeta,
   state: SourceState,
   distance: DistanceM,
   duration: FiniteDuration,

@@ -4,13 +4,15 @@ import cats.effect.Async
 import cats.syntax.all.{catsSyntaxList, toFlatMapOps, toFunctorOps, toTraverseOps}
 import com.malliina.boat.MobileDevice.{IOSActivityStart, IOSActivityUpdate}
 import com.malliina.boat.db.DoobiePushDatabase.log
+import com.malliina.boat.db.Values.RowsChanged
 import com.malliina.boat.push.*
-import com.malliina.boat.{AppConf, MobileDevice, PushId, PushToken, ReverseGeocode, SourceType}
+import com.malliina.boat.{AppConf, DeviceId, MobileDevice, PushId, PushToken, ReverseGeocode, SourceType, TrackName}
 import com.malliina.database.DoobieDatabase
 import com.malliina.util.AppLogger
 import com.malliina.values.UserId
 import doobie.Fragments
 import doobie.implicits.*
+import doobie.util.update.Update
 
 object DoobiePushDatabase:
   private val log = AppLogger(getClass)
@@ -80,29 +82,31 @@ class DoobiePushDatabase[F[_]: Async](db: DoobieDatabase[F], push: PushEndpoint[
   /** Pushes at most once every five minutes to a given device.
     */
   def push(state: PushState, geo: Option[ReverseGeocode]): F[PushSummary] =
-    val device = state.device
-    val title = if device.sourceType == SourceType.Vehicle then AppConf.CarName else AppConf.Name
+    val track = state.track
+    val title = if track.sourceType == SourceType.Vehicle then AppConf.CarName else AppConf.Name
     val notification =
       SourceNotification(
         title,
-        device.deviceName,
-        device.trackName,
+        track.deviceName,
+        track.trackName,
         state.state,
         state.distance,
         state.duration,
         geo,
         state.lang
       )
-    val deviceId = device.device
+    val deviceId = track.device
+    val activityStart = MobileDevice.IOSActivityStart
+    val activityUpdate = MobileDevice.IOSActivityUpdate
     val devices = db.run:
       // pushes at most once every five minutes as per the "not exists" clause
       sql"""select id, token, device, device_id, live_activity, user, added
             from push_clients
-            where user = ${device.userId}
-              and not device = ${MobileDevice.IOSActivityUpdate}
-              and not device = ${MobileDevice.IOSActivityStart}
+            where user = ${track.userId}
+              and not device = $activityUpdate
+              and not device = $activityStart
               and not ${state.isResumed}
-              and not exists(select timestampdiff(SECOND, max(h.added), now())
+              and not exists(select h.id
                              from push_history h
                              where h.device = $deviceId
                              having timestampdiff(SECOND, max(h.added), now()) < 300)"""
@@ -112,21 +116,30 @@ class DoobiePushDatabase[F[_]: Async](db: DoobieDatabase[F], push: PushEndpoint[
     val liveActivityDevices = db.run:
       sql"""select id, token, device, device_id, live_activity, user, added
             from push_clients
-            where user = ${device.userId}
-              and ((device = ${MobileDevice.IOSActivityUpdate} and live_activity = ${device.trackName})
-                or (device = ${MobileDevice.IOSActivityStart}
-                    and not exists(select pc1.id
-                                   from push_clients pc1 join push_clients pc2 on pc1.device_id = pc2.device_id
-                                   where pc1.device = ${MobileDevice.IOSActivityStart} and pc2.device = ${MobileDevice.IOSActivityUpdate} and pc2.live_activity = ${device.trackName})))
-              and not exists(select timestampdiff(SECOND, max(h.added), now())
-                             from push_history h
-                             where h.device = $deviceId
-                             having timestampdiff(SECOND, max(h.added), now()) < 5)"""
+            where user = ${track.userId}
+              and ((device = $activityUpdate
+                    and live_activity = ${track.trackName}
+                    and not device_id in (select pc.device_id
+                                          from push_clients pc join push_history h on pc.id = h.client
+                                          where pc.device_id = $deviceId and pc.device = $activityUpdate and pc.live_activity = ${track.trackName}
+                                          having timestampdiff(SECOND, max(h.added), now()) < 5)
+                    )
+                or (device = $activityStart
+                    and not device_id in (select pc.device_id
+                                          from push_clients pc join push_history h on pc.id = h.client
+                                          where pc.device_id = $deviceId and pc.device = $activityStart and h.live_activity = ${track.trackName})))
+              """
         .query[PushDevice]
         .to[List]
-    val bookkeeping = db.run:
-      sql"""insert into push_history(device) values($deviceId)""".update.run.map: _ =>
-        log.info(s"Recorded push history for device '$deviceId' (${device.deviceName}).")
+    def bookkeeping(ds: Seq[PushDevice]) = db.run:
+      val rows = ds.map(d => (deviceId, d.id, d.liveActivityId))
+      Update[(DeviceId, PushId, Option[TrackName])](
+        s"insert into push_history(device, client, live_activity) values(?, ?, ?)"
+      )
+        .updateMany(rows)
+        .map: rows =>
+          log.info(s"Recorded push history for device '$deviceId' (${track.deviceName}).")
+          RowsChanged(rows)
     for
       tokens <- devices
       liveActivityTokens <- liveActivityDevices
@@ -136,7 +149,7 @@ class DoobiePushDatabase[F[_]: Async](db: DoobieDatabase[F], push: PushEndpoint[
       results <- pushable.traverse(token => push.push(notification, token, state.now))
       summary = results.fold(PushSummary.empty)(_ ++ _)
       _ <- handle(summary)
-      _ <- if tokens.nonEmpty then bookkeeping else F.unit
+      _ <- if pushable.nonEmpty then bookkeeping(pushable).void else F.unit
     yield summary
 
   private def handle(summary: PushSummary): F[Int] =
