@@ -25,7 +25,7 @@ class DoobiePushDatabase[F[_]: Async](db: DoobieDatabase[F], push: PushEndpoint[
   def enable(input: PushInput): F[PushId] = db.run:
     val existing = sql"""select id
                          from push_clients
-                         where token = ${input.token} and device = ${input.device}"""
+                         where token = ${input.token} and device = ${input.device} and device_id = ${input.deviceId}"""
       .query[PushId]
       .option
     existing.flatMap: idOpt =>
@@ -37,6 +37,8 @@ class DoobiePushDatabase[F[_]: Async](db: DoobieDatabase[F], push: PushEndpoint[
           pure(id)
         .getOrElse:
           val user = input.user
+          val oldDeletion =
+            sql"""delete from push_clients where token = ${input.token} and user = $user""".update.run
           val pushToStartDeletion = input.deviceId
             .filter(_ => input.device == IOSActivityStart)
             .fold(pure(0)): deviceId =>
@@ -50,10 +52,12 @@ class DoobiePushDatabase[F[_]: Async](db: DoobieDatabase[F], push: PushEndpoint[
                   values(${input.token}, ${input.device}, ${input.deviceId}, ${input.liveActivityId}, $user)""".update
               .withUniqueGeneratedKeys[PushId]("id")
           for
+            olds <- oldDeletion
             startDeletion <- pushToStartDeletion
             updateDeletion <- activityUpdateDeletion
             id <- insertion
           yield
+            val describeOlds = if olds > 0 then s"Deleted $olds old tokens." else ""
             val describeStartDeletion =
               if startDeletion > 0 then s"Deleted $startDeletion old Live Activity start token(s)."
               else ""
@@ -64,9 +68,10 @@ class DoobiePushDatabase[F[_]: Async](db: DoobieDatabase[F], push: PushEndpoint[
               else ""
             val basic =
               s"Enabled ${input.device} notifications for user $user with token '${input.token}'."
-            val msg = Seq(basic, describeActivity, describeDeletion, describeStartDeletion)
-              .filter(_.nonEmpty)
-              .mkString(" ")
+            val msg =
+              Seq(basic, describeOlds, describeActivity, describeDeletion, describeStartDeletion)
+                .filter(_.nonEmpty)
+                .mkString(" ")
             log.info(msg)
             id
 
@@ -132,13 +137,13 @@ class DoobiePushDatabase[F[_]: Async](db: DoobieDatabase[F], push: PushEndpoint[
         .query[PushDevice]
         .to[List]
     def bookkeeping(ds: Seq[PushDevice]) = db.run:
-      val rows = ds.map(d => (deviceId, d.id, d.liveActivityId))
-      Update[(DeviceId, PushId, Option[TrackName])](
+      val rows = ds.map(d => (deviceId, d.id, track.trackName))
+      Update[(DeviceId, PushId, TrackName)](
         s"insert into push_history(device, client, live_activity) values(?, ?, ?)"
       )
         .updateMany(rows)
         .map: rows =>
-          log.info(s"Recorded push history for device '$deviceId' (${track.deviceName}).")
+          log.debug(s"Recorded push history for device '$deviceId' (${track.deviceName}).")
           RowsChanged(rows)
     for
       tokens <- devices
