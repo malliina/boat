@@ -100,7 +100,7 @@ class DoobiePushDatabase[F[_]: Async](db: DoobieDatabase[F], push: PushEndpoint[
         geo,
         state.lang
       )
-    val deviceId = track.device
+    val boatId = track.device
     val activityStart = MobileDevice.IOSActivityStart
     val activityUpdate = MobileDevice.IOSActivityUpdate
     val devices = db.run:
@@ -113,7 +113,7 @@ class DoobiePushDatabase[F[_]: Async](db: DoobieDatabase[F], push: PushEndpoint[
               and not ${state.isResumed}
               and not exists(select h.id
                              from push_history h
-                             where h.device = $deviceId
+                             where h.device = $boatId
                              having timestampdiff(SECOND, max(h.added), now()) < 300)"""
         .query[PushDevice]
         .to[List]
@@ -126,24 +126,24 @@ class DoobiePushDatabase[F[_]: Async](db: DoobieDatabase[F], push: PushEndpoint[
                     and live_activity = ${track.trackName}
                     and not device_id in (select pc.device_id
                                           from push_clients pc join push_history h on pc.id = h.client
-                                          where pc.device_id = $deviceId and pc.device = $activityUpdate and pc.live_activity = ${track.trackName}
+                                          where pc.device = $activityUpdate and pc.live_activity = ${track.trackName}
                                           having timestampdiff(SECOND, max(h.added), now()) < 5)
                     )
                 or (device = $activityStart
                     and not device_id in (select pc.device_id
                                           from push_clients pc join push_history h on pc.id = h.client
-                                          where pc.device_id = $deviceId and pc.device = $activityStart and h.live_activity = ${track.trackName})))
+                                          where pc.device = $activityStart and h.live_activity = ${track.trackName})))
               """
         .query[PushDevice]
         .to[List]
     def bookkeeping(ds: Seq[PushDevice]) = db.run:
-      val rows = ds.map(d => (deviceId, d.id, track.trackName))
+      val rows = ds.map(d => (boatId, d.id, track.trackName))
       Update[(DeviceId, PushId, TrackName)](
         s"insert into push_history(device, client, live_activity) values(?, ?, ?)"
       )
         .updateMany(rows)
         .map: rows =>
-          log.debug(s"Recorded push history for device '$deviceId' (${track.deviceName}).")
+          log.debug(s"Saved $rows push history rows for device '$boatId' (${track.deviceName}).")
           RowsChanged(rows)
     for
       tokens <- devices
