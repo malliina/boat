@@ -35,7 +35,7 @@ class DoobiePushDatabase[F[_]: Async](db: DoobieDatabase[F], push: PushEndpoint[
     existing.flatMap: idOpt =>
       idOpt
         .map: status =>
-          log.debug(
+          log.info(
             s"${input.device} token $token already registered for push notifications."
           )
           if status.active then pure(status.id)
