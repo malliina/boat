@@ -171,10 +171,13 @@ class DoobiePushDatabase[F[_]: Async](db: DoobieDatabase[F], push: PushEndpoint[
         val deleteIO = summary.badTokens.toList.toNel
           .map: bad =>
             val inClause = Fragments.in(fr"token", bad)
-            sql"delete from push_clients where $inClause".update.run.map: deleted =>
-              if deleted > 0 then
-                log.info(s"Removed $deleted bad tokens: ${summary.badTokens.mkString(", ")}")
-              deleted
+            sql"update push_clients set active = false where $inClause".update.run.map:
+              deactivated =>
+                if deactivated > 0 then
+                  log.info(
+                    s"Deactivated $deactivated bad tokens: ${summary.badTokens.mkString(", ")}"
+                  )
+                deactivated
           .getOrElse:
             pure(0)
         val updateIO = summary.replacements.toList
