@@ -154,7 +154,9 @@ class DoobiePushDatabase[F[_]: Async](db: DoobieDatabase[F], push: PushEndpoint[
       pushable = liveActivityTokens ++ tokens.filterNot(t =>
         t.phoneId.exists(pid => liveActivityTokens.exists(_.phoneId.contains(pid)))
       )
-      results <- pushable.traverse(token => push.push(notification, token, state.now))
+      results <- pushable.traverse: target =>
+        push
+          .push(notification, target, state.now)
       summary = results.fold(PushSummary.empty)(_ ++ _)
       _ <- handle(summary)
       _ <- if pushable.nonEmpty then bookkeeping(pushable).void else F.unit
