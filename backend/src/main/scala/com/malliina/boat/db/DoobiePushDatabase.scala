@@ -3,7 +3,7 @@ package com.malliina.boat.db
 import cats.effect.Async
 import cats.syntax.all.{catsSyntaxList, toFlatMapOps, toFunctorOps, toTraverseOps}
 import com.malliina.boat.MobileDevice.{IOSActivityStart, IOSActivityUpdate}
-import com.malliina.boat.db.DoobiePushDatabase.log
+import com.malliina.boat.db.DoobiePushDatabase.{PushStatus, log}
 import com.malliina.boat.db.Values.RowsChanged
 import com.malliina.boat.push.*
 import com.malliina.boat.{AppConf, DeviceId, MobileDevice, PushId, PushToken, ReverseGeocode, SourceType, TrackName}
@@ -17,72 +17,75 @@ import doobie.util.update.Update
 object DoobiePushDatabase:
   private val log = AppLogger(getClass)
 
+  case class PushStatus(id: PushId, active: Boolean)
+
 class DoobiePushDatabase[F[_]: Async](db: DoobieDatabase[F], push: PushEndpoint[F])
   extends PushService[F]
   with DoobieSQL:
   val F = Async[F]
 
   def enable(input: PushInput): F[PushId] = db.run:
-    val existing = sql"""select id
+    val user = input.user
+    val token = input.token
+    val existing = sql"""select id, active
                          from push_clients
-                         where token = ${input.token} and device = ${input.device} and device_id = ${input.deviceId}"""
-      .query[PushId]
+                         where token = $token and user = $user"""
+      .query[PushStatus]
       .option
     existing.flatMap: idOpt =>
       idOpt
-        .map: id =>
+        .map: status =>
           log.debug(
-            s"${input.device} token ${input.token} already registered for push notifications."
+            s"${input.device} token $token already registered for push notifications."
           )
-          pure(id)
+          if status.active then pure(status.id)
+          else
+            sql"""update push_clients set active = true, device = ${input.device}, device_id = ${input.deviceId}, live_activity = ${input.liveActivityId}
+                  where token = $token and user = $user""".update.run
+              .map: _ =>
+                status.id
         .getOrElse:
-          val user = input.user
-          val oldDeletion =
-            sql"""delete from push_clients where token = ${input.token} and user = $user""".update.run
-          val pushToStartDeletion = input.deviceId
-            .filter(_ => input.device == IOSActivityStart)
-            .fold(pure(0)): deviceId =>
-              sql"""delete from push_clients where device_id = $deviceId and user = $user""".update.run
-          val activityUpdateDeletion = input.liveActivityId
-            .filter(_ => input.device == IOSActivityUpdate)
-            .fold(pure(0)): activityId =>
-              sql"""delete from push_clients where live_activity = $activityId and user = $user""".update.run
+          val deactivation = Fragments
+            .orOpt(
+              input.deviceId
+                .filter(_ => input.device == IOSActivityStart)
+                .map(phoneId => fr"device_id = $phoneId"),
+              input.liveActivityId
+                .filter(_ => input.device == IOSActivityUpdate)
+                .map(track => fr"device_id = ${input.deviceId} and live_activity = $track")
+            )
+            .map: where =>
+              sql"""update push_clients set active = false
+                    where user = $user and device = ${input.device} and ($where)""".update.run
+            .getOrElse(pure(0))
           val insertion =
             sql"""insert into push_clients(token, device, device_id, live_activity, user)
-                  values(${input.token}, ${input.device}, ${input.deviceId}, ${input.liveActivityId}, $user)""".update
+                  values($token, ${input.device}, ${input.deviceId}, ${input.liveActivityId}, $user)""".update
               .withUniqueGeneratedKeys[PushId]("id")
           for
-            olds <- oldDeletion
-            startDeletion <- pushToStartDeletion
-            updateDeletion <- activityUpdateDeletion
+            olds <- deactivation
             id <- insertion
           yield
-            val describeOlds = if olds > 0 then s"Deleted $olds old tokens." else ""
-            val describeStartDeletion =
-              if startDeletion > 0 then s"Deleted $startDeletion old Live Activity start token(s)."
-              else ""
+            val describeOlds = if olds > 0 then s"Deactivated $olds old tokens." else ""
             val describeActivity = input.liveActivityId.fold("")(id => s"Live Activity ID '$id'.")
-            val describeDeletion =
-              if updateDeletion > 0 then
-                s"Deleted $updateDeletion old Live Activity update token(s)."
-              else ""
             val basic =
-              s"Enabled ${input.device} notifications for user $user with token '${input.token}'."
+              s"Enabled ${input.device} notifications for user $user with token '$token'."
             val msg =
-              Seq(basic, describeOlds, describeActivity, describeDeletion, describeStartDeletion)
+              Seq(basic, describeOlds, describeActivity)
                 .filter(_.nonEmpty)
                 .mkString(" ")
             log.info(msg)
             id
 
   def disable(token: PushToken, user: UserId): F[Boolean] = db.run:
-    sql"delete from push_clients where token = $token and user = $user".update.run.map: rows =>
-      if rows > 0 then
-        log.info(s"Disabled notifications for token '$token'.")
-        true
-      else
-        log.warn(s"Tried to disable notifications for '$token', but no changes were made.")
-        false
+    sql"update push_clients set active = false where token = $token and user = $user".update.run
+      .map: rows =>
+        if rows > 0 then
+          log.info(s"Disabled notifications for token '$token'.")
+          true
+        else
+          log.warn(s"Tried to disable notifications for '$token', but no changes were made.")
+          false
 
   /** Pushes at most once every five minutes to a given device.
     */
@@ -107,7 +110,7 @@ class DoobiePushDatabase[F[_]: Async](db: DoobieDatabase[F], push: PushEndpoint[
       // pushes at most once every five minutes as per the "not exists" clause
       sql"""select id, token, device, device_id, live_activity, user, added
             from push_clients
-            where user = ${track.userId}
+            where user = ${track.userId} and active
               and not device = $activityUpdate
               and not device = $activityStart
               and not ${state.isResumed}
@@ -121,7 +124,7 @@ class DoobiePushDatabase[F[_]: Async](db: DoobieDatabase[F], push: PushEndpoint[
     val liveActivityDevices = db.run:
       sql"""select id, token, device, device_id, live_activity, user, added
             from push_clients
-            where user = ${track.userId}
+            where user = ${track.userId} and active
               and ((device = $activityUpdate
                     and live_activity = ${track.trackName}
                     and not device_id in (select pc.device_id
