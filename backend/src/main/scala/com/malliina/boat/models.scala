@@ -280,11 +280,11 @@ object BoatNames:
   def random() = BoatName(CIString(Utils.randomString(6)))
 
 case class PushPayload(
-  token: PushToken,
-  device: MobileDevice,
-  deviceId: Option[PhoneId],
-  liveActivityId: Option[LiveActivityId],
-  trackName: Option[TrackName]
+                        token: PushToken,
+                        device: PushTokenType,
+                        deviceId: Option[PhoneId],
+                        liveActivityId: Option[LiveActivityId],
+                        trackName: Option[TrackName]
 ) derives Codec.AsObject
 
 case class DisablePush(token: PushToken) derives Codec.AsObject

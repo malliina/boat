@@ -605,8 +605,12 @@ case class BoatLang(
   port: String
 ) derives Codec.AsObject
 
-case class CarInfoLang(batteryPercentage: String, estimatedRange: String, odometer: String, daysToService: String)
-  derives Codec.AsObject
+case class CarInfoLang(
+  batteryPercentage: String,
+  estimatedRange: String,
+  odometer: String,
+  daysToService: String
+) derives Codec.AsObject
 
 case class PolestarLang(
   cars: String,
@@ -1032,9 +1036,19 @@ object ParkingLang:
 
 case class CarsLang(parking: ParkingLang) derives Codec.AsObject
 
+trait Lookupable[T]:
+  def fi: T
+  def se: T
+  def en: T
+  def apply(language: Language): T = language match
+    case Language.finnish => fi
+    case Language.swedish => se
+    case Language.english => en
+    case _                => en
+
 case class PushLang(onTheMove: String, stoppedMoving: String, near: String) derives Codec.AsObject
 
-object PushLang:
+object PushLang extends Lookupable[PushLang]:
   val fi = apply("liikkuu", "pysähtyi", "osoitteessa")
   val se = apply("rör på sig", "stannade", "nära")
   val en = apply("on the move", "stopped moving", "near")

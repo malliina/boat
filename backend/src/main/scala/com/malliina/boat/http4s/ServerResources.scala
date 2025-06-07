@@ -14,6 +14,7 @@ import com.malliina.boat.graph.Graph
 import com.malliina.boat.html.BoatHtml
 import com.malliina.boat.http4s.JsonInstances.circeJsonEncoder
 import com.malliina.boat.parking.Parking
+import com.malliina.boat.push.LiveActivityManager
 import com.malliina.database.DoobieDatabase
 import com.malliina.http.{CSRFConf, Errors, SingleError}
 import com.malliina.http4s.CSRFUtils
@@ -109,8 +110,10 @@ trait ServerResources:
       reverseGeo <- Resource.eval:
         if conf.isTest then Async[F].pure(Geocoder.noop)
         else ThrottlingGeocoder.default(conf.mapbox.token, http)
+      appComps = builder.build(conf, http)
+      tracksDatabase = DoobieTracksDatabase(db)
+      _ <- LiveActivityManager(appComps.pushService, tracksDatabase, db).polling
     yield
-      val appComps = builder.build(conf, http)
       val jwt = JWT(conf.secret)
       val auth = Http4sAuth[F](jwt)
       val googleAuth = appComps.emailAuth

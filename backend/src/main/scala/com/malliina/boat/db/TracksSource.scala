@@ -36,11 +36,12 @@ trait StatsSource[F[_]]:
 trait TracksSource[F[_]]:
   def tracksFor(user: MinimalUserInfo, filter: TracksQuery): F[Tracks]
   def tracksBundle(user: MinimalUserInfo, filter: TracksQuery, lang: Lang): F[TracksBundle]
-  def ref(track: TrackName, language: Language): F[TrackRef]
-  def refOpt(track: TrackName, language: Language): F[Option[TrackRef]]
-  def canonical(track: TrackCanonical, language: Language): F[TrackRef]
+  def ref(track: TrackName): F[TrackRef]
+  def refOpt(track: TrackName): F[Option[TrackRef]]
+  def details(track: TrackName): F[JoinedTrack]
+  def canonical(track: TrackCanonical): F[TrackRef]
   def track(track: TrackName, user: Username, query: TrackQuery): F[TrackInfo]
-  def full(track: TrackName, language: Language, query: TrackQuery): F[FullTrack]
+  def full(track: TrackName, query: TrackQuery): F[FullTrack]
 
   /** @return
     *   oldest first

@@ -213,14 +213,17 @@ class DoobieTracksDatabase[F[_]: Async](val db: DoobieDatabase[F])
         )
       )
 
-  def ref(track: TrackName, language: Language): F[TrackRef] =
-    single(sql.trackByName(track), language)
+  def ref(track: TrackName): F[TrackRef] =
+    single(sql.trackByName(track))
 
-  def refOpt(track: TrackName, language: Language): F[Option[TrackRef]] =
-    option(sql.trackByName(track), language)
+  def details(track: TrackName): F[JoinedTrack] = run:
+    sql.trackByName(track).query[JoinedTrack].unique
 
-  def canonical(trackCanonical: TrackCanonical, language: Language): F[TrackRef] =
-    single(sql.tracksByCanonicals(NonEmptyList.of(trackCanonical)), language)
+  def refOpt(track: TrackName): F[Option[TrackRef]] =
+    option(sql.trackByName(track))
+
+  def canonical(trackCanonical: TrackCanonical): F[TrackRef] =
+    single(sql.tracksByCanonicals(NonEmptyList.of(trackCanonical)))
 
   def track(track: TrackName, user: Username, query: TrackQuery): F[TrackInfo] = run:
     for
@@ -228,8 +231,7 @@ class DoobieTracksDatabase[F[_]: Async](val db: DoobieDatabase[F])
       top <- sql.topPointByTrack(track).query[CombinedCoord].option
     yield TrackInfo(points, top)
 
-  def full(track: TrackName, language: Language, query: TrackQuery): F[FullTrack] = run:
-    val formatter = TimeFormatter.lang(language)
+  def full(track: TrackName, query: TrackQuery): F[FullTrack] = run:
     val rows = sql.pointsByTrack(track)
     val limited =
       sql"""$rows order by p.source_time asc, p.id asc, p.added asc limit ${query.limit} offset ${query.offset}"""
@@ -240,15 +242,16 @@ class DoobieTracksDatabase[F[_]: Async](val db: DoobieDatabase[F])
             order by p.source_time, p.id, sentenceAdded"""
         .query[SentenceCoord2]
         .to[List]
-    val pointsIO =
+    def pointsIO(formatter: TimeFormatter) =
       limited.query[CombinedCoord].to[List].map(rows => rows.map(_.toFull(Nil, formatter)))
     val trackIO = sql.trackByName(track).query[JoinedTrack].unique
     for
       stats <- trackIO
+      formatter = TimeFormatter.lang(stats.boat.language)
       sentences <- sentencesIO
       collected = DoobieTracksDatabase.collectRows(sentences, formatter)
       fullCoords <-
-        if collected.isEmpty then pointsIO
+        if collected.isEmpty then pointsIO(formatter)
         else collected.pure[ConnectionIO]
     yield FullTrack(stats.strip(formatter), fullCoords)
 
@@ -294,14 +297,14 @@ class DoobieTracksDatabase[F[_]: Async](val db: DoobieDatabase[F])
               )
             collected
 
-  private def single(oneRowSql: Fragment, language: Language) = run:
-    oneRowSql.query[JoinedTrack].unique.map(row => row.strip(TimeFormatter.lang(language)))
+  private def single(oneRowSql: Fragment) = run:
+    oneRowSql.query[JoinedTrack].unique.map(row => row.strip(TimeFormatter.lang(row.boat.language)))
 
-  private def option(oneRowSql: Fragment, language: Language) = run:
+  private def option(oneRowSql: Fragment) = run:
     oneRowSql
       .query[JoinedTrack]
       .option
-      .map(opt => opt.map(row => row.strip(TimeFormatter.lang(language))))
+      .map(opt => opt.map(row => row.strip(TimeFormatter.lang(row.boat.language))))
 
   def tracksFor(user: MinimalUserInfo, filter: TracksQuery): F[Tracks] = run:
     tracksForIO(user, filter)

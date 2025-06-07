@@ -1,6 +1,6 @@
 package com.malliina.boat.db
 
-import com.malliina.boat.{Coord, CoordHash, Mmsi, MobileDevice, PhoneId, PushId, PushToken, TrackName, UserToken, Utils, VesselName}
+import com.malliina.boat.{Coord, CoordHash, Mmsi, PushTokenType, PhoneId, PushId, PushToken, TrackName, UserToken, Utils, VesselName}
 import com.malliina.measure.{DistanceM, SpeedM, Temperature}
 import com.malliina.values.{Email, JsonCompanion, RefreshToken, StringEnumCompanion, UserId, Username}
 
@@ -9,7 +9,7 @@ import java.time.Instant
 case class PushDevice(
   id: PushId,
   token: PushToken,
-  device: MobileDevice,
+  device: PushTokenType,
   phoneId: Option[PhoneId],
   liveActivityId: Option[TrackName],
   user: UserId,
@@ -18,11 +18,19 @@ case class PushDevice(
 
 case class PushInput(
   token: PushToken,
-  device: MobileDevice,
+  device: PushTokenType,
   deviceId: Option[PhoneId],
   liveActivityId: Option[TrackName],
   user: UserId
 )
+
+enum PushOutcome(val name: String):
+  case Ended extends PushOutcome("ended")
+  case Unknown extends PushOutcome("unknown")
+
+object PushOutcome extends StringEnumCompanion[PushOutcome]:
+  override def all: Seq[PushOutcome] = Seq(Ended, Unknown)
+  override def write(t: PushOutcome): String = t.name
 
 case class DbTrackInfo(
   avgWaterTemp: Option[Temperature],

@@ -237,8 +237,8 @@ class Service[F[_]: {Async, Files}](
         db.history(authed.user, authed.query).flatMap(ts => ok(ts))
     case req @ GET -> Root / "tracks" / TrackNameVar(trackName) =>
       respond(req)(
-        json = authedTrackQuery(req).flatMap: authed =>
-          db.ref(trackName, authed.user.language).flatMap(ref => ok(ref)),
+        json = authedTrackQuery(req).flatMap: _ =>
+          db.ref(trackName).flatMap(ref => ok(ref)),
         html = index(req)
       )
     case req @ PUT -> Root / "tracks" / TrackNameVar(trackName) =>
@@ -249,7 +249,7 @@ class Service[F[_]: {Async, Files}](
         inserts.updateComments(trackId, comments.comments, user.id)
     case req @ GET -> Root / "tracks" / TrackNameVar(trackName) / "full" =>
       authedLimited(req).flatMap: authed =>
-        db.full(trackName, authed.user.language, authed.query)
+        db.full(trackName, authed.query)
           .flatMap: track =>
             respond(req)(
               json = ok(track),
@@ -259,7 +259,7 @@ class Service[F[_]: {Async, Files}](
       for
         authed <- authedLimited(req)
         lang = authed.user.language
-        ref <- db.ref(trackName, lang)
+        ref <- db.ref(trackName)
         response <- ok(html(req).chart(ref, BoatLang(lang)))
       yield response
     case req @ GET -> Root / "vessels" / "names" =>
@@ -436,8 +436,8 @@ class Service[F[_]: {Async, Files}](
       fileFromPublicResources("android-assetlinks.json", req)
     case req @ GET -> Root / TrackCanonicalVar(canonical) =>
       respond(req)(
-        json = authedTrackQuery(req).flatMap: authed =>
-          db.canonical(canonical, authed.user.language)
+        json = authedTrackQuery(req).flatMap: _ =>
+          db.canonical(canonical)
             .flatMap(ref => ok(TrackResponse(ref)))
             .handleErrorWith: t =>
               val errors = Errors(s"Not found: '$canonical'.")
@@ -564,7 +564,7 @@ class Service[F[_]: {Async, Files}](
                           ),
                         parsed =>
                           val pushUpdate = db
-                            .refOpt(meta.trackName, boat.language)
+                            .refOpt(meta.trackName)
                             .flatMap: ref =>
                               val updatedState = PushState(
                                 meta,

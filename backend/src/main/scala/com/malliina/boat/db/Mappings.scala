@@ -5,7 +5,7 @@ import com.malliina.boat.db.Values.VesselUpdateId
 
 import java.time.{Instant, LocalDate, OffsetDateTime, ZoneOffset}
 import com.malliina.boat.parsing.GPSFix
-import com.malliina.boat.{AisUpdateId, BoatName, BoatToken, CarUpdateId, Coord, CoordHash, DateVal, DeviceId, Energy, FairwayLighting, InviteState, Language, Latitude, LiveActivityId, Longitude, Mmsi, MobileDevice, MonthVal, PhoneId, PushId, PushToken, RawSentence, SeaArea, SentenceKey, SourceType, TrackCanonical, TrackId, TrackName, TrackPointId, TrackTitle, UserAgent, UserToken, VesselName, VesselRowId, YearVal}
+import com.malliina.boat.{AisUpdateId, BoatName, BoatToken, CarUpdateId, Coord, CoordHash, DateVal, DeviceId, Energy, FairwayLighting, InviteState, Language, Latitude, LiveActivityId, Longitude, Mmsi, PushTokenType, MonthVal, PhoneId, PushId, PushToken, RawSentence, SeaArea, SentenceKey, SourceType, TrackCanonical, TrackId, TrackName, TrackPointId, TrackTitle, UserAgent, UserToken, VesselName, VesselRowId, YearVal}
 import com.malliina.measure.{DistanceM, SpeedDoubleM, SpeedM, Temperature}
 import com.malliina.values.*
 import com.vividsolutions.jts.geom.Point
@@ -34,7 +34,8 @@ trait Mappings:
   given Meta[PushToken] = simple(PushToken)
   given Meta[LiveActivityId] = simple(LiveActivityId)
   given Meta[PhoneId] = simple(PhoneId)
-  given Meta[MobileDevice] = Meta[String].timap(MobileDevice.orUnknown)(_.name)
+  given Meta[PushTokenType] = Meta[String].timap(PushTokenType.orUnknown)(_.name)
+  given Meta[PushOutcome] = validated(PushOutcome)
   given Meta[SeaArea] = Meta[Int].timap(SeaArea.fromIntOrOther)(_.value)
   given Meta[FairwayLighting] =
     Meta[Int].timap(FairwayLighting.fromInt)(FairwayLighting.toInt)

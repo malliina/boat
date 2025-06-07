@@ -38,7 +38,7 @@ class TracksDatabaseTests extends MUnitSuite with MUnitDatabaseSuite:
       tid = t.track
       _ <- inserts.saveCoords(fakeCoord(london, 10.kmh, tid, bid))
       _ <- inserts.saveCoords(fakeCoord(sanfran, 20.kmh, tid, bid))
-      track <- tdb.ref(t.trackName, Language.swedish)
+      track <- tdb.ref(t.trackName)
       _ <- users.deleteUser(user.username)
     yield track
     val t = action.unsafeRunSync()

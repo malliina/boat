@@ -2,7 +2,7 @@ package com.malliina.boat.push
 
 import cats.data.NonEmptyList
 import com.malliina.boat.db.PushDevice
-import com.malliina.boat.{MobileDevice, PushToken}
+import com.malliina.boat.{PushTokenType, PushToken}
 import com.malliina.push.Token
 import com.malliina.push.apns.{APNSError, APNSHttpResult, BadDeviceToken, Unregistered}
 import com.malliina.push.gcm.MappedGCMResponse
@@ -11,14 +11,14 @@ import com.malliina.util.FileUtils
 
 import java.time.Instant
 
-case class PushTokenReplacement(oldToken: PushToken, newToken: PushToken, device: MobileDevice)
+case class PushTokenReplacement(oldToken: PushToken, newToken: PushToken, device: PushTokenType)
 
 object PushTokenReplacement:
   def apply(gcm: TokenReplacement): PushTokenReplacement =
     PushTokenReplacement(
       PushToken(gcm.oldToken.token),
       PushToken(gcm.newToken.token),
-      MobileDevice.Android
+      PushTokenType.Android
     )
 
 case class PushSummary(iosResults: Seq[APNSHttpResult], gcmResults: Seq[MappedGCMResponse]):
@@ -55,6 +55,8 @@ case class PushSummary(iosResults: Seq[APNSHttpResult], gcmResults: Seq[MappedGC
 object PushSummary:
   val empty = PushSummary(Nil, Nil)
   val removableErrors: NonEmptyList[APNSError] = NonEmptyList.of(BadDeviceToken, Unregistered)
+
+  def merge(results: List[PushSummary]): PushSummary = results.fold(PushSummary.empty)(_ ++ _)
 
 trait PushClient[F[_], T <: Token]:
   def push(notification: SourceNotification, to: T): F[PushSummary]

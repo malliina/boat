@@ -27,7 +27,7 @@ object AgentInstance:
         err
     fromConf(http, conf.toOption)
 
-  def fromConf[F[_]: Async: Network](
+  def fromConf[F[_]: {Async, Network}](
     http: HttpClientF2[F],
     conf: Option[BoatConf]
   ): Resource[F, AgentInstance[F]] =
@@ -43,7 +43,7 @@ object AgentInstance:
       interrupter <- SignallingRef[F, Boolean](false)
     yield AgentInstance(http, topic, interrupter)
 
-class AgentInstance[F[_]: Async: Network](
+class AgentInstance[F[_]: {Async, Network}](
   http: HttpClientF2[F],
   confs: Topic[F, BoatConf],
   interrupter: SignallingRef[F, Boolean]

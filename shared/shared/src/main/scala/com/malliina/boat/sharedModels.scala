@@ -290,26 +290,26 @@ case class SimpleSourceMeta(
   language: Language
 ) extends DeviceMeta
 
-enum MobileDevice(val name: String):
-  case IOS extends MobileDevice("ios")
-  case IOSActivityStart extends MobileDevice("ios-activity-start")
-  case IOSActivityUpdate extends MobileDevice("ios-activity-update")
-  case Android extends MobileDevice("android")
-  case Unknown(s: String) extends MobileDevice(s)
+enum PushTokenType(val name: String):
+  case IOS extends PushTokenType("ios")
+  case IOSActivityStart extends PushTokenType("ios-activity-start")
+  case IOSActivityUpdate extends PushTokenType("ios-activity-update")
+  case Android extends PushTokenType("android")
+  case Unknown(s: String) extends PushTokenType(s)
   override def toString: String = name
 
-object MobileDevice extends StringEnumCompanion[MobileDevice]:
+object PushTokenType extends StringEnumCompanion[PushTokenType]:
   val Key = "device"
-  val all: Seq[MobileDevice] = Seq(IOS, IOSActivityStart, IOSActivityUpdate, Android)
+  val all: Seq[PushTokenType] = Seq(IOS, IOSActivityStart, IOSActivityUpdate, Android)
 
-  def orUnknown(s: String): MobileDevice = build(s).getOrElse(Unknown(s))
+  def orUnknown(s: String): PushTokenType = build(s).getOrElse(Unknown(s))
 
-  override def build(input: String): Either[ErrorMessage, MobileDevice] =
+  override def build(input: String): Either[ErrorMessage, PushTokenType] =
     all
       .find(_.name.toLowerCase == input.toLowerCase)
       .toRight(ErrorMessage(s"Unknown device type: '$input'."))
 
-  override def write(t: MobileDevice): String = t.name
+  override def write(t: PushTokenType): String = t.name
 
 case class Boat(
   id: DeviceId,
