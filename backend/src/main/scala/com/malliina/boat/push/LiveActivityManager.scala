@@ -24,7 +24,7 @@ class LiveActivityManager[F[_]: Async](
   def polling = fs2.Stream.emit(()).concurrently(stream).compile.resource.lastOrError
 
   private def stream = fs2.Stream
-    .awakeEvery[F](5.seconds)
+    .awakeEvery[F](5.minutes)
     .evalMap: _ =>
       endSilentActivities(Instant.now())
 
@@ -35,7 +35,7 @@ class LiveActivityManager[F[_]: Async](
         endActivity(target, now)
       endeds = results.flatten
     yield
-      log.info(s"Ended ${endeds.size} silent activities.")
+      if endeds.nonEmpty then log.info(s"Ended ${endeds.size} silent activities.")
       PushSummary.merge(endeds.map(_._2))
 
   /** @return
@@ -46,7 +46,7 @@ class LiveActivityManager[F[_]: Async](
               from push_clients pc
                        join (select h.client, max(h.added) latest
                              from push_history h
-                             where h.client not in (select h2.client from push_history h2 where h2.outcome = 'ended')
+                             where h.client not in (select h2.client from push_history h2 where h2.outcome = ${PushOutcome.Ended})
                              group by h.client
                              having timestampdiff(second, max(h.added), now()) > 300) h on pc.id = h.client
               where pc.device = 'ios-activity-update'
