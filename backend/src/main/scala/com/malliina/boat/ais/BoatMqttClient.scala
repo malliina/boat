@@ -9,6 +9,7 @@ import com.malliina.boat.ais.MqttStream.MqttPayload
 import com.malliina.boat.{AISMessage, Locations, LocationsV2, Metadata, MetadataV2, Mmsi, MmsiVesselLocation, MmsiVesselMetadata, StatusTopic, TimeFormatter, VesselInfo, VesselLocation, VesselLocationV2, VesselMetadata, VesselMetadataV2, VesselStatus}
 import com.malliina.http.FullUrl
 import com.malliina.http.UrlSyntax.wss
+import com.malliina.tasks.runInBackground
 import com.malliina.util.AppLogger
 import fs2.Stream
 import fs2.concurrent.{SignallingRef, Topic}
@@ -69,7 +70,7 @@ object BoatMqttClient:
     for
       client <- Resource.make(build)(_.close)
       // Consumes any messages regardless of whether there's subscribers
-      _ <- Stream.emit(()).concurrently(client.publisher).compile.resource.lastOrError
+      _ <- client.publisher.runInBackground
     yield client
 
   case class AisPair(location: MmsiVesselLocation, meta: MmsiVesselMetadata):

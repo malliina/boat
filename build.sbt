@@ -7,7 +7,7 @@ import scala.sys.process.Process
 
 val versions = new {
   val scala213 = "2.13.16"
-  val scala3 = "3.7.0"
+  val scala3 = "3.7.1"
 
   val alpn = "12.0.16"
   val ci = "1.4.2"
@@ -86,7 +86,8 @@ val cross = crossProject(JSPlatform, JVMPlatform)
     libraryDependencies ++= Seq("generic", "parser").map { m =>
       "io.circe" %%% s"circe-$m" % versions.circe
     } ++ Seq(
-      "com.comcast" %% "ip4s-core" % versions.ip4s,
+      "co.fs2" %%% "fs2-core" % versions.fs2,
+      "com.comcast" %%% "ip4s-core" % versions.ip4s,
       "org.typelevel" %%% "case-insensitive" % versions.ci,
       "com.malliina" %%% "primitives" % versions.primitives,
       "com.lihaoyi" %%% "scalatags" % versions.scalaTags,
@@ -127,7 +128,6 @@ val frontend = project
   .settings(
     libraryDependencies ++= Seq(
       "com.malliina" %%% "util-html" % versions.webAuth,
-      "co.fs2" %%% "fs2-core" % versions.fs2,
       "org.scala-js" %%% "scalajs-dom" % versions.scalaJsDom,
       "org.scalameta" %%% "munit" % versions.munit % Test
     ),

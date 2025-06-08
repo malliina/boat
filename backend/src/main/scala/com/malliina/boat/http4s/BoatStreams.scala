@@ -8,6 +8,7 @@ import com.malliina.boat.db.{TrackInsertsDatabase, VesselDatabase}
 import com.malliina.boat.http4s.BoatStreams.{log, rights}
 import com.malliina.boat.parsing.*
 import com.malliina.boat.{BoatEvent, BoatJsonError, CoordsEvent, FrontEvent, InputEvent, InsertedPoint, SentencesMessage, TimeFormatter, VesselMessages}
+import com.malliina.tasks.runInBackground
 import com.malliina.util.AppLogger
 import fs2.Stream
 import fs2.concurrent.Topic
@@ -22,8 +23,8 @@ object BoatStreams:
   ): Resource[F, BoatStreams[F]] =
     for
       streams <- Resource.eval(build[F](db, aisDb, ais))
-      _ <- Stream.emit(()).concurrently(streams.publisher).compile.resource.lastOrError
-      _ <- Stream.emit(()).concurrently(streams.saveableAis).compile.resource.lastOrError
+      _ <- streams.publisher.runInBackground
+      _ <- streams.saveableAis.runInBackground
     yield streams
 
   def build[F[_]: Async](

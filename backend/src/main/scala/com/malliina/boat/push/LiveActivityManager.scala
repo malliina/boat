@@ -6,6 +6,7 @@ import com.malliina.boat.db.{DoobieSQL, PushDevice, PushOutcome, TracksSource}
 import com.malliina.boat.push.LiveActivityManager.log
 import com.malliina.boat.{AppConf, DeviceId, PushLang, SourceType, TrackName}
 import com.malliina.database.DoobieDatabase
+import com.malliina.tasks.runInBackground
 import com.malliina.util.AppLogger
 import doobie.implicits.given
 
@@ -21,7 +22,7 @@ class LiveActivityManager[F[_]: Async](
   db: DoobieDatabase[F]
 ) extends DoobieSQL:
 
-  def polling = fs2.Stream.emit(()).concurrently(stream).compile.resource.lastOrError
+  def polling = stream.runInBackground
 
   private def stream = fs2.Stream
     .awakeEvery[F](5.minutes)

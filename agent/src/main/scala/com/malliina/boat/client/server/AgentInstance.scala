@@ -8,6 +8,7 @@ import com.malliina.boat.client.DeviceAgent
 import com.malliina.boat.client.server.AgentInstance.log
 import com.malliina.boat.client.server.Device.GpsDevice
 import com.malliina.http.io.HttpClientF2
+import com.malliina.tasks.runInBackground
 import com.malliina.util.AppLogger
 import fs2.concurrent.{SignallingRef, Topic}
 import fs2.Stream
@@ -33,11 +34,11 @@ object AgentInstance:
   ): Resource[F, AgentInstance[F]] =
     for
       agent <- Resource.eval(io(http))
-      _ <- Stream.emit(()).concurrently(agent.connections).compile.resource.lastOrError
+      _ <- agent.connections.runInBackground
       _ <- Resource.eval(conf.map(c => agent.updateIfNecessary(c)).getOrElse(Async[F].pure(false)))
     yield agent
 
-  def io[F[_]: Async: Network](http: HttpClientF2[F]): F[AgentInstance[F]] =
+  def io[F[_]: {Async, Network}](http: HttpClientF2[F]): F[AgentInstance[F]] =
     for
       topic <- Topic[F, BoatConf]
       interrupter <- SignallingRef[F, Boolean](false)

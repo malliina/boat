@@ -53,6 +53,7 @@ object APNSPush:
       NoopAPNS[F]
 
 class APNSPush[F[_]: Monad](prod: APNSHttpClientF[F]) extends PushClient[F, APNSToken] with APNS[F]:
+  import APNSPush.log
   val topic = APNSTopic("com.malliina.BoatTracker")
 
   val attributesType = "BoatWidgetAttributes"
@@ -100,7 +101,11 @@ class APNSPush[F[_]: Monad](prod: APNSHttpClientF[F]) extends PushClient[F, APNS
         )
     val message = APNSMessage(payload, Map("meta" -> notification.asJson))
     val request = APNSRequest.liveActivity(topic, message)
-    push(request, to)
+    push(request, to).map: s =>
+      val stats =
+        s"${notification.distance} after ${notification.duration} of track '${notification.trackName}'"
+      log.info(s"Pushed $event event '${notification.message}' of $stats to '$to'.")
+      s
 
   private def toActivityState(notification: SourceNotification, message: String) =
     LiveActivityState(

@@ -36,7 +36,7 @@ class DoobiePushDatabase[F[_]: Async](val db: DoobieDatabase[F], val push: PushE
       idOpt
         .map: status =>
           log.info(
-            s"${input.device} token $token already registered for push notifications."
+            s"Already registered ${input.device} token '$token' for push notifications."
           )
           if status.active then pure(status.id)
           else

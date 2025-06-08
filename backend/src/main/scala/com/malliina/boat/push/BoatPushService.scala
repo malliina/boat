@@ -1,10 +1,10 @@
 package com.malliina.boat.push
 
+import cats.syntax.all.catsSyntaxApplicativeId
 import cats.syntax.show.toShow
-import cats.syntax.all.{catsSyntaxApplicativeId, toFunctorOps}
 import cats.{Applicative, Monad}
-import com.malliina.boat.PushTokenType.{Android, IOS, IOSActivityStart, IOSActivityUpdate, Unknown}
 import com.malliina.boat.PushConf
+import com.malliina.boat.PushTokenType.{Android, IOS, IOSActivityStart, IOSActivityUpdate, Unknown}
 import com.malliina.boat.db.PushDevice
 import com.malliina.boat.push.BoatPushService.log
 import com.malliina.http.HttpClient
@@ -36,7 +36,6 @@ class BoatPushService[F[_]: Applicative](ios: APNS[F], android: PushClient[F, GC
         if notification.state == SourceState.Connected then
           ios
             .pushLiveActivity(notification, APNSToken(to.token.show), APSEventType.Start, now)
-            .map(summary => logResult(to, summary))
         else PushSummary.empty.pure[F]
       case IOSActivityUpdate =>
         val apsEventType = notification.state match
@@ -44,15 +43,6 @@ class BoatPushService[F[_]: Applicative](ios: APNS[F], android: PushClient[F, GC
           case SourceState.Disconnected => APSEventType.End
         ios
           .pushLiveActivity(notification, APNSToken(to.token.show), apsEventType, now)
-          .map(summary => logResult(to, summary))
       case Unknown(name) =>
         log.error(s"Unsupported device: '$name'. Ignoring push request.")
         PushSummary.empty.pure[F]
-
-  private def logResult(to: PushDevice, summary: PushSummary) =
-    val errors = summary.iosResults.flatMap(_.error)
-    val describe =
-      if errors.isEmpty then "successfully"
-      else s"that failed with ${errors.mkString(", ")}"
-    log.info(s"Sent ${to.device} notification $describe to '${to.token}'.")
-    summary

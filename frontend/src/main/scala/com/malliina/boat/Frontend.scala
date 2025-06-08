@@ -3,6 +3,7 @@ package com.malliina.boat
 import cats.effect.std.Dispatcher
 import cats.effect.{IO, IOApp, Resource}
 import com.malliina.http.{CSRFConf, Http, HttpClient}
+import com.malliina.tasks.runInBackground
 import fs2.concurrent.Topic
 import org.scalajs.dom
 
