@@ -112,7 +112,7 @@ trait ServerResources:
         else ThrottlingGeocoder.default(conf.mapbox.token, http)
       appComps = builder.build(conf, http)
       tracksDatabase = DoobieTracksDatabase(db)
-      _ <- LiveActivityManager(appComps.pushService, tracksDatabase, db).polling
+      _ <- LiveActivityManager(appComps.pushService, tracksDatabase, reverseGeo, db).polling
     yield
       val jwt = JWT(conf.secret)
       val auth = Http4sAuth[F](jwt)

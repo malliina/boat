@@ -4,7 +4,7 @@ import cats.effect.Async
 import cats.syntax.all.{toFlatMapOps, toFunctorOps, toTraverseOps}
 import com.malliina.boat.db.{DoobieSQL, PushDevice, PushOutcome, TracksSource}
 import com.malliina.boat.push.LiveActivityManager.log
-import com.malliina.boat.{AppConf, DeviceId, PushLang, SourceType, TrackName}
+import com.malliina.boat.{AppConf, DeviceId, Geocoder, PushLang, SourceType, TrackName}
 import com.malliina.database.DoobieDatabase
 import com.malliina.tasks.runInBackground
 import com.malliina.util.AppLogger
@@ -19,13 +19,14 @@ object LiveActivityManager:
 class LiveActivityManager[F[_]: Async](
   push: PushEndpoint[F],
   tracks: TracksSource[F],
+  geo: Geocoder[F],
   db: DoobieDatabase[F]
 ) extends DoobieSQL:
 
   def polling = stream.runInBackground
 
   private def stream = fs2.Stream
-    .awakeEvery[F](5.minutes)
+    .awakeEvery[F](2.minutes)
     .evalMap: _ =>
       endSilentActivities(Instant.now())
 
@@ -60,27 +61,22 @@ class LiveActivityManager[F[_]: Async](
   private def endActivity(target: PushDevice, now: Instant) =
     target.liveActivityId
       .map: t =>
-        tracks
-          .details(t)
-          .flatMap: ref =>
-            val title =
-              if ref.boat.sourceType == SourceType.Vehicle then AppConf.CarName else AppConf.Name
-            val pushLang = PushLang(ref.language)
-            val n = SourceNotification(
-              title,
-              ref.boatName,
-              ref.trackName,
-              SourceState.Disconnected,
-              ref.distance,
-              ref.duration,
-              geo = None,
-              lang = pushLang
-            )
-            push
-              .push(n, target, now)
-              .flatMap: s =>
-                deactivate(target, ref.boatId, ref.trackName).map: _ =>
-                  Option((ref, s))
+        for
+          ref <- tracks.details(t)
+          pos <- geo.reverseGeocode(ref.tip.coord)
+          n = SourceNotification(
+            if ref.boat.sourceType == SourceType.Vehicle then AppConf.CarName else AppConf.Name,
+            ref.boatName,
+            ref.trackName,
+            SourceState.Disconnected,
+            ref.distance,
+            ref.duration,
+            geo = pos,
+            lang = PushLang(ref.language)
+          )
+          s <- push.push(n, target, now)
+          _ <- deactivate(target, ref.boatId, ref.trackName)
+        yield Option((ref, s))
       .getOrElse:
         Async[F].pure(None)
 

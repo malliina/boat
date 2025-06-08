@@ -84,6 +84,8 @@ class DoobieTracksDatabase[F[_]: Async](val db: DoobieDatabase[F])
       sql"${nonEmptyTracks(limits)} and $boatFilter and (b.user = $user or b.id in (select ub2.boat from users u2, users_boats ub2 where u2.id = ub2.user and u2.user = $user and ub2.state = $accepted))"
     def trackByName(name: TrackName) =
       sql"${nonEmptyTracks(None)} and t.name = $name"
+    def trackByNameLatest(name: TrackName) =
+      sql"${nonEmptyTracksLatest(None)} and t.name = $name"
     def tracksByNames(names: NonEmptyList[TrackName]) =
       sql"${nonEmptyTracks(None)} and " ++ Fragments.in(fr"t.name", names)
     def tracksByCanonicals(names: NonEmptyList[TrackCanonical]) =
@@ -109,16 +111,10 @@ class DoobieTracksDatabase[F[_]: Async](val db: DoobieDatabase[F])
       val limits = filter.limits
       sql"""$unsorted order by $sortColumns limit ${limits.limit} offset ${limits.offset}"""
 
-  private val boatsView = sql.boats.query[JoinedSource].to[List]
-  private val topView = sql.topRows.query[TrackPointRow].to[List]
-
   def hm: F[Option[SpeedM]] = run:
     sql"select avg(speed) from points p where p.speed >= 100 having avg(speed) is not null"
       .query[SpeedM]
       .option
-
-  def boats = run(boatsView)
-  def topRows = run(topView)
 
   def tracksBundle(user: MinimalUserInfo, filter: TracksQuery, lang: Lang): F[TracksBundle] =
     run:
@@ -217,7 +213,7 @@ class DoobieTracksDatabase[F[_]: Async](val db: DoobieDatabase[F])
     single(sql.trackByName(track))
 
   def details(track: TrackName): F[JoinedTrack] = run:
-    sql.trackByName(track).query[JoinedTrack].unique
+    sql.trackByNameLatest(track).query[JoinedTrack].unique
 
   def refOpt(track: TrackName): F[Option[TrackRef]] =
     option(sql.trackByName(track))

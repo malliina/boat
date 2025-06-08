@@ -76,14 +76,15 @@ object RateLimiter:
       RateLimiter(window, sem)
 
 class RateLimiter[F[_]: Async](window: FiniteDuration, semaphore: Semaphore[F]):
+  private val F = Async[F]
   def submit[T](task: F[T]): F[Option[T]] =
     tryAcquireReleaseLater.flatMap: acquired =>
       if acquired then task.map(t => Option(t))
-      else Async[F].pure(None)
+      else F.pure(None)
 
   private def tryAcquireReleaseLater: F[Boolean] = semaphore.tryAcquire.guaranteeCase:
     case Succeeded(out) =>
       out.flatMap: acquired =>
         if acquired then semaphore.release.delayBy(window).start.uncancelable.void
-        else Async[F].unit
-    case _ => Async[F].unit
+        else F.unit
+    case _ => F.unit

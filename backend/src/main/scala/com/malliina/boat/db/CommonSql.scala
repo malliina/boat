@@ -31,11 +31,20 @@ trait CommonSql:
                 where p2.track = tops2.track
                   and tops2.maxSpeed is null) winners
           group by winners.track"""
+  private val latestPoints =
+    sql"""select p.track, max(p.id) point
+          from points p,
+               (select track, max(added) latest from points group by track) latest
+          where p.track = latest.track
+            and p.added = latest.latest
+          group by p.track"""
   val selectAllPoints =
     sql"""select id, longitude, latitude, coord, speed, altitude, outside_temperature, water_temp, depthm, depth_offsetm, battery, car_range, source_time, track, track_index, diff, added
           from points p"""
-  val topRows =
+  private val topRows =
     sql"""$selectAllPoints where p.id in (select point from ($topPoints) fastestPoints)"""
+  private val latestRows =
+    sql"""$selectAllPoints where p.id in (select point from ($latestPoints) latestPoints)"""
   private val minMaxTimes =
     sql"""select track,
                  min(source_time)                                        start,
@@ -52,14 +61,17 @@ trait CommonSql:
            from tracks t,
            ($minMaxTimes) times
            where t.id = times.track order by t.added desc$limitClause"""
-  private def trackHighlights(limits: Option[LimitLike]) =
+  private def trackHighlights(limits: Option[LimitLike], topQuery: Fragment) =
     sql"""select t.id, t.name, t.title, t.canonical, t.comments, t.added, t.points, t.avg_speed, t.avg_water_temp, t.avg_outside_temp, t.distance, t.start, t.end, t.secs, t.startDate, t.startMonth, t.startYear, t.boat, top.id pointId, top.longitude, top.latitude, top.coord, top.speed, top.altitude, top.outside_temperature, top.water_temp, top.depthm, top.depth_offsetm, top.battery, top.car_range, top.source_time, date(top.source_time) trackDate, top.track, top.added topAdded
-          from ($topRows) top, (${timedTracks(limits)}) t
+          from ($topQuery) top, (${timedTracks(limits)}) t
           where top.track = t.id"""
-  def nonEmptyTracks(limits: Option[LimitLike]) = nonEmptyTracksWith(JoinedTrack.columns, limits)
-  def nonEmptyTracksWith(cols: Fragment, limits: Option[LimitLike]) =
+  def nonEmptyTracks(limits: Option[LimitLike]) =
+    nonEmptyTracksWith(JoinedTrack.columns, limits, topRows)
+  def nonEmptyTracksLatest(limits: Option[LimitLike]) =
+    nonEmptyTracksWith(JoinedTrack.columns, limits, latestRows)
+  def nonEmptyTracksWith(cols: Fragment, limits: Option[LimitLike], topQuery: Fragment = topRows) =
     sql"""select $cols
-          from ($boats) b, (${trackHighlights(limits)}) t
+          from ($boats) b, (${trackHighlights(limits, topQuery)}) t
           where b.id = t.boat"""
 
   val pointColumns =
