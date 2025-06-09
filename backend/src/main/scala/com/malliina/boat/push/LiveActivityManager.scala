@@ -4,7 +4,7 @@ import cats.effect.Async
 import cats.syntax.all.{toFlatMapOps, toFunctorOps, toTraverseOps}
 import com.malliina.boat.db.{DoobieSQL, PushDevice, PushOutcome, TracksSource}
 import com.malliina.boat.push.LiveActivityManager.log
-import com.malliina.boat.{AppConf, DeviceId, Geocoder, PushLang, SourceType, TrackName}
+import com.malliina.boat.{AppConf, DeviceId, Geocoder, PushLang, PushTokenType, SourceType, TrackName}
 import com.malliina.database.DoobieDatabase
 import com.malliina.tasks.runInBackground
 import com.malliina.util.AppLogger
@@ -45,16 +45,16 @@ class LiveActivityManager[F[_]: Async](
     */
   private def querySilents = db.run:
     sql"""select pc.id, pc.token, pc.device, pc.device_id, pc.live_activity, pc.user, pc.added
-              from push_clients pc
-                       join (select h.client, max(h.added) latest
-                             from push_history h
-                             where h.client not in (select h2.client from push_history h2 where h2.outcome = ${PushOutcome.Ended})
-                             group by h.client
-                             having timestampdiff(second, max(h.added), now()) > 300) h on pc.id = h.client
-              where pc.device = 'ios-activity-update'
-                and pc.live_activity is not null
-                and pc.active
-              order by h.latest desc"""
+          from push_clients pc
+          where pc.device = ${PushTokenType.IOSActivityUpdate}
+            and pc.live_activity is not null
+            and pc.active
+            and (pc.id in (select h.client
+                           from push_history h
+                           where h.client not in (select h2.client from push_history h2 where h2.outcome = ${PushOutcome.Ended})
+                           group by h.client
+                           having timestampdiff(second, max(h.added), now()) > 300) or
+                 pc.id not in (select client from push_history where client is not null))"""
       .query[PushDevice]
       .to[List]
 
