@@ -6,14 +6,19 @@ import com.malliina.boat.Constants.{BoatNameHeader, BoatTokenHeader}
 import com.malliina.boat.auth.{AuthProvider, BoatJwt, SettingsPayload}
 import com.malliina.boat.db.{IdentityManager, MissingCredentials, MissingCredentialsException, RefreshService, SIWADatabase}
 import com.malliina.boat.http.{Limits, UserRequest}
+import com.malliina.boat.http4s.AuthService.log
 import com.malliina.boat.{BoatName, BoatNames, BoatToken, DeviceMeta, JoinedSource, Language, MinimalUserInfo, SimpleSourceMeta, SourceType, UserBoats, UserInfo, Usernames}
+import com.malliina.util.AppLogger
 import com.malliina.values.Email
-import com.malliina.web.{Code, RevokeResult}
+import com.malliina.web.{Code, RevokeResult, WebAuthException}
 import org.http4s.headers.Cookie
 import org.http4s.{Headers, Request, Response}
 import org.typelevel.ci.CIString
 
 import java.time.Instant
+
+object AuthService:
+  private val log = AppLogger(getClass)
 
 class AuthService[F[_]: Sync](
   val users: IdentityManager[F],
@@ -43,7 +48,9 @@ class AuthService[F[_]: Sync](
 
   def register(code: Code, now: Instant): F[BoatJwt] = appSiwa.registerApp(code, now)
 
-  def profile(req: Request[F]): F[UserInfo] = profile(req.headers)
+  def profile(req: Request[F]): F[UserInfo] = profile(req.headers).onError:
+    case wae: WebAuthException =>
+      F.delay(log.warn(s"At ${req.method} ${req.uri}: ${wae.message}", wae))
 
   private def profileMini(headers: Headers): F[MinimalUserInfo] =
     profile(headers).map(ui => ui: MinimalUserInfo)
