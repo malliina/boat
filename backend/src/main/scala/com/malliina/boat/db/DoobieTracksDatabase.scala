@@ -212,8 +212,8 @@ class DoobieTracksDatabase[F[_]: Async](val db: DoobieDatabase[F])
   def ref(track: TrackName): F[TrackRef] =
     single(sql.trackByName(track))
 
-  def details(track: TrackName): F[JoinedTrack] = run:
-    sql.trackByNameLatest(track).query[JoinedTrack].unique
+  def details(track: TrackName): F[Option[JoinedTrack]] = run:
+    sql.trackByNameLatest(track).query[JoinedTrack].option
 
   def refOpt(track: TrackName): F[Option[TrackRef]] =
     option(sql.trackByName(track))

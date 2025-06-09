@@ -38,7 +38,7 @@ trait TracksSource[F[_]]:
   def tracksBundle(user: MinimalUserInfo, filter: TracksQuery, lang: Lang): F[TracksBundle]
   def ref(track: TrackName): F[TrackRef]
   def refOpt(track: TrackName): F[Option[TrackRef]]
-  def details(track: TrackName): F[JoinedTrack]
+  def details(track: TrackName): F[Option[JoinedTrack]]
   def canonical(track: TrackCanonical): F[TrackRef]
   def track(track: TrackName, user: Username, query: TrackQuery): F[TrackInfo]
   def full(track: TrackName, query: TrackQuery): F[FullTrack]
