@@ -1,7 +1,7 @@
 package com.malliina.boat.push
 
 import cats.effect.Async
-import cats.syntax.all.{toFlatMapOps, toFunctorOps, toTraverseOps}
+import cats.syntax.all.{catsSyntaxApplicativeError, toFlatMapOps, toFunctorOps, toTraverseOps}
 import com.malliina.boat.db.{DoobieSQL, PushDevice, PushOutcome, TracksSource}
 import com.malliina.boat.push.LiveActivityManager.log
 import com.malliina.boat.{AppConf, DeviceId, Geocoder, JoinedTrack, PushLang, PushTokenType, SourceType, TrackName}
@@ -28,7 +28,9 @@ class LiveActivityManager[F[_]: Async](
   private def stream = fs2.Stream
     .awakeEvery[F](2.minutes)
     .evalMap: _ =>
-      endSilentActivities(Instant.now())
+      endSilentActivities(Instant.now()).handleError: err =>
+        log.error(s"Failed to end silent activities.", err)
+        PushSummary.empty
 
   private def endSilentActivities(now: Instant) =
     for
