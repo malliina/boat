@@ -148,6 +148,14 @@ class TrackInserter[F[_]](val db: DoobieDatabase[F]) extends TrackInsertsDatabas
               having avg(speed) is not null"""
           .query[SpeedM]
           .option
+      consumption <- sql"""select sum(p1.battery - p2.battery) wattHours
+                           from points p1,
+                                points p2
+                           where p1.track = p2.track
+                             and p1.track_index + 1 = p2.track_index
+                             and p1.battery - p2.battery > 0
+                             and p1.track = $track
+                             having sum(p1.battery - p2.battery) is not null""".query[Energy].option
       info <-
         sql"""select avg(water_temp), avg(outside_temperature), ifnull(sum(diff), 0), count(*)
               from points p
@@ -157,7 +165,7 @@ class TrackInserter[F[_]](val db: DoobieDatabase[F]) extends TrackInsertsDatabas
           .map(_.getOrElse(DbTrackInfo(None, None, DistanceM.zero, 0)))
       _ <-
         sql"""update tracks
-              set avg_water_temp = ${info.avgWaterTemp}, avg_outside_temp = ${info.avgOutsideTemp}, avg_speed = $avgSpeed, points = ${info.points}, distance = ${info.distance}
+              set avg_water_temp = ${info.avgWaterTemp}, avg_outside_temp = ${info.avgOutsideTemp}, avg_speed = $avgSpeed, points = ${info.points}, distance = ${info.distance}, consumption = $consumption
               where id = $track""".update.run
       _ <- insertSentencePoints(
         coord.boatStats.toList.flatMap(_.parts).map(key => (key, point))

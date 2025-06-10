@@ -153,6 +153,7 @@ case class JoinedTrack(
   avgWaterTemp: Option[Temperature],
   avgOutsideTemp: Option[Temperature],
   distance: DistanceM,
+  energy: Option[Energy],
   start: Option[Instant],
   startDate: DateVal,
   startMonth: MonthVal,
@@ -169,8 +170,12 @@ case class JoinedTrack(
   override def boatName = boat.boatName
   override def username = boat.username
 
-  val startOrNow = start.getOrElse(Instant.now())
-  val endOrNow = end.getOrElse(Instant.now())
+  private val startOrNow = start.getOrElse(Instant.now())
+  private val endOrNow = end.getOrElse(Instant.now())
+
+  private def kWhPer100km: Option[Double] =
+    if distance.meters > 0 then energy.map(wh => 100 / distance.meters * wh.wattHours)
+    else None
 
   /** @return
     *   a Scala.js -compatible representation of this track
@@ -188,6 +193,7 @@ case class JoinedTrack(
     points,
     duration,
     distance,
+    energy.flatMap(e => kWhPer100km.map(per100 => Consumption(e, per100))),
     topSpeed,
     avgSpeed,
     avgWaterTemp,
@@ -197,8 +203,10 @@ case class JoinedTrack(
   )
 
 object JoinedTrack:
+  val directColumns =
+    fr0"t.id, t.name, t.title, t.canonical, t.comments, t.added, t.points, t.avg_speed, t.avg_water_temp, t.avg_outside_temp, t.distance, t.consumption"
   val columns =
-    fr0"t.id tid, t.name, t.title, t.canonical, t.comments, t.added, t.points, t.avg_speed, t.avg_water_temp, t.avg_outside_temp, t.distance, t.start, t.startDate, t.startMonth, t.startYear, t.end, t.secs duration, t.speed maxBoatspeed, t.pointId, t.longitude, t.latitude, t.coord, t.speed topSpeed, t.altitude, t.outside_temperature, t.water_temp, t.depthm, t.depth_offsetm, t.battery, t.car_range, t.source_time, t.trackDate, t.track, t.topAdded, b.id boatId, b.name boatName, b.source_type, b.token, b.gps_ip, b.gps_port, b.uid, b.user owner, b.email, b.language"
+    fr0"$directColumns, t.start, t.startDate, t.startMonth, t.startYear, t.end, t.secs duration, t.speed maxBoatspeed, t.pointId, t.longitude, t.latitude, t.coord, t.speed topSpeed, t.altitude, t.outside_temperature, t.water_temp, t.depthm, t.depth_offsetm, t.battery, t.car_range, t.source_time, t.trackDate, t.track, t.topAdded, b.id boatId, b.name boatName, b.source_type, b.token, b.gps_ip, b.gps_port, b.uid, b.user owner, b.email, b.language"
 
 case class Stats(
   label: String,
@@ -280,11 +288,11 @@ object BoatNames:
   def random() = BoatName(CIString(Utils.randomString(6)))
 
 case class PushPayload(
-                        token: PushToken,
-                        device: PushTokenType,
-                        deviceId: Option[PhoneId],
-                        liveActivityId: Option[LiveActivityId],
-                        trackName: Option[TrackName]
+  token: PushToken,
+  device: PushTokenType,
+  deviceId: Option[PhoneId],
+  liveActivityId: Option[LiveActivityId],
+  trackName: Option[TrackName]
 ) derives Codec.AsObject
 
 case class DisablePush(token: PushToken) derives Codec.AsObject

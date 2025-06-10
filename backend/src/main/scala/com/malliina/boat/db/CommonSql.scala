@@ -57,12 +57,11 @@ trait CommonSql:
           group by track"""
   private def timedTracks(limits: Option[LimitLike]) =
     val limitClause = limits.fold(Fragment.empty)(l => fr" limit ${l.limit} offset ${l.offset}")
-    sql"""select t.id, t.name, t.title, t.canonical, t.comments, t.added, t.points, t.avg_speed, t.avg_water_temp, t.avg_outside_temp, t.distance, times.secs secs, times.start, times.end, times.startDate, times.startMonth, times.startYear, t.boat
-           from tracks t,
-           ($minMaxTimes) times
-           where t.id = times.track order by t.added desc$limitClause"""
+    sql"""select ${JoinedTrack.directColumns}, times.secs secs, times.start, times.end, times.startDate, times.startMonth, times.startYear, t.boat
+          from tracks t, ($minMaxTimes) times
+          where t.id = times.track order by t.added desc$limitClause"""
   private def trackHighlights(limits: Option[LimitLike], topQuery: Fragment) =
-    sql"""select t.id, t.name, t.title, t.canonical, t.comments, t.added, t.points, t.avg_speed, t.avg_water_temp, t.avg_outside_temp, t.distance, t.start, t.end, t.secs, t.startDate, t.startMonth, t.startYear, t.boat, top.id pointId, top.longitude, top.latitude, top.coord, top.speed, top.altitude, top.outside_temperature, top.water_temp, top.depthm, top.depth_offsetm, top.battery, top.car_range, top.source_time, date(top.source_time) trackDate, top.track, top.added topAdded
+    sql"""select ${JoinedTrack.directColumns}, t.start, t.end, t.secs, t.startDate, t.startMonth, t.startYear, t.boat, top.id pointId, top.longitude, top.latitude, top.coord, top.speed, top.altitude, top.outside_temperature, top.water_temp, top.depthm, top.depth_offsetm, top.battery, top.car_range, top.source_time, date(top.source_time) trackDate, top.track, top.added topAdded
           from ($topQuery) top, (${timedTracks(limits)}) t
           where top.track = t.id"""
   def nonEmptyTracks(limits: Option[LimitLike]) =

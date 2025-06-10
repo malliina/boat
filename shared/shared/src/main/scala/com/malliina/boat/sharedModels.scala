@@ -424,6 +424,8 @@ case class DeviceRef(
 
 case class DeviceContainer(boat: DeviceRef) derives Codec.AsObject
 
+case class Consumption(wattHours: Energy, kWhPer100km: Double) derives Codec.AsObject
+
 case class TrackRef(
   track: TrackId,
   trackName: TrackName,
@@ -437,6 +439,7 @@ case class TrackRef(
   points: Int,
   duration: FiniteDuration,
   distanceMeters: DistanceM,
+  consumption: Option[Consumption],
   topSpeed: Option[SpeedM],
   avgSpeed: Option[SpeedM],
   avgWaterTemp: Option[Temperature],
