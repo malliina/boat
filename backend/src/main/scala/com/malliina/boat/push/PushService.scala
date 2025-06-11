@@ -1,7 +1,7 @@
 package com.malliina.boat.push
 
-import com.malliina.boat.db.PushInput
-import com.malliina.boat.{Coord, PushId, PushLang, PushToken, ReverseGeocode, TrackMeta}
+import com.malliina.boat.db.{PushDevice, PushInput}
+import com.malliina.boat.{Coord, PhoneId, PushId, PushLang, PushToken, ReverseGeocode, TrackMeta, TrackName}
 import com.malliina.measure.DistanceM
 import com.malliina.values.UserId
 
@@ -22,4 +22,5 @@ case class PushState(
 trait PushService[F[_]]:
   def enable(input: PushInput): F[PushId]
   def disable(token: PushToken, user: UserId): F[Boolean]
+  def startedActivity(trackName: TrackName, phoneId: PhoneId): F[PushDevice]
   def push(state: PushState, geo: Option[ReverseGeocode]): F[PushSummary]

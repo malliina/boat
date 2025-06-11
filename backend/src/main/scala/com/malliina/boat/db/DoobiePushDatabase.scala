@@ -6,7 +6,7 @@ import com.malliina.boat.PushTokenType.{IOSActivityStart, IOSActivityUpdate}
 import com.malliina.boat.db.DoobiePushDatabase.{PushStatus, log}
 import com.malliina.boat.db.Values.RowsChanged
 import com.malliina.boat.push.*
-import com.malliina.boat.{AppConf, DeviceId, PushTokenType, PushId, PushToken, ReverseGeocode, SourceType, TrackName}
+import com.malliina.boat.{AppConf, DeviceId, PhoneId, PushTokenType, PushId, PushToken, ReverseGeocode, SourceType, TrackName}
 import com.malliina.database.DoobieDatabase
 import com.malliina.util.AppLogger
 import com.malliina.values.UserId
@@ -86,6 +86,19 @@ class DoobiePushDatabase[F[_]: Async](val db: DoobieDatabase[F], val push: PushE
         else
           log.warn(s"Tried to disable notifications for '$token', but no changes were made.")
           false
+
+  def startedActivity(trackName: TrackName, phoneId: PhoneId): F[PushDevice] = db.run:
+    sql"""select id, token, device, device_id, live_activity, user, added
+          from push_clients pc
+          where pc.device = ${PushTokenType.IOSActivityStart}
+            and pc.active
+            and pc.device_id = $phoneId
+            and pc.id in (select h.client from push_history h where h.live_activity = $trackName)
+            and not pc.id in (select h.client from push_history h where h.live_activity = $trackName and h.outcome = ${PushOutcome.Ended})
+          order by added desc
+          limit 1"""
+      .query[PushDevice]
+      .unique
 
   /** Pushes at most once every five minutes to a given device.
     */
