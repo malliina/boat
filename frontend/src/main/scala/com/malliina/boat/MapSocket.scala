@@ -236,21 +236,12 @@ class MapSocket[F[_]: Async](
         // Consider computing kWh/100km in the backend
         val carTrails = trails.values.toList
           .filter(t =>
-            t.from.sourceType == SourceType.Vehicle && t.from.distanceMeters > 300.meters
+            t.from.sourceType == SourceType.Vehicle && t.from.distanceMeters > 300.meters && t.from.consumption.isDefined
           )
-        val consumptions: Seq[Energy] = carTrails
-          .map: cs =>
-            val decrements: Iterator[Energy] = cs.coords
-              .flatMap[Energy](_.battery)
-              .filter(_.wattHours > 0)
-              .sliding(2)
-              .collect:
-                case Seq(b1, b2) if b2 < b1 => b2.minus(b1)
-            val consumption: Double = decrements.map(_.wattHours).sum
-            Energy(consumption)
-        val consumption = Energy(consumptions.map(_.wattHours).sum.abs)
+        val consumptions = carTrails.flatMap(_.from.consumption.map(_.wattHours))
+        val consumption = consumptions.sum
         val carDistance = calcDistance(carTrails.map(_.from))
-        val kwhPer100Km = consumption.wattHours / carDistance.toMeters * 100
+        val kwhPer100Km = Calc.kWhPer100km(consumption, carDistance)
         val rounded = "%.2f".format(kwhPer100Km)
         e.innerHTML = s"$rounded kWh/100km"
     elem(TopSpeedId).foreach: e =>

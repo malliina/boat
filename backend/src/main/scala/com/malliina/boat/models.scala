@@ -174,7 +174,7 @@ case class JoinedTrack(
   private val endOrNow = end.getOrElse(Instant.now())
 
   private def kWhPer100km: Option[Double] =
-    if distance.meters > 0 then energy.map(wh => 100 / distance.meters * wh.wattHours)
+    if distance.meters > 0 then energy.map(wh => Calc.kWhPer100km(wh, distance))
     else None
 
   /** @return
