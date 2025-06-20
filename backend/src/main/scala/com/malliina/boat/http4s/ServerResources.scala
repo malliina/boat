@@ -113,6 +113,7 @@ trait ServerResources:
       appComps = builder.build(conf, http)
       tracksDatabase = DoobieTracksDatabase(db)
       _ <- LiveActivityManager(appComps.pushService, tracksDatabase, reverseGeo, db).polling
+      slowly <- Resource.eval(Slowly.default(1))
     yield
       val jwt = JWT(conf.secret)
       val auth = Http4sAuth[F](jwt)
@@ -156,7 +157,8 @@ trait ServerResources:
         streams,
         reverseGeo,
         Parking(http, reverseGeo),
-        polestarService
+        polestarService,
+        slowly
       )
       Service(comps, graph, csrf, csrfConf)
 

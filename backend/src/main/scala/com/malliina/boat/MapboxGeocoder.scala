@@ -57,7 +57,7 @@ object ThrottlingGeocoder:
     http: HttpClient[F]
   ): F[ThrottlingGeocoder[F]] =
     RateLimiter
-      .mapbox[F]()
+      .default[F]()
       .map: limiter =>
         ThrottlingGeocoder(limiter, MapboxGeocoder(token, http))
 
@@ -71,12 +71,13 @@ object RateLimiter:
     * requests/minute or 139 requests/hour. So, we limit the request frequency to 100 requests per
     * hour to stay within the free tier limits.
     */
-  def mapbox[F[_]: Async](tasks: Int = 100, window: FiniteDuration = 1.hour) =
+  def default[F[_]: Async](tasks: Int = 100, window: FiniteDuration = 1.hour): F[RateLimiter[F]] =
     Semaphore[F](tasks).map: sem =>
       RateLimiter(window, sem)
 
 class RateLimiter[F[_]: Async](window: FiniteDuration, semaphore: Semaphore[F]):
   private val F = Async[F]
+
   def submit[T](task: F[T]): F[Option[T]] =
     tryAcquireReleaseLater.flatMap: acquired =>
       if acquired then task.map(t => Option(t))

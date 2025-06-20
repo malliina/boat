@@ -249,8 +249,13 @@ class Service[F[_]: {Async, Files}](
                 ok(html(req).tracks(user, ts, query, lang))
         )
     case req @ GET -> Root / "history" =>
+      val opportunistic = req.uri.query.params.get(FrontKeys.Opportunistic).contains(FrontKeys.True)
       authedQuery(req, BoatQuery.apply).flatMap: authed =>
-        db.history(authed.user, authed.query).flatMap(ts => ok(ts))
+        val query = db.history(authed.user, authed.query)
+        val result =
+          if opportunistic then comps.slowly.submitOrElse(query, Nil)
+          else query
+        result.flatMap(ts => ok(ts))
     case req @ GET -> Root / "tracks" / TrackNameVar(trackName) =>
       respond(req)(
         json = authedTrackQuery(req).flatMap: _ =>

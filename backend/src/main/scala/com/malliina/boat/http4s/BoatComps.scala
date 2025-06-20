@@ -21,5 +21,6 @@ case class BoatComps[F[_]](
   streams: BoatStreams[F],
   mapbox: Geocoder[F],
   parking: Parking[F],
-  polestar: PolestarService[F]
+  polestar: PolestarService[F],
+  slowly: Slowly[F]
 )

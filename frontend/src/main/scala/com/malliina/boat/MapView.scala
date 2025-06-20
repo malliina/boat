@@ -167,7 +167,8 @@ class MapView[F[_]: Async](
       Map(
         FrontKeys.Lat -> s"${coord.lat}",
         FrontKeys.Lng -> s"${coord.lng}",
-        FrontKeys.TracksLimit -> "3"
+        FrontKeys.TracksLimit -> "3",
+        FrontKeys.Opportunistic -> FrontKeys.True
       )
     val qString = query.map((k, v) => s"$k=$v").mkString("&")
     http.client

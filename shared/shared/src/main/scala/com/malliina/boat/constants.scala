@@ -73,8 +73,10 @@ object Shortcut extends NamedCompanion[Shortcut]:
 
 trait FilterKeys:
   val Newest = "newest"
+  val Opportunistic = "opportunistic"
   val SampleKey = "sample"
   val TracksLimit = "tracksLimit"
+  val True = "true"
 
 object FrontKeys extends FrontKeys
 
