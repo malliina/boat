@@ -2,8 +2,9 @@ package com.malliina.boat.parking
 
 import cats.effect.{Async, Sync}
 import cats.syntax.all.{toFlatMapOps, toFunctorOps, toTraverseOps}
+import com.malliina.boat.geo.Geocoder
 import com.malliina.boat.http.Near
-import com.malliina.boat.{CapacityProps, Earth, FeatureCollection, Geocoder, LocalConf, MultiPolygon, NearestCoord, ParkingCapacity, ParkingDirections, Polygon, Resources}
+import com.malliina.boat.{CapacityProps, Earth, FeatureCollection, LocalConf, MultiPolygon, NearestCoord, ParkingCapacity, ParkingDirections, Polygon, Resources}
 import com.malliina.http.FullUrl
 import com.malliina.http.UrlSyntax.https
 import com.malliina.http.io.HttpClientF2

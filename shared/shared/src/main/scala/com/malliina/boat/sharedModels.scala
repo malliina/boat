@@ -203,11 +203,6 @@ object TimedCoord:
       modern(tc).deepMerge(Json.obj(DepthKey -> tc.depthMeters.toMillis.toLong.asJson))
   )
 
-case class AccessToken(token: String) extends AnyVal with WrappedString:
-  override def value = token
-
-object AccessToken extends StringCompanion[AccessToken]
-
 case class ChangeTrackTitle(title: TrackTitle) derives Codec.AsObject
 
 object TrackComments:

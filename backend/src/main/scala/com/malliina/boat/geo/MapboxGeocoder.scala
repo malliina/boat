@@ -1,26 +1,20 @@
-package com.malliina.boat
+package com.malliina.boat.geo
 
-import cats.Applicative
 import cats.effect.Async
 import cats.effect.kernel.Outcome.Succeeded
 import cats.effect.std.Semaphore
 import cats.effect.syntax.all.{genSpawnOps, genTemporalOps_, monadCancelOps, monadCancelOps_}
 import cats.implicits.{toFlatMapOps, toFunctorOps}
-import com.malliina.boat.MapboxGeocoder.ReverseGeocodeResponse
+import com.malliina.boat.Coord
+import com.malliina.boat.geo.MapboxGeocoder.ReverseGeocodeResponse
+import com.malliina.boat.geo.RateLimiter.LimitExceeded
+import com.malliina.boat.geo.{MapboxGeocoder, ReverseGeocode}
 import com.malliina.http.HttpClient
 import com.malliina.http.UrlSyntax.https
+import com.malliina.values.AccessToken
 import io.circe.Codec
 
 import scala.concurrent.duration.{DurationLong, FiniteDuration}
-
-case class ReverseGeocode(address: String) derives Codec.AsObject
-
-trait Geocoder[F[_]]:
-  def reverseGeocode(coord: Coord): F[Option[ReverseGeocode]]
-
-object Geocoder:
-  def noop[F[_]: Applicative] = new Geocoder[F]:
-    override def reverseGeocode(coord: Coord): F[Option[ReverseGeocode]] = Applicative[F].pure(None)
 
 object MapboxGeocoder:
 
@@ -67,6 +61,9 @@ class ThrottlingGeocoder[F[_]: Async](limiter: RateLimiter[F], geocoder: Geocode
     limiter.submit(geocoder.reverseGeocode(coord)).map(_.flatten)
 
 object RateLimiter:
+  class LimitExceeded(val window: FiniteDuration)
+    extends Exception(s"Rate limit exceeded over window of $window.")
+
   /** Mapbox free tier includes 100000 temporary reverse geocoding requests per month, that is 2.28
     * requests/minute or 139 requests/hour. So, we limit the request frequency to 100 requests per
     * hour to stay within the free tier limits.
@@ -82,6 +79,10 @@ class RateLimiter[F[_]: Async](window: FiniteDuration, semaphore: Semaphore[F]):
     tryAcquireReleaseLater.flatMap: acquired =>
       if acquired then task.map(t => Option(t))
       else F.pure(None)
+
+  def submitOrFail[T](task: F[T]): F[T] =
+    submit(task).flatMap: opt =>
+      opt.map(t => F.pure(t)).getOrElse(F.raiseError(LimitExceeded(window)))
 
   private def tryAcquireReleaseLater: F[Boolean] = semaphore.tryAcquire.guaranteeCase:
     case Succeeded(out) =>

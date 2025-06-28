@@ -23,6 +23,7 @@ class PushServiceTests extends BaseSuite:
           0.meters,
           0.seconds,
           None,
+          PushGeo.empty,
           PushLang.en
         ),
         token

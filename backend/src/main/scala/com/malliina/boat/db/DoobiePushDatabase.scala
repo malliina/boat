@@ -6,7 +6,7 @@ import com.malliina.boat.PushTokenType.{IOSActivityStart, IOSActivityUpdate}
 import com.malliina.boat.db.DoobiePushDatabase.{PushStatus, log}
 import com.malliina.boat.db.Values.RowsChanged
 import com.malliina.boat.push.*
-import com.malliina.boat.{AppConf, DeviceId, PhoneId, PushTokenType, PushId, PushToken, ReverseGeocode, SourceType, TrackName}
+import com.malliina.boat.{AppConf, DeviceId, PhoneId, PushId, PushToken, PushTokenType, SourceType, TrackName}
 import com.malliina.database.DoobieDatabase
 import com.malliina.util.AppLogger
 import com.malliina.values.UserId
@@ -102,7 +102,7 @@ class DoobiePushDatabase[F[_]: Async](val db: DoobieDatabase[F], val push: PushE
 
   /** Pushes at most once every five minutes to a given device.
     */
-  def push(state: PushState, geo: Option[ReverseGeocode]): F[PushSummary] =
+  def push(state: PushState, geo: PushGeo): F[PushSummary] =
     val track = state.track
     val title = if track.sourceType == SourceType.Vehicle then AppConf.CarName else AppConf.Name
     val notification =
@@ -113,6 +113,7 @@ class DoobiePushDatabase[F[_]: Async](val db: DoobieDatabase[F], val push: PushE
         state.state,
         state.distance,
         state.duration,
+        state.at,
         geo,
         state.lang
       )

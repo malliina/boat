@@ -10,6 +10,7 @@ import com.malliina.boat.ais.BoatMqttClient
 import com.malliina.boat.auth.JWT
 import com.malliina.boat.cars.PolestarService
 import com.malliina.boat.db.*
+import com.malliina.boat.geo.{Geocoder, ImageApi, MapboxImages, ThrottlingGeocoder}
 import com.malliina.boat.graph.Graph
 import com.malliina.boat.html.BoatHtml
 import com.malliina.boat.http4s.JsonInstances.circeJsonEncoder
@@ -88,6 +89,7 @@ trait ServerResources:
     csrf: CSRF[F, F],
     csrfConf: CSRFConf
   ): Resource[F, Service[F]] =
+    val F = Async[F]
     for
       dispatcher <- Dispatcher.parallel[F]
       http <- builder.http
@@ -108,11 +110,14 @@ trait ServerResources:
       s3 <- S3Client.build[F]()
       graph <- Resource.eval(Graph.load[F])
       reverseGeo <- Resource.eval:
-        if conf.isTest then Async[F].pure(Geocoder.noop)
+        if conf.isTest then F.pure(Geocoder.noop)
         else ThrottlingGeocoder.default(conf.mapbox.token, http)
       appComps = builder.build(conf, http)
       tracksDatabase = DoobieTracksDatabase(db)
-      _ <- LiveActivityManager(appComps.pushService, tracksDatabase, reverseGeo, db).polling
+      images <- Resource.eval:
+        if conf.isTest then F.pure(ImageApi.noop)
+        else MapboxImages.default(conf.mapbox.token, http)
+      _ <- LiveActivityManager(appComps.pushService, tracksDatabase, reverseGeo, images, db).polling
       slowly <- Resource.eval(Slowly.default(1))
     yield
       val jwt = JWT(conf.secret)
@@ -156,6 +161,7 @@ trait ServerResources:
         push,
         streams,
         reverseGeo,
+        images,
         Parking(http, reverseGeo),
         polestarService,
         slowly

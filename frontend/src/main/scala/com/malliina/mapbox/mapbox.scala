@@ -2,11 +2,12 @@ package com.malliina.mapbox
 
 import cats.effect.Async
 import cats.syntax.all.toFunctorOps
-import com.malliina.boat.{AccessToken, Coord, Feature, FeatureCollection, Latitude, Layer, Longitude}
+import com.malliina.boat.{Coord, Feature, FeatureCollection, Latitude, Layer, Longitude}
 import com.malliina.geojson.GeoFeature
 import com.malliina.http.FullUrl
 import com.malliina.json.JsonError
 import com.malliina.json.Parsing.{as, asJs}
+import com.malliina.values.AccessToken
 import org.scalajs.dom
 import org.scalajs.dom.{HTMLCanvasElement, html}
 import scalatags.JsDom.TypedTag

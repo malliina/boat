@@ -1,5 +1,6 @@
 package com.malliina.boat
 
+import com.malliina.values.AccessToken
 import com.malliina.web.{AuthConf, ClientId, ClientSecret}
 
 case class AppConf(

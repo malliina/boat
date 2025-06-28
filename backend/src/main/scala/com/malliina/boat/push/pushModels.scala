@@ -1,7 +1,7 @@
 package com.malliina.boat.push
 
 import com.malliina.boat.http.Named
-import com.malliina.boat.{BoatName, BoatPrimitives, PushLang, ReverseGeocode, TrackName}
+import com.malliina.boat.{BoatName, BoatPrimitives, Coord, PushLang, TrackName}
 import com.malliina.measure.DistanceM
 import com.malliina.values.{ErrorMessage, ValidatingCompanion}
 import io.circe.Codec
@@ -28,13 +28,14 @@ case class SourceNotification(
   state: SourceState,
   distance: DistanceM,
   duration: FiniteDuration,
-  geo: Option[ReverseGeocode],
+  coord: Option[Coord],
+  geo: PushGeo,
   lang: PushLang
 ) derives Codec.AsObject:
   def message =
     val describe = if state == SourceState.Connected then lang.onTheMove else lang.stoppedMoving
     val prefix = s"$boatName $describe"
-    val suffix = geo.fold("")(a => s" ${lang.near} ${a.address}")
+    val suffix = geo.geocode.fold("")(a => s" ${lang.near} ${a.address}")
     s"$prefix$suffix"
 
 object SourceNotification:
@@ -52,5 +53,7 @@ case class LiveActivityState(
   message: String,
   distance: DistanceM,
   duration: FiniteDuration,
-  address: Option[String]
+  address: Option[String],
+  coord: Option[Coord],
+  image: Option[String]
 ) derives Codec.AsObject

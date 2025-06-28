@@ -1,8 +1,8 @@
-package com.malliina.boat
+package com.malliina.boat.geo
 
 import cats.effect.IO
 import cats.effect.syntax.all.concurrentParTraverseOps
-import com.malliina.boat.RateLimiter
+import com.malliina.boat.geo.RateLimiter
 
 import scala.concurrent.duration.DurationInt
 

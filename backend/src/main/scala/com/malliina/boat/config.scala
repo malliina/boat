@@ -7,7 +7,7 @@ import com.malliina.database.Conf
 import com.malliina.http.UrlSyntax.url
 import com.malliina.push.apns.{KeyId, TeamId}
 import com.malliina.util.FileUtils
-import com.malliina.values.{ErrorMessage, Password}
+import com.malliina.values.{AccessToken, ErrorMessage, Password}
 import com.malliina.web.{AuthConf, ClientId, ClientSecret, SignInWithApple}
 
 import java.nio.file.Path

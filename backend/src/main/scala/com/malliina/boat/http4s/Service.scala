@@ -13,12 +13,12 @@ import com.malliina.boat.graph.*
 import com.malliina.boat.html.{BoatHtml, BoatLang}
 import com.malliina.boat.http.*
 import com.malliina.boat.http.InviteResult.{AlreadyInvited, Invited, UnknownEmail}
-import com.malliina.http4s.BasicService.noCache
 import com.malliina.boat.http4s.BoatBasicService.{cached, ranges}
 import com.malliina.boat.http4s.Service.{isSecured, log, userAgent}
 import com.malliina.boat.parsing.CarCoord
-import com.malliina.boat.push.{PushState, SourceState}
+import com.malliina.boat.push.{PushGeo, PushState, SourceState}
 import com.malliina.http.{CSRFConf, Errors, SingleError}
+import com.malliina.http4s.BasicService.noCache
 import com.malliina.http4s.CSRFSupport
 import com.malliina.measure.DistanceM
 import com.malliina.polestar.Polestar
@@ -627,7 +627,7 @@ class Service[F[_]: {Async, Files}](
                           now = now
                         )
                         push
-                          .push(state, geo = None)
+                          .push(state, geo = PushGeo.empty)
                           .map(_ => ())
                       .handleError: err =>
                         log.warn(s"Failed to notify of disconnection of ${boat.describe}.", err)
@@ -645,7 +645,7 @@ class Service[F[_]: {Async, Files}](
                           now = now
                         )
                         push
-                          .push(state, geo = None)
+                          .push(state, geo = PushGeo.empty)
                           .map(_ => ())
                       .handleError: err =>
                         log.info(s"Failed to handler error of ${boat.describe}.", err)
@@ -654,15 +654,19 @@ class Service[F[_]: {Async, Files}](
     normalRoutes.combineK(socketRoutes(sockets))
 
   private def pushGeocoded(state: PushState) =
-    val reverseGeo = state.at
+    val geoLookup = state.at
       .map: coord =>
-        comps.mapbox
+        val geoLookup = comps.mapbox
           .reverseGeocode(coord)
           .handleErrorWith: e =>
             F.delay(log.error(s"Geo lookup of $coord failed.", e)) >> F.pure(None)
+        for
+          geoOpt <- geoLookup
+          imageOpt <- comps.images.imageEncoded(coord)
+        yield PushGeo(geoOpt, imageOpt)
       .getOrElse:
-        F.pure(None)
-    reverseGeo.flatMap: geo =>
+        F.pure(PushGeo(None, None))
+    geoLookup.flatMap: geo =>
       push
         .push(state, geo)
         .void

@@ -1,12 +1,14 @@
-package com.malliina.boat
+package com.malliina.boat.geo
 
 import cats.effect.Async
 import cats.implicits.toFunctorOps
-import com.malliina.boat.GoogleGeocoder.AddressType.StreetAddress
-import com.malliina.boat.GoogleGeocoder.GeocoderResults
+import GoogleGeocoder.AddressType.StreetAddress
+import GoogleGeocoder.GeocoderResults
+import com.malliina.boat.geo.{Geocoder, ReverseGeocode}
+import com.malliina.boat.Coord
 import com.malliina.http.HttpClient
 import com.malliina.http.UrlSyntax.https
-import com.malliina.values.StringEnumCompanion
+import com.malliina.values.{AccessToken, StringEnumCompanion}
 import io.circe.Codec
 
 object GoogleGeocoder:

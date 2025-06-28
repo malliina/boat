@@ -112,7 +112,9 @@ class APNSPush[F[_]: Monad](prod: APNSHttpClientF[F]) extends PushClient[F, APNS
       message,
       notification.distance,
       notification.duration,
-      notification.geo.map(_.address)
+      notification.geo.geocode.map(_.address),
+      notification.coord,
+      notification.geo.image
     )
 
   def push(request: APNSRequest, to: APNSToken): F[PushSummary] =
