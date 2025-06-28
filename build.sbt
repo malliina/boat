@@ -29,7 +29,7 @@ val versions = new {
   val s3 = "2.31.50"
   val scalaJsDom = "2.8.0"
   val scalaTags = "0.13.1"
-  val webAuth = "6.9.9"
+  val webAuth = "6.9.10"
 }
 
 val webAuthDep = "com.malliina" %% "web-auth" % versions.webAuth
@@ -63,7 +63,9 @@ inThisBuild(
     },
     scalacOptions ++= Seq(
       "-Wunused:all"
-    )
+    ),
+    // https://users.scala-lang.org/t/scala-js-with-3-7-0-package-scala-contains-object-and-package-with-same-name-caps/10786/6
+    dependencyOverrides += "org.scala-lang" %% "scala3-library" % scalaVersion.value
   )
 )
 
@@ -154,7 +156,6 @@ val backend = Project("boat", file("backend"))
         "com.malliina" %% m % versions.webAuth
       } ++ Seq(
         "ch.qos.logback" % "logback-classic" % versions.logback,
-        "org.http4s" %% "http4s-ember-client" % versions.http4s,
         "com.vividsolutions" % "jts" % versions.jts,
         "org.mariadb.jdbc" % "mariadb-java-client" % versions.mariadb,
         "org.apache.commons" % "commons-text" % versions.commonsText,
@@ -166,6 +167,7 @@ val backend = Project("boat", file("backend"))
         webAuthDep,
         webAuthTestDep,
         munitDep,
+        "org.http4s" %% "http4s-ember-client" % versions.http4s % Test,
         "org.typelevel" %% "munit-cats-effect" % versions.munitCe % Test
       ),
     clientProject := frontend,
