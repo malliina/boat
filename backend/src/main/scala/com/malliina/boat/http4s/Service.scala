@@ -40,7 +40,7 @@ import org.http4s.websocket.WebSocketFrame
 import org.http4s.websocket.WebSocketFrame.Text
 import org.http4s.{Callback as _, *}
 import org.typelevel.ci.CIString
-
+import com.malliina.measure.DistanceIntM
 import java.time.Instant
 import scala.annotation.unused
 import scala.concurrent.duration.DurationInt
@@ -192,8 +192,45 @@ class Service[F[_]: {Async, Files}](
           comps.polestar
             .carsAndTelematics(user.id)
             .flatMap: cars =>
-              csrfOk: token =>
-                html(req).carsAndBoats(user, cars, token)
+              respond(req)(
+                json =
+                  val formatter = TimeFormatter.lang(user.language)
+                  def formatted(t: Updated) =
+                    formatter.timing(Instant.ofEpochSecond(t.seconds.toInt).plusNanos(t.nanos))
+                  val carSummaries = cars.map: car =>
+                    val t = car.telematics
+                    val h = t.health
+                    val b = t.battery
+                    val o = t.odometer
+                    CarSummary(
+                      car.vin,
+                      car.registrationNumber,
+                      car.modelYear,
+                      car.softwareVersion,
+                      car.interiorSpec,
+                      car.exteriorSpec,
+                      car.studioImage,
+                      CarHealth(
+                        h.daysToService,
+                        h.distanceToServiceKm.km,
+                        formatted(h.timestamp)
+                      ),
+                      CarBattery(
+                        b.batteryChargeLevelPercentage,
+                        ChargingStatus.fromPolestar(b.chargingStatus),
+                        b.estimatedDistanceToEmptyKm.km,
+                        formatted(b.timestamp)
+                      ),
+                      CarOdometer(
+                        o.odometer,
+                        formatted(o.timestamp)
+                      )
+                    )
+                  ok(CarsAndBoats(carSummaries))
+                ,
+                html = csrfOk: token =>
+                  html(req).carsAndBoats(user, cars, token)
+              )
     case req @ GET -> Root / "boats" / "me" =>
       auth
         .boatTokenOrFail(req.headers)

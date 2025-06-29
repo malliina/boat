@@ -314,6 +314,8 @@ object BoatTokens:
 
 case class BoatResponse(boat: Boat) derives Codec.AsObject
 
+case class CarsAndBoats(cars: Seq[CarSummary]) derives Codec.AsObject
+
 case class JoinedSource(
   device: DeviceId,
   boatName: BoatName,

@@ -67,6 +67,7 @@ object FormattedDateTime extends ShowableString[FormattedDateTime]:
   extension (fdt: FormattedDateTime) def dateTime: String = fdt
 
 case class Timing(
+  iso: String,
   date: FormattedDate,
   time: FormattedTime,
   dateTime: FormattedDateTime,
@@ -324,6 +325,43 @@ case class Car(
   exteriorSpec: String,
   studioImage: FullUrl,
   telematics: CarTelematics
+) derives Codec.AsObject
+
+case class CarHealth(daysToService: Int, distanceToService: DistanceM, updated: Timing)
+  derives Codec.AsObject
+
+enum ChargingStatus(val name: String):
+  case Idle extends ChargingStatus("idle")
+  case Other extends ChargingStatus("other")
+
+object ChargingStatus extends StringEnumCompanion[ChargingStatus]:
+  override def all: Seq[ChargingStatus] = Seq(Idle, Other)
+  override def write(t: ChargingStatus): String = t.name
+
+  def fromPolestar(s: String): ChargingStatus = s match
+    case "CHARGING_STATUS_IDLE" => Idle
+    case _                      => Other
+
+case class CarBattery(
+  chargeLevelPercentage: Int,
+  chargingStatus: ChargingStatus,
+  distanceToEmpty: DistanceM,
+  updated: Timing
+) derives Codec.AsObject
+
+case class CarOdometer(odometer: DistanceM, updated: Timing) derives Codec.AsObject
+
+case class CarSummary(
+  vin: VIN,
+  registrationNumber: RegistrationNumber,
+  modelYear: String,
+  softwareVersion: String,
+  interiorSpec: String,
+  exteriorSpec: String,
+  studioImage: FullUrl,
+  health: CarHealth,
+  battery: CarBattery,
+  odometer: CarOdometer
 ) derives Codec.AsObject
 
 trait MinimalUserInfo:

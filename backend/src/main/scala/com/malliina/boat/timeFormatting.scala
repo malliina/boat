@@ -50,7 +50,13 @@ class TimeFormatter(patterns: TimePatterns):
     s"${formatDateTime(start)} - ${formatTime(end)}"
 
   def timing(i: Instant): Timing =
-    val ret = Timing(formatDate(i), formatTime(i), formatDateTime(i), i.toEpochMilli)
+    val ret = Timing(
+      DateTimeFormatter.ISO_INSTANT.format(i),
+      formatDate(i),
+      formatTime(i),
+      formatDateTime(i),
+      i.toEpochMilli
+    )
     ret
 
   def times(start: Instant, end: Instant): Times = Times(
