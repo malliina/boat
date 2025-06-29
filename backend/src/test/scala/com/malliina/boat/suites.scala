@@ -28,7 +28,7 @@ import scala.concurrent.duration.{DurationInt, FiniteDuration}
 case class TestBoatConf(testdb: Conf)
 
 object TestHttp:
-  val okClient = OkHttpClient
+  private val okClient = OkHttpClient
     .Builder()
     .protocols(util.Arrays.asList(Protocol.HTTP_2, Protocol.HTTP_1_1))
     .connectTimeout(60, TimeUnit.SECONDS)
@@ -114,7 +114,7 @@ case class ServerTools(server: ServerComponents[IO]):
   def baseWsUrl = FullUrl("ws", s"localhost:$port", "")
   def csrf = server.app.csrfConf
 
-trait ServerSuite extends BoatDatabaseSuite with JsonInstances:
+trait BaseBoatServerSuite extends BoatDatabaseSuite with JsonInstances:
   self: MUnitSuite =>
   given EntityDecoder[IO, Errors] = jsonBody[IO, Errors]
 
@@ -129,9 +129,6 @@ trait ServerSuite extends BoatDatabaseSuite with JsonInstances:
 
   def serverWithReleaseTimeout = releaseTimeout(testServerResource, 10.seconds)
 
-  val server =
-    ResourceSuiteLocalFixture("munit-server", serverWithReleaseTimeout)
-
   private def releaseTimeout[R](r: Resource[IO, R], duration: FiniteDuration): Resource[IO, R] =
     Resource
       .eval(r.allocated)
@@ -140,4 +137,12 @@ trait ServerSuite extends BoatDatabaseSuite with JsonInstances:
           fin.timeoutTo(duration, IO(println(s"Resource release timed out after $duration.")))
         )
 
+trait ServerSuite extends BaseBoatServerSuite:
+  self: MUnitSuite =>
+  val server =
+    ResourceSuiteLocalFixture("munit-server", serverWithReleaseTimeout)
   override def munitFixtures: Seq[AnyFixture[?]] = Seq(confFixture, server)
+
+trait ServerFunSuite extends BaseBoatServerSuite:
+  self: MUnitSuite =>
+  val srv = ResourceFunFixture(serverWithReleaseTimeout)

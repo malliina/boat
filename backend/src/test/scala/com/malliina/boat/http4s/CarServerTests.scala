@@ -3,16 +3,17 @@ package com.malliina.boat.http4s
 import cats.effect.IO
 import com.malliina.boat.db.NewUser
 import com.malliina.boat.*
-import com.malliina.http.{Errors, FullUrl, OkHttpResponse}
+import com.malliina.http.{CSRFConf, Errors, FullUrl}
 import com.malliina.measure.*
 import com.malliina.values.{IdToken, Username, degrees, lat, lng}
 import io.circe.syntax.EncoderOps
 import org.http4s.Status.{NotFound, Ok, Unauthorized}
+import org.http4s.Uri
 import org.http4s.headers.{Accept, Authorization}
 
 import java.time.{OffsetDateTime, ZoneOffset}
 
-class CarServerTests extends MUnitSuite with ServerSuite:
+class CarServerTests extends MUnitSuite with ServerFunSuite:
   val testCarId = DeviceId(1)
   val loc = LocationUpdate(
     24.lng,
@@ -36,43 +37,55 @@ class CarServerTests extends MUnitSuite with ServerSuite:
     date = loc.date.plusSeconds(10)
   )
 
-  def postCarsUrl = baseUrl.append(Reverse.postCars.renderString)
-  def getCarsUrl = baseUrl.append(Reverse.historyCars.renderString)
-
-  test("POST call with no creds"):
+  srv.test("POST call with no creds"): s =>
     http
       .postJson(
-        postCarsUrl,
+        s.baseHttpUrl / Reverse.postCars,
         LocationUpdates(Nil, testCarId).asJson,
-        Map(csrf.headerName.toString -> csrf.noCheck)
+        Map(s.csrf.headerName.toString -> s.csrf.noCheck)
       )
       .map: res =>
         assertEquals(res.status, Unauthorized.code)
 
-  test("POST car locations with outdated jwt returns 401 with token expired"):
-    postCarLocation(LocationUpdates(Nil, testCarId), token = TestEmailAuth.expiredToken).map: res =>
-      assertEquals(res.status, Unauthorized.code)
-      assert(
-        res.parse[Errors].toOption.exists(_.errors.exists(_.key == ErrorConstants.TokenExpiredKey))
+  srv.test("POST car locations with outdated jwt returns 401 with token expired"): s =>
+    http
+      .postJson(
+        s.baseHttpUrl / Reverse.postCars,
+        LocationUpdates(Nil, testCarId).asJson,
+        headersStr(TestEmailAuth.expiredToken, s.csrf)
       )
+      .map: res =>
+        assertEquals(res.status, Unauthorized.code)
+        assert(
+          res
+            .parse[Errors]
+            .toOption
+            .exists(_.errors.exists(_.key == ErrorConstants.TokenExpiredKey))
+        )
 
-  test("POST call with working jwt"):
-    successfulTest(carId => LocationUpdates(Nil, carId))
+  srv.test("POST call with working jwt"): s =>
+    successfulTest(s)(carId => LocationUpdates(Nil, carId))
 
-  test("POST call with working jwt and update with no speed"):
+  srv.test("POST call with working jwt and update with no speed"): s =>
     val json =
       """
         |{ "updates" : [ { "longitude" : -122.084, "latitude" : 37.421998333333335, "altitudeMeters" : 5.0, "accuracyMeters" : 5.0, "bearing" : null, "bearingAccuracyDegrees" : null, "speed" : null, "batteryLevel" : null, "batteryCapacity" : null, "rangeRemaining" : null, "outsideTemperature" : 25.0, "nightMode" : false, "date" : "2025-02-08T16:43:14.517+02:00" } ], "carId" : 1324 }""".stripMargin
     val ups = io.circe.parser.decode[LocationUpdates](json).fold(err => throw err, identity)
-    successfulTest(carId => ups.copy(carId = carId))
+    successfulTest(s)(carId => ups.copy(carId = carId))
 
-  test("POST car locations for non-owned car fails"):
-    postCarLocation(LocationUpdates(List(loc), DeviceId(123))).map: res =>
-      assertEquals(res.status, NotFound.code)
+  srv.test("POST car locations for non-owned car fails"): s =>
+    http
+      .postJson(
+        s.baseHttpUrl / Reverse.postCars,
+        LocationUpdates(List(loc), DeviceId(123)).asJson,
+        headersStr(TestEmailAuth.testToken, s.csrf)
+      )
+      .map: res =>
+        assertEquals(res.status, NotFound.code)
 
-  def successfulTest(ups: DeviceId => LocationUpdates) =
+  def successfulTest(s: ServerTools)(ups: DeviceId => LocationUpdates) =
     val user = Username("test@example.com")
-    val service = server().server.app
+    val service = s.server.app
     val meta = SimpleSourceMeta(user, BoatNames.random(), SourceType.Vehicle, Language.default)
     for
       _ <- service.userMgmt.deleteUser(user)
@@ -80,23 +93,22 @@ class CarServerTests extends MUnitSuite with ServerSuite:
         NewUser(user, Option(TestEmailAuth[IO].testEmail), UserToken.random(), enabled = true)
       )
       car <- service.inserts.joinAsSource(meta)
-      res <- postCarLocation(ups(car.track.device))
+      res <- http.postJson(
+        s.baseHttpUrl / Reverse.postCars,
+        ups(car.track.device).asJson,
+        headersStr(TestEmailAuth.testToken, s.csrf)
+      )
     yield assertEquals(res.status, Ok.code)
 
-  private def postCarLocation(
-    updates: LocationUpdates,
-    token: IdToken = TestEmailAuth.testToken,
-    url: FullUrl = postCarsUrl
-  ): IO[OkHttpResponse] =
-    http.postJson(url, updates.asJson, headers(token))
-
-  private def headers(token: IdToken) =
+  private def headersStr(token: IdToken, csrf: CSRFConf) =
+    headers(token, csrf).map((k, v) => k.toString -> v)
+  private def headers(token: IdToken, csrf: CSRFConf) =
     Map(
-      Authorization.name.toString -> s"Bearer $token",
-      Accept.headerInstance.name.toString -> "application/json",
-      csrf.headerName.toString -> csrf.noCheck
+      Authorization.name -> s"Bearer $token",
+      Accept.headerInstance.name -> "application/json",
+      csrf.headerName -> csrf.noCheck
     )
 
-  def csrf = server().server.app.csrfConf
-  def baseUrl = server().baseHttpUrl
   def http = TestHttp.client
+
+  extension (url: FullUrl) def /(uri: Uri) = url.append(uri.renderString)
