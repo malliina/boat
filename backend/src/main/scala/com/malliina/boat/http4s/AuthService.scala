@@ -7,7 +7,7 @@ import com.malliina.boat.auth.{AuthProvider, BoatJwt, SettingsPayload}
 import com.malliina.boat.db.{IdentityManager, MissingCredentials, MissingCredentialsException, RefreshService, SIWADatabase}
 import com.malliina.boat.http.{Limits, UserRequest}
 import com.malliina.boat.http4s.AuthService.log
-import com.malliina.boat.{BoatName, BoatNames, BoatToken, DeviceMeta, JoinedSource, Language, MinimalUserInfo, SimpleSourceMeta, SourceType, UserBoats, UserInfo, Usernames}
+import com.malliina.boat.{BoatName, BoatNames, BoatToken, DeviceMeta, JoinedSource, Language, MinimalUserInfo, SimpleSourceMeta, SourceType, UserBoats, UserInfo, UserToken, Usernames}
 import com.malliina.util.AppLogger
 import com.malliina.values.Email
 import com.malliina.web.{Code, RevokeResult, WebAuthException}
@@ -56,6 +56,16 @@ class AuthService[F[_]: Sync](
     profile(headers).map(ui => ui: MinimalUserInfo)
 
   def profile(headers: Headers, now: Instant = Instant.now()): F[UserInfo] =
+    userFromCustomToken(headers).getOrElse:
+      profileFromIdToken(headers, now)
+
+  private def userFromCustomToken(headers: Headers): Option[F[UserInfo]] =
+    headers
+      .get[UserToken]
+      .map: token =>
+        users.tokenToUser(token)
+
+  private def profileFromIdToken(headers: Headers, now: Instant): F[UserInfo] =
     for
       email <- emailOnly(headers, now)
       userInfo <- users.userInfo(email)

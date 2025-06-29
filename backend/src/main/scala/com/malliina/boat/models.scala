@@ -9,7 +9,8 @@ import doobie.implicits.toSqlInterpolator
 import io.circe.generic.semiauto.deriveCodec
 import io.circe.syntax.EncoderOps
 import io.circe.{Codec, Decoder, DecodingFailure, Encoder, Json}
-import org.typelevel.ci.CIString
+import org.http4s.{Header, ParseFailure}
+import org.typelevel.ci.{CIString, CIStringSyntax}
 
 import java.time.{Instant, LocalDate, LocalTime, OffsetDateTime, ZoneOffset}
 import scala.concurrent.duration.FiniteDuration
@@ -107,19 +108,24 @@ object DateVal:
 
 opaque type UserToken = String
 object UserToken extends BoatString[UserToken]:
-  val minLength = 3
+  private val headerName = ci"X-User-Token"
+  private val minLength = 3
   override def apply(raw: String): UserToken = raw
   override def write(t: UserToken): String = t
   override def build(in: String): Either[ErrorMessage, UserToken] =
     if in.length >= minLength then Right(UserToken(in))
     else
-      Left(
-        ErrorMessage(
-          s"Too short token. Minimum length: $minLength, was: ${in.length}."
-        )
-      )
+      val msg = s"Too short token. Minimum length: $minLength, was: ${in.length}.".error
+      Left(msg)
 
   def random(): UserToken = UserToken(Utils.randomString(length = 8))
+
+  given header: Header[UserToken, Header.Single] =
+    Header.createRendered(
+      headerName,
+      write,
+      in => build(in).left.map(err => ParseFailure(s"Invalid $headerName header.", err.message))
+    )
 
 case class AppMeta(name: String, version: String, gitHash: String) derives Codec.AsObject
 

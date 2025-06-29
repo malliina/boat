@@ -95,58 +95,71 @@ class DoobieUserManager[F[_]](db: DoobieDatabase[F]) extends IdentityManager[F] 
       user <- userByEmailIO(email)
     yield user
   def userInfo(email: Email): F[UserInfo] = run:
-    def by(id: UserId) =
-      sql"""select u.id,
-                   u.user,
-                   u.email,
-                   u.token,
-                   u.language,
-                   u.enabled,
-                   u.added,
-                   b.id boatId,
-                   b.name boatName,
-                   b.source_type sourceType,
-                   b.token boatToken,
-                   b.gps_ip,
-                   b.gps_port,
-                   b.owner boatOwner,
-                   b.added boatAdded,
-                   ub.boat as ubBoat,
-                   ubb.name as ubbName,
-                   ub.state as ubState,
-                   ub.added as ubAdded,
-                   fubb.id as fubbBoat,
-                   fubb.name as fubbName,
-                   fu.id as fuId,
-                   fu.email as fuEmail,
-                   fub.state as fubState,
-                   fub.added as fubAdded,
-                   not isnull(rt.id) as hasCars
-            from users u
-            left join boats b on b.owner = u.id
-            left join users_boats ub on u.id = ub.user
-            left join boats ubb on ub.boat = ubb.id
-            left join users_boats fub on fub.boat = b.id
-            left join boats fubb on fub.boat = fubb.id
-            left join users fu on fub.user = fu.id
-            left join refresh_tokens rt on rt.owner = u.id and rt.service = ${RefreshService.Polestar}
-            where u.id = $id"""
-        .query[JoinedUser]
-        .to[List]
-    val task = for
+    for
       userId <- getOrCreate(email)
-      info <- by(userId).map(DoobieUserManager.collectUsers)
+      info <- idToUser(userId)
     yield info
-    task.flatMap[UserInfo]: infos =>
-      infos.headOption
-        .map: profile =>
-          // Type annotation helps here for some reason
-          val checked: ConnectionIO[UserInfo] =
-            if profile.enabled then pure(profile)
-            else fail(IdentityException(UserDisabled(profile.username)))
-          checked
-        .getOrElse:
-          fail(IdentityException(InvalidCredentials(None)))
+
+  override def tokenToUser(token: UserToken): F[UserInfo] = run:
+    sql"""select u.id from users u where u.token = $token"""
+      .query[UserId]
+      .option
+      .flatMap: opt =>
+        opt
+          .map: userId =>
+            idToUser(userId)
+          .getOrElse:
+            fail(IdentityException(InvalidCredentials(None)))
+
+  private def idToUser(id: UserId): ConnectionIO[UserInfo] =
+    sql"""select u.id,
+                     u.user,
+                     u.email,
+                     u.token,
+                     u.language,
+                     u.enabled,
+                     u.added,
+                     b.id boatId,
+                     b.name boatName,
+                     b.source_type sourceType,
+                     b.token boatToken,
+                     b.gps_ip,
+                     b.gps_port,
+                     b.owner boatOwner,
+                     b.added boatAdded,
+                     ub.boat as ubBoat,
+                     ubb.name as ubbName,
+                     ub.state as ubState,
+                     ub.added as ubAdded,
+                     fubb.id as fubbBoat,
+                     fubb.name as fubbName,
+                     fu.id as fuId,
+                     fu.email as fuEmail,
+                     fub.state as fubState,
+                     fub.added as fubAdded,
+                     not isnull(rt.id) as hasCars
+              from users u
+              left join boats b on b.owner = u.id
+              left join users_boats ub on u.id = ub.user
+              left join boats ubb on ub.boat = ubb.id
+              left join users_boats fub on fub.boat = b.id
+              left join boats fubb on fub.boat = fubb.id
+              left join users fu on fub.user = fu.id
+              left join refresh_tokens rt on rt.owner = u.id and rt.service = ${RefreshService.Polestar}
+              where u.id = $id"""
+      .query[JoinedUser]
+      .to[List]
+      .map(DoobieUserManager.collectUsers)
+      .flatMap[UserInfo]: infos =>
+        infos.headOption
+          .map: profile =>
+            // Type annotation helps here for some reason
+            val checked: ConnectionIO[UserInfo] =
+              if profile.enabled then pure(profile)
+              else fail(IdentityException(UserDisabled(profile.username)))
+            checked
+          .getOrElse:
+            fail(IdentityException(InvalidCredentials(None)))
 
   def authBoat(token: BoatToken): F[JoinedSource] = run:
     CommonSql

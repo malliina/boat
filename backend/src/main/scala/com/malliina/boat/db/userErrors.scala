@@ -14,6 +14,7 @@ case class AlreadyExists(user: Username) extends IdentityError(s"User $user alre
 case class InvalidCredentials(user: Option[Username] = None)
   extends IdentityError(s"Invalid credentials.")
 case class InvalidToken(token: BoatToken) extends IdentityError(s"Invalid token: '$token'.")
+case class InvalidUserToken(error: ErrorMessage) extends IdentityError(error.message)
 case class UserDisabled(user: Username) extends IdentityError(s"User is disabled: '$user'.")
 case class UserDoesNotExist(user: Username) extends IdentityError(s"User does not exist: '$user'.")
 case class MissingToken(hs: Headers) extends IdentityError(s"Missing token in '$hs'.")

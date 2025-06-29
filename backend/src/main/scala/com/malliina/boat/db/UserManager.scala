@@ -1,7 +1,7 @@
 package com.malliina.boat.db
 
 import com.malliina.boat.http.{AccessResult, InviteInfo, InviteResult, LimitLike}
-import com.malliina.boat.{BoatToken, DeviceId, InviteState, JoinedSource, Language, UserBoats, UserInfo}
+import com.malliina.boat.{BoatToken, DeviceId, InviteState, JoinedSource, Language, UserBoats, UserInfo, UserToken}
 import com.malliina.values.{Email, Password, RefreshToken, UserId, Username}
 import org.apache.commons.codec.digest.DigestUtils
 
@@ -23,6 +23,7 @@ trait UserManager[F[_]]:
     *   user info for `email`
     */
   def userInfo(email: Email): F[UserInfo]
+  def tokenToUser(token: UserToken): F[UserInfo]
   def authBoat(token: BoatToken): F[JoinedSource]
   def boats(user: Email, limits: LimitLike): F[UserBoats]
   def addUser(user: NewUser): F[Either[AlreadyExists, UserRow]]
