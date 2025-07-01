@@ -5,9 +5,11 @@ import cats.{Applicative, Monad}
 import com.malliina.boat.APNSConf
 import com.malliina.http.HttpClient
 import com.malliina.push.apns.*
+import com.malliina.storage.StorageInt
 import com.malliina.util.AppLogger
 import io.circe.syntax.EncoderOps
 
+import java.nio.charset.StandardCharsets
 import java.time.Instant
 import scala.concurrent.duration.{DurationInt, FiniteDuration}
 
@@ -118,6 +120,8 @@ class APNSPush[F[_]: Monad](prod: APNSHttpClientF[F]) extends PushClient[F, APNS
     )
 
   def push(request: APNSRequest, to: APNSToken): F[PushSummary] =
+    val bytes = request.message.asJson.toString.getBytes(StandardCharsets.UTF_8).length.bytes
+    log.info(s"Pushing $bytes to APNS...")
     prod
       .push(to, request)
       .map: e =>
