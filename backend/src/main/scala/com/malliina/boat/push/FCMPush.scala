@@ -20,12 +20,12 @@ object FCMPush:
     FCMPush(fcm)
 
 class FCMPush[F[_]: Functor](fcm: GoogleClientF[F]) extends PushClient[F, GCMToken]:
-  override def push(notification: SourceNotification, to: GCMToken): F[PushSummary] =
+  override def push(notification: SourceNotification, geo: PushGeo, to: GCMToken): F[PushSummary] =
     val message = GCMMessage(
       Map(
         BoatName.Key -> notification.boatName.show,
         SourceState.Key -> notification.state.name,
-        SourceNotification.Message -> notification.message,
+        SourceNotification.Message -> notification.message(geo.geocode),
         SourceNotification.Title -> notification.title
       )
     )

@@ -24,25 +24,26 @@ class BoatPushService[F[_]: Applicative](ios: APNS[F], android: PushClient[F, GC
   extends PushEndpoint[F]:
   override def push(
     notification: SourceNotification,
+    geo: PushGeo,
     to: PushDevice,
     now: Instant
   ): F[PushSummary] =
     to.device match
       case IOS =>
-        ios.push(notification, APNSToken(to.token.show))
+        ios.push(notification, geo, APNSToken(to.token.show))
       case Android =>
-        android.push(notification, GCMToken(to.token.show))
+        android.push(notification, geo, GCMToken(to.token.show))
       case IOSActivityStart =>
         if notification.state == SourceState.Connected then
           ios
-            .pushLiveActivity(notification, APNSToken(to.token.show), APSEventType.Start, now)
+            .pushLiveActivity(notification, APNSToken(to.token.show), APSEventType.Start, geo, now)
         else PushSummary.empty.pure[F]
       case IOSActivityUpdate =>
         val apsEventType = notification.state match
           case SourceState.Connected    => APSEventType.Update
           case SourceState.Disconnected => APSEventType.End
         ios
-          .pushLiveActivity(notification, APNSToken(to.token.show), apsEventType, now)
+          .pushLiveActivity(notification, APNSToken(to.token.show), apsEventType, geo, now)
       case Unknown(name) =>
         log.error(s"Unsupported device: '$name'. Ignoring push request.")
         PushSummary.empty.pure[F]

@@ -16,7 +16,7 @@ import com.malliina.boat.http.InviteResult.{AlreadyInvited, Invited, UnknownEmai
 import com.malliina.boat.http4s.BoatBasicService.{cached, ranges}
 import com.malliina.boat.http4s.Service.{isSecured, log, userAgent}
 import com.malliina.boat.parsing.CarCoord
-import com.malliina.boat.push.{PushGeo, PushState, SourceState}
+import com.malliina.boat.push.{PushState, SourceState}
 import com.malliina.http.{CSRFConf, Errors, SingleError}
 import com.malliina.http4s.BasicService.noCache
 import com.malliina.http4s.CSRFSupport
@@ -420,7 +420,7 @@ class Service[F[_]: {Async, Files}](
                       lang.lang.push,
                       input.receivedAt
                     )
-                    pushGeocoded(state)
+                    pushRecovered(state)
 
                   for
                     inserteds <- insertion
@@ -610,7 +610,7 @@ class Service[F[_]: {Async, Files}](
                 lang = pushLang,
                 now = now
               )
-              pushGeocoded(state)
+              pushRecovered(state)
                 .flatMap: _ =>
                   webSocket(
                     sockets,
@@ -636,7 +636,7 @@ class Service[F[_]: {Async, Files}](
                                 lang = pushLang,
                                 now = Instant.now()
                               )
-                              pushGeocoded(updatedState)
+                              pushRecovered(updatedState)
                           val publishEvent = streams.boatIn
                             .publish1(BoatEvent(parsed, meta, req.userAgent))
                             .map: e =>
@@ -664,7 +664,7 @@ class Service[F[_]: {Async, Files}](
                           now = now
                         )
                         push
-                          .push(state, geo = PushGeo.empty)
+                          .push(state)
                           .map(_ => ())
                       .handleError: err =>
                         log.warn(s"Failed to notify of disconnection of ${boat.describe}.", err)
@@ -682,38 +682,21 @@ class Service[F[_]: {Async, Files}](
                           now = now
                         )
                         push
-                          .push(state, geo = PushGeo.empty)
-                          .map(_ => ())
+                          .push(state)
+                          .void
                       .handleError: err =>
                         log.info(s"Failed to handler error of ${boat.describe}.", err)
 
   def routes(sockets: WebSocketBuilder2[F]): HttpRoutes[F] =
     normalRoutes.combineK(socketRoutes(sockets))
 
-  private def pushGeocoded(state: PushState) =
-    val geoLookup = state.at
-      .map: coord =>
-        val geoLookup = comps.mapbox
-          .reverseGeocode(coord)
-          .handleErrorWith: e =>
-            F.delay(log.error(s"Geo lookup of $coord failed.", e)) >> F.pure(None)
-        for
-          geoOpt <- geoLookup
-          imageOpt <- comps.images.imageEncoded(coord)
-        yield PushGeo(geoOpt, imageOpt)
-      .getOrElse:
-        F.pure(PushGeo(None, None))
-    geoLookup.flatMap: geo =>
-      push
-        .push(state, geo)
-        .void
-        .handleErrorWith: t =>
-          F.delay(
-            log.error(
-              s"Failed to push all device notifications for '${state.track.deviceName}'.",
-              t
-            )
-          )
+  private def pushRecovered(state: PushState) =
+    push
+      .push(state)
+      .void
+      .handleErrorWith: t =>
+        val msg = s"Failed to push all device notifications for '${state.track.deviceName}'."
+        F.delay(log.error(msg, t))
 
   private def webSocket(
     sockets: WebSocketBuilder2[F],

@@ -59,7 +59,12 @@ object PushSummary:
   def merge(results: List[PushSummary]): PushSummary = results.fold(PushSummary.empty)(_ ++ _)
 
 trait PushClient[F[_], T <: Token]:
-  def push(notification: SourceNotification, to: T): F[PushSummary]
+  def push(notification: SourceNotification, geo: PushGeo, to: T): F[PushSummary]
 
 trait PushEndpoint[F[_]]:
-  def push(notification: SourceNotification, to: PushDevice, now: Instant): F[PushSummary]
+  def push(
+    notification: SourceNotification,
+    geo: PushGeo,
+    to: PushDevice,
+    now: Instant
+  ): F[PushSummary]

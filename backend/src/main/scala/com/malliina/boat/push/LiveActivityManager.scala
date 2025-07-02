@@ -83,10 +83,9 @@ class LiveActivityManager[F[_]: Async](
                     ref.distance,
                     ref.duration,
                     Option(coord),
-                    geo = PushGeo(pos, image),
                     lang = PushLang(ref.language)
                   )
-                  s <- push.push(n, target, now)
+                  s <- push.push(n, PushGeo(pos, image), target, now)
                   _ <- deactivate(target, ref.boatId, ref.trackName)
                 yield Option((ref, s))
               .getOrElse:

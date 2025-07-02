@@ -1,5 +1,6 @@
 package com.malliina.boat.push
 
+import com.malliina.boat.geo.ReverseGeocode
 import com.malliina.boat.http.Named
 import com.malliina.boat.{BoatName, BoatPrimitives, Coord, PushLang, TrackName}
 import com.malliina.measure.DistanceM
@@ -29,13 +30,12 @@ case class SourceNotification(
   distance: DistanceM,
   duration: FiniteDuration,
   coord: Option[Coord],
-  geo: PushGeo,
   lang: PushLang
 ) derives Codec.AsObject:
-  def message =
+  def message(geocode: Option[ReverseGeocode]) =
     val describe = if state == SourceState.Connected then lang.onTheMove else lang.stoppedMoving
     val prefix = s"$boatName $describe"
-    val suffix = geo.geocode.fold("")(a => s" ${lang.near} ${a.address}")
+    val suffix = geocode.fold("")(a => s" ${lang.near} ${a.address}")
     s"$prefix$suffix"
 
 object SourceNotification:

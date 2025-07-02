@@ -5,7 +5,7 @@ import com.malliina.boat.TestEmailAuth.{expiredToken, testToken}
 import com.malliina.boat.auth.{EmailAuth, JWT}
 import com.malliina.boat.db.{CustomJwt, IdentityException, JWTError, PushDevice}
 import com.malliina.boat.http4s.{AppComps, AppCompsBuilder, Auth}
-import com.malliina.boat.push.{PushEndpoint, PushSummary, SourceNotification}
+import com.malliina.boat.push.{PushEndpoint, PushGeo, PushSummary, SourceNotification}
 import com.malliina.http.HttpClient
 import com.malliina.http.io.HttpClientF2
 import com.malliina.values.{Email, IdToken}
@@ -18,6 +18,7 @@ import java.time.temporal.ChronoUnit
 class NoopPushEndpoint[F[_]: Sync] extends PushEndpoint[F]:
   override def push(
     notification: SourceNotification,
+    geo: PushGeo,
     to: PushDevice,
     now: Instant
   ): F[PushSummary] =

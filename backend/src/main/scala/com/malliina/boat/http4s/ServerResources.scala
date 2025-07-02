@@ -147,7 +147,7 @@ trait ServerResources:
       val polestarService = PolestarService(users, polestar)
       val auths = AuthService(users, authComps)
       val tracksDatabase = DoobieTracksDatabase(db)
-      val push = DoobiePushDatabase(db, appComps.pushService)
+      val push = DoobiePushDatabase(db, appComps.pushService, reverseGeo, images)
       val comps = BoatComps(
         BoatHtml.fromBuild(SourceType.Boat, csrfConf),
         BoatHtml.fromBuild(SourceType.Vehicle, csrfConf),

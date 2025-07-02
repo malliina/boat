@@ -17,22 +17,24 @@ enum APSEventType:
   case Start, Update, End
 
 trait APNS[F[_]]:
-  def push(notification: SourceNotification, to: APNSToken): F[PushSummary]
+  def push(notification: SourceNotification, geo: PushGeo, to: APNSToken): F[PushSummary]
   def pushLiveActivity(
     notification: SourceNotification,
     to: APNSToken,
     event: APSEventType,
+    geo: PushGeo,
     now: Instant
   ): F[PushSummary]
 
 class NoopAPNS[F[_]: Applicative] extends APNS[F]:
-  override def push(notification: SourceNotification, to: APNSToken): F[PushSummary] =
+  override def push(notification: SourceNotification, geo: PushGeo, to: APNSToken): F[PushSummary] =
     noop
 
   override def pushLiveActivity(
     notification: SourceNotification,
     to: APNSToken,
     event: APSEventType,
+    geo: PushGeo,
     now: Instant
   ): F[PushSummary] = noop
 
@@ -60,11 +62,11 @@ class APNSPush[F[_]: Monad](prod: APNSHttpClientF[F]) extends PushClient[F, APNS
 
   val attributesType = "BoatWidgetAttributes"
 
-  def push(notification: SourceNotification, to: APNSToken): F[PushSummary] =
+  def push(notification: SourceNotification, geo: PushGeo, to: APNSToken): F[PushSummary] =
+    val payload =
+      AlertPayload(notification.message(geo.geocode), title = Option(notification.title))
     val message = APNSMessage(
-      APSPayload(
-        Option(Right(AlertPayload(notification.message, title = Option(notification.title))))
-      ),
+      APSPayload(Option(Right(payload))),
       Map("meta" -> notification.asJson)
     )
     val request = APNSRequest.withTopic(topic, message)
@@ -74,6 +76,7 @@ class APNSPush[F[_]: Monad](prod: APNSHttpClientF[F]) extends PushClient[F, APNS
     notification: SourceNotification,
     to: APNSToken,
     event: APSEventType,
+    geo: PushGeo,
     now: Instant
   ): F[PushSummary] =
     val lang = notification.lang
@@ -83,14 +86,16 @@ class APNSPush[F[_]: Monad](prod: APNSHttpClientF[F]) extends PushClient[F, APNS
           now,
           LiveActivityAttributes.attributeType,
           LiveActivityAttributes(notification.boatName, notification.trackName),
-          toActivityState(notification, lang.onTheMove),
-          Right(AlertPayload(notification.message, title = Option(notification.title))),
+          toActivityState(notification, lang.onTheMove, geo),
+          Right(
+            AlertPayload(notification.message(geo.geocode), title = Option(notification.title))
+          ),
           Option(now.plus(5.minutes))
         )
       case APSEventType.Update =>
         APSPayload.updateLiveActivity(
           now,
-          toActivityState(notification, lang.onTheMove),
+          toActivityState(notification, lang.onTheMove, geo),
           alert = None,
           staleDate = Option(now.plus(5.minutes)),
           dismissalDate = None
@@ -98,7 +103,7 @@ class APNSPush[F[_]: Monad](prod: APNSHttpClientF[F]) extends PushClient[F, APNS
       case APSEventType.End =>
         APSPayload.endLiveActivity(
           now,
-          toActivityState(notification, lang.stoppedMoving),
+          toActivityState(notification, lang.stoppedMoving, geo),
           dismissalDate = Option(now.plus(5.minutes))
         )
     val message = APNSMessage(payload, Map("meta" -> notification.asJson))
@@ -109,14 +114,14 @@ class APNSPush[F[_]: Monad](prod: APNSHttpClientF[F]) extends PushClient[F, APNS
       log.info(s"Pushed $event event '${notification.message}' of $stats to '$to'.")
       s
 
-  private def toActivityState(notification: SourceNotification, message: String) =
+  private def toActivityState(notification: SourceNotification, message: String, geo: PushGeo) =
     LiveActivityState(
       message,
       notification.distance,
       notification.duration,
-      notification.geo.geocode.map(_.address),
+      geo.geocode.map(_.address),
       notification.coord,
-      notification.geo.image
+      geo.image
     )
 
   def push(request: APNSRequest, to: APNSToken): F[PushSummary] =

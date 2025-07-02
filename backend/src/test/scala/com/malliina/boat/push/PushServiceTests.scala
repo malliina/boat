@@ -23,9 +23,9 @@ class PushServiceTests extends BaseSuite:
           0.meters,
           0.seconds,
           None,
-          PushGeo.empty,
           PushLang.en
         ),
+        PushGeo.empty,
         token
       )
     task.map: result =>

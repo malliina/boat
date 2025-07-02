@@ -1,10 +1,11 @@
 package com.malliina.boat.db
 
 import cats.effect.Async
-import cats.syntax.all.{catsSyntaxList, toFlatMapOps, toFunctorOps, toTraverseOps}
+import cats.syntax.all.{catsSyntaxApplicativeError, catsSyntaxFlatMapOps, catsSyntaxList, toFlatMapOps, toFunctorOps, toTraverseOps}
 import com.malliina.boat.PushTokenType.{IOSActivityStart, IOSActivityUpdate}
 import com.malliina.boat.db.DoobiePushDatabase.{PushStatus, log}
 import com.malliina.boat.db.Values.RowsChanged
+import com.malliina.boat.geo.{Geocoder, ImageApi}
 import com.malliina.boat.push.*
 import com.malliina.boat.{AppConf, DeviceId, PhoneId, PushId, PushToken, PushTokenType, SourceType, TrackName}
 import com.malliina.database.DoobieDatabase
@@ -19,8 +20,12 @@ object DoobiePushDatabase:
 
   case class PushStatus(id: PushId, active: Boolean)
 
-class DoobiePushDatabase[F[_]: Async](val db: DoobieDatabase[F], val push: PushEndpoint[F])
-  extends PushService[F]
+class DoobiePushDatabase[F[_]: Async](
+  val db: DoobieDatabase[F],
+  val push: PushEndpoint[F],
+  geocoder: Geocoder[F],
+  images: ImageApi[F]
+) extends PushService[F]
   with DoobieSQL:
   val F = Async[F]
 
@@ -102,7 +107,7 @@ class DoobiePushDatabase[F[_]: Async](val db: DoobieDatabase[F], val push: PushE
 
   /** Pushes at most once every five minutes to a given device.
     */
-  def push(state: PushState, geo: PushGeo): F[PushSummary] =
+  def push(state: PushState): F[PushSummary] =
     val track = state.track
     val title = if track.sourceType == SourceType.Vehicle then AppConf.CarName else AppConf.Name
     val notification =
@@ -114,7 +119,6 @@ class DoobiePushDatabase[F[_]: Async](val db: DoobieDatabase[F], val push: PushE
         state.distance,
         state.duration,
         state.at,
-        geo,
         state.lang
       )
     val boatId = track.device
@@ -168,9 +172,21 @@ class DoobiePushDatabase[F[_]: Async](val db: DoobieDatabase[F], val push: PushE
       pushable = liveActivityTokens ++ tokens.filterNot(t =>
         t.phoneId.exists(pid => liveActivityTokens.exists(_.phoneId.contains(pid)))
       )
+      geo <- state.at
+        .map: coord =>
+          for
+            image <-
+              if liveActivityTokens.nonEmpty then images.imageEncoded(coord) else F.pure(None)
+            reverse <- geocoder
+              .reverseGeocode(coord)
+              .handleErrorWith: e =>
+                F.delay(log.error(s"Geo lookup of $coord failed.", e)) >> F.pure(None)
+          yield PushGeo(reverse, image)
+        .getOrElse:
+          F.pure(PushGeo.empty)
       results <- pushable.traverse: target =>
         push
-          .push(notification, target, state.now)
+          .push(notification, geo, target, state.now)
       summary = results.fold(PushSummary.empty)(_ ++ _)
       _ <- handle(summary)
       _ <- if pushable.nonEmpty then bookkeeping(pushable).void else F.unit
