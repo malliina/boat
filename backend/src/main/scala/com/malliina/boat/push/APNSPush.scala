@@ -2,7 +2,7 @@ package com.malliina.boat.push
 
 import cats.syntax.all.toFunctorOps
 import cats.{Applicative, Monad}
-import com.malliina.boat.APNSConf
+import com.malliina.boat.{APNSConf, BoatFormats}
 import com.malliina.http.HttpClient
 import com.malliina.push.apns.*
 import com.malliina.storage.StorageInt
@@ -109,9 +109,14 @@ class APNSPush[F[_]: Monad](prod: APNSHttpClientF[F]) extends PushClient[F, APNS
     val message = APNSMessage(payload, Map("meta" -> notification.asJson))
     val request = APNSRequest.liveActivity(topic, message)
     push(request, to).map: s =>
+      val bytes = request.message.asJson.toString.getBytes(StandardCharsets.UTF_8).length.bytes
+      val distance = BoatFormats.formatDistance(notification.distance)
+      val duration = BoatFormats.durationHuman(notification.duration)
       val stats =
-        s"${notification.distance} after ${notification.duration} of track '${notification.trackName}'"
-      log.info(s"Pushed $event event '${notification.message}' of $stats to '$to'.")
+        s"$distance after $duration of track '${notification.trackName}'"
+      log.info(
+        s"Pushed $event event of $bytes with '${notification.message(geo.geocode)}' of $stats to '$to'."
+      )
       s
 
   private def toActivityState(notification: SourceNotification, message: String, geo: PushGeo) =
@@ -125,8 +130,6 @@ class APNSPush[F[_]: Monad](prod: APNSHttpClientF[F]) extends PushClient[F, APNS
     )
 
   def push(request: APNSRequest, to: APNSToken): F[PushSummary] =
-    val bytes = request.message.asJson.toString.getBytes(StandardCharsets.UTF_8).length.bytes
-    log.info(s"Pushing $bytes to APNS...")
     prod
       .push(to, request)
       .map: e =>

@@ -6,7 +6,7 @@ import com.malliina.boat.BoatJson.keyValued
 import com.malliina.boat.http.Limits
 import com.malliina.http.FullUrl
 import com.malliina.json.PrimitiveFormats
-import com.malliina.measure.{DistanceM, SpeedM, Temperature}
+import com.malliina.measure.{DistanceM, Numerical, SpeedM, Temperature}
 import com.malliina.values.*
 import io.circe.generic.semiauto.deriveCodec
 import io.circe.syntax.EncoderOps
@@ -545,18 +545,7 @@ object Energy extends JsonCompanion[Double, Energy]:
   override def apply(raw: Double): Energy = raw
   override def write(t: Energy): Double = t
 
-  given Numeric[Energy] = new Numeric[Energy]:
-    override def plus(x: Energy, y: Energy): Energy = x + y
-    override def minus(x: Energy, y: Energy): Energy = x - y
-    override def times(x: Energy, y: Energy): Energy = x * y
-    override def negate(x: Energy): Energy = -x
-    override def fromInt(x: Int): Energy = x
-    override def parseString(str: String): Option[Energy] = str.toDoubleOption
-    override def toInt(x: Energy): Int = x.toInt
-    override def toLong(x: Energy): Long = x.toLong
-    override def toFloat(x: Energy): Float = x.toFloat
-    override def toDouble(x: Energy): Double = x
-    override def compare(x: Energy, y: Energy): Int = x.compare(y)
+  given Numeric[Energy] = Numerical[Double, Energy](apply, write)
 
 extension (e: Energy)
   def wattHours: Double = e

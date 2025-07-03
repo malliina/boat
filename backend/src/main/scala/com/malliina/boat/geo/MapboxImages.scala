@@ -32,7 +32,7 @@ class MapboxImages[F[_]: Async](conf: Conf, http: HttpClient[F]) extends ImageAp
 
   private val bearing = 0
   private val pitch = 60
-  private val zoom = 14.25
+  private val zoom = 10.25
 
   override def image(coord: Coord, size: Size): F[Array[Byte]] =
     val segment = Seq(s"${coord.lng}", s"${coord.lat}", zoom, bearing, pitch)

@@ -5,7 +5,7 @@ GET https://api.mapbox.com/search/geocode/v6/reverse?longitude=24.88260391&latit
 GET https://maps.googleapis.com/maps/api/geocode/json?latlng=60.15126954,24.88260391&key={{google-key}}&result_type=street_address
 
 ### Static image with Mapbox
-GET https://api.mapbox.com/styles/v1/skogberglabs/{{mapbox-style}}/static/24.892,60.1527,14.25,0,60/400x400?access_token={{mapbox-token}}
+GET https://api.mapbox.com/styles/v1/skogberglabs/{{mapbox-style}}/static/24.892,60.1527,10.25,0,60/55x55?access_token={{mapbox-token}}
 
 ### Parking
 GET https://api.hel.fi/servicemap/v2/administrative_division/?type=parking_area&page=1&page_size=500&geometry=true&unit_include=name%2Clocation%2Cstreet_address%2Caddress_zip%2Cmunicipality&extra__class=2&municipality=helsinki

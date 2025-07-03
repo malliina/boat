@@ -23,7 +23,7 @@ trait ImageApi[F[_]: Sync]:
 
   def image(coord: Coord, size: Size): F[Array[Byte]]
 
-  def imageEncoded(coord: Coord, size: Size = Size(40, 40)): F[Option[String]] =
+  def imageEncoded(coord: Coord, size: Size = Size(55, 55)): F[Option[String]] =
     image(coord, size)
       .map: bytes =>
         Option(Base64.getEncoder.encodeToString(bytes))
