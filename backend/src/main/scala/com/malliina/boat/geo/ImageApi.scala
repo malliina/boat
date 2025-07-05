@@ -11,6 +11,9 @@ case class Size(width: Int, height: Int):
   def wxh = s"${width}x$height"
   override def toString = wxh
 
+object Size:
+  val liveActivity = Size(50, 50)
+
 object ImageApi:
   private val log = AppLogger(getClass)
 
@@ -23,7 +26,7 @@ trait ImageApi[F[_]: Sync]:
 
   def image(coord: Coord, size: Size): F[Array[Byte]]
 
-  def imageEncoded(coord: Coord, size: Size = Size(55, 55)): F[Option[String]] =
+  def imageEncoded(coord: Coord, size: Size = Size.liveActivity): F[Option[String]] =
     image(coord, size)
       .map: bytes =>
         Option(Base64.getEncoder.encodeToString(bytes))
