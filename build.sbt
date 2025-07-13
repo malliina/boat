@@ -1,4 +1,3 @@
-import com.malliina.build.FileIO
 import sbtcrossproject.CrossPlugin.autoImport.{CrossType, crossProject}
 import sbtrelease.ReleasePlugin.autoImport.{ReleaseStep, releaseProcess}
 import sbtrelease.ReleaseStateTransformations.*
@@ -11,7 +10,7 @@ val versions = new {
 
   val alpn = "12.0.16"
   val ci = "1.4.2"
-  val circe = "0.14.12"
+  val circe = "0.14.14"
   val codec = "1.18.0"
   val commonsText = "1.13.1"
   val fs2 = "3.11.0"
@@ -20,7 +19,7 @@ val versions = new {
   val jts = "1.13"
   val logback = "1.5.18"
   val logstreams = "2.8.3"
-  val mariadb = "3.5.3"
+  val mariadb = "3.5.4"
   val mobilePush = "3.13.3"
   val munit = "1.1.1"
   val munitCe = "2.1.0"
@@ -123,7 +122,7 @@ val updatePackageLockJson = taskKey[Unit]("Updates the package-lock.json file")
 
 val frontend = project
   .in(file("frontend"))
-  .enablePlugins(NodeJsPlugin, RollupPlugin)
+  .enablePlugins(NodeJsPlugin, EsbuildPlugin)
   .disablePlugins(RevolverPlugin)
   .dependsOn(crossJs)
   .settings(boatSettings)
@@ -132,13 +131,7 @@ val frontend = project
       "com.malliina" %%% "util-html" % versions.webAuth,
       "org.scala-js" %%% "scalajs-dom" % versions.scalaJsDom,
       "org.scalameta" %%% "munit" % versions.munit % Test
-    ),
-    runNpmInstall := RollupPlugin.npmInstall(npmRoot.value, streams.value.log),
-    updatePackageLockJson := FileIO.copyIfChanged(
-      (target.value / "package-lock.json").toPath,
-      ((Compile / resourceDirectory).value / "package-lock.json").toPath
-    ),
-    updatePackageLockJson := updatePackageLockJson.dependsOn(runNpmInstall).value
+    )
   )
 
 val backend = Project("boat", file("backend"))

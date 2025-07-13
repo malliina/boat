@@ -1,3 +1,8 @@
+import "bootstrap/dist/css/bootstrap.min.css"
+import "mapbox-gl/dist/mapbox-gl.css"
+import "@mapbox/mapbox-gl-geocoder/dist/mapbox-gl-geocoder.css"
+import "@eonasdan/tempus-dominus/dist/css/tempus-dominus.css"
+import "./fonts.css"
 import "./general.css"
 import "./nav.css"
 import "./map-popup.css"
@@ -10,5 +15,3 @@ import "./auth.css"
 import "./privacy-policy.css"
 import "./parking.css"
 import "./autocomplete.css"
-
-console.log("Styles only.")

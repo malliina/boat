@@ -31,13 +31,10 @@ object BoatHtml:
     val pageTitle =
       if sourceType == SourceType.Vehicle then AppConf.CarName
       else s"${AppConf.Name} - Free nautical charts for Finland"
-    val appScripts =
-      if isProd then Seq(FileAssets.frontend_js)
-      else Seq(FileAssets.frontend_js, FileAssets.frontend_loader_js, FileAssets.main_js)
     BoatHtml(
-      appScripts,
+      Seq(FileAssets.main_js),
       externalScripts,
-      Seq(FileAssets.frontend_css, FileAssets.fonts_css, FileAssets.styles_css),
+      Seq(FileAssets.main_css),
       AssetsSource(isProd),
       chooseFavicon(sourceType),
       pageTitle,

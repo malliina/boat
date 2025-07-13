@@ -12,33 +12,13 @@ import scala.concurrent.duration.Duration
 import scala.scalajs.js
 import scala.scalajs.js.annotation.*
 
-@js.native
-@JSImport("bootstrap/dist/css/bootstrap.min.css", JSImport.Namespace)
-object BootstrapCss extends js.Object
-
-@js.native
-@JSImport("mapbox-gl/dist/mapbox-gl.css", JSImport.Namespace)
-object MapboxCss extends js.Object
-
-@js.native
-@JSImport("@mapbox/mapbox-gl-geocoder/dist/mapbox-gl-geocoder.css", JSImport.Namespace)
-object MapboxGlCss extends js.Object
-
-@js.native
-@JSImport("@eonasdan/tempus-dominus/dist/css/tempus-dominus.css", JSImport.Namespace)
-object TempusDominusCss extends js.Object
-
 object Frontend extends IOApp.Simple with BodyClasses:
   override def runtimeConfig =
     super.runtimeConfig.copy(cpuStarvationCheckInitialDelay = Duration.Inf)
+
   @unused
-  private val bootstrapCss = BootstrapCss
-  @unused
-  private val mapboxCss = MapboxCss
-  @unused
-  private val mapboxGlCss = MapboxGlCss
-  @unused
-  private val tempusDominusCss = TempusDominusCss
+  private val appCss = AppCss
+
   val log: BaseLogger = BaseLogger.console
 
   override def run: IO[Unit] =
@@ -83,3 +63,7 @@ object Frontend extends IOApp.Simple with BodyClasses:
   private def initF(cls: String)(run: => Resource[IO, Unit]): Resource[IO, Unit] =
     val bodyClasses = dom.document.body.classList
     if bodyClasses.contains(cls) then run else Resource.unit[IO]
+
+@js.native
+@JSImport("./css/app", JSImport.Namespace)
+object AppCss extends js.Object
