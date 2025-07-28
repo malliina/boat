@@ -139,7 +139,7 @@ class MapSocket[F[_]: Async](
         .filter(map.hasLayer)
         .foreach(id => map.removeLayer(id))
       log.debug(s"Crafting new track for boat '$boat'...")
-      map.putLayer(trackLineLayer(track, LinePaint(LinePaint.blackColor, 1, 1.0d), Option(8d)))
+      map.putLayer(trackLineLayer(track, LinePaint(LinePaint.blackColor, 1, 1.0d)))
       // adds a thicker, transparent trail on top of the visible one, which represents the mouse-hoverable area
       map.putLayer(trackLineLayer(hoverableTrack, LinePaint(LinePaint.blackColor, 5, 0)))
       coords.lastOption.foreach: coord =>
@@ -211,7 +211,8 @@ class MapSocket[F[_]: Async](
     map
       .findSource(track)
       .foreach: geoJson =>
-        geoJson.updateData(newTrack)
+        val cs = trails.get(trackId).map(_.coords).getOrElse(Nil)
+        geoJson.updateData(FeatureCollection(Seq(oneGeoFeature(cs))))
     map
       .findSource(hoverableTrack)
       .foreach: geoJson =>

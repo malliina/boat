@@ -70,6 +70,9 @@ class GeoUtils(map: MapboxMap, val log: BaseLogger):
             Map(TimedCoord.SpeedKey -> avgSpeed.asJson)
           )
 
+  def oneGeoFeature(coords: Seq[MeasuredCoord]) =
+    Feature(LineGeometry(coords.map(_.coord)), Map.empty)
+
   def lineFor(coords: Seq[Coord]): FeatureCollection =
     collectionFor(LineGeometry(coords), Map.empty)
 
