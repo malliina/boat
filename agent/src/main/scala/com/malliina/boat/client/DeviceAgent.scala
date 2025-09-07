@@ -8,8 +8,8 @@ import com.malliina.boat.Constants.BoatTokenHeader
 import com.malliina.boat.client.DeviceAgent.log
 import com.malliina.boat.client.server.BoatConf
 import com.malliina.boat.client.server.Device.GpsDevice
-import com.malliina.http.FullUrl
-import com.malliina.http.io.{SocketEvent, WebSocketF}
+import com.malliina.http.{FullUrl, ReconnectingSocket, SocketEvent}
+import com.malliina.http.io.{OkSocket, WebSocketF}
 import com.malliina.util.AppLogger
 import fs2.Stream
 import fs2.concurrent.SignallingRef
@@ -48,7 +48,7 @@ object DeviceAgent:
   */
 class DeviceAgent[F[_]: Async](
   tcp: TCPClient[F],
-  ws: WebSocketF[F],
+  ws: ReconnectingSocket[F, OkSocket[F]],
   signal: SignallingRef[F, Boolean],
   isGps: Boolean
 ):

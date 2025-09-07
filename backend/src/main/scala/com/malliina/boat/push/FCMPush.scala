@@ -5,7 +5,7 @@ import cats.syntax.show.toShow
 import cats.{Functor, Monad}
 import com.malliina.boat.push.FCMPush.log
 import com.malliina.boat.{BoatName, FCMConf}
-import com.malliina.http.HttpClient
+import com.malliina.http.OkHttpHttpClient
 import com.malliina.push.fcm.FCMClientF
 import com.malliina.push.gcm.{GCMMessage, GCMToken, GoogleClientF}
 import com.malliina.util.AppLogger
@@ -13,7 +13,7 @@ import com.malliina.util.AppLogger
 object FCMPush:
   private val log = AppLogger(getClass)
 
-  def build[F[_]: Monad](conf: FCMConf, http: HttpClient[F]): FCMPush[F] =
+  def build[F[_]: Monad](conf: FCMConf, http: OkHttpHttpClient[F]): FCMPush[F] =
     FCMPush(FCMClientF(conf.apiKey, http))
 
   def client[F[_]: Monad](fcm: GoogleClientF[F]): FCMPush[F] =

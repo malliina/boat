@@ -2,7 +2,7 @@ package com.malliina.boat.http4s
 
 import cats.effect.IO
 import com.malliina.boat.{ErrorConstants, MUnitSuite, ServerSuite, TestEmailAuth, TestHttp}
-import com.malliina.http.{Errors, OkHttpResponse}
+import com.malliina.http.{Errors, HttpResponse}
 import com.malliina.values.IdToken
 import org.http4s.Status.{Ok, Unauthorized}
 import org.http4s.Uri
@@ -47,7 +47,7 @@ class ServerTests extends MUnitSuite with ServerSuite:
   private def status(uri: Uri) =
     get(uri).map(r => r.code)
 
-  private def get(uri: Uri, headers: Map[String, String] = Map.empty): IO[OkHttpResponse] =
+  private def get(uri: Uri, headers: Map[String, String] = Map.empty): IO[HttpResponse] =
     val url = baseUrl.append(uri.renderString)
     val duration = 10.seconds
     http

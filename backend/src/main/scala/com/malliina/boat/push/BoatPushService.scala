@@ -7,7 +7,7 @@ import com.malliina.boat.PushConf
 import com.malliina.boat.PushTokenType.{Android, IOS, IOSActivityStart, IOSActivityUpdate, Unknown}
 import com.malliina.boat.db.PushDevice
 import com.malliina.boat.push.BoatPushService.log
-import com.malliina.http.HttpClient
+import com.malliina.http.OkHttpHttpClient
 import com.malliina.push.apns.APNSToken
 import com.malliina.push.gcm.GCMToken
 import com.malliina.util.AppLogger
@@ -17,7 +17,7 @@ import java.time.Instant
 object BoatPushService:
   private val log = AppLogger(getClass)
 
-  def fromConf[F[_]: Monad](c: PushConf, http: HttpClient[F]): BoatPushService[F] =
+  def fromConf[F[_]: Monad](c: PushConf, http: OkHttpHttpClient[F]): BoatPushService[F] =
     BoatPushService(APNSPush.fromConf(c.apns, http), FCMPush.build(c.fcm, http))
 
 class BoatPushService[F[_]: Applicative](ios: APNS[F], android: PushClient[F, GCMToken])

@@ -2,9 +2,9 @@ package com.malliina.boat.client
 
 import cats.effect.IO
 import com.malliina.boat.{Constants, RawSentence, SentencesMessage}
-import com.malliina.http.FullUrl
-import com.malliina.http.io.SocketEvent.{Open, TextMessage}
-import com.malliina.http.io.{HttpClientIO, WebSocketF}
+import com.malliina.http.{FullUrl, ReconnectingSocket}
+import com.malliina.http.SocketEvent.{Open, TextMessage}
+import com.malliina.http.io.{HttpClientIO, OkSocket, WebSocketF}
 
 class WebSocketClientTests extends munit.CatsEffectSuite:
   test("can connect to api.boat-tracker.com".ignore):
@@ -16,7 +16,7 @@ class WebSocketClientTests extends munit.CatsEffectSuite:
       .use: socket =>
         socket.events
           .collect:
-            case o @ Open(_, _) =>
+            case o @ Open(_) =>
               o
           .take(1)
           .compile
@@ -43,9 +43,9 @@ class WebSocketClientTests extends munit.CatsEffectSuite:
       socket <- WebSocketF
         .build[IO](url, Map(Constants.BoatTokenHeader.toString -> token), http.client)
     yield socket
-    socketResource.use: (client: WebSocketF[IO]) =>
+    socketResource.use: (client: ReconnectingSocket[IO, OkSocket[IO]]) =>
       val stream = client.events.evalMap:
-        case Open(_, _)                   => client.send(msg)
-        case TextMessage(socket, message) => IO(println(message))
+        case Open(_)                      => client.send(msg)
+        case TextMessage(_, message) => IO(println(message))
         case _                            => IO.unit
       stream.compile.drain

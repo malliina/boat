@@ -6,29 +6,29 @@ import scala.sys.process.Process
 
 val versions = new {
   val scala213 = "2.13.16"
-  val scala3 = "3.7.1"
+  val scala3 = "3.7.2"
 
   val alpn = "12.0.16"
   val ci = "1.4.2"
   val circe = "0.14.14"
-  val codec = "1.18.0"
-  val commonsText = "1.13.1"
+  val codec = "1.19.0"
+  val commonsText = "1.14.0"
   val fs2 = "3.11.0"
   val http4s = "0.23.30"
   val ip4s = "3.7.0"
   val jts = "1.13"
   val logback = "1.5.18"
-  val logstreams = "2.8.3"
-  val mariadb = "3.5.4"
-  val mobilePush = "3.13.3"
+  val logstreams = "2.9.3"
+  val mariadb = "3.5.5"
+  val mobilePush = "3.14.1"
   val munit = "1.1.1"
   val munitCe = "2.1.0"
   val paho = "1.2.5"
-  val primitives = "3.7.10"
+  val primitives = "3.7.18"
   val s3 = "2.31.50"
-  val scalaJsDom = "2.8.0"
+  val scalaJsDom = "2.8.1"
   val scalaTags = "0.13.1"
-  val webAuth = "6.9.10"
+  val webAuth = "6.9.13"
 }
 
 val webAuthDep = "com.malliina" %% "web-auth" % versions.webAuth
@@ -56,7 +56,7 @@ inThisBuild(
       case PathList("META-INF", "okio.kotlin_module")           => MergeStrategy.first
       case PathList("com", "malliina", xs @ _*)                 => MergeStrategy.first
       case PathList("module-info.class")                        => MergeStrategy.first
-      case x =>
+      case x                                                    =>
         val oldStrategy = (ThisBuild / assemblyMergeStrategy).value
         oldStrategy(x)
     },

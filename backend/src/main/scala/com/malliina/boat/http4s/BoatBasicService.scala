@@ -56,7 +56,7 @@ class BoatBasicService[F[_]: Sync] extends Implicits[F]:
       F.delay(log.error(bnfe.message, t)).flatMap(_ => notFound(Errors(bnfe.message)))
     case re: ResponseException =>
       serverErrorResponse(
-        s"${re.getMessage} Response: '${re.response.asString}' for '${req.method} ${req.uri}'.",
+        s"'${re.getMessage}' for '${req.method} ${req.uri}'.",
         re
       )
     case ioe: IOException
