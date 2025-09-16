@@ -616,7 +616,7 @@ class Service[F[_]: {Async, Files}](
                     sockets,
                     toClients,
                     message =>
-                      log.info(s"Boat ${boat.describe} says '$message'.")
+                      log.debug(s"Boat ${boat.describe} says '$message'.")
                       parse(message).fold(
                         _ =>
                           F.raiseError(

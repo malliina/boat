@@ -3,14 +3,10 @@ package com.malliina.boat.it
 import cats.effect.IO
 import com.malliina.boat.*
 import com.malliina.boat.client.{HttpUtil, KeyValue}
-import com.malliina.http.{FullUrl, HttpClient, ReconnectingSocket, SocketEvent, WebSocketOps}
 import com.malliina.http.SocketEvent.Open
+import com.malliina.http.{FullUrl, HttpClient, ReconnectingSocket, WebSocketOps}
 import com.malliina.values.{Password, Username}
-import fs2.Stream
-import fs2.concurrent.Topic
 import org.http4s.Uri
-
-import scala.concurrent.duration.DurationInt
 
 type Socket = ReconnectingSocket[IO, ? <: WebSocketOps[IO]]
 
