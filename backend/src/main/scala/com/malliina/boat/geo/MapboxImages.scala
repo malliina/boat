@@ -1,19 +1,21 @@
 package com.malliina.boat.geo
 
 import cats.effect.Async
+import cats.implicits.toFlatMapOps
+import cats.syntax.all.toFunctorOps
 import com.malliina.boat.geo.MapboxImages.Conf
 import com.malliina.boat.{Coord, MapConf}
+import com.malliina.http.HttpClient
 import com.malliina.http.UrlSyntax.https
-import com.malliina.http.{OkHttpHttpClient, OkHttpResponse, StatusError}
 import com.malliina.values.AccessToken
-import cats.syntax.all.toFunctorOps
 
+import java.nio.file.Files
 import scala.concurrent.duration.DurationInt
 
 object MapboxImages:
   case class Conf(token: AccessToken, styleId: String, username: String)
 
-  def default[F[_]: Async](token: AccessToken, http: OkHttpHttpClient[F]) =
+  def default[F[_]: Async](token: AccessToken, http: HttpClient[F]) =
     RateLimiter
       .default[F](720, 12.hours)
       .map: limiter =>
@@ -27,7 +29,7 @@ object MapboxImages:
     override def image(coord: Coord, size: Size): F[Array[Byte]] =
       limiter.submitOrFail(images.image(coord, size))
 
-class MapboxImages[F[_]: Async](conf: Conf, http: OkHttpHttpClient[F]) extends ImageApi[F]:
+class MapboxImages[F[_]: Async](conf: Conf, http: HttpClient[F]) extends ImageApi[F]:
   val F = Async[F]
   val baseUrl = https"api.mapbox.com/styles/v1" / conf.username / conf.styleId / "static"
 
@@ -39,7 +41,11 @@ class MapboxImages[F[_]: Async](conf: Conf, http: OkHttpHttpClient[F]) extends I
     val segment = Seq(s"${coord.lng}", s"${coord.lat}", zoom, bearing, pitch)
     val plainUrl = baseUrl / segment.mkString(",") / size.wxh
     val url = plainUrl.withQuery("access_token" -> conf.token.token)
-    val req = OkHttpHttpClient.requestFor(url, Map.empty).build()
-    http.streamed(req): res =>
-      if res.isSuccessful then F.blocking(res.body().bytes())
-      else F.raiseError(StatusError(OkHttpResponse(res), plainUrl).toException)
+    val to = Files.createTempFile("mapbox", "bytes")
+    http
+      .download(url, to)
+      .flatMap: res =>
+        res.fold(
+          err => F.raiseError(err.toException),
+          _ => F.blocking(Files.readAllBytes(to))
+        )

@@ -49,7 +49,7 @@ object APNSPush:
       log.info(
         s"Initializing APNS with team ID ${confModel.teamId} and private key at ${conf.privateKey}..."
       )
-      val prep = RequestPreparer.token(confModel)
+      val prep = TokenBuilder.token(confModel)
       val prod = new APNSHttpClientF(http, prep, isSandbox = false)
       APNSPush(prod)
     else

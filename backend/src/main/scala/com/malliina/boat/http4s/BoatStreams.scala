@@ -65,6 +65,7 @@ class BoatStreams[F[_]: Async](
   val sentences = rights(sentencesSource)
   private val emittable = sentences
     .mapAsync(1): s =>
+      log.debug(s"Saving sentences $s...")
       db.saveSentences(s)
         .map: keyed =>
           BoatParser
@@ -115,7 +116,9 @@ class BoatStreams[F[_]: Async](
 
   private def saveRecovered(coord: FullCoord): F[List[InsertedCoord]] =
     db.saveCoords(coord)
-      .map(inserted => List(InsertedCoord(coord, inserted)))
+      .map: inserted =>
+        log.debug(s"Inserted $inserted")
+        List(InsertedCoord(coord, inserted))
       .handleErrorWith: t =>
         log.error(s"Unable to save coords.", t)
         F.pure(Nil)

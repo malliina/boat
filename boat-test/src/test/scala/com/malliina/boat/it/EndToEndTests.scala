@@ -7,11 +7,14 @@ import com.malliina.boat.{CoordsEvent, TestHttp}
 import com.malliina.boat.client.server.BoatConf
 import com.malliina.boat.client.{DeviceAgent, TCPClient}
 import com.malliina.boat.it.EndToEndTests.log
+import com.malliina.http.SocketEvent
 import com.malliina.util.AppLogger
 import fs2.Stream
 import fs2.concurrent.SignallingRef
 import fs2.io.net.Network
 import io.circe.Json
+
+import scala.concurrent.duration.FiniteDuration
 
 object EndToEndTests:
   private val log = AppLogger(getClass)
@@ -27,6 +30,8 @@ class EndToEndTests extends BoatTests:
     "$GPGGA,124943,6009.5444,N,02448.4491,E,1,12,0.60,0,M,19.5,M,,*61",
     "$GPGGA,125642,6009.2559,N,02447.5942,E,1,12,0.60,1,M,19.5,M,,*68"
   )
+
+  override def munitIOTimeout: FiniteDuration = 10.seconds
 
   /**   1. Starts a plotter (TCP server) and boat backend
     *   1. Connects to plotter and backend with agent
@@ -47,44 +52,52 @@ class EndToEndTests extends BoatTests:
     val tcpPort = port"10104"
 
     SignallingRef[IO, Boolean](false).flatMap: complete =>
-      Deferred[IO, Json].flatMap: (firstMessage: Deferred[IO, Json]) =>
-        Deferred[IO, CoordsEvent].flatMap: (coordsPromise: Deferred[IO, CoordsEvent]) =>
-          log.info(s"Starting TCP server at $tcpHost:$tcpPort...")
-          val server = Network[IO]
-            .server(port = Option(tcpPort))
-            .take(1)
-            .evalMap: client =>
-              log.info(s"TCP server handling client...")
-              plotterOutput.through(client.writes).compile.drain
-          val serverUrl = s.baseWsUrl.append(reverse.ws.boats.renderString)
-          val agent: IO[Json] =
-            DeviceAgent
-              .fromConf[IO](BoatConf.anon(tcpHost, tcpPort), serverUrl, httpClient.client)
-              .use: agent =>
-                agent.connect.compile.resource.lastOrError.use: _ =>
-                  log.info(s"Agent complete")
-                  firstMessage.get
-          val viewer = openViewerSocket(httpClient, None): socket =>
-            socket.jsonMessages
-              .evalTap: json =>
-                log.debug(s"Viewer got JSON\\n$json...")
-                firstMessage.complete(json) >> json
-                  .as[CoordsEvent]
-                  .toOption
-                  .map(ce => coordsPromise.complete(ce))
-                  .getOrElse(IO.pure(false))
-              .compile
-              .drain
-          val system =
-            Stream
-              .never[IO]
-              .concurrently(server)
-              .concurrently(Stream.eval(agent))
-              .concurrently(Stream.eval(viewer))
-              .interruptWhen(complete)
-          for
-            _ <- system.compile.drain.start
-            _ <- firstMessage.get
-            cs <- coordsPromise.get
-            _ <- complete.getAndSet(true)
-          yield cs.coords
+      Deferred[IO, Boolean].flatMap: webSocketOpened =>
+        Deferred[IO, Json].flatMap: (firstMessage: Deferred[IO, Json]) =>
+          Deferred[IO, CoordsEvent].flatMap: (coordsPromise: Deferred[IO, CoordsEvent]) =>
+            log.info(s"Starting TCP server at $tcpHost:$tcpPort...")
+            val server = Network[IO]
+              .server(port = Option(tcpPort))
+              .take(1)
+              .evalMap: client =>
+                webSocketOpened.get >>
+                  plotterOutput.through(client.writes).compile.drain
+            val serverUrl = s.baseWsUrl.append(reverse.ws.boats.renderString)
+            val agent: IO[Json] =
+              DeviceAgent
+                .fromConf[IO](BoatConf.anon(tcpHost, tcpPort), serverUrl, httpClient)
+                .use: agent =>
+                  log.info(s"Agent initialized at $tcpHost...")
+                  agent.connect
+                    .evalMap:
+                      case e @ SocketEvent.Open(url) => webSocketOpened.complete(true).as(e)
+                      case e                         => IO.pure(e)
+                    .compile
+                    .resource
+                    .lastOrError
+                    .use: _ =>
+                      firstMessage.get
+            val viewer = openViewerSocket(httpClient, None): socket =>
+              socket.jsonMessages
+                .evalTap: json =>
+                  log.debug(s"Viewer got JSON\\n$json...")
+                  firstMessage.complete(json) >> json
+                    .as[CoordsEvent]
+                    .toOption
+                    .map(ce => coordsPromise.complete(ce))
+                    .getOrElse(IO.pure(false))
+                .compile
+                .drain
+            val system =
+              Stream
+                .never[IO]
+                .concurrently(Stream.eval(viewer))
+                .concurrently(server)
+                .concurrently(Stream.eval(agent))
+                .interruptWhen(complete)
+            for
+              _ <- system.compile.drain.start
+              _ <- firstMessage.get
+              cs <- coordsPromise.get
+              _ <- complete.getAndSet(true)
+            yield cs.coords

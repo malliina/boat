@@ -5,12 +5,10 @@ import cats.syntax.all.{toFlatMapOps, toFunctorOps, toTraverseOps}
 import com.malliina.boat.geo.Geocoder
 import com.malliina.boat.http.Near
 import com.malliina.boat.{CapacityProps, Earth, FeatureCollection, LocalConf, MultiPolygon, NearestCoord, ParkingCapacity, ParkingDirections, Polygon, Resources}
-import com.malliina.http.FullUrl
+import com.malliina.http.{FullUrl, HttpClient}
 import com.malliina.http.UrlSyntax.https
-import com.malliina.http.io.HttpClientF2
-import com.malliina.measure.DistanceM
 import io.circe.parser.decode
-import io.circe.{Decoder, Json}
+import io.circe.Json
 
 import java.nio.file.Files
 
@@ -23,7 +21,7 @@ object Parking extends Resources:
     val F = Sync[F]
     F.rethrow(F.blocking(decode[Json](Files.readString(parkingFile))))
 
-class Parking[F[_]: Async](http: HttpClientF2[F], geo: Geocoder[F]):
+class Parking[F[_]: Async](http: HttpClient[F], geo: Geocoder[F]):
   private val firstPage: FullUrl = https"pubapi.parkkiopas.fi/public/v1/parking_area/?format=json"
 
   def near(query: Near): F[Seq[ParkingDirections]] =

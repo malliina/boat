@@ -81,8 +81,8 @@ class Service[F[_]: {Async, Files}](
     Stream.awakeEvery(30.seconds).map(d => PingEvent(System.currentTimeMillis(), d))
 
   val normalRoutes: HttpRoutes[F] = HttpRoutes.of[F]:
-    case req @ GET -> Root      => index(req)
-    case GET -> Root / "health" => ok(AppMeta.default)
+    case req @ GET -> Root                 => index(req)
+    case GET -> Root / "health"            => ok(AppMeta.default)
     case req @ GET -> Root / "favicon.ico" =>
       val sourceType = if isCar(req) then SourceType.Vehicle else SourceType.Boat
       temporaryRedirect(BoatHtml.faviconPath(sourceType))
@@ -469,7 +469,7 @@ class Service[F[_]: {Async, Files}](
     case GET -> Root / "docs" / "agent"          => docsRedirect("agent")
     case GET -> Root / "docs" / "support"        => docsRedirect("support")
     case req @ GET -> Root / "legal" / "privacy" => ok(html(req).privacyPolicy)
-    case req @ GET -> Root / "files" =>
+    case req @ GET -> Root / "files"             =>
       comps.s3
         .files()
         .flatMap: objects =>
@@ -616,7 +616,7 @@ class Service[F[_]: {Async, Files}](
                     sockets,
                     toClients,
                     message =>
-                      log.debug(s"Boat ${boat.describe} says '$message'.")
+                      log.info(s"Boat ${boat.describe} says '$message'.")
                       parse(message).fold(
                         _ =>
                           F.raiseError(

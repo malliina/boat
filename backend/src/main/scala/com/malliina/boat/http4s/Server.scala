@@ -5,8 +5,7 @@ import com.malliina.boat.auth.{EmailAuth, JWT, TokenEmailAuth}
 import com.malliina.boat.db.*
 import com.malliina.boat.push.{BoatPushService, PushEndpoint}
 import com.malliina.boat.{BoatConf, Logging}
-import com.malliina.http.OkHttpHttpClient
-import com.malliina.http.io.{HttpClientF2, HttpClientIO}
+import com.malliina.http.HttpClient
 import org.http4s.server.Server
 
 import scala.concurrent.duration.Duration
@@ -14,13 +13,13 @@ import scala.concurrent.duration.Duration
 case class ServerComponents[F[_]](app: Service[F], server: Server)
 
 trait AppCompsBuilder[F[_]]:
-  def http: Resource[F, HttpClientF2[F]]
-  def build(conf: BoatConf, http: OkHttpHttpClient[F]): AppComps[F]
+  def http: Resource[F, HttpClient[F]]
+  def build(conf: BoatConf, http: HttpClient[F]): AppComps[F]
 
 object AppCompsBuilder:
   def prod[F[_]: Async]: AppCompsBuilder[F] = new AppCompsBuilder[F]:
-    override def http: Resource[F, HttpClientF2[F]] = HttpClientIO.resource
-    override def build(conf: BoatConf, http: OkHttpHttpClient[F]): AppComps[F] =
+    override def http: Resource[F, HttpClient[F]] = HttpClient.resource[F]()
+    override def build(conf: BoatConf, http: HttpClient[F]): AppComps[F] =
       ProdAppComps(conf, http)
 
 // Put modules that have different implementations in dev, prod or tests here.
@@ -29,8 +28,7 @@ trait AppComps[F[_]]:
   def pushService: PushEndpoint[F]
   def emailAuth: EmailAuth[F]
 
-class ProdAppComps[F[_]: Async](conf: BoatConf, httpClient: OkHttpHttpClient[F])
-  extends AppComps[F]:
+class ProdAppComps[F[_]: Async](conf: BoatConf, httpClient: HttpClient[F]) extends AppComps[F]:
   override val customJwt: CustomJwt = CustomJwt(JWT(conf.secret))
   override val pushService: PushEndpoint[F] = BoatPushService.fromConf(conf.push, httpClient)
   override val emailAuth: EmailAuth[F] =

@@ -6,8 +6,7 @@ import com.malliina.boat.auth.{EmailAuth, JWT}
 import com.malliina.boat.db.{CustomJwt, IdentityException, JWTError, PushDevice}
 import com.malliina.boat.http4s.{AppComps, AppCompsBuilder, Auth}
 import com.malliina.boat.push.{PushEndpoint, PushGeo, PushSummary, SourceNotification}
-import com.malliina.http.OkHttpHttpClient
-import com.malliina.http.io.HttpClientF2
+import com.malliina.http.HttpClient
 import com.malliina.values.{Email, IdToken}
 import com.malliina.web.{Expired, InvalidSignature, WebAuthException}
 import org.http4s.Headers
@@ -53,7 +52,7 @@ class TestComps(conf: BoatConf) extends AppComps[IO]:
 
 object TestComps:
   val builder: AppCompsBuilder[IO] = new AppCompsBuilder[IO]:
-    override def http: Resource[IO, HttpClientF2[IO]] =
+    override def http: Resource[IO, HttpClient[IO]] =
       Resource.pure(TestHttp.client)
-    override def build(conf: BoatConf, http: OkHttpHttpClient[IO]): AppComps[IO] =
+    override def build(conf: BoatConf, http: HttpClient[IO]): AppComps[IO] =
       TestComps(conf)

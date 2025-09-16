@@ -1,24 +1,24 @@
 package com.malliina.boat.client.server
 
-import cats.syntax.all.{catsSyntaxApplicativeError, toFlatMapOps, toFunctorOps, toShow}
 import cats.effect.{Async, Resource}
+import cats.syntax.all.{catsSyntaxApplicativeError, toFlatMapOps, toFunctorOps, toShow}
 import com.malliina.boat.Constants.BoatTokenHeader
-import com.malliina.boat.{BoatToken, DeviceContainer}
+import com.malliina.boat.DeviceContainer
 import com.malliina.boat.client.DeviceAgent
 import com.malliina.boat.client.server.AgentInstance.log
 import com.malliina.boat.client.server.Device.GpsDevice
-import com.malliina.http.io.HttpClientF2
+import com.malliina.http.HttpClient
 import com.malliina.tasks.runInBackground
 import com.malliina.util.AppLogger
-import fs2.concurrent.{SignallingRef, Topic}
 import fs2.Stream
+import fs2.concurrent.{SignallingRef, Topic}
 import fs2.io.net.Network
 
 object AgentInstance:
   private val log = AppLogger(getClass)
 
   def resource[F[_]: {Async, Network}](
-    http: HttpClientF2[F]
+    http: HttpClient[F]
   ): Resource[F, AgentInstance[F]] =
     val conf = AgentSettings
       .readConf()
@@ -29,7 +29,7 @@ object AgentInstance:
     fromConf(http, conf.toOption)
 
   def fromConf[F[_]: {Async, Network}](
-    http: HttpClientF2[F],
+    http: HttpClient[F],
     conf: Option[BoatConf]
   ): Resource[F, AgentInstance[F]] =
     for
@@ -38,14 +38,14 @@ object AgentInstance:
       _ <- Resource.eval(conf.map(c => agent.updateIfNecessary(c)).getOrElse(Async[F].pure(false)))
     yield agent
 
-  def io[F[_]: {Async, Network}](http: HttpClientF2[F]): F[AgentInstance[F]] =
+  def io[F[_]: {Async, Network}](http: HttpClient[F]): F[AgentInstance[F]] =
     for
       topic <- Topic[F, BoatConf]
       interrupter <- SignallingRef[F, Boolean](false)
     yield AgentInstance(http, topic, interrupter)
 
 class AgentInstance[F[_]: {Async, Network}](
-  http: HttpClientF2[F],
+  http: HttpClient[F],
   confs: Topic[F, BoatConf],
   interrupter: SignallingRef[F, Boolean]
 ):
@@ -78,7 +78,7 @@ class AgentInstance[F[_]: {Async, Network}](
       val newUrl =
         if newConf.device == GpsDevice then DeviceAgent.DeviceUrl else DeviceAgent.BoatUrl
       DeviceAgent
-        .fromConf(newConf, newUrl, http.client)
+        .fromConf(newConf, newUrl, http)
         .use: agent =>
           // Interrupts the previous connection when a new conf appears
           val stream =

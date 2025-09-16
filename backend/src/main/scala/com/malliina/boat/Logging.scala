@@ -3,7 +3,7 @@ package com.malliina.boat
 import cats.effect.Async
 import cats.effect.std.Dispatcher
 import ch.qos.logback.classic.Level
-import com.malliina.http.io.HttpClientF2
+import com.malliina.http.HttpClient
 import com.malliina.logback.LogbackUtils
 import com.malliina.logstreams.client.LogstreamsUtils
 
@@ -16,5 +16,5 @@ object Logging:
   )
   def init() = LogbackUtils.init(rootLevel = defaultLevel, levelsByLogger = levels)
 
-  def install[F[_]: Async](d: Dispatcher[F], http: HttpClientF2[F]) =
+  def install[F[_]: Async](d: Dispatcher[F], http: HttpClient[F]) =
     LogstreamsUtils.installIfEnabled("boat", userAgent, d, http)
