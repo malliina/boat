@@ -10,18 +10,15 @@ import com.malliina.boat.http4s.{JsonInstances, ServerComponents, ServerResource
 import com.malliina.config.{ConfigError, ConfigNode, MissingValue}
 import com.malliina.database.{Conf, DoobieDatabase}
 import com.malliina.http.UrlSyntax.url
-import com.malliina.http.io.HttpClientF2
 import com.malliina.http.{CSRFConf, Errors, FullUrl, HttpClient, JavaHttpClient}
 import com.malliina.http4s.CSRFUtils
 import com.malliina.logback.LogbackUtils
 import com.malliina.values.Password
 import munit.AnyFixture
-import okhttp3.{OkHttpClient, Protocol}
 import org.http4s.EntityDecoder
 import org.http4s.server.middleware.CSRF
 
 import java.nio.file.{Path, Paths}
-import java.util.concurrent.TimeUnit
 import scala.concurrent.duration.{DurationInt, FiniteDuration}
 
 case class TestBoatConf(testdb: Conf)
@@ -30,16 +27,6 @@ object TestHttp:
   import cats.effect.unsafe.implicits.global
   lazy val (client, finalizer) =
     HttpClient.resource[IO]().allocated[JavaHttpClient[IO]].unsafeRunSync()
-
-  private val okClient = OkHttpClient
-    .Builder()
-    .protocols(java.util.Arrays.asList(Protocol.HTTP_2, Protocol.HTTP_1_1))
-    .connectTimeout(60, TimeUnit.SECONDS)
-    .writeTimeout(120, TimeUnit.SECONDS)
-    .readTimeout(120, TimeUnit.SECONDS)
-    .callTimeout(120, TimeUnit.SECONDS)
-    .build()
-//  lazy val client = HttpClientF2[IO](okClient)
 
 trait MUnitSuite extends munit.CatsEffectSuite:
   val userHome: Path = Paths.get(sys.props("user.home"))
