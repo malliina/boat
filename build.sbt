@@ -18,20 +18,18 @@ val versions = new {
   val ip4s = "3.7.0"
   val jts = "1.13"
   val logback = "1.5.18"
-  val logstreams = "2.10.4"
   val mariadb = "3.5.6"
   val mobilePush = "3.15.3"
   val munit = "1.2.0"
   val munitCe = "2.1.0"
   val paho = "1.2.5"
-  val primitives = "3.8.4"
   val s3 = "2.33.9"
   val scalaJsDom = "2.8.1"
   val scalaTags = "0.13.1"
-  val webAuth = "6.9.16"
+  val util = "6.10.1"
 }
 
-val webAuthDep = "com.malliina" %% "web-auth" % versions.webAuth
+val webAuthDep = "com.malliina" %% "web-auth" % versions.util
 val webAuthTestDep = webAuthDep % Test classifier "tests"
 val munitDep = "org.scalameta" %% "munit" % versions.munit % Test
 
@@ -90,7 +88,7 @@ val cross = crossProject(JSPlatform, JVMPlatform)
       "co.fs2" %%% "fs2-core" % versions.fs2,
       "com.comcast" %%% "ip4s-core" % versions.ip4s,
       "org.typelevel" %%% "case-insensitive" % versions.ci,
-      "com.malliina" %%% "primitives" % versions.primitives,
+      "com.malliina" %%% "primitives" % versions.util,
       "com.lihaoyi" %%% "scalatags" % versions.scalaTags,
       "org.scalameta" %%% "munit" % versions.munit % Test
     )
@@ -105,13 +103,12 @@ val polestar = project
   .settings(
     libraryDependencies ++= Seq("generic", "parser").map { m =>
       "io.circe" %%% s"circe-$m" % versions.circe
+    } ++ Seq("config", "logstreams-client", "okclient-io").map { m =>
+      "com.malliina" %% m % versions.util
     } ++ Seq(
       "co.fs2" %% "fs2-io" % versions.fs2,
       "ch.qos.logback" % "logback-classic" % versions.logback,
       "commons-codec" % "commons-codec" % versions.codec,
-      "com.malliina" %% "okclient-io" % versions.primitives,
-      "com.malliina" %% "config" % versions.primitives,
-      "com.malliina" %% "logstreams-client" % versions.logstreams,
       "org.scalameta" %% "munit" % versions.munit % Test,
       "org.typelevel" %% "munit-cats-effect" % versions.munitCe % Test
     )
@@ -128,7 +125,7 @@ val frontend = project
   .settings(boatSettings)
   .settings(
     libraryDependencies ++= Seq(
-      "com.malliina" %%% "util-html" % versions.webAuth,
+      "com.malliina" %%% "util-html" % versions.util,
       "org.scala-js" %%% "scalajs-dom" % versions.scalaJsDom,
       "org.scalameta" %%% "munit" % versions.munit % Test
     )
@@ -145,19 +142,23 @@ val backend = Project("boat", file("backend"))
     libraryDependencies ++=
       Seq("server", "client").map { m =>
         "org.eclipse.jetty" % s"jetty-alpn-java-$m" % versions.alpn
-      } ++ Seq("util-html", "database", "util-http4s").map { m =>
-        "com.malliina" %% m % versions.webAuth
+      } ++ Seq(
+        "config",
+        "logstreams-client",
+        "util-html",
+        "database",
+        "util-http4s",
+        "web-auth"
+      ).map { m =>
+        "com.malliina" %% m % versions.util
       } ++ Seq(
         "ch.qos.logback" % "logback-classic" % versions.logback,
         "com.vividsolutions" % "jts" % versions.jts,
         "org.mariadb.jdbc" % "mariadb-java-client" % versions.mariadb,
         "org.apache.commons" % "commons-text" % versions.commonsText,
         "software.amazon.awssdk" % "s3" % versions.s3,
-        "com.malliina" %% "logstreams-client" % versions.logstreams,
         "com.malliina" %% "mobile-push-io" % versions.mobilePush,
-        "com.malliina" %% "config" % versions.primitives,
         "org.eclipse.paho" % "org.eclipse.paho.client.mqttv3" % versions.paho,
-        webAuthDep,
         webAuthTestDep,
         munitDep,
         "org.http4s" %% "http4s-ember-client" % versions.http4s % Test,
@@ -209,11 +210,11 @@ val agent = project
     libraryDependencies ++=
       Seq("generic", "parser").map { m =>
         "io.circe" %% s"circe-$m" % versions.circe
+      } ++ Seq("logstreams-client", "primitives").map { m =>
+        "com.malliina" %% m % versions.util
       } ++ Seq(
         "co.fs2" %% "fs2-io" % versions.fs2,
-        "com.malliina" %% "util-http4s" % versions.webAuth,
-        "com.malliina" %% "primitives" % versions.primitives,
-        "com.malliina" %% "logstreams-client" % versions.logstreams,
+        "com.malliina" %% "util-http4s" % versions.util,
         "com.lihaoyi" %% "scalatags" % versions.scalaTags,
         "commons-codec" % "commons-codec" % versions.codec,
         "org.typelevel" %% "munit-cats-effect" % versions.munitCe % Test
