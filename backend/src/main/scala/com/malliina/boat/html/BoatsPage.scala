@@ -370,7 +370,7 @@ object BoatsPage extends BoatImplicits with HTMLConstants:
       )
     )
 
-  implicit def attrId[T <: WrappedId]: AttrValue[T] = (t: Builder, a: Attr, v: T) =>
+  given attrId: [T <: WrappedId] => AttrValue[T] = (t: Builder, a: Attr, v: T) =>
     t.setAttr(a.name, Builder.GenericAttrValueSource(s"$v"))
 
   private def hiddenInput[T: AttrValue](inputName: String, inputValue: T) = input(

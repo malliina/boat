@@ -238,7 +238,7 @@ object MarineSymbol:
 
   val nonEmpty: Decoder[String] = MaritimeJson.nonEmpty
 
-  implicit val decoder: Decoder[MarineSymbol] = (c: HCursor) =>
+  given decoder: Decoder[MarineSymbol] = (c: HCursor) =>
     for
       owner <- c.downField("OMISTAJA").as[String]
       topSign <- c.downField("HUIPPUMERK").as[Boolean](using boolNum)

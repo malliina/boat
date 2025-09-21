@@ -16,7 +16,7 @@ import concurrent.duration.DurationInt
 object TrackImporter:
   private val log = AppLogger(getClass)
 
-  implicit val dateEq: Eq[LocalDate] =
+  given dateEq: Eq[LocalDate] =
     Eq.by[LocalDate, (Int, Int, Int)](d => (d.getYear, d.getMonthValue, d.getDayOfMonth))
 
 class TrackImporter[F[_]: { Files, Temporal }](inserts: TrackInsertsDatabase[F])

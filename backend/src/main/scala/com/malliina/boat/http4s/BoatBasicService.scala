@@ -38,9 +38,9 @@ class BoatBasicService[F[_]: Sync] extends Implicits[F]:
     TemporaryRedirect(Location(uri)).map(_.putHeaders(noCache))
   def notFoundReq(req: Request[F]): F[Response[F]] =
     notFound(Errors(s"Not found: '${req.method} ${req.uri}'."))
-  def notFound[A](a: A)(implicit w: EntityEncoder[F, A]): F[Response[F]] =
+  def notFound[A](a: A)(using w: EntityEncoder[F, A]): F[Response[F]] =
     NotFound(a, noCache)
-  def serverError[A](a: A)(implicit w: EntityEncoder[F, A]): F[Response[F]] =
+  def serverError[A](a: A)(using w: EntityEncoder[F, A]): F[Response[F]] =
     InternalServerError(a, noCache)
   def errorHandler(t: Throwable, req: Request[F]): F[Response[F]] = t match
     case ir: InvalidRequest =>

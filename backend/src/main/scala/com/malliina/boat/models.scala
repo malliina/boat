@@ -518,7 +518,7 @@ case class CombinedFullCoord(
 
 object CombinedFullCoord:
   private val modern: Codec[CombinedFullCoord] = deriveCodec[CombinedFullCoord]
-  implicit val json: Codec[CombinedFullCoord] = Codec.from(
+  given json: Codec[CombinedFullCoord] = Codec.from(
     modern,
     (c: CombinedFullCoord) =>
       modern(c).deepMerge(

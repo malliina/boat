@@ -12,8 +12,8 @@ object StructuredData:
   val typeof = attr("typeof")
   val vocab = attr("vocab")
 
-  implicit def jsonFrag(json: Json): Frag = raw(json.noSpaces)
-  implicit def stringJson(s: String): Json = s.asJson
+  given Conversion[Json, Frag] = (json: Json) => raw(json.noSpaces)
+  given Conversion[String, Json] = (s: String) => s.asJson
 
   val appStructuredData = script(`type` := "application/ld+json")(
     Json.obj(

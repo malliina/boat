@@ -44,7 +44,7 @@ sealed abstract class ShipType(val code: Int):
 object ShipType:
   val MaxKnown = 89
 
-  implicit val json: Codec[ShipType] = Codec.from(
+  given json: Codec[ShipType] = Codec.from(
     Decoder.decodeInt.map(int => apply(int)),
     Encoder.encodeInt.contramap(st => st.code)
   )
@@ -156,8 +156,8 @@ case class VesselInfo(
 
 object VesselInfo:
   val HeadingKey = "heading"
-  implicit val df: Codec[Duration] = PrimitiveFormats.durationCodec
-  implicit val json: Codec[VesselInfo] = deriveCodec[VesselInfo]
+  given df: Codec[Duration] = PrimitiveFormats.durationCodec
+  given json: Codec[VesselInfo] = deriveCodec[VesselInfo]
 
 sealed trait AISMessage
 
@@ -177,7 +177,7 @@ case class VesselLocationV2(
   def withMmsi(mmsi: Mmsi) = MmsiVesselLocation(mmsi, sog, cog, heading, coord, time * 1000)
 
 object VesselLocationV2:
-  implicit val json: Codec[VesselLocationV2] = deriveCodec[VesselLocationV2]
+  given json: Codec[VesselLocationV2] = deriveCodec[VesselLocationV2]
 
 case class MmsiVesselLocation(
   mmsi: Mmsi,
@@ -229,7 +229,7 @@ case class VesselLocation(
 
 object VesselLocation:
   import com.malliina.measure.SpeedDoubleM
-  implicit val json: Codec[VesselLocation] = deriveCodec[VesselLocation]
+  given json: Codec[VesselLocation] = deriveCodec[VesselLocation]
   val readerGeoJson: Decoder[VesselLocation] = (c: HCursor) =>
     for
       mmsi <- c.downField("mmsi").as[Mmsi]
@@ -267,7 +267,7 @@ case class VesselMetadataV2(
   def withMmsi(mmsi: Mmsi) = MmsiVesselMetadata(mmsi, name, draft, destinationTrimmed, eta)
 
 object VesselMetadataV2:
-  implicit val json: Codec[VesselMetadataV2] = deriveCodec[VesselMetadataV2]
+  given json: Codec[VesselMetadataV2] = deriveCodec[VesselMetadataV2]
 
 case class MmsiVesselMetadata(
   mmsi: Mmsi,
@@ -291,8 +291,8 @@ case class VesselMetadata(
 ) extends VesselMessage
 
 object VesselMetadata:
-  implicit val df: Codec[Duration] = PrimitiveFormats.durationCodec
-  implicit val json: Codec[VesselMetadata] = deriveCodec[VesselMetadata]
+  given df: Codec[Duration] = PrimitiveFormats.durationCodec
+  given json: Codec[VesselMetadata] = deriveCodec[VesselMetadata]
   val readerGeoJson: Decoder[VesselMetadata] = (c: HCursor) =>
     for
       name <- c.downField("name").as[VesselName]
