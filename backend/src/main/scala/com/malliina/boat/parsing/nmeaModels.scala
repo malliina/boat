@@ -121,19 +121,17 @@ object RMCMessage:
       case _: DateTimeParseException =>
         Left(SingleError.input(s"Invalid date: '$s', expected format '$dateFormatter'."))
 
-case class Elevation(degrees: Int) extends AnyVal:
-  override def toString = s"$degrees"
+opaque type Elevation = Int
 
 object Elevation extends PrimitiveParsing:
   def apply(s: String): Either[SingleError, Elevation] =
-    limitedInt(s, i => i >= 0 && i <= 90, apply)
+    limitedInt(s, i => i >= 0 && i <= 90, (i: Int) => i)
 
-case class Azimuth(degrees: Int) extends AnyVal:
-  override def toString = s"$degrees"
+opaque type Azimuth = Int
 
 object Azimuth extends PrimitiveParsing:
   def apply(s: String): Either[SingleError, Azimuth] =
-    limitedInt(s, i => i >= 0 && i <= 360, apply)
+    limitedInt(s, i => i >= 0 && i <= 360, (i: Int) => i)
 
 case class GSVMessage(talker: String, satellites: Int, elevation: Elevation, azimuth: Azimuth)
   extends TalkedSentence

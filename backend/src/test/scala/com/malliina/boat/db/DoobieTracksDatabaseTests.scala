@@ -34,7 +34,7 @@ class DoobieTests extends MUnitSuite with Mappings:
   dbResource.test("make query".ignore): doobie =>
     val db = DoobieTracksDatabase(doobie)
     val task = db.tracksBundle(
-      SimpleUserInfo(Username("mle"), Language.english, Nil),
+      SimpleUserInfo(Username("mle"), Language.English, Nil),
       TracksQuery(Nil, TrackQuery(TrackSort.TopSpeed, SortOrder.Desc, Limits(10, 0))),
       Lang.default
     )

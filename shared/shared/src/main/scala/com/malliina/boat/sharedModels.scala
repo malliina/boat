@@ -244,14 +244,15 @@ object Usernames:
 object Passwords:
   val Key = "password"
 
-case class Language(code: String) extends AnyVal with WrappedString:
-  override def value = code
+enum Language(val code: String):
+  case English extends Language("en-US")
+  case Finnish extends Language("fi-FI")
+  case Swedish extends Language("sv-SE")
 
-object Language extends StringCompanion[Language]:
-  val english: Language = Language("en-US")
-  val finnish = Language("fi-FI")
-  val swedish = Language("sv-SE")
-  val default = finnish
+object Language extends StringEnumCompanion[Language]:
+  override def all: Seq[Language] = Seq(English, Finnish, Swedish)
+  override def write(t: Language): String = t.code
+  val default: Language = Finnish
 
 case class ChangeLanguage(language: Language) derives Codec.AsObject
 

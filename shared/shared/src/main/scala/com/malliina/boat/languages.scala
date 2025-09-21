@@ -1041,9 +1041,9 @@ trait Lookupable[T]:
   def se: T
   def en: T
   def apply(language: Language): T = language match
-    case Language.finnish => fi
-    case Language.swedish => se
-    case Language.english => en
+    case Language.Finnish => fi
+    case Language.Swedish => se
+    case Language.English => en
     case _                => en
 
 case class PushLang(onTheMove: String, stoppedMoving: String, near: String) derives Codec.AsObject
@@ -1083,15 +1083,14 @@ object Lang:
   private val appName = "Boat-Tracker"
 
   def apply(language: Language): Lang = language match
-    case Language.swedish => se
-    case Language.finnish => fi
-    case Language.english => en
-    case _                => default
+    case Language.Swedish => se
+    case Language.Finnish => fi
+    case Language.English => en
 
   val en = Lang(
     appName,
     "Map",
-    language = Language.english,
+    language = Language.English,
     name = "Name",
     qualityClass = "Quality",
     time = "Time",
@@ -1292,7 +1291,7 @@ object Lang:
   val fi = Lang(
     appName,
     "Kartta",
-    language = Language.finnish,
+    language = Language.Finnish,
     name = "Nimi",
     qualityClass = "Laatuluokka",
     time = "Aika",
@@ -1498,7 +1497,7 @@ object Lang:
   val se = Lang(
     appName,
     "Karta",
-    language = Language.swedish,
+    language = Language.Swedish,
     name = "Namn",
     qualityClass = "Kvalitet",
     time = "Tid",

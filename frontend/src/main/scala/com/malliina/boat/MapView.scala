@@ -108,10 +108,9 @@ class MapView[F[_]: Async](
   def sample = queryInt(SampleKey).getOrElse(1)
   val formsLang = lang.settings.forms
   val locale = language match
-    case Language.swedish => TimeLocale.Sv
-    case Language.finnish => TimeLocale.Fi
-    case Language.english => TimeLocale.En
-    case _                => TimeLocale.En
+    case Language.Swedish => TimeLocale.Sv
+    case Language.Finnish => TimeLocale.Fi
+    case Language.English => TimeLocale.En
   val socket: MapSocket[F] =
     MapSocket(map, pathFinder, mode, messages, http.dispatcher, lang, log)
   val events = socket.events.coordEvents
@@ -121,7 +120,7 @@ class MapView[F[_]: Async](
   private val eventStream = mapEvents.subscribe(10)
   private val mapEventHandler = eventStream
     .collect:
-      case MapEvent.Load(center) => center
+      case MapEvent.Load(center)    => center
       case MapEvent.MoveEnd(center) =>
         saveCamera(center)
         center

@@ -258,7 +258,7 @@ object LngLatBounds:
     val ne = LngLat(coord)
     new LngLatBounds(sw, ne)
 
-  implicit class LngLatBoundsExt(val self: LngLatBounds) extends AnyVal:
+  extension (self: LngLatBounds)
     def extendWith(coord: Coord): LngLatBounds =
       self.extend(LngLat(coord))
 

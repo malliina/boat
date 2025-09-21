@@ -24,21 +24,21 @@ class About(lang: WebLang, profile: ProfileLang) extends AboutKeys:
               Seq(
                 RadioOptions(
                   "radio-se",
-                  Language.swedish.code,
+                  Language.Swedish.code,
                   profile.swedish,
-                  language == Language.swedish
+                  language == Language.Swedish
                 ),
                 RadioOptions(
                   "radio-fi",
-                  Language.finnish.code,
+                  Language.Finnish.code,
                   profile.finnish,
-                  language == Language.finnish
+                  language == Language.Finnish
                 ),
                 RadioOptions(
                   "radio-en",
-                  Language.english.code,
+                  Language.English.code,
                   profile.english,
-                  language == Language.english
+                  language == Language.English
                 )
               )
             ),

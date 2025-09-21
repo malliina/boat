@@ -8,9 +8,9 @@ object BoatLang:
   val default = Fi
 
   def apply(lang: Language): BoatLang = lang match
-    case Language.finnish => Fi
-    case Language.swedish => Se
-    case Language.english => En
+    case Language.Finnish => Fi
+    case Language.Swedish => Se
+    case Language.English => En
     case _                => default
 
   object Fi extends BoatLang(WebLang.Fi, Lang.fi)

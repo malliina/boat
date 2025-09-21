@@ -60,7 +60,7 @@ trait Mappings:
   given Meta[UserId] = wrappedId(UserId.apply)
   given Meta[Username] = wrapped(Username.apply)
   given Meta[Email] = wrapped(Email.apply)
-  given Meta[Language] = wrapped(Language.apply)
+  given Meta[Language] = validated(Language)
   given Meta[CoordHash] = Meta[String].timap(CoordHash.fromString)(_.hash)
   given Meta[Temperature] = Meta[Double].timap(Temperature.apply)(_.celsius)
   given Meta[DistanceM] = Meta[Double].timap(DistanceM.apply)(_.meters)

@@ -14,10 +14,9 @@ object TimeFormatter:
   val helsinkiZone = ZoneId.of("Europe/Helsinki")
 
   def lang(language: Language): TimeFormatter = language match
-    case Language.finnish => fi
-    case Language.swedish => se
-    case Language.english => en
-    case _                => en
+    case Language.Finnish => fi
+    case Language.Swedish => se
+    case Language.English => en
 
   val fi = TimeFormatter(TimePatterns.fi)
   val se = TimeFormatter(TimePatterns.se)

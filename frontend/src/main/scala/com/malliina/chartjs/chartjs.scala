@@ -163,7 +163,7 @@ object ChartData:
   def apply(labels: Seq[String], datasets: Seq[DataSet]): ChartData =
     literal(labels = labels.toJSArray, datasets = datasets.toJSArray).asInstanceOf[ChartData]
 
-  implicit class ChartDataOps(val self: ChartData) extends AnyVal:
+  extension (self: ChartData)
     def append(labels: Seq[String], datasets: Map[String, Seq[Double]]): Unit =
       self.labels.push(labels*)
       for

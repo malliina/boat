@@ -91,7 +91,7 @@ object CarLanguages:
   val default = NonEmptyList.of(
     CarLang(
       "Car-Map",
-      CarLanguage(Language.english, "English"),
+      CarLanguage(Language.English, "English"),
       CarProfileLang(
         "Signed in as",
         "Driving",
@@ -176,7 +176,7 @@ object CarLanguages:
     ),
     CarLang(
       "Car-Map",
-      CarLanguage(Language.swedish, "Svenska"),
+      CarLanguage(Language.Swedish, "Svenska"),
       CarProfileLang(
         "Inloggad som",
         "Du kör",
@@ -261,7 +261,7 @@ object CarLanguages:
     ),
     CarLang(
       "Car-Map",
-      CarLanguage(Language.finnish, "Suomeksi"),
+      CarLanguage(Language.Finnish, "Suomeksi"),
       CarProfileLang(
         "Käyttäjätunnus",
         "Ajat autoa",
