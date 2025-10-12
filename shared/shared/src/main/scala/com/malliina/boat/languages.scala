@@ -1044,7 +1044,6 @@ trait Lookupable[T]:
     case Language.Finnish => fi
     case Language.Swedish => se
     case Language.English => en
-    case _                => en
 
 case class PushLang(onTheMove: String, stoppedMoving: String, near: String) derives Codec.AsObject
 

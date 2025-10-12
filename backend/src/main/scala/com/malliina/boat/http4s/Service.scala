@@ -40,7 +40,6 @@ import org.http4s.websocket.WebSocketFrame
 import org.http4s.websocket.WebSocketFrame.Text
 import org.http4s.{Callback as _, *}
 import org.typelevel.ci.CIString
-import com.malliina.measure.DistanceIntM
 import java.time.Instant
 import scala.annotation.unused
 import scala.concurrent.duration.DurationInt
@@ -191,12 +190,15 @@ class Service[F[_]: {Async, Files}](
         .flatMap: user =>
           comps.polestar
             .carsAndTelematics(user.id)
+            .recover:
+              case e: Exception =>
+                log.error(s"Failed to fetch cars and telematics for ${user.id} (${user.email}).", e)
+                Nil
             .flatMap: cars =>
               respond(req)(
                 json =
                   val formatter = TimeFormatter.lang(user.language)
-                  def formatted(t: Updated) =
-                    formatter.timing(Instant.ofEpochSecond(t.seconds.toInt).plusNanos(t.nanos))
+                  def formatted(t: Updated) = formatter.timing(t.instant)
                   val carSummaries = cars.map: car =>
                     val t = car.telematics
                     val h = t.health
@@ -212,13 +214,13 @@ class Service[F[_]: {Async, Files}](
                       car.studioImage,
                       CarHealth(
                         h.daysToService,
-                        h.distanceToServiceKm.km,
+                        h.distanceToServiceKm,
                         formatted(h.timestamp)
                       ),
                       CarBattery(
                         b.batteryChargeLevelPercentage,
-                        ChargingStatus.fromPolestar(b.chargingStatus),
-                        b.estimatedDistanceToEmptyKm.km,
+                        b.chargingStatus,
+                        b.estimatedDistanceToEmptyKm,
                         formatted(b.timestamp)
                       ),
                       CarOdometer(

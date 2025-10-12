@@ -16,6 +16,13 @@ import scala.concurrent.duration.{Duration, FiniteDuration}
 import scala.language.implicitConversions
 import scala.math.Ordering.Double.TotalOrdering
 
+opaque type Percentage = Double
+object Percentage extends ValidatedDouble[Percentage]:
+  override def build(input: Double): Either[ErrorMessage, Percentage] =
+    if input >= 0.0d && input <= 100.0 then Right(input)
+    else Left(ErrorMessage(s"Invalid percentage: '$input'. Must be between 0.0 and 100.0."))
+  override def write(t: Double): Percentage = t
+
 opaque type DayVal = Int
 
 object DayVal extends JsonCompanion[Int, DayVal]:
@@ -331,20 +338,62 @@ case class Car(
 case class CarHealth(daysToService: Int, distanceToService: DistanceM, updated: Timing)
   derives Codec.AsObject
 
-enum ChargingStatus(val name: String):
-  case Idle extends ChargingStatus("idle")
-  case Other extends ChargingStatus("other")
+trait PolestarEnum:
+  def name: String
+  def polestar: String
 
-object ChargingStatus extends StringEnumCompanion[ChargingStatus]:
-  override def all: Seq[ChargingStatus] = Seq(Idle, Other)
-  override def write(t: ChargingStatus): String = t.name
+enum ChargingStatus(val name: String, val polestar: String) extends PolestarEnum:
+  case Idle extends ChargingStatus("idle", "CHARGING_STATUS_IDLE")
+  case Charging extends ChargingStatus("charging", "CHARGING_STATUS_CHARGING")
+  case Other(json: String) extends ChargingStatus("other", json)
 
-  def fromPolestar(s: String): ChargingStatus = s match
-    case "CHARGING_STATUS_IDLE" => Idle
-    case _                      => Other
+object ChargingStatus extends PolestarEnumCompanion[ChargingStatus]:
+  override def all: Seq[ChargingStatus] = Seq(Idle, Charging)
+  override def other(s: String): ChargingStatus = Other(s)
+
+enum BrakeFluidLevelWarning(val name: String, val polestar: String) extends PolestarEnum:
+  case NoWarning extends BrakeFluidLevelWarning("none", "BRAKE_FLUID_LEVEL_WARNING_NO_WARNING")
+  case Other(json: String) extends BrakeFluidLevelWarning("other", json)
+
+object BrakeFluidLevelWarning extends PolestarEnumCompanion[BrakeFluidLevelWarning]:
+  override def all: Seq[BrakeFluidLevelWarning] = Seq(NoWarning)
+  override def other(s: String): BrakeFluidLevelWarning = Other(s)
+
+enum EngineCoolantLevelWarning(val name: String, val polestar: String) extends PolestarEnum:
+  case NoWarning
+    extends EngineCoolantLevelWarning("none", "ENGINE_COOLANT_LEVEL_WARNING_NO_WARNING")
+  case Other(json: String) extends EngineCoolantLevelWarning("other", json)
+
+object EngineCoolantLevelWarning extends PolestarEnumCompanion[EngineCoolantLevelWarning]:
+  override def all: Seq[EngineCoolantLevelWarning] = Seq(NoWarning)
+  override def other(s: String): EngineCoolantLevelWarning = Other(s)
+
+enum ServiceWarning(val name: String, val polestar: String) extends PolestarEnum:
+  case NoWarning extends ServiceWarning("none", "SERVICE_WARNING_NO_WARNING")
+  case Other(json: String) extends ServiceWarning("other", json)
+
+object ServiceWarning extends PolestarEnumCompanion[ServiceWarning]:
+  override def all: Seq[ServiceWarning] = Seq(NoWarning)
+  override def other(s: String): ServiceWarning = Other(s)
+
+enum OilLevelWarning(val name: String, val polestar: String) extends PolestarEnum:
+  case NoWarning extends OilLevelWarning("none", "OIL_LEVEL_WARNING_NO_WARNING")
+  case Other(json: String) extends OilLevelWarning("other", json)
+
+object OilLevelWarning extends PolestarEnumCompanion[OilLevelWarning]:
+  override def all: Seq[OilLevelWarning] = Seq(NoWarning)
+  override def other(s: String): OilLevelWarning = Other(s)
+
+abstract class PolestarEnumCompanion[T <: PolestarEnum] extends StringEnumCompanion[T]:
+  override def write(t: T): String = t.name
+  def other(s: String): T
+  val decodePolestar: Decoder[T] =
+    Decoder.decodeString.map(s => fromPolestar(s))
+  private def fromPolestar(s: String): T =
+    all.find(_.polestar.toLowerCase == s.toLowerCase).getOrElse(other(s))
 
 case class CarBattery(
-  chargeLevelPercentage: Int,
+  chargeLevelPercentage: Percentage,
   chargingStatus: ChargingStatus,
   distanceToEmpty: DistanceM,
   updated: Timing

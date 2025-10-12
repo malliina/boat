@@ -43,6 +43,20 @@ class PolestarTests extends munit.CatsEffectSuite:
       println(car)
       println(tele)
 
+  polestar.test("Tokens and telematics".ignore): client =>
+    client.auth
+      .fetchTokens(creds)
+      .flatMap: tokens =>
+        val token = tokens.accessToken
+        val task = for
+          cars <- client.fetchCars(token)
+          car = cars.head
+          tele <- client.fetchTelematics(car.vin, token)
+        yield (car, tele)
+        task.map: (car, tele) =>
+          println(car)
+          println(tele)
+
   val str =
     """
       | Object.assign(window.globalContext, {

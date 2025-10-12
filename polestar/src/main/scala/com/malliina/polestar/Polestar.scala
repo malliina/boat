@@ -6,7 +6,7 @@ import cats.syntax.all.toFunctorOps
 import com.malliina.boat.{CarsTelematics, VIN}
 import com.malliina.http.UrlSyntax.https
 import com.malliina.http.io.HttpClientIO
-import com.malliina.http.{FullUrl, HttpClient}
+import com.malliina.http.{FullUrl, HttpClient, HttpHeaders}
 import com.malliina.values.{AccessToken, Password, RefreshToken, Username}
 import io.circe.syntax.EncoderOps
 import io.circe.{Codec, Decoder, Encoder, Json}
@@ -52,7 +52,10 @@ class Polestar[F[_]: Async](http: HttpClient[F]):
     http.postAs[GraphQuery, T](
       myStarUrl,
       q,
-      Map("Authorization" -> s"Bearer $token", "Accept" -> "application/graphql-response+json")
+      Map(
+        HttpHeaders.Authorization -> s"Bearer $token",
+        "Accept" -> "application/graphql-response+json"
+      )
     )
 
   private def resource(file: String) =

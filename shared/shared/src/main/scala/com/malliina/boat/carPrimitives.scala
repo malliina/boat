@@ -4,9 +4,11 @@ import cats.Show
 import com.malliina.measure.DistanceM
 import com.malliina.values.{ErrorMessage, JsonCompanion}
 import com.malliina.values.Literals.err
-import io.circe.Codec
+import io.circe.{Codec, Decoder, Encoder}
 import org.typelevel.ci.CIString
 import com.malliina.measure.DistanceIntM
+
+import java.time.Instant
 
 opaque type RegistrationNumber = CIString
 object RegistrationNumber extends CICompanion[RegistrationNumber]:
@@ -33,24 +35,40 @@ trait VINSpec:
 case class Health(
   vin: VIN,
   daysToService: Int,
-  brakeFluidLevelWarning: String,
-  engineCoolantLevelWarning: String,
-  serviceWarning: String,
-  oilLevelWarning: String,
-  distanceToServiceKm: Int,
+  brakeFluidLevelWarning: BrakeFluidLevelWarning,
+  engineCoolantLevelWarning: EngineCoolantLevelWarning,
+  serviceWarning: ServiceWarning,
+  oilLevelWarning: OilLevelWarning,
+  distanceToServiceKm: DistanceM,
   timestamp: Updated
-) extends VINSpec derives Codec.AsObject
+) extends VINSpec derives Encoder.AsObject:
+  def updated = timestamp.instant
 
-case class Updated(seconds: String, nanos: Long) derives Codec.AsObject
+object Health:
+  given Decoder[DistanceM] = Decoder.decodeInt.map(_.kilometers)
+  given Decoder[BrakeFluidLevelWarning] = BrakeFluidLevelWarning.decodePolestar
+  given Decoder[EngineCoolantLevelWarning] = EngineCoolantLevelWarning.decodePolestar
+  given Decoder[ServiceWarning] = ServiceWarning.decodePolestar
+  given Decoder[OilLevelWarning] = OilLevelWarning.decodePolestar
+  given Decoder[Health] = Decoder.derived[Health]
+
+case class Updated(seconds: String, nanos: Long) derives Codec.AsObject:
+  def instant = Instant.ofEpochSecond(seconds.toInt).plusNanos(nanos)
 
 case class Battery(
   vin: VIN,
-  batteryChargeLevelPercentage: Int,
-  chargingStatus: String,
-  estimatedDistanceToEmptyKm: Int,
+  batteryChargeLevelPercentage: Percentage, // 0-100
+  chargingStatus: ChargingStatus,
+  estimatedDistanceToEmptyKm: DistanceM,
   timestamp: Updated
-) extends VINSpec derives Codec.AsObject:
-  def range = estimatedDistanceToEmptyKm.kilometers
+) extends VINSpec derives Encoder.AsObject:
+  def range = estimatedDistanceToEmptyKm
+  def updated = timestamp.instant
+
+object Battery:
+  given Decoder[DistanceM] = Decoder.decodeInt.map(_.kilometers)
+  given Decoder[ChargingStatus] = ChargingStatus.decodePolestar
+  given Decoder[Battery] = Decoder.derived[Battery]
 
 case class Odometer(
   vin: VIN,

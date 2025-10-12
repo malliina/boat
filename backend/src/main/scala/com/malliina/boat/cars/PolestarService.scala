@@ -100,6 +100,9 @@ class PolestarService[F[_]: Async](
           .flatMap: rts =>
             rts.headOption
               .map: rt =>
+                log.info(
+                  s"Refreshing $service token for user $owner because no in-memory token found..."
+                )
                 refresh(rt, owner).adaptErr:
                   case e: Exception => RefreshFailed(owner, e)
               .getOrElse:
