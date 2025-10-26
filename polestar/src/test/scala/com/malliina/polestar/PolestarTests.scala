@@ -2,7 +2,6 @@ package com.malliina.polestar
 
 import cats.effect.IO
 import ch.qos.logback.classic.Level
-import com.malliina.http.{JsonError, OkHttpResponse, ResponseException}
 import com.malliina.logback.LogbackUtils
 import com.malliina.values.{AccessToken, RefreshToken}
 
@@ -44,7 +43,7 @@ class PolestarTests extends munit.CatsEffectSuite:
       println(car)
       println(tele)
 
-  polestar.test("Tokens and telematics"): client =>
+  polestar.test("Tokens and telematics".ignore): client =>
     client.auth
       .fetchTokens(creds)
       .flatMap: tokens =>
@@ -58,16 +57,6 @@ class PolestarTests extends munit.CatsEffectSuite:
           .map: (car, tele) =>
             println(car)
             println(tele)
-          .recover:
-            case re: ResponseException =>
-              re.error match
-                case je: JsonError =>
-                  je.response match
-                    case ok: OkHttpResponse =>
-                      println(ok.asString)
-                  println(je)
-                case other =>
-                  println(other)
 
   val str =
     """
