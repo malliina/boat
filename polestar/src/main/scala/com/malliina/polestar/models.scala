@@ -56,8 +56,8 @@ case class CarContent(
   interior: CarInterior,
   wheels: CarWheels,
   motor: CarMotor,
-  model: CarModel,
-  images: CarImages
+  model: CarModel
+  // images: CarImages
 ) derives Codec.AsObject
 
 case class PolestarCarInfo(

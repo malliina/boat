@@ -211,7 +211,7 @@ class Service[F[_]: {Async, Files}](
                       car.softwareVersion,
                       car.interiorSpec,
                       car.exteriorSpec,
-                      car.studioImage,
+                      // car.studioImage,
                       CarHealth(
                         h.daysToService,
                         h.distanceToServiceKm,

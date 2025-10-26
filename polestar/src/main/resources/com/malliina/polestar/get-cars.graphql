@@ -43,11 +43,6 @@ query GetConsumerCarsV2 {
                 pilotPackage { code name description excluded }
                 motor { name description excluded }
                 model { name code }
-                images {
-                    studio { url angles resolutions }
-                    location { url angles resolutions }
-                    interior { url angles resolutions }
-                }
                 specification {
                     battery
                     bodyType
@@ -105,7 +100,6 @@ query GetConsumerCarsV2 {
                 performanceOptimization { value description timestamp }
             }
             latestClaimStatus { mileage mileageUnit registeredDate vehicleAge }
-            internalCar { origin registeredAt }
             edition
             commonStatusPoint { code timestamp description }
             brandStatus { code timestamp description }

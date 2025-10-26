@@ -24,7 +24,6 @@ object PolestarService:
       car.software.version,
       content.interior.name,
       content.exterior.name,
-      content.images.studio.url,
       telematics
     )
 
