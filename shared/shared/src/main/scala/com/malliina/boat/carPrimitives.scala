@@ -72,10 +72,13 @@ object Battery:
 
 case class Odometer(
   vin: VIN,
-  odometerMeters: Int,
+  odometerMeters: DistanceM,
   timestamp: Updated
 ) extends VINSpec derives Codec.AsObject:
-  def odometer: DistanceM = odometerMeters.meters
+  def odometer: DistanceM = odometerMeters
+
+object Odometer:
+  given Decoder[DistanceM] = Decoder.decodeInt.map(_.meters)
 
 case class CarTelematics(health: Health, battery: Battery, odometer: Odometer)
   derives Codec.AsObject

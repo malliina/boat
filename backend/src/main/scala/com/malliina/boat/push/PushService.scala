@@ -28,5 +28,5 @@ case class PushState(
 trait PushService[F[_]]:
   def enable(input: PushInput): F[PushId]
   def disable(token: PushToken, user: UserId): F[Boolean]
-  def startedActivity(trackName: TrackName, phoneId: PhoneId): F[PushDevice]
+  def startedActivity(trackName: TrackName, phoneId: PhoneId): F[Option[PushDevice]]
   def push(state: PushState): F[PushSummary]

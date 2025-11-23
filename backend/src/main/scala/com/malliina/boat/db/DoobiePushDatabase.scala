@@ -92,7 +92,7 @@ class DoobiePushDatabase[F[_]: Async](
           log.warn(s"Tried to disable notifications for '$token', but no changes were made.")
           false
 
-  def startedActivity(trackName: TrackName, phoneId: PhoneId): F[PushDevice] = db.run:
+  def startedActivity(trackName: TrackName, phoneId: PhoneId): F[Option[PushDevice]] = db.run:
     sql"""select id, token, device, device_id, live_activity, user, added
           from push_clients pc
           where pc.device = ${PushTokenType.IOSActivityStart}
@@ -103,7 +103,7 @@ class DoobiePushDatabase[F[_]: Async](
           order by added desc
           limit 1"""
       .query[PushDevice]
-      .unique
+      .option
 
   /** Pushes at most once every five minutes to a given device.
     */

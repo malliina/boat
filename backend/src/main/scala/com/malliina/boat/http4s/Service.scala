@@ -113,31 +113,44 @@ class Service[F[_]: {Async, Files}](
       req
         .decodeJson[PushPayload]
         .flatMap: payload =>
-          val userByTrack =
+          val userByTrackOpt =
             for
               trackName <- payload.trackName
               phoneId <- payload.deviceId
               if payload.device == IOSActivityUpdate
             yield push
               .startedActivity(trackName, phoneId)
-              .map(_.user)
-          val userId = userByTrack.getOrElse:
-            auth
-              .profile(req)
-              .map: authed =>
-                authed.id
-          userId.flatMap: uid =>
-            val in = PushInput(
-              payload.token,
-              payload.device,
-              payload.deviceId,
-              payload.trackName,
-              uid
-            )
-            push
-              .enable(in)
-              .flatMap: _ =>
-                ok(SimpleMessage("Enabled."))
+              .map: start =>
+                if start.isEmpty then
+                  log.warn(s"Found no activity for track '$trackName' and device '$phoneId'.")
+                start.map(_.user)
+          val userByTrack = userByTrackOpt.getOrElse(F.pure(None))
+          val userId = userByTrack
+            .flatMap: optId =>
+              optId
+                .map(F.pure)
+                .getOrElse:
+                  auth
+                    .profile(req)
+                    .map: authed =>
+                      authed.id
+          userId
+            .flatMap: uid =>
+              val in = PushInput(
+                payload.token,
+                payload.device,
+                payload.deviceId,
+                payload.trackName,
+                uid
+              )
+              push
+                .enable(in)
+                .flatMap: _ =>
+                  ok(SimpleMessage("Enabled."))
+            .onError:
+              case e =>
+                F.delay:
+                  log.error(s"Failed to handle ${payload.device} token '${payload.token}'.", e)
     case req @ POST -> Root / "users" / "notifications" / "disable" =>
       jsonAction[DisablePush](req): input =>
         push
