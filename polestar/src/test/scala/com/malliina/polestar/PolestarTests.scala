@@ -60,12 +60,6 @@ class PolestarTests extends munit.CatsEffectSuite:
             println(car)
             println(tele)
 
-  test("Json"):
-    val vins: Variables = Variables.VINS(Seq(VIN(ci"todo")))
-    import io.circe.syntax.EncoderOps
-    val json = vins.asJson
-    println(json)
-
   val str =
     """
       | Object.assign(window.globalContext, {
