@@ -1,8 +1,10 @@
 package com.malliina.polestar
 
+import cats.implicits.toFunctorOps
 import com.malliina.boat.{CarsTelematics, RegistrationNumber, VIN}
 import com.malliina.http.FullUrl
-import io.circe.Codec
+import io.circe.syntax.EncoderOps
+import io.circe.{Codec, Decoder, Encoder}
 
 import java.time.LocalDate
 
@@ -11,10 +13,22 @@ case class OpenIdConfiguration(authorization_endpoint: FullUrl, token_endpoint: 
   def authorizationEndpoint = authorization_endpoint
   def tokenEndpoint = token_endpoint
 
-case class VINSVariable(vins: Seq[VIN]) derives Codec.AsObject
-case class GraphQuery(query: String, variables: Option[VINSVariable]) derives Codec.AsObject
+enum Variables:
+  case VINS(vins: Seq[VIN])
+  case Image(pno34: String, structureWeek: String, modelYear: String)
+
+object Variables:
+  given vinsCodec: Codec[VINS] = Codec.derived
+  given imageCodec: Codec[Image] = Codec.derived
+  given Encoder[Variables] =
+    case vins @ VINS(_)         => vins.asJson
+    case image @ Image(_, _, _) => image.asJson
+  given Decoder[Variables] = Decoder[VINS].or(Decoder[Image].widen)
+
+case class GraphQuery(query: String, variables: Option[Variables]) derives Codec.AsObject
+
 object GraphQuery:
-  def vin(query: String, vin: VIN) = apply(query, Option(VINSVariable(Seq(vin))))
+  def vin(query: String, vin: VIN) = apply(query, Option(Variables.VINS(Seq(vin))))
 
 /** @param code
   *   "72300"
@@ -71,7 +85,9 @@ case class PolestarCarInfo(
   content: CarContent,
   energy: CarEnergy,
   drivetrain: String,
-  software: CarSoftware
+  software: CarSoftware,
+  pno34: String,
+  structureWeek: String // "202237"
 ) derives Codec.AsObject
 
 case class CarsData(getConsumerCarsV2: Seq[PolestarCarInfo]) derives Codec.AsObject
@@ -81,6 +97,14 @@ case class CarsResponse(data: CarsData) derives Codec.AsObject
 case class TelematicsData(carTelematicsV2: CarsTelematics) derives Codec.AsObject
 
 case class TelematicsResponse(data: TelematicsData) derives Codec.AsObject
+
+case class CarImage(url: FullUrl, angle: Int) derives Codec.AsObject
+case class CarImagesPerType(transparent: Seq[CarImage], opaque: Seq[CarImage])
+  derives Codec.AsObject:
+  def preferred = transparent.find(_.angle == 1).orElse(fallback)
+  def fallback = transparent.headOption.orElse(opaque.headOption)
+case class ImagesData(getCarImages: CarImagesPerType) derives Codec.AsObject
+case class ImagesResponse(data: ImagesData) derives Codec.AsObject
 
 class PolestarAuthException(message: String, cause: Option[Exception])
   extends Exception(message, cause.orNull)

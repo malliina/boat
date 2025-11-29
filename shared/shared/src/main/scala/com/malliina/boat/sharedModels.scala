@@ -331,7 +331,7 @@ case class Car(
   softwareVersion: String,
   interiorSpec: String,
   exteriorSpec: String,
-  // studioImage: FullUrl,
+  studioImage: FullUrl,
   telematics: CarTelematics
 ) derives Codec.AsObject
 
@@ -408,7 +408,7 @@ case class CarSummary(
   softwareVersion: String,
   interiorSpec: String,
   exteriorSpec: String,
-  // studioImage: FullUrl,
+  studioImage: FullUrl,
   health: CarHealth,
   battery: CarBattery,
   odometer: CarOdometer

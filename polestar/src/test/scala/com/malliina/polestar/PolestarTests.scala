@@ -2,8 +2,10 @@ package com.malliina.polestar
 
 import cats.effect.IO
 import ch.qos.logback.classic.Level
+import com.malliina.boat.VIN
 import com.malliina.logback.LogbackUtils
 import com.malliina.values.{AccessToken, RefreshToken}
+import org.typelevel.ci.CIStringSyntax
 
 class PolestarTests extends munit.CatsEffectSuite:
   val creds = PolestarConfig.conf
@@ -57,6 +59,12 @@ class PolestarTests extends munit.CatsEffectSuite:
           .map: (car, tele) =>
             println(car)
             println(tele)
+
+  test("Json"):
+    val vins: Variables = Variables.VINS(Seq(VIN(ci"todo")))
+    import io.circe.syntax.EncoderOps
+    val json = vins.asJson
+    println(json)
 
   val str =
     """

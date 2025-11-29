@@ -3,19 +3,19 @@ package com.malliina.boat.cars
 import cats.effect.Async
 import cats.implicits.toTraverseOps
 import cats.syntax.all.{catsSyntaxApplicativeError, toFlatMapOps, toFunctorOps}
-import com.malliina.boat.{Car, CarTelematics, CarsTelematics, VIN}
-import com.malliina.boat.db.{RefreshService, TokenManager}
-import com.malliina.http.ResponseException
-import com.malliina.polestar.Polestar.Tokens
-import com.malliina.polestar.{Polestar, PolestarCarInfo}
-import com.malliina.values.{AccessToken, RefreshToken, UserId}
-import com.malliina.util.AppLogger
 import com.malliina.boat.cars.PolestarService.{log, toCar}
+import com.malliina.boat.db.{RefreshService, TokenManager}
+import com.malliina.boat.{Car, CarTelematics, CarsTelematics, VIN}
+import com.malliina.http.{FullUrl, ResponseException}
+import com.malliina.polestar.Polestar.Tokens
+import com.malliina.polestar.{Polestar, PolestarCarInfo, Variables}
+import com.malliina.util.AppLogger
+import com.malliina.values.{AccessToken, ErrorMessage, RefreshToken, UserId}
 
 object PolestarService:
   private val log = AppLogger(getClass)
 
-  private def toCar(car: PolestarCarInfo, telematics: CarTelematics): Car =
+  private def toCar(car: PolestarCarInfo, telematics: CarTelematics, image: FullUrl): Car =
     val content = car.content
     Car(
       car.vin,
@@ -24,6 +24,7 @@ object PolestarService:
       car.software.version,
       content.interior.name,
       content.exterior.name,
+      image,
       telematics
     )
 
@@ -36,15 +37,30 @@ class PolestarService[F[_]: Async](
   private var cache: Map[UserId, Tokens] = Map.empty
 
   def carsAndTelematics(owner: UserId): F[Seq[Car]] =
-    cars(owner).flatMap: cs =>
-      cs.traverse: car =>
-        val vin = car.vin
-        telematics(vin, owner).flatMap: t =>
-          t.forVin(vin)
-            .fold(
-              error => F.raiseError(CarException(error, vin, None)),
-              carTelematics => F.pure(toCar(car, carTelematics))
-            )
+    request(owner, "cars"): token =>
+      polestar
+        .fetchCars(token)
+        .flatMap: cs =>
+          cs.traverse: car =>
+            val vin = car.vin
+            val image: Variables.Image =
+              Variables.Image(car.pno34, car.structureWeek, car.modelYear)
+            for
+              images <- polestar.fetchCarImages(image, token)
+              image <- effect(
+                images.data.getCarImages.preferred
+                  .map(_.url)
+                  .toRight(ErrorMessage(s"No image for VIN: '$vin'.")),
+                vin
+              )
+              t <- polestar.fetchTelematics(vin, token)
+              ct <- effect(t.forVin(vin), vin)
+            yield toCar(car, ct, image)
+
+  private def effect[T](e: Either[ErrorMessage, T], vin: VIN): F[T] = e.fold(
+    error => F.raiseError(CarException(error, vin, None)),
+    t => F.pure(t)
+  )
 
   def cars(owner: UserId): F[Seq[PolestarCarInfo]] =
     request(owner, "cars"): token =>

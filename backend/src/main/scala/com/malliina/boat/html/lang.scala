@@ -11,7 +11,6 @@ object BoatLang:
     case Language.Finnish => Fi
     case Language.Swedish => Se
     case Language.English => En
-    case _                => default
 
   object Fi extends BoatLang(WebLang.Fi, Lang.fi)
   object Se extends BoatLang(WebLang.Se, Lang.se)
