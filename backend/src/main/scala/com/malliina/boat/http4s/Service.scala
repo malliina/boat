@@ -88,10 +88,12 @@ class Service[F[_]: {Async, Files}](
     case req @ GET -> Root / "pingAuth" =>
       auth.profile(req).flatMap(_ => ok(AppMeta.default))
     case req @ GET -> Root / "users" / "me" =>
-      auth
-        .profile(req)
-        .flatMap: user =>
-          ok(UserContainer(user))
+      val includeCars = req.uri.query.params.get("includeCars").contains("true")
+      for
+        user <- auth.profile(req)
+        cars <- if includeCars then comps.polestar.carSummariesOrEmpty(user) else F.pure(Nil)
+        response <- ok(UserContainer(user.withCars(cars)))
+      yield response
     case req @ POST -> Root / "users" / "me" =>
       req
         .decodeJson[RegisterCode]
@@ -198,54 +200,15 @@ class Service[F[_]: {Async, Files}](
         html = ok(ClientConf.default)
       )
     case req @ GET -> Root / "boats" =>
-      auth
-        .profile(req)
-        .flatMap: user =>
-          comps.polestar
-            .carsAndTelematics(user.id)
-            .recover:
-              case e: Exception =>
-                log.error(s"Failed to fetch cars and telematics for ${user.id} (${user.email}).", e)
-                Nil
-            .flatMap: cars =>
-              respond(req)(
-                json =
-                  val formatter = TimeFormatter.lang(user.language)
-                  def formatted(t: Updated) = formatter.timing(t.instant)
-                  val carSummaries = cars.map: car =>
-                    val t = car.telematics
-                    val h = t.health
-                    val b = t.battery
-                    val o = t.odometer
-                    CarSummary(
-                      car.vin,
-                      car.registrationNumber,
-                      car.modelYear,
-                      car.softwareVersion,
-                      car.interiorSpec,
-                      car.exteriorSpec,
-                       car.studioImage,
-                      CarHealth(
-                        h.daysToService,
-                        h.distanceToServiceKm,
-                        formatted(h.timestamp)
-                      ),
-                      CarBattery(
-                        b.batteryChargeLevelPercentage,
-                        b.chargingStatus,
-                        b.estimatedDistanceToEmptyKm,
-                        formatted(b.timestamp)
-                      ),
-                      CarOdometer(
-                        o.odometer,
-                        formatted(o.timestamp)
-                      )
-                    )
-                  ok(CarsAndBoats(carSummaries))
-                ,
-                html = csrfOk: token =>
-                  html(req).carsAndBoats(user, cars, token)
-              )
+      for
+        user <- auth.profile(req)
+        cars <- comps.polestar.carSummariesOrEmpty(user)
+        response <- respond(req)(
+          json = ok(CarsAndBoats(cars)),
+          html = csrfOk: token =>
+            html(req).carsAndBoats(user, cars, token)
+        )
+      yield response
     case req @ GET -> Root / "boats" / "me" =>
       auth
         .boatTokenOrFail(req.headers)

@@ -53,6 +53,7 @@ object DoobieUserManager:
             email,
             user.language,
             newBoats,
+            Nil,
             ub.hasCars,
             user.enabled,
             user.added.toEpochMilli,

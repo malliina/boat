@@ -5,10 +5,9 @@ import com.malliina.boat.FrontKeys.*
 import com.malliina.boat.InviteState.{Accepted, Awaiting, Other, Rejected}
 import com.malliina.http.{CSRFConf, CSRFToken}
 import com.malliina.boat.http4s.Reverse
-import com.malliina.boat.{Boat, BoatIds, BoatNames, BoatRef, Car, Emails, Forms, GPSInfo, InviteState, Passwords, SourceType, UserInfo, Usernames, VIN}
+import com.malliina.boat.{Boat, BoatIds, BoatNames, BoatRef, CarSummary, Emails, Forms, GPSInfo, InviteState, Passwords, PolestarLang, SourceType, UserInfo, Usernames}
 import com.malliina.measure.DistanceM
 import com.malliina.values.WrappedId
-import scalatags.Text
 import scalatags.Text.all.*
 import scalatags.text.Builder
 
@@ -72,9 +71,32 @@ object BoatsPage extends BoatImplicits with HTMLConstants:
       )
     )
 
+  private def carSummary(car: CarSummary, plang: PolestarLang) =
+    val infoLang = plang.info
+    val telematicsFields = Seq[(String, Modifier)](
+      infoLang.batteryPercentage -> s"${car.battery.chargeLevelPercentage}%",
+      infoLang.estimatedRange -> car.battery.range,
+      infoLang.odometer -> car.odometer.odometer,
+      infoLang.daysToService -> car.health.daysToService
+    )
+    div(cls := s"$row col-xl-6 mb-3")(
+      (Seq[(String, Modifier)](
+        plang.registrationNumber -> car.registrationNumber,
+        plang.vin -> car.vin,
+        plang.modelYear -> car.modelYear,
+        plang.softwareVersion -> car.softwareVersion,
+        plang.interior -> car.interiorSpec,
+        plang.exterior -> car.exteriorSpec
+      ) ++ telematicsFields).map: (key, value) =>
+        div(cls := "d-flex flex-column col-12 col-sm-6 col-md-4 text-center mb-2")(
+          div(cls := "fw-semibold")(key),
+          div(cls := "p-2")(value)
+        )
+    )
+
   def apply(
     user: UserInfo,
-    cars: Seq[Car],
+    cars: Seq[CarSummary],
     csrfToken: CSRFToken,
     csrfConf: CSRFConf
   ) =
@@ -189,30 +211,8 @@ object BoatsPage extends BoatImplicits with HTMLConstants:
           p("No cars.")
         )
       else
-        val plang = lang.settings.polestar
-        val infoLang = plang.info
         cars.map: car =>
-          val t = car.telematics
-          val telematicsFields = Seq[(String, Modifier)](
-            infoLang.batteryPercentage -> s"${t.battery.batteryChargeLevelPercentage}%",
-            infoLang.estimatedRange -> t.battery.range,
-            infoLang.odometer -> t.odometer.odometer,
-            infoLang.daysToService -> t.health.daysToService
-          )
-          div(cls := s"$row col-xl-6 mb-3")(
-            (Seq[(String, Modifier)](
-              plang.registrationNumber -> car.registrationNumber,
-              plang.vin -> car.vin,
-              plang.modelYear -> car.modelYear,
-              plang.softwareVersion -> car.softwareVersion,
-              plang.interior -> car.interiorSpec,
-              plang.exterior -> car.exteriorSpec
-            ) ++ telematicsFields).map: (key, value) =>
-              div(cls := "d-flex flex-column col-12 col-sm-6 col-md-4 text-center mb-2")(
-                div(cls := "fw-semibold")(key),
-                div(cls := "p-2")(value)
-              )
-          )
+          carSummary(car, lang.settings.polestar)
       ,
       div(cls := s"$row mb-3")(
         div(cls := "col-md-12")(

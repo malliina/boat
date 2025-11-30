@@ -397,7 +397,8 @@ case class CarBattery(
   chargingStatus: ChargingStatus,
   distanceToEmpty: DistanceM,
   updated: Timing
-) derives Codec.AsObject
+) derives Codec.AsObject:
+  def range = distanceToEmpty
 
 case class CarOdometer(odometer: DistanceM, updated: Timing) derives Codec.AsObject
 
@@ -447,6 +448,7 @@ case class UserInfo(
   email: Email,
   language: Language,
   boats: Seq[Boat],
+  cars: Seq[CarSummary],
   hasCars: Boolean,
   enabled: Boolean,
   addedMillis: Long,
@@ -455,6 +457,7 @@ case class UserInfo(
 ) extends EmailUser derives Codec.AsObject:
   override val authorized: Seq[BoatName] = boats.map(_.name) ++ invites.map(_.boat.name)
   def userBoats = UserBoats(username, language, Nil) // Nil is wrong, but fine for now
+  def withCars(cars: Seq[CarSummary]): UserInfo = copy(cars = cars)
 
 case class UserContainer(user: UserInfo) derives Codec.AsObject
 

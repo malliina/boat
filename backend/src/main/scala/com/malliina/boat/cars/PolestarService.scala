@@ -5,7 +5,7 @@ import cats.implicits.toTraverseOps
 import cats.syntax.all.{catsSyntaxApplicativeError, toFlatMapOps, toFunctorOps}
 import com.malliina.boat.cars.PolestarService.{log, toCar}
 import com.malliina.boat.db.{RefreshService, TokenManager}
-import com.malliina.boat.{Car, CarTelematics, CarsTelematics, VIN}
+import com.malliina.boat.{Car, CarBattery, CarHealth, CarOdometer, CarSummary, CarTelematics, CarsTelematics, TimeFormatter, Updated, UserInfo, VIN}
 import com.malliina.http.{FullUrl, ResponseException}
 import com.malliina.polestar.Polestar.Tokens
 import com.malliina.polestar.{Polestar, PolestarCarInfo, Variables}
@@ -35,6 +35,50 @@ class PolestarService[F[_]: Async](
   private val F = Async[F]
   private val service = RefreshService.Polestar
   private var cache: Map[UserId, Tokens] = Map.empty
+
+  def carSummariesOrEmpty(user: UserInfo): F[Seq[CarSummary]] =
+    carSummaries(user)
+      .recover:
+        case e: Exception =>
+          log.error(s"Failed to fetch cars and telematics for ${user.id} (${user.email}).", e)
+          Nil
+
+  def carSummaries(user: UserInfo): F[Seq[CarSummary]] =
+    carsAndTelematics(user.id)
+      .map: cars =>
+        val formatter = TimeFormatter.lang(user.language)
+
+        def formatted(t: Updated) = formatter.timing(t.instant)
+
+        cars.map: car =>
+          val t = car.telematics
+          val h = t.health
+          val b = t.battery
+          val o = t.odometer
+          CarSummary(
+            car.vin,
+            car.registrationNumber,
+            car.modelYear,
+            car.softwareVersion,
+            car.interiorSpec,
+            car.exteriorSpec,
+            car.studioImage,
+            CarHealth(
+              h.daysToService,
+              h.distanceToServiceKm,
+              formatted(h.timestamp)
+            ),
+            CarBattery(
+              b.batteryChargeLevelPercentage,
+              b.chargingStatus,
+              b.estimatedDistanceToEmptyKm,
+              formatted(b.timestamp)
+            ),
+            CarOdometer(
+              o.odometer,
+              formatted(o.timestamp)
+            )
+          )
 
   def carsAndTelematics(owner: UserId): F[Seq[Car]] =
     request(owner, "cars"): token =>
