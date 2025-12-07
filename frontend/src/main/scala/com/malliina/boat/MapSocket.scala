@@ -233,18 +233,22 @@ class MapSocket[F[_]: Async](
       e.innerHTML = s"${formatDistance(totalDistance)} km"
     elem(ConsumptionId).foreach: e =>
       if from.sourceType == SourceType.Vehicle then
-        e.show()
-        // Consider computing kWh/100km in the backend
+        // Calculates consumtion across multiple tracks; the backend value only contains consumption per track
+        // Consider computing aggregate kWh/100km in the backend
         val carTrails = trails.values.toList
           .filter(t =>
             t.from.sourceType == SourceType.Vehicle && t.from.distanceMeters > 300.meters && t.from.consumption.isDefined
           )
         val consumptions = carTrails.flatMap(_.from.consumption.map(_.wattHours))
-        val consumption = consumptions.sum
-        val carDistance = calcDistance(carTrails.map(_.from))
-        val kwhPer100Km = Calc.kWhPer100km(consumption, carDistance)
-        val rounded = "%.2f".format(kwhPer100Km)
-        e.innerHTML = s"$rounded kWh/100km"
+        if consumptions.nonEmpty then
+          e.show()
+          val consumption = consumptions.sum
+          val carDistance = calcDistance(carTrails.map(_.from))
+          val kwhPer100Km = Calc.kWhPer100km(consumption, carDistance)
+          val rounded = "%.2f".format(kwhPer100Km)
+          e.innerHTML = s"$rounded kWh/100km"
+        else e.hide()
+      else e.hide()
     elem(TopSpeedId).foreach: e =>
       froms
         .flatMap(_.topSpeed)
