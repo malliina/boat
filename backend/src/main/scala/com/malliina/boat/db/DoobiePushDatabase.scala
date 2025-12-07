@@ -45,7 +45,11 @@ class DoobiePushDatabase[F[_]: Async](
           )
           if status.active then pure(status.id)
           else
-            sql"""update push_clients set active = true, device = ${input.device}, device_id = ${input.deviceId}, live_activity = ${input.liveActivityId}
+            sql"""update push_clients
+                  set active = true,
+                      device = ${input.device},
+                      device_id = ${input.deviceId},
+                      live_activity = ${input.liveActivityId}
                   where token = $token and user = $user""".update.run
               .map: _ =>
                 status.id

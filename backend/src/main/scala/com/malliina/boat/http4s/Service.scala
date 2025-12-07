@@ -125,7 +125,11 @@ class Service[F[_]: {Async, Files}](
               .map: start =>
                 if start.isEmpty then
                   log.warn(s"Found no activity for track '$trackName' and device '$phoneId'.")
-                start.map(_.user)
+                start.map: pd =>
+                  log.info(
+                    s"Handling activity updates of track '$trackName' and device '$phoneId' for user ${pd.user}."
+                  )
+                  pd.user
           val userByTrack = userByTrackOpt.getOrElse(F.pure(None))
           val userId = userByTrack
             .flatMap: optId =>
