@@ -83,7 +83,7 @@ class TrackInserter[F[_]](val db: DoobieDatabase[F]) extends TrackInsertsDatabas
     yield
       val msg = update match
         case PatchBoat.ChangeName(name) => s"Renamed device '$boat' to '${name.boatName}'."
-        case PatchBoat.UpdateGps(gps) =>
+        case PatchBoat.UpdateGps(gps)   =>
           s"Updated GPS of boat '${updated.name}' ($boat) to ${gps.describe}."
       log.info(msg)
       updated
@@ -154,6 +154,7 @@ class TrackInserter[F[_]](val db: DoobieDatabase[F]) extends TrackInsertsDatabas
                            where p1.track = p2.track
                              and p1.track_index + 1 = p2.track_index
                              and p1.battery - p2.battery > 0
+                             and p1.battery > 0 and p2.battery > 0
                              and p1.track = $track
                              having sum(p1.battery - p2.battery) is not null""".query[Energy].option
       info <-
@@ -165,7 +166,12 @@ class TrackInserter[F[_]](val db: DoobieDatabase[F]) extends TrackInsertsDatabas
           .map(_.getOrElse(DbTrackInfo(None, None, DistanceM.zero, 0)))
       _ <-
         sql"""update tracks
-              set avg_water_temp = ${info.avgWaterTemp}, avg_outside_temp = ${info.avgOutsideTemp}, avg_speed = $avgSpeed, points = ${info.points}, distance = ${info.distance}, consumption = $consumption
+              set avg_water_temp = ${info.avgWaterTemp},
+                  avg_outside_temp = ${info.avgOutsideTemp},
+                  avg_speed = $avgSpeed,
+                  points = ${info.points},
+                  distance = ${info.distance},
+                  consumption = $consumption
               where id = $track""".update.run
       _ <- insertSentencePoints(
         coord.boatStats.toList.flatMap(_.parts).map(key => (key, point))
