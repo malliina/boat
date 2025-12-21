@@ -20,13 +20,13 @@ val versions = new {
   val logback = "1.5.18"
   val mariadb = "3.5.6"
   val mobilePush = "3.15.3"
-  val munit = "1.2.0"
+  val munit = "1.2.1"
   val munitCe = "2.1.0"
   val paho = "1.2.5"
   val s3 = "2.33.9"
   val scalaJsDom = "2.8.1"
   val scalaTags = "0.13.1"
-  val util = "6.10.1"
+  val util = "6.10.3"
 }
 
 val webAuthDep = "com.malliina" %% "web-auth" % versions.util
