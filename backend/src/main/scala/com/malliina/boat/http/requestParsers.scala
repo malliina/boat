@@ -143,7 +143,8 @@ trait VesselFilters:
   def timeRange: TimeRange
   def limits: Limits
 
-  def describe: String
+  def describe: String = format(TimeFormatter.default)
+  def format(formatter: TimeFormatter): String
 
 case class VesselQuery(
   vessels: Seq[VesselName],
@@ -153,10 +154,11 @@ case class VesselQuery(
 ) extends VesselFilters derives Codec.AsObject:
   private def describeNames = if vessels.isEmpty then "" else s"names ${vessels.mkString(", ")} "
   private def describeMmsis = if mmsis.isEmpty then "" else s"mmsis ${mmsis.mkString(", ")} "
-  private def describeTime = if timeRange.isEmpty then "" else s"time ${timeRange.describe} "
+  private def describeTime(formatter: TimeFormatter) =
+    if timeRange.isEmpty then "" else s"time ${timeRange.format(formatter)} "
   private def describeLimits = s"limit ${limits.limit} offset ${limits.offset}"
-  def describe =
-    s"$describeNames$describeMmsis$describeTime$describeLimits"
+  def format(formatter: TimeFormatter) =
+    s"$describeNames$describeMmsis${describeTime(formatter)}$describeLimits"
 
 object VesselQuery:
   given QueryParamDecoder[Mmsi] =
@@ -233,9 +235,9 @@ case class BoatQuery(
       to = timeRange.to.map(BoatQuery.instantFormatter.format)
     )
     SearchQuery(limits, fromTo, tracks, canonicals, route, sample, newest)
-  def describe: String =
-    val timeFrom = from.map(f => s"from $f").getOrElse("")
-    val timeTo = to.map(t => s"to $t").getOrElse("")
+  def format(formatter: TimeFormatter): String =
+    val timeFrom = from.map(f => s"from ${formatter.formatDateTime(f)}").getOrElse("")
+    val timeTo = to.map(t => s"to ${formatter.formatDateTime(t)}").getOrElse("")
     val cs =
       if canonicals.nonEmpty then s"canonicals ${canonicals.map(c => s"'$c'").mkString(", ")}"
       else ""
@@ -390,10 +392,11 @@ object LimitsBuilder:
 
 case class TimeRange(from: Option[Instant], to: Option[Instant]) derives Codec.AsObject:
   def isEmpty = from.isEmpty && to.isEmpty
-  def describe = (from, to) match
-    case (Some(f), Some(t)) => s"$f - $t"
-    case (None, Some(t))    => s"- $t"
-    case (Some(f), None)    => s"$f -"
+  def describe = format(TimeFormatter.fi)
+  def format(formatter: TimeFormatter) = (from, to) match
+    case (Some(f), Some(t)) => s"${formatter.formatDateTime(f)} - ${formatter.formatDateTime(t)}"
+    case (None, Some(t))    => s"- ${formatter.formatDateTime(t)}"
+    case (Some(f), None)    => s"${formatter.formatDateTime(f)} -"
     case _                  => ""
 
 object TimeRange:

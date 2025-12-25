@@ -313,7 +313,7 @@ class Service[F[_]: {Async, Files}](
     case req @ GET -> Root / "vessels" =>
       val handler = for
         authed <- authedQuery(req, VesselQuery.query)
-        rows <- vessels.load(authed.query)
+        rows <- vessels.load(authed.query, TimeFormatter.lang(authed.user.language))
         response <- respond(req)(
           json = ok(VesselHistoryResponse(rows)),
           html = ok(
@@ -508,7 +508,7 @@ class Service[F[_]: {Async, Files}](
           BoatQuery(req.uri.query)
             .map: boatQuery =>
               if !isAnon then
-                log.info(s"Viewer '$username' joined with query ${boatQuery.describe}.")
+                log.info(s"Viewer '$username' joined with query ${boatQuery.format(formatter)}.")
               val historicalLimits =
                 if boatQuery.tracks.nonEmpty && isAnon then BoatQuery.tracks(boatQuery.tracks)
                 else if isAnon then BoatQuery.empty
@@ -532,7 +532,7 @@ class Service[F[_]: {Async, Files}](
                   sampled
               val simpleQuery = boatQuery.simple
               val aisTrails: F[VesselTrailsEvent] = vessels
-                .load(boatQuery)
+                .load(boatQuery, formatter)
                 .map: vs =>
                   val trails = vs.map: vh =>
                     val ups = vh.updates.map: up =>

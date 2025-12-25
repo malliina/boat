@@ -21,6 +21,7 @@ object TimeFormatter:
   val fi = TimeFormatter(TimePatterns.fi)
   val se = TimeFormatter(TimePatterns.se)
   val en = TimeFormatter(TimePatterns.en)
+  val default = se
 
 class TimeFormatter(patterns: TimePatterns):
   import TimeFormatter.helsinkiZone

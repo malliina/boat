@@ -4,7 +4,7 @@ import cats.implicits.*
 import com.malliina.boat.db.BoatVesselDatabase.{collect, log}
 import com.malliina.boat.db.Values.{RowsChanged, VesselUpdateId}
 import com.malliina.boat.http.{VesselFilters, VesselsQuery}
-import com.malliina.boat.{Mmsi, VesselInfo, VesselRowId}
+import com.malliina.boat.{Mmsi, TimeFormatter, VesselInfo, VesselRowId}
 import com.malliina.database.DoobieDatabase
 import com.malliina.util.AppLogger
 import doobie.*
@@ -16,7 +16,7 @@ import scala.annotation.unused
 
 trait VesselDatabase[F[_]]:
   def vessels(query: VesselsQuery): F[List[VesselResult]]
-  def load(query: VesselFilters): F[List[VesselHistory]]
+  def load(query: VesselFilters, formatter: TimeFormatter): F[List[VesselHistory]]
   def save(messages: Seq[VesselInfo]): F[List[VesselUpdateId]]
 
 object BoatVesselDatabase:
@@ -45,27 +45,28 @@ class BoatVesselDatabase[F[_]](db: DoobieDatabase[F]) extends VesselDatabase[F] 
           order by v.name
           limit ${limits.limit} offset ${limits.offset}""".query[VesselResult].to[List]
 
-  override def load(query: VesselFilters): F[List[VesselHistory]] = db.run:
-    val time = query.timeRange
-    val limits = query.limits
-    val whereMmsis = Fragments.whereAndOpt(
-      query.vessels.toList.toNel.map(ns => Fragments.in(fr"v.name", ns)),
-      query.mmsis.toList.toNel.map(ms => Fragments.in(fr"v.mmsi", ms))
-    )
-    val mmsiFilter =
-      if query.vessels.nonEmpty || query.mmsis.nonEmpty then
-        sql"""select v.mmsi from mmsis v $whereMmsis"""
-          .query[Mmsi]
-          .to[List]
-      else pure(Nil)
-    mmsiFilter.flatMap: mmsis =>
-      val whereUpdates = Fragments.whereAndOpt(
-        time.from.map(f => fr"mu.added >= $f"),
-        time.to.map(t => fr"mu.added <= $t"),
-        mmsis.toNel.map(list => Fragments.in(fr"mu.mmsi", list))
+  override def load(query: VesselFilters, formatter: TimeFormatter): F[List[VesselHistory]] =
+    db.run:
+      val time = query.timeRange
+      val limits = query.limits
+      val whereMmsis = Fragments.whereAndOpt(
+        query.vessels.toList.toNel.map(ns => Fragments.in(fr"v.name", ns)),
+        query.mmsis.toList.toNel.map(ms => Fragments.in(fr"v.mmsi", ms))
       )
-      val start = System.currentTimeMillis()
-      sql"""select u.id, v.mmsi, v.name, u.coord, u.sog, u.cog, v.draft, u.destination, u.heading, u.eta, u.added
+      val mmsiFilter =
+        if query.vessels.nonEmpty || query.mmsis.nonEmpty then
+          sql"""select v.mmsi from mmsis v $whereMmsis"""
+            .query[Mmsi]
+            .to[List]
+        else pure(Nil)
+      mmsiFilter.flatMap: mmsis =>
+        val whereUpdates = Fragments.whereAndOpt(
+          time.from.map(f => fr"mu.added >= $f"),
+          time.to.map(t => fr"mu.added <= $t"),
+          mmsis.toNel.map(list => Fragments.in(fr"mu.mmsi", list))
+        )
+        val start = System.currentTimeMillis()
+        sql"""select u.id, v.mmsi, v.name, u.coord, u.sog, u.cog, v.draft, u.destination, u.heading, u.eta, u.added
             from mmsis v
             join (select mu.id, mu.mmsi, mu.destination, mu.heading, mu.coord, mu.sog, mu.cog, mu.eta, mu.added
                   from mmsi_updates mu
@@ -74,14 +75,14 @@ class BoatVesselDatabase[F[_]](db: DoobieDatabase[F]) extends VesselDatabase[F] 
                   limit ${limits.limit} offset ${limits.offset}) u on v.mmsi = u.mmsi
             order by u.added desc
             """
-        .query[VesselRow]
-        .to[List]
-        .map: rows =>
-          val durationMs = System.currentTimeMillis() - start
-          log.info(
-            s"Searched for vessels with ${query.describe}. Got ${rows.length} rows in $durationMs ms."
-          )
-          collect(rows)
+          .query[VesselRow]
+          .to[List]
+          .map: rows =>
+            val durationMs = System.currentTimeMillis() - start
+            log.info(
+              s"Searched for vessels with ${query.format(formatter)}. Got ${rows.length} rows in $durationMs ms."
+            )
+            collect(rows)
 
   def save(messages: Seq[VesselInfo]): F[List[VesselUpdateId]] =
     val io = for
