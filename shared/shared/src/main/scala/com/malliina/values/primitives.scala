@@ -10,7 +10,6 @@ opaque type Degrees = Float
 object Degrees extends ValidatingCompanion[Float, Degrees]:
   val min = 0f
   val max = 360f
-  def unsafe(in: Float): Degrees = in
   override def build(input: Float): Either[ErrorMessage, Degrees] =
     if input >= min && input <= max then Right(input) else Left(defaultError(input))
   override def write(t: Degrees): Float = t

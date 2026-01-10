@@ -72,7 +72,7 @@ class WebServer[F[_]: Async](agentInstance: AgentInstance[F]) extends AppImplici
       .getOrElseF(NotFound(Errors(s"Not found: '$file'.").asJson))
 
   given Readable[Device] = Readable.string.map(s => Device(s))
-  given Readable[BoatToken] = Readable.string.map(s => BoatToken(s))
+//  given Readable[BoatToken] = Readable.string.emap(s => BoatToken.build(s))
 
   val service = Router("/" -> routes).orNotFound
   val F = Async[F]

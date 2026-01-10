@@ -16,8 +16,8 @@ case class PushTokenReplacement(oldToken: PushToken, newToken: PushToken, device
 object PushTokenReplacement:
   def apply(gcm: TokenReplacement): PushTokenReplacement =
     PushTokenReplacement(
-      PushToken(gcm.oldToken.token),
-      PushToken(gcm.newToken.token),
+      PushToken.unsafe(gcm.oldToken.token),
+      PushToken.unsafe(gcm.newToken.token),
       PushTokenType.Android
     )
 
@@ -32,7 +32,7 @@ case class PushSummary(iosResults: Seq[APNSHttpResult], gcmResults: Seq[MappedGC
         case (token, res) if res.error.isEmpty => token
   def badTokens = iosResults
     .filter(res => res.error.exists(err => PushSummary.removableErrors.exists(_ == err)))
-    .map(res => PushToken(res.token.token)) ++ gcmUninstalled.map(t => PushToken(t.token))
+    .map(res => PushToken.unsafe(res.token.token)) ++ gcmUninstalled.map(t => PushToken.unsafe(t.token))
   def replacements = gcmResults.flatMap(_.replacements).map(PushTokenReplacement.apply)
   def noBadTokensOrReplacements = badTokens.isEmpty && replacements.isEmpty
   def ++(other: PushSummary): PushSummary = PushSummary(

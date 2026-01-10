@@ -25,7 +25,7 @@ class ServiceTests extends MUnitSuite with Http4sSuite:
   test("can change name of boat"):
     val comps = app()
     val service = comps.service
-    val user = Username("test@example.com")
+    val user = Username.unsafe("test@example.com")
     val userEmail = TestEmailAuth[IO].testEmail
     val newName = BoatNames.random()
 
@@ -51,7 +51,7 @@ class ServiceTests extends MUnitSuite with Http4sSuite:
   test("tracks endpoint supports versioning based on Accept header"):
     val comps = app()
     val service = comps.service
-    val user = Username("test@example.com")
+    val user = Username.unsafe("test@example.com")
     val inserts = service.inserts
 
     val init = for

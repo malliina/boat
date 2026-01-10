@@ -37,13 +37,22 @@ object Graph:
     new Graph(nodes)
 
   def intersection(line1: Line, line2: Line): Option[Coord] =
-    if math.abs(line2.d - line1.d) < 0.001 then None
-    else
-      val x = (line2.c - line1.c) / (line1.d - line2.d)
-      val y = (line2.d * line1.c - line1.d * line2.c) / (line2.d - line1.d)
-      val cross = Coord(Longitude.unsafe(x), Latitude.unsafe(y))
-      if line1.boxContains(cross) && line2.boxContains(cross) then Option(cross)
-      else None
+    val parsed = for
+      l1c <- line1.c
+      l1d <- line1.d
+      l2c <- line2.c
+      l2d <- line2.d
+      if math.abs(l2d - l1d) < 0.001
+    yield (l1c, l1d, l2c, l2d)
+    parsed.flatMap: (l1c, l1d, l2c, l2d) =>
+      val x = (l2c - l1c) / (l1d - l2d)
+      val y = (l2d * l1c - l1d * l2c) / (l2d - l1d)
+      for
+        lng <- Longitude.build(x).toOption
+        lat <- Latitude.build(y).toOption
+        cross = Coord(lng, lat)
+        if line1.boxContains(cross) && line2.boxContains(cross)
+      yield cross
 
   def fromList(es: List[ValueEdge]): Graph =
     apply(

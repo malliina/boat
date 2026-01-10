@@ -100,7 +100,7 @@ object Geometry:
       case PointGeometry.Key     => Decoder[PointGeometry].widen
       case MultiPolygon.Key      => Decoder[MultiPolygon].widen
       case Polygon.Key           => Decoder[Polygon].widen
-      case other =>
+      case other                 =>
         Decoder.failed(DecodingFailure(s"Unsupported geometry type '$other'.", Nil))
 
 enum IconRotationAlignment(val value: String):
@@ -284,7 +284,7 @@ object Layer:
     Layer(
       id,
       LayerType.Line,
-      StringLayerSource(source),
+      StringLayerSource.unsafe(source),
       Option(LineLayout.round),
       Option(paint),
       minzoom
@@ -334,10 +334,12 @@ object FeatureCollection:
 
   def apply(fs: Seq[Feature]): FeatureCollection = FeatureCollection(Key, fs)
 
-case class StringLayerSource(source: String) extends WrappedString with LayerSource:
+case class StringLayerSource private (source: String) extends WrappedString with LayerSource:
   override def value = source
 
-object StringLayerSource extends StringCompanion[StringLayerSource]
+object StringLayerSource extends StringCompanion[StringLayerSource]:
+  override def build(input: String): Either[ErrorMessage, StringLayerSource] =
+    Right(StringLayerSource(input))
 
 case class InlineLayerSource(`type`: String, data: FeatureCollection) extends LayerSource
 

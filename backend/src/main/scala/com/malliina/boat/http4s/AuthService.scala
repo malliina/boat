@@ -4,7 +4,7 @@ import cats.effect.Sync
 import cats.syntax.all.{catsSyntaxApplicativeError, toFlatMapOps, toFunctorOps, toTraverseOps}
 import com.malliina.boat.Constants.{BoatNameHeader, BoatTokenHeader}
 import com.malliina.boat.auth.{AuthProvider, BoatJwt, SettingsPayload}
-import com.malliina.boat.db.{IdentityManager, MissingCredentials, MissingCredentialsException, RefreshService, SIWADatabase}
+import com.malliina.boat.db.{IdentityManager, InvalidCredentials, MissingCredentials, MissingCredentialsException, RefreshService, SIWADatabase}
 import com.malliina.boat.http.{Limits, UserRequest}
 import com.malliina.boat.http4s.AuthService.log
 import com.malliina.boat.{BoatName, BoatNames, BoatToken, DeviceMeta, JoinedSource, Language, MinimalUserInfo, SimpleSourceMeta, SourceType, UserBoats, UserInfo, UserToken, Usernames}
@@ -111,7 +111,7 @@ class AuthService[F[_]: Sync](
       .getOrElse:
         val boatName = headers
           .get(BoatNameHeader)
-          .map(h => BoatName(CIString(h.head.value)))
+          .flatMap(h => BoatName.build(CIString(h.head.value)).toOption)
           .getOrElse(BoatNames.random())
         F.pure(
           SimpleSourceMeta(Usernames.anon, boatName, SourceType.Boat, Language.default): DeviceMeta
@@ -122,7 +122,10 @@ class AuthService[F[_]: Sync](
       F.raiseError(MissingCredentials(s"Missing header '$BoatTokenHeader'.", headers).toException)
 
   private def boatToken(headers: Headers): Option[F[JoinedSource]] =
-    headers.get(BoatTokenHeader).map(h => users.authBoat(BoatToken(h.head.value)))
+    headers
+      .get(BoatTokenHeader)
+      .flatMap(h => BoatToken.build(h.head.value).toOption)
+      .map(bt => users.authBoat(bt))
 
   private def emailOnly(headers: Headers, now: Instant): F[Email] =
     emailAuth
@@ -131,7 +134,7 @@ class AuthService[F[_]: Sync](
         case mce: MissingCredentialsException =>
           authSession(headers).fold(
             _ => F.raiseError(mce),
-            email => F.pure(email)
+            ok => F.pure(ok)
           )
         case t =>
           F.raiseError(t)
@@ -158,4 +161,4 @@ class AuthService[F[_]: Sync](
   private def authSession(headers: Headers) =
     web
       .authenticate(headers)
-      .map(user => Email(user.name))
+      .flatMap(user => Email.build(user.name).left.map(_ => InvalidCredentials()))

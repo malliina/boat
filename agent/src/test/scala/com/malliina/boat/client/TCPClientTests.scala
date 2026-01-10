@@ -51,7 +51,7 @@ class TCPClientTests extends munit.CatsEffectSuite:
       received <- p.get
       _ <- client.close
       _ <- plotter.join
-    yield assertEquals(received, sentences.map(RawSentence.apply).head)
+    yield assertEquals(received, sentences.flatMap(RawSentence.build(_).toOption).head)
 
   tcpFixture(host"127.0.0.1", port"10109").test("connection to unavailable server fails stream"):
     tcp =>

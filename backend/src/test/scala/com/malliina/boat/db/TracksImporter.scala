@@ -48,7 +48,13 @@ class TracksImporter extends MUnitSuite:
     val inserts = TrackInserter(db)
     val importer = TrackImporter(inserts)
     val trackName = TrackNames.random()
-    val user = BoatUser(trackName, BoatName(ci"Amina"), SourceType.Boat, Username("mle"), Language.default)
+    val user = BoatUser(
+      trackName,
+      BoatName.unsafe(ci"Amina"),
+      SourceType.Boat,
+      Username.unsafe("mle"),
+      Language.default
+    )
 //    val user = BoatUser(trackName, BoatName("xrxmjq"), Username("santa@example.com"))
 //    val user = BoatUser(trackName, BoatName("hzghbu"), Username("santa@example.com"))
     inserts
@@ -58,7 +64,7 @@ class TracksImporter extends MUnitSuite:
 
   def splitTracksByDate(oldTrack: TrackId, db: TrackInserter[IO]) =
     def createAndUpdateTrack(date: DateVal) =
-      val in = TrackInput.empty(TrackNames.random(), DeviceId(14))
+      val in = TrackInput.empty(TrackNames.random(), DeviceId.unsafe(14))
       for
         newTrack <- db.insertTrack(in)
         updated <- db.changeTrack(oldTrack, date, newTrack.track)

@@ -39,7 +39,7 @@ class TrackInserter[F[_]](val db: DoobieDatabase[F]) extends TrackInsertsDatabas
         .query[TrackId]
         .option
         .flatMap(opt => opt.map(pure).getOrElse(fail(TrackNameNotFoundException(track))))
-    val canonical = TrackCanonical(Utils.normalize(title))
+    val canonical = TrackCanonical.unsafe(Utils.normalize(title))
     def updateIO(tid: TrackId) =
       sql"""update tracks set canonical = $canonical, title = $title
             where id = $tid""".update.run

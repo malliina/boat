@@ -11,7 +11,7 @@ class SentenceParsingTests extends BaseSuite:
   test("stateful sentence parsing"):
     val from = MultiParsingTests.testFrom
 
-    def keyed(id: Long) = KeyedSentence(SentenceKey(id), RawSentence(""), from)
+    def keyed(id: Long) = KeyedSentence(SentenceKey.unsafe(id), RawSentence.unsafe(""), from)
 
     val testTemp = WaterTemperature(10.celsius, keyed(1))
     val testSpeed = ParsedBoatSpeed(40.knots, keyed(2))
@@ -39,7 +39,7 @@ class SentenceParsingTests extends BaseSuite:
           testTemp.temp,
           testDepth.depth,
           testDepth.offset,
-          keys.map(SentenceKey.apply)
+          keys.map(SentenceKey.unsafe)
         ),
         from,
         None

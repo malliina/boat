@@ -38,13 +38,13 @@ class TimeFormatter(patterns: TimePatterns):
     .withZone(helsinkiZone)
 
   def formatDate(i: Instant) =
-    FormattedDate(dateFormatter.format(i))
+    FormattedDate.unsafe(dateFormatter.format(i))
 
   def formatTime(i: Instant) =
-    FormattedTime(timeFormatter.format(i))
+    FormattedTime.unsafe(timeFormatter.format(i))
 
   def formatDateTime(i: Instant): FormattedDateTime =
-    FormattedDateTime(dateTimeFormatter.format(i))
+    FormattedDateTime.unsafe(dateTimeFormatter.format(i))
 
   def formatRange(start: Instant, end: Instant): String =
     s"${formatDateTime(start)} - ${formatTime(end)}"

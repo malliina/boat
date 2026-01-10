@@ -2,7 +2,7 @@ package com.malliina.boat.db
 
 import com.malliina.boat.{Coord, CoordHash, Mmsi, PushTokenType, PhoneId, PushId, PushToken, TrackName, UserToken, Utils, VesselName}
 import com.malliina.measure.{DistanceM, SpeedM, Temperature}
-import com.malliina.values.{Email, JsonCompanion, RefreshToken, StringEnumCompanion, UserId, Username}
+import com.malliina.values.{Email, ErrorMessage, RefreshToken, StringEnumCompanion, UserId, Username, ValidatedString}
 
 import java.time.Instant
 
@@ -48,14 +48,14 @@ case class NewUser(user: Username, email: Option[Email], token: UserToken, enabl
 
 object NewUser:
   def email(email: Email): NewUser =
-    NewUser(Username(email.email), Option(email), UserToken.random(), enabled = true)
+    NewUser(Username.unsafe(email.email), Option(email), UserToken.random(), enabled = true)
 
 opaque type RefreshTokenId = String
-object RefreshTokenId extends JsonCompanion[String, RefreshTokenId]:
-  override def apply(raw: String): RefreshTokenId = raw
+object RefreshTokenId extends ValidatedString[RefreshTokenId]:
+  override def build(input: String): Either[ErrorMessage, RefreshTokenId] = Right(input)
   override def write(t: RefreshTokenId): String = t
 
-  def random(): RefreshTokenId = RefreshTokenId(Utils.randomString(32))
+  def random(): RefreshTokenId = Utils.randomString(32)
 
 enum RefreshService(val name: String):
   case SIWA extends RefreshService("siwa")

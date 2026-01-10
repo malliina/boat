@@ -22,7 +22,7 @@ class DoobieTests extends MUnitSuite with Mappings:
   val conf = Conf(
     url"jdbc:mariadb://localhost:3306/boat",
     "changeme",
-    Password("changeme"),
+    Password.unsafe("changeme"),
     BoatConf.mariaDbDriver,
     maxPoolSize = 5,
     autoMigrate = true,
@@ -34,7 +34,7 @@ class DoobieTests extends MUnitSuite with Mappings:
   dbResource.test("make query".ignore): doobie =>
     val db = DoobieTracksDatabase(doobie)
     val task = db.tracksBundle(
-      SimpleUserInfo(Username("mle"), Language.English, Nil),
+      SimpleUserInfo(Username.unsafe("mle"), Language.English, Nil),
       TracksQuery(Nil, TrackQuery(TrackSort.TopSpeed, SortOrder.Desc, Limits(10, 0))),
       Lang.default
     )

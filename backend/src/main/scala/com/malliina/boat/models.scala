@@ -17,7 +17,7 @@ import scala.concurrent.duration.FiniteDuration
 
 opaque type CarUpdateId = Long
 object CarUpdateId extends BoatLong[CarUpdateId]:
-  override def apply(raw: Long): CarUpdateId = raw
+  override def build(input: Long): Either[ErrorMessage, CarUpdateId] = Right(input)
   override def write(t: CarUpdateId): Long = t
 extension (id: CarUpdateId) def long: Long = id
 
@@ -101,24 +101,23 @@ object DateVal:
   def now(): DateVal = apply(LocalDate.now())
   def apply(date: LocalDate): DateVal =
     DateVal(
-      YearVal(date.getYear),
-      MonthVal(date.getMonthValue),
-      DayVal(date.getDayOfMonth)
+      YearVal.unsafe(date.getYear),
+      MonthVal.unsafe(date.getMonthValue),
+      DayVal.unsafe(date.getDayOfMonth)
     )
 
 opaque type UserToken = String
 object UserToken extends BoatString[UserToken]:
   private val headerName = ci"X-User-Token"
   private val minLength = 3
-  override def apply(raw: String): UserToken = raw
   override def write(t: UserToken): String = t
   override def build(in: String): Either[ErrorMessage, UserToken] =
-    if in.length >= minLength then Right(UserToken(in))
+    if in.length >= minLength then Right(in)
     else
       val msg = s"Too short token. Minimum length: $minLength, was: ${in.length}.".error
       Left(msg)
 
-  def random(): UserToken = UserToken(Utils.randomString(length = 8))
+  def random(): UserToken = Utils.randomString(length = 8)
 
   given header: Header[UserToken, Header.Single] =
     Header.createRendered(
@@ -291,7 +290,7 @@ object BoatNames:
   val Key = "boatName"
   val BoatKey = "boat"
 
-  def random() = BoatName(CIString(Utils.randomString(6)))
+  def random() = BoatName.unsafe(CIString(Utils.randomString(6)))
 
 case class PushPayload(
   token: PushToken,
@@ -304,13 +303,13 @@ case class PushPayload(
 case class DisablePush(token: PushToken) derives Codec.AsObject
 
 object TrackNames:
-  def random() = TrackName(Utils.randomString(6))
+  def random() = TrackName.unsafe(Utils.randomString(6))
 
 object UserUtils:
-  def random() = Username(Utils.randomString(6))
+  def random() = Username.unsafe(Utils.randomString(6))
 
 object BoatTokens:
-  def random() = BoatToken(Utils.randomString(8))
+  def random() = BoatToken.unsafe(Utils.randomString(8))
 
 case class BoatResponse(boat: Boat) derives Codec.AsObject
 
@@ -367,17 +366,17 @@ object TrackInput:
 
 opaque type VesselRowId = Long
 object VesselRowId extends BoatLong[VesselRowId]:
-  override def apply(raw: Long): VesselRowId = raw
+  override def build(input: Long): Either[ErrorMessage, VesselRowId] = Right(input)
   override def write(t: VesselRowId): Long = t
 
 opaque type AisUpdateId = Long
 object AisUpdateId extends BoatLong[AisUpdateId]:
-  override def apply(raw: Long): AisUpdateId = raw
+  override def build(input: Long): Either[ErrorMessage, AisUpdateId] = Right(input)
   override def write(t: AisUpdateId): Long = t
 
 opaque type SentenceKey = Long
 object SentenceKey extends BoatLong[SentenceKey]:
-  override def apply(raw: Long): SentenceKey = raw
+  override def build(input: Long): Either[ErrorMessage, SentenceKey] = Right(input)
   override def write(t: SentenceKey): Long = t
 
 case class KeyedSentence(key: SentenceKey, sentence: RawSentence, from: TrackMetaShort)
@@ -562,13 +561,15 @@ case class TrackPoint(coord: Coord, time: Instant, waterTemp: Temperature, wind:
 
 case class Track(id: TrackId, name: TrackName, points: Seq[TrackPoint]) derives Codec.AsObject
 
-case class RouteId(id: Long) extends WrappedId
-object RouteId extends IdCompanion[RouteId]
+opaque type RouteId = Long
+object RouteId extends ValidatedLong[RouteId]:
+  override def build(input: Long): Either[ErrorMessage, RouteId] = Right(input)
+  override def write(t: RouteId): Long = t
 
 case class Route(id: RouteId, name: String, points: Seq[Coord]) derives Codec.AsObject
 
-abstract class BoatString[T] extends ShowableString[T]:
-  val db: Meta[T] = Meta[String].timap[T](apply)(write)
+abstract class BoatString[T] extends ValidatedString[T]:
+  val db: Meta[T] = Meta[String].tiemap[T](build(_).left.map(_.message))(write)
 
-abstract class BoatLong[T] extends ShowableLong[T]:
-  val db: Meta[T] = Meta[Long].timap[T](apply)(write)
+abstract class BoatLong[T] extends ValidatedLong[T]:
+  val db: Meta[T] = Meta[Long].tiemap(build(_).left.map(_.message))(write)

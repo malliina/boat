@@ -19,7 +19,7 @@ class TokenTests extends BaseSuite:
     val in = "token_here"
     val client = GoogleAuthFlow.keyClient(Seq(ClientId("client_id")), httpClient)
     client
-      .validate(IdToken(in))
+      .validate(IdToken.unsafe(in))
       .map: outcome =>
         assert(outcome.isRight)
         val v = outcome.toOption.get
@@ -27,7 +27,7 @@ class TokenTests extends BaseSuite:
           println(s"$k=$value")
 
   http.test("validate iOS SIWA token".ignore): client =>
-    val token = IdToken("changeme")
+    val token = IdToken.unsafe("changeme")
     val v = AppleTokenValidator.app(client)
     v.validateToken(token, Instant.now())
       .map: _ =>

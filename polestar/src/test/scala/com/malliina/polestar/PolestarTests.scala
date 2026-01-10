@@ -25,7 +25,7 @@ class PolestarTests extends munit.CatsEffectSuite:
         assertEquals(1, 1)
 
   polestar.test("Refresh token".ignore): client =>
-    val token = RefreshToken("changeme")
+    val token = RefreshToken.unsafe("changeme")
     client.auth
       .refresh(token)
       .map: tokens =>
@@ -33,7 +33,7 @@ class PolestarTests extends munit.CatsEffectSuite:
         assertEquals(1, 1)
 
   polestar.test("Get graphql".ignore): client =>
-    val token = AccessToken("todo")
+    val token = AccessToken.unsafe("todo")
     val task = for
       cars <- client.fetchCars(token)
       car = cars.head

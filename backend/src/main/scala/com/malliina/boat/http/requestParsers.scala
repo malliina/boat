@@ -19,10 +19,10 @@ object QueryDecoders extends QueryDecoders
 
 private trait QueryDecoders:
   given QueryParamDecoder[TrackName] =
-    QueryParamDecoder.stringQueryParamDecoder.map(s => TrackName(s))
+    QueryParsers.decoder(TrackName.build)
 
   given QueryParamDecoder[TrackCanonical] =
-    QueryParamDecoder.stringQueryParamDecoder.map(s => TrackCanonical(s))
+    QueryParsers.decoder(TrackCanonical.build)
 
   given QueryParamDecoder[DistanceM] =
     QueryParamDecoder.doubleQueryParamDecoder.map(d => DistanceM(d))
@@ -99,8 +99,7 @@ case class TracksQuery(sources: Seq[BoatName], query: TrackQuery):
 object TracksQuery:
   val BoatsKey = "boats"
 
-  given QueryParamDecoder[BoatName] =
-    QueryParamDecoder.stringQueryParamDecoder.map(s => BoatName(CIString(s)))
+  given QueryParamDecoder[BoatName] = QueryParsers.decoder(s => BoatName.build(CIString(s)))
 
   def apply(q: Query): Either[Errors, TracksQuery] = for
     boats <- QueryParsers.list[BoatName](BoatsKey, q)

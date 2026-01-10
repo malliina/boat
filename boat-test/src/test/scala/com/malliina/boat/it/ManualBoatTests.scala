@@ -16,7 +16,7 @@ class ManualBoatTests extends BoatTests:
   val testFile = FileUtils.userHome.resolve(".boat/Log.txt")
 
   def sentences =
-    Files.readAllLines(testFile, StandardCharsets.UTF_8).asScala.map(RawSentence.apply)
+    Files.readAllLines(testFile, StandardCharsets.UTF_8).asScala.map(RawSentence.unsafe)
 
   // def relevantSentences = sentences.drop(10000).filter(s => s.sentence.startsWith("$GPGGA") || s.sentence.startsWith("$GPZDA"))
   def relevantSentences = sentences
@@ -39,7 +39,7 @@ class ManualBoatTests extends BoatTests:
         boat.send(msg) >> IO.sleep(500.millis)
 
   http.test("slow GPS reporting".ignore): httpClient =>
-    val token = BoatToken("todo")
+    val token = BoatToken.unsafe("todo")
     val testMessages =
       relevantSentences.toList.grouped(30).map(SentencesMessage.apply).slice(50, 100).toList
     openBoat(url, Right(token), httpClient): boat =>
@@ -53,6 +53,6 @@ class ManualBoatTests extends BoatTests:
     println(token)
 
   http.test("boat can connect".ignore): httpClient =>
-    val token = BoatToken("todo")
+    val token = BoatToken.unsafe("todo")
     openBoat(url, Right(token), httpClient): _ =>
       IO.sleep(10.seconds)

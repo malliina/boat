@@ -99,7 +99,7 @@ class JWT(secret: SecretKey, dataKey: String = "data"):
       .build()
     val signed = new SignedJWT(new JWSHeader(JWSAlgorithm.HS256), claims)
     signed.sign(signer)
-    IdToken(signed.serialize())
+    IdToken.unsafe(signed.serialize())
 
   def verify[T: Decoder](token: TokenValue, now: Instant = Instant.now()): Either[JWTError, T] =
     verifyToken(token, now).flatMap: v =>

@@ -17,8 +17,8 @@ class PushServiceTests extends BaseSuite:
       push.push(
         SourceNotification(
           AppConf.Name,
-          BoatName(ci"TestBoat"),
-          TrackName("track1"),
+          BoatName.unsafe(ci"TestBoat"),
+          TrackName.unsafe("track1"),
           SourceState.Connected,
           0.meters,
           0.seconds,

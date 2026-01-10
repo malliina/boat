@@ -16,10 +16,10 @@ object TestData:
 class TracksDatabaseTests extends MUnitSuite with MUnitDatabaseSuite:
   dbFixture.test("insertion of token"): db =>
     val users = DoobieUserManager(db)
-    val email = Email("santa@example.com")
+    val email = Email.unsafe("santa@example.com")
     val action = for
       u <- users.register(email)
-      res <- users.save(RefreshToken("test-token"), RefreshService.SIWA, u.id)
+      res <- users.save(RefreshToken.unsafe("test-token"), RefreshService.SIWA, u.id)
     yield res
     action.unsafeRunSync()
 
@@ -27,7 +27,7 @@ class TracksDatabaseTests extends MUnitSuite with MUnitDatabaseSuite:
     val tdb = DoobieTracksDatabase(db)
     val inserts = TrackInserter(db)
     val users = DoobieUserManager(db)
-    val user = users.userInfo(Email("aggregate@example.com")).unsafeRunSync()
+    val user = users.userInfo(Email.unsafe("aggregate@example.com")).unsafeRunSync()
     val boat = user.boats.head
     val bid = boat.id
     val action: IO[TrackRef] = for
@@ -93,7 +93,7 @@ class TracksDatabaseTests extends MUnitSuite with MUnitDatabaseSuite:
         TrackNames.random(),
         boat,
         BoatNames.random(),
-        Username("whatever")
+        Username.unsafe("whatever")
       ),
       Option(ua"Boat-Tracker/Test")
     )

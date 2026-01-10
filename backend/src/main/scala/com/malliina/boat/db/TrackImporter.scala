@@ -101,7 +101,7 @@ class TrackStreams[F[_]: Files]:
     .flatMap:
       case zda @ ZDAMessage(_, _, _, _, _, _, _) => Option(zda.date)
       case _                                     => None
-  def sentences(file: Path) = lines(file).map(RawSentence.apply)
+  def sentences(file: Path) = lines(file).flatMap(l => fs2.Stream.fromOption(RawSentence.build(l).toOption))
 
   private def lines(file: Path) =
     fs2.io.file

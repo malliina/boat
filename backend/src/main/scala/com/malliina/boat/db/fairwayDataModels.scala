@@ -1,16 +1,17 @@
 package com.malliina.boat.db
 
-import com.malliina.boat.{Coord, CoordHash, FairwayLighting, Latitude, Longitude, SeaArea, ShowableLong}
+import com.malliina.boat.{Coord, CoordHash, FairwayLighting, Latitude, Longitude, SeaArea}
 import com.malliina.measure.DistanceM
+import com.malliina.values.{ErrorMessage, ValidatedLong}
 
 opaque type FairwayId = Long
-object FairwayId extends ShowableLong[FairwayId]:
-  override def apply(raw: Long): FairwayId = raw
+object FairwayId extends ValidatedLong[FairwayId]:
+  override def build(input: Long): Either[ErrorMessage, FairwayId] = Right(input)
   override def write(t: FairwayId): Long = t
 
 opaque type FairwayCoordId = Long
-object FairwayCoordId extends ShowableLong[FairwayCoordId]:
-  override def apply(raw: Long): FairwayCoordId = raw
+object FairwayCoordId extends ValidatedLong[FairwayCoordId]:
+  override def build(input: Long): Either[ErrorMessage, FairwayCoordId] = Right(input)
   override def write(t: FairwayCoordId): Long = t
 
 case class FairwayRow(

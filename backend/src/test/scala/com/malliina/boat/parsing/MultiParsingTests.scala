@@ -11,11 +11,11 @@ import scala.jdk.CollectionConverters.CollectionHasAsScala
 
 object MultiParsingTests:
   def testFrom = TrackMetaShort(
-    TrackId(1),
-    TrackName("test"),
-    DeviceId(1),
-    BoatName(ci"boat"),
-    Username("u")
+    TrackId.unsafe(1),
+    TrackName.unsafe("test"),
+    DeviceId.unsafe(1),
+    BoatName.unsafe(ci"boat"),
+    Username.unsafe("u")
   )
 
 class MultiParsingTests extends BaseSuite:
@@ -25,7 +25,7 @@ class MultiParsingTests extends BaseSuite:
   val from = MultiParsingTests.testFrom
 
   def sentences: Seq[RawSentence] =
-    Files.readAllLines(testFile, StandardCharsets.UTF_8).asScala.toList.map(RawSentence.apply)
+    Files.readAllLines(testFile, StandardCharsets.UTF_8).asScala.toList.map(RawSentence.unsafe)
 
 //  test("parse dates and coords".ignore) {
 //    val flow = Flow[RawSentence].mapConcat(raw =>

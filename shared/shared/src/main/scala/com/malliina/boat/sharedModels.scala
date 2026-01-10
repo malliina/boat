@@ -25,22 +25,22 @@ object Percentage extends ValidatedDouble[Percentage]:
 
 opaque type DayVal = Int
 
-object DayVal extends JsonCompanion[Int, DayVal]:
-  override def apply(raw: Int): DayVal = raw
+object DayVal extends ValidatingCompanion[Int, DayVal]:
+  override def build(input: Int): Either[ErrorMessage, DayVal] = Right(input)
   override def write(t: DayVal): Int = t
   extension (dv: DayVal) def day: Int = dv
 
 opaque type MonthVal = Int
 
-object MonthVal extends JsonCompanion[Int, MonthVal]:
-  override def apply(raw: Int): MonthVal = raw
+object MonthVal extends ValidatingCompanion[Int, MonthVal]:
+  override def build(input: Int): Either[ErrorMessage, MonthVal] = Right(input)
   override def write(t: MonthVal) = t.month
   extension (mv: MonthVal) def month: Int = mv
 
 opaque type YearVal = Int
 
-object YearVal extends JsonCompanion[Int, YearVal]:
-  override def apply(raw: Int): YearVal = raw
+object YearVal extends ValidatingCompanion[Int, YearVal]:
+  override def build(input: Int): Either[ErrorMessage, YearVal] = Right(input)
   override def write(t: YearVal) = t
   extension (yv: YearVal) def year: Int = yv
 
@@ -54,22 +54,22 @@ object Bearing:
 
 opaque type FormattedTime = String
 
-object FormattedTime extends ShowableString[FormattedTime]:
-  override def apply(raw: String): FormattedTime = raw
+object FormattedTime extends ValidatedString[FormattedTime]:
+  override def build(input: String): Either[ErrorMessage, FormattedTime] = Right(input)
   override def write(t: FormattedTime): String = t
   extension (ft: FormattedTime) def time: String = ft
 
 opaque type FormattedDate = String
 
-object FormattedDate extends ShowableString[FormattedDate]:
-  override def apply(raw: String): FormattedDate = raw
+object FormattedDate extends ValidatedString[FormattedDate]:
+  override def build(input: String): Either[ErrorMessage, FormattedDate] = Right(input)
   override def write(t: FormattedDate): String = t
   extension (fd: FormattedDate) def date: String = fd
 
 opaque type FormattedDateTime = String
 
-object FormattedDateTime extends ShowableString[FormattedDateTime]:
-  override def apply(raw: String): FormattedDateTime = raw
+object FormattedDateTime extends ValidatedString[FormattedDateTime]:
+  override def build(input: String): Either[ErrorMessage, FormattedDateTime] = Right(input)
   override def write(t: FormattedDateTime): String = t
   extension (fdt: FormattedDateTime) def dateTime: String = fdt
 
@@ -95,7 +95,6 @@ object Latitude extends ValidatedDouble[Latitude]:
     if input >= -90 && input <= 90 then Right(input)
     else Left(ErrorMessage(s"Invalid latitude: '$input'. Must be between -90 and 90."))
   override def write(t: Latitude): Double = t
-  def unsafe(d: Double): Latitude = d
   extension (lat: Latitude) def lat: Double = lat
 
 /** Longitude in decimal degrees.
@@ -110,7 +109,6 @@ object Longitude extends ValidatedDouble[Longitude]:
     if input >= -180 && input <= 180 then Right(input)
     else Left(ErrorMessage(s"Invalid longitude: '$input'. Must be between -180 and 180."))
   override def write(t: Longitude): Double = t
-  def unsafe(d: Double): Longitude = d
   extension (lng: Longitude) def lng: Double = lng
 
 opaque type CoordHash = String
@@ -238,15 +236,16 @@ case class AddSource(boatName: BoatName, sourceType: SourceType) derives Codec.A
   *   http://www.catb.org/gpsd/NMEA.html
   */
 opaque type RawSentence = String
-object RawSentence extends ShowableString[RawSentence]:
+object RawSentence extends ValidatedString[RawSentence]:
   val MaxLength = 82
-  val initialZda = RawSentence("$GPZDA,,00,00,0000,-03,00*66")
-  override def apply(raw: String): RawSentence = raw
+  val initialZda: RawSentence = "$GPZDA,,00,00,0000,-03,00*66"
+
+  override def build(input: String): Either[ErrorMessage, RawSentence] = Right(input)
   override def write(t: RawSentence): String = t
 
 object Usernames:
   val Key = "username"
-  val anon = Username("anon")
+  val anon = Username.unsafe("anon")
 
 object Passwords:
   val Key = "password"
@@ -594,20 +593,20 @@ object CoordsEvent:
 
 // Watt hours
 opaque type Energy = Double
-object Energy extends JsonCompanion[Double, Energy]:
-  override def apply(raw: Double): Energy = raw
+object Energy extends ValidatingCompanion[Double, Energy]:
+  override def build(input: Double): Either[ErrorMessage, Energy] = Right(input)
   override def write(t: Energy): Double = t
 
-  given Numeric[Energy] = Numerical[Double, Energy](apply, write)
+  given Numeric[Energy] = Numerical[Double, Energy](unsafe, write)
 
-extension (e: Energy)
-  def wattHours: Double = e
-  def formatKwh: String = "%.1f kWh".format(wattHours / 1000)
-  def minus(other: Energy): Energy = Energy(e.wattHours - other.wattHours)
-  def plus(other: Energy): Energy = Energy(e.wattHours + other.wattHours)
-  def add(other: Energy): Energy = Energy(e.wattHours + other.wattHours)
-  def <(other: Energy): Boolean = e.wattHours < other.wattHours
-extension (e: Double) def wh: Energy = Energy(e)
+  extension (e: Energy)
+    def wattHours: Double = e
+    def formatKwh: String = "%.1f kWh".format(wattHours / 1000)
+    def minus(other: Energy): Energy = e.wattHours - other.wattHours
+    def plus(other: Energy): Energy = e.wattHours + other.wattHours
+    def add(other: Energy): Energy = e.wattHours + other.wattHours
+    def <(other: Energy): Boolean = e.wattHours < other.wattHours
+extension (e: Double) def wh: Energy = e
 
 case class CarInfo(id: DeviceId, name: BoatName, username: Username) derives Codec.AsObject
 

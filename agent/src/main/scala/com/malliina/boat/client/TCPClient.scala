@@ -63,7 +63,7 @@ class TCPClient[F[_]: {Async, Network}](
         .through(text.decodeWithCharset(charset))
         .through(text.lines)
         .filter(_.startsWith("$"))
-        .map(s => RawSentence(s.trim))
+        .flatMap(s => fs2.Stream.fromOption(RawSentence.build(s.trim).toOption))
         .groupWithin(maxBatchSize, sendTimeWindow)
         .map(chunk => SentencesMessage(chunk.toList))
       outMessages ++ inMessages.evalMap: m =>

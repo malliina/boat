@@ -5,6 +5,7 @@ import cats.syntax.show.toShow
 import com.malliina.boat.auth.AuthProvider
 import com.malliina.boat.http.CarQuery
 import com.malliina.boat.*
+import com.malliina.values.ValidatedLong
 import org.http4s.Uri.Path.SegmentEncoder
 import org.http4s.implicits.*
 
@@ -12,7 +13,7 @@ import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 
 object Reverse:
-  private def longEncoder[T, C <: ShowableLong[T]](comp: C): SegmentEncoder[T] =
+  private def longEncoder[T, C <: ValidatedLong[T]](comp: C): SegmentEncoder[T] =
     SegmentEncoder.longSegmentEncoder.contramap[T](t => comp.write(t))
 
   given showSegmentEncoder[T: Show]: SegmentEncoder[T] =

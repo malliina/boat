@@ -18,7 +18,7 @@ class StaticBoatTests extends BoatTests:
     "$GPZDA,141735,04,05,2018,-03,00*69",
     "$GPGGA,140819,6009.2206,N,02453.5233,E,1,12,0.60,-1,M,19.6,M,,*40",
     "$GPGGA,141209,6009.3630,N,02453.7997,E,1,12,0.60,-3,M,19.6,M,,*4F"
-  ).map(RawSentence.apply)
+  ).map(RawSentence.unsafe)
 
   test("GPS reporting"):
     val client = TestHttp.client

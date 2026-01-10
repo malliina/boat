@@ -24,12 +24,12 @@ class NoopPushEndpoint[F[_]: Sync] extends PushEndpoint[F]:
     Sync[F].pure(PushSummary.empty)
 
 object TestEmailAuth:
-  val testToken = IdToken("header.payload.signature")
-  val expiredToken = IdToken("header.payload.expired")
+  val testToken = IdToken.unsafe("header.payload.signature")
+  val expiredToken = IdToken.unsafe("header.payload.expired")
 
 class TestEmailAuth[F[_]: Sync] extends EmailAuth[F]:
   val F = Sync[F]
-  val testEmail = Email("test@example.com")
+  val testEmail = Email.unsafe("test@example.com")
 
   override def authEmail(headers: Headers, now: Instant): F[Email] =
     Auth

@@ -14,7 +14,7 @@ import org.http4s.headers.{Accept, Authorization}
 import java.time.{OffsetDateTime, ZoneOffset}
 
 class CarServerTests extends MUnitSuite with ServerFunSuite:
-  val testCarId = DeviceId(1)
+  val testCarId = DeviceId.unsafe(1)
   val loc = LocationUpdate(
     24.lng,
     60.lat,
@@ -77,14 +77,14 @@ class CarServerTests extends MUnitSuite with ServerFunSuite:
     http
       .postJson(
         s.baseHttpUrl / Reverse.postCars,
-        LocationUpdates(List(loc), DeviceId(123)).asJson,
+        LocationUpdates(List(loc), DeviceId.unsafe(123)).asJson,
         headersStr(TestEmailAuth.testToken, s.csrf)
       )
       .map: res =>
         assertEquals(res.status, NotFound.code)
 
   def successfulTest(s: ServerTools)(ups: DeviceId => LocationUpdates) =
-    val user = Username("test@example.com")
+    val user = Username.unsafe("test@example.com")
     val service = s.server.app
     val meta = SimpleSourceMeta(user, BoatNames.random(), SourceType.Vehicle, Language.default)
     for

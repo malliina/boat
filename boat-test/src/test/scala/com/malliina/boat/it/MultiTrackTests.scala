@@ -27,7 +27,7 @@ class MultiTrackTests extends BaseSuite with BoatSockets:
     "$GPGGA,125642,6009.2559,N,02447.5942,E,1,12,0.60,1,M,19.5,M,,*68"
   )
 
-  def msg(ts: Seq[String]) = SentencesMessage(ts.map(RawSentence.apply))
+  def msg(ts: Seq[String]) = SentencesMessage(ts.map(RawSentence.unsafe))
 
   http.test("two tracks".ignore): httpClient =>
     openRandomBoat(url, httpClient): boat1 =>

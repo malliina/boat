@@ -14,7 +14,9 @@ class SentenceTests extends BoatTests:
       Deferred[IO, SentencesEvent].flatMap: sentencePromise =>
         Deferred[IO, CoordsEvent].flatMap: coordPromise =>
           val testMessage = SentencesMessage(
-            Seq(RawSentence("$GPGGA,154106,6008.0079,N,02452.0497,E,1,12,0.60,0,M,19.5,M,,*68"))
+            Seq(
+              RawSentence.unsafe("$GPGGA,154106,6008.0079,N,02452.0497,E,1,12,0.60,0,M,19.5,M,,*68")
+            )
           )
           val viewer = openViewerSocket(client, None): socket =>
             socket.jsonMessages
@@ -42,8 +44,8 @@ class SentenceTests extends BoatTests:
   // Ignored because the design is the opposite of the test
   http.test("sent events are not received by unrelated viewer".ignore): client =>
     val s = server()
-    val testUser = Username("User1")
-    val testPass = Password("demo")
+    val testUser = Username.unsafe("User1")
+    val testPass = Password.unsafe("demo")
     s.server.app.userMgmt
       .addUser(NewUser(testUser, None, UserToken.random(), enabled = true))
       .map: _ =>
@@ -52,7 +54,10 @@ class SentenceTests extends BoatTests:
           Deferred[IO, CoordsEvent].flatMap: authPromise =>
             Deferred[IO, CoordsEvent].flatMap: anonPromise =>
               val testMessage = SentencesMessage(
-                Seq(RawSentence("$GPGGA,154106,6008.0079,N,02452.0497,E,1,12,0.60,0,M,19.5,M,,*68"))
+                Seq(
+                  RawSentence
+                    .unsafe("$GPGGA,154106,6008.0079,N,02452.0497,E,1,12,0.60,0,M,19.5,M,,*68")
+                )
               )
               val anonSocket = openViewerSocket(client, None): anonSocket =>
                 anonSocket.jsonMessages

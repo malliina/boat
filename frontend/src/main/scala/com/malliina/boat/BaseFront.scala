@@ -11,7 +11,7 @@ trait BaseFront extends FrontKeys:
   private val queryParams = QueryString.parse
 
   def parseUri: PathState = href.getPath.split('/').toList match
-    case _ :: "tracks" :: track :: _ => Name(TrackName(track))
+    case _ :: "tracks" :: track :: _ => Name(TrackName.unsafe(track))
     case _ :: "routes" :: srcLat :: srcLng :: destLat :: destLng :: _ =>
       val result = for
         srcLatD <- toDouble(srcLat)
@@ -20,7 +20,7 @@ trait BaseFront extends FrontKeys:
         destLngD <- toDouble(destLng)
       yield RouteRequest(srcLatD, srcLngD, destLatD, destLngD)
       result.map(e => e.fold(_ => NoTrack, req => Route(req))).getOrElse(NoTrack)
-    case _ :: canonical :: Nil => Canonical(TrackCanonical(canonical))
+    case _ :: canonical :: Nil => Canonical(TrackCanonical.unsafe(canonical))
     case _                     => NoTrack
 
   private def toDouble(s: String) = Try(s.toDouble).toOption

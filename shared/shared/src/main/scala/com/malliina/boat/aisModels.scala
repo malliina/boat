@@ -1,6 +1,5 @@
 package com.malliina.boat
 
-import cats.Show
 import com.malliina.boat.ShipType.*
 import com.malliina.json.PrimitiveFormats
 import com.malliina.measure.{DistanceM, SpeedM}
@@ -128,13 +127,10 @@ object PosType:
 
 opaque type Mmsi = Long
 
-object Mmsi extends JsonCompanion[Long, Mmsi]:
+object Mmsi extends ValidatedLong[Mmsi]:
   val Key = "mmsi"
-  override def apply(raw: Long): Mmsi = raw
+  override def build(input: Long): Either[ErrorMessage, Mmsi] = Right(input)
   override def write(t: Mmsi): Long = t
-
-  given show: Show[Mmsi] = (m: Mmsi) => s"$m"
-
   def parse(str: String): Either[ErrorMessage, Mmsi] =
     str.toLongOption.toRight(ErrorMessage(s"Invalid Mmsi: '$str'.")).flatMap(build)
 
@@ -245,10 +241,11 @@ object VesselLocation:
 
 opaque type VesselName = String
 
-object VesselName extends ShowableString[VesselName]:
+object VesselName extends ValidatedString[VesselName]:
   val Key = "vessel"
 
-  override def apply(raw: String): VesselName = raw
+  override def build(input: String): Either[ErrorMessage, VesselName] = Right(input)
+
   override def write(t: VesselName): String = t
   extension (vn: VesselName) def name: String = vn
 

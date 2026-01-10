@@ -13,24 +13,20 @@ import org.http4s.{Charset, DecodeResult, EntityDecoder, EntityEncoder, MediaTyp
 import scalatags.generic.Frag
 
 trait Extractors:
-  object UsernameVar extends NonEmpty(Username.apply)
-  object TrackNameVar extends NonEmpty(TrackName.apply)
-  object TrackCanonicalVar extends NonEmpty(TrackCanonical.apply)
-  object DeviceIdVar extends Id(DeviceId.apply)
-  object TrackIdVar extends Id(TrackId.apply)
+  object UsernameVar extends Validating(Username.build)
+  object TrackNameVar extends Validating(TrackName.build)
+  object TrackCanonicalVar extends Validating(TrackCanonical.build)
+  object DeviceIdVar extends Id(DeviceId.build)
+  object TrackIdVar extends Id(TrackId.build)
   object S3KeyVar extends Validating(S3Key.build)
 
   abstract class Validating[T](build: String => Either[ErrorMessage, T]):
     def unapply(str: String): Option[T] =
       build(str).toOption
 
-  abstract class NonEmpty[T](build: String => T):
+  abstract class Id[T](build: Long => Either[ErrorMessage, T]):
     def unapply(str: String): Option[T] =
-      if str.trim.nonEmpty then Option(build(str.trim)) else None
-
-  abstract class Id[T](build: Long => T):
-    def unapply(str: String): Option[T] =
-      str.toLongOption.map(build)
+      str.toLongOption.flatMap(build(_).toOption)
 
   object DoubleVar:
     def unapply(str: String): Option[Double] = str.toDoubleOption

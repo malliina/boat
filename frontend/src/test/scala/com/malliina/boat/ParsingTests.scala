@@ -8,7 +8,15 @@ import scala.scalajs.js.JSON
 class ParsingTests extends munit.FunSuite:
   test("Null is dropped when encoding layer"):
     val l =
-      Layer("eh", Line, StringLayerSource("src"), None, None, None, maxzoom = Option(11d)).asJs
+      Layer(
+        "eh",
+        Line,
+        StringLayerSource.unsafe("src"),
+        None,
+        None,
+        None,
+        maxzoom = Option(11d)
+      ).asJs
     val str = JSON.stringify(l)
     assert(str.contains("maxzoom"))
     assert(!str.contains("minzoom"))

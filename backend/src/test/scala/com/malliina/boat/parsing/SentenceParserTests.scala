@@ -11,7 +11,7 @@ class SentenceParserTests extends munit.FunSuite:
     "$GPZDA,141735,04,05,2018,-03,00*69",
     "$GPGGA,154106,6008.0079,N,02452.0497,E,1,12,0.60,0,M,19.5,M,,*68",
     "$GPGGA,154817,6009.8242,N,02450.8647,E,1,12,0.60,-2,M,19.5,M,,*48"
-  ).map(RawSentence.apply)
+  ).map(RawSentence.unsafe)
 
   test("parse sentences"):
     val ok = track
@@ -21,10 +21,10 @@ class SentenceParserTests extends munit.FunSuite:
           sentence
 
     val strs = ok.map:
-      case DPTMessage(_, depth, _)               => s"GPT $depth"
-      case VTGMessage(_, _, _, speed, _)         => s"VTG $speed"
-      case MTWMessage(_, temp)                   => s"MTW $temp"
-      case zda @ ZDAMessage(_, _, _, _, _, _, _) => s"ZDA ${zda.dateTimeUtc}"
+      case DPTMessage(_, depth, _)                      => s"GPT $depth"
+      case VTGMessage(_, _, _, speed, _)                => s"VTG $speed"
+      case MTWMessage(_, temp)                          => s"MTW $temp"
+      case zda @ ZDAMessage(_, _, _, _, _, _, _)        => s"ZDA ${zda.dateTimeUtc}"
       case GGAMessage(_, _, lat, lng, _, _, _, _, _, _) =>
         s"GGA ${lat.toDecimalDegrees} ${lng.toDecimalDegrees}"
       case _ => ""
@@ -44,7 +44,8 @@ class SentenceParserTests extends munit.FunSuite:
     assert(actualLng.toString.take(9) == "24.891631")
 
   test("parse RMC"):
-    val in = RawSentence("$GPRMC,205152.000,A,6009.1925,N,02453.2406,E,0.00,353.55,070919,,,D*69")
+    val in =
+      RawSentence.unsafe("$GPRMC,205152.000,A,6009.1925,N,02453.2406,E,0.00,353.55,070919,,,D*69")
     val rmc = SentenceParser
       .parse(in)
       .toSeq

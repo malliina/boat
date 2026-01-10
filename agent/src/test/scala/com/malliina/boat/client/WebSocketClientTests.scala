@@ -35,7 +35,7 @@ class WebSocketClientTests extends munit.CatsEffectSuite:
       "$GPGST,150016.000,00020,008.0,006.2,145.0,007.4,006.8,00036*62",
       "$GPTXT,01,01,02,ANTSTATUS=OPEN*2B",
       "$GPGSV,4,1,13,22,78,221,14,01,64,183,22,03,58,257,34,14,51,074,35*71"
-    ).map(RawSentence.apply)
+    ).map(RawSentence.unsafe)
     val msg = SentencesMessage(samples)
     val token = "todo"
     val socketResource = for
@@ -45,7 +45,7 @@ class WebSocketClientTests extends munit.CatsEffectSuite:
     yield socket
     socketResource.use: (client: ReconnectingSocket[IO, OkSocket[IO]]) =>
       val stream = client.events.evalMap:
-        case Open(_)                      => client.send(msg)
+        case Open(_)                 => client.send(msg)
         case TextMessage(_, message) => IO(println(message))
-        case _                            => IO.unit
+        case _                       => IO.unit
       stream.compile.drain

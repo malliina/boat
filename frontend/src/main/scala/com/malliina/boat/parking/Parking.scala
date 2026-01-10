@@ -55,33 +55,37 @@ class Parking[F[_]: Async](
 
   private def installCapacity(): Unit =
     val source = "capacity"
-    FullUrl
-      .build(baseUrl)
-      .map: origin =>
-        val capacityUrl = origin / "cars" / "parkings" / "capacity"
-        map.addSource(source, GeoJsonSource(capacityUrl))
-        val layer = Layer(
-          capacityLayerId,
-          Fill,
-          StringLayerSource(source),
-          None,
-          Option(FillPaint("red", Option(0.2d)))
-        )
-        map.putLayer(layer)
-        log.info(s"Added capacity layer from '$capacityUrl'.")
+    for
+      origin <- FullUrl.build(baseUrl)
+      layerSource <- StringLayerSource.build(source)
+    yield
+      val capacityUrl = origin / "cars" / "parkings" / "capacity"
+      map.addSource(source, GeoJsonSource(capacityUrl))
+      val layer = Layer(
+        capacityLayerId,
+        Fill,
+        layerSource,
+        None,
+        Option(FillPaint("red", Option(0.2d)))
+      )
+      map.putLayer(layer)
+      log.info(s"Added capacity layer from '$capacityUrl'.")
 
   private def installParkingAreas(): Unit =
     val parkingsSource = "parkings"
-    map.addSource(parkingsSource, GeoJsonSource(parkingsUrl))
-    val layer = Layer(
-      parkingsLayerId,
-      Fill,
-      StringLayerSource(parkingsSource),
-      None,
-      Option(FillPaint("blue", Option(0.1)))
-    )
-    map.putLayer(layer)
-    log.info(s"Added parkings from '$parkingsUrl'.")
+    StringLayerSource
+      .build(parkingsSource)
+      .map: layerSource =>
+        map.addSource(parkingsSource, GeoJsonSource(parkingsUrl))
+        val layer = Layer(
+          parkingsLayerId,
+          Fill,
+          layerSource,
+          None,
+          Option(FillPaint("blue", Option(0.1)))
+        )
+        map.putLayer(layer)
+        log.info(s"Added parkings from '$parkingsUrl'.")
 
   private def installHoverListener(): Unit =
     map.onHoverEnter(Seq(parkingsLayerId, capacityLayerId))(

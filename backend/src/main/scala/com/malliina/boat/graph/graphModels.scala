@@ -9,8 +9,8 @@ case class Line(from: Coord, to: Coord):
   def y1 = from.lat.lat
   def x2 = to.lng.lng
   def y2 = to.lat.lat
-  val d = (y2 - y1) / (x2 - x1)
-  val c = y1 - x1 * d
+  val d = if math.abs(x2 - x1) > 0 then Option((y2 - y1) / (x2 - x1)) else None
+  val c = d.map(dv => y1 - x1 * dv)
 
   def boxContains(coord: Coord): Boolean =
     val x = coord.lng.lng

@@ -1,8 +1,7 @@
 package com.malliina.boat
 
-import cats.Show
 import com.malliina.measure.DistanceM
-import com.malliina.values.{ErrorMessage, JsonCompanion}
+import com.malliina.values.ErrorMessage
 import com.malliina.values.Literals.err
 import io.circe.{Codec, Decoder, Encoder}
 import org.typelevel.ci.CIString
@@ -13,21 +12,16 @@ import java.time.Instant
 opaque type RegistrationNumber = CIString
 object RegistrationNumber extends CICompanion[RegistrationNumber]:
   val Key = "registrationNumber"
-  override def apply(raw: CIString): RegistrationNumber = raw
+  override def build(input: CIString): Either[ErrorMessage, RegistrationNumber] = Right(input)
   override def write(t: RegistrationNumber): CIString = t
 
 opaque type VIN = CIString
 object VIN extends CICompanion[VIN]:
-  override def apply(str: CIString): VIN = str
-
   override def build(input: CIString): Either[ErrorMessage, VIN] =
     if input.toString.isBlank then Left(err"VIN must not be blank.")
     else Right(input.trim)
 
   override def write(t: VIN): CIString = t
-
-abstract class CICompanion[T] extends JsonCompanion[CIString, T]:
-  given Show[T] = Show.show(t => write(t).toString)
 
 trait VINSpec:
   def vin: VIN

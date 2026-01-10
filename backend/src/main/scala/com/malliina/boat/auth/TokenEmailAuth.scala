@@ -98,7 +98,7 @@ class TokenEmailAuth[F[_]: Sync](google: KeyClient[F], microsoft: KeyClient[F], 
           parsed
             .read(parsed.claims.getBooleanClaim(EmailVerified), EmailVerified)
             .flatMap: isVerified =>
-              if isVerified then parsed.readString(EmailKey).map(Email.apply)
+              if isVerified then parsed.parse[Email](EmailKey)
               else Left(InvalidClaims(token, err"Email not verified."))
 
   private def validateMicrosoft(token: IdToken, now: Instant): F[Either[AuthError, Email]] =
@@ -106,4 +106,4 @@ class TokenEmailAuth[F[_]: Sync](google: KeyClient[F], microsoft: KeyClient[F], 
       .validate(token, now)
       .map: outcome =>
         outcome.flatMap: v =>
-          v.readString(EmailKey).map(Email.apply)
+          v.read[Email](EmailKey)
