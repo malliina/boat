@@ -8,6 +8,7 @@ import com.malliina.http.UrlSyntax.url
 import com.malliina.logback.LogbackUtils
 import com.malliina.measure.{DistanceIntM, DistanceM}
 import com.malliina.values.*
+import com.malliina.values.Literals.{pass, user}
 import doobie.implicits.toSqlInterpolator
 
 class DoobieTracksDatabaseTests extends MUnitSuite with MUnitDatabaseSuite:
@@ -22,7 +23,7 @@ class DoobieTests extends MUnitSuite with Mappings:
   val conf = Conf(
     url"jdbc:mariadb://localhost:3306/boat",
     "changeme",
-    Password.unsafe("changeme"),
+    pass"changeme",
     BoatConf.mariaDbDriver,
     maxPoolSize = 5,
     autoMigrate = true,
@@ -34,7 +35,7 @@ class DoobieTests extends MUnitSuite with Mappings:
   dbResource.test("make query".ignore): doobie =>
     val db = DoobieTracksDatabase(doobie)
     val task = db.tracksBundle(
-      SimpleUserInfo(Username.unsafe("mle"), Language.English, Nil),
+      SimpleUserInfo(user"mle", Language.English, Nil),
       TracksQuery(Nil, TrackQuery(TrackSort.TopSpeed, SortOrder.Desc, Limits(10, 0))),
       Lang.default
     )

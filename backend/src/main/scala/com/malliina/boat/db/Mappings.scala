@@ -1,5 +1,6 @@
 package com.malliina.boat.db
 
+import cats.Show
 import com.comcast.ip4s.{Host, Port}
 import com.malliina.boat.db.Values.VesselUpdateId
 
@@ -66,8 +67,9 @@ trait Mappings:
   given Meta[DistanceM] = Meta[Double].timap(DistanceM.apply)(_.meters)
   given Meta[FiniteDuration] =
     Meta[Double].timap(d => d.seconds)(_.toMillis.toDouble / 1000d)
-  given Meta[Coord] = Meta[Array[Byte]].timap(bytes =>
-    toCoord(SpatialUtils.fromBytes[Point](bytes))
+  given Show[Array[Byte]] = bs => s"${bs.size} bytes"
+  given Meta[Coord] = Meta[Array[Byte]].tiemap(bytes =>
+    toCoord(SpatialUtils.fromBytes[Point](bytes)).left.map(_.message)
   )(SpatialUtils.coordToBytes)
   given Meta[DateVal] = Meta[LocalDate].timap(d => DateVal(d))(_.toLocalDate)
   given Meta[YearVal] = validated(YearVal)
@@ -76,20 +78,21 @@ trait Mappings:
     Meta[String].timap(s => InviteState.orOther(s))(_.name)
   given Meta[SourceType] = Meta[String].timap(s => SourceType.orOther(s))(_.name)
   given Meta[SentenceKey] = validated(SentenceKey)
-  given Meta[Degrees] = Meta[Float].timap(Degrees.unsafe)(_.float)
+  given Meta[Degrees] = validated(Degrees)
   given Meta[CarUpdateId] = validated(CarUpdateId)
   given Meta[Energy] = validated(Energy)
   given Meta[Host] =
-    Meta[String].timap(s => Host.fromString(s).getOrElse(fail(s"Invalid host: '$s'.")))(_.show)
+    Meta[String].tiemap(s => Host.fromString(s).toRight(s"Invalid host: '$s'."))(_.show)
   given Meta[Port] =
-    Meta[Int].timap(i => Port.fromInt(i).getOrElse(fail(s"Invalid port: '$i'.")))(_.value)
+    Meta[Int].tiemap(i => Port.fromInt(i).toRight(s"Invalid port: '$i'."))(_.value)
   given Meta[UserAgent] = validated(UserAgent)
 
-  private def validated[T, R: Meta, C <: ValidatingCompanion[R, T]](c: C): Meta[T] =
-    Meta[R].timap(r => c.build(r).fold(err => fail(err.message), identity))(c.write)
+  private def validated[T, R: {Meta, Show}, C <: ValidatingCompanion[R, T]](c: C): Meta[T] =
+    Meta[R].tiemap(r => c.build(r).left.map(err => err.message))(c.write)
 
-  private def toCoord(point: Point): Coord =
+  private def toCoord(point: Point) =
     val c = point.getCoordinate
-    Coord(Longitude.unsafe(c.x), Latitude.unsafe(c.y))
-
-  private def fail(msg: String): Nothing = throw Exception(msg)
+    for
+      lon <- Longitude.build(c.x)
+      lat <- Latitude.build(c.y)
+    yield Coord(lon, lat)
