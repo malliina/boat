@@ -32,7 +32,9 @@ case class PushSummary(iosResults: Seq[APNSHttpResult], gcmResults: Seq[MappedGC
         case (token, res) if res.error.isEmpty => token
   def badTokens = iosResults
     .filter(res => res.error.exists(err => PushSummary.removableErrors.exists(_ == err)))
-    .map(res => PushToken.unsafe(res.token.token)) ++ gcmUninstalled.map(t => PushToken.unsafe(t.token))
+    .map(res => PushToken.unsafe(res.token.token)) ++ gcmUninstalled.map(t =>
+    PushToken.unsafe(t.token)
+  )
   def replacements = gcmResults.flatMap(_.replacements).map(PushTokenReplacement.apply)
   def noBadTokensOrReplacements = badTokens.isEmpty && replacements.isEmpty
   def ++(other: PushSummary): PushSummary = PushSummary(

@@ -55,8 +55,6 @@ class TracksImporter extends MUnitSuite:
       Username.unsafe("mle"),
       Language.default
     )
-//    val user = BoatUser(trackName, BoatName("xrxmjq"), Username("santa@example.com"))
-//    val user = BoatUser(trackName, BoatName("hzghbu"), Username("santa@example.com"))
     inserts
       .joinAsSource(user)
       .flatMap: track =>

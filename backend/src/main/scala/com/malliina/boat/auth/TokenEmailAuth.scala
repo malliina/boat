@@ -66,12 +66,12 @@ class TokenEmailAuth[F[_]: Sync](google: KeyClient[F], microsoft: KeyClient[F], 
       googleResult.fold(
         {
           case e @ Expired(_, _, _) => F.pure(Left(e))
-          case googleError =>
+          case googleError          =>
             validateMicrosoft(token, now).flatMap: microsoftResult =>
               microsoftResult.fold(
                 {
                   case e @ Expired(_, _, _) => F.pure(Left(e))
-                  case microsoftError =>
+                  case microsoftError       =>
                     F.pure(
                       custom
                         .email(token, now)

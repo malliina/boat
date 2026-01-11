@@ -138,7 +138,7 @@ class BoatMqttClient[F[_]: Async](
           metadata.update(meta.mmsi, meta)
           Stream.empty
         case VesselStatus(_) => Stream.empty
-        case other =>
+        case other           =>
           log.info(s"Ignoring $other.")
           Stream.empty
     case Left(e) =>

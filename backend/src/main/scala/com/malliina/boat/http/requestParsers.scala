@@ -356,10 +356,11 @@ object BoatQuery:
     for
       lngResult <- transformDouble(lngKey, q)(Longitude.build)
       latResult <- transformDouble(latKey, q)(Latitude.build)
-    yield for
-      lng <- lngResult
-      lat <- latResult
-    yield Coord(lng, lat)
+    yield
+      for
+        lng <- lngResult
+        lat <- latResult
+      yield Coord(lng, lat)
 
   private def transformDouble[T](key: String, q: Query)(
     transform: Double => Either[ErrorMessage, T]

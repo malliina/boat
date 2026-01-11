@@ -25,8 +25,7 @@ class TempTests extends munit.FunSuite:
         val duration = System.currentTimeMillis() - start
         println(s"Connection lost after $duration ms $cause")
       override def deliveryComplete(token: IMqttDeliveryToken): Unit =
-        ()
-    )
+        ())
     val _ = client.connect(
       connectOptions,
       (),

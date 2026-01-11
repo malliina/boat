@@ -81,8 +81,7 @@ private class MqttStream[F[_]: Async](
         def deliveryComplete(token: IMqttDeliveryToken): Unit = ()
         def connectionLost(cause: Throwable): Unit =
           val task = F.delay(log.info(s"Connection lost to '$broker'.", cause)) >> close
-          d.unsafeRunAndForget(task)
-      )
+          d.unsafeRunAndForget(task))
     connection <- connect
   yield connection
 

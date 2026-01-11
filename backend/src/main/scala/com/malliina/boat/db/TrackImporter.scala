@@ -19,7 +19,7 @@ object TrackImporter:
   given dateEq: Eq[LocalDate] =
     Eq.by[LocalDate, (Int, Int, Int)](d => (d.getYear, d.getMonthValue, d.getDayOfMonth))
 
-class TrackImporter[F[_]: { Files, Temporal }](inserts: TrackInsertsDatabase[F])
+class TrackImporter[F[_]: {Files, Temporal}](inserts: TrackInsertsDatabase[F])
   extends TrackStreams[F]:
 
   /** Saves sentences in `file` to the database `track`.
@@ -101,7 +101,8 @@ class TrackStreams[F[_]: Files]:
     .flatMap:
       case zda @ ZDAMessage(_, _, _, _, _, _, _) => Option(zda.date)
       case _                                     => None
-  def sentences(file: Path) = lines(file).flatMap(l => fs2.Stream.fromOption(RawSentence.build(l).toOption))
+  def sentences(file: Path) =
+    lines(file).flatMap(l => fs2.Stream.fromOption(RawSentence.build(l).toOption))
 
   private def lines(file: Path) =
     fs2.io.file
