@@ -1,10 +1,11 @@
 package com.malliina.boat
 
+import com.malliina.geo.{Coord, Latitude, Longitude}
+import io.circe.Codec
+import io.circe.parser.parse
+import io.circe.syntax.EncoderOps
 import org.scalajs.dom.document
 import org.scalajs.dom.window.localStorage
-import io.circe.*
-import io.circe.syntax.EncoderOps
-import io.circe.parser.parse
 
 import scala.scalajs.js.Date
 
@@ -15,7 +16,7 @@ case class MapCamera(
   timestampMs: Double = Date.now()
 ) derives Codec.AsObject
 
-object MapCamera:
+object MapCameras:
   private val center =
     for
       center <- Option(document.getElementById(FrontKeys.Center))

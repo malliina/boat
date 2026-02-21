@@ -2,7 +2,7 @@ package com.malliina.boat.geo
 
 import cats.effect.Sync
 import cats.syntax.all.{catsSyntaxApplicativeError, catsSyntaxFlatMapOps, toFunctorOps}
-import com.malliina.boat.Coord
+import com.malliina.geo.Coord
 import com.malliina.util.AppLogger
 
 import java.util.Base64

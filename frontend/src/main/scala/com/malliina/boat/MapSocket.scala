@@ -7,6 +7,8 @@ import cats.syntax.show.toShow
 import com.malliina.boat.BoatFormats.*
 import com.malliina.boat.FrontKeys.TrophyPrefix
 import com.malliina.boat.SourceType.Vehicle
+import com.malliina.geo.Coord
+import com.malliina.geojson.FeatureCollection
 import com.malliina.mapbox.*
 import com.malliina.measure.{DistanceIntM, DistanceM, SpeedM}
 import com.malliina.values.ErrorMessage

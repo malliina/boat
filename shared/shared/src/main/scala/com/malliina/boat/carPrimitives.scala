@@ -8,6 +8,7 @@ import org.typelevel.ci.CIString
 import com.malliina.measure.DistanceIntM
 
 import java.time.Instant
+import scala.concurrent.duration.{DurationInt, FiniteDuration}
 
 opaque type RegistrationNumber = CIString
 object RegistrationNumber extends CICompanion[RegistrationNumber]:
@@ -53,6 +54,7 @@ case class Battery(
   vin: VIN,
   batteryChargeLevelPercentage: Percentage, // 0-100
   chargingStatus: ChargingStatus,
+  estimatedChargingTimeToFullMinutes: Option[FiniteDuration],
   estimatedDistanceToEmptyKm: DistanceM,
   timestamp: Updated
 ) extends VINSpec derives Encoder.AsObject:
@@ -60,6 +62,8 @@ case class Battery(
   def updated = timestamp.instant
 
 object Battery:
+  given Decoder[FiniteDuration] = Decoder.decodeInt.map(_.minutes)
+  given Encoder[FiniteDuration] = Encoder.encodeInt.contramap(_.toMinutes.toInt)
   given Decoder[DistanceM] = Decoder.decodeInt.map(_.kilometers)
   given Decoder[ChargingStatus] = ChargingStatus.decodePolestar
   given Decoder[Battery] = Decoder.derived[Battery]

@@ -3,6 +3,7 @@ package com.malliina.boat.graph
 import cats.effect.Sync
 import com.malliina.boat.*
 import com.malliina.boat.graph.Graph.{intersection, log}
+import com.malliina.geo.{Coord, CoordHash, Latitude, Longitude}
 import com.malliina.measure.DistanceM
 import com.malliina.util.AppLogger
 import io.circe.*

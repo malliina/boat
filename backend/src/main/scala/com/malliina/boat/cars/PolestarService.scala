@@ -71,6 +71,7 @@ class PolestarService[F[_]: Async](
             CarBattery(
               b.batteryChargeLevelPercentage,
               b.chargingStatus,
+              b.estimatedChargingTimeToFullMinutes,
               b.estimatedDistanceToEmptyKm,
               formatted(b.timestamp)
             ),

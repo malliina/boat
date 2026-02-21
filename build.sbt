@@ -11,19 +11,19 @@ val versions = new {
   val alpn = "12.0.16"
   val ci = "1.4.2"
   val circe = "0.14.15"
-  val codec = "1.20.0"
+  val codec = "1.21.0"
   val commonsText = "1.15.0"
   val fs2 = "3.11.0"
   val http4s = "0.23.33"
   val ip4s = "3.7.0"
   val jts = "1.13"
-  val logback = "1.5.25"
+  val logback = "1.5.32"
   val mariadb = "3.5.7"
   val mobilePush = "3.16.1"
-  val munit = "1.2.1"
+  val munit = "1.2.2"
   val munitCe = "2.1.0"
   val paho = "1.2.5"
-  val s3 = "2.41.14"
+  val s3 = "2.41.33"
   val scalaJsDom = "2.8.1"
   val scalaTags = "0.13.1"
   val util = "6.11.1"
@@ -76,6 +76,27 @@ val jvmSettings = Seq(
   )
 )
 
+val mapbox = crossProject(JSPlatform, JVMPlatform)
+  .crossType(CrossType.Full)
+  .in(file("mapbox"))
+  .disablePlugins(RevolverPlugin)
+  .settings(
+    libraryDependencies ++= Seq("generic", "parser").map { m =>
+      "io.circe" %%% s"circe-$m" % versions.circe
+    } ++ Seq(
+      "com.malliina" %%% "primitives" % versions.util,
+      "com.lihaoyi" %%% "scalatags" % versions.scalaTags,
+      "org.scalameta" %%% "munit" % versions.munit % Test
+    )
+  )
+
+val mapboxJvm = mapbox.jvm
+val mapboxJs = mapbox.js.settings(
+  libraryDependencies ++= Seq(
+    "org.scala-js" %%% "scalajs-dom" % versions.scalaJsDom
+  )
+)
+
 val cross = crossProject(JSPlatform, JVMPlatform)
   .crossType(CrossType.Full)
   .in(file("shared"))
@@ -94,8 +115,8 @@ val cross = crossProject(JSPlatform, JVMPlatform)
     )
   )
 
-val crossJvm = cross.jvm
-val crossJs = cross.js
+val crossJvm = cross.jvm.dependsOn(mapboxJvm)
+val crossJs = cross.js.dependsOn(mapboxJs)
 
 val polestar = project
   .in(file("polestar"))
@@ -121,7 +142,7 @@ val frontend = project
   .in(file("frontend"))
   .enablePlugins(NodeJsPlugin, EsbuildPlugin)
   .disablePlugins(RevolverPlugin)
-  .dependsOn(crossJs)
+  .dependsOn(crossJs, mapboxJs)
   .settings(boatSettings)
   .settings(
     libraryDependencies ++= Seq(
@@ -133,7 +154,7 @@ val frontend = project
 
 val backend = Project("boat", file("backend"))
   .enablePlugins(ServerPlugin, DebPlugin)
-  .dependsOn(polestar)
+  .dependsOn(polestar, mapboxJvm)
   .settings(jvmSettings ++ boatSettings)
   .settings(
     Compile / unmanagedResourceDirectories ++= Seq(

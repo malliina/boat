@@ -1,9 +1,7 @@
 package com.malliina.mapbox
 
-import cats.effect.Async
-import cats.syntax.all.toFunctorOps
-import com.malliina.boat.{Coord, Feature, FeatureCollection, Latitude, Layer, Longitude}
-import com.malliina.geojson.GeoFeature
+import com.malliina.geo.{Coord, Latitude, Longitude}
+import com.malliina.geojson.{FeatureCollection, GeoFeature}
 import com.malliina.http.FullUrl
 import com.malliina.json.JsonError
 import com.malliina.json.Parsing.{as, asJs}
@@ -203,8 +201,8 @@ object MapboxMap:
     def queryRendered(
       point: PixelCoord,
       options: QueryOptions = QueryOptions.all
-    ): Either[JsonError, Seq[Feature]] =
-      self.queryRenderedFeatures(point, options).as[Seq[Feature]]
+    ): Either[JsonError, Seq[LayerFeature]] =
+      self.queryRenderedFeatures(point, options).as[Seq[LayerFeature]]
 
     def onHover(layerId: String)(in: MapMouseEvent => Unit, out: MapMouseEvent => Unit): Unit =
       self.on("mousemove", layerId, e => in(e))
@@ -224,22 +222,22 @@ object MapboxMap:
       _ => self.getCanvas().style.cursor = ""
     )
 
-    def initImage[F[_]: Async](uri: String, iconId: String): F[Unit] =
-      fetchImage(uri).map: image =>
-        self.addImage(iconId, image)
-
-    def fetchImage[F[_]: Async](uri: String): F[js.Any] =
-      Async[F].async_[js.Any]: cb =>
-        self.loadImage(
-          uri,
-          (err, data) =>
-            if err == null then cb(Right(data))
-            else cb(Left(new Exception(s"Failed to load '$uri'.")))
-        )
-
     def findSource(id: String): Option[GeoJsonSource] = self.getSource(id).toOption
     def hasSource(id: String): Boolean = findSource(id).isDefined
     def hasLayer(id: String): Boolean = self.getLayer(id).toOption.isDefined
+
+//    def initImage[F[_] : Async](uri: String, iconId: String): F[Unit] =
+//      fetchImage(uri).map: image =>
+//        self.addImage(iconId, image)
+//
+//    def fetchImage[F[_] : Async](uri: String): F[js.Any] =
+//      Async[F].async_[js.Any]: cb =>
+//        self.loadImage(
+//          uri,
+//          (err, data) =>
+//            if err == null then cb(Right(data))
+//            else cb(Left(new Exception(s"Failed to load '$uri'.")))
+//        )
 
 @js.native
 @JSImport("mapbox-gl", "LngLatBounds")
@@ -319,8 +317,12 @@ trait GeoJsonSource extends js.Object:
   def setData(data: js.Any): Unit = js.native
 
 object GeoJsonSource:
+  val GeoJson = "geojson"
+
   def apply(url: FullUrl): GeoJsonSource =
-    literal(`type` = "geojson", data = url.url).asInstanceOf[GeoJsonSource]
+    literal(`type` = GeoJson, data = url.url).asInstanceOf[GeoJsonSource]
+  def features(source: FeatureCollection) =
+    literal(`type` = GeoJson, data = source.asJs).asInstanceOf[GeoJsonSource]
   extension (source: GeoJsonSource)
     def updateData(data: FeatureCollection): Unit =
       source.setData(data.asJs)

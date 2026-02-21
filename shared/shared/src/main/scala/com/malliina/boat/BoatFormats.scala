@@ -11,6 +11,11 @@ object BoatFormats:
     Encoder.encodeDouble.contramap(fd => 1.0d * fd.toMillis / 1000)
   )
 
+  given durationFormat: Codec[FiniteDuration] = Codec.from(
+    Decoder.decodeDouble.map(_.seconds),
+    Encoder.encodeDouble.contramap(_.toSeconds.toDouble)
+  )
+
   def formatSpeed(s: SpeedM, source: SourceType, includeUnit: Boolean) =
     val unitSuffix =
       if includeUnit then s" ${speedUnit(source)}"

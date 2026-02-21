@@ -3,6 +3,8 @@ package com.malliina.boat.graph
 import cats.effect.{IO, Sync}
 import cats.syntax.all.toFunctorOps
 import com.malliina.boat.*
+import com.malliina.geo.Coord
+import com.malliina.geojson.{Feature, FeatureCollection, LineGeometry, MultiLineGeometry}
 import com.malliina.measure.{DistanceDoubleM, DistanceIntM}
 import com.malliina.values.lngLat
 import io.circe.parser.decode

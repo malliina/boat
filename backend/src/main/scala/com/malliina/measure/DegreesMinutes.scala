@@ -1,9 +1,9 @@
 package com.malliina.measure
 
 import com.malliina.http.SingleError
-import com.malliina.boat.{Latitude, Longitude}
 import com.malliina.measure.Inputs.*
 import HemisphereDirection.readString
+import com.malliina.geo.{Latitude, Longitude}
 
 sealed trait HemisphereDirection
 

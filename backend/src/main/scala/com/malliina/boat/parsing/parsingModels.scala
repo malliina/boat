@@ -1,6 +1,7 @@
 package com.malliina.boat.parsing
 
-import com.malliina.boat.{Coord, Energy, InsertedPoint, KeyedSentence, LocationUpdate, RawSentence, SentenceKey, TimeFormatter, TimedCoord, TrackId, TrackMetaShort, TrackPointId, UserAgent}
+import com.malliina.boat.{Energy, InsertedPoint, KeyedSentence, LocationUpdate, RawSentence, SentenceKey, TimeFormatter, TimedCoord, TrackId, TrackMetaShort, TrackPointId, UserAgent}
+import com.malliina.geo.Coord
 import com.malliina.measure.{DistanceM, SpeedM, Temperature}
 import com.malliina.values.{Degrees, ErrorMessage}
 

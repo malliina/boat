@@ -4,8 +4,10 @@ import cats.effect.Async
 import cats.syntax.all.toFunctorOps
 import com.malliina.boat.BoatFormats.formatDistance
 import com.malliina.boat.PathFinder.*
+import com.malliina.geo.Coord
+import com.malliina.geojson.{Feature, FeatureCollection, LineGeometry}
 import com.malliina.http.Http
-import com.malliina.mapbox.{MapMouseEvent, MapboxMap, MapboxMarker}
+import com.malliina.mapbox.{LinePaint, MapMouseEvent, MapboxMap, MapboxMarker}
 import io.circe.syntax.EncoderOps
 import org.scalajs.dom.{HTMLDivElement, HTMLSpanElement}
 import scalatags.JsDom.all.*

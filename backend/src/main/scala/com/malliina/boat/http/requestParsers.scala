@@ -3,7 +3,8 @@ package com.malliina.boat.http
 import cats.implicits.*
 import com.malliina.http.{Errors, SingleError}
 import com.malliina.http4s.QueryParsers
-import com.malliina.boat.{BoatName, CarUpdateId, Constants, Coord, FromTo, FrontKeys, Latitude, Longitude, Mmsi, RouteRequest, SearchQuery, TimeFormatter, Timings, TrackCanonical, TrackName, VesselName}
+import com.malliina.boat.{BoatName, CarUpdateId, Constants, FromTo, FrontKeys, Mmsi, RouteRequest, SearchQuery, TimeFormatter, Timings, TrackCanonical, TrackName, VesselName}
+import com.malliina.geo.{Coord, Latitude, Longitude}
 import com.malliina.measure.{DistanceIntM, DistanceM}
 import com.malliina.values.{Email, ErrorMessage}
 import io.circe.Codec

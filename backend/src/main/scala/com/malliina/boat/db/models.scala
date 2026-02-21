@@ -1,6 +1,7 @@
 package com.malliina.boat.db
 
-import com.malliina.boat.{Coord, CoordHash, Mmsi, PushTokenType, PhoneId, PushId, PushToken, TrackName, UserToken, Utils, VesselName}
+import com.malliina.boat.{Mmsi, PhoneId, PushId, PushToken, PushTokenType, TrackName, UserToken, Utils, VesselName}
+import com.malliina.geo.{Coord, CoordHash}
 import com.malliina.measure.{DistanceM, SpeedM, Temperature}
 import com.malliina.values.{Email, ErrorMessage, RefreshToken, StringEnumCompanion, UserId, Username, ValidatedString}
 

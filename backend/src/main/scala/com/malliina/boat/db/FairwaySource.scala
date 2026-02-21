@@ -1,6 +1,6 @@
 package com.malliina.boat.db
 
-import com.malliina.boat.{Coord, CoordHash}
+import com.malliina.geo.{Coord, CoordHash}
 
 trait FairwaySource[F[_]] extends DoobieSQL:
   def fairwaysAt(at: Coord): F[Seq[FairwayRow]] = fairways(at.hash)

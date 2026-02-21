@@ -1,8 +1,7 @@
 package com.malliina.boat.db
 
 import java.io.ByteArrayOutputStream
-
-import com.malliina.boat.Coord
+import com.malliina.geo.Coord
 import com.vividsolutions.jts.geom.impl.CoordinateArraySequenceFactory
 import com.vividsolutions.jts.geom.{Coordinate, Geometry, GeometryFactory, PrecisionModel}
 import com.vividsolutions.jts.io.{ByteOrderValues, OutputStreamOutStream, WKBReader, WKBWriter}

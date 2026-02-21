@@ -1,8 +1,9 @@
 package com.malliina.boat
 
 import cats.data.NonEmptyList
-import com.malliina.geojson.{GeoLineString, GeoPoint}
-import com.malliina.mapbox.{LngLat, LngLatBounds, MapboxMap, SimplePaddingOptions}
+import com.malliina.geo.Coord
+import com.malliina.geojson.{Feature, FeatureCollection, GeoLineString, GeoPoint, Geometry, LineGeometry, PointGeometry}
+import com.malliina.mapbox.{ImageLayout, InlineLayerSource, Layer, LinePaint, LngLat, LngLatBounds, MapboxMap, Outcome, SimplePaddingOptions, StringLayerSource}
 import com.malliina.turf.nearestPointOnLine
 import com.malliina.values.ErrorMessage
 import io.circe.syntax.EncoderOps

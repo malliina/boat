@@ -7,6 +7,7 @@ import com.malliina.boat.http.ContentVersions
 import com.malliina.boat.http4s.JsonInstances.jsonBody
 import com.malliina.boat.parsing.{BoatStats, FullCoord}
 import com.malliina.boat.*
+import com.malliina.geo.Coord
 import com.malliina.measure.{DistanceIntM, SpeedIntM, TemperatureInt}
 import com.malliina.values.Username
 import io.circe.Json

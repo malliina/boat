@@ -5,7 +5,8 @@ import com.malliina.boat.FrontKeys.*
 import com.malliina.boat.html.BoatImplicits.given
 import com.malliina.boat.http.{Limits, TracksQuery}
 import com.malliina.boat.http4s.Reverse
-import com.malliina.boat.{AppConf, Boat, BuildInfo, CarSummary, Coord, FullTrack, Lang, SourceType, TrackRef, TracksBundle, UserBoats, UserInfo}
+import com.malliina.boat.{AppConf, Boat, BuildInfo, CarSummary, FullTrack, Lang, SourceType, TrackRef, TracksBundle, UserBoats, UserInfo}
+import com.malliina.geo.Coord
 import com.malliina.html.HtmlImplicits.given
 import com.malliina.html.HtmlTags.{cssLink, deviceWidthViewport, titleTag}
 import com.malliina.http.{CSRFConf, CSRFToken, FullUrl}

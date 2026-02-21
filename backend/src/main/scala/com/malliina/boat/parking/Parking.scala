@@ -4,7 +4,8 @@ import cats.effect.{Async, Sync}
 import cats.syntax.all.{toFlatMapOps, toFunctorOps, toTraverseOps}
 import com.malliina.boat.geo.Geocoder
 import com.malliina.boat.http.Near
-import com.malliina.boat.{CapacityProps, Earth, FeatureCollection, LocalConf, MultiPolygon, NearestCoord, ParkingCapacity, ParkingDirections, Polygon, Resources}
+import com.malliina.boat.{CapacityProps, Earth, LocalConf, NearestCoord, ParkingCapacity, ParkingDirections, Resources}
+import com.malliina.geojson.{FeatureCollection, MultiPolygon, Polygon}
 import com.malliina.http.{FullUrl, HttpClient}
 import com.malliina.http.UrlSyntax.https
 import io.circe.parser.decode

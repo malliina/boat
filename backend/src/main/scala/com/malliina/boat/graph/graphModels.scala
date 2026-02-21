@@ -1,6 +1,7 @@
 package com.malliina.boat.graph
 
-import com.malliina.boat.{Coord, Earth, Link, RouteSpec}
+import com.malliina.boat.{Earth, Link, RouteSpec}
+import com.malliina.geo.Coord
 import com.malliina.measure.DistanceM
 import io.circe.*
 

@@ -1,8 +1,9 @@
 package com.malliina.boat
 
 import com.malliina.boat.AISRenderer.{AisTrailLayer, AisVesselLayer, MaxTrailLength}
+import com.malliina.geojson.{Feature, FeatureCollection}
 import com.malliina.json.Parsing.as
-import com.malliina.mapbox.{MapboxMap, MapboxPopup, PopupOptions}
+import com.malliina.mapbox.{ImageLayout, Layer, MapboxMap, MapboxPopup, Outcome, PopupOptions}
 import com.malliina.values.ErrorMessage
 
 object AISRenderer:

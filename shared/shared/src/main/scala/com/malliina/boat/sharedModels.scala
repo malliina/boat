@@ -4,6 +4,7 @@ import cats.syntax.all.toFunctorOps
 import com.comcast.ip4s.{Host, Port}
 import com.malliina.boat.BoatJson.keyValued
 import com.malliina.boat.http.Limits
+import com.malliina.geo.{Coord, ValidatedDouble}
 import com.malliina.http.FullUrl
 import com.malliina.json.PrimitiveFormats
 import com.malliina.measure.{DistanceM, Numerical, SpeedM, Temperature}
@@ -82,84 +83,6 @@ case class Timing(
 ) derives Codec.AsObject
 
 case class Times(start: Timing, end: Timing, range: String) derives Codec.AsObject
-
-/** Latitude in decimal degrees.
-  *
-  * @param lat
-  *   latitude aka y
-  */
-opaque type Latitude = Double
-
-object Latitude extends ValidatedDouble[Latitude]:
-  override def build(input: Double): Either[ErrorMessage, Latitude] =
-    if input >= -90 && input <= 90 then Right(input)
-    else Left(ErrorMessage(s"Invalid latitude: '$input'. Must be between -90 and 90."))
-  override def write(t: Latitude): Double = t
-  extension (lat: Latitude) def lat: Double = lat
-
-/** Longitude in decimal degrees.
-  *
-  * @param lng
-  *   longitude aka x
-  */
-opaque type Longitude = Double
-
-object Longitude extends ValidatedDouble[Longitude]:
-  override def build(input: Double): Either[ErrorMessage, Longitude] =
-    if input >= -180 && input <= 180 then Right(input)
-    else Left(ErrorMessage(s"Invalid longitude: '$input'. Must be between -180 and 180."))
-  override def write(t: Longitude): Double = t
-  extension (lng: Longitude) def lng: Double = lng
-
-opaque type CoordHash = String
-
-object CoordHash:
-  def fromString(s: String): CoordHash = s
-  def from(c: Coord): CoordHash = c.approx
-
-  extension (ch: CoordHash) def hash: String = ch
-
-case class Coord(lng: Longitude, lat: Latitude):
-  override def toString = s"($lng, $lat)"
-
-  def toArray: Array[Double] = Array(lng.lng, lat.lat)
-
-  def approx: String =
-    val lngStr = Coord.format(lng.lng)
-    val latStr = Coord.format(lat.lat)
-    s"$lngStr,$latStr"
-
-  val hash: CoordHash = CoordHash.from(this)
-
-object Coord:
-  val Key = "coord"
-
-  given json: Codec[Coord] = deriveCodec[Coord]
-  // GeoJSON format
-  val jsonArray: Codec[Coord] = Codec.from(
-    Decoder[List[Double]].emap:
-      case lng :: lat :: _ =>
-        build(lng, lat).left.map(_.message)
-      case other =>
-        Left(
-          s"Expected a JSON array of at least two numbers for coordinates [lng, lat]. Got: '$other'."
-        )
-    ,
-    (c: Coord) => c.toArray.toList.asJson
-  )
-
-  def buildOrFail(lng: Double, lat: Double): Coord =
-    build(lng, lat).fold(err => throw new Exception(err.message), identity)
-
-  def build(lng: Double, lat: Double): Either[ErrorMessage, Coord] =
-    for
-      longitude <- Longitude.build(lng)
-      latitude <- Latitude.build(lat)
-    yield Coord(longitude, latitude)
-
-  def format(d: Double): String =
-    val trunc = (d * 100000).toInt.toDouble / 100000
-    "%1.5f".format(trunc).replace(',', '.')
 
 case class RouteRequest(from: Coord, to: Coord) derives Codec.AsObject
 
@@ -391,12 +314,16 @@ abstract class PolestarEnumCompanion[T <: PolestarEnum] extends StringEnumCompan
   private def fromPolestar(s: String): T =
     all.find(_.polestar.toLowerCase == s.toLowerCase).getOrElse(other(s))
 
+given Codec[FiniteDuration] = BoatFormats.durationFormat
+
 case class CarBattery(
   chargeLevelPercentage: Percentage,
   chargingStatus: ChargingStatus,
+  chargingTimeToFull: Option[FiniteDuration],
   distanceToEmpty: DistanceM,
   updated: Timing
 ) derives Codec.AsObject:
+
   def range = distanceToEmpty
 
 case class CarOdometer(odometer: DistanceM, updated: Timing) derives Codec.AsObject
@@ -762,15 +689,6 @@ object MapConf:
     s"mapbox://styles/skogberglabs/$styleId",
     IconsConf("boat-resized-opt-30", "trophy-gold-path")
   )
-
-abstract class ValidatedDouble[T](implicit
-  d: Decoder[Double],
-  e: Encoder[Double],
-  r: Readable[Double]
-) extends ValidatingCompanion[Double, T]()(using d, e, TotalOrdering, r):
-  extension (t: T) def value: Double = write(t)
-  def fromString(s: String) =
-    s.toDoubleOption.toRight(ErrorMessage(s"Not a double: '$s'.")).flatMap(build)
 
 enum SourceType(val name: String):
   case Vehicle extends SourceType("vehicle")

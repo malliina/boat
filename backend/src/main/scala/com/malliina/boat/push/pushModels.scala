@@ -2,7 +2,8 @@ package com.malliina.boat.push
 
 import com.malliina.boat.geo.ReverseGeocode
 import com.malliina.boat.http.Named
-import com.malliina.boat.{BoatName, BoatPrimitives, Coord, PushLang, TrackName}
+import com.malliina.boat.{BoatFormats, BoatName, PushLang, TrackName}
+import com.malliina.geo.Coord
 import com.malliina.measure.DistanceM
 import com.malliina.values.{ErrorMessage, ValidatingCompanion}
 import io.circe.Codec
@@ -42,7 +43,7 @@ object SourceNotification:
   val Message = "message"
   val Title = "title"
 
-given Codec[FiniteDuration] = BoatPrimitives.durationFormat
+given Codec[FiniteDuration] = BoatFormats.durationFormat
 
 case class LiveActivityAttributes(boatName: BoatName, trackName: TrackName) derives Codec.AsObject
 

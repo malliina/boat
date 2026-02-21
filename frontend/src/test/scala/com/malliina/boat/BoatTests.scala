@@ -1,5 +1,7 @@
 package com.malliina.boat
 
+import com.malliina.geo.Coord
+import com.malliina.geojson.LineGeometry
 import io.circe.parser.decode
 
 class BoatTests extends munit.FunSuite with DemoJson:

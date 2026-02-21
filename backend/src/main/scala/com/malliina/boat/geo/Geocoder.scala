@@ -1,7 +1,7 @@
 package com.malliina.boat.geo
 
 import cats.Applicative
-import com.malliina.boat.Coord
+import com.malliina.geo.Coord
 import io.circe.Codec
 
 case class ReverseGeocode(address: String) derives Codec.AsObject

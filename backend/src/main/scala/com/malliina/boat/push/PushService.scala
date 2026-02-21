@@ -2,7 +2,8 @@ package com.malliina.boat.push
 
 import com.malliina.boat.db.{PushDevice, PushInput}
 import com.malliina.boat.geo.ReverseGeocode
-import com.malliina.boat.{Coord, PhoneId, PushId, PushLang, PushToken, TrackMeta, TrackName}
+import com.malliina.boat.{PhoneId, PushId, PushLang, PushToken, TrackMeta, TrackName}
+import com.malliina.geo.Coord
 import com.malliina.measure.DistanceM
 import com.malliina.values.UserId
 

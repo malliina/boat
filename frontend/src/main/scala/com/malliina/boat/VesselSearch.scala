@@ -1,10 +1,12 @@
 package com.malliina.boat
 
 import cats.effect.Sync
-import com.malliina.mapbox.{MapboxMap, MapboxPopup, PopupOptions}
+import com.malliina.mapbox.{ImageLayout, Layer, LinePaint, MapboxMap, MapboxPopup, Outcome, PopupOptions}
 import com.malliina.values.ErrorMessage
 import fs2.Stream
 import cats.syntax.list.*
+import com.malliina.geo.Coord
+import com.malliina.geojson.{Feature, FeatureCollection}
 
 class VesselSearch[F[_]: Sync](
   vessels: Stream[F, Seq[VesselTrail]],

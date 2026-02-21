@@ -1,5 +1,6 @@
 package com.malliina.boat
 
+import com.malliina.geo.Coord
 import com.malliina.measure.{DistanceDoubleM, DistanceLongM, DistanceM}
 
 import scala.annotation.tailrec

@@ -2,13 +2,14 @@ package com.malliina.boat.parking
 
 import cats.effect.Async
 import cats.implicits.toFunctorOps
-import com.malliina.boat.LayerType.Fill
-import com.malliina.boat.{BaseLogger, Coord, Feature, FeatureCollection, FillPaint, FrontKeys, GeoUtils, Lang, Layer, LineGeometry, LinePaint, ParkingResponse, Popups, StringLayerSource}
+import com.malliina.boat.{BaseLogger, FrontKeys, GeoUtils, Lang, ParkingResponse, Popups}
+import com.malliina.geo.Coord
+import com.malliina.geojson.{Feature, FeatureCollection, LineGeometry}
 import com.malliina.http.{FullUrl, Http}
 import com.malliina.http.UrlSyntax.https
 import com.malliina.json.Parsing.as
 import com.malliina.mapbox.LngLat.coord
-import com.malliina.mapbox.{GeoJsonSource, MapboxMap, MapboxPopup, PopupOptions}
+import com.malliina.mapbox.{FillPaint, GeoJsonSource, Layer, LayerType, LinePaint, MapboxMap, MapboxPopup, PopupOptions, StringLayerSource}
 import io.circe.syntax.EncoderOps
 import org.scalajs.dom.window
 
@@ -63,7 +64,7 @@ class Parking[F[_]: Async](
       map.addSource(source, GeoJsonSource(capacityUrl))
       val layer = Layer(
         capacityLayerId,
-        Fill,
+        LayerType.Fill,
         layerSource,
         None,
         Option(FillPaint("red", Option(0.2d)))
@@ -79,7 +80,7 @@ class Parking[F[_]: Async](
         map.addSource(parkingsSource, GeoJsonSource(parkingsUrl))
         val layer = Layer(
           parkingsLayerId,
-          Fill,
+          LayerType.Fill,
           layerSource,
           None,
           Option(FillPaint("blue", Option(0.1)))

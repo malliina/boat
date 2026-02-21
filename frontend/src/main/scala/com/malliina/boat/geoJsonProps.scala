@@ -1,5 +1,6 @@
 package com.malliina.boat
 
+import com.malliina.geo.{Coord, Latitude, Longitude}
 import com.malliina.measure.{DistanceM, SpeedM, Temperature}
 import io.circe.*
 

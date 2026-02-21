@@ -2,6 +2,7 @@ package com.malliina.boat.db
 
 import com.comcast.ip4s.{Host, Port}
 import com.malliina.boat.*
+import com.malliina.geo.Coord
 import com.malliina.measure.{DistanceM, SpeedM, Temperature}
 import com.malliina.values.{Email, UserId, Username}
 import doobie.implicits.toSqlInterpolator
@@ -66,7 +67,7 @@ case class TrackTimes(
 )
 
 object TrackTimes:
-  given dur: Codec[FiniteDuration] = BoatPrimitives.durationFormat
+  given dur: Codec[FiniteDuration] = BoatFormats.durationFormat
   given json: Codec[TrackTimes] = deriveCodec[TrackTimes]
 
 case class DailyAggregates(
@@ -78,7 +79,7 @@ case class DailyAggregates(
 )
 
 object DailyAggregates:
-  given Codec[FiniteDuration] = BoatPrimitives.durationFormat
+  given Codec[FiniteDuration] = BoatFormats.durationFormat
   given Codec[DailyAggregates] = deriveCodec[DailyAggregates]
 
 case class MonthlyAggregates(

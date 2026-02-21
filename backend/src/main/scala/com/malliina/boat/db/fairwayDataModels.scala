@@ -1,6 +1,7 @@
 package com.malliina.boat.db
 
-import com.malliina.boat.{Coord, CoordHash, FairwayLighting, Latitude, Longitude, SeaArea}
+import com.malliina.boat.{FairwayLighting, SeaArea}
+import com.malliina.geo.{Coord, CoordHash, Latitude, Longitude}
 import com.malliina.measure.DistanceM
 import com.malliina.values.{ErrorMessage, ValidatedLong}
 

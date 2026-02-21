@@ -3,6 +3,7 @@ package com.malliina.boat.http4s
 import cats.effect.IO
 import com.malliina.boat.db.NewUser
 import com.malliina.boat.*
+import com.malliina.geo.{Latitude, Longitude}
 import com.malliina.http.{CSRFConf, Errors, FullUrl}
 import com.malliina.measure.*
 import com.malliina.values.{IdToken, Username, degrees, lat, lng}

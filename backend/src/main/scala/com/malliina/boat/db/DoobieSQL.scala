@@ -2,7 +2,8 @@ package com.malliina.boat.db
 
 import cats.effect.kernel.Sync
 import cats.syntax.all.catsSyntaxApplicativeId
-import com.malliina.boat.{Coord, DeviceId}
+import com.malliina.boat.DeviceId
+import com.malliina.geo.Coord
 import com.malliina.measure.DistanceM
 import doobie.ConnectionIO
 import doobie.implicits.*

@@ -1,7 +1,8 @@
 package com.malliina.boat
 
-import com.malliina.boat.LayerType.Line
 import com.malliina.json.Parsing.asJs
+import com.malliina.mapbox.LayerType.Line
+import com.malliina.mapbox.{Layer, StringLayerSource}
 
 import scala.scalajs.js.JSON
 

@@ -607,6 +607,10 @@ case class BoatLang(
 
 case class CarInfoLang(
   batteryPercentage: String,
+  chargingStatus: String,
+  charging: String,
+  idle: String,
+  timeToFull: String,
   estimatedRange: String,
   odometer: String,
   daysToService: String
@@ -1245,7 +1249,16 @@ object Lang:
         "Username",
         "Password",
         "Save",
-        CarInfoLang("Battery percentage", "Range", "Odometer", "Days to service")
+        CarInfoLang(
+          "Battery percentage",
+          "Charging status",
+          "Charging",
+          "Idle",
+          "Charging time",
+          "Range",
+          "Odometer",
+          "Days to service"
+        )
       ),
       "Actions",
       "Delete",
@@ -1451,7 +1464,16 @@ object Lang:
         "Käyttäjätunnus",
         "Salasana",
         "Tallenna",
-        CarInfoLang("Akun varaustaso", "Toimintamatka", "Kilometrit", "Päiviä huoltoon")
+        CarInfoLang(
+          "Akun varaustaso",
+          "Lataus",
+          "Lataa",
+          "Ei lataa",
+          "Latausaika",
+          "Toimintamatka",
+          "Kilometrit",
+          "Päiviä huoltoon"
+        )
       ),
       "Toimenpiteet",
       "Poista",
@@ -1652,7 +1674,16 @@ object Lang:
         "Användarnamn",
         "Lösenord",
         "Spara",
-        CarInfoLang("Batterinivå", "Räckvidd", "Odometer", "Dagar till service")
+        CarInfoLang(
+          "Batterinivå",
+          "Laddning",
+          "Laddar",
+          "Laddar inte",
+          "Laddningstid",
+          "Räckvidd",
+          "Odometer",
+          "Dagar till service"
+        )
       ),
       "Ändringar",
       "Radera",

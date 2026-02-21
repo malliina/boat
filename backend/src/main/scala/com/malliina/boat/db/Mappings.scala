@@ -6,13 +6,14 @@ import com.malliina.boat.db.Values.VesselUpdateId
 
 import java.time.{Instant, LocalDate, OffsetDateTime, ZoneOffset}
 import com.malliina.boat.parsing.GPSFix
-import com.malliina.boat.{AisUpdateId, BoatName, BoatToken, CarUpdateId, Coord, CoordHash, DateVal, DeviceId, Energy, FairwayLighting, InviteState, Language, Latitude, LiveActivityId, Longitude, Mmsi, PushTokenType, MonthVal, PhoneId, PushId, PushToken, RawSentence, SeaArea, SentenceKey, SourceType, TrackCanonical, TrackId, TrackName, TrackPointId, TrackTitle, UserAgent, UserToken, VesselName, VesselRowId, YearVal}
+import com.malliina.boat.{AisUpdateId, BoatName, BoatToken, CarUpdateId, DateVal, DeviceId, Energy, FairwayLighting, InviteState, Language, LiveActivityId, Mmsi, MonthVal, PhoneId, PushId, PushToken, PushTokenType, RawSentence, SeaArea, SentenceKey, SourceType, TrackCanonical, TrackId, TrackName, TrackPointId, TrackTitle, UserAgent, UserToken, VesselName, VesselRowId, YearVal}
 import com.malliina.measure.{DistanceM, SpeedDoubleM, SpeedM, Temperature}
 import com.malliina.values.*
 import com.vividsolutions.jts.geom.Point
 import doobie.*
 import org.typelevel.ci.CIString
 import cats.syntax.show.toShow
+import com.malliina.geo.{Coord, CoordHash, Latitude, Longitude}
 
 import scala.concurrent.duration.{DurationDouble, FiniteDuration}
 

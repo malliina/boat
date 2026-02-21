@@ -1,6 +1,6 @@
 package com.malliina.boat.graph
 
-import com.malliina.boat.Coord
+import com.malliina.geo.Coord
 
 sealed trait GraphError
 

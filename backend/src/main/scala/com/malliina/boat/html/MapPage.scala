@@ -1,9 +1,8 @@
 package com.malliina.boat.html
 
 import com.malliina.boat.FrontKeys.*
-import com.malliina.boat.Latitude.lat
-import com.malliina.boat.Longitude.lng
-import com.malliina.boat.{AisLang, Coord, FormsLang, FrontKeys, Shortcut, TrackShortcut, UserBoats, Usernames}
+import com.malliina.boat.{AisLang, FormsLang, FrontKeys, Shortcut, TrackShortcut, UserBoats, Usernames}
+import com.malliina.geo.{Coord, Latitude, Longitude}
 import com.malliina.measure.DistanceM
 import scalatags.Text.all.*
 

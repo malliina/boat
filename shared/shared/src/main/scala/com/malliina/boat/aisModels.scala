@@ -1,6 +1,7 @@
 package com.malliina.boat
 
 import com.malliina.boat.ShipType.*
+import com.malliina.geo.{Coord, Latitude, Longitude}
 import com.malliina.json.PrimitiveFormats
 import com.malliina.measure.{DistanceM, SpeedM}
 import com.malliina.values.*

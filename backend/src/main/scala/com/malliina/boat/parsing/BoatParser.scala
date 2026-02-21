@@ -1,6 +1,7 @@
 package com.malliina.boat.parsing
 
 import com.malliina.boat.*
+import com.malliina.geo.Coord
 import com.malliina.util.AppLogger
 import io.circe.{Decoder, DecodingFailure, Json}
 

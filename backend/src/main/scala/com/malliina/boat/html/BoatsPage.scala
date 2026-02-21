@@ -5,7 +5,7 @@ import com.malliina.boat.FrontKeys.*
 import com.malliina.boat.InviteState.{Accepted, Awaiting, Other, Rejected}
 import com.malliina.http.{CSRFConf, CSRFToken}
 import com.malliina.boat.http4s.Reverse
-import com.malliina.boat.{Boat, BoatIds, BoatNames, BoatRef, CarSummary, Emails, Forms, GPSInfo, InviteState, Passwords, PolestarLang, SourceType, UserInfo, Usernames}
+import com.malliina.boat.{Boat, BoatIds, BoatNames, BoatRef, CarSummary, ChargingStatus, Emails, Forms, GPSInfo, InviteState, Passwords, PolestarLang, SourceType, UserInfo, Usernames}
 import com.malliina.measure.DistanceM
 import com.malliina.values.WrappedId
 import scalatags.Text.all.*
@@ -75,6 +75,10 @@ object BoatsPage extends BoatImplicits with HTMLConstants:
     val infoLang = plang.info
     val telematicsFields = Seq[(String, Modifier)](
       infoLang.batteryPercentage -> s"${car.battery.chargeLevelPercentage}%",
+      infoLang.chargingStatus -> (if car.battery.chargingStatus == ChargingStatus.Charging then
+                                    infoLang.charging
+                                  else infoLang.idle),
+      infoLang.timeToFull -> car.battery.chargingTimeToFull.map(_.toString).getOrElse("N/A"),
       infoLang.estimatedRange -> car.battery.range,
       infoLang.odometer -> car.odometer.odometer,
       infoLang.daysToService -> car.health.daysToService

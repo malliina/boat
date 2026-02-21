@@ -8,6 +8,7 @@ import com.malliina.boat.MapView.MapEvent.ListVessels
 import com.malliina.boat.http.Limits
 import com.malliina.boat.parking.Parking
 import com.malliina.datepicker.{TempusDominus, TimeLocale, TimeRestrictions, updateDate}
+import com.malliina.geo.Coord
 import com.malliina.http.Http
 import com.malliina.mapbox.*
 import com.malliina.values.{AccessToken, ErrorMessage, Readable}
@@ -69,7 +70,7 @@ class MapView[F[_]: Async](
   mapboxGl.accessToken = accessToken.token
   val lang = Lang(language)
 
-  private val initialSettings = MapCamera()
+  private val initialSettings = MapCameras()
   private val mapOptions = MapOptions(
     container = MapId,
     style = MapConf.active.styleUrl,

@@ -4,7 +4,8 @@ import cats.effect.Async
 import cats.implicits.toFlatMapOps
 import cats.syntax.all.toFunctorOps
 import com.malliina.boat.geo.MapboxImages.Conf
-import com.malliina.boat.{Coord, MapConf}
+import com.malliina.boat.MapConf
+import com.malliina.geo.Coord
 import com.malliina.http.HttpClient
 import com.malliina.http.UrlSyntax.https
 import com.malliina.values.AccessToken

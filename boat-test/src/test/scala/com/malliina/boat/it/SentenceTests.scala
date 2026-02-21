@@ -3,6 +3,7 @@ package com.malliina.boat.it
 import cats.effect.{Deferred, IO}
 import com.malliina.boat.*
 import com.malliina.boat.db.NewUser
+import com.malliina.geo.Coord
 import com.malliina.values.{Password, Username}
 
 import scala.concurrent.TimeoutException

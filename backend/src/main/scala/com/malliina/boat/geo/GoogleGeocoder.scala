@@ -4,8 +4,7 @@ import cats.effect.Async
 import cats.implicits.toFunctorOps
 import GoogleGeocoder.AddressType.StreetAddress
 import GoogleGeocoder.GeocoderResults
-import com.malliina.boat.geo.{Geocoder, ReverseGeocode}
-import com.malliina.boat.Coord
+import com.malliina.geo.Coord
 import com.malliina.http.HttpClient
 import com.malliina.http.UrlSyntax.https
 import com.malliina.values.{AccessToken, StringEnumCompanion}

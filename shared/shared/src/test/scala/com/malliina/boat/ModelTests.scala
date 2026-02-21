@@ -1,10 +1,12 @@
 package com.malliina.boat
 
-import com.malliina.values.{lng, lat}
+import com.malliina.geo.Coord
+import com.malliina.values.{lat, lng}
 import io.circe.{Codec, Printer}
 import io.circe.generic.semiauto.deriveCodec
 import io.circe.parser.{decode, parse}
 import io.circe.syntax.EncoderOps
+
 import concurrent.duration.DurationInt
 
 class ModelTests extends munit.FunSuite:

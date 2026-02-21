@@ -1,7 +1,7 @@
 package com.malliina.boat
 
 import com.comcast.ip4s.{Host, Port}
-import com.malliina.boat.BoatPrimitives.durationFormat
+import com.malliina.geo.{Coord, Latitude, Longitude}
 import com.malliina.measure.{DistanceM, SpeedM, Temperature}
 import com.malliina.values.*
 import doobie.Meta

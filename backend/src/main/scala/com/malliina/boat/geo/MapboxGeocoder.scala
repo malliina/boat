@@ -5,10 +5,9 @@ import cats.effect.kernel.Outcome.Succeeded
 import cats.effect.std.Semaphore
 import cats.effect.syntax.all.{genSpawnOps, genTemporalOps_, monadCancelOps, monadCancelOps_}
 import cats.implicits.{toFlatMapOps, toFunctorOps}
-import com.malliina.boat.Coord
 import com.malliina.boat.geo.MapboxGeocoder.ReverseGeocodeResponse
 import com.malliina.boat.geo.RateLimiter.LimitExceeded
-import com.malliina.boat.geo.{MapboxGeocoder, ReverseGeocode}
+import com.malliina.geo.Coord
 import com.malliina.http.HttpClient
 import com.malliina.http.UrlSyntax.https
 import com.malliina.values.AccessToken

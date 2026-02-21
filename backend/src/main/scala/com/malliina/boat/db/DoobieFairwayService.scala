@@ -3,8 +3,9 @@ package com.malliina.boat.db
 import cats.data.NonEmptyList
 import cats.implicits.*
 import com.malliina.boat.db.DoobieFairwayService.collect
-import com.malliina.boat.{CoordHash, FairwayInfo}
+import com.malliina.boat.{FairwayInfo}
 import com.malliina.database.DoobieDatabase
+import com.malliina.geo.CoordHash
 import doobie.*
 import doobie.implicits.*
 

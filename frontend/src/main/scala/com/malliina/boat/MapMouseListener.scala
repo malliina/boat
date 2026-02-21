@@ -1,5 +1,6 @@
 package com.malliina.boat
 
+import com.malliina.geojson.PointGeometry
 import com.malliina.json.JsonError
 import com.malliina.json.Parsing.validate
 import com.malliina.mapbox.*
@@ -43,7 +44,7 @@ class MapMouseListener[F[_]](
         .recover: err =>
           log.info(s"Failed to parse features '${err.error}' in '${err.json}'.")
           Nil
-      val symbol: Option[Feature] = features.find: f =>
+      val symbol: Option[LayerFeature] = features.find: f =>
         f.geometry.typeName == PointGeometry.Key &&
           f.layer.exists(l => l.`type` == LayerType.Symbol || l.`type` == LayerType.Circle)
       symbol

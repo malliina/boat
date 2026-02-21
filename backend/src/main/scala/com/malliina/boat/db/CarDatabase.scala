@@ -7,6 +7,7 @@ import com.malliina.boat.*
 import com.malliina.boat.db.CarDatabase.log
 import com.malliina.boat.http.CarQuery
 import com.malliina.database.DoobieDatabase
+import com.malliina.geo.Coord
 import com.malliina.measure.DistanceM
 import com.malliina.util.AppLogger
 import com.malliina.values.UserId

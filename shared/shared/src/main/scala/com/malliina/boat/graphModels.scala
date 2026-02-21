@@ -1,5 +1,6 @@
 package com.malliina.boat
 
+import com.malliina.geo.Coord
 import com.malliina.measure.DistanceM
 import io.circe.generic.semiauto.deriveCodec
 import io.circe.{Codec, Decoder, Encoder}

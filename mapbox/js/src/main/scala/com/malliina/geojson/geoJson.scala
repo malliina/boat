@@ -1,6 +1,6 @@
 package com.malliina.geojson
 
-import com.malliina.boat.{Coord, Feature, LineGeometry, PointGeometry}
+import com.malliina.geo.Coord
 import com.malliina.geojson.GeoType.*
 
 import scala.scalajs.js

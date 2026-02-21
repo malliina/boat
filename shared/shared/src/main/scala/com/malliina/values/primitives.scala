@@ -1,6 +1,7 @@
 package com.malliina.values
 
-import com.malliina.boat.{Coord, Latitude, Longitude, UserAgent}
+import com.malliina.boat.UserAgent
+import com.malliina.geo.{Coord, Latitude, Longitude}
 
 import scala.quoted.{Expr, Quotes, quotes}
 
