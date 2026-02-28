@@ -232,7 +232,7 @@ class MapSocket[F[_]: Async](
     elem(DistanceId).foreach: e =>
       e.show()
       val totalDistance = calcDistance(froms)
-      e.innerHTML = s"${formatDistance(totalDistance)} km"
+      e.innerHTML = formatDistance(totalDistance)
     elem(ConsumptionId).foreach: e =>
       if from.sourceType == SourceType.Vehicle then
         // Calculates consumtion across multiple tracks; the backend value only contains consumption per track

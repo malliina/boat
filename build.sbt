@@ -20,10 +20,10 @@ val versions = new {
   val logback = "1.5.32"
   val mariadb = "3.5.7"
   val mobilePush = "3.16.1"
-  val munit = "1.2.2"
+  val munit = "1.2.3"
   val munitCe = "2.1.0"
   val paho = "1.2.5"
-  val s3 = "2.41.33"
+  val s3 = "2.42.4"
   val scalaJsDom = "2.8.1"
   val scalaTags = "0.13.1"
   val util = "6.11.1"
@@ -79,8 +79,12 @@ val jvmSettings = Seq(
 val mapbox = crossProject(JSPlatform, JVMPlatform)
   .crossType(CrossType.Full)
   .in(file("mapbox"))
+  .enablePlugins(MavenCentralPlugin)
   .disablePlugins(RevolverPlugin)
   .settings(
+    gitUserName := "malliina",
+    developerName := "Michael Skogberg",
+    Test / fork := true,
     libraryDependencies ++= Seq("generic", "parser").map { m =>
       "io.circe" %%% s"circe-$m" % versions.circe
     } ++ Seq(

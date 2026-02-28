@@ -1,8 +1,8 @@
 scalaVersion := "2.12.20"
 
 libraryDependencies ++= Seq(
-  "com.malliina" %% "okclient" % "6.10.1",
-  "com.amazonaws" % "aws-java-sdk-s3" % "1.12.794"
+  "com.malliina" %% "okclient" % "6.11.1",
+  "com.amazonaws" % "aws-java-sdk-s3" % "1.12.797"
 )
 
 val utilsVersion = "1.6.57"

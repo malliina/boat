@@ -23,9 +23,9 @@ object mapboxGl extends js.Object:
 
 @js.native
 trait GeocoderOptions extends js.Object:
-  def accessToken: String
-  def countries: String
-  def mapboxgl: js.UndefOr[js.Object]
+  def accessToken: String = js.native
+  def countries: String = js.native
+  def mapboxgl: js.UndefOr[js.Object] = js.native
 
 object GeocoderOptions:
   def apply(

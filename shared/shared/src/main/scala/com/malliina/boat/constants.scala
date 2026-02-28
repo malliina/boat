@@ -134,6 +134,7 @@ trait NavKeys:
   val Question = "question-link"
   val QuestionNav = "question-nav"
 
+  val RouteTotalLength = "route-total-length"
   val RouteLength = "route-length"
   val RouteDuration = "route-duration"
   val RouteText = "route-text"

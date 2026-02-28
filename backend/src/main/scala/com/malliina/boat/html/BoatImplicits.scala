@@ -39,8 +39,7 @@ trait BoatImplicits:
   given AttrValue[SourceType] = boatStringAttr(_.name)
   given [T: Show]: AttrValue[T] = boatStringAttr(t => t.show)
 
-  val distanceKm: Conversion[DistanceM, Frag] = (d: DistanceM) =>
-    stringFrag(s"${formatDistance(d)} km")
+  val distanceKm: Conversion[DistanceM, Frag] = (d: DistanceM) => stringFrag(formatDistance(d))
 
   val intDistanceKm: Conversion[DistanceM, Frag] = (d: DistanceM) =>
     stringFrag(s"${d.toKilometers.toInt} km")

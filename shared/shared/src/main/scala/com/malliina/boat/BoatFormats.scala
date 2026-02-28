@@ -33,7 +33,7 @@ object BoatFormats:
 
   def formatKnots(s: SpeedM) = "%.3f".format(s.toKnots)
   def formatKph(s: SpeedM) = "%.3f".format(s.toKmh)
-  def formatDistance(d: DistanceM) = "%.3f".format(d.toKilometers)
+  def formatDistance(d: DistanceM) = "%.3f km".format(d.toKilometers)
   def formatTemp(t: Temperature) = "%.1f".format(t.toCelsius)
 
   def formatDuration(d: Duration): String =

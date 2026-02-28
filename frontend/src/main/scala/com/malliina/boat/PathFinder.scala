@@ -76,7 +76,9 @@ class PathFinder[F[_]: Async](
           val coll = FeatureCollection(
             Seq(Feature(LineGeometry(coords), Map(RouteSpec.Cost -> route.cost.asJson)))
           )
-          elemAsGet[HTMLSpanElement](RouteLength).innerHTML = s"${formatDistance(route.cost)} km"
+          elemAsGet[HTMLSpanElement](RouteTotalLength).innerHTML =
+            s"(${formatDistance(res.totalCost)})"
+          elemAsGet[HTMLSpanElement](RouteLength).innerHTML = formatDistance(route.cost)
           elemAsGet[HTMLSpanElement](RouteDuration).innerHTML = s"${res.duration.toMillis} ms"
           drawLine(routeLayer, coll)
           coords.headOption.map: start =>

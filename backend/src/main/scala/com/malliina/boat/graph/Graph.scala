@@ -151,7 +151,7 @@ class Graph(val nodes: Map[CoordHash, ValueNode]):
     val end = nodes.get(to.hash).map(_.from).getOrElse(nearest(to))
     for
       startNode <- start
-      _ = log.info(s"Starting from ${startNode.from} and ending at $end...")
+      _ = log.debug(s"Starting from ${startNode.from} and ending at $end...")
       initialPaths =
         startNode.links.map(link => ValueRoute(link, Link(startNode.from, DistanceM.zero) :: Nil))
       result <- search(startNode.from, end, initialPaths, Map.empty)
