@@ -37,7 +37,7 @@ class Polestar[F[_]: Async](http: HttpClient[F]):
   val auth = PolestarAuth(http)
   private val baseUrl = https"pc-api.polestar.com/eu-north-1/"
   private val v2Url = baseUrl / "mystar-v2"
-  private val publicUrl = baseUrl / "mystar-public"
+  private val publicUrl = baseUrl / "mystar-public" / "/"
   private val publicApiKey = "da2-js63uvc7c5hwpdudt657d5lyou"
   private val carsQuery = resource("get-cars.graphql")
   private val imagesQuery = resource("get-car-images.graphql")

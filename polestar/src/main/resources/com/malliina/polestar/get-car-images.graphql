@@ -1,5 +1,5 @@
-query GetCarImages($pno34: String!, $structureWeek: String!, $modelYear: String!) {
-  getCarImages(pno34: $pno34, structureWeek: $structureWeek, modelYear: $modelYear) {
+query GetCarImages($pno34: String!, $structureWeek: String!, $modelYear: String!, $locale: String!) {
+  getCarImages(pno34: $pno34, structureWeek: $structureWeek, modelYear: $modelYear, locale: $locale) {
     transparent {
       url
       angle

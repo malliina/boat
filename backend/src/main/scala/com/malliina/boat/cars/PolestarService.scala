@@ -6,7 +6,7 @@ import cats.syntax.all.{catsSyntaxApplicativeError, toFlatMapOps, toFunctorOps}
 import com.malliina.boat.cars.PolestarService.{log, toCar}
 import com.malliina.boat.db.{RefreshService, TokenManager}
 import com.malliina.boat.{Car, CarBattery, CarHealth, CarOdometer, CarSummary, CarTelematics, CarsTelematics, TimeFormatter, Updated, UserInfo, VIN}
-import com.malliina.http.{FullUrl, ResponseException}
+import com.malliina.http.{FullUrl, JsonError, ResponseException, StatusError}
 import com.malliina.polestar.Polestar.Tokens
 import com.malliina.polestar.{Polestar, PolestarCarInfo, Variables}
 import com.malliina.util.AppLogger
@@ -39,6 +39,16 @@ class PolestarService[F[_]: Async](
   def carSummariesOrEmpty(user: UserInfo): F[Seq[CarSummary]] =
     carSummaries(user)
       .recover:
+        case re: ResponseException =>
+          re.error match
+            case StatusError(response, url) =>
+              log.error(s"Status error for ${user.id} (${user.email}).", re)
+            case JsonError(error, response, url) =>
+              log.error(
+                s"JSON error for ${user.id} (${user.email}). ${error.getMessage}",
+                Option(error.getCause).getOrElse(re)
+              )
+          Nil
         case e: Exception =>
           log.error(s"Failed to fetch cars and telematics for ${user.id} (${user.email}).", e)
           Nil
@@ -89,7 +99,7 @@ class PolestarService[F[_]: Async](
           cs.traverse: car =>
             val vin = car.vin
             val image: Variables.Image =
-              Variables.Image(car.pno34, car.structureWeek, car.modelYear)
+              Variables.Image(car.pno34, car.structureWeek, car.modelYear, car.locale)
             for
               images <- polestar.fetchCarImages(image, token)
               image <- effect(

@@ -212,7 +212,7 @@ object BoatsPage extends BoatImplicits with HTMLConstants:
       ),
       if cars.isEmpty then
         div(cls := s"$row mb-3")(
-          p("No cars.")
+          p(carLang.noCars)
         )
       else
         cars.map: car =>

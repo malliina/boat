@@ -15,14 +15,14 @@ case class OpenIdConfiguration(authorization_endpoint: FullUrl, token_endpoint: 
 
 enum Variables:
   case VINS(vins: Seq[VIN])
-  case Image(pno34: String, structureWeek: String, modelYear: String)
+  case Image(pno34: String, structureWeek: String, modelYear: String, locale: String)
 
 object Variables:
   given vinsCodec: Codec[VINS] = Codec.derived
   given imageCodec: Codec[Image] = Codec.derived
   given Encoder[Variables] =
-    case vins @ VINS(_)         => vins.asJson
-    case image @ Image(_, _, _) => image.asJson
+    case vins @ VINS(_)            => vins.asJson
+    case image @ Image(_, _, _, _) => image.asJson
   given Decoder[Variables] = Decoder[VINS].or(Decoder[Image].widen)
 
 case class GraphQuery(query: String, variables: Option[Variables]) derives Codec.AsObject
@@ -87,8 +87,10 @@ case class PolestarCarInfo(
   drivetrain: String,
   software: CarSoftware,
   pno34: String,
-  structureWeek: String // "202237"
-) derives Codec.AsObject
+  structureWeek: String, // "202237",
+  market: String // "FI
+) derives Codec.AsObject:
+  def locale = market.toLowerCase
 
 case class CarsData(getConsumerCarsV2: Seq[PolestarCarInfo]) derives Codec.AsObject
 

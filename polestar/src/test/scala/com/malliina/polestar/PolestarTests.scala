@@ -2,6 +2,7 @@ package com.malliina.polestar
 
 import cats.effect.IO
 import ch.qos.logback.classic.Level
+import com.malliina.http.{JsonError, OkHttpResponse, ResponseException, StatusError}
 import com.malliina.logback.LogbackUtils
 import com.malliina.values.{AccessToken, RefreshToken}
 
@@ -52,11 +53,29 @@ class PolestarTests extends munit.CatsEffectSuite:
           cars <- client.fetchCars(token)
           car = cars.head
           tele <- client.fetchTelematics(car.vin, token)
+          image: Variables.Image = Variables.Image(
+            car.pno34,
+            car.structureWeek,
+            car.modelYear,
+            "fi"
+          )
+          images <- client.fetchCarImages(image, token)
         yield (car, tele)
         task
           .map: (car, tele) =>
             println(car)
             println(tele)
+          .handleError:
+            case re: ResponseException =>
+              re.error match
+                case JsonError(error, response, url) =>
+                  response match
+                    case r: OkHttpResponse => println(r.asString)
+                case StatusError(response, url) =>
+                  response match
+                    case r: OkHttpResponse => println(s"From $url: '${r.asString}'.")
+            case other =>
+              println("o")
 
   val str =
     """
