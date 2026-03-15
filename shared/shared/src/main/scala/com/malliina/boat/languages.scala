@@ -613,7 +613,9 @@ case class CarInfoLang(
   timeToFull: String,
   estimatedRange: String,
   odometer: String,
-  daysToService: String
+  daysToService: String,
+  minutes: String,
+  notAvailable: String
 ) derives Codec.AsObject
 
 case class PolestarLang(
@@ -1257,7 +1259,9 @@ object Lang:
           "Charging time",
           "Range",
           "Odometer",
-          "Days to service"
+          "Days to service",
+          "minutes",
+          "Not available"
         )
       ),
       "Actions",
@@ -1472,7 +1476,9 @@ object Lang:
           "Latausaika",
           "Toimintamatka",
           "Kilometrit",
-          "Päiviä huoltoon"
+          "Päiviä huoltoon",
+          "minuuttia",
+          "Ei saatavilla"
         )
       ),
       "Toimenpiteet",
@@ -1682,7 +1688,9 @@ object Lang:
           "Laddningstid",
           "Räckvidd",
           "Odometer",
-          "Dagar till service"
+          "Dagar till service",
+          "minuter",
+          "Inte tillgänglig"
         )
       ),
       "Ändringar",

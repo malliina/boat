@@ -21,9 +21,9 @@ object PolestarService:
       car.vin,
       car.registrationNo,
       car.modelYear,
-      car.software.version,
-      content.interior.name,
-      content.exterior.name,
+      car.software.map(_.version),
+      content.interior.map(_.name),
+      content.exterior.map(_.name),
       image,
       telematics
     )

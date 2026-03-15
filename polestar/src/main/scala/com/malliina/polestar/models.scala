@@ -66,10 +66,10 @@ case class CarEnergy(elecRange: String, elecRangeUnit: String) derives Codec.AsO
   */
 case class CarSoftware(version: String, versionTimestamp: String) derives Codec.AsObject
 case class CarContent(
-  exterior: CarExterior,
-  interior: CarInterior,
-  wheels: CarWheels,
-  motor: CarMotor,
+  exterior: Option[CarExterior],
+  interior: Option[CarInterior],
+  wheels: Option[CarWheels],
+  motor: Option[CarMotor],
   model: CarModel
   // images: CarImages
 ) derives Codec.AsObject
@@ -77,15 +77,13 @@ case class CarContent(
 case class PolestarCarInfo(
   vin: VIN,
   currentPlannedDeliveryDate: Option[LocalDate],
-  factoryCompleteDate: Option[LocalDate],
-  registrationDate: Option[LocalDate],
   deliveryDate: Option[LocalDate],
   modelYear: String, // "2023"
   registrationNo: RegistrationNumber,
   content: CarContent,
-  energy: CarEnergy,
-  drivetrain: String,
-  software: CarSoftware,
+  energy: Option[CarEnergy],
+  drivetrain: Option[String],
+  software: Option[CarSoftware],
   pno34: String,
   structureWeek: String, // "202237",
   market: String // "FI

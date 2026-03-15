@@ -78,7 +78,10 @@ object BoatsPage extends BoatImplicits with HTMLConstants:
       infoLang.chargingStatus -> (if car.battery.chargingStatus == ChargingStatus.Charging then
                                     infoLang.charging
                                   else infoLang.idle),
-      infoLang.timeToFull -> car.battery.chargingTimeToFull.map(_.toString).getOrElse("N/A"),
+      infoLang.timeToFull -> car.battery.chargingTimeToFull
+        .filter(_ => car.battery.chargingStatus == ChargingStatus.Charging)
+        .map(d => s"${d.toMinutes} ${infoLang.minutes}")
+        .getOrElse(infoLang.notAvailable),
       infoLang.estimatedRange -> car.battery.range,
       infoLang.odometer -> car.odometer.odometer,
       infoLang.daysToService -> car.health.daysToService
@@ -88,9 +91,9 @@ object BoatsPage extends BoatImplicits with HTMLConstants:
         plang.registrationNumber -> car.registrationNumber,
         plang.vin -> car.vin,
         plang.modelYear -> car.modelYear,
-        plang.softwareVersion -> car.softwareVersion,
-        plang.interior -> car.interiorSpec,
-        plang.exterior -> car.exteriorSpec
+        plang.softwareVersion -> car.softwareVersion.getOrElse(infoLang.notAvailable),
+        plang.interior -> car.interiorSpec.getOrElse(infoLang.notAvailable),
+        plang.exterior -> car.exteriorSpec.getOrElse(infoLang.notAvailable)
       ) ++ telematicsFields).map: (key, value) =>
         div(cls := "d-flex flex-column col-12 col-sm-6 col-md-4 text-center mb-2")(
           div(cls := "fw-semibold")(key),

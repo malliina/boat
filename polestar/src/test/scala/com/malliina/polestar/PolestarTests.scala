@@ -70,7 +70,8 @@ class PolestarTests extends munit.CatsEffectSuite:
               re.error match
                 case JsonError(error, response, url) =>
                   response match
-                    case r: OkHttpResponse => println(r.asString)
+                    case r: OkHttpResponse =>
+                      println(r.asString)
                 case StatusError(response, url) =>
                   response match
                     case r: OkHttpResponse => println(s"From $url: '${r.asString}'.")
