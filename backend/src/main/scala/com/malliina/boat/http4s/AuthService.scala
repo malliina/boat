@@ -145,7 +145,7 @@ class AuthService[F[_]: Sync](
     val headers = req.headers
     authSession(headers)
       .map: email =>
-        users.boats(email, Limits(10, 0)).map(boats => Right(Option(boats)))
+        users.boats(email, Limits(100, 0)).map(boats => Right(Option(boats)))
       .getOrElse:
         val providerCookieName = comps.web.cookieNames.provider
         // Why not always do this?

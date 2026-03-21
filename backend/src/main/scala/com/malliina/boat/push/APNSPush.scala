@@ -114,7 +114,7 @@ class APNSPush[F[_]: Monad](prod: APNSHttpClientF[F]) extends PushClient[F, APNS
       val duration = BoatFormats.durationHuman(notification.duration)
       val stats =
         s"$distance after $duration of track '${notification.trackName}'"
-      log.info(
+      log.debug(
         s"Pushed $event event of $bytes with '${notification.message(geo.geocode)}' of $stats to '$to'."
       )
       s
