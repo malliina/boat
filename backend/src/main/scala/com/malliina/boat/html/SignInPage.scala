@@ -15,10 +15,12 @@ object SignInPage extends BoatImplicits:
           h1(lang.signIn)
         )
       ),
-      div(cls := "row social-container")(
-        socialButton(AuthProvider.Google, s"${lang.signInWith} Google"),
-        socialButton(AuthProvider.Microsoft, s"${lang.signInWith} Microsoft"),
-        socialButton(AuthProvider.Apple, s"${lang.signInWith} Apple")
+      div(cls := "row")(
+        div(cls := "col-md-12 social-container")(
+          socialButton(AuthProvider.Google, s"${lang.signInWith} Google"),
+          socialButton(AuthProvider.Microsoft, s"${lang.signInWith} Microsoft"),
+          socialButton(AuthProvider.Apple, s"${lang.signInWith} Apple")
+        )
       )
     )
 
