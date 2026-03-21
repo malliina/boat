@@ -3,20 +3,22 @@ package com.malliina.boat.html
 import com.malliina.boat.SettingsLang
 import com.malliina.boat.auth.AuthProvider
 import com.malliina.boat.http4s.Reverse
+import com.malliina.html.Bootstrap
+import com.malliina.html.Tags
 import scalatags.Text.all.*
 
-object SignInPage extends BoatImplicits:
+object SignInPage extends Bootstrap(Tags(scalatags.Text)) with BoatImplicits:
   val reverse = Reverse
 
   def apply(lang: SettingsLang) =
     div(cls := "container auth-form ml-auto mr-auto")(
-      div(cls := "row")(
-        div(cls := "col-md-12")(
+      row(
+        div(cls := col.md.twelve)(
           h1(lang.signIn)
         )
       ),
-      div(cls := "row")(
-        div(cls := "col-md-12 social-container")(
+      row(
+        div(cls := s"${col.md.twelve} social-container")(
           socialButton(AuthProvider.Google, s"${lang.signInWith} Google"),
           socialButton(AuthProvider.Microsoft, s"${lang.signInWith} Microsoft"),
           socialButton(AuthProvider.Apple, s"${lang.signInWith} Apple")
