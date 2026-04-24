@@ -4,7 +4,7 @@ import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 
 import cats.effect.IO
-import com.malliina.boat.{BoatNames, BoatToken, BoatTokens, RawSentence, SentencesMessage}
+import com.malliina.boat.{DeviceNames, BoatToken, BoatTokens, RawSentence, SentencesMessage}
 import com.malliina.http.FullUrl
 import com.malliina.util.FileUtils
 
@@ -47,7 +47,7 @@ class ManualBoatTests extends BoatTests:
         boat.send(msg) >> IO.sleep(500.millis)
 
   test("generate names".ignore):
-    val name = BoatNames.random()
+    val name = DeviceNames.random()
     val token = BoatTokens.random()
     println(name)
     println(token)

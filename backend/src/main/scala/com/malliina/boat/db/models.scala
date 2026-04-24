@@ -7,6 +7,8 @@ import com.malliina.values.{Email, ErrorMessage, RefreshToken, StringEnumCompani
 
 import java.time.Instant
 
+import Mappings.given
+
 case class PushDevice(
   id: PushId,
   token: PushToken,
@@ -15,7 +17,7 @@ case class PushDevice(
   liveActivityId: Option[TrackName],
   user: UserId,
   added: Instant
-)
+) derives doobie.Read
 
 case class PushInput(
   token: PushToken,
@@ -38,11 +40,11 @@ case class DbTrackInfo(
   avgOutsideTemp: Option[Temperature],
   distance: DistanceM,
   points: Int
-)
+) derives doobie.Read
 
-case class PreviousPoint(coord: Coord, trackIndex: Int)
+case class PreviousPoint(coord: Coord, trackIndex: Int) derives doobie.Read
 
-case class CoordFairway(coord: CoordHash, fairway: FairwayRow)
+case class CoordFairway(coord: CoordHash, fairway: FairwayRow) derives doobie.Read
 case class CoordFairways(coord: CoordHash, fairways: Seq[FairwayRow])
 
 case class NewUser(user: Username, email: Option[Email], token: UserToken, enabled: Boolean)
@@ -74,9 +76,9 @@ case class RefreshRow(
   lastVerification: Instant,
   canVerify: Boolean,
   added: Instant
-)
+) derives doobie.Read
 
-case class MmsiRow(mmsi: Mmsi, name: VesselName, draft: DistanceM)
+case class MmsiRow(mmsi: Mmsi, name: VesselName, draft: DistanceM) derives doobie.Write
 case class MmsiUpdateRow(
   mmsi: Mmsi,
   coord: Coord,
@@ -86,4 +88,4 @@ case class MmsiUpdateRow(
   heading: Option[Int],
   eta: Long,
   timestampMillis: Long
-)
+) derives doobie.Write

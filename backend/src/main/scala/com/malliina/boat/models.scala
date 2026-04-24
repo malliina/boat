@@ -1,6 +1,7 @@
 package com.malliina.boat
 
 import com.comcast.ip4s.{Host, Port}
+import com.malliina.boat.db.Mappings.given
 import com.malliina.geo.{Coord, Latitude, Longitude}
 import com.malliina.measure.{DistanceM, SpeedM, Temperature}
 import com.malliina.values.*
@@ -39,13 +40,18 @@ case class LocationUpdate(
   val coord = Coord(longitude, latitude)
 
 object LocationUpdate:
-  given Codec[SpeedM] = Codec.from(
-    Decoder.decodeDouble.map(mps => SpeedM(mps)),
-    Encoder.encodeDouble.contramap(_.toMps)
-  )
+  given Codec[SpeedM] = SpeedM.mpsJson
   given Codec[LocationUpdate] = deriveCodec[LocationUpdate]
 
-case class LocationUpdates(updates: List[LocationUpdate], carId: DeviceId) derives Codec.AsObject
+case class LocationUpdates(updates: List[LocationUpdate], carId: Option[DeviceId])
+  derives Codec.AsObject
+
+object LocationUpdates:
+  def car(updates: List[LocationUpdate], carId: DeviceId): LocationUpdates =
+    LocationUpdates(updates, Option(carId))
+
+  def mobile(updates: List[LocationUpdate]): LocationUpdates =
+    LocationUpdates(updates, None)
 
 case class Languages(finnish: Lang, swedish: Lang, english: Lang) derives Codec.AsObject
 
@@ -168,7 +174,7 @@ case class JoinedTrack(
   topSpeed: Option[SpeedM],
   tip: CombinedCoord,
   boat: JoinedSource
-) extends TrackLike:
+) extends TrackLike derives doobie.Read:
   def boatId = boat.device
   def language = boat.language
   def user = boat.user
@@ -265,13 +271,13 @@ case class TrackMeta(
   points: Int,
   distance: DistanceM,
   boat: DeviceId,
-  boatName: BoatName,
+  boatName: DeviceName,
   sourceType: SourceType,
   boatToken: BoatToken,
   userId: UserId,
   username: Username,
   email: Option[Email]
-) extends UserDevice:
+) extends UserDevice derives doobie.Read:
   override def deviceName = boatName
   override def device = boat
   def short = TrackMetaShort(track, trackName, boat, boatName, username)
@@ -286,11 +292,11 @@ case class BoatEvent(message: Json, from: TrackMeta, userAgent: Option[UserAgent
 
 case class BoatJsonError(error: DecodingFailure, boat: BoatEvent)
 
-object BoatNames:
+object DeviceNames:
   val Key = "boatName"
   val BoatKey = "boat"
 
-  def random() = BoatName.unsafe(CIString(Utils.randomString(6)))
+  def random() = DeviceName.unsafe(CIString(Utils.randomString(6)))
 
 case class PushPayload(
   token: PushToken,
@@ -317,7 +323,7 @@ case class CarsAndBoats(cars: Seq[CarSummary]) derives Codec.AsObject
 
 case class JoinedSource(
   device: DeviceId,
-  boatName: BoatName,
+  boatName: DeviceName,
   sourceType: SourceType,
   boatToken: BoatToken,
   gpsIp: Option[Host],
@@ -327,7 +333,7 @@ case class JoinedSource(
   email: Option[Email],
   language: Language
 ) extends IdentifiedDeviceMeta
-  with UserDevice:
+  with UserDevice derives doobie.Read:
   override def user = username
   override def boat = boatName
   override def deviceName = boatName
@@ -421,7 +427,7 @@ case class SentenceCoord2(
   sentenceId: SentenceKey,
   sentenceRaw: RawSentence,
   sentenceAdded: Instant
-):
+) derives doobie.Read:
   def c = CombinedCoord(
     id,
     lon,
@@ -459,7 +465,7 @@ case class CombinedCoord(
   date: DateVal,
   track: TrackId,
   added: Instant
-):
+) derives doobie.Read:
   def toFull(sentences: Seq[SentenceRow], formatter: TimeFormatter): CombinedFullCoord =
     CombinedFullCoord(
       id,
@@ -549,7 +555,7 @@ case class TrackPointRow(
   trackIndex: Int,
   diff: DistanceM,
   added: Instant
-):
+) derives doobie.Read:
   def depth = depthm
   def depthOffset = depthOffsetm
   def dateTimeUtc = sourceTime.atOffset(ZoneOffset.UTC)

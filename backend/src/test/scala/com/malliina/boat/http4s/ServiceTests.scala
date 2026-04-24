@@ -28,9 +28,9 @@ class ServiceTests extends MUnitSuite with Http4sSuite:
     val service = comps.service
     val user = Username.unsafe("test@example.com")
     val userEmail = TestEmailAuth[IO].testEmail
-    val newName = BoatNames.random()
+    val newName = DeviceNames.random()
 
-    def changeName(of: DeviceId, to: BoatName) =
+    def changeName(of: DeviceId, to: DeviceName) =
       val req = Method.PATCH(
         Json.obj("boatName" -> to.asJson),
         uri"/boats".addSegment(of.show),
@@ -61,7 +61,7 @@ class ServiceTests extends MUnitSuite with Http4sSuite:
         NewUser(user, Option(TestEmailAuth[IO].testEmail), UserToken.random(), enabled = true)
       )
       track <- inserts.joinAsSource(
-        BoatUser(TrackNames.random(), BoatNames.random(), SourceType.Boat, user, Language.default)
+        BoatUser(TrackNames.random(), DeviceNames.random(), SourceType.Boat, user, Language.default)
       )
       coord = FullCoord(
         Coord.buildOrFail(60, 24),

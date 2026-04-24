@@ -4,7 +4,7 @@ import cats.syntax.all.toFunctorOps
 import cats.syntax.show.toShow
 import cats.{Functor, Monad}
 import com.malliina.boat.push.FCMPush.log
-import com.malliina.boat.{BoatName, FCMConf}
+import com.malliina.boat.{DeviceName, FCMConf}
 import com.malliina.http.HttpClient
 import com.malliina.push.fcm.FCMClientF
 import com.malliina.push.gcm.{GCMMessage, GCMToken, GoogleClientF}
@@ -23,7 +23,7 @@ class FCMPush[F[_]: Functor](fcm: GoogleClientF[F]) extends PushClient[F, GCMTok
   override def push(notification: SourceNotification, geo: PushGeo, to: GCMToken): F[PushSummary] =
     val message = GCMMessage(
       Map(
-        BoatName.Key -> notification.boatName.show,
+        DeviceName.Key -> notification.boatName.show,
         SourceState.Key -> notification.state.name,
         SourceNotification.Message -> notification.message(geo.geocode),
         SourceNotification.Title -> notification.title

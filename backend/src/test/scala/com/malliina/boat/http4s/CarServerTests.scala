@@ -42,7 +42,7 @@ class CarServerTests extends MUnitSuite with ServerFunSuite:
     http
       .postJson(
         s.baseHttpUrl / Reverse.postCars,
-        LocationUpdates(Nil, testCarId).asJson,
+        LocationUpdates.car(Nil, testCarId).asJson,
         Map(s.csrf.headerName.toString -> s.csrf.noCheck)
       )
       .map: res =>
@@ -52,7 +52,7 @@ class CarServerTests extends MUnitSuite with ServerFunSuite:
     http
       .postJson(
         s.baseHttpUrl / Reverse.postCars,
-        LocationUpdates(Nil, testCarId).asJson,
+        LocationUpdates.car(Nil, testCarId).asJson,
         headersStr(TestEmailAuth.expiredToken, s.csrf)
       )
       .map: res =>
@@ -65,20 +65,20 @@ class CarServerTests extends MUnitSuite with ServerFunSuite:
         )
 
   srv.test("POST call with working jwt"): s =>
-    successfulTest(s)(carId => LocationUpdates(Nil, carId))
+    successfulTest(s)(carId => LocationUpdates.car(Nil, carId))
 
   srv.test("POST call with working jwt and update with no speed"): s =>
     val json =
       """
         |{ "updates" : [ { "longitude" : -122.084, "latitude" : 37.421998333333335, "altitudeMeters" : 5.0, "accuracyMeters" : 5.0, "bearing" : null, "bearingAccuracyDegrees" : null, "speed" : null, "batteryLevel" : null, "batteryCapacity" : null, "rangeRemaining" : null, "outsideTemperature" : 25.0, "nightMode" : false, "date" : "2025-02-08T16:43:14.517+02:00" } ], "carId" : 1324 }""".stripMargin
     val ups = io.circe.parser.decode[LocationUpdates](json).fold(err => throw err, identity)
-    successfulTest(s)(carId => ups.copy(carId = carId))
+    successfulTest(s)(carId => ups.copy(carId = Option(carId)))
 
   srv.test("POST car locations for non-owned car fails"): s =>
     http
       .postJson(
         s.baseHttpUrl / Reverse.postCars,
-        LocationUpdates(List(loc), DeviceId.unsafe(123)).asJson,
+        LocationUpdates.car(List(loc), DeviceId.unsafe(123)).asJson,
         headersStr(TestEmailAuth.testToken, s.csrf)
       )
       .map: res =>
@@ -87,7 +87,7 @@ class CarServerTests extends MUnitSuite with ServerFunSuite:
   def successfulTest(s: ServerTools)(ups: DeviceId => LocationUpdates) =
     val user = Username.unsafe("test@example.com")
     val service = s.server.app
-    val meta = SimpleSourceMeta(user, BoatNames.random(), SourceType.Vehicle, Language.default)
+    val meta = SimpleSourceMeta(user, DeviceNames.random(), SourceType.Vehicle, Language.default)
     for
       _ <- service.userMgmt.deleteUser(user)
       _ <- service.userMgmt.addUser(

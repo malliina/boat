@@ -139,7 +139,7 @@ object TrackComments:
 
 case class ChangeComments(comments: String) derives Codec.AsObject
 
-case class AddSource(boatName: BoatName, sourceType: SourceType) derives Codec.AsObject
+case class AddSource(boatName: DeviceName, sourceType: SourceType) derives Codec.AsObject
 
 /** An NMEA Sentence.
   *
@@ -185,7 +185,7 @@ object Language extends StringEnumCompanion[Language]:
 
 case class ChangeLanguage(language: Language) derives Codec.AsObject
 
-case class ChangeBoatName(boatName: BoatName) derives Codec.AsObject
+case class ChangeBoatName(boatName: DeviceName) derives Codec.AsObject
 
 case class SimpleMessage(message: String) derives Codec.AsObject
 
@@ -195,12 +195,12 @@ trait SourceTrackMeta extends DeviceMeta:
 trait UserDevice:
   def userId: UserId
   def device: DeviceId
-  def deviceName: BoatName
+  def deviceName: DeviceName
   def sourceType: SourceType
 
 trait DeviceMeta:
   def user: Username
-  def boat: BoatName
+  def boat: DeviceName
   def sourceType: SourceType
   def describe = s"'$boat' by '$user'"
   def language: Language
@@ -211,7 +211,7 @@ trait IdentifiedDeviceMeta extends DeviceMeta:
 
 case class SimpleSourceMeta(
   user: Username,
-  boat: BoatName,
+  boat: DeviceName,
   sourceType: SourceType,
   language: Language
 ) extends DeviceMeta
@@ -239,7 +239,7 @@ object PushTokenType extends StringEnumCompanion[PushTokenType]:
 
 case class Boat(
   id: DeviceId,
-  name: BoatName,
+  name: DeviceName,
   sourceType: SourceType,
   token: BoatToken,
   gps: Option[GPSInfo],
@@ -344,18 +344,18 @@ case class CarSummary(
 trait MinimalUserInfo:
   def username: Username
   def language: Language
-  def authorized: Seq[BoatName]
+  def authorized: Seq[DeviceName]
 
 object MinimalUserInfo:
   def anon: MinimalUserInfo = SimpleUserInfo(Usernames.anon, Language.default, Nil)
 
-case class SimpleUserInfo(username: Username, language: Language, authorized: Seq[BoatName])
+case class SimpleUserInfo(username: Username, language: Language, authorized: Seq[DeviceName])
   extends MinimalUserInfo
 
 trait EmailUser extends MinimalUserInfo:
   def email: Email
 
-case class BoatRef(id: DeviceId, name: BoatName) derives Codec.AsObject
+case class BoatRef(id: DeviceId, name: DeviceName) derives Codec.AsObject
 
 case class Invite(boat: BoatRef, state: InviteState, addedMillis: Long) derives Codec.AsObject
 
@@ -381,14 +381,14 @@ case class UserInfo(
   invites: Seq[Invite],
   friends: Seq[FriendInvite]
 ) extends EmailUser derives Codec.AsObject:
-  override val authorized: Seq[BoatName] = boats.map(_.name) ++ invites.map(_.boat.name)
+  override val authorized: Seq[DeviceName] = boats.map(_.name) ++ invites.map(_.boat.name)
   def userBoats = UserBoats(username, language, Nil) // Nil is wrong, but fine for now
   def withCars(cars: Seq[CarSummary]): UserInfo = copy(cars = cars)
 
 case class UserContainer(user: UserInfo) derives Codec.AsObject
 
 trait TrackMetaLike:
-  def boatName: BoatName
+  def boatName: DeviceName
   def trackName: TrackName
   def username: Username
 
@@ -399,7 +399,7 @@ case class TrackMetaShort(
   track: TrackId,
   trackName: TrackName,
   boat: DeviceId,
-  boatName: BoatName,
+  boatName: DeviceName,
   username: Username
 ) extends TrackMetaLike derives Codec.AsObject
 
@@ -429,7 +429,7 @@ object PatchBoat:
 
 case class DeviceRef(
   id: DeviceId,
-  name: BoatName,
+  name: DeviceName,
   username: Username,
   gps: Option[GPSInfo]
 ) derives Codec.AsObject
@@ -445,7 +445,7 @@ case class TrackRef(
   canonical: TrackCanonical,
   comments: Option[String],
   boat: DeviceId,
-  boatName: BoatName,
+  boatName: DeviceName,
   sourceType: SourceType,
   username: Username,
   points: Int,
@@ -476,7 +476,7 @@ case class InsertedTrackPoint(point: TrackPointId, track: TrackRef)
 
 case class BoatUser(
   track: TrackName,
-  boat: BoatName,
+  boat: DeviceName,
   sourceType: SourceType,
   user: Username,
   language: Language
@@ -484,7 +484,7 @@ case class BoatUser(
 
 case class BoatInfo(
   boatId: DeviceId,
-  boat: BoatName,
+  boat: DeviceName,
   user: Username,
   language: Language,
   tracks: Seq[TrackRef]
@@ -535,7 +535,7 @@ object Energy extends ValidatingCompanion[Double, Energy]:
     def <(other: Energy): Boolean = e.wattHours < other.wattHours
 extension (e: Double) def wh: Energy = e
 
-case class CarInfo(id: DeviceId, name: BoatName, username: Username) derives Codec.AsObject
+case class CarInfo(id: DeviceId, name: DeviceName, username: Username) derives Codec.AsObject
 
 case class CoordsBatch(events: Seq[CoordsEvent]) extends FrontEvent derives Codec.AsObject:
   override def isIntendedFor(user: MinimalUserInfo): Boolean =
@@ -693,13 +693,14 @@ object MapConf:
 enum SourceType(val name: String):
   case Vehicle extends SourceType("vehicle")
   case Boat extends SourceType("boat")
+  case Mobile extends SourceType("mobile")
   case Other(n: String) extends SourceType(n)
 
 object SourceType extends StringEnumCompanion[SourceType]:
   val Key = "sourceType"
 
   def orOther(in: String): SourceType = build(in).getOrElse(Other(in))
-  override def all = Seq(Vehicle, Boat)
+  override def all = Seq(Boat, Mobile, Vehicle)
   override def write(t: SourceType) = t.name
 
 enum InviteState(val name: String):

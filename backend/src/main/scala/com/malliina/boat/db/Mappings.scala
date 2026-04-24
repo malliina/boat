@@ -6,7 +6,7 @@ import com.malliina.boat.db.Values.VesselUpdateId
 
 import java.time.{Instant, LocalDate, OffsetDateTime, ZoneOffset}
 import com.malliina.boat.parsing.GPSFix
-import com.malliina.boat.{AisUpdateId, BoatName, BoatToken, CarUpdateId, DateVal, DeviceId, Energy, FairwayLighting, InviteState, Language, LiveActivityId, Mmsi, MonthVal, PhoneId, PushId, PushToken, PushTokenType, RawSentence, SeaArea, SentenceKey, SourceType, TrackCanonical, TrackId, TrackName, TrackPointId, TrackTitle, UserAgent, UserToken, VesselName, VesselRowId, YearVal}
+import com.malliina.boat.{AisUpdateId, BoatRef, BoatToken, CarUpdateId, DateVal, DayVal, DeviceId, DeviceName, Energy, FairwayLighting, FriendRef, InviteState, Language, LiveActivityId, Mmsi, MonthVal, PhoneId, PushId, PushToken, PushTokenType, RawSentence, SeaArea, SentenceKey, SourceType, TrackCanonical, TrackId, TrackName, TrackPointId, TrackTitle, UserAgent, UserToken, VesselName, VesselRowId, YearVal}
 import com.malliina.measure.{DistanceM, SpeedDoubleM, SpeedM, Temperature}
 import com.malliina.values.*
 import com.vividsolutions.jts.geom.Point
@@ -53,7 +53,7 @@ trait Mappings:
   given Meta[TrackName] = validated(TrackName)
   given Meta[TrackTitle] = validated(TrackTitle)
   given Meta[TrackCanonical] = validated(TrackCanonical)
-  given Meta[BoatName] = validated(BoatName)
+  given Meta[DeviceName] = validated(DeviceName)
   given Meta[BoatToken] = validated(BoatToken)
   given Meta[UserToken] = validated(UserToken)
   given Meta[Longitude] = validated(Longitude)
@@ -63,6 +63,7 @@ trait Mappings:
   given Meta[Username] = validated(Username)
   given Meta[Email] = validated(Email)
   given Meta[Language] = validated(Language)
+  given Meta[RefreshToken] = validated(RefreshToken)
   given Meta[CoordHash] = Meta[String].timap(CoordHash.fromString)(_.hash)
   given Meta[Temperature] = Meta[Double].timap(Temperature.apply)(_.celsius)
   given Meta[DistanceM] = Meta[Double].timap(DistanceM.apply)(_.meters)
@@ -73,6 +74,7 @@ trait Mappings:
     toCoord(SpatialUtils.fromBytes[Point](bytes)).left.map(_.message)
   )(SpatialUtils.coordToBytes)
   given Meta[DateVal] = Meta[LocalDate].timap(d => DateVal(d))(_.toLocalDate)
+  given Meta[DayVal] = validated(DayVal)
   given Meta[YearVal] = validated(YearVal)
   given Meta[MonthVal] = validated(MonthVal)
   given Meta[InviteState] =
@@ -87,6 +89,8 @@ trait Mappings:
   given Meta[Port] =
     Meta[Int].tiemap(i => Port.fromInt(i).toRight(s"Invalid port: '$i'."))(_.value)
   given Meta[UserAgent] = validated(UserAgent)
+  given Read[BoatRef] = doobie.Read.derived[BoatRef]
+  given Read[FriendRef] = doobie.Read.derived[FriendRef]
 
   private def validated[T, R: {Meta, Show}, C <: ValidatingCompanion[R, T]](c: C): Meta[T] =
     Meta[R].tiemap(r => c.build(r).left.map(err => err.message))(c.write)

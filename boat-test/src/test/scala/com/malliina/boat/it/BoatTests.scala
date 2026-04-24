@@ -13,7 +13,7 @@ type Socket = ReconnectingSocket[IO, ? <: WebSocketOps[IO]]
 abstract class BoatTests extends BaseSuite with ServerSuite with BoatSockets:
   export concurrent.duration.DurationInt
 
-  def openTestBoat[T](boat: BoatName, httpClient: HttpClient[IO])(
+  def openTestBoat[T](boat: DeviceName, httpClient: HttpClient[IO])(
     code: Socket => IO[T]
   ): IO[T] =
     openBoat(urlFor(reverse.ws.boats), Left(boat), httpClient)(code)
@@ -41,9 +41,9 @@ trait BoatSockets:
   def openRandomBoat[T](url: FullUrl, httpClient: HttpClient[IO])(
     code: Socket => IO[T]
   ): IO[T] =
-    openBoat(url, Left(BoatNames.random()), httpClient)(code)
+    openBoat(url, Left(DeviceNames.random()), httpClient)(code)
 
-  def openBoat[T](url: FullUrl, boat: Either[BoatName, BoatToken], httpClient: HttpClient[IO])(
+  def openBoat[T](url: FullUrl, boat: Either[DeviceName, BoatToken], httpClient: HttpClient[IO])(
     code: Socket => IO[T]
   ): IO[T] =
     val headers = boat.fold(

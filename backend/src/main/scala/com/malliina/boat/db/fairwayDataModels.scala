@@ -4,6 +4,7 @@ import com.malliina.boat.{FairwayLighting, SeaArea}
 import com.malliina.geo.{Coord, CoordHash, Latitude, Longitude}
 import com.malliina.measure.DistanceM
 import com.malliina.values.{ErrorMessage, ValidatedLong}
+import Mappings.given
 
 opaque type FairwayId = Long
 object FairwayId extends ValidatedLong[FairwayId]:
@@ -28,7 +29,7 @@ case class FairwayRow(
   classText: String,
   seaArea: SeaArea,
   state: Double
-)
+) derives doobie.Read
 
 case class FairwayCoord(
   id: FairwayCoordId,

@@ -1,9 +1,8 @@
 package com.malliina.boat.db
 
-import cats.implicits.*
+import cats.syntax.all.toTraverseOps
 import com.malliina.boat.{FairwayInfo, MUnitDatabaseSuite, MUnitSuite}
 import com.malliina.geojson.FeatureCollection
-import doobie.implicits.*
 import io.circe.parser.decode
 
 import java.nio.file.Files

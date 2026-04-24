@@ -11,7 +11,6 @@ import com.malliina.util.AppLogger
 import com.malliina.values.UserId
 import doobie.*
 import doobie.free.preparedstatement.PreparedStatementIO
-import doobie.implicits.*
 import doobie.util.log.{LoggingInfo, Parameters}
 
 import scala.annotation.tailrec
@@ -57,7 +56,7 @@ class TrackInserter[F[_]](val db: DoobieDatabase[F]) extends TrackInsertsDatabas
             where id = $tid""".update.run
     updateTrack(trackIO, updateIO)
 
-  def addSource(boat: BoatName, sourceType: SourceType, user: UserId): F[SourceRow] = run:
+  def addSource(boat: DeviceName, sourceType: SourceType, user: UserId): F[SourceRow] = run:
     saveNewSource(boat, sourceType, user, BoatTokens.random()).flatMap(id => boatById(id))
 
   def removeDevice(device: DeviceId, user: UserId): F[Int] = run:
@@ -277,7 +276,7 @@ class TrackInserter[F[_]](val db: DoobieDatabase[F]) extends TrackInsertsDatabas
                     boatById(id)
 
   private def saveNewSource(
-    name: BoatName,
+    name: DeviceName,
     sourceType: SourceType,
     user: UserId,
     token: BoatToken

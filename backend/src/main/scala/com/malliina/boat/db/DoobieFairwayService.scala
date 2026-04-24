@@ -1,13 +1,12 @@
 package com.malliina.boat.db
 
 import cats.data.NonEmptyList
-import cats.implicits.*
+import cats.syntax.all.{catsSyntaxList, toTraverseOps}
 import com.malliina.boat.db.DoobieFairwayService.collect
-import com.malliina.boat.{FairwayInfo}
+import com.malliina.boat.FairwayInfo
 import com.malliina.database.DoobieDatabase
 import com.malliina.geo.CoordHash
 import doobie.*
-import doobie.implicits.*
 
 object DoobieFairwayService:
   def collect(rows: Seq[CoordFairway]): Seq[CoordFairways] =

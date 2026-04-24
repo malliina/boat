@@ -11,14 +11,14 @@ import com.malliina.boat.{AppConf, DeviceId, PhoneId, PushId, PushToken, PushTok
 import com.malliina.database.DoobieDatabase
 import com.malliina.util.AppLogger
 import com.malliina.values.UserId
-import doobie.Fragments
-import doobie.implicits.*
+import doobie.{Fragments, Meta, Read}
 import doobie.util.update.Update
 
 object DoobiePushDatabase:
   private val log = AppLogger(getClass)
+  given Meta[PushId] = Mappings.given_Meta_PushId
 
-  case class PushStatus(id: PushId, active: Boolean)
+  case class PushStatus(id: PushId, active: Boolean) derives doobie.Read
 
 class DoobiePushDatabase[F[_]: Async](
   val db: DoobieDatabase[F],

@@ -8,20 +8,20 @@ import com.malliina.values.{Email, UserId, Username}
 import doobie.implicits.toSqlInterpolator
 import io.circe.Codec
 import io.circe.generic.semiauto.deriveCodec
-
+import com.malliina.boat.db.Mappings.given
 import java.time.Instant
 import scala.concurrent.duration.FiniteDuration
 
 case class SourceRow(
   id: DeviceId,
-  name: BoatName,
+  name: DeviceName,
   sourceType: SourceType,
   token: BoatToken,
   ip: Option[Host],
   port: Option[Port],
   owner: UserId,
   added: Instant
-):
+) derives doobie.Read:
   def toBoat = Boat(id, name, sourceType, token, gps, added.toEpochMilli)
   private def gps =
     for
@@ -40,7 +40,7 @@ case class UserRow(
   language: Language,
   enabled: Boolean,
   added: Instant
-)
+) derives doobie.Read
 
 case class TrackRow(
   id: TrackId,
@@ -54,7 +54,7 @@ case class TrackRow(
   canonical: TrackCanonical,
   comments: Option[String],
   added: Instant
-)
+) derives doobie.Read
 
 case class TrackTimes(
   track: TrackId,
@@ -76,7 +76,7 @@ case class DailyAggregates(
   duration: Option[FiniteDuration],
   tracks: Long,
   days: Long
-)
+) derives doobie.Read
 
 object DailyAggregates:
   given Codec[FiniteDuration] = BoatFormats.durationFormat
@@ -89,14 +89,14 @@ case class MonthlyAggregates(
   duration: Option[FiniteDuration],
   tracks: Long,
   days: Long
-)
+) derives doobie.Read
 case class YearlyAggregates(
   year: YearVal,
   distance: Option[DistanceM],
   duration: Option[FiniteDuration],
   tracks: Long,
   days: Long
-)
+) derives doobie.Read
 case class AllTimeAggregates(
   from: Option[DateVal],
   to: Option[DateVal],
@@ -104,13 +104,14 @@ case class AllTimeAggregates(
   duration: Option[FiniteDuration],
   tracks: Long,
   days: Long
-)
+) derives doobie.Read
 object AllTimeAggregates:
   val empty = AllTimeAggregates(None, None, None, None, 0L, 0L)
 
 case class TrackCoord(track: JoinedTrack, row: TrackPointRow)
-case class InviteRow(boat: BoatRef, state: InviteState, added: Instant)
+case class InviteRow(boat: BoatRef, state: InviteState, added: Instant) derives doobie.Read
 case class FriendRow(boat: BoatRef, friend: FriendRef, state: InviteState, added: Instant)
+  derives doobie.Read
 
 case class JoinedUser(
   user: UserRow,
@@ -118,7 +119,7 @@ case class JoinedUser(
   invite: Option[InviteRow],
   friend: Option[FriendRow],
   hasCars: Boolean
-)
+) derives doobie.Read
 
 case class VesselRow(
   id: VesselRowId,
@@ -132,7 +133,8 @@ case class VesselRow(
   heading: Option[Int],
   eta: Long,
   added: Instant
-) derives Codec.AsObject
+) derives Codec.AsObject,
+    doobie.Read
 
 case class VesselUpdate(
   coord: Coord,
@@ -154,7 +156,8 @@ case class VesselHistory(mmsi: Mmsi, name: VesselName, draft: DistanceM, updates
 case class VesselHistoryResponse(vessels: Seq[VesselHistory]) derives Codec.AsObject
 
 case class VesselResult(mmsi: Mmsi, name: VesselName, draft: DistanceM, added: Instant)
-  derives Codec.AsObject
+  derives Codec.AsObject,
+    doobie.Read
 
 case class VesselsResponse(vessels: List[VesselResult]) derives Codec.AsObject
 

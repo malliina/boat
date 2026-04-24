@@ -11,8 +11,8 @@ import com.malliina.measure.{DistanceM, SpeedM, Temperature}
 import com.malliina.util.AppLogger
 import com.malliina.values.Username
 import DoobieTracksDatabase.log
+import doobie.syntax.all.toSqlInterpolator
 import doobie.*
-import doobie.implicits.*
 
 import scala.concurrent.duration.{DurationInt, FiniteDuration}
 
@@ -78,7 +78,7 @@ class DoobieTracksDatabase[F[_]: Async](val db: DoobieDatabase[F])
     def topPointByTrack(name: TrackName) =
       val selectPoints = pointsByTrack(name)
       sql"$selectPoints order by p.speed desc limit 1"
-    def tracksByUser(user: Username, boats: Seq[BoatName], limits: Option[LimitLike]) =
+    def tracksByUser(user: Username, boats: Seq[DeviceName], limits: Option[LimitLike]) =
       val boatFilter =
         boats.toList.toNel.map(list => Fragments.in(fr"b.name", list)).getOrElse(fr"true")
       sql"${nonEmptyTracks(limits)} and $boatFilter and (b.user = $user or b.id in (select ub2.boat from users u2, users_boats ub2 where u2.id = ub2.user and u2.user = $user and ub2.state = $accepted))"

@@ -8,7 +8,7 @@ import com.malliina.values.{UserId, Username}
 trait TrackInsertsDatabase[F[_]]:
   def updateTitle(track: TrackName, title: TrackTitle, user: UserId): F[JoinedTrack]
   def updateComments(track: TrackId, comments: String, user: UserId): F[JoinedTrack]
-  def addSource(boat: BoatName, sourceType: SourceType, user: UserId): F[SourceRow]
+  def addSource(boat: DeviceName, sourceType: SourceType, user: UserId): F[SourceRow]
   def removeDevice(device: DeviceId, user: UserId): F[Int]
   def updateBoat(boat: DeviceId, update: PatchBoat, user: UserId): F[SourceRow]
 

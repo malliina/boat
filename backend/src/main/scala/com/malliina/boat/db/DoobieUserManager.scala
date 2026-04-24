@@ -2,14 +2,15 @@ package com.malliina.boat.db
 
 import com.malliina.boat.InviteState.accepted
 import com.malliina.boat.db.DoobieUserManager.{collectBoats, log}
+import com.malliina.boat.db.Mappings.given
 import com.malliina.boat.http.InviteResult.{AlreadyInvited, Invited, UnknownEmail}
 import com.malliina.boat.http.{AccessResult, InviteInfo, InviteResult, LimitLike}
-import com.malliina.boat.{BoatInfo, BoatNames, BoatToken, BoatTokens, DeviceId, FriendInvite, Invite, InviteState, JoinedSource, JoinedTrack, Language, TimeFormatter, UserBoats, UserInfo, UserToken, Usernames}
+import com.malliina.boat.{BoatInfo, DeviceNames, BoatToken, BoatTokens, DeviceId, FriendInvite, Invite, InviteState, JoinedSource, JoinedTrack, Language, TimeFormatter, UserBoats, UserInfo, UserToken, Usernames}
 import com.malliina.database.DoobieDatabase
 import com.malliina.util.AppLogger
 import com.malliina.values.{Email, RefreshToken, UserId, Username}
+import doobie.syntax.all.toDoobieApplicativeErrorOps
 import doobie.*
-import doobie.implicits.*
 
 object DoobieUserManager:
   private val log = AppLogger(getClass)
@@ -311,7 +312,7 @@ class DoobieUserManager[F[_]](db: DoobieDatabase[F]) extends IdentityManager[F] 
 
   private def boatInsertion(owner: UserId) =
     sql"""insert into boats(name, token, owner)
-          values(${BoatNames.random()}, ${BoatTokens.random()}, $owner)""".update.run
+          values(${DeviceNames.random()}, ${BoatTokens.random()}, $owner)""".update.run
 
   private def addInviteIO(
     boat: DeviceId,

@@ -24,6 +24,7 @@ object BoatFormats:
     val rounded = source match
       case SourceType.Vehicle  => formatKph(s)
       case SourceType.Boat     => formatKnots(s)
+      case SourceType.Mobile   => formatKph(s)
       case SourceType.Other(n) => formatKph(s)
     s"$rounded$unitSuffix"
 

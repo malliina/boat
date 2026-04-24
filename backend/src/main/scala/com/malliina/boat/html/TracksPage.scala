@@ -199,7 +199,7 @@ object TracksPage extends BoatSyntax:
       .map((k, v) => k -> Seq(v))
       .toMap ++ boatsQueryOf(q.sources)
 
-  private def boatsQueryOf(boats: Seq[BoatName]) =
+  private def boatsQueryOf(boats: Seq[DeviceName]) =
     if boats.nonEmpty then Map(TracksQuery.BoatsKey -> boats.map(n => n.show))
     else Map.empty
 

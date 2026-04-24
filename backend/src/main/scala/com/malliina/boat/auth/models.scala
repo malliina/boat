@@ -1,7 +1,7 @@
 package com.malliina.boat.auth
 
 import com.malliina.boat.db.RefreshTokenId
-import com.malliina.boat.{BoatName, Language, MinimalUserInfo}
+import com.malliina.boat.{DeviceName, Language, MinimalUserInfo}
 import com.malliina.config.ConfigReadable
 import com.malliina.http.SingleError
 import com.malliina.values.{Email, IdToken, Password, Username}
@@ -41,7 +41,7 @@ object CookieConf:
     s"$prefix-auth"
   )
 
-case class SettingsPayload(username: Username, language: Language, authorized: Seq[BoatName])
+case class SettingsPayload(username: Username, language: Language, authorized: Seq[DeviceName])
   extends MinimalUserInfo derives Codec.AsObject
 
 object SettingsPayload:

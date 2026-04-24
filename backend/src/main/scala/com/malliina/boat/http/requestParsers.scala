@@ -3,7 +3,7 @@ package com.malliina.boat.http
 import cats.implicits.*
 import com.malliina.http.{Errors, SingleError}
 import com.malliina.http4s.QueryParsers
-import com.malliina.boat.{BoatName, CarUpdateId, Constants, FromTo, FrontKeys, Mmsi, RouteRequest, SearchQuery, TimeFormatter, Timings, TrackCanonical, TrackName, VesselName}
+import com.malliina.boat.{DeviceName, CarUpdateId, Constants, FromTo, FrontKeys, Mmsi, RouteRequest, SearchQuery, TimeFormatter, Timings, TrackCanonical, TrackName, VesselName}
 import com.malliina.geo.{Coord, Latitude, Longitude}
 import com.malliina.measure.{DistanceIntM, DistanceM}
 import com.malliina.values.{Email, ErrorMessage}
@@ -92,7 +92,7 @@ object TrackQuery:
       limits <- LimitsBuilder(q, defaultLimit)
     yield TrackQuery(sort, order, limits)
 
-case class TracksQuery(sources: Seq[BoatName], query: TrackQuery):
+case class TracksQuery(sources: Seq[DeviceName], query: TrackQuery):
   def limits = query.limits
   def next = TracksQuery(sources, query.copy(limits = limits.next))
   def prev = limits.prev.map(p => TracksQuery(sources, query.copy(limits = p)))
@@ -100,10 +100,10 @@ case class TracksQuery(sources: Seq[BoatName], query: TrackQuery):
 object TracksQuery:
   val BoatsKey = "boats"
 
-  given QueryParamDecoder[BoatName] = QueryParsers.decoder(s => BoatName.build(CIString(s)))
+  given QueryParamDecoder[DeviceName] = QueryParsers.decoder(s => DeviceName.build(CIString(s)))
 
   def apply(q: Query): Either[Errors, TracksQuery] = for
-    boats <- QueryParsers.list[BoatName](BoatsKey, q)
+    boats <- QueryParsers.list[DeviceName](BoatsKey, q)
     query <- TrackQuery(q)
   yield TracksQuery(boats, query)
 

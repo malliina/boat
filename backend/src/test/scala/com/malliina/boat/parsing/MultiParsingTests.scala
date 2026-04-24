@@ -1,6 +1,6 @@
 package com.malliina.boat.parsing
 
-import com.malliina.boat.{BaseSuite, BoatName, DeviceId, RawSentence, TrackId, TrackMetaShort, TrackName}
+import com.malliina.boat.{BaseSuite, DeviceName, DeviceId, RawSentence, TrackId, TrackMetaShort, TrackName}
 import com.malliina.util.FileUtils
 import com.malliina.values.Username
 import org.typelevel.ci.CIStringSyntax
@@ -14,7 +14,7 @@ object MultiParsingTests:
     TrackId.unsafe(1),
     TrackName.unsafe("test"),
     DeviceId.unsafe(1),
-    BoatName.unsafe(ci"boat"),
+    DeviceName.unsafe(ci"boat"),
     Username.unsafe("u")
   )
 

@@ -6,7 +6,7 @@ import com.malliina.boat.DeviceId
 import com.malliina.geo.Coord
 import com.malliina.measure.DistanceM
 import doobie.ConnectionIO
-import doobie.implicits.*
+import doobie.syntax.all.toSqlInterpolator
 
 trait DoobieSQL:
   export Mappings.given

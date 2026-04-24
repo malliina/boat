@@ -2,7 +2,7 @@ package com.malliina.boat.db
 
 import com.malliina.boat.{BoatToken, DeviceId, JoinedSource, JoinedTrack}
 import doobie.*
-import doobie.implicits.*
+import doobie.syntax.all.toSqlInterpolator
 import com.malliina.boat.db.Mappings.given
 import com.malliina.boat.http.LimitLike
 

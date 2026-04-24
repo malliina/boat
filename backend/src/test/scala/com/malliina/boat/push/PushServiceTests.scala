@@ -1,7 +1,7 @@
 package com.malliina.boat.push
 
 import cats.effect.IO
-import com.malliina.boat.{AppConf, BaseSuite, BoatConf, BoatName, PushLang, TrackName}
+import com.malliina.boat.{AppConf, BaseSuite, BoatConf, DeviceName, PushLang, TrackName}
 import com.malliina.measure.DistanceIntM
 import com.malliina.push.apns.APNSToken
 import org.typelevel.ci.CIStringSyntax
@@ -17,7 +17,7 @@ class PushServiceTests extends BaseSuite:
       push.push(
         SourceNotification(
           AppConf.Name,
-          BoatName.unsafe(ci"TestBoat"),
+          DeviceName.unsafe(ci"TestBoat"),
           TrackName.unsafe("track1"),
           SourceState.Connected,
           0.meters,

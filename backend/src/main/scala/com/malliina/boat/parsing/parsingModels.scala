@@ -80,6 +80,47 @@ trait PointInsert:
   def userAgent: Option[UserAgent]
   def timed(id: TrackPointId, formatter: TimeFormatter): TimedCoord
 
+case class UserCoord(
+  coord: Coord,
+  speed: Option[SpeedM],
+  altitude: Option[DistanceM],
+  horizontalAccuracy: Option[DistanceM],
+  verticalAccuracy: Option[DistanceM],
+  time: Instant,
+  track: TrackId,
+  userAgent: Option[UserAgent]
+) extends PointInsert:
+  override def sourceTime: Instant = time
+  override def boatStats: Option[BoatStats] = None
+  override def carStats: Option[CarStats] = None
+  override def speedOpt: Option[SpeedM] = speed
+  override def timed(id: TrackPointId, formatter: TimeFormatter): TimedCoord = TimedCoord(
+    id,
+    coord,
+    formatter.formatDateTime(sourceTime),
+    sourceTime.toEpochMilli,
+    formatter.formatTime(sourceTime),
+    speed.getOrElse(SpeedM.zero),
+    altitude,
+    None,
+    Temperature.zeroCelsius,
+    DistanceM.zero,
+    None,
+    formatter.timing(sourceTime)
+  )
+
+object UserCoord:
+  def fromUpdate(loc: LocationUpdate, track: TrackId, userAgent: Option[UserAgent]) = UserCoord(
+    loc.coord,
+    loc.speed,
+    loc.altitudeMeters,
+    loc.accuracyMeters,
+    None,
+    loc.date.toInstant,
+    track,
+    userAgent
+  )
+
 case class CarCoord(
   coord: Coord,
   speed: Option[SpeedM],

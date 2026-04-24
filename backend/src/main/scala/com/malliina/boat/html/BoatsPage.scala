@@ -5,7 +5,7 @@ import com.malliina.boat.FrontKeys.*
 import com.malliina.boat.InviteState.{Accepted, Awaiting, Other, Rejected}
 import com.malliina.http.{CSRFConf, CSRFToken}
 import com.malliina.boat.http4s.Reverse
-import com.malliina.boat.{Boat, BoatIds, BoatNames, BoatRef, CarSummary, ChargingStatus, Emails, Forms, GPSInfo, InviteState, Passwords, PolestarLang, SourceType, UserInfo, Usernames}
+import com.malliina.boat.{Boat, BoatIds, DeviceNames, BoatRef, CarSummary, ChargingStatus, Emails, Forms, GPSInfo, InviteState, Passwords, PolestarLang, SourceType, UserInfo, Usernames}
 import com.malliina.measure.DistanceM
 import com.malliina.values.WrappedId
 import scalatags.Text.all.*
@@ -199,7 +199,7 @@ object BoatsPage extends BoatImplicits with HTMLConstants:
         labeledInput(
           lang.name,
           "boat-name-label",
-          BoatNames.Key,
+          DeviceNames.Key,
           "col-form-label col-form-label-sm col-sm-2",
           "form-control form-control-sm",
           "Titanic"

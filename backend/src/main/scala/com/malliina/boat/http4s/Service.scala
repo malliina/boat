@@ -375,7 +375,7 @@ class Service[F[_]: {Async, Files}](
           val body = input.payload
           val lang = BoatLang(user.language)
           user.boats
-            .find(_.id == body.carId)
+            .find(b => body.carId.contains(b.id))
             .map: device =>
               val deviceMeta =
                 SimpleSourceMeta(user.username, device.name, device.sourceType, user.language)
@@ -732,7 +732,7 @@ class Service[F[_]: {Async, Files}](
         val formatter = TimeFormatter.lang(user.language)
         ok(TrackResponse(track.strip(formatter)))
 
-  given Readable[BoatName] = Readable.string.emap(s => BoatName.build(CIString(s.trim)))
+  given Readable[DeviceName] = Readable.string.emap(s => DeviceName.build(CIString(s.trim)))
 
   private def boatResponse(req: Request[F], row: SourceRow) =
     respond(req)(

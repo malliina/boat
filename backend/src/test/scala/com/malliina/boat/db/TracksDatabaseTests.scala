@@ -3,7 +3,7 @@ package com.malliina.boat.db
 import cats.effect.IO
 import com.malliina.boat.db.TestData.{london, sanfran}
 import com.malliina.boat.parsing.{BoatStats, FullCoord}
-import com.malliina.boat.{BoatNames, BoatUser, DeviceId, Language, MUnitDatabaseSuite, MUnitSuite, SourceType, TrackId, TrackMetaShort, TrackNames, TrackRef, UserToken, UserUtils}
+import com.malliina.boat.{DeviceNames, BoatUser, DeviceId, Language, MUnitDatabaseSuite, MUnitSuite, SourceType, TrackId, TrackMetaShort, TrackNames, TrackRef, UserToken, UserUtils}
 import com.malliina.geo.Coord
 import com.malliina.measure.{DistanceIntM, SpeedIntM, SpeedM, Temperature}
 import com.malliina.values.{Email, RefreshToken, Username, ua}
@@ -65,7 +65,7 @@ class TracksDatabaseTests extends MUnitSuite with MUnitDatabaseSuite:
         .joinAsSource(
           BoatUser(
             trackName,
-            BoatNames.random(),
+            DeviceNames.random(),
             SourceType.Boat,
             u.toOption.get.user,
             Language.default
@@ -93,7 +93,7 @@ class TracksDatabaseTests extends MUnitSuite with MUnitDatabaseSuite:
         track,
         TrackNames.random(),
         boat,
-        BoatNames.random(),
+        DeviceNames.random(),
         Username.unsafe("whatever")
       ),
       Option(ua"Boat-Tracker/Test")

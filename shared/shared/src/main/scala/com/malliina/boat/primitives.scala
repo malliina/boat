@@ -16,11 +16,11 @@ given Codec[CIString] = Codec.from(
 )
 given Readable[CIString] = Readable.string.map(s => CIString(s))
 
-opaque type BoatName = CIString
-object BoatName extends CICompanion[BoatName]:
+opaque type DeviceName = CIString
+object DeviceName extends CICompanion[DeviceName]:
   val Key = "boatName"
-  override def build(input: CIString): Either[ErrorMessage, BoatName] = Right(input)
-  override def write(t: BoatName): CIString = t
+  override def build(input: CIString): Either[ErrorMessage, DeviceName] = Right(input)
+  override def write(t: DeviceName): CIString = t
 
 opaque type TrackName = String
 object TrackName extends ValidatedString[TrackName]:

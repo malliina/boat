@@ -2,7 +2,7 @@ package com.malliina.boat.http4s
 
 import com.comcast.ip4s.{Host, Port}
 import com.malliina.boat.http.{InvitePayload, InviteResponse, RevokeAccess}
-import com.malliina.boat.{AddSource, BoatName, BoatNames, ChangeBoatName, ChangeComments, ChangeTrackTitle, DeviceId, Forms, GPSInfo, Passwords, PatchBoat, Readables, SourceType, TrackComments, TrackTitle, Usernames}
+import com.malliina.boat.{AddSource, DeviceName, DeviceNames, ChangeBoatName, ChangeComments, ChangeTrackTitle, DeviceId, Forms, GPSInfo, Passwords, PatchBoat, Readables, SourceType, TrackComments, TrackTitle, Usernames}
 import com.malliina.http4s.{FormDecoders, FormReadableT}
 import com.malliina.polestar.Polestar
 import com.malliina.values.{Email, Password, UserId, Username}
@@ -32,12 +32,12 @@ trait BoatDecoders[F[_]] extends FormDecoders[F]:
 
   given FormReadableT[AddSource] = reader.emap: form =>
     for
-      name <- form.read[BoatName](BoatNames.Key)
+      name <- form.read[DeviceName](DeviceNames.Key)
       sourceType <- form.read[SourceType](SourceType.Key)
     yield AddSource(name, sourceType)
 
   given FormReadableT[ChangeBoatName] = reader.emap: form =>
-    form.read[BoatName](BoatNames.Key).map(n => ChangeBoatName(n))
+    form.read[DeviceName](DeviceNames.Key).map(n => ChangeBoatName(n))
 
   given FormReadableT[GPSInfo] = reader.emap: form =>
     for

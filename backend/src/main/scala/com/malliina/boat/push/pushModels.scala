@@ -2,7 +2,7 @@ package com.malliina.boat.push
 
 import com.malliina.boat.geo.ReverseGeocode
 import com.malliina.boat.http.Named
-import com.malliina.boat.{BoatFormats, BoatName, PushLang, TrackName}
+import com.malliina.boat.{BoatFormats, DeviceName, PushLang, TrackName}
 import com.malliina.geo.Coord
 import com.malliina.measure.DistanceM
 import com.malliina.values.{ErrorMessage, ValidatingCompanion}
@@ -24,14 +24,14 @@ object SourceState extends ValidatingCompanion[String, SourceState]:
   override def write(t: SourceState): String = t.name
 
 case class SourceNotification(
-  title: String,
-  boatName: BoatName,
-  trackName: TrackName,
-  state: SourceState,
-  distance: DistanceM,
-  duration: FiniteDuration,
-  coord: Option[Coord],
-  lang: PushLang
+                               title: String,
+                               boatName: DeviceName,
+                               trackName: TrackName,
+                               state: SourceState,
+                               distance: DistanceM,
+                               duration: FiniteDuration,
+                               coord: Option[Coord],
+                               lang: PushLang
 ) derives Codec.AsObject:
   def message(geocode: Option[ReverseGeocode]) =
     val describe = if state == SourceState.Connected then lang.onTheMove else lang.stoppedMoving
@@ -45,7 +45,7 @@ object SourceNotification:
 
 given Codec[FiniteDuration] = BoatFormats.durationFormat
 
-case class LiveActivityAttributes(boatName: BoatName, trackName: TrackName) derives Codec.AsObject
+case class LiveActivityAttributes(boatName: DeviceName, trackName: TrackName) derives Codec.AsObject
 
 object LiveActivityAttributes:
   val attributeType = "BoatWidgetAttributes"

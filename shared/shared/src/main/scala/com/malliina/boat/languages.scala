@@ -651,7 +651,7 @@ case class InviteLang(
   awaiting: String,
   from: String
 ) derives Codec.AsObject:
-  def confirmRevoke(boat: BoatName, fromEmail: Email) =
+  def confirmRevoke(boat: DeviceName, fromEmail: Email) =
     s"$revoke $boat $from $fromEmail?"
 
 case class FormsLang(
