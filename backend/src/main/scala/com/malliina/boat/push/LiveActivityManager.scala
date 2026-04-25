@@ -9,7 +9,6 @@ import com.malliina.boat.{AppConf, DeviceId, JoinedTrack, PushLang, PushTokenTyp
 import com.malliina.database.DoobieDatabase
 import com.malliina.tasks.runInBackground
 import com.malliina.util.AppLogger
-import doobie.implicits.given
 
 import java.time.Instant
 import scala.concurrent.duration.DurationInt

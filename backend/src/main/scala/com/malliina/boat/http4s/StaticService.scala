@@ -2,7 +2,7 @@ package com.malliina.boat.http4s
 
 import cats.data.NonEmptyList
 import cats.effect.{Async, Sync}
-import cats.implicits.*
+import cats.syntax.all.{catsSyntaxApplicativeId, toFlatMapOps}
 import com.malliina.boat.BuildInfo
 import com.malliina.boat.http4s.StaticService.log
 import com.malliina.util.AppLogger

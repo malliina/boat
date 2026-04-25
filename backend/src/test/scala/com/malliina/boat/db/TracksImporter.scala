@@ -1,8 +1,8 @@
 package com.malliina.boat.db
 
 import cats.effect.IO
-import cats.implicits.*
-import com.malliina.boat.{DeviceName, BoatUser, DateVal, DeviceId, Language, MUnitSuite, RawSentence, SourceType, TrackId, TrackInput, TrackNames}
+import cats.implicits.toTraverseOps
+import com.malliina.boat.{BoatUser, DateVal, DeviceId, DeviceName, Language, MUnitSuite, RawSentence, SourceType, TrackId, TrackInput, TrackNames}
 import com.malliina.database.{Conf, DoobieDatabase}
 import com.malliina.values.Username
 import fs2.Chunk

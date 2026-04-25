@@ -2,7 +2,7 @@ package com.malliina.boat.db
 
 import cats.data.NonEmptyList
 import cats.effect.Async
-import cats.implicits.*
+import cats.syntax.all.{catsSyntaxApplicativeId, catsSyntaxList}
 import com.malliina.boat.*
 import com.malliina.boat.InviteState.accepted
 import com.malliina.boat.http.{BoatQuery, LimitLike, Limits, Near, SortOrder, TrackQuery, TracksQuery}

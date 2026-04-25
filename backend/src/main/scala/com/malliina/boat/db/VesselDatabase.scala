@@ -2,7 +2,6 @@ package com.malliina.boat.db
 
 import cats.syntax.all.{catsSyntaxList, catsSyntaxApplicativeId, catsSyntaxApplyOps}
 import com.malliina.boat.db.BoatVesselDatabase.{collect, log}
-import com.malliina.boat.db.Mappings.given
 import com.malliina.boat.db.Values.{RowsChanged, VesselUpdateId}
 import com.malliina.boat.http.{VesselFilters, VesselsQuery}
 import com.malliina.boat.{Mmsi, TimeFormatter, VesselInfo, VesselRowId}

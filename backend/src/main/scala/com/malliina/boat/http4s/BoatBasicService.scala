@@ -2,7 +2,7 @@ package com.malliina.boat.http4s
 
 import cats.data.NonEmptyList
 import cats.effect.Sync
-import cats.implicits.*
+import cats.syntax.all.{toFlatMapOps, toFunctorOps}
 import com.malliina.boat.db.{BoatNotFoundException, IdentityException}
 import com.malliina.boat.http4s.BoatBasicService.log
 import com.malliina.boat.message

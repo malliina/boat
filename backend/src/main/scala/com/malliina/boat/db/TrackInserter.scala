@@ -1,7 +1,7 @@
 package com.malliina.boat.db
 
 import cats.data.NonEmptyList
-import cats.implicits.*
+import cats.implicits.{catsSyntaxApplicativeId, catsSyntaxApplyOps, catsSyntaxList}
 import com.malliina.boat.*
 import com.malliina.boat.db.TrackInserter.log
 import com.malliina.boat.parsing.PointInsert

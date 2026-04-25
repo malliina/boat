@@ -2,7 +2,6 @@ package com.malliina.boat.db
 
 import com.malliina.boat.InviteState.accepted
 import com.malliina.boat.db.DoobieUserManager.{collectBoats, log}
-import com.malliina.boat.db.Mappings.given
 import com.malliina.boat.http.InviteResult.{AlreadyInvited, Invited, UnknownEmail}
 import com.malliina.boat.http.{AccessResult, InviteInfo, InviteResult, LimitLike}
 import com.malliina.boat.{BoatInfo, DeviceNames, BoatToken, BoatTokens, DeviceId, FriendInvite, Invite, InviteState, JoinedSource, JoinedTrack, Language, TimeFormatter, UserBoats, UserInfo, UserToken, Usernames}

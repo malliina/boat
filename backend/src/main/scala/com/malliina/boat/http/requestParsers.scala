@@ -1,6 +1,6 @@
 package com.malliina.boat.http
 
-import cats.implicits.*
+import cats.syntax.all.catsSyntaxList
 import com.malliina.http.{Errors, SingleError}
 import com.malliina.http4s.QueryParsers
 import com.malliina.boat.{DeviceName, CarUpdateId, Constants, FromTo, FrontKeys, Mmsi, RouteRequest, SearchQuery, TimeFormatter, Timings, TrackCanonical, TrackName, VesselName}
