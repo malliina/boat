@@ -225,7 +225,7 @@ class Service[F[_]: {Async, Files}](
     case req @ POST -> Root / "boats" =>
       formAction[AddSource](req): (boat, user) =>
         inserts
-          .addSource(boat.boatName, boat.sourceType, user.id)
+          .addSource(boat.boatName.getOrElse(DeviceNames.random()), boat.sourceType, user.id)
           .flatMap(row => boatResponse(req, row))
     case req @ PATCH -> Root / "boats" / DeviceIdVar(device) =>
       updateBoat(req, device)

@@ -17,17 +17,16 @@ class MobileTests extends BoatServerFunSuite:
 
   srv.test("POST mobile device, then POST mobile locations"): s =>
     val user: Username = user"mobile@example.com"
-    val meta = SimpleSourceMeta(user, DeviceNames.random(), SourceType.Mobile, Language.default)
-    val src = AddSource(DeviceNames.random(), SourceType.Mobile)
+    val src = AddSource(None, SourceType.Mobile)
     val ts = OffsetDateTime.of(2023, 4, 2, 10, 4, 3, 0, ZoneOffset.UTC)
     val loc1 = testLoc(26.lng, 61.lat, ts)
     val loc2 = testLoc(25.8.lng, 61.1.lat, ts.plusMinutes(1))
     val service = s.server.app
     for
-      _ <- service.userMgmt.deleteUser(meta.user)
+      _ <- service.userMgmt.deleteUser(user)
       _ <- service.userMgmt.addUser(
         NewUser(
-          meta.user,
+          user,
           Option(TestEmailAuth[IO].testMobileEmail),
           UserToken.random(),
           enabled = true

@@ -139,7 +139,7 @@ object TrackComments:
 
 case class ChangeComments(comments: String) derives Codec.AsObject
 
-case class AddSource(boatName: DeviceName, sourceType: SourceType) derives Codec.AsObject
+case class AddSource(boatName: Option[DeviceName], sourceType: SourceType) derives Codec.AsObject
 
 /** An NMEA Sentence.
   *

@@ -34,7 +34,7 @@ trait BoatDecoders[F[_]] extends FormDecoders[F]:
     for
       name <- form.read[DeviceName](DeviceNames.Key)
       sourceType <- form.read[SourceType](SourceType.Key)
-    yield AddSource(name, sourceType)
+    yield AddSource(Option(name), sourceType)
 
   given FormReadableT[ChangeBoatName] = reader.emap: form =>
     form.read[DeviceName](DeviceNames.Key).map(n => ChangeBoatName(n))
