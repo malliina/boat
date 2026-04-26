@@ -27,7 +27,7 @@ object JWT:
     claimsJson: Json
   ):
     val exp = Option(claims.getExpirationTime).map(_.toInstant)
-    val iss = Option(claims.getIssuer).map(Issuer.apply)
+    val iss = Option(claims.getIssuer).flatMap(s => Issuer.build(s).toOption)
 
     // No expiration => never expired
     def checkExpiration(now: Instant) = exp.flatMap: e =>
@@ -85,7 +85,7 @@ object JWT:
     catch
       case pe: ParseException =>
         log.error(s"Parse error for token '$token'.", pe)
-        Left(ParseError(token, pe))
+        Left(ParseError(token, Option(pe), err"Parse error."))
 
 class JWT(secret: SecretKey, dataKey: String = "data"):
   def sign[T: Encoder](payload: T, ttl: FiniteDuration, now: Instant = Instant.now()): IdToken =

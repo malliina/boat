@@ -1,6 +1,7 @@
 package com.malliina.boat.auth
 
 import cats.effect.IO
+import cats.syntax.all.toShow
 import com.malliina.boat.{BaseSuite, LocalConf}
 import com.malliina.config.ConfigNode
 import com.malliina.http.FullUrl
@@ -17,7 +18,7 @@ class TokenTests extends BaseSuite:
 
   http.test("google token validation".ignore): httpClient =>
     val in = "token_here"
-    val client = GoogleAuthFlow.keyClient(Seq(ClientId("client_id")), httpClient)
+    val client = GoogleAuthFlow.keyClient(Seq(ClientId.unsafe("client_id")), httpClient)
     client
       .validate(IdToken.unsafe(in))
       .map: outcome =>
@@ -63,8 +64,8 @@ class TokenTests extends BaseSuite:
       .postForm(
         FullUrl.https("appleid.apple.com", "/auth/token"),
         Map(
-          "client_id" -> siwaConf.clientId.value,
-          "client_secret" -> privateKey.value
+          "client_id" -> siwaConf.clientId.show,
+          "client_secret" -> privateKey.show
         ) ++ fields
       )
       .map(res => println(res.asString))

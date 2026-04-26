@@ -43,15 +43,9 @@ object LocationUpdate:
   given Codec[SpeedM] = SpeedM.mpsJson
   given Codec[LocationUpdate] = deriveCodec[LocationUpdate]
 
-case class LocationUpdates(updates: List[LocationUpdate], carId: Option[DeviceId])
-  derives Codec.AsObject
+case class LocationUpdates(updates: List[LocationUpdate], carId: DeviceId) derives Codec.AsObject
 
-object LocationUpdates:
-  def car(updates: List[LocationUpdate], carId: DeviceId): LocationUpdates =
-    LocationUpdates(updates, Option(carId))
-
-  def mobile(updates: List[LocationUpdate]): LocationUpdates =
-    LocationUpdates(updates, None)
+case class SourceLocations(updates: List[LocationUpdate]) derives Codec.AsObject
 
 case class Languages(finnish: Lang, swedish: Lang, english: Lang) derives Codec.AsObject
 

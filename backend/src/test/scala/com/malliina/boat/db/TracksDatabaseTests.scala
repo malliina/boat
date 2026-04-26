@@ -6,13 +6,13 @@ import com.malliina.boat.parsing.{BoatStats, FullCoord}
 import com.malliina.boat.{DeviceNames, BoatUser, DeviceId, Language, MUnitDatabaseSuite, MUnitSuite, SourceType, TrackId, TrackMetaShort, TrackNames, TrackRef, UserToken, UserUtils}
 import com.malliina.geo.Coord
 import com.malliina.measure.{DistanceIntM, SpeedIntM, SpeedM, Temperature}
-import com.malliina.values.{Email, RefreshToken, Username, ua}
+import com.malliina.values.{Email, RefreshToken, Username, ua, lng, lat}
 
 import java.time.{LocalDate, LocalTime}
 
 object TestData:
-  val london = Coord.build(0.13, 51.5).toOption.get
-  val sanfran = Coord.build(-122.4, 37.8).toOption.get
+  val london = Coord(0.13.lng, 51.5.lat)
+  val sanfran = Coord(-122.4.lng, 37.8.lat)
 
 class TracksDatabaseTests extends MUnitSuite with MUnitDatabaseSuite:
   dbFixture.test("insertion of token"): db =>

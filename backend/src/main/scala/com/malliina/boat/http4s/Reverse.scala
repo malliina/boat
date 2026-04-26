@@ -65,6 +65,7 @@ object Reverse:
   val legal = uri"/legal/privacy"
   val files = uri"/files"
   val cars = uri"/cars"
+  val locations = uri"/locations"
   val createCar = cars
   val postCars = cars / "locations"
   val historyCars = cars / "history"

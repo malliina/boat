@@ -30,7 +30,7 @@ extension (inline ctx: StringContext)
     ${ BoatLiterals.UserAgentLiteral('ctx, 'args) }
 
 extension [T](e: Either[ErrorMessage, T])
-  def getUnsafe: T = e.fold(err => throw IllegalArgumentException(err.message), identity)
+  def veryUnsafe: T = e.fold(err => throw IllegalArgumentException(err.message), identity)
 
 object BoatLiterals:
   object DegreesLiteral extends LiteralFloat[Degrees]:
@@ -45,21 +45,21 @@ object BoatLiterals:
       Latitude
         .build(in)
         .map: _ =>
-          '{ Latitude.build(${ Expr(in) }).getUnsafe }
+          '{ Latitude.build(${ Expr(in) }).veryUnsafe }
 
   object LongitudeLiteral extends LiteralDouble[Longitude]:
     override def parse(in: Double)(using Quotes): Either[ErrorMessage, Expr[Longitude]] =
       Longitude
         .build(in)
         .map: _ =>
-          '{ Longitude.build(${ Expr(in) }).getUnsafe }
+          '{ Longitude.build(${ Expr(in) }).veryUnsafe }
 
   object UserAgentLiteral extends LiteralStringContext[UserAgent]:
     override def parse(in: String)(using Quotes): Either[ErrorMessage, Expr[UserAgent]] =
       UserAgent
         .build(in)
         .map: _ =>
-          '{ UserAgent.build(${ Expr(in) }).getUnsafe }
+          '{ UserAgent.build(${ Expr(in) }).veryUnsafe }
 
 trait LiteralInt[T]:
   def parse(in: Int)(using Quotes): Either[ErrorMessage, Expr[T]]

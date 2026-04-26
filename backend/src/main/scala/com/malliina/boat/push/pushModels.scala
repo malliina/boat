@@ -24,14 +24,14 @@ object SourceState extends ValidatingCompanion[String, SourceState]:
   override def write(t: SourceState): String = t.name
 
 case class SourceNotification(
-                               title: String,
-                               boatName: DeviceName,
-                               trackName: TrackName,
-                               state: SourceState,
-                               distance: DistanceM,
-                               duration: FiniteDuration,
-                               coord: Option[Coord],
-                               lang: PushLang
+  title: String,
+  boatName: DeviceName,
+  trackName: TrackName,
+  state: SourceState,
+  distance: DistanceM,
+  duration: FiniteDuration,
+  coord: Option[Coord],
+  lang: PushLang
 ) derives Codec.AsObject:
   def message(geocode: Option[ReverseGeocode]) =
     val describe = if state == SourceState.Connected then lang.onTheMove else lang.stoppedMoving

@@ -47,16 +47,17 @@ object AisAppConf:
 
 case class AppleConf(id: ClientId)
 object AppleConf:
-  val id = ClientId("497623115973-qut66ppubk4f9mpigckfkoqqoi060bge.apps.googleusercontent.com")
+  val id =
+    ClientId.unsafe("497623115973-qut66ppubk4f9mpigckfkoqqoi060bge.apps.googleusercontent.com")
   val default = AppleConf(id)
 case class MicrosoftConf(boat: WebConf, car: WebConf)
 
 case class WebConf(id: ClientId, secret: ClientSecret):
   def webAuthConf = AuthConf(id, secret)
 object WebConf:
-  val microsoftBoatId = ClientId("d55eafcb-e3a5-4ee0-ba5c-03a6c887b6db")
-  val microsoftCarId = ClientId("d1d9f5da-3d5e-4a93-9726-35f2a497a85f")
-  val googleId = ClientId(
+  val microsoftBoatId = ClientId.unsafe("d55eafcb-e3a5-4ee0-ba5c-03a6c887b6db")
+  val microsoftCarId = ClientId.unsafe("d1d9f5da-3d5e-4a93-9726-35f2a497a85f")
+  val googleId = ClientId.unsafe(
     "497623115973-c6v1e9khup8bqj41vf228o2urnv86muh.apps.googleusercontent.com"
   )
 

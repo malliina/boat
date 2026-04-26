@@ -1,13 +1,12 @@
 package com.malliina.boat.db
 
 import com.malliina.boat.{Mmsi, PhoneId, PushId, PushToken, PushTokenType, TrackName, UserToken, Utils, VesselName}
+import com.malliina.boat.db.Mappings.given
 import com.malliina.geo.{Coord, CoordHash}
 import com.malliina.measure.{DistanceM, SpeedM, Temperature}
 import com.malliina.values.{Email, ErrorMessage, RefreshToken, StringEnumCompanion, UserId, Username, ValidatedString}
 
 import java.time.Instant
-
-import Mappings.given
 
 case class PushDevice(
   id: PushId,

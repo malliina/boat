@@ -1,7 +1,7 @@
 package com.malliina.web
 
 import cats.effect.Sync
-import cats.syntax.all.{toFlatMapOps, toFunctorOps}
+import cats.syntax.all.{toFlatMapOps, toFunctorOps, toShow}
 import com.malliina.http.{FullUrl, HttpClient}
 import com.malliina.oauth.TokenResponse
 import com.malliina.util.AppLogger
@@ -78,13 +78,13 @@ class AppleAuthFlow[F[_]: Sync](
     Map(ResponseType -> CodeKey, "response_mode" -> "form_post")
 
   private def codeParameters(code: Code) =
-    commonParameters(AuthorizationCode) ++ Map(CodeKey -> code.code)
+    commonParameters(AuthorizationCode) ++ Map(CodeKey -> code.show)
 
   private def commonParameters(grantType: String) = credentialParameters ++ Map(
     GrantType -> grantType
   )
 
   private def credentialParameters = Map(
-    ClientIdKey -> authConf.clientId.value,
-    ClientSecretKey -> authConf.clientSecret.value
+    ClientIdKey -> authConf.clientId.show,
+    ClientSecretKey -> authConf.clientSecret.show
   )

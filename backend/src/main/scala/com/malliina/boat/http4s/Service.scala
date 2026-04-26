@@ -6,6 +6,7 @@ import cats.syntax.all.{catsSyntaxApplicativeError, catsSyntaxFlatMapOps, toFlat
 import com.malliina.boat.*
 import com.malliina.boat.Constants.{LanguageName, TokenCookieName}
 import com.malliina.boat.PushTokenType.IOSActivityUpdate
+import com.malliina.boat.SourceType.Mobile
 import com.malliina.boat.auth.AuthProvider.{PromptKey, SelectAccount}
 import com.malliina.boat.auth.{AuthProvider, BoatJwt, SettingsPayload, UserPayload}
 import com.malliina.boat.db.*
@@ -15,7 +16,7 @@ import com.malliina.boat.http.*
 import com.malliina.boat.http.InviteResult.{AlreadyInvited, Invited, UnknownEmail}
 import com.malliina.boat.http4s.BoatBasicService.{cached, ranges}
 import com.malliina.boat.http4s.Service.{isSecured, log, userAgent}
-import com.malliina.boat.parsing.CarCoord
+import com.malliina.boat.parsing.{CarCoord, UserCoord}
 import com.malliina.boat.push.{PushState, SourceState}
 import com.malliina.http.{CSRFConf, Errors, SingleError}
 import com.malliina.http4s.BasicService.noCache
@@ -40,6 +41,7 @@ import org.http4s.websocket.WebSocketFrame
 import org.http4s.websocket.WebSocketFrame.Text
 import org.http4s.{Callback as _, *}
 import org.typelevel.ci.CIString
+
 import java.time.Instant
 import scala.annotation.unused
 import scala.concurrent.duration.DurationInt
@@ -368,54 +370,26 @@ class Service[F[_]: {Async, Files}](
               ok(ParkingResponse(results))
         .recover: err =>
           badRequest(Errors(err.message))
+
+    case req @ POST -> Root / "locations" =>
+      for
+        device <- auth.boatTokenOrFail(req.headers)
+        payload <- req.decodeJson[SourceLocations]
+        insertion <- saveLocations(payload.updates, device, req, now())
+      yield insertion
     case req @ POST -> Root / "cars" / "locations" =>
       jsonAction[LocationUpdates](req): input =>
-        Timer.start: timer =>
-          val user = input.user
-          val body = input.payload
-          val lang = BoatLang(user.language)
-          user.boats
-            .find(b => body.carId.contains(b.id))
-            .map: device =>
-              val deviceMeta =
-                SimpleSourceMeta(user.username, device.name, device.sourceType, user.language)
-              inserts
-                .joinAsSource(deviceMeta)
-                .flatMap: result =>
-                  val meta = result.track
-                  val count = body.updates.size
-                  val time = timer.elapsedNowMs
-                  log.debug(
-                    s"User ${user.email} POSTs $count car updates for ${meta.boatName}, join took $time ms..."
-                  )
-                  val insertion = body.updates
-                    .traverse: loc =>
-                      streams.saveCarCoord(CarCoord.fromUpdate(loc, meta.track, req.userAgent))
-                    .onError: t =>
-                      F.delay(log.error(s"Failed to save car locations. Got '${body.asJson}'.", t))
-                  def pushTask(latest: JoinedTrack) =
-                    val state = PushState(
-                      meta,
-                      SourceState.Connected,
-                      latest.distance,
-                      latest.duration,
-                      result.isResumed,
-                      body.updates.headOption.map(_.coord),
-                      lang.lang.push,
-                      input.receivedAt
-                    )
-                    pushRecovered(state)
-
-                  for
-                    inserteds <- insertion
-                    _ <- inserteds.lastOption.map(i => pushTask(i.track)).getOrElse(F.pure(()))
-                    duration = timer.elapsedNowMs
-                    response <- ok(
-                      SimpleMessage(s"Saved ${inserteds.size} updates in $duration ms.")
-                    )
-                  yield response
-            .getOrElse:
-              notFound(Errors(SingleError.input(s"Car not found: '${body.carId}'.")))
+        val user = input.user
+        val body = input.payload
+        val meta = user.boats
+          .find(b => b.id == body.carId)
+          .map: device =>
+            SimpleSourceMeta(user.username, device.name, device.sourceType, user.language)
+        meta
+          .map: deviceMeta =>
+            saveLocations(body.updates, deviceMeta, req, input.receivedAt)
+          .getOrElse:
+            notFound(Errors(SingleError.input(s"Car not found: '${body.carId}'.")))
     case req @ GET -> Root / "sign-in" =>
       val timeNow = now()
       req.cookies
@@ -490,6 +464,56 @@ class Service[F[_]: {Async, Files}](
         ,
         html = index(req)
       )
+
+  private def saveLocations(
+    locs: Seq[LocationUpdate],
+    from: DeviceMeta,
+    req: Request[F],
+    receivedAt: Instant
+  ) =
+    val lang = BoatLang(from.language)
+    Timer.start: timer =>
+      inserts
+        .joinAsSource(from)
+        .flatMap: result =>
+          val meta = result.track
+          val count = locs.size
+          val time = timer.elapsedNowMs
+          log.debug(
+            s"User ${from.user} POSTs $count updates for ${meta.boatName}, join took $time ms..."
+          )
+          val insertion = locs
+            .traverse: loc =>
+              val insertable = meta.sourceType match
+                case Mobile => UserCoord.fromUpdate(loc, meta.track, req.userAgent)
+                case _      => CarCoord.fromUpdate(loc, meta.track, req.userAgent)
+              streams.saveAndPublish(insertable)
+            .onError: t =>
+              F.delay(
+                log.error(s"Failed to save locations.", t)
+              )
+
+          def pushTask(latest: JoinedTrack) =
+            val state = PushState(
+              meta,
+              SourceState.Connected,
+              latest.distance,
+              latest.duration,
+              result.isResumed,
+              locs.headOption.map(_.coord),
+              lang.lang.push,
+              receivedAt
+            )
+            pushRecovered(state)
+
+          for
+            inserteds <- insertion
+            _ <- inserteds.lastOption.map(i => pushTask(i.track)).getOrElse(F.pure(()))
+            duration = timer.elapsedNowMs
+            response <- ok(
+              SimpleMessage(s"Saved ${inserteds.size} updates in $duration ms.")
+            )
+          yield response
 
   private def updateBoat(req: Request[F], device: DeviceId) =
     formAction[PatchBoat](req): (patch, user) =>
@@ -734,7 +758,7 @@ class Service[F[_]: {Async, Files}](
 
   given Readable[DeviceName] = Readable.string.emap(s => DeviceName.build(CIString(s.trim)))
 
-  private def boatResponse(req: Request[F], row: SourceRow) =
+  private def boatResponse(req: Request[F], row: SourceRow): F[Response[F]] =
     respond(req)(
       json = ok(BoatResponse(row.toBoat)),
       html = SeeOther(Location(reverse.boats))
@@ -888,7 +912,7 @@ class Service[F[_]: {Async, Files}](
     val cb = Callback(
       params.get(OAuthKeys.State),
       session.get(State),
-      params.get(OAuthKeys.CodeKey),
+      params.get(OAuthKeys.CodeKey).flatMap(s => Code.build(s).toOption),
       session.get(Nonce),
       Urls.hostOnly(req) / reverse.signInCallback(provider).renderString
     )

@@ -1,5 +1,6 @@
 package com.malliina.web
 
+import cats.syntax.all.toShow
 import com.malliina.boat.APNSConf
 import com.malliina.push.apns.{KeyId, TeamId}
 import com.malliina.util.AppLogger
@@ -36,7 +37,7 @@ object SignInWithApple:
   def secretOrDummy(conf: Conf, now: Instant) =
     secret(conf, now).getOrElse:
       log.info(s"Sign in with Apple using ID ${conf.clientId} is disabled.")
-      ClientSecret("disabled")
+      ClientSecret.unsafe("disabled")
 
   object Conf:
     def siwa(enabled: Boolean, privateKey: Path): Conf = Conf(
@@ -44,7 +45,7 @@ object SignInWithApple:
       privateKey,
       KeyId("2HRJXFM6UG"),
       APNSConf.teamId,
-      ClientId("com.malliina.boat.client")
+      ClientId.unsafe("com.malliina.boat.client")
     )
 
 /** https://developer.apple.com/documentation/sign_in_with_apple/generate_and_validate_tokens
@@ -69,12 +70,12 @@ class SignInWithApple(conf: Conf):
       .issuer(conf.teamId.team)
       .issueTime(issuedAt)
       .expirationTime(exp)
-      .audience(appleIssuer.value)
-      .subject(conf.clientId.value)
+      .audience(appleIssuer.show)
+      .subject(conf.clientId.show)
       .build()
     val signable = SignedJWT(header, claims)
     signable.sign(signer)
-    val secret = ClientSecret(signable.serialize())
+    val secret = ClientSecret.unsafe(signable.serialize())
     log.info(
       s"Created SIWA secret with key '${conf.keyId}' for client '${conf.clientId}' and team '${conf.teamId}'."
     )

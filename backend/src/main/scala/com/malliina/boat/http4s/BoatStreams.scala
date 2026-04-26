@@ -103,7 +103,7 @@ class BoatStreams[F[_]: Async](
     val aisEvents = ais.slow.map(pairs => VesselMessages(pairs.map(_.toInfo(formatter))))
     events.mergeHaltBoth[F, FrontEvent](aisEvents)
 
-  def saveCarCoord(coord: CarCoord): F[InsertedPoint] =
+  def saveAndPublish(coord: PointInsert): F[InsertedPoint] =
     for
       inserted <- db.saveCoords(coord)
       result <- saved.publish1(InsertedCoord(coord, inserted))

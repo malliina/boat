@@ -1,20 +1,21 @@
 package com.malliina.web
 
 import cats.effect.Sync
-import cats.syntax.all.{toFlatMapOps, toFunctorOps}
+import cats.syntax.all.{toFlatMapOps, toFunctorOps, toShow}
 import com.malliina.http.HttpClient
 import com.malliina.values.Literals.err
 import com.malliina.values.{Email, TokenValue}
 import com.malliina.web.AppleTokenValidator.EmailVerified
 import com.malliina.web.OAuthKeys.EmailKey
+import com.malliina.web.WebLiterals.issuer
 
 import java.time.Instant
 
 object AppleTokenValidator:
   val EmailVerified = "email_verified"
-  val appleIssuer = Issuer("https://appleid.apple.com")
+  val appleIssuer: Issuer = issuer"https://appleid.apple.com"
   // aud for tokens obtained in the iOS app SIWA flow
-  val boatClientId = ClientId("com.malliina.BoatTracker")
+  val boatClientId = ClientId.unsafe("com.malliina.BoatTracker")
 
   def app[F[_]: Sync](http: HttpClient[F]): AppleTokenValidator[F] =
     AppleTokenValidator(Seq(boatClientId), http)
@@ -51,4 +52,4 @@ class AppleTokenValidator[F[_]: Sync](
     parsed: ParsedJWT,
     now: Instant
   ): Either[JWTError, ParsedJWT] =
-    checkContains(Aud, clientIds.map(_.value), parsed).map(_ => parsed)
+    checkContains(Aud, clientIds.map(_.show), parsed).map(_ => parsed)

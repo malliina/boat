@@ -33,7 +33,7 @@ object Utils:
     (t, duration)
 
 object Timer:
-  def start[T](code: Timer => T) = code(Timer(System.currentTimeMillis()))
+  def start[T](code: Timer => T): T = code(Timer(System.currentTimeMillis()))
 
 class Timer(val start: Long):
   def elapsedNowMs: Long = System.currentTimeMillis() - start

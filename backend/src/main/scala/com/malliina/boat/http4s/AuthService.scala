@@ -20,10 +20,7 @@ import java.time.Instant
 object AuthService:
   private val log = AppLogger(getClass)
 
-class AuthService[F[_]: Sync](
-  val users: IdentityManager[F],
-  comps: AuthComps[F]
-):
+class AuthService[F[_]: Sync](val users: IdentityManager[F], comps: AuthComps[F]):
   val F = Sync[F]
   val emailAuth = comps.google
   val web = comps.web
@@ -107,7 +104,7 @@ class AuthService[F[_]: Sync](
 
   def authBoat(headers: Headers): F[DeviceMeta] =
     boatToken(headers)
-      .map(e => e.map(jb => jb: DeviceMeta))
+      .map(e => e.map(js => js: DeviceMeta))
       .getOrElse:
         val boatName = headers
           .get(BoatNameHeader)
@@ -117,11 +114,11 @@ class AuthService[F[_]: Sync](
           SimpleSourceMeta(Usernames.anon, boatName, SourceType.Boat, Language.default): DeviceMeta
         )
 
-  def boatTokenOrFail(headers: Headers) =
+  def boatTokenOrFail(headers: Headers): F[JoinedSource] =
     boatToken(headers).getOrElse:
       F.raiseError(MissingCredentials(s"Missing header '$BoatTokenHeader'.", headers).toException)
 
-  private def boatToken(headers: Headers): Option[F[JoinedSource]] =
+  def boatToken(headers: Headers): Option[F[JoinedSource]] =
     headers
       .get(BoatTokenHeader)
       .flatMap(h => BoatToken.build(h.head.value).toOption)

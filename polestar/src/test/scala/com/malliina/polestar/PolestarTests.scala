@@ -59,7 +59,7 @@ class PolestarTests extends munit.CatsEffectSuite:
             car.modelYear,
             "fi"
           )
-          images <- client.fetchCarImages(image, token)
+          _ <- client.fetchCarImages(image, token)
         yield (car, tele)
         task
           .map: (car, tele) =>
@@ -75,7 +75,7 @@ class PolestarTests extends munit.CatsEffectSuite:
                 case StatusError(response, url) =>
                   response match
                     case r: OkHttpResponse => println(s"From $url: '${r.asString}'.")
-            case other =>
+            case _ =>
               println("o")
 
   val str =
