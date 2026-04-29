@@ -11,6 +11,7 @@ import io.circe.{Encoder, Json}
 
 class GeoUtils(map: MapboxMap, val log: BaseLogger):
   val boatIconId = "boat-resized-opt-30"
+  val locationIconId = "location.north"
   val carIconId = "car4"
   val trophyIconId = "trophy-gold-path"
   val deviceIconId = "device-icon"
@@ -79,6 +80,9 @@ class GeoUtils(map: MapboxMap, val log: BaseLogger):
 
   def boatSymbolLayer(id: String, coord: Coord) =
     Layer.symbol(id, pointFor(coord), ImageLayout(boatIconId, `icon-size` = 0.7))
+
+  def mobileSymbolLayer(id: String, coord: Coord) =
+    Layer.symbol(id, pointFor(coord), ImageLayout(locationIconId, `icon-size` = 0.7))
 
   def pointFor(coord: Coord, props: Map[String, Json] = Map.empty) =
     collectionFor(PointGeometry(coord), props)

@@ -101,7 +101,6 @@ class MapSocket[F[_]: Async](
 
   private def onCoords(event: CoordsEvent): Unit =
     val from = event.from
-    val isBoat = from.sourceType == SourceType.Boat
     val trackId = from.track
     val coordsInfo = event.coords
     val coords = coordsInfo.map(_.coord)
@@ -146,7 +145,11 @@ class MapSocket[F[_]: Async](
       map.putLayer(trackLineLayer(hoverableTrack, LinePaint(LinePaint.blackColor, 5, 0)))
       coords.lastOption.foreach: coord =>
         // adds boat icon
-        val layer = if isBoat then boatSymbolLayer(point, coord) else carSymbolLayer(point, coord)
+        val layer = from.sourceType match
+          case SourceType.Vehicle => carSymbolLayer(point, coord)
+          case SourceType.Boat    => boatSymbolLayer(point, coord)
+          case SourceType.Mobile  => mobileSymbolLayer(point, coord)
+          case _                  => boatSymbolLayer(point, coord)
         map.putLayer(layer)
         map.onHover(point)(
           in =>
@@ -205,7 +208,8 @@ class MapSocket[F[_]: Async](
             case prev :: last :: _ =>
               val spin = bearing(prev, last).toInt
               // The car SVG icon is pointing left, so this rotates by 90 degrees
-              val rotation = if isBoat then spin else (spin + 90) % 360
+              val rotation =
+                if from.sourceType == SourceType.Vehicle then (spin + 90) % 360 else spin
               map.setLayoutProperty(point, ImageLayout.IconRotate, rotation)
             case _ =>
               ()
