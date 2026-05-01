@@ -676,7 +676,14 @@ object BoatJson:
           DecodingFailure(s"Event is '$event', expected '$value'.", Nil)
         )
 
-case class IconsConf(boat: String, trophy: String) derives Codec.AsObject
+case class IconsConf(
+  boat: String,
+  car: String,
+  mobile: String,
+  trophy: String,
+  routeStart: String,
+  routeEnd: String
+) derives Codec.AsObject
 
 case class MapConf(styleId: String, styleUrl: String, icons: IconsConf) derives Codec.AsObject
 
@@ -687,7 +694,14 @@ object MapConf:
   def apply(styleId: String): MapConf = MapConf(
     styleId,
     s"mapbox://styles/skogberglabs/$styleId",
-    IconsConf("boat-resized-opt-30", "trophy-gold-path")
+    IconsConf(
+      "boat-resized-opt-30",
+      "car4",
+      "location.north",
+      "trophy-gold-path",
+      "flag",
+      "flag-checkered"
+    )
   )
 
 enum SourceType(val name: String):
