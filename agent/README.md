@@ -35,6 +35,13 @@ Optionally, sign in to the iOS app to obtain a boat token. A token assigns any N
 the given token, and subsequently the user can view any tracks recorded with the given token from the iOS app or web
 interface.
 
+### Wireless connection on trixie
+
+If your OS uses `nmcli` for Wi-Fi configurations, do something like to connect to SSID `my-boat-ssid`:
+
+    nmcli connection add type wifi con-name my-boat-ssid ssid my-boat-ssid 802-11-wireless-security.key-mgmt WPA-PSK 802-11-wireless-security.psk ssid-password-here
+    nmcli connection up my-boat-ssid
+
 ## Custom implementations
 
 If this agent is not good enough for you, you can send NMEA 0183 sentences to boat-tracker.com using the HTTP API 
