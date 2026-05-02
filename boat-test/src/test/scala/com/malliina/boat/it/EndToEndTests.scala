@@ -57,7 +57,7 @@ class EndToEndTests extends BoatTests:
           Deferred[IO, CoordsEvent].flatMap: (coordsPromise: Deferred[IO, CoordsEvent]) =>
             log.info(s"Starting TCP server at $tcpHost:$tcpPort...")
             val server = Network[IO]
-              .server(port = Option(tcpPort))
+              .bindAndAccept(SocketAddress.port(tcpPort))
               .take(1)
               .evalMap: client =>
                 webSocketOpened.get >>

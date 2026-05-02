@@ -4,7 +4,7 @@ import cats.effect.{Deferred, IO}
 import com.malliina.boat.*
 import com.malliina.boat.db.NewUser
 import com.malliina.geo.Coord
-import com.malliina.values.{Password, Username}
+import com.malliina.values.{Password, Username, lngLat}
 
 import scala.concurrent.TimeoutException
 
@@ -35,7 +35,7 @@ class SentenceTests extends BoatTests:
               sentencePromise.get.flatMap: received =>
                 assertEquals(received.sentences, testMessage.sentences)
                 coordPromise.get.map: coords =>
-                  val expectedCoords = List(Coord.buildOrFail(24.867495, 60.133465))
+                  val expectedCoords = List(24.867495 lngLat 60.133465)
                   assertEquals(coords.coords.map(_.coord), expectedCoords)
           for
             _ <- viewer.start

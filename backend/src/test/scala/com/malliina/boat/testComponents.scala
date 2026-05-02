@@ -7,7 +7,7 @@ import com.malliina.boat.db.{CustomJwt, IdentityException, JWTError, PushDevice}
 import com.malliina.boat.http4s.{AppComps, AppCompsBuilder, Auth}
 import com.malliina.boat.push.{PushEndpoint, PushGeo, PushSummary, SourceNotification}
 import com.malliina.http.HttpClient
-import com.malliina.values.{Email, IdToken}
+import com.malliina.values.Email
 import com.malliina.values.Literals.{email, jwt}
 import com.malliina.web.{Expired, InvalidSignature, WebAuthException}
 import org.http4s.Headers

@@ -4,6 +4,7 @@ import cats.effect.{Deferred, IO}
 import com.malliina.boat.*
 import com.malliina.geo.Coord
 import com.malliina.util.AppLogger
+import com.malliina.values.lngLat
 import fs2.Stream
 import fs2.concurrent.SignallingRef
 
@@ -28,7 +29,7 @@ class StaticBoatTests extends BoatTests:
       openTestBoat(boatName, client): boat =>
         Deferred[IO, CoordsEvent].flatMap: coordPromise =>
           Deferred[IO, Boolean].flatMap: viewing =>
-            val testCoord = Coord.buildOrFail(24.89171, 60.1532)
+            val testCoord = 24.89171 lngLat 60.1532
             val viewer = openViewerSocket(client, None): socket =>
               viewing.complete(true) >>
                 socket.jsonMessages
@@ -42,14 +43,16 @@ class StaticBoatTests extends BoatTests:
                   .compile
                   .drain
             val messages = viewing.get >> boat
-              .send(SentencesMessage(testTrack.take(6)))
-              .flatMap: sent =>
-                assert(sent)
+              .trySendJson(SentencesMessage(testTrack.take(6)))
+              .flatMap: _ =>
                 coordPromise.get.map: coordsEvent =>
                   assertEquals(coordsEvent.from.boatName, boatName)
                   assertEquals(coordsEvent.coords.map(_.coord), List(testCoord))
                   val first = coordsEvent.coords.head
                   assertEquals(first.boatTimeMillis, 1525443455000L)
+              .recover:
+                case t =>
+                  fail("Failed to send sentences.", t)
             val system = Stream
               .never[IO]
               .concurrently(Stream.eval(viewer))

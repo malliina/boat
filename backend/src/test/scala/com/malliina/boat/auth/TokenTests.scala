@@ -6,7 +6,7 @@ import com.malliina.boat.{BaseSuite, LocalConf}
 import com.malliina.config.ConfigNode
 import com.malliina.http.FullUrl
 import com.malliina.http.HttpClient
-import com.malliina.values.IdToken
+import com.malliina.values.Literals.jwt
 import com.malliina.web.{AppleTokenValidator, ClientId, GoogleAuthFlow, SignInWithApple}
 
 import java.nio.file.Path
@@ -17,10 +17,10 @@ class TokenTests extends BaseSuite:
   val boatConf = LocalConf.conf.parse[ConfigNode]("boat").toOption.get
 
   http.test("google token validation".ignore): httpClient =>
-    val in = "token_here"
+    val in = jwt"token_here".id
     val client = GoogleAuthFlow.keyClient(Seq(ClientId.unsafe("client_id")), httpClient)
     client
-      .validate(IdToken.unsafe(in))
+      .validate(in)
       .map: outcome =>
         assert(outcome.isRight)
         val v = outcome.toOption.get
@@ -28,7 +28,7 @@ class TokenTests extends BaseSuite:
           println(s"$k=$value")
 
   http.test("validate iOS SIWA token".ignore): client =>
-    val token = IdToken.unsafe("changeme")
+    val token = jwt"changeme".id
     val v = AppleTokenValidator.app(client)
     v.validateToken(token, Instant.now())
       .map: _ =>

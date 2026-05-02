@@ -2,6 +2,7 @@ package com.malliina.boat
 
 import com.malliina.geo.Coord
 import com.malliina.geojson.LineGeometry
+import com.malliina.values.lngLat
 import io.circe.parser.decode
 
 class BoatTests extends munit.FunSuite with DemoJson:
@@ -15,7 +16,7 @@ class BoatTests extends munit.FunSuite with DemoJson:
     assertEquals(decrements.sum.abs, expected)
 
   test("serialize GeoJSON"):
-    val _ = LineGeometry("LineString", Seq(Coord.buildOrFail(24, 60)))
+    val _ = LineGeometry("LineString", Seq(24 lngLat 60))
     assertEquals(1, 1)
 
   test("parse mark"):

@@ -25,8 +25,9 @@ case class TestBoatConf(testdb: Conf)
 
 object TestHttp:
   import cats.effect.unsafe.implicits.global
+  val resource = HttpClient.resource[IO]()
   lazy val (client, finalizer) =
-    HttpClient.resource[IO]().allocated[JavaHttpClient[IO]].unsafeRunSync()
+    resource.allocated[JavaHttpClient[IO]].unsafeRunSync()
 
 trait MUnitSuite extends munit.CatsEffectSuite:
   val userHome: Path = Paths.get(sys.props("user.home"))

@@ -9,6 +9,7 @@ import com.malliina.http.FullUrl
 import com.malliina.json.PrimitiveFormats
 import com.malliina.measure.{DistanceM, Numerical, SpeedM, Temperature}
 import com.malliina.values.*
+import com.malliina.values.Literals.user
 import io.circe.generic.semiauto.deriveCodec
 import io.circe.syntax.EncoderOps
 import io.circe.{Codec, Decoder, DecodingFailure, Encoder, Json}
@@ -168,7 +169,7 @@ object RawSentence extends ValidatedString[RawSentence]:
 
 object Usernames:
   val Key = "username"
-  val anon = Username.unsafe("anon")
+  val anon: Username = user"anon"
 
 object Passwords:
   val Key = "password"

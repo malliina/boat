@@ -9,7 +9,7 @@ import com.malliina.boat.parsing.{BoatStats, FullCoord}
 import com.malliina.boat.*
 import com.malliina.geo.Coord
 import com.malliina.measure.{DistanceIntM, SpeedIntM, TemperatureInt}
-import com.malliina.values.Username
+import com.malliina.values.{Username, lngLat}
 import io.circe.Json
 import io.circe.syntax.EncoderOps
 import org.http4s.*
@@ -64,7 +64,7 @@ class ServiceTests extends MUnitSuite with Http4sSuite:
         BoatUser(TrackNames.random(), DeviceNames.random(), SourceType.Boat, user, Language.default)
       )
       coord = FullCoord(
-        Coord.buildOrFail(60, 24),
+        60 lngLat 24,
         LocalTime.now(),
         LocalDate.now(),
         10.knots,
