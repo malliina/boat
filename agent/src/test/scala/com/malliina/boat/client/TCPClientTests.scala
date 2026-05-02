@@ -28,7 +28,7 @@ class TCPClientTests extends munit.CatsEffectSuite:
     val tcpHost = host"127.0.0.1"
     val tcpPort = port"10103"
     val network = Network[IO]
-    val clientz: Stream[IO, Socket[IO]] = network.server(port = Option(tcpPort)).head
+    val clientz: Stream[IO, Socket[IO]] = network.bindAndAccept(SocketAddress.port(tcpPort)).head
     val headClient: Stream[IO, Unit] = clientz.evalMap: client =>
       val byteStream =
         plotterOutput
