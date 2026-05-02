@@ -9,9 +9,9 @@ Raspbian.
 
 Have a Raspberry Pi available in your boat, power it up and make sure you can connect to it.
 
-1. Download the [latest version](https://www.boat-tracker.com/files/boat-agent_0.5.0_all.deb) of the agent from [www.boat-tracker.com/files](https://www.boat-tracker.com/files).
+1. Download the [latest version](https://www.boat-tracker.com/files/boat-agent_0.6.0_all.deb) of the agent from [www.boat-tracker.com/files](https://www.boat-tracker.com/files).
 1. SSH to your Raspberry Pi.
-1. Install the downloaded package: `dpkg -i boat-agent_0.5.0_all.deb`.
+1. Install the downloaded package: `dpkg -i boat-agent_0.6.0_all.deb`.
 1. Open a web browser and connect to the started HTTP server on port 8080.
 1. In the web form, input the IP address and HTTP port of your chartplotter.
 1. Optionally, input the boat token available in the iOS app.
