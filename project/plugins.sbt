@@ -1,7 +1,7 @@
 scalaVersion := "2.12.21"
 
 libraryDependencies ++= Seq(
-  "com.malliina" %% "okclient" % "6.14.2",
+  "com.malliina" %% "okclient" % "6.14.3",
   "software.amazon.awssdk" % "s3" % "2.44.0"
 )
 

@@ -42,7 +42,8 @@ class StaticBoatTests extends BoatTests:
                       .getOrElse(IO.unit)
                   .compile
                   .drain
-            val messages = viewing.get >> boat
+            // Socket ref may not be set before Open message is received; .sleep is a temp workaround
+            val messages = viewing.get >> IO.sleep(100.millis) >> boat
               .trySendJson(SentencesMessage(testTrack.take(6)))
               .flatMap: _ =>
                 coordPromise.get.map: coordsEvent =>

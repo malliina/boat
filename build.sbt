@@ -14,19 +14,19 @@ val versions = new {
   val codec = "1.21.0"
   val commonsText = "1.15.0"
   val fs2 = "3.13.0"
-  val http4s = "0.23.33"
+  val http4s = "0.23.34"
   val ip4s = "3.7.0"
   val jts = "1.13"
   val logback = "1.5.32"
   val mariadb = "3.5.7"
-  val mobilePush = "3.17.0"
+  val mobilePush = "3.17.1"
   val munit = "1.3.0"
   val munitCe = "2.2.0"
   val paho = "1.2.5"
   val s3 = "2.42.4"
   val scalaJsDom = "2.8.1"
   val scalaTags = "0.13.1"
-  val util = "6.14.2"
+  val util = "6.14.3"
 }
 
 val webAuthDep = "com.malliina" %% "web-auth" % versions.util
