@@ -28,6 +28,7 @@ import com.malliina.values.{Email, Readable, Username}
 import com.malliina.web.*
 import com.malliina.web.OAuthKeys.{Nonce, State}
 import com.malliina.web.Utils.randomString
+import fs2.concurrent.Topic.Closed
 import fs2.io.file.Files
 import fs2.{Pipe, Stream}
 import io.circe.parser.parse
@@ -44,7 +45,7 @@ import org.typelevel.ci.CIString
 
 import java.time.Instant
 import scala.annotation.unused
-import scala.concurrent.duration.DurationInt
+import scala.concurrent.duration.{DurationInt, DurationLong}
 
 object Service:
   private val log = AppLogger(getClass)
@@ -470,7 +471,7 @@ class Service[F[_]: {Async, Files}](
     from: DeviceMeta,
     req: Request[F],
     receivedAt: Instant
-  ) =
+  ): F[Response[F]] =
     val lang = BoatLang(from.language)
     Timer.start: timer =>
       inserts
@@ -482,27 +483,27 @@ class Service[F[_]: {Async, Files}](
           log.debug(
             s"User ${from.user} POSTs $count updates for ${meta.boatName}, join took $time ms..."
           )
-          val insertion: F[List[InsertedPoint]] = NonEmptyList
+          val insertion: F[Boolean] = NonEmptyList
             .fromList(locs.toList)
             .map: nel =>
               val insertables = nel.map: loc =>
                 meta.sourceType match
                   case Mobile => UserCoord.fromUpdate(loc, meta.track, req.userAgent)
                   case _      => CarCoord.fromUpdate(loc, meta.track, req.userAgent)
-              streams
-                .saveAndPublish(insertables)
-                .map(_.toList)
+              streams.locationsIn
+                .publish1(insertables)
+                .map(report(_, "locations", from))
                 .onError: t =>
                   F.delay(log.error(s"Failed to save locations.", t))
             .getOrElse:
-              F.pure(Nil)
+              F.pure(false)
 
-          def pushTask(latest: JoinedTrack) =
+          def pushTask(latest: TrackMeta) =
             val state = PushState(
               meta,
               SourceState.Connected,
               latest.distance,
-              latest.duration,
+              (receivedAt.toEpochMilli - meta.trackAdded.toEpochMilli).millis,
               result.isResumed,
               locs.headOption.map(_.coord),
               lang.lang.push,
@@ -512,10 +513,10 @@ class Service[F[_]: {Async, Files}](
 
           for
             inserteds <- insertion
-            _ <- inserteds.lastOption.map(i => pushTask(i.track)).getOrElse(F.pure(()))
+            _ <- if inserteds then pushTask(meta) else F.unit
             duration = timer.elapsedNowMs
             response <- ok(
-              SimpleMessage(s"Saved ${inserteds.size} updates in $duration ms.")
+              SimpleMessage(s"Handled ${locs.size} updates in $duration ms.")
             )
           yield response
 
@@ -651,15 +652,8 @@ class Service[F[_]: {Async, Files}](
                               pushRecovered(updatedState)
                           val publishEvent = streams.boatIn
                             .publish1(BoatEvent(parsed, meta, req.userAgent))
-                            .map: e =>
-                              e.fold(
-                                err =>
-                                  log.warn(
-                                    s"Failed to publish '$message' by ${boat.describe}, topic closed."
-                                  ),
-                                identity
-                              )
-                          pushUpdate >> publishEvent
+                            .map(report(_, message, boat))
+                          pushUpdate >> publishEvent.void
                       )
                     ,
                     onClose = F
@@ -698,6 +692,17 @@ class Service[F[_]: {Async, Files}](
                           .void
                       .handleError: err =>
                         log.info(s"Failed to handler error of ${boat.describe}.", err)
+
+  private def report(e: Either[Closed, Unit], message: String, source: DeviceMeta): Boolean =
+    e.fold(
+      err =>
+        log.warn(
+          s"Failed to publish $message by ${source.describe}, topic closed."
+        )
+        false
+      ,
+      _ => true
+    )
 
   def routes(sockets: WebSocketBuilder2[F]): HttpRoutes[F] =
     normalRoutes.combineK(socketRoutes(sockets))

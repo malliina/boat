@@ -3,7 +3,7 @@ package com.malliina.boat.it
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 import cats.effect.IO
-import com.malliina.boat.{BoatToken, DeviceName, DeviceNames, RawSentence, SentencesMessage}
+import com.malliina.boat.{BoatToken, DeviceName, RawSentence, SentencesMessage}
 import com.malliina.http.FullUrl
 import com.malliina.util.FileUtils
 

@@ -13,6 +13,7 @@ import com.malliina.tasks.runInBackground
 import com.malliina.util.AppLogger
 import fs2.Stream
 import fs2.concurrent.Topic
+import fs2.concurrent.Topic.Closed
 
 import java.time.format.DateTimeFormatter
 
@@ -27,6 +28,7 @@ object BoatStreams:
     for
       streams <- Resource.eval(build[F](db, aisDb, ais))
       _ <- streams.publisher.runInBackground
+      _ <- streams.locationsInserter.runInBackground
       _ <- streams.saveableAis.runInBackground
     yield streams
 
@@ -38,7 +40,8 @@ object BoatStreams:
     for
       in <- Topic[F, InputEvent]
       saved <- Topic[F, SavedEvent]
-    yield BoatStreams(db, aisDb, ais, in, saved)
+      locations <- Topic[F, NonEmptyList[PointInsert]]
+    yield BoatStreams(db, aisDb, ais, in, locations, saved)
 
   def rights[F[_], L, R](src: Stream[F, Either[L, R]]): Stream[F, R] = src.flatMap: e =>
     e.fold(_ => Stream.empty, r => Stream(r))
@@ -48,6 +51,7 @@ class BoatStreams[F[_]: Async](
   aisDb: VesselDatabase[F],
   ais: AISSource[F],
   val boatIn: Topic[F, InputEvent],
+  val locationsIn: Topic[F, NonEmptyList[PointInsert]],
   saved: Topic[F, SavedEvent]
 ):
   val F = Sync[F]
@@ -92,7 +96,17 @@ class BoatStreams[F[_]: Async](
       .flatMap(list => Stream.emit(list))
       .handleErrorWith: t =>
         Stream.eval(F.delay(log.error(s"Failed to insert AIS batch. Aborting.", t))) >> Stream.empty
-  val publisher = inserted.evalMap(i => saved.publish1(i))
+  val publisher: Stream[F, Either[Closed, Unit]] = inserted.evalMap(i => saved.publish1(i))
+
+  val locationsInserter: Stream[F, List[InsertedPoint]] =
+    locationsIn
+      .subscribe(maxQueued = 1000)
+      .mapAsync(1): list =>
+        saveAndPublish(list)
+          .map(_.toList)
+          .handleError: t =>
+            log.error(s"Failed to save ${list.size} locations.", t)
+            Nil
 
   def clientEvents(formatter: TimeFormatter): Stream[F, FrontEvent] =
     val events = saved
