@@ -149,7 +149,9 @@ class TrackInserter[F[_]](val db: DoobieDatabase[F]) extends TrackInsertsDatabas
     for
       prev <- previous
       diff <- prev.map(p => computeDistance(p.coord, coord.coord)).getOrElse(pure(DistanceM.zero))
-      point <- insertPoint(coord, prev.map(_.trackIndex).getOrElse(0) + 1, diff)
+      idx = prev.map(_.trackIndex).getOrElse(0) + 1
+      _ = log.info(s"Inserting coord at index $idx of track ${coord.track}...")
+      point <- insertPoint(coord, idx, diff)
       avgSpeed <-
         sql"""select avg(speed)
                 from points p
@@ -187,7 +189,7 @@ class TrackInserter[F[_]](val db: DoobieDatabase[F]) extends TrackInsertsDatabas
       _ <- insertSentencePoints(
         coord.boatStats.toList.flatMap(_.parts).map(key => (key, point))
       )
-      _ = log.debug(s"Inserted $point to $track, fetching by that ID...")
+      _ = log.info(s"Inserted $point at index $idx of $track, fetching by that ID...")
       ref <- trackById(track)
     yield InsertedPoint(point, ref)
 
