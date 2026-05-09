@@ -48,8 +48,8 @@ class MobileTests extends BoatServerFunSuite:
         boatHeaders(creation.boat.token, s.csrf)
       )
     yield
-      assert(upd1.message.startsWith("Saved"))
-      assert(upd2.message.startsWith("Saved"))
+      assert(upd1.message.startsWith("Handled"))
+      assert(upd2.message.startsWith("Handled"))
 
   protected def boatHeaders(token: BoatToken, csrf: CSRFConf) =
     val bh = Map(BoatHeaders.BoatTokenHeader -> token.show)
