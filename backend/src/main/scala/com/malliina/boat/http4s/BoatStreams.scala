@@ -14,6 +14,8 @@ import com.malliina.util.AppLogger
 import fs2.Stream
 import fs2.concurrent.Topic
 
+import java.time.format.DateTimeFormatter
+
 object BoatStreams:
   private val log = AppLogger(getClass)
 
@@ -118,8 +120,12 @@ class BoatStreams[F[_]: Async](
     events.mergeHaltBoth[F, FrontEvent](aisEvents)
 
   def saveAndPublish(coords: NonEmptyList[PointInsert]): F[NonEmptyList[InsertedPoint]] =
+    val times =
+      coords.map(c => DateTimeFormatter.ISO_INSTANT.format(c.sourceTime)).toList.mkString(", ")
     for
+      _ <- F.delay(log.info(s"Saving ${coords.size} coords with times $times..."))
       inserteds <- db.saveCoords(coords)
+      _ <- F.delay(log.info(s"Saved ${coords.size} coords with times $times."))
       result <- saved.publish1(InsertedCoords(inserteds))
     yield
       result.fold(
