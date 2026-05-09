@@ -8,6 +8,7 @@ import com.malliina.http.FullUrl
 import com.malliina.http.HttpClient
 import com.malliina.values.Literals.jwt
 import com.malliina.web.{AppleTokenValidator, ClientId, GoogleAuthFlow, SignInWithApple}
+import com.malliina.web.WebLiterals.cid
 
 import java.nio.file.Path
 import java.time.Instant
@@ -18,7 +19,7 @@ class TokenTests extends BaseSuite:
 
   http.test("google token validation".ignore): httpClient =>
     val in = jwt"token_here".id
-    val client = GoogleAuthFlow.keyClient(Seq(ClientId.unsafe("client_id")), httpClient)
+    val client = GoogleAuthFlow.keyClient(Seq(cid"client_id"), httpClient)
     client
       .validate(in)
       .map: outcome =>

@@ -1,5 +1,6 @@
 package com.malliina.boat.http4s
 
+import cats.data.NonEmptyList
 import cats.effect.kernel.Resource
 import cats.effect.{Async, Sync}
 import cats.syntax.all.{catsSyntaxApplicativeError, catsSyntaxFlatMapOps, toFlatMapOps, toFunctorOps}
@@ -94,28 +95,41 @@ class BoatStreams[F[_]: Async](
   def clientEvents(formatter: TimeFormatter): Stream[F, FrontEvent] =
     val events = saved
       .subscribe(maxQueued = 100)
-      .collect:
+      .flatMap:
         case InsertedCoord(coord, inserted) =>
-          CoordsEvent(
+          val e = CoordsEvent(
             List(coord.timed(inserted.point, formatter)),
             inserted.track.strip(formatter)
           )
+          Stream(e)
+        case InsertedCoords(coords) =>
+          val byTrack = coords.foldLeft(Vector.empty[CoordsEvent])((acc, ic) =>
+            val newCoord = ic.coord.timed(ic.inserted.point, formatter)
+            val idx = acc.indexWhere(_.from.track == ic.inserted.track.track)
+            if idx >= 0 then
+              val old = acc(idx)
+              acc.updated(idx, old.copy(coords = old.coords :+ newCoord))
+            else acc :+ CoordsEvent(List(newCoord), ic.inserted.track.strip(formatter))
+          )
+          Stream.emits(byTrack)
+        case _ =>
+          Stream.empty
     val aisEvents = ais.slow.map(pairs => VesselMessages(pairs.map(_.toInfo(formatter))))
     events.mergeHaltBoth[F, FrontEvent](aisEvents)
 
-  def saveAndPublish(coord: PointInsert): F[InsertedPoint] =
+  def saveAndPublish(coords: NonEmptyList[PointInsert]): F[NonEmptyList[InsertedPoint]] =
     for
-      inserted <- db.saveCoords(coord)
-      result <- saved.publish1(InsertedCoord(coord, inserted))
+      inserteds <- db.saveCoords(coords)
+      result <- saved.publish1(InsertedCoords(inserteds))
     yield
       result.fold(
         _ => log.warn(s"Topic was closed, could not publish car event."),
         _ => ()
       )
-      inserted
+      inserteds.map(_.inserted)
 
   private def saveRecovered(coord: FullCoord): F[List[InsertedCoord]] =
-    db.saveCoords(coord)
+    db.saveCoord(coord)
       .map: inserted =>
         log.debug(s"Inserted $inserted")
         List(InsertedCoord(coord, inserted))

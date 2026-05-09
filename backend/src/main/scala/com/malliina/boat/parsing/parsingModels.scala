@@ -1,5 +1,6 @@
 package com.malliina.boat.parsing
 
+import cats.data.NonEmptyList
 import com.malliina.boat.{Energy, InsertedPoint, KeyedSentence, LocationUpdate, RawSentence, SentenceKey, TimeFormatter, TimedCoord, TrackId, TrackMetaShort, TrackPointId, UserAgent}
 import com.malliina.geo.Coord
 import com.malliina.measure.{DistanceM, SpeedM, Temperature}
@@ -226,3 +227,4 @@ case class IgnoredSentence(sentence: RawSentence) extends SentenceError:
 sealed trait SavedEvent
 case object EmptySavedEvent extends SavedEvent
 case class InsertedCoord(coord: PointInsert, inserted: InsertedPoint) extends SavedEvent
+case class InsertedCoords(coords: NonEmptyList[InsertedCoord]) extends SavedEvent

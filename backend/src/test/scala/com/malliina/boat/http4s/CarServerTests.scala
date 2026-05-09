@@ -90,7 +90,7 @@ class CarServerTests extends BoatServerFunSuite:
 
   srv.test("POST call with working jwt"): s =>
     val meta =
-      SimpleSourceMeta(testUser, DeviceNames.random(), SourceType.Vehicle, Language.default)
+      SimpleSourceMeta(testUser, DeviceName.random(), SourceType.Vehicle, Language.default)
     successfulTest(meta, s)(carId => LocationUpdates(Nil, carId))
 
   srv.test("POST call with working jwt and update with no speed"): s =>
@@ -99,7 +99,7 @@ class CarServerTests extends BoatServerFunSuite:
         |{ "updates" : [ { "longitude" : -122.084, "latitude" : 37.421998333333335, "altitudeMeters" : 5.0, "accuracyMeters" : 5.0, "bearing" : null, "bearingAccuracyDegrees" : null, "speed" : null, "batteryLevel" : null, "batteryCapacity" : null, "rangeRemaining" : null, "outsideTemperature" : 25.0, "nightMode" : false, "date" : "2025-02-08T16:43:14.517+02:00" } ], "carId" : 1324 }""".stripMargin
     val ups = io.circe.parser.decode[LocationUpdates](json).fold(err => throw err, identity)
     val meta =
-      SimpleSourceMeta(testUser, DeviceNames.random(), SourceType.Vehicle, Language.default)
+      SimpleSourceMeta(testUser, DeviceName.random(), SourceType.Vehicle, Language.default)
     successfulTest(meta, s)(carId => ups.copy(carId = carId))
 
   srv.test("POST car locations for non-owned car fails"): s =>

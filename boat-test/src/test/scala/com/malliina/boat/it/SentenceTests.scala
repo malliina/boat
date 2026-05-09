@@ -11,7 +11,7 @@ import scala.concurrent.TimeoutException
 class SentenceTests extends BoatTests:
   // TODO Why is this test ignored?
   http.test("anonymously sent sentence is received by anonymous viewer".ignore): client =>
-    openTestBoat(DeviceNames.random(), client): boat =>
+    openTestBoat(DeviceName.random(), client): boat =>
       Deferred[IO, SentencesEvent].flatMap: sentencePromise =>
         Deferred[IO, CoordsEvent].flatMap: coordPromise =>
           val testMessage = SentencesMessage(
@@ -51,7 +51,7 @@ class SentenceTests extends BoatTests:
       .addUser(NewUser(testUser, None, UserToken.random(), enabled = true))
       .map: _ =>
         val creds = Option(Creds(testUser, testPass))
-        openTestBoat(DeviceNames.random(), client): boat =>
+        openTestBoat(DeviceName.random(), client): boat =>
           Deferred[IO, CoordsEvent].flatMap: authPromise =>
             Deferred[IO, CoordsEvent].flatMap: anonPromise =>
               val testMessage = SentencesMessage(

@@ -1,10 +1,10 @@
 package com.malliina.boat.db
 
 import cats.data.NonEmptyList
-import cats.implicits.{catsSyntaxApplicativeId, catsSyntaxApplyOps, catsSyntaxList}
+import cats.implicits.{catsSyntaxApplicativeId, catsSyntaxApplyOps, catsSyntaxList, toTraverseOps}
 import com.malliina.boat.*
 import com.malliina.boat.db.TrackInserter.log
-import com.malliina.boat.parsing.PointInsert
+import com.malliina.boat.parsing.{InsertedCoord, PointInsert}
 import com.malliina.database.DoobieDatabase
 import com.malliina.measure.{DistanceM, SpeedIntM, SpeedM}
 import com.malliina.util.AppLogger
@@ -57,7 +57,7 @@ class TrackInserter[F[_]](val db: DoobieDatabase[F]) extends TrackInsertsDatabas
     updateTrack(trackIO, updateIO)
 
   def addSource(boat: DeviceName, sourceType: SourceType, user: UserId): F[SourceRow] = run:
-    saveNewSource(boat, sourceType, user, BoatTokens.random()).flatMap(id => boatById(id))
+    saveNewSource(boat, sourceType, user, BoatToken.random()).flatMap(id => boatById(id))
 
   def removeDevice(device: DeviceId, user: UserId): F[Int] = run:
     sql"delete from boats b where b.id = $device and b.owner = $user".update.run.map: rows =>
@@ -100,7 +100,7 @@ class TrackInserter[F[_]](val db: DoobieDatabase[F]) extends TrackInsertsDatabas
           log.debug(s"Resuming track ${t.track} for device '${meta.boat}' by '${meta.user}'.")
           pure(JoinResult(t, true))
         .getOrElse:
-          val trackMeta = meta.withTrack(TrackNames.random())
+          val trackMeta = meta.withTrack(TrackName.random())
           joinSource(trackMeta).flatMap: boat =>
             // Is this necessary?
             trackMetas(fr"and t.name = ${trackMeta.track} and b.id = ${boat.id}").option.flatMap:
@@ -128,12 +128,22 @@ class TrackInserter[F[_]](val db: DoobieDatabase[F]) extends TrackInsertsDatabas
     val sql = s"insert into sentences(sentence, track) values (?, ?)"
     Update[(RawSentence, TrackId)](sql).updateManyWithGeneratedKeys[SentenceKey]("id")(pairs.toList)
 
-  def saveCoords(coord: PointInsert): F[InsertedPoint] = run:
+  def saveCoords(coords: NonEmptyList[PointInsert]): F[NonEmptyList[InsertedCoord]] = run:
+    coords
+      .map: coord =>
+        saveCoordIO(coord).map: inserted =>
+          InsertedCoord(coord, inserted)
+      .sequence
+
+  def saveCoord(coord: PointInsert): F[InsertedPoint] = run:
+    saveCoordIO(coord)
+
+  private def saveCoordIO(coord: PointInsert): ConnectionIO[InsertedPoint] =
     val track = coord.track
     val previous =
       sql"""select coord, track_index
-            from points p
-            where p.track = $track order by p.track_index desc limit 1"""
+              from points p
+              where p.track = $track order by p.track_index desc limit 1"""
         .query[PreviousPoint]
         .option
     for
@@ -142,36 +152,38 @@ class TrackInserter[F[_]](val db: DoobieDatabase[F]) extends TrackInsertsDatabas
       point <- insertPoint(coord, prev.map(_.trackIndex).getOrElse(0) + 1, diff)
       avgSpeed <-
         sql"""select avg(speed)
-              from points p
-              where p.track = $track and p.speed >= $minSpeed
-              having avg(speed) is not null"""
+                from points p
+                where p.track = $track and p.speed >= $minSpeed
+                having avg(speed) is not null"""
           .query[SpeedM]
           .option
       consumption <- sql"""select sum(p1.battery - p2.battery) wattHours
-                           from points p1,
-                                points p2
-                           where p1.track = p2.track
-                             and p1.track_index + 1 = p2.track_index
-                             and p1.battery - p2.battery > 0
-                             and p1.battery > 0 and p2.battery > 0
-                             and p1.track = $track
-                             having sum(p1.battery - p2.battery) is not null""".query[Energy].option
+                             from points p1,
+                                  points p2
+                             where p1.track = p2.track
+                               and p1.track_index + 1 = p2.track_index
+                               and p1.battery - p2.battery > 0
+                               and p1.battery > 0 and p2.battery > 0
+                               and p1.track = $track
+                               having sum(p1.battery - p2.battery) is not null"""
+        .query[Energy]
+        .option
       info <-
         sql"""select avg(water_temp), avg(outside_temperature), ifnull(sum(diff), 0), count(*)
-              from points p
-              where p.track = $track"""
+                from points p
+                where p.track = $track"""
           .query[DbTrackInfo]
           .option
           .map(_.getOrElse(DbTrackInfo(None, None, DistanceM.zero, 0)))
       _ <-
         sql"""update tracks
-              set avg_water_temp = ${info.avgWaterTemp},
-                  avg_outside_temp = ${info.avgOutsideTemp},
-                  avg_speed = $avgSpeed,
-                  points = ${info.points},
-                  distance = ${info.distance},
-                  consumption = $consumption
-              where id = $track""".update.run
+                set avg_water_temp = ${info.avgWaterTemp},
+                    avg_outside_temp = ${info.avgOutsideTemp},
+                    avg_speed = $avgSpeed,
+                    points = ${info.points},
+                    distance = ${info.distance},
+                    consumption = $consumption
+                where id = $track""".update.run
       _ <- insertSentencePoints(
         coord.boatStats.toList.flatMap(_.parts).map(key => (key, point))
       )
@@ -272,7 +284,7 @@ class TrackInserter[F[_]](val db: DoobieDatabase[F]) extends TrackInsertsDatabas
               .flatMap: exists =>
                 if exists then fail(BoatNameNotAvailableException(meta.boat, meta.user))
                 else
-                  saveNewSource(meta.boat, meta.sourceType, uid, BoatTokens.random()).flatMap: id =>
+                  saveNewSource(meta.boat, meta.sourceType, uid, BoatToken.random()).flatMap: id =>
                     boatById(id)
 
   private def saveNewSource(

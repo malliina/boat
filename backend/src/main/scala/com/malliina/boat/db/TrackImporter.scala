@@ -60,7 +60,7 @@ class TrackImporter[F[_]: {Files, Temporal}](inserts: TrackInsertsDatabase[F])
       _.evalMap(e => inserts.saveSentences(e).map(kss => InsertedSentences(kss, e.userAgent)))
     )
       .through(sentenceCompiler)
-      .through(_.mapAsync(1)(coord => inserts.saveCoords(coord)))
+      .through(_.mapAsync(1)(coord => inserts.saveCoord(coord)))
 
   private def sentenceCompiler: Pipe[F, InsertedSentences, FullCoord] =
     val state = TrackManager()

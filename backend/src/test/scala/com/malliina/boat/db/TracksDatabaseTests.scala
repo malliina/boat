@@ -3,10 +3,10 @@ package com.malliina.boat.db
 import cats.effect.IO
 import com.malliina.boat.db.TestData.{london, sanfran}
 import com.malliina.boat.parsing.{BoatStats, FullCoord}
-import com.malliina.boat.{DeviceNames, BoatUser, DeviceId, Language, MUnitDatabaseSuite, MUnitSuite, SourceType, TrackId, TrackMetaShort, TrackNames, TrackRef, UserToken, UserUtils}
+import com.malliina.boat.{BoatUser, DeviceId, DeviceName, Language, MUnitDatabaseSuite, MUnitSuite, SourceType, TrackId, TrackMetaShort, TrackName, TrackRef, UserToken, UserUtils}
 import com.malliina.geo.Coord
 import com.malliina.measure.{DistanceIntM, SpeedIntM, SpeedM, Temperature}
-import com.malliina.values.{Email, RefreshToken, Username, ua, lng, lat}
+import com.malliina.values.{Email, RefreshToken, Username, lat, lng, ua}
 
 import java.time.{LocalDate, LocalTime}
 
@@ -33,12 +33,12 @@ class TracksDatabaseTests extends MUnitSuite with MUnitDatabaseSuite:
     val bid = boat.id
     val action: IO[TrackRef] = for
       result <- inserts.joinAsSource(
-        BoatUser(TrackNames.random(), boat.name, SourceType.Boat, user.username, Language.default)
+        BoatUser(TrackName.random(), boat.name, SourceType.Boat, user.username, Language.default)
       )
       t = result.track
       tid = t.track
-      _ <- inserts.saveCoords(fakeCoord(london, 10.kmh, tid, bid))
-      _ <- inserts.saveCoords(fakeCoord(sanfran, 20.kmh, tid, bid))
+      _ <- inserts.saveCoord(fakeCoord(london, 10.kmh, tid, bid))
+      _ <- inserts.saveCoord(fakeCoord(sanfran, 20.kmh, tid, bid))
       track <- tdb.ref(t.trackName)
       _ <- users.deleteUser(user.username)
     yield track
@@ -57,7 +57,7 @@ class TracksDatabaseTests extends MUnitSuite with MUnitDatabaseSuite:
         UserToken.random(),
         enabled = true
       )
-    val trackName = TrackNames.random()
+    val trackName = TrackName.random()
     val task = for
       u <- udb.addUser(userInput)
       uid = u.toOption.get.id
@@ -65,14 +65,14 @@ class TracksDatabaseTests extends MUnitSuite with MUnitDatabaseSuite:
         .joinAsSource(
           BoatUser(
             trackName,
-            DeviceNames.random(),
+            DeviceName.random(),
             SourceType.Boat,
             u.toOption.get.user,
             Language.default
           )
         )
         .map(_.track)
-      _ <- tdb.saveCoords(fakeCoord(london, 10.kmh, t.track, t.boat))
+      _ <- tdb.saveCoord(fakeCoord(london, 10.kmh, t.track, t.boat))
       t <- tdb.updateComments(t.track, testComment, uid)
     yield t.comments
     val dbComment = task.unsafeRunSync()
@@ -91,9 +91,9 @@ class TracksDatabaseTests extends MUnitSuite with MUnitDatabaseSuite:
       ),
       TrackMetaShort(
         track,
-        TrackNames.random(),
+        TrackName.random(),
         boat,
-        DeviceNames.random(),
+        DeviceName.random(),
         Username.unsafe("whatever")
       ),
       Option(ua"Boat-Tracker/Test")

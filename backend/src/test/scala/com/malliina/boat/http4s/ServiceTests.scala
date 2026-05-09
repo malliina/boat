@@ -28,7 +28,7 @@ class ServiceTests extends MUnitSuite with Http4sSuite:
     val service = comps.service
     val user = Username.unsafe("test@example.com")
     val userEmail = TestEmailAuth[IO].testEmail
-    val newName = DeviceNames.random()
+    val newName = DeviceName.random()
 
     def changeName(of: DeviceId, to: DeviceName) =
       val req = Method.PATCH(
@@ -61,7 +61,7 @@ class ServiceTests extends MUnitSuite with Http4sSuite:
         NewUser(user, Option(TestEmailAuth[IO].testEmail), UserToken.random(), enabled = true)
       )
       track <- inserts.joinAsSource(
-        BoatUser(TrackNames.random(), DeviceNames.random(), SourceType.Boat, user, Language.default)
+        BoatUser(TrackName.random(), DeviceName.random(), SourceType.Boat, user, Language.default)
       )
       coord = FullCoord(
         60 lngLat 24,
@@ -76,7 +76,7 @@ class ServiceTests extends MUnitSuite with Http4sSuite:
         track.track.short,
         None
       )
-      p <- inserts.saveCoords(coord)
+      p <- inserts.saveCoord(coord)
     yield p
     init.unsafeRunSync()
     val response1 = tracksRequest(ContentVersions.Version1, service.normalRoutes)

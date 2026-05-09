@@ -42,6 +42,8 @@ If your OS uses `nmcli` for Wi-Fi configurations, do something like to connect t
     nmcli connection add type wifi con-name my-boat-ssid ssid my-boat-ssid 802-11-wireless-security.key-mgmt WPA-PSK 802-11-wireless-security.psk ssid-password-here
     nmcli connection up my-boat-ssid
 
+See Wi-Fi configuration files in `/etc/NetworkManager/system-connections` and `/run/NetworkManager/system-connections`.
+
 ## Custom implementations
 
 If this agent is not good enough for you, you can send NMEA 0183 sentences to boat-tracker.com using the HTTP API 

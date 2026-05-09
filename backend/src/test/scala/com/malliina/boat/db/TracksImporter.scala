@@ -2,7 +2,7 @@ package com.malliina.boat.db
 
 import cats.effect.IO
 import cats.implicits.toTraverseOps
-import com.malliina.boat.{BoatUser, DateVal, DeviceId, DeviceName, Language, MUnitSuite, RawSentence, SourceType, TrackId, TrackInput, TrackNames}
+import com.malliina.boat.{BoatUser, DateVal, DeviceId, DeviceName, Language, MUnitSuite, RawSentence, SourceType, TrackId, TrackInput, TrackName}
 import com.malliina.database.{Conf, DoobieDatabase}
 import com.malliina.values.Username
 import fs2.Chunk
@@ -47,7 +47,7 @@ class TracksImporter extends MUnitSuite:
   private def importByDay(file: Path, day: LocalDate, db: DoobieDatabase[IO]): IO[Long] =
     val inserts = TrackInserter(db)
     val importer = TrackImporter(inserts)
-    val trackName = TrackNames.random()
+    val trackName = TrackName.random()
     val user = BoatUser(
       trackName,
       DeviceName.unsafe(ci"Amina"),
@@ -62,7 +62,7 @@ class TracksImporter extends MUnitSuite:
 
   def splitTracksByDate(oldTrack: TrackId, db: TrackInserter[IO]) =
     def createAndUpdateTrack(date: DateVal) =
-      val in = TrackInput.empty(TrackNames.random(), DeviceId.unsafe(14))
+      val in = TrackInput.empty(TrackName.random(), DeviceId.unsafe(14))
       for
         newTrack <- db.insertTrack(in)
         updated <- db.changeTrack(oldTrack, date, newTrack.track)

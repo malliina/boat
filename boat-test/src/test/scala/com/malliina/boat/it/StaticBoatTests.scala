@@ -24,7 +24,7 @@ class StaticBoatTests extends BoatTests:
 
   test("GPS reporting"):
     val client = TestHttp.client
-    val boatName = DeviceNames.random()
+    val boatName = DeviceName.random()
     SignallingRef[IO, Boolean](false).flatMap: complete =>
       openTestBoat(boatName, client): boat =>
         Deferred[IO, CoordsEvent].flatMap: coordPromise =>

@@ -11,7 +11,7 @@ import io.circe.generic.semiauto.deriveCodec
 import io.circe.syntax.EncoderOps
 import io.circe.{Codec, Decoder, DecodingFailure, Encoder, Json}
 import org.http4s.{Header, ParseFailure}
-import org.typelevel.ci.{CIString, CIStringSyntax}
+import org.typelevel.ci.CIStringSyntax
 
 import java.time.{Instant, LocalDate, LocalTime, OffsetDateTime, ZoneOffset}
 import scala.concurrent.duration.FiniteDuration
@@ -290,8 +290,6 @@ object DeviceNames:
   val Key = "boatName"
   val BoatKey = "boat"
 
-  def random() = DeviceName.unsafe(CIString(Utils.randomString(6)))
-
 case class PushPayload(
   token: PushToken,
   device: PushTokenType,
@@ -302,14 +300,8 @@ case class PushPayload(
 
 case class DisablePush(token: PushToken) derives Codec.AsObject
 
-object TrackNames:
-  def random() = TrackName.unsafe(Utils.randomString(6))
-
 object UserUtils:
   def random() = Username.unsafe(Utils.randomString(6))
-
-object BoatTokens:
-  def random() = BoatToken.unsafe(Utils.randomString(8))
 
 case class BoatResponse(boat: Boat) derives Codec.AsObject
 

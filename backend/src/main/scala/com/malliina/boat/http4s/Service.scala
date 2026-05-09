@@ -2,7 +2,7 @@ package com.malliina.boat.http4s
 
 import cats.data.NonEmptyList
 import cats.effect.Async
-import cats.syntax.all.{catsSyntaxApplicativeError, catsSyntaxFlatMapOps, toFlatMapOps, toFunctorOps, toSemigroupKOps, toTraverseOps}
+import cats.syntax.all.{catsSyntaxApplicativeError, catsSyntaxFlatMapOps, toFlatMapOps, toFunctorOps, toSemigroupKOps}
 import com.malliina.boat.*
 import com.malliina.boat.Constants.{LanguageName, TokenCookieName}
 import com.malliina.boat.PushTokenType.IOSActivityUpdate
@@ -225,7 +225,7 @@ class Service[F[_]: {Async, Files}](
     case req @ POST -> Root / "boats" =>
       formAction[AddSource](req): (boat, user) =>
         inserts
-          .addSource(boat.boatName.getOrElse(DeviceNames.random()), boat.sourceType, user.id)
+          .addSource(boat.boatName.getOrElse(DeviceName.random()), boat.sourceType, user.id)
           .flatMap(row => boatResponse(req, row))
     case req @ PATCH -> Root / "boats" / DeviceIdVar(device) =>
       updateBoat(req, device)
@@ -482,16 +482,20 @@ class Service[F[_]: {Async, Files}](
           log.debug(
             s"User ${from.user} POSTs $count updates for ${meta.boatName}, join took $time ms..."
           )
-          val insertion = locs
-            .traverse: loc =>
-              val insertable = meta.sourceType match
-                case Mobile => UserCoord.fromUpdate(loc, meta.track, req.userAgent)
-                case _      => CarCoord.fromUpdate(loc, meta.track, req.userAgent)
-              streams.saveAndPublish(insertable)
-            .onError: t =>
-              F.delay(
-                log.error(s"Failed to save locations.", t)
-              )
+          val insertion: F[List[InsertedPoint]] = NonEmptyList
+            .fromList(locs.toList)
+            .map: nel =>
+              val insertables = nel.map: loc =>
+                meta.sourceType match
+                  case Mobile => UserCoord.fromUpdate(loc, meta.track, req.userAgent)
+                  case _      => CarCoord.fromUpdate(loc, meta.track, req.userAgent)
+              streams
+                .saveAndPublish(insertables)
+                .map(_.toList)
+                .onError: t =>
+                  F.delay(log.error(s"Failed to save locations.", t))
+            .getOrElse:
+              F.pure(Nil)
 
           def pushTask(latest: JoinedTrack) =
             val state = PushState(

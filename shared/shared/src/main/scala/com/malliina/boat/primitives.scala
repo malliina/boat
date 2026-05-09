@@ -7,6 +7,15 @@ import com.malliina.values.Literals.err
 import io.circe.{Codec, Decoder, Encoder}
 import org.typelevel.ci.CIString
 
+object Randoms:
+  private val chars = "abcdefghijklmnopqrstuvwxyz"
+
+  def randomString(length: Int): String =
+    (1 to length).map(_ => randomChar()).mkString
+
+  def randomChar(): Char =
+    chars.charAt(math.floor(math.random() * chars.length).toInt)
+
 abstract class CICompanion[T] extends ValidatingCompanion[CIString, T]:
   given Show[T] = Show.show(t => write(t).toString)
 
@@ -21,12 +30,14 @@ object DeviceName extends CICompanion[DeviceName]:
   val Key = "boatName"
   override def build(input: CIString): Either[ErrorMessage, DeviceName] = Right(input)
   override def write(t: DeviceName): CIString = t
+  def random(): DeviceName = CIString(Randoms.randomString(6))
 
 opaque type TrackName = String
 object TrackName extends ValidatedString[TrackName]:
   val Key = "track"
   override def build(input: String): Either[ErrorMessage, TrackName] = Right(input)
   override def write(t: TrackName): String = t
+  def random(): TrackName = Randoms.randomString(6)
 
 opaque type TrackTitle = String
 object TrackTitle extends ValidatedString[TrackTitle]:
@@ -51,6 +62,7 @@ opaque type BoatToken = String
 object BoatToken extends ValidatedString[BoatToken]:
   override def build(input: String): Either[ErrorMessage, BoatToken] = Right(input)
   override def write(t: BoatToken): String = t
+  def random(): BoatToken = Randoms.randomString(8)
 
 opaque type DeviceId = Long
 object DeviceId extends ValidatedLong[DeviceId]:

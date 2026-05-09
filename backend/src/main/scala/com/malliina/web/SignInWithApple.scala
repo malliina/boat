@@ -6,6 +6,7 @@ import com.malliina.push.apns.{KeyId, TeamId}
 import com.malliina.util.AppLogger
 import com.malliina.web.AppleTokenValidator.appleIssuer
 import com.malliina.web.SignInWithApple.{Conf, log}
+import com.malliina.web.WebLiterals.cid
 import com.nimbusds.jose.crypto.ECDSASigner
 import com.nimbusds.jose.{JWSAlgorithm, JWSHeader}
 import com.nimbusds.jwt.{JWTClaimsSet, SignedJWT}
@@ -45,7 +46,7 @@ object SignInWithApple:
       privateKey,
       KeyId("2HRJXFM6UG"),
       APNSConf.teamId,
-      ClientId.unsafe("com.malliina.boat.client")
+      cid"com.malliina.boat.client"
     )
 
 /** https://developer.apple.com/documentation/sign_in_with_apple/generate_and_validate_tokens

@@ -7,7 +7,7 @@ import com.malliina.values.Literals.err
 import com.malliina.values.{Email, TokenValue}
 import com.malliina.web.AppleTokenValidator.EmailVerified
 import com.malliina.web.OAuthKeys.EmailKey
-import com.malliina.web.WebLiterals.issuer
+import com.malliina.web.WebLiterals.{cid, issuer}
 
 import java.time.Instant
 
@@ -15,7 +15,7 @@ object AppleTokenValidator:
   val EmailVerified = "email_verified"
   val appleIssuer: Issuer = issuer"https://appleid.apple.com"
   // aud for tokens obtained in the iOS app SIWA flow
-  val boatClientId = ClientId.unsafe("com.malliina.BoatTracker")
+  val boatClientId: ClientId = cid"com.malliina.BoatTracker"
 
   def app[F[_]: Sync](http: HttpClient[F]): AppleTokenValidator[F] =
     AppleTokenValidator(Seq(boatClientId), http)

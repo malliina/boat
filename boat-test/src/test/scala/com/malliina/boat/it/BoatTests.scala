@@ -41,7 +41,7 @@ trait BoatSockets:
   def openRandomBoat[T](url: FullUrl, httpClient: HttpClient[IO])(
     code: Socket => IO[T]
   ): IO[T] =
-    openBoat(url, Left(DeviceNames.random()), httpClient)(code)
+    openBoat(url, Left(DeviceName.random()), httpClient)(code)
 
   def openBoat[T](url: FullUrl, boat: Either[DeviceName, BoatToken], httpClient: HttpClient[IO])(
     code: Socket => IO[T]
