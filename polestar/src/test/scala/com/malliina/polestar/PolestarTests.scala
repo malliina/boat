@@ -4,7 +4,7 @@ import cats.effect.IO
 import ch.qos.logback.classic.Level
 import com.malliina.http.{JsonError, OkHttpResponse, ResponseException, StatusError}
 import com.malliina.logback.LogbackUtils
-import com.malliina.values.{AccessToken, RefreshToken}
+import com.malliina.values.Literals.jwt
 
 class PolestarTests extends munit.CatsEffectSuite:
   val creds = PolestarConfig.conf
@@ -26,7 +26,7 @@ class PolestarTests extends munit.CatsEffectSuite:
         assertEquals(1, 1)
 
   polestar.test("Refresh token".ignore): client =>
-    val token = RefreshToken.unsafe("changeme")
+    val token = jwt"changeme".refresh
     client.auth
       .refresh(token)
       .map: tokens =>
@@ -34,17 +34,30 @@ class PolestarTests extends munit.CatsEffectSuite:
         assertEquals(1, 1)
 
   polestar.test("Get graphql".ignore): client =>
-    val token = AccessToken.unsafe("todo")
+    val token = jwt"todo".access
     val task = for
       cars <- client.fetchCars(token)
       car = cars.head
       tele <- client.fetchTelematics(car.vin, token)
     yield (car, tele)
-    task.map: (car, tele) =>
-      println(car)
-      println(tele)
+    task
+      .map: (car, tele) =>
+        println(car)
+        println(tele)
+      .handleError:
+        case re: ResponseException =>
+          re.error match
+            case JsonError(error, response, url) =>
+              response match
+                case r: OkHttpResponse =>
+                  println(r.asString)
+            case StatusError(response, url) =>
+              response match
+                case r: OkHttpResponse => println(s"From $url: '${r.asString}'.")
+        case _ =>
+          println("o")
 
-  polestar.test("Tokens and telematics".ignore): client =>
+  polestar.test("Tokens and telematics"): client =>
     client.auth
       .fetchTokens(creds)
       .flatMap: tokens =>

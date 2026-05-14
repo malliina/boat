@@ -37,7 +37,7 @@ interface.
 
 ### Wireless connection on trixie
 
-If your OS uses `nmcli` for Wi-Fi configurations, do something like to connect to SSID `my-boat-ssid`:
+If your OS uses `nmcli` for Wi-Fi configurations, do something like the following to connect to SSID `my-boat-ssid`:
 
     nmcli connection add type wifi con-name my-boat-ssid ssid my-boat-ssid 802-11-wireless-security.key-mgmt WPA-PSK 802-11-wireless-security.psk ssid-password-here
     nmcli connection up my-boat-ssid

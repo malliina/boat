@@ -80,7 +80,6 @@ case class PolestarCarInfo(
   deliveryDate: Option[LocalDate],
   modelYear: String, // "2023"
   registrationNo: RegistrationNumber,
-  content: CarContent,
   energy: Option[CarEnergy],
   drivetrain: Option[String],
   software: Option[CarSoftware],

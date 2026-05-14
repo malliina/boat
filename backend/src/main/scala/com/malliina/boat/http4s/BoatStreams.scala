@@ -15,8 +15,6 @@ import fs2.Stream
 import fs2.concurrent.Topic
 import fs2.concurrent.Topic.Closed
 
-import java.time.format.DateTimeFormatter
-
 object BoatStreams:
   private val log = AppLogger(getClass)
 

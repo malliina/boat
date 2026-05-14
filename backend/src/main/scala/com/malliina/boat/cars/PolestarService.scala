@@ -16,14 +16,13 @@ object PolestarService:
   private val log = AppLogger(getClass)
 
   private def toCar(car: PolestarCarInfo, telematics: CarTelematics, image: FullUrl): Car =
-    val content = car.content
     Car(
       car.vin,
       car.registrationNo,
       car.modelYear,
       car.software.map(_.version),
-      content.interior.map(_.name),
-      content.exterior.map(_.name),
+      None,
+      None,
       image,
       telematics
     )
