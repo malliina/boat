@@ -50,10 +50,19 @@ object Health:
 case class Updated(seconds: String, nanos: Long) derives Codec.AsObject:
   def instant = Instant.ofEpochSecond(seconds.toInt).plusNanos(nanos)
 
+case class Consumptions(total: Consumption, automatic: Consumption, sinceCharge: Consumption)
+  derives Codec.AsObject
+
 case class Battery(
   vin: VIN,
   batteryChargeLevelPercentage: Percentage, // 0-100
+  chargerStatus: ChargerStatus,
   chargingStatus: ChargingStatus,
+  chargingPower: Option[Power],
+  chargingCurrent: Option[Current],
+  chargingVoltage: Option[Voltage],
+  chargingType: ChargingType,
+  consumptions: Consumptions,
   estimatedChargingTimeToFullMinutes: Option[FiniteDuration],
   estimatedDistanceToEmptyKm: DistanceM,
   timestamp: Updated
@@ -78,16 +87,13 @@ case class Odometer(
 object Odometer:
   given Decoder[DistanceM] = Decoder.decodeInt.map(_.meters)
 
-case class CarTelematics(health: Health, battery: Battery, odometer: Odometer)
-  derives Codec.AsObject
+case class CarTelematics(health: Health, odometer: Odometer) derives Codec.AsObject
 
-case class CarsTelematics(health: Seq[Health], battery: Seq[Battery], odometer: Seq[Odometer])
-  derives Codec.AsObject:
+case class CarsTelematics(health: Seq[Health], odometer: Seq[Odometer]) derives Codec.AsObject:
   def forVin(vin: VIN): Either[ErrorMessage, CarTelematics] =
     def findVIN[T <: VINSpec](ts: Seq[T], label: String): Either[ErrorMessage, T] =
       ts.find(_.vin == vin).toRight(ErrorMessage(s"No $label for VIN: '$vin'."))
     for
       h <- findVIN(health, "health")
-      b <- findVIN(battery, "battery")
       o <- findVIN(odometer, "odometer")
-    yield CarTelematics(h, b, o)
+    yield CarTelematics(h, o)

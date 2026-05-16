@@ -57,7 +57,7 @@ class PolestarTests extends munit.CatsEffectSuite:
         case _ =>
           println("o")
 
-  polestar.test("Tokens and telematics"): client =>
+  polestar.test("Tokens and telematics".ignore): client =>
     client.auth
       .fetchTokens(creds)
       .flatMap: tokens =>

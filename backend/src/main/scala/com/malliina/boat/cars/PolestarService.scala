@@ -5,17 +5,22 @@ import cats.implicits.toTraverseOps
 import cats.syntax.all.{catsSyntaxApplicativeError, toFlatMapOps, toFunctorOps}
 import com.malliina.boat.cars.PolestarService.{log, toCar}
 import com.malliina.boat.db.{RefreshService, TokenManager}
-import com.malliina.boat.{Car, CarBattery, CarHealth, CarOdometer, CarSummary, CarTelematics, CarsTelematics, TimeFormatter, Updated, UserInfo, VIN}
+import com.malliina.boat.{Battery, Car, CarBattery, CarHealth, CarOdometer, CarSummary, CarTelematics, TimeFormatter, Updated, UserInfo, VIN}
 import com.malliina.http.{FullUrl, JsonError, ResponseException, StatusError}
 import com.malliina.polestar.Polestar.Tokens
 import com.malliina.polestar.{Polestar, PolestarCarInfo, Variables}
 import com.malliina.util.AppLogger
-import com.malliina.values.{AccessToken, ErrorMessage, RefreshToken, UserId}
+import com.malliina.values.{AccessToken, ErrorMessage, RefreshToken, UserId, error}
 
 object PolestarService:
   private val log = AppLogger(getClass)
 
-  private def toCar(car: PolestarCarInfo, telematics: CarTelematics, image: FullUrl): Car =
+  private def toCar(
+    car: PolestarCarInfo,
+    telematics: CarTelematics,
+    battery: Battery,
+    image: FullUrl
+  ): Car =
     Car(
       car.vin,
       car.registrationNo,
@@ -24,7 +29,8 @@ object PolestarService:
       None,
       None,
       image,
-      telematics
+      telematics,
+      battery
     )
 
 class PolestarService[F[_]: Async](
@@ -52,7 +58,7 @@ class PolestarService[F[_]: Async](
           log.error(s"Failed to fetch cars and telematics for ${user.id} (${user.email}).", e)
           Nil
 
-  def carSummaries(user: UserInfo): F[Seq[CarSummary]] =
+  private def carSummaries(user: UserInfo): F[Seq[CarSummary]] =
     carsAndTelematics(user.id)
       .map: cars =>
         val formatter = TimeFormatter.lang(user.language)
@@ -62,7 +68,7 @@ class PolestarService[F[_]: Async](
         cars.map: car =>
           val t = car.telematics
           val h = t.health
-          val b = t.battery
+          val b = car.battery
           val o = t.odometer
           CarSummary(
             car.vin,
@@ -79,7 +85,12 @@ class PolestarService[F[_]: Async](
             ),
             CarBattery(
               b.batteryChargeLevelPercentage,
+              b.chargerStatus,
               b.chargingStatus,
+              b.chargingPower,
+              b.chargingCurrent,
+              b.chargingVoltage,
+              b.chargingType,
               b.estimatedChargingTimeToFullMinutes,
               b.estimatedDistanceToEmptyKm,
               formatted(b.timestamp)
@@ -90,7 +101,7 @@ class PolestarService[F[_]: Async](
             )
           )
 
-  def carsAndTelematics(owner: UserId): F[Seq[Car]] =
+  private def carsAndTelematics(owner: UserId): F[Seq[Car]] =
     request(owner, "cars"): token =>
       polestar
         .fetchCars(token)
@@ -104,25 +115,19 @@ class PolestarService[F[_]: Async](
               image <- effect(
                 images.data.getCarImages.preferred
                   .map(_.url)
-                  .toRight(ErrorMessage(s"No image for VIN: '$vin'.")),
+                  .toRight(s"No image for VIN: '$vin'.".error),
                 vin
               )
               t <- polestar.fetchTelematics(vin, token)
+              b <- polestar.grpc.battery(vin, token)
+              battery <- effect(b, vin)
               ct <- effect(t.forVin(vin), vin)
-            yield toCar(car, ct, image)
+            yield toCar(car, ct, battery, image)
 
   private def effect[T](e: Either[ErrorMessage, T], vin: VIN): F[T] = e.fold(
     error => F.raiseError(CarException(error, vin, None)),
     t => F.pure(t)
   )
-
-  def cars(owner: UserId): F[Seq[PolestarCarInfo]] =
-    request(owner, "cars"): token =>
-      polestar.fetchCars(token)
-
-  def telematics(vin: VIN, owner: UserId): F[CarsTelematics] =
-    request(owner, "telematics"): token =>
-      polestar.fetchTelematics(vin, token)
 
   def save(creds: Polestar.Creds, owner: UserId): F[Tokens] =
     for

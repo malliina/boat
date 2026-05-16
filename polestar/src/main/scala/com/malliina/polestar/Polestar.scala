@@ -7,6 +7,7 @@ import com.malliina.boat.{CarsTelematics, VIN}
 import com.malliina.http.UrlSyntax.https
 import com.malliina.http.io.HttpClientIO
 import com.malliina.http.{FullUrl, HttpClient, HttpHeaders}
+import com.malliina.polestar.grpc.GRPCClient
 import com.malliina.values.{AccessToken, Password, RefreshToken, Username}
 import io.circe.syntax.EncoderOps
 import io.circe.{Codec, Decoder, Encoder, Json}
@@ -33,8 +34,9 @@ object Polestar:
       .map: http =>
         Polestar(http)
 
-class Polestar[F[_]: Async](http: HttpClient[F]):
+class Polestar[F[_]: Async](val http: HttpClient[F]):
   val auth = PolestarAuth(http)
+  val grpc = GRPCClient(http)
   private val baseUrl = https"pc-api.polestar.com/eu-north-1/"
   private val v2Url = baseUrl / "mystar-v2"
   private val publicUrl = baseUrl / "mystar-public" / "/"

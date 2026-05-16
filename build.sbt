@@ -124,6 +124,7 @@ val crossJs = cross.js.dependsOn(mapboxJs)
 
 val polestar = project
   .in(file("polestar"))
+  .enablePlugins(Fs2Grpc)
   .dependsOn(crossJvm)
   .settings(
     libraryDependencies ++= Seq("generic", "parser").map { m =>
@@ -135,7 +136,8 @@ val polestar = project
       "ch.qos.logback" % "logback-classic" % versions.logback,
       "commons-codec" % "commons-codec" % versions.codec,
       "org.scalameta" %% "munit" % versions.munit % Test,
-      "org.typelevel" %% "munit-cats-effect" % versions.munitCe % Test
+      "org.typelevel" %% "munit-cats-effect" % versions.munitCe % Test,
+      "io.grpc" % "grpc-netty-shaded" % scalapb.compiler.Version.grpcJavaVersion
     )
   )
 

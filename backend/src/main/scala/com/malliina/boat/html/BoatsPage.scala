@@ -5,7 +5,7 @@ import com.malliina.boat.FrontKeys.*
 import com.malliina.boat.InviteState.{Accepted, Awaiting, Other, Rejected}
 import com.malliina.http.{CSRFConf, CSRFToken}
 import com.malliina.boat.http4s.Reverse
-import com.malliina.boat.{Boat, BoatIds, DeviceNames, BoatRef, CarSummary, ChargingStatus, Emails, Forms, GPSInfo, InviteState, Passwords, PolestarLang, SourceType, UserInfo, Usernames}
+import com.malliina.boat.{Boat, BoatIds, BoatRef, CarSummary, ChargerStateLang, ChargerStatus, ChargingStateLang, ChargingStatus, DeviceNames, Emails, Forms, GPSInfo, InviteState, Passwords, PolestarLang, SourceType, UserInfo, Usernames}
 import com.malliina.measure.DistanceM
 import com.malliina.values.WrappedId
 import scalatags.Text.all.*
@@ -73,16 +73,31 @@ object BoatsPage extends BoatImplicits with HTMLConstants:
 
   private def carSummary(car: CarSummary, plang: PolestarLang) =
     val infoLang = plang.info
+    val battery = car.battery
     val telematicsFields = Seq[(String, Modifier)](
-      infoLang.batteryPercentage -> s"${car.battery.chargeLevelPercentage}%",
-      infoLang.chargingStatus -> (if car.battery.chargingStatus == ChargingStatus.Charging then
-                                    infoLang.charging
-                                  else infoLang.idle),
-      infoLang.timeToFull -> car.battery.chargingTimeToFull
-        .filter(_ => car.battery.chargingStatus == ChargingStatus.Charging)
+      infoLang.batteryPercentage -> s"${battery.chargeLevelPercentage}%",
+      infoLang.chargerState.label -> translateCharger(
+        battery.chargerStatus,
+        infoLang.chargerState
+      ),
+      infoLang.chargingStatus -> translateCharging(
+        car.battery.chargingStatus,
+        infoLang.chargingState
+      ),
+      infoLang.chargingPower -> battery.chargingPower
+        .map(p => p.formatKw)
+        .getOrElse(infoLang.notAvailable),
+      infoLang.chargingCurrent -> battery.chargingCurrent
+        .map(p => p.formatAmpere)
+        .getOrElse(infoLang.notAvailable),
+      infoLang.chargingVoltage -> battery.chargingVoltage
+        .map(p => p.formatVolts)
+        .getOrElse(infoLang.notAvailable),
+      infoLang.timeToFull -> battery.chargingTimeToFull
+        .filter(_ => battery.chargingStatus == ChargingStatus.Charging)
         .map(d => s"${d.toMinutes} ${infoLang.minutes}")
         .getOrElse(infoLang.notAvailable),
-      infoLang.estimatedRange -> car.battery.range,
+      infoLang.estimatedRange -> battery.range,
       infoLang.odometer -> car.odometer.odometer,
       infoLang.daysToService -> car.health.daysToService
     )
@@ -100,6 +115,25 @@ object BoatsPage extends BoatImplicits with HTMLConstants:
           div(cls := "p-2")(value)
         )
     )
+
+  private def translateCharger(charger: ChargerStatus, lang: ChargerStateLang) =
+    charger match
+      case ChargerStatus.Connected    => lang.connected
+      case ChargerStatus.Disconnected => lang.disconnected
+      case ChargerStatus.Fault        => lang.fault
+      case ChargerStatus.Other(json)  => lang.notAvailable
+
+  private def translateCharging(status: ChargingStatus, lang: ChargingStateLang) =
+    status match
+      case ChargingStatus.Idle          => lang.idle
+      case ChargingStatus.Charging      => lang.charging
+      case ChargingStatus.Done          => lang.done
+      case ChargingStatus.Fault         => lang.fault
+      case ChargingStatus.Scheduled     => lang.scheduled
+      case ChargingStatus.Discharging   => lang.discharging
+      case ChargingStatus.Error         => lang.error
+      case ChargingStatus.SmartCharging => lang.smartCharging
+      case ChargingStatus.Other(json)   => lang.notAvailable
 
   def apply(
     user: UserInfo,

@@ -605,11 +605,37 @@ case class BoatLang(
   port: String
 ) derives Codec.AsObject
 
+case class ChargingStateLang(
+  idle: String,
+  charging: String,
+  done: String,
+  fault: String,
+  scheduled: String,
+  discharging: String,
+  error: String,
+  smartCharging: String,
+  notAvailable: String
+) derives Codec.AsObject
+
+case class ChargerStateLang(
+  label: String,
+  connected: String,
+  disconnected: String,
+  fault: String,
+  notAvailable: String
+) derives Codec.AsObject
+
 case class CarInfoLang(
   batteryPercentage: String,
   chargingStatus: String,
   charging: String,
   idle: String,
+  chargerState: ChargerStateLang,
+  chargingState: ChargingStateLang,
+  chargingPower: String,
+  chargingCurrent: String,
+  chargingVoltage: String,
+  chargingType: String,
   timeToFull: String,
   estimatedRange: String,
   odometer: String,
@@ -1256,6 +1282,22 @@ object Lang:
           "Charging status",
           "Charging",
           "Idle",
+          ChargerStateLang("Charger", "Connected", "Disconnected", "Fault", "N/A"),
+          ChargingStateLang(
+            "Idle",
+            "Charging",
+            "Done",
+            "Fault",
+            "Scheduled",
+            "Discharging",
+            "Error",
+            "Smart",
+            "N/A"
+          ),
+          "Power",
+          "Current",
+          "Voltage",
+          "Charging type",
           "Charging time",
           "Range",
           "Odometer",
@@ -1473,6 +1515,22 @@ object Lang:
           "Lataus",
           "Lataa",
           "Ei lataa",
+          ChargerStateLang("Latauskaapeli", "Kytketty", "Ei kytketty", "Virhe", "Ei saatavilla"),
+          ChargingStateLang(
+            "Ei lataa",
+            "Lataa",
+            "Valmis",
+            "Virhe",
+            "Ajastettu",
+            "Purkaa",
+            "Järjestelmävirhe",
+            "Älykäs",
+            "Ei saatavilla"
+          ),
+          "Teho",
+          "Virta",
+          "Jännite",
+          "Lataustyyppi",
           "Latausaika",
           "Toimintamatka",
           "Kilometrit",
@@ -1685,6 +1743,22 @@ object Lang:
           "Laddning",
           "Laddar",
           "Laddar inte",
+          ChargerStateLang("Laddningskabel", "Kopplad", "Frånkopplad", "Fel", "Inte tillgänglig"),
+          ChargingStateLang(
+            "Laddar inte",
+            "Laddar",
+            "Färdig",
+            "Fel",
+            "Tidsbaserad",
+            "Förbrukar",
+            "Systemfel",
+            "Intelligent",
+            "Inte tillgänglig"
+          ),
+          "Effekt",
+          "Ström",
+          "Spänning",
+          "Laddningstyp",
           "Laddningstid",
           "Räckvidd",
           "Odometer",

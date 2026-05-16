@@ -255,7 +255,8 @@ case class Car(
   interiorSpec: Option[String],
   exteriorSpec: Option[String],
   studioImage: FullUrl,
-  telematics: CarTelematics
+  telematics: CarTelematics,
+  battery: Battery
 ) derives Codec.AsObject
 
 case class CarHealth(daysToService: Int, distanceToService: DistanceM, updated: Timing)
@@ -265,13 +266,40 @@ trait PolestarEnum:
   def name: String
   def polestar: String
 
+enum ChargingType(val name: String, val polestar: String) extends PolestarEnum:
+  case AC extends ChargingType("ac", "CHARGING_TYPE_AC")
+  case DC extends ChargingType("dc", "CHARGING_TYPE_DC")
+  case Other(json: String) extends ChargingType("other", json)
+
+object ChargingType extends PolestarEnumCompanion[ChargingType]:
+  override def all: Seq[ChargingType] = Seq(AC, DC)
+  override def other(s: String): ChargingType = Other(s)
+
+enum ChargerStatus(val name: String, val polestar: String) extends PolestarEnum:
+  case Connected extends ChargerStatus("connected", "CHARGER_CONNECTION_STATUS_CONNECTED")
+  case Disconnected extends ChargerStatus("disconnected", "CHARGER_CONNECTION_STATUS_DISCONNECTED")
+  case Fault extends ChargerStatus("fault", "CHARGER_CONNECTION_STATUS_FAULT")
+  case Other(json: String) extends ChargerStatus("other", json)
+
+object ChargerStatus extends PolestarEnumCompanion[ChargerStatus]:
+  override def all: Seq[ChargerStatus] =
+    Seq(Connected, Disconnected, Fault)
+  override def other(s: String): ChargerStatus = Other(s)
+
 enum ChargingStatus(val name: String, val polestar: String) extends PolestarEnum:
   case Idle extends ChargingStatus("idle", "CHARGING_STATUS_IDLE")
   case Charging extends ChargingStatus("charging", "CHARGING_STATUS_CHARGING")
+  case Done extends ChargingStatus("done", "CHARGING_STATUS_DONE")
+  case Fault extends ChargingStatus("fault", "CHARGING_STATUS_FAULT")
+  case Scheduled extends ChargingStatus("scheduled", "CHARGING_STATUS_SCHEDULED")
+  case Discharging extends ChargingStatus("discharging", "CHARGING_STATUS_DISCHARGING")
+  case Error extends ChargingStatus("error", "CHARGING_STATUS_ERROR")
+  case SmartCharging extends ChargingStatus("smartCharging", "CHARGING_STATUS_SMART_CHARGING")
   case Other(json: String) extends ChargingStatus("other", json)
 
 object ChargingStatus extends PolestarEnumCompanion[ChargingStatus]:
-  override def all: Seq[ChargingStatus] = Seq(Idle, Charging)
+  override def all: Seq[ChargingStatus] =
+    Seq(Idle, Charging, Done, Fault, Scheduled, Discharging, Error, SmartCharging)
   override def other(s: String): ChargingStatus = Other(s)
 
 enum BrakeFluidLevelWarning(val name: String, val polestar: String) extends PolestarEnum:
@@ -312,14 +340,19 @@ abstract class PolestarEnumCompanion[T <: PolestarEnum] extends StringEnumCompan
   def other(s: String): T
   val decodePolestar: Decoder[T] =
     Decoder.decodeString.map(s => fromPolestar(s))
-  private def fromPolestar(s: String): T =
+  def fromPolestar(s: String): T =
     all.find(_.polestar.toLowerCase == s.toLowerCase).getOrElse(other(s))
 
 given Codec[FiniteDuration] = BoatFormats.durationFormat
 
 case class CarBattery(
   chargeLevelPercentage: Percentage,
+  chargerStatus: ChargerStatus,
   chargingStatus: ChargingStatus,
+  chargingPower: Option[Power],
+  chargingCurrent: Option[Current],
+  chargingVoltage: Option[Voltage],
+  chargingType: ChargingType,
   chargingTimeToFull: Option[FiniteDuration],
   distanceToEmpty: DistanceM,
   updated: Timing
@@ -535,6 +568,49 @@ object Energy extends ValidatingCompanion[Double, Energy]:
     def add(other: Energy): Energy = e.wattHours + other.wattHours
     def <(other: Energy): Boolean = e.wattHours < other.wattHours
 extension (e: Double) def wh: Energy = e
+
+// Power, internally stored as watts
+opaque type Power = Double
+object Power extends ValidatingCompanion[Double, Power]:
+  override def build(input: Double): Either[ErrorMessage, Power] = Right(input)
+  override def write(t: Power): Double = t
+
+  given Numeric[Power] = Numerical[Double, Power](unsafe, write)
+
+  extension (p: Power)
+    def watts: Double = p
+    def formatKw: String = "%.1f kW".format(watts / 1000)
+    def minus(other: Power): Power = p.watts - other.watts
+    def plus(other: Power): Power = p.watts + other.watts
+    def add(other: Power): Power = p.watts + other.watts
+    def <(other: Power): Boolean = p.watts < other.watts
+extension (p: Double) def watts: Power = p
+
+// Current, internally stored as ampere
+opaque type Current = Double
+object Current extends ValidatingCompanion[Double, Current]:
+  override def build(input: Double): Either[ErrorMessage, Current] = Right(input)
+  override def write(t: Current): Double = t
+
+  given Numeric[Current] = Numerical[Double, Current](unsafe, write)
+
+  extension (a: Current)
+    def ampere: Double = a
+    def formatAmpere: String = "%.1f A".format(ampere)
+extension (a: Double) def ampere: Current = a
+
+// Voltage, internally stored as volts
+opaque type Voltage = Double
+object Voltage extends ValidatingCompanion[Double, Voltage]:
+  override def build(input: Double): Either[ErrorMessage, Voltage] = Right(input)
+  override def write(t: Voltage): Double = t
+
+  given Numeric[Voltage] = Numerical[Double, Voltage](unsafe, write)
+
+  extension (v: Voltage)
+    def volts: Double = v
+    def formatVolts: String = "%.1f V".format(volts)
+extension (v: Double) def volts: Voltage = v
 
 case class CarInfo(id: DeviceId, name: DeviceName, username: Username) derives Codec.AsObject
 

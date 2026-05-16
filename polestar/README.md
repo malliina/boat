@@ -8,3 +8,5 @@ I gained inspiration from the following codebases:
 
 - https://github.com/pypolestar/pypolestar
 - https://github.com/pypolestar/polestar_api
+
+In particular, see the gRPC work around May 2026.

@@ -15,5 +15,6 @@ Seq(
   "org.portable-scala" % "sbt-scalajs-crossproject" % "1.3.2",
   "org.scalameta" % "sbt-scalafmt" % "2.5.5",
   "com.eed3si9n" % "sbt-assembly" % "2.3.1",
-  "org.scalameta" % "sbt-mdoc" % "2.9.0"
+  "org.scalameta" % "sbt-mdoc" % "2.9.0",
+  "org.typelevel" %% "sbt-fs2-grpc" % "3.1.0"
 ) map addSbtPlugin
