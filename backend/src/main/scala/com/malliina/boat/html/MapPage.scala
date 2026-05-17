@@ -25,7 +25,7 @@ object MapPage extends BoatSyntax:
         .map: b =>
           modifier(
             div(id := "navbar", cls := "navbar navbar-boat py-1")(
-              a(cls := "nav-text tight boats-link", href := reverse.boats)(b.boat),
+              a(cls := "nav-text tight boats-link", href := reverse.boats)(lang.track.boats),
               div(cls := "dropdown nav-text tight tracks", id := BoatDropdownId)(
                 span(cls := "dropdown-button", ""),
                 div(cls := "dropdown-content", id := BoatDropdownContentId)(

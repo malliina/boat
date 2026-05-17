@@ -5,11 +5,13 @@ import com.malliina.boat.FrontKeys.*
 import com.malliina.boat.InviteState.{Accepted, Awaiting, Other, Rejected}
 import com.malliina.http.{CSRFConf, CSRFToken}
 import com.malliina.boat.http4s.Reverse
-import com.malliina.boat.{Boat, BoatIds, BoatRef, CarSummary, ChargerStateLang, ChargerStatus, ChargingStateLang, ChargingStatus, DeviceNames, Emails, Forms, GPSInfo, InviteState, Passwords, PolestarLang, SourceType, UserInfo, Usernames}
+import com.malliina.boat.{Boat, BoatIds, BoatRef, CarSummary, ChargerStateLang, ChargerStatus, ChargingStateLang, ChargingStatus, DeviceNames, Emails, Forms, GPSInfo, InviteState, Passwords, PolestarLang, SourceType, TimeFormats, UserInfo, Usernames}
 import com.malliina.measure.DistanceM
 import com.malliina.values.WrappedId
 import scalatags.Text.all.*
 import scalatags.text.Builder
+
+import scala.concurrent.duration.FiniteDuration
 
 object HTMLConstants extends HTMLConstants
 
@@ -95,7 +97,7 @@ object BoatsPage extends BoatImplicits with HTMLConstants:
         .getOrElse(infoLang.notAvailable),
       infoLang.timeToFull -> battery.chargingTimeToFull
         .filter(_ => battery.chargingStatus == ChargingStatus.Charging)
-        .map(d => s"${d.toMinutes} ${infoLang.minutes}")
+        .map(d => translateDuration(d, infoLang.times))
         .getOrElse(infoLang.notAvailable),
       infoLang.estimatedRange -> battery.range,
       infoLang.odometer -> car.odometer.odometer,
@@ -115,6 +117,14 @@ object BoatsPage extends BoatImplicits with HTMLConstants:
           div(cls := "p-2")(value)
         )
     )
+
+  private def translateDuration(d: FiniteDuration, timeLang: TimeFormats): String =
+    if d.toMinutes <= 90 then s"${d.toMinutes} ${timeLang.minutes}"
+    else
+      val minutesPart = d.toMinutes % 60
+      if minutesPart > 0 then
+        s"${d.toHours} ${timeLang.hoursShort} $minutesPart ${timeLang.minutesShort}"
+      else s"${d.toHours} ${timeLang.hours}"
 
   private def translateCharger(charger: ChargerStatus, lang: ChargerStateLang) =
     charger match

@@ -625,6 +625,9 @@ case class ChargerStateLang(
   notAvailable: String
 ) derives Codec.AsObject
 
+case class TimeFormats(minutes: String, minutesShort: String, hours: String, hoursShort: String)
+  derives Codec.AsObject
+
 case class CarInfoLang(
   batteryPercentage: String,
   chargingStatus: String,
@@ -641,6 +644,7 @@ case class CarInfoLang(
   odometer: String,
   daysToService: String,
   minutes: String,
+  times: TimeFormats,
   notAvailable: String
 ) derives Codec.AsObject
 
@@ -1303,6 +1307,7 @@ object Lang:
           "Odometer",
           "Days to service",
           "minutes",
+          TimeFormats("minutes", "m", "hours", "h"),
           "Not available"
         )
       ),
@@ -1536,6 +1541,7 @@ object Lang:
           "Kilometrit",
           "Päiviä huoltoon",
           "minuuttia",
+          TimeFormats("minuuttia", "min", "tuntia", "t"),
           "Ei saatavilla"
         )
       ),
@@ -1764,6 +1770,7 @@ object Lang:
           "Odometer",
           "Dagar till service",
           "minuter",
+          TimeFormats("minuter", "min", "timmar", "t"),
           "Inte tillgänglig"
         )
       ),
