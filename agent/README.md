@@ -64,7 +64,7 @@ The JSON messages must be of the following format:
 
 ## GPS modules
 
-To set up a [GPS module](https://www.aliexpress.com/item/32913026283.html) on a Raspberry Pi:
+To set up a GPS module on a Raspberry Pi:
 
 1. Connect the GPS module to your Raspberry Pi over USB.
 
