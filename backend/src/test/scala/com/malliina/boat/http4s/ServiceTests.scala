@@ -10,6 +10,7 @@ import com.malliina.boat.*
 import com.malliina.geo.Coord
 import com.malliina.measure.{DistanceIntM, SpeedIntM, TemperatureInt}
 import com.malliina.values.{Username, lngLat}
+import com.malliina.values.Literals.user
 import io.circe.Json
 import io.circe.syntax.EncoderOps
 import org.http4s.*
@@ -26,7 +27,7 @@ class ServiceTests extends MUnitSuite with Http4sSuite:
   test("can change name of boat"):
     val comps = app()
     val service = comps.service
-    val user = Username.unsafe("test@example.com")
+    val user = user"test@example.com"
     val userEmail = TestEmailAuth[IO].testEmail
     val newName = DeviceName.random()
 
@@ -52,7 +53,7 @@ class ServiceTests extends MUnitSuite with Http4sSuite:
   test("tracks endpoint supports versioning based on Accept header"):
     val comps = app()
     val service = comps.service
-    val user = Username.unsafe("test@example.com")
+    val user = user"test@example.com"
     val inserts = service.inserts
 
     val init = for

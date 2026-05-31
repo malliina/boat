@@ -371,7 +371,6 @@ class Service[F[_]: {Async, Files}](
               ok(ParkingResponse(results))
         .recover: err =>
           badRequest(Errors(err.message))
-
     case req @ POST -> Root / "locations" =>
       for
         device <- auth.boatTokenOrFail(req.headers)

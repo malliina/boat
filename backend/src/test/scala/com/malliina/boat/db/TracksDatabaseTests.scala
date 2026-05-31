@@ -6,6 +6,7 @@ import com.malliina.boat.parsing.{BoatStats, FullCoord}
 import com.malliina.boat.{BoatUser, DeviceId, DeviceName, Language, MUnitDatabaseSuite, MUnitSuite, SourceType, TrackId, TrackMetaShort, TrackName, TrackRef, UserToken, UserUtils}
 import com.malliina.geo.Coord
 import com.malliina.measure.{DistanceIntM, SpeedIntM, SpeedM, Temperature}
+import com.malliina.values.Literals.{email, jwt, user}
 import com.malliina.values.{Email, RefreshToken, Username, lat, lng, ua}
 
 import java.time.{LocalDate, LocalTime}
@@ -17,10 +18,10 @@ object TestData:
 class TracksDatabaseTests extends MUnitSuite with MUnitDatabaseSuite:
   dbFixture.test("insertion of token"): db =>
     val users = DoobieUserManager(db)
-    val email = Email.unsafe("santa@example.com")
+    val email = email"santa@example.com"
     val action = for
       u <- users.register(email)
-      res <- users.save(RefreshToken.unsafe("test-token"), RefreshService.SIWA, u.id)
+      res <- users.save(jwt"test-token".refresh, RefreshService.SIWA, u.id)
     yield res
     action.unsafeRunSync()
 
@@ -28,7 +29,7 @@ class TracksDatabaseTests extends MUnitSuite with MUnitDatabaseSuite:
     val tdb = DoobieTracksDatabase(db)
     val inserts = TrackInserter(db)
     val users = DoobieUserManager(db)
-    val user = users.userInfo(Email.unsafe("aggregate@example.com")).unsafeRunSync()
+    val user = users.userInfo(email"aggregate@example.com").unsafeRunSync()
     val boat = user.boats.head
     val bid = boat.id
     val action: IO[TrackRef] = for
@@ -94,7 +95,7 @@ class TracksDatabaseTests extends MUnitSuite with MUnitDatabaseSuite:
         TrackName.random(),
         boat,
         DeviceName.random(),
-        Username.unsafe("whatever")
+        user"whatever"
       ),
       Option(ua"Boat-Tracker/Test")
     )

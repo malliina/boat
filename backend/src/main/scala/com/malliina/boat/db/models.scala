@@ -50,7 +50,7 @@ case class NewUser(user: Username, email: Option[Email], token: UserToken, enabl
 
 object NewUser:
   def email(email: Email): NewUser =
-    NewUser(Username.unsafe(email.email), Option(email), UserToken.random(), enabled = true)
+    NewUser(Username.fromEmail(email), Option(email), UserToken.random(), enabled = true)
 
 opaque type RefreshTokenId = String
 object RefreshTokenId extends ValidatedString[RefreshTokenId]:

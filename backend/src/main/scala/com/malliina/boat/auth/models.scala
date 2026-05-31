@@ -50,7 +50,7 @@ object SettingsPayload:
 case class UserPayload(username: Username) derives Codec.AsObject
 
 object UserPayload:
-  def email(email: Email): UserPayload = apply(Username.unsafe(email.value))
+  def email(email: Email): UserPayload = apply(Username.fromEmail(email))
 
 sealed abstract class AuthProvider(val name: String)
 

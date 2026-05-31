@@ -54,8 +54,8 @@ class CarServerTests extends BoatServerFunSuite:
   )
 
   val loc2 = loc.copy(
-    longitude = Longitude.unsafe(24.2),
-    latitude = Latitude.unsafe(60.3),
+    longitude = 24.2.lng,
+    latitude = 60.3.lat,
     speed = Option(80.kmh),
     date = loc.date.plusSeconds(10)
   )

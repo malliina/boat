@@ -4,6 +4,7 @@ import cats.effect.IO
 import cats.implicits.toTraverseOps
 import com.malliina.boat.{BoatUser, DateVal, DeviceId, DeviceName, Language, MUnitSuite, RawSentence, SourceType, TrackId, TrackInput, TrackName}
 import com.malliina.database.{Conf, DoobieDatabase}
+import com.malliina.values.Literals.user
 import com.malliina.values.Username
 import fs2.Chunk
 import fs2.io.file.Path
@@ -52,7 +53,7 @@ class TracksImporter extends MUnitSuite:
       trackName,
       DeviceName.unsafe(ci"Amina"),
       SourceType.Boat,
-      Username.unsafe("mle"),
+      user"mle",
       Language.default
     )
     inserts

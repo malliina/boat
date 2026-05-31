@@ -5,7 +5,7 @@ libraryDependencies ++= Seq(
   "software.amazon.awssdk" % "s3" % "2.44.0"
 )
 
-val utilsVersion = "1.7.0"
+val utilsVersion = "1.7.1"
 
 Seq(
   "com.malliina" %% "sbt-utils-maven" % utilsVersion,
