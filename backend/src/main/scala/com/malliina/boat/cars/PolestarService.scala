@@ -13,7 +13,7 @@ import com.malliina.util.AppLogger
 import com.malliina.values.{AccessToken, ErrorMessage, RefreshToken, UserId, error}
 import fs2.Stream
 
-import scala.concurrent.duration.DurationInt
+import scala.concurrent.duration.{Duration, DurationInt}
 
 object PolestarService:
   private val log = AppLogger(getClass)
@@ -55,8 +55,7 @@ class PolestarService[F[_]: Async](
       .flatMap: (cars, token) =>
         if cars.isEmpty then Stream.empty
         else
-          Stream
-            .awakeEvery(10.seconds)
+          (Stream.emit(Duration.Zero) ++ Stream.awakeEvery(10.seconds))
             .flatMap: _ =>
               val tasks = cars.traverse: car =>
                 polestar.grpc

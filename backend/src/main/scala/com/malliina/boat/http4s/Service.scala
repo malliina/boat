@@ -590,7 +590,7 @@ class Service[F[_]: {Async, Files}](
                 case _            => Stream.empty
               val eventSource = (Stream(LoadingEvent(simpleQuery)) ++ history ++ updates)
                 .mergeHaltBoth(pings)
-                .mergeHaltBoth(chargings.map(b => BatteryEvent(b)) >> Stream.never[F])
+                .mergeHaltL(chargings.map(b => BatteryEvent(b)))
                 .filter(_.isIntendedFor(user))
                 .map(message => Text(message.asJson.noSpaces))
               webSocket(

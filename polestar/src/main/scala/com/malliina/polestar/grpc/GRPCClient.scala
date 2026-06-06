@@ -40,32 +40,34 @@ class GRPCClient[F[_]: {Async, Sync}](http: SimpleHttpClient[F]):
         updated <- b.timestamp
           .map(t => Updated(s"${t.seconds}", t.nanos.toLong))
           .toRight(s"No timestamp for battery information for $vin.".error)
-      yield Battery(
-        vin,
-        chargeLevel,
-        ChargerStatus.fromPolestar(b.chargerConnectionStatus.name),
-        ChargingStatus.fromPolestar(b.chargingStatus.name),
-        Option.when(b.chargingPowerWatts > 0)(b.chargingPowerWatts.toDouble.watts),
-        Option.when(b.chargingCurrentAmps > 0)(b.chargingCurrentAmps.toDouble.ampere),
-        Option.when(b.chargingVoltageVolts > 0)(b.chargingVoltageVolts.toDouble.volts),
-        ChargingType.fromPolestar(b.chargingType.name),
-        Consumptions(
-          Consumption(b.totalEnergyConsumptionWh.wh, b.averageEnergyConsumptionKwhPer100Km),
-          Consumption(
-            b.totalEnergyConsumptionWhAutomatic.wh,
-            b.averageEnergyConsumptionKwhPer100KmAutomatic
+      yield { 
+        Battery(
+          vin,
+          chargeLevel,
+          ChargerStatus.fromPolestar(b.chargerConnectionStatus.name),
+          ChargingStatus.fromPolestar(b.chargingStatus.name),
+          Option.when(b.chargingPowerWatts > 0)(b.chargingPowerWatts.toDouble.watts),
+          Option.when(b.chargingCurrentAmps > 0)(b.chargingCurrentAmps.toDouble.ampere),
+          Option.when(b.chargingVoltageVolts > 0)(b.chargingVoltageVolts.toDouble.volts),
+          ChargingType.fromPolestar(b.chargingType.name),
+          Consumptions(
+            Consumption(b.totalEnergyConsumptionWh.wh, b.averageEnergyConsumptionKwhPer100Km),
+            Consumption(
+              b.totalEnergyConsumptionWhAutomatic.wh,
+              b.averageEnergyConsumptionKwhPer100KmAutomatic
+            ),
+            Consumption(
+              b.totalEnergyConsumptionWhSinceCharge.wh,
+              b.averageEnergyConsumptionKwhPer100KmSinceCharge
+            )
           ),
-          Consumption(
-            b.totalEnergyConsumptionWhSinceCharge.wh,
-            b.averageEnergyConsumptionKwhPer100KmSinceCharge
-          )
-        ),
-        Option.when(b.estimatedChargingTimeToFullMinutes > 0)(
-          b.estimatedChargingTimeToFullMinutes.minutes
-        ),
-        b.estimatedDistanceToEmptyKm.kilometers,
-        updated
-      )
+          Option.when(b.estimatedChargingTimeToFullMinutes > 0)(
+            b.estimatedChargingTimeToFullMinutes.minutes
+          ),
+          b.estimatedDistanceToEmptyKm.kilometers,
+          updated
+        )
+      }
 
   def fetchBattery(vin: VIN, token: AccessToken): F[GetBatteryResponse] =
     discover.flatMap: discovered =>
