@@ -11,6 +11,9 @@ import com.malliina.polestar.Polestar.Tokens
 import com.malliina.polestar.{Polestar, PolestarCarInfo, Variables}
 import com.malliina.util.AppLogger
 import com.malliina.values.{AccessToken, ErrorMessage, RefreshToken, UserId, error}
+import fs2.Stream
+
+import scala.concurrent.duration.DurationInt
 
 object PolestarService:
   private val log = AppLogger(getClass)
@@ -40,6 +43,34 @@ class PolestarService[F[_]: Async](
   private val F = Async[F]
   private val service = RefreshService.Polestar
   private var cache: Map[UserId, Tokens] = Map.empty
+
+  def chargingUpdatesOrEmpty(user: UserId): Stream[F, Battery] =
+    chargingUpdates(user).handleErrorWith: err =>
+      log.error(s"Failed to fetch charging updates for user $user.", err)
+      Stream.empty
+
+  private def chargingUpdates(user: UserId): Stream[F, Battery] =
+    Stream
+      .eval(fetchVins(user))
+      .flatMap: (cars, token) =>
+        if cars.isEmpty then Stream.empty
+        else
+          Stream
+            .awakeEvery(10.seconds)
+            .flatMap: _ =>
+              val tasks = cars.traverse: car =>
+                polestar.grpc
+                  .battery(car.vin, token)
+                  .flatMap: e =>
+                    effect(e, car.vin)
+              Stream.evals(tasks)
+
+  private def fetchVins(user: UserId) =
+    request(user, "charging"): token =>
+      polestar
+        .fetchCars(token)
+        .map: cars =>
+          (cars, token)
 
   def carSummariesOrEmpty(user: UserInfo): F[Seq[CarSummary]] =
     carSummaries(user)

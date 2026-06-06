@@ -106,6 +106,7 @@ trait ServerResources:
       trackInserts = TrackInserter(db)
       vesselDb = BoatVesselDatabase(db)
       ais <- BoatMqttClient.build(conf.ais.enabled, dispatcher)
+      polestarService = PolestarService(users, polestar)
       streams <- BoatStreams.resource(trackInserts, vesselDb, ais)
       s3 <- S3Client.build[F]()
       graph <- Resource.eval(Graph.load[F])
@@ -144,7 +145,6 @@ trait ServerResources:
         AppleAuthFlow(appleAppConf, appleValidator, http),
         appComps.customJwt
       )
-      val polestarService = PolestarService(users, polestar)
       val auths = AuthService(users, authComps)
       val tracksDatabase = DoobieTracksDatabase(db)
       val push = DoobiePushDatabase(db, appComps.pushService, reverseGeo, images)

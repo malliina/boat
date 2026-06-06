@@ -691,6 +691,15 @@ object VesselTrailsEvent:
 
   given Codec[VesselTrailsEvent] = keyValued(Key, deriveCodec[VesselTrailsEvent])
 
+case class BatteryEvent(battery: Battery) extends FrontEvent:
+  // The battery stream is scoped to the user, so this is always true
+  override def isIntendedFor(user: MinimalUserInfo): Boolean = true
+
+object BatteryEvent:
+  val Key = "battery"
+
+  given Codec[BatteryEvent] = keyValued(Key, deriveCodec[BatteryEvent])
+
 sealed trait BoatFrontEvent extends FrontEvent:
   def from: TrackMetaLike
   override def isIntendedFor(user: MinimalUserInfo): Boolean =
@@ -708,7 +717,8 @@ object FrontEvent:
     Decoder[CoordsEvent].widen,
     Decoder[LoadingEvent].widen,
     Decoder[NoDataEvent].widen,
-    Decoder[VesselTrailsEvent].widen
+    Decoder[VesselTrailsEvent].widen,
+    Decoder[BatteryEvent].widen
   ).reduceLeft(_ or _)
   given Encoder[FrontEvent] =
     case se @ SentencesEvent(_, _, _) => se.asJson
@@ -719,6 +729,7 @@ object FrontEvent:
     case le @ LoadingEvent(_)         => le.asJson
     case nd @ NoDataEvent(_)          => nd.asJson
     case vt @ VesselTrailsEvent(_)    => vt.asJson
+    case be @ BatteryEvent(_)         => be.asJson
 
 case class SentencesMessage(sentences: Seq[RawSentence]):
   def toTrackEvent(from: TrackMetaShort, userAgent: Option[UserAgent]) =

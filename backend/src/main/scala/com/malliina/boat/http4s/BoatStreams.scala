@@ -5,6 +5,7 @@ import cats.effect.kernel.Resource
 import cats.effect.{Async, Sync}
 import cats.syntax.all.{catsSyntaxApplicativeError, catsSyntaxFlatMapOps, toFlatMapOps, toFunctorOps}
 import com.malliina.boat.ais.AISSource
+import com.malliina.boat.cars.PolestarService
 import com.malliina.boat.db.{TrackInsertsDatabase, VesselDatabase}
 import com.malliina.boat.http4s.BoatStreams.{log, rights}
 import com.malliina.boat.parsing.*
@@ -30,7 +31,7 @@ object BoatStreams:
       _ <- streams.saveableAis.runInBackground
     yield streams
 
-  def build[F[_]: Async](
+  private def build[F[_]: Async](
     db: TrackInsertsDatabase[F],
     aisDb: VesselDatabase[F],
     ais: AISSource[F]

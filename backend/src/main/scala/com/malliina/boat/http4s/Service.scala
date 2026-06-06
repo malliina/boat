@@ -582,12 +582,15 @@ class Service[F[_]: {Async, Files}](
                 if es.isEmpty then Seq(NoDataEvent(simpleQuery))
                 else es
               val history = Stream.evalSeq(historyOrNoData)
-
               val updates =
                 if boatQuery.hasVesselFilters then Stream.never[F]
                 else streams.clientEvents(formatter)
+              val chargings = user match
+                case ui: UserInfo => comps.polestar.chargingUpdatesOrEmpty(ui.id)
+                case _            => Stream.empty
               val eventSource = (Stream(LoadingEvent(simpleQuery)) ++ history ++ updates)
                 .mergeHaltBoth(pings)
+                .mergeHaltBoth(chargings.map(b => BatteryEvent(b)) >> Stream.never[F])
                 .filter(_.isIntendedFor(user))
                 .map(message => Text(message.asJson.noSpaces))
               webSocket(
