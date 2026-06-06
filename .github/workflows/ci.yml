@@ -2,19 +2,21 @@ name: Test
 
 on: push
 
+env:
+  db_pass: testboat123
+
 jobs:
   build:
     name: Build
     runs-on: ubuntu-24.04
-
     services:
       mysql:
         image: mariadb:10.11.6
         env:
           MYSQL_DATABASE: testboat
           MYSQL_USER: testboat
-          MYSQL_PASSWORD: testboat123
-          MYSQL_ROOT_PASSWORD: testboat123
+          MYSQL_PASSWORD: ${{ env.db_pass }}
+          MYSQL_ROOT_PASSWORD: ${{ env.db_pass }}
         ports:
           - 3306:3306
         options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
@@ -33,11 +35,11 @@ jobs:
         run: sbt agent/test
       - name: Run backend tests
         env:
-          DB_PASS: testboat123
+          DB_PASS: ${{ env.db_pass }}
         run: sbt boat/test
       - name: Run frontend tests
         run: sbt frontend/test
       - name: Run integration tests
         env:
-          DB_PASS: testboat123
+          DB_PASS: ${{ env.db_pass }}
         run: sbt integration-tests/test
