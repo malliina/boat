@@ -1,17 +1,24 @@
 package com.malliina.boat.parsing
 
 import cats.effect.IO
-import com.malliina.boat.{BaseSuite, KeyedSentence, RawSentence, SentenceKey}
+import com.malliina.boat.{BaseSuite, DeviceId, DeviceName, KeyedSentence, RawSentence, SentenceKey, TrackId, TrackMetaShort, TrackName}
 import com.malliina.geo.Coord
 import com.malliina.measure.{DistanceIntM, SpeedIntM, TemperatureInt}
-import com.malliina.values.lngLat
-
+import com.malliina.values.{Username, lngLat}
+import com.malliina.values.Literals.user
+import org.typelevel.ci.CIStringSyntax
 import java.time.{LocalDate, LocalTime}
 
 class SentenceParsingTests extends BaseSuite:
-  test("stateful sentence parsing"):
-    val from = MultiParsingTests.testFrom
+  def from = TrackMetaShort(
+    TrackId.unsafe(1),
+    TrackName.unsafe("test"),
+    DeviceId.unsafe(1),
+    DeviceName.unsafe(ci"boat"),
+    user"u"
+  )
 
+  test("stateful sentence parsing"):
     def keyed(id: Long) = KeyedSentence(SentenceKey.unsafe(id), RawSentence.unsafe(""), from)
 
     val testTemp = WaterTemperature(10.celsius, keyed(1))

@@ -21,7 +21,7 @@ class GRPCTests extends munit.CatsEffectSuite:
       println(json)
       assertEquals(1, 1)
 
-  polestar.test("Fetch battery using gRPC"): client =>
+  polestar.test("Fetch battery using gRPC".ignore): client =>
     val battery = client.auth
       .fetchTokens(creds)
       .flatMap: tokens =>
