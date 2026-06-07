@@ -209,15 +209,15 @@ class Service[F[_]: {Async, Files}](
         html = ok(ClientConf.default)
       )
     case req @ GET -> Root / "boats" =>
-      for
-        user <- auth.profile(req)
-        cars <- comps.polestar.carSummariesOrEmpty(user)
-        response <- respond(req)(
-          json = ok(CarsAndBoats(cars)),
-          html = csrfOk: token =>
-            html(req).carsAndBoats(user, cars, token)
-        )
-      yield response
+      profileOrLogin(req): user =>
+        for
+          cars <- comps.polestar.carSummariesOrEmpty(user)
+          response <- respond(req)(
+            json = ok(CarsAndBoats(cars)),
+            html = csrfOk: token =>
+              html(req).carsAndBoats(user, cars, token)
+          )
+        yield response
     case req @ GET -> Root / "boats" / "me" =>
       auth
         .boatTokenOrFail(req.headers)
@@ -810,10 +810,15 @@ class Service[F[_]: {Async, Files}](
     json: NonEmptyList[MediaRange] => F[Response[F]],
     html: F[Response[F]]
   ): F[Response[F]] =
+    jsonRanges(req).map(json).getOrElse(html)
+
+  private def preferHtml(req: Request[F]): Boolean = jsonRanges(req).isEmpty
+
+  private def jsonRanges(req: Request[F]): Option[NonEmptyList[MediaRange]] =
     val rs = ranges(req.headers)
     val qp = req.uri.query.params
-    if rs.exists(_.satisfies(MediaType.text.html)) && !qp.contains("json") then html
-    else json(rs)
+    if rs.exists(_.satisfies(MediaType.text.html)) && !qp.contains("json") then None
+    else Option(rs)
 
   private def fileFromPublicResources(file: String, req: Request[F]): F[Response[F]] =
     StaticFile
@@ -976,6 +981,15 @@ class Service[F[_]: {Async, Files}](
 
   def stringify(map: Map[String, String]): String =
     map.map((key, value) => s"$key=$value").mkString("&")
+
+  def profileOrLogin(req: Request[F])(run: UserInfo => F[Response[F]]): F[Response[F]] =
+    auth
+      .profile(req)
+      .flatMap: user =>
+        run(user)
+      .recoverWith:
+        case _: MissingCredentialsException if preferHtml(req) =>
+          redirectToLogin
 
   private def unauthorized(@unused errors: Errors) = redirectToLogin
   private def redirectToLogin: F[Response[F]] = SeeOther(Location(reverse.signIn))
