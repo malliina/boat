@@ -7,7 +7,7 @@ import com.malliina.boat.{BoatUser, DeviceId, DeviceName, Language, MUnitDatabas
 import com.malliina.geo.Coord
 import com.malliina.measure.{DistanceIntM, SpeedIntM, SpeedM, Temperature}
 import com.malliina.values.Literals.{email, jwt, user}
-import com.malliina.values.{Email, RefreshToken, Username, lat, lng, ua}
+import com.malliina.values.{Email, Username, lat, lng, ua}
 
 import java.time.{LocalDate, LocalTime}
 

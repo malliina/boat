@@ -2,7 +2,7 @@ package com.malliina.boat.geo
 
 import cats.effect.{IO, Resource}
 import com.malliina.http.io.HttpClientIO
-import com.malliina.values.{AccessToken, lngLat}
+import com.malliina.values.lngLat
 import com.malliina.values.Literals.jwt
 
 import java.nio.charset.StandardCharsets
