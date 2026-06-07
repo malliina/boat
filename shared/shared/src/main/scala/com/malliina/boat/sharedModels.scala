@@ -691,7 +691,7 @@ object VesselTrailsEvent:
 
   given Codec[VesselTrailsEvent] = keyValued(Key, deriveCodec[VesselTrailsEvent])
 
-case class BatteryEvent(battery: Battery) extends FrontEvent:
+case class BatteryEvent(battery: CarBattery) extends FrontEvent:
   // The battery stream is scoped to the user, so this is always true
   override def isIntendedFor(user: MinimalUserInfo): Boolean = true
 

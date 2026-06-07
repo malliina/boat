@@ -586,7 +586,7 @@ class Service[F[_]: {Async, Files}](
                 if boatQuery.hasVesselFilters then Stream.never[F]
                 else streams.clientEvents(formatter)
               val chargings = user match
-                case ui: UserInfo => comps.polestar.chargingUpdatesOrEmpty(ui.id)
+                case ui: UserInfo => comps.polestar.chargingUpdatesOrEmpty(ui)
                 case _            => Stream.empty
               val eventSource = (Stream(LoadingEvent(simpleQuery)) ++ history ++ updates)
                 .mergeHaltBoth(pings)

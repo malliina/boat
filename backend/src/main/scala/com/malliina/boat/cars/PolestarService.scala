@@ -44,10 +44,27 @@ class PolestarService[F[_]: Async](
   private val service = RefreshService.Polestar
   private var cache: Map[UserId, Tokens] = Map.empty
 
-  def chargingUpdatesOrEmpty(user: UserId): Stream[F, Battery] =
-    chargingUpdates(user).handleErrorWith: err =>
-      log.error(s"Failed to fetch charging updates for user $user.", err)
-      Stream.empty
+  def chargingUpdatesOrEmpty(user: UserInfo): Stream[F, CarBattery] =
+    chargingUpdates(user.id)
+      .handleErrorWith: err =>
+        log.error(s"Failed to fetch charging updates for user ${user.id} (${user.email}).", err)
+        Stream.empty
+      .map: b =>
+        toCarBattery(b, TimeFormatter.lang(user.language))
+
+  private def toCarBattery(b: Battery, formatter: TimeFormatter): CarBattery =
+    CarBattery(
+      b.batteryChargeLevelPercentage,
+      b.chargerStatus,
+      b.chargingStatus,
+      b.chargingPower,
+      b.chargingCurrent,
+      b.chargingVoltage,
+      b.chargingType,
+      b.estimatedChargingTimeToFullMinutes,
+      b.estimatedDistanceToEmptyKm,
+      formatter.timing(b.timestamp.instant)
+    )
 
   private def chargingUpdates(user: UserId): Stream[F, Battery] =
     Stream
@@ -113,18 +130,7 @@ class PolestarService[F[_]: Async](
               h.distanceToServiceKm,
               formatted(h.timestamp)
             ),
-            CarBattery(
-              b.batteryChargeLevelPercentage,
-              b.chargerStatus,
-              b.chargingStatus,
-              b.chargingPower,
-              b.chargingCurrent,
-              b.chargingVoltage,
-              b.chargingType,
-              b.estimatedChargingTimeToFullMinutes,
-              b.estimatedDistanceToEmptyKm,
-              formatted(b.timestamp)
-            ),
+            toCarBattery(b, formatter),
             CarOdometer(
               o.odometer,
               formatted(o.timestamp)
