@@ -11,7 +11,7 @@ trait BaseFront extends FrontKeys:
   private val queryParams = QueryString.parse
 
   def parseUri: PathState = href.getPath.split('/').toList match
-    case _ :: "tracks" :: track :: _ => Name(TrackName.unsafe(track))
+    case _ :: "tracks" :: track :: _ => PathState.Name(TrackName.unsafe(track))
     case _ :: "routes" :: srcLat :: srcLng :: destLat :: destLng :: _ =>
       val result = for
         srcLatD <- toDouble(srcLat)
@@ -19,9 +19,11 @@ trait BaseFront extends FrontKeys:
         destLatD <- toDouble(destLat)
         destLngD <- toDouble(destLng)
       yield RouteRequest(srcLatD, srcLngD, destLatD, destLngD)
-      result.map(e => e.fold(_ => NoTrack, req => Route(req))).getOrElse(NoTrack)
-    case _ :: canonical :: Nil => Canonical(TrackCanonical.unsafe(canonical))
-    case _                     => NoTrack
+      result
+        .map(e => e.fold(_ => PathState.NoTrack, req => PathState.Route(req)))
+        .getOrElse(PathState.NoTrack)
+    case _ :: canonical :: Nil => PathState.Canonical(TrackCanonical.unsafe(canonical))
+    case _                     => PathState.NoTrack
 
   private def toDouble(s: String) = Try(s.toDouble).toOption
   def queryInt(key: String) = query(key).flatMap(s => Try(s.toInt).toOption)
@@ -38,15 +40,15 @@ trait BaseFront extends FrontKeys:
   def elemsByClass[T](cls: String): List[T] =
     document.getElementsByClassName(cls).toList.map(_.asInstanceOf[T])
 
-sealed trait PathState:
+enum PathState:
+  case Canonical(track: TrackCanonical)
+  case Name(track: TrackName)
+  case Route(req: RouteRequest)
+  case NoTrack
+
   def toOption: Option[TrackName] = this match
     case Name(track) => Option(track)
     case _           => None
-
-case class Canonical(track: TrackCanonical) extends PathState
-case class Name(track: TrackName) extends PathState
-case class Route(req: RouteRequest) extends PathState
-case object NoTrack extends PathState
 
 case class NotFound(id: String) extends AnyVal:
   override def toString: String = id

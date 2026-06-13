@@ -11,7 +11,10 @@ trait NameLike:
   def name(lang: Lang): Option[String] =
     if lang == Lang.se then nameSe.orElse(nameFi) else nameFi.orElse(nameSe)
 
-sealed trait FairwayLighting
+enum FairwayLighting:
+  case NoLighting
+  case Lighting
+  case UnknownLighting
 
 object FairwayLighting:
   given reader: Decoder[FairwayLighting] =
@@ -19,9 +22,6 @@ object FairwayLighting:
       case 0 => UnknownLighting
       case 1 => Lighting
       case 2 => NoLighting
-  case object NoLighting extends FairwayLighting
-  case object Lighting extends FairwayLighting
-  case object UnknownLighting extends FairwayLighting
 
   def fromInt(i: Int): FairwayLighting = i match
     case 1 => Lighting
@@ -33,19 +33,19 @@ object FairwayLighting:
     case Lighting        => 1
     case NoLighting      => 2
 
-sealed trait FairwaySeaType
+enum FairwaySeaType:
+  // Meriväylä
+  case SeaFairway
+  // Sisävesiväylä
+  case InnerFairway
+  // Virtual object for db interface
+  case UnknownFairway
 
 object FairwaySeaType:
   given reader: Decoder[FairwaySeaType] =
     partialReader[Double, FairwaySeaType](d => s"Unknown fairway sea type: '$d'."):
       case 1 => SeaFairway
       case 2 => InnerFairway
-  // Meriväylä
-  case object SeaFairway extends FairwaySeaType
-  // Sisävesiväylä
-  case object InnerFairway extends FairwaySeaType
-  // Virtual object for db interface
-  case object UnknownFairway extends FairwaySeaType
 
   def toInt(fst: FairwaySeaType) = fst match
     case SeaFairway     => 1
@@ -57,7 +57,34 @@ object FairwaySeaType:
     case 2 => InnerFairway
     case _ => UnknownFairway
 
-sealed abstract class SeaArea(val value: Int)
+enum SeaArea(val value: Int):
+  case Unknown extends SeaArea(0)
+  case Perameri extends SeaArea(1)
+  case Selkameri extends SeaArea(2)
+  case Ahvenanmeri extends SeaArea(3)
+  case Saaristomeri extends SeaArea(4)
+  case Suomenlahti extends SeaArea(5)
+  case Itameri extends SeaArea(6)
+  case Saimaa extends SeaArea(7)
+  case Paijanne extends SeaArea(8)
+  case Kokemaenjoki extends SeaArea(9)
+  case Oulujarvi extends SeaArea(10)
+  case SotkamonJarvet extends SeaArea(11)
+  case KuhmonJarvet extends SeaArea(12)
+  case KuusamonJarvet extends SeaArea(13)
+  case Kiantajarvi extends SeaArea(14)
+  case Simojarvi extends SeaArea(15)
+  case LokkaPorttipahta extends SeaArea(16)
+  case Kemijarvi extends SeaArea(17)
+  case Inarinjarvi extends SeaArea(18)
+  case Nitsijarvi extends SeaArea(19)
+  case Miekkojarvi extends SeaArea(20)
+  case Tornionjoki extends SeaArea(21)
+  case Ahtarinjarvi extends SeaArea(22)
+  case Lappajarvi extends SeaArea(23)
+  case Pyhajarvi extends SeaArea(24)
+  case Lohjanjarvi extends SeaArea(25)
+  case Other(v: Int) extends SeaArea(v)
 
 object SeaArea:
   given reader: Decoder[SeaArea] = Decoder.decodeDouble.map: d =>
@@ -94,35 +121,6 @@ object SeaArea:
   def fromInt(i: Int) = all.find(_.value == i).toRight(s"Unknown sea area number: '$i'.")
 
   def fromIntOrOther(i: Int): SeaArea = fromInt(i).getOrElse(Other(i))
-
-  case object Unknown extends SeaArea(0)
-  case object Perameri extends SeaArea(1)
-  case object Selkameri extends SeaArea(2)
-  case object Ahvenanmeri extends SeaArea(3)
-  case object Saaristomeri extends SeaArea(4)
-  case object Suomenlahti extends SeaArea(5)
-  case object Itameri extends SeaArea(6)
-  case object Saimaa extends SeaArea(7)
-  case object Paijanne extends SeaArea(8)
-  case object Kokemaenjoki extends SeaArea(9)
-  case object Oulujarvi extends SeaArea(10)
-  case object SotkamonJarvet extends SeaArea(11)
-  case object KuhmonJarvet extends SeaArea(12)
-  case object KuusamonJarvet extends SeaArea(13)
-  case object Kiantajarvi extends SeaArea(14)
-  case object Simojarvi extends SeaArea(15)
-  case object LokkaPorttipahta extends SeaArea(16)
-  case object Kemijarvi extends SeaArea(17)
-  case object Inarinjarvi extends SeaArea(18)
-  case object Nitsijarvi extends SeaArea(19)
-  case object Miekkojarvi extends SeaArea(20)
-  case object Tornionjoki extends SeaArea(21)
-  case object Ahtarinjarvi extends SeaArea(22)
-  case object Lappajarvi extends SeaArea(23)
-  case object Pyhajarvi extends SeaArea(24)
-  case object Lohjanjarvi extends SeaArea(25)
-
-  case class Other(v: Int) extends SeaArea(v)
 
 case class FairwayInfo(
   nameFi: Option[String],

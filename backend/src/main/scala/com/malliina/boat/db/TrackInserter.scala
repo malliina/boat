@@ -4,7 +4,8 @@ import cats.data.NonEmptyList
 import cats.implicits.{catsSyntaxApplicativeId, catsSyntaxApplyOps, catsSyntaxList, toTraverseOps}
 import com.malliina.boat.*
 import com.malliina.boat.db.TrackInserter.log
-import com.malliina.boat.parsing.{InsertedCoord, PointInsert}
+import com.malliina.boat.parsing.PointInsert
+import com.malliina.boat.parsing.SavedEvent.InsertedCoord
 import com.malliina.database.DoobieDatabase
 import com.malliina.measure.{DistanceM, SpeedIntM, SpeedM}
 import com.malliina.util.AppLogger
@@ -131,7 +132,7 @@ class TrackInserter[F[_]](val db: DoobieDatabase[F]) extends TrackInsertsDatabas
   def saveCoords(coords: NonEmptyList[PointInsert]): F[NonEmptyList[InsertedCoord]] = run:
     coords
       .map: coord =>
-        saveCoordIO(coord).map: inserted =>
+        saveCoordIO(coord).map[InsertedCoord]: inserted =>
           InsertedCoord(coord, inserted)
       .sequence
 

@@ -272,9 +272,7 @@ object LayerFeatureCollection:
 
   def apply(fs: Seq[LayerFeature]): LayerFeatureCollection = LayerFeatureCollection(Key, fs)
 
-sealed trait Outcome
-
-object Outcome:
-  case object Added extends Outcome
-  case object Updated extends Outcome
-  case object Noop extends Outcome
+enum Outcome:
+  case Added
+  case Updated
+  case Noop

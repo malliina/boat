@@ -8,7 +8,8 @@ import com.malliina.boat.ais.AISSource
 import com.malliina.boat.db.{TrackInsertsDatabase, VesselDatabase}
 import com.malliina.boat.http4s.BoatStreams.{log, rights}
 import com.malliina.boat.parsing.*
-import com.malliina.boat.{BoatEvent, BoatJsonError, CoordsEvent, FrontEvent, InputEvent, InsertedPoint, SentencesMessage, TimeFormatter, VesselMessages}
+import com.malliina.boat.parsing.SavedEvent.InsertedCoord
+import com.malliina.boat.{BoatJsonError, CoordsEvent, FrontEvent, InputEvent, InsertedPoint, SentencesMessage, TimeFormatter, VesselMessages}
 import com.malliina.tasks.runInBackground
 import com.malliina.util.AppLogger
 import fs2.Stream
@@ -57,7 +58,7 @@ class BoatStreams[F[_]: Async](
   private val sentencesSource = boatIn
     .subscribe(maxQueued = 100)
     .collect:
-      case be @ BoatEvent(_, _, _) =>
+      case be @ InputEvent.BoatEvent(_, _, _) =>
         be
     .map: boatEvent =>
       boatEvent.message
@@ -110,13 +111,13 @@ class BoatStreams[F[_]: Async](
     val events = saved
       .subscribe(maxQueued = 100)
       .flatMap:
-        case InsertedCoord(coord, inserted) =>
+        case SavedEvent.InsertedCoord(coord, inserted) =>
           val e = CoordsEvent(
             List(coord.timed(inserted.point, formatter)),
             inserted.track.strip(formatter)
           )
           Stream(e)
-        case InsertedCoords(coords) =>
+        case SavedEvent.InsertedCoords(coords) =>
           val byTrack = coords.foldLeft(Vector.empty[CoordsEvent])((acc, ic) =>
             val newCoord = ic.coord.timed(ic.inserted.point, formatter)
             val idx = acc.indexWhere(_.from.track == ic.inserted.track.track)
@@ -134,7 +135,7 @@ class BoatStreams[F[_]: Async](
   def saveAndPublish(coords: NonEmptyList[PointInsert]): F[NonEmptyList[InsertedPoint]] =
     for
       inserteds <- db.saveCoords(coords)
-      result <- saved.publish1(InsertedCoords(inserteds))
+      result <- saved.publish1(SavedEvent.InsertedCoords(inserteds))
     yield
       result.fold(
         _ => log.warn(s"Topic was closed, could not publish car event."),
@@ -144,7 +145,7 @@ class BoatStreams[F[_]: Async](
 
   private def saveRecovered(coord: FullCoord): F[List[InsertedCoord]] =
     db.saveCoord(coord)
-      .map: inserted =>
+      .map[List[InsertedCoord]]: inserted =>
         log.debug(s"Inserted $inserted")
         List(InsertedCoord(coord, inserted))
       .handleErrorWith: t =>

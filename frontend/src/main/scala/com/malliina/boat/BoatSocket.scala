@@ -10,10 +10,10 @@ object BoatSocket:
   def query(track: PathState, sample: Option[Int]): String =
     val qs = QueryString.parse
     track match
-      case Name(name)           => qs.set(TrackName.Key, name)
-      case Canonical(canonical) => qs.set(TrackCanonical.Key, canonical)
-      case Route(req)           => ()
-      case NoTrack              => ()
+      case PathState.Name(name)           => qs.set(TrackName.Key, name)
+      case PathState.Canonical(canonical) => qs.set(TrackCanonical.Key, canonical)
+      case PathState.Route(req)           => ()
+      case PathState.NoTrack              => ()
     sample.fold(qs)(s => qs.set(FrontKeys.SampleKey, s"$s"))
     if qs.isEmpty then "" else s"?${qs.render}"
 

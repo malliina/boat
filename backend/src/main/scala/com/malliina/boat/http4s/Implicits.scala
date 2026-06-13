@@ -3,13 +3,14 @@ package com.malliina.boat.http4s
 import cats.Applicative
 import cats.effect.Concurrent
 import com.malliina.boat.{DeviceId, S3Key, TrackCanonical, TrackId, TrackName}
+import com.malliina.http.FullUrl
 import com.malliina.http4s.BasicService
-import com.malliina.values.{ErrorMessage, Username}
+import com.malliina.values.{error, ErrorMessage, Readable, Username}
 import io.circe.syntax.EncoderOps
 import io.circe.{Decoder, Encoder, Printer}
 import org.http4s.circe.CirceInstances
 import org.http4s.headers.`Content-Type`
-import org.http4s.{Charset, DecodeResult, EntityDecoder, EntityEncoder, MediaType}
+import org.http4s.{Charset, DecodeResult, EntityDecoder, EntityEncoder, MediaType, Request, Uri}
 import scalatags.generic.Frag
 
 trait Extractors:
@@ -62,8 +63,23 @@ trait JsonInstances extends CirceInstances:
           ok => DecodeResult.successT(ok)
         )
 
+object Http4sSyntax extends Http4sSyntax
+
+trait Http4sSyntax:
+  extension (url: FullUrl)
+    def toUri: Uri =
+      Uri.unsafeFromString(url.url)
+
+  extension [F[_]](req: Request[F])
+    def cookie[T: Readable](name: String): Option[T] =
+      req.cookies.find(_.name == name).flatMap(c => Readable[T].read(c.content).toOption)
+
+  given uriReadable: Readable[Uri] =
+    Readable.string.emap(s => Uri.fromString(s).left.map(pf => pf.details.error))
+
 abstract class Implicits[F[_]: Applicative]
   extends BasicService[F]
   with MyScalatagsInstances
   with JsonInstances
   with Extractors
+  with Http4sSyntax

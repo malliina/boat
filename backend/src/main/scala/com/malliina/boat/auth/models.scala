@@ -4,7 +4,7 @@ import com.malliina.boat.db.RefreshTokenId
 import com.malliina.boat.{DeviceName, Language, MinimalUserInfo}
 import com.malliina.config.ConfigReadable
 import com.malliina.http.SingleError
-import com.malliina.values.{Email, IdToken, Password, Username}
+import com.malliina.values.{Email, IdToken, Password, Readable, Username}
 import com.malliina.web.JWTError
 import io.circe.Codec
 
@@ -52,12 +52,17 @@ case class UserPayload(username: Username) derives Codec.AsObject
 object UserPayload:
   def email(email: Email): UserPayload = apply(Username.fromEmail(email))
 
-sealed abstract class AuthProvider(val name: String)
+enum AuthProvider(val name: String):
+  case Google extends AuthProvider("google")
+  case Microsoft extends AuthProvider("microsoft")
+  case Apple extends AuthProvider("apple")
 
 object AuthProvider:
   val PromptKey = "prompt"
   val SelectAccount = "select_account"
-  val all = Seq(Google, Microsoft)
+  val all: Seq[AuthProvider] = Seq(Google, Microsoft)
+
+  given Readable[AuthProvider] = Readable.string.emap(s => forString(s).left.map(_.message))
 
   def forString(s: String): Either[SingleError, AuthProvider] =
     all
@@ -66,10 +71,6 @@ object AuthProvider:
 
   def unapply(str: String): Option[AuthProvider] =
     forString(str).toOption
-
-  case object Google extends AuthProvider("google")
-  case object Microsoft extends AuthProvider("microsoft")
-  case object Apple extends AuthProvider("apple")
 
 case class BoatJwtClaims(email: Email, refresh: RefreshTokenId, lastValidation: Instant)
   derives Codec.AsObject

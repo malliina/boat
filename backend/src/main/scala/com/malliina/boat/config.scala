@@ -13,12 +13,12 @@ import com.malliina.web.WebLiterals.cid
 
 import java.nio.file.Path
 
-sealed trait AppMode:
-  def isProd = this == AppMode.Prod
+enum AppMode:
+  case Prod
+  case Dev
+  def isProd = this == Prod
 
 object AppMode:
-  case object Prod extends AppMode
-  case object Dev extends AppMode
   val fromBuild: AppMode = unsafe(BuildInfo.mode)
 
   given ConfigReadable[AppMode] = ConfigReadable.string.emapParsed: s =>
@@ -43,17 +43,21 @@ object LocalConf:
 case class MapboxConf(token: AccessToken)
 
 case class AisAppConf(enabled: Boolean)
+
 object AisAppConf:
   def default = AisAppConf(enabled = AppMode.fromBuild.isProd)
 
 case class AppleConf(id: ClientId)
+
 object AppleConf:
   val id: ClientId = cid"497623115973-qut66ppubk4f9mpigckfkoqqoi060bge.apps.googleusercontent.com"
   val default = AppleConf(id)
+
 case class MicrosoftConf(boat: WebConf, car: WebConf)
 
 case class WebConf(id: ClientId, secret: ClientSecret):
   def webAuthConf = AuthConf(id, secret)
+
 object WebConf:
   val microsoftBoatId: ClientId = cid"d55eafcb-e3a5-4ee0-ba5c-03a6c887b6db"
   val microsoftCarId: ClientId = cid"d1d9f5da-3d5e-4a93-9726-35f2a497a85f"
@@ -64,6 +68,7 @@ case class GoogleConf(ios: AppleConf, web: WebConf, mapsKey: AccessToken):
   def webAuthConf = AuthConf(web.id, web.secret)
 
 case class APNSConf(enabled: Boolean, privateKey: Path, keyId: KeyId, teamId: TeamId)
+
 object APNSConf:
   val teamId = TeamId("D2T2QC36Z9")
 

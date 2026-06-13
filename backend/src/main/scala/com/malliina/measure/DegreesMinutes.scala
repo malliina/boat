@@ -10,15 +10,19 @@ sealed trait HemisphereDirection
 object HemisphereDirection:
   def parse(in: String): Either[SingleError, HemisphereDirection] =
     readString(in, s"Invalid direction: '$in'."):
-      case "N" => North
-      case "S" => South
-      case "E" => East
-      case "W" => West
+      case "N" => NorthOrSouth.North
+      case "S" => NorthOrSouth.South
+      case "E" => EastOrWest.East
+      case "W" => EastOrWest.West
 
-  def readString[T](in: String, onFail: => String)(pf: PartialFunction[String, T]) =
+  def readString[T](in: String, onFail: => String)(
+    pf: PartialFunction[String, T]
+  ): Either[SingleError, T] =
     pf.lift(in).map(Right.apply).getOrElse(Left(SingleError.input(onFail)))
 
-sealed trait NorthOrSouth extends HemisphereDirection
+enum NorthOrSouth extends HemisphereDirection:
+  case North
+  case South
 
 object NorthOrSouth:
   def apply(in: String): Either[SingleError, NorthOrSouth] =
@@ -26,19 +30,15 @@ object NorthOrSouth:
       case "N" => North
       case "S" => South
 
-case object North extends NorthOrSouth
-case object South extends NorthOrSouth
-
-sealed trait EastOrWest extends HemisphereDirection
+enum EastOrWest extends HemisphereDirection:
+  case East
+  case West
 
 object EastOrWest:
   def apply(in: String): Either[SingleError, EastOrWest] =
     readString(in, s"Invalid direction, must be 'W' or 'E': '$in'."):
       case "E" => East
       case "W" => West
-
-case object East extends EastOrWest
-case object West extends EastOrWest
 
 /** Latitude degrees minutes.
   */
@@ -59,8 +59,8 @@ object LatitudeDM:
 
   def toDegreesDecimal(dm: LatitudeDM): Latitude =
     val multiplier = dm.direction match
-      case North => 1.0
-      case South => -1.0
+      case NorthOrSouth.North => 1.0
+      case NorthOrSouth.South => -1.0
     Latitude.unsafe(multiplier * (dm.degrees + dm.minutes / 60))
 
 case class LongitudeDM(degrees: Int, minutes: Double, direction: EastOrWest):
@@ -80,8 +80,8 @@ object LongitudeDM:
 
   def toDegreesDecimal(dm: LongitudeDM): Longitude =
     val multiplier = dm.direction match
-      case East => 1.0
-      case West => -1.0
+      case EastOrWest.East => 1.0
+      case EastOrWest.West => -1.0
     Longitude.unsafe(multiplier * (dm.degrees + dm.minutes / 60))
 
 case class DegreesMinutes(degrees: Int, minutes: Double):

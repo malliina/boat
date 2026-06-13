@@ -22,7 +22,7 @@ object MapPage extends BoatSyntax:
           data(FrontKeys.Lat) := coord.lat.lat
         ),
       ub.boats.headOption
-        .map: b =>
+        .map: _ =>
           modifier(
             div(id := "navbar", cls := "navbar navbar-boat py-1")(
               a(cls := "nav-text tight boats-link", href := reverse.boats)(lang.track.boats),

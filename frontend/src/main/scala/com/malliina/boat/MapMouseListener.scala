@@ -6,20 +6,18 @@ import com.malliina.json.Parsing.validate
 import com.malliina.mapbox.*
 import com.malliina.util.recover
 
-sealed trait ClickType:
-  def target: LngLatLike
-
-case class VesselClick(props: VesselProps, target: LngLatLike) extends ClickType
-case class TrophyClick(trophy: PointProps, target: LngLatLike) extends ClickType
-case class DeviceClick(device: DeviceProps, target: LngLatLike) extends ClickType
-case class SymbolClick(symbol: MarineSymbol, target: LngLatLike) extends ClickType
-case class MinimalClick(symbol: MinimalMarineSymbol, target: LngLatLike) extends ClickType
-case class FairwayClick(area: FairwayArea, target: LngLatLike) extends ClickType
-case class FairwayInfoClick(info: FairwayInfo, target: LngLatLike) extends ClickType
-case class DepthClick(area: DepthArea, target: LngLatLike) extends ClickType
-case class LimitClick(limit: LimitArea, target: LngLatLike) extends ClickType
-case class LimitedFairwayClick(limit: LimitArea, area: FairwayArea, target: LngLatLike)
-  extends ClickType
+enum ClickType(val lngLat: LngLatLike):
+  case VesselClick(props: VesselProps, target: LngLatLike) extends ClickType(target)
+  case TrophyClick(trophy: PointProps, target: LngLatLike) extends ClickType(target)
+  case DeviceClick(device: DeviceProps, target: LngLatLike) extends ClickType(target)
+  case SymbolClick(symbol: MarineSymbol, target: LngLatLike) extends ClickType(target)
+  case MinimalClick(symbol: MinimalMarineSymbol, target: LngLatLike) extends ClickType(target)
+  case FairwayClick(area: FairwayArea, target: LngLatLike) extends ClickType(target)
+  case FairwayInfoClick(info: FairwayInfo, target: LngLatLike) extends ClickType(target)
+  case DepthClick(area: DepthArea, target: LngLatLike) extends ClickType(target)
+  case LimitClick(limit: LimitArea, target: LngLatLike) extends ClickType(target)
+  case LimitedFairwayClick(limit: LimitArea, area: FairwayArea, target: LngLatLike)
+    extends ClickType(target)
 
 class MapMouseListener[F[_]](
   map: MapboxMap,
@@ -56,43 +54,44 @@ class MapMouseListener[F[_]](
               vesselSearch.symbolIds.contains(id.id) || id.id == AISRenderer.AisVesselLayer
           then
             // AIS
-            validate[VesselProps](props).map(vp => VesselClick(vp, target))
+            validate[VesselProps](props).map(vp => ClickType.VesselClick(vp, target))
           else if symbolFeature.layer.exists(_.id.startsWith(TrophyPrefix)) then
             validate[PointProps](props).map: tp =>
-              TrophyClick(tp, target)
+              ClickType.TrophyClick(tp, target)
           else if symbolFeature.layer.exists(_.id.startsWith(DevicePrefix)) then
             validate[DeviceProps](props).map: tp =>
-              DeviceClick(tp, target)
+              ClickType.DeviceClick(tp, target)
           else
             // Markers
-            val normalSymbol = validate[MarineSymbol](props).map(m => SymbolClick(m, target))
+            val normalSymbol =
+              validate[MarineSymbol](props).map(m => ClickType.SymbolClick(m, target))
             val minimalSymbol =
-              validate[MinimalMarineSymbol](props).map(m => MinimalClick(m, target))
+              validate[MinimalMarineSymbol](props).map(m => ClickType.MinimalClick(m, target))
             normalSymbol.left.flatMap(_ => minimalSymbol)
         .orElse:
           if !isTrackHover then
             val limitAreas = features
               .flatMap(_.props.as[LimitArea].toOption)
               .toList
-            val limitInfo = LimitArea
+            val limitInfo: Option[ClickType.LimitClick] = LimitArea
               .merge(limitAreas)
-              .map(area => LimitClick(area, e.lngLat))
+              .map(area => ClickType.LimitClick(area, e.lngLat))
             val fairwayInfo =
               features
                 .flatMap(_.props.as[FairwayInfo].toOption)
                 .headOption
-                .map(FairwayInfoClick(_, e.lngLat))
-            val fairway = features
+                .map(ClickType.FairwayInfoClick(_, e.lngLat))
+            val fairway: Option[ClickType.FairwayClick] = features
               .flatMap(f => f.props.as[FairwayArea].toOption)
               .headOption
-              .map(FairwayClick(_, e.lngLat))
+              .map(ClickType.FairwayClick(_, e.lngLat))
             val depth =
               features
                 .flatMap(f => f.props.as[DepthArea].toOption)
                 .headOption
-                .map(DepthClick(_, e.lngLat))
+                .map(ClickType.DepthClick(_, e.lngLat))
             val combined = limitInfo.flatMap: l =>
-              fairway.map(fc => LimitedFairwayClick(l.limit, fc.area, l.target))
+              fairway.map(fc => ClickType.LimitedFairwayClick(l.limit, fc.area, l.target))
             fairwayInfo
               .orElse(combined)
               .orElse(fairway)
@@ -109,11 +108,11 @@ class MapMouseListener[F[_]](
         parseClick(e).foreach: result =>
           result
             .map:
-              case DeviceClick(props, target) =>
+              case ClickType.DeviceClick(props, target) =>
                 popup.show(html.device(props), target, map)
-              case TrophyClick(props, target) =>
+              case ClickType.TrophyClick(props, target) =>
                 popup.show(html.track(props), target, map)
-              case VesselClick(boat, target) =>
+              case ClickType.VesselClick(boat, target) =>
                 ais
                   .info(boat.mmsi)
                   .map: info =>
@@ -125,19 +124,19 @@ class MapMouseListener[F[_]](
                         popup.show(html.aisSimple(info), target, map)
                   .recover: err =>
                     log.info(s"Vessel info not available for '$boat'. $err.")
-              case SymbolClick(marker, target) =>
+              case ClickType.SymbolClick(marker, target) =>
                 popup.show(html.mark(marker), target, map)
-              case MinimalClick(marker, target) =>
+              case ClickType.MinimalClick(marker, target) =>
                 popup.show(html.minimalMark(marker), target, map)
-              case FairwayClick(area, target) =>
+              case ClickType.FairwayClick(area, target) =>
                 popup.show(html.fairway(area), target, map)
-              case DepthClick(area, target) =>
+              case ClickType.DepthClick(area, target) =>
                 popup.show(html.depthArea(area), target, map)
-              case FairwayInfoClick(info, target) =>
+              case ClickType.FairwayInfoClick(info, target) =>
                 popup.show(html.fairwayInfo(info), target, map)
-              case LimitClick(limit, target) =>
+              case ClickType.LimitClick(limit, target) =>
                 popup.show(html.limitArea(limit), target, map)
-              case LimitedFairwayClick(limit, area, target) =>
+              case ClickType.LimitedFairwayClick(limit, area, target) =>
                 popup.show(html.limitedFairway(limit, area), target, map)
             .map(_ => isPopupOpen = true)
             .recover: err =>

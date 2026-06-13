@@ -3,7 +3,8 @@ package com.malliina.boat.db
 import cats.data.NonEmptyList
 import com.malliina.boat.*
 import com.malliina.boat.http.{BoatQuery, TrackQuery, TracksQuery}
-import com.malliina.boat.parsing.{InsertedCoord, PointInsert}
+import com.malliina.boat.parsing.PointInsert
+import com.malliina.boat.parsing.SavedEvent.InsertedCoord
 import com.malliina.values.{UserId, Username}
 
 trait TrackInsertsDatabase[F[_]]:

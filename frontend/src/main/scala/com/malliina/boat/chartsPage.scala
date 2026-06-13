@@ -41,7 +41,7 @@ class ChartSocket[F[_]: Sync: Concurrent](
   sample: Option[Int],
   messages: Topic[F, WebSocketEvent],
   d: Dispatcher[F]
-) extends BoatSocket(Name(track), sample, messages, d):
+) extends BoatSocket(PathState.Name(track), sample, messages, d):
   val events = Events(messages)
   val task = events.coordEvents
     .concurrently(events.connectivityLogger)

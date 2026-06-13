@@ -14,7 +14,7 @@ object BoatParser:
   def parseMulti(sentences: Seq[KeyedSentence]): Seq[ParsedSentence] =
     sentences.map(parse).flatMap(e => e.asOption(handleError))
 
-  def readSentences(event: BoatEvent): Either[DecodingFailure, SentencesEvent] =
+  def readSentences(event: InputEvent.BoatEvent): Either[DecodingFailure, SentencesEvent] =
     event.message.as[SentencesEvent]
 
   /** Parses the following values from NNEA 0183 sentences:

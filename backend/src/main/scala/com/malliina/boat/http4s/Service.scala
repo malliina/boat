@@ -5,12 +5,14 @@ import cats.effect.Async
 import cats.syntax.all.{catsSyntaxApplicativeError, catsSyntaxFlatMapOps, toFlatMapOps, toFunctorOps, toSemigroupKOps}
 import com.malliina.boat.*
 import com.malliina.boat.Constants.{LanguageName, TokenCookieName}
+import com.malliina.boat.InputEvent.BoatEvent
 import com.malliina.boat.PushTokenType.IOSActivityUpdate
 import com.malliina.boat.SourceType.Mobile
 import com.malliina.boat.auth.AuthProvider.{PromptKey, SelectAccount}
 import com.malliina.boat.auth.{AuthProvider, BoatJwt, SettingsPayload, UserPayload}
 import com.malliina.boat.db.*
 import com.malliina.boat.graph.*
+import com.malliina.boat.graph.GraphError.{EmptyGraph, NoRoute, UnresolvedFrom, UnresolvedTo}
 import com.malliina.boat.html.{BoatHtml, BoatLang}
 import com.malliina.boat.http.*
 import com.malliina.boat.http.InviteResult.{AlreadyInvited, Invited, UnknownEmail}
@@ -392,9 +394,8 @@ class Service[F[_]: {Async, Files}](
             notFound(Errors(SingleError.input(s"Car not found: '${body.carId}'.")))
     case req @ GET -> Root / "sign-in" =>
       val timeNow = now()
-      req.cookies
-        .find(_.name == cookieNames.provider)
-        .flatMap(cookie => AuthProvider.forString(cookie.content).toOption)
+      req
+        .cookie[AuthProvider](cookieNames.provider)
         .filter(_ => !req.uri.query.params.contains("reset"))
         .map: provider =>
           if provider == AuthProvider.Apple then
@@ -869,13 +870,12 @@ class Service[F[_]: {Async, Files}](
   ): F[Response[F]] = F
     .delay:
       val redirectUrl = Urls.hostOnly(req) / reverse.signInCallback(provider).renderString
-      val lastIdCookie = req.cookies.find(_.name == cookieNames.lastId)
-      val promptValue = req.cookies
-        .find(_.name == cookieNames.prompt)
-        .map(_.content)
+      val lastIdCookie = req.cookie[String](cookieNames.lastId)
+      val promptValue = req
+        .cookie[String](cookieNames.prompt)
         .orElse(Option(SelectAccount).filter(_ => lastIdCookie.isEmpty))
       val extra = promptValue.map(c => Map(PromptKey -> c)).getOrElse(Map.empty)
-      val maybeEmail = lastIdCookie.map(_.content).filter(_ => extra.isEmpty)
+      val maybeEmail = lastIdCookie.filter(_ => extra.isEmpty)
       maybeEmail.foreach: hint =>
         log.info(s"Starting OAuth flow with $provider using login hint '$hint'...")
       promptValue.foreach: prompt =>
@@ -891,10 +891,8 @@ class Service[F[_]: {Async, Files}](
   private def startLoginFlow(s: Start, isSecure: Boolean): F[Response[F]] = F
     .delay:
       val state = randomString()
-      val encodedParams = (s.params ++ Map(OAuthKeys.State -> state)).map:
-        case (k, v) =>
-          k -> com.malliina.web.Utils.urlEncode(v)
-      val url = s.authorizationEndpoint.append(s"?${stringify(encodedParams)}")
+      val params = (s.params ++ Map(OAuthKeys.State -> state))
+      val url = s.authorizationEndpoint.query(params)
       log.info(s"Redirecting to '$url' with state '$state'...")
       val sessionParams: Seq[(String, String)] = Seq(State -> state) ++ s.nonce
         .map(n => Seq(Nonce -> n))
@@ -902,7 +900,7 @@ class Service[F[_]: {Async, Files}](
       (url, sessionParams)
     .flatMap:
       case (url, sessionParams) =>
-        SeeOther(Location(Uri.unsafeFromString(url.url))).map: res =>
+        SeeOther(Location(url.toUri)).map: res =>
           val session = sessionParams.toMap.asJson
           auth.web
             .withSession(session, isSecure, res)
@@ -972,9 +970,8 @@ class Service[F[_]: {Async, Files}](
     provider: AuthProvider,
     req: Request[F]
   ): F[Response[F]] =
-    val returnUri: Uri = req.cookies
-      .find(_.name == cookieNames.returnUri)
-      .flatMap(c => Uri.fromString(c.content).toOption)
+    val returnUri: Uri = req
+      .cookie[Uri](cookieNames.returnUri)
       .getOrElse(reverse.index)
     SeeOther(Location(returnUri)).map: r =>
       web.withAppUser(UserPayload.email(email), Urls.isSecure(req), provider, r)

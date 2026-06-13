@@ -224,7 +224,7 @@ case class SentenceFailure(sentence: RawSentence, e: Exception) extends Sentence
 case class IgnoredSentence(sentence: RawSentence) extends SentenceError:
   override def message = ErrorMessage(s"Ignoring sentence '$sentence'.")
 
-sealed trait SavedEvent
-case object EmptySavedEvent extends SavedEvent
-case class InsertedCoord(coord: PointInsert, inserted: InsertedPoint) extends SavedEvent
-case class InsertedCoords(coords: NonEmptyList[InsertedCoord]) extends SavedEvent
+enum SavedEvent:
+  case EmptySavedEvent
+  case InsertedCoord(coord: PointInsert, inserted: InsertedPoint)
+  case InsertedCoords(coords: NonEmptyList[InsertedCoord])

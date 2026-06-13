@@ -12,7 +12,19 @@ import io.circe.*
 
 /** Navigointilaji (NAVL_TYYP)
   */
-sealed trait NavMark:
+enum NavMark:
+  case Unknown
+  case Left
+  case Right
+  case North
+  case South
+  case West
+  case East
+  case Rock
+  case SafeWaters
+  case Special
+  case NotApplicable
+
   import NavMark.*
   def translate(in: NavMarkLang) = this match
     case Unknown       => in.unknown
@@ -28,18 +40,6 @@ sealed trait NavMark:
     case NotApplicable => in.notApplicable
 
 object NavMark:
-  case object Unknown extends NavMark
-  case object Left extends NavMark
-  case object Right extends NavMark
-  case object North extends NavMark
-  case object South extends NavMark
-  case object West extends NavMark
-  case object East extends NavMark
-  case object Rock extends NavMark
-  case object SafeWaters extends NavMark
-  case object Special extends NavMark
-  case object NotApplicable extends NavMark
-
   private val fromInt: PartialFunction[Int, NavMark] =
     case 0  => Unknown
     case 1  => Left
@@ -192,7 +192,11 @@ trait SymbolLike extends NameLike:
   def location(lang: Lang): Option[String] =
     if lang == Lang.se then locationSe.orElse(locationFi) else locationFi.orElse(locationSe)
 
-sealed trait TrafficMarkType:
+enum TrafficMarkType:
+  case SpeedLimit
+  case NoWaves
+  case Other
+
   def translate(lang: LimitTypes) = this match
     case TrafficMarkType.SpeedLimit => lang.speedLimit
     case TrafficMarkType.NoWaves    => lang.noWaves
@@ -205,9 +209,6 @@ object TrafficMarkType:
     case _  => Other
   given Decoder[TrafficMarkType] = Decoder.decodeInt.emap: int =>
     fromInt.lift(int).toRight(s"Unknown traffic mark type: '$int'.")
-  case object SpeedLimit extends TrafficMarkType
-  case object NoWaves extends TrafficMarkType
-  case object Other extends TrafficMarkType
 
 case class MarineSymbol(
   owner: String,

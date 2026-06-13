@@ -61,3 +61,9 @@ case class ValueRoute(head: Link, tail: List[Link]):
 case class ValueNode(from: Coord, links: List[Link]) derives Codec.AsObject:
   def edges = links.map(link => ValueEdge(from, link.to, link.cost))
   def link(l: Link) = ValueNode(from, l :: links)
+
+enum GraphError:
+  case UnresolvedFrom(from: Coord)
+  case UnresolvedTo(to: Coord)
+  case NoRoute(from: Coord, to: Coord)
+  case EmptyGraph

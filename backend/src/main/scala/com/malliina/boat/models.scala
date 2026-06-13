@@ -278,13 +278,11 @@ case class TrackMeta(
 
 case class JoinResult(track: TrackMeta, isResumed: Boolean)
 
-sealed trait InputEvent
+enum InputEvent:
+  case EmptyEvent
+  case BoatEvent(message: Json, from: TrackMeta, userAgent: Option[UserAgent])
 
-case object EmptyEvent extends InputEvent
-case class BoatEvent(message: Json, from: TrackMeta, userAgent: Option[UserAgent])
-  extends InputEvent
-
-case class BoatJsonError(error: DecodingFailure, boat: BoatEvent)
+case class BoatJsonError(error: DecodingFailure, boat: InputEvent.BoatEvent)
 
 object DeviceNames:
   val Key = "boatName"

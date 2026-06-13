@@ -77,24 +77,24 @@ trait PrimitiveParsing:
         if p(i) then Right(build(i))
         else Left(SingleError.input(s"Invalid input: '$s'."))
 
-sealed trait GPSMode
-object GPSMode extends PrimitiveParsing:
-  case object Automatic extends GPSMode
-  case object Manual extends GPSMode
+enum GPSMode:
+  case Automatic
+  case Manual
 
+object GPSMode extends PrimitiveParsing:
   def apply(s: String): Either[SingleError, GPSMode] =
     attempt[String, GPSMode](s, in => s"Invalid GPS mode: '$in'."):
       case "A" => Automatic
       case "M" => Manual
 
-sealed abstract class GPSFix(val value: String)
-object GPSFix extends PrimitiveParsing:
-  case object NoFix extends GPSFix("1")
-  case object Fix2D extends GPSFix("2")
-  case object Fix3D extends GPSFix("3")
-  case class OtherFix(s: String) extends GPSFix(s)
+enum GPSFix(val value: String):
+  case NoFix extends GPSFix("1")
+  case Fix2D extends GPSFix("2")
+  case Fix3D extends GPSFix("3")
+  case OtherFix(s: String) extends GPSFix(s)
 
-  val all = Seq(Fix2D, Fix3D, NoFix)
+object GPSFix extends PrimitiveParsing:
+  val all: Seq[GPSFix] = Seq(Fix2D, Fix3D, NoFix)
 
   def orOther(s: String) = apply(s).getOrElse(OtherFix(s))
 
