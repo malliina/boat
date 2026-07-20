@@ -143,8 +143,8 @@ class TrackInserter[F[_]](val db: DoobieDatabase[F]) extends TrackInsertsDatabas
     val track = coord.track
     val previous =
       sql"""select coord, track_index
-              from points p
-              where p.track = $track order by p.track_index desc limit 1"""
+            from points p
+            where p.track = $track order by p.track_index desc limit 1"""
         .query[PreviousPoint]
         .option
     for
@@ -153,46 +153,51 @@ class TrackInserter[F[_]](val db: DoobieDatabase[F]) extends TrackInsertsDatabas
       idx = prev.map(_.trackIndex).getOrElse(0) + 1
       _ = log.debug(s"Inserting coord at index $idx of track ${coord.track}...")
       point <- insertPoint(coord, idx, diff)
+      ref <- updateAggregates(track)
+      _ <- insertSentencePoints(
+        coord.boatStats.toList.flatMap(_.parts).map(key => (key, point))
+      )
+      _ = log.debug(s"Inserted $point at index $idx of $track, fetching by that ID...")
+    yield InsertedPoint(point, ref)
+
+  def updateAggregates(track: TrackId): ConnectionIO[JoinedTrack] =
+    for
       avgSpeed <-
         sql"""select avg(speed)
-                from points p
-                where p.track = $track and p.speed >= $minSpeed
-                having avg(speed) is not null"""
+              from points p
+              where p.track = $track and p.speed >= $minSpeed
+              having avg(speed) is not null"""
           .query[SpeedM]
           .option
       consumption <- sql"""select sum(p1.battery - p2.battery) wattHours
-                             from points p1,
-                                  points p2
-                             where p1.track = p2.track
-                               and p1.track_index + 1 = p2.track_index
-                               and p1.battery - p2.battery > 0
-                               and p1.battery > 0 and p2.battery > 0
-                               and p1.track = $track
-                               having sum(p1.battery - p2.battery) is not null"""
+                           from points p1,
+                                points p2
+                           where p1.track = p2.track
+                             and p1.track_index + 1 = p2.track_index
+                             and p1.battery - p2.battery > 0
+                             and p1.battery > 0 and p2.battery > 0
+                             and p1.track = $track
+                             having sum(p1.battery - p2.battery) is not null"""
         .query[Energy]
         .option
       info <-
         sql"""select avg(water_temp), avg(outside_temperature), ifnull(sum(diff), 0), count(*)
-                from points p
-                where p.track = $track"""
+              from points p
+              where p.track = $track"""
           .query[DbTrackInfo]
           .option
           .map(_.getOrElse(DbTrackInfo(None, None, DistanceM.zero, 0)))
       _ <-
         sql"""update tracks
-                set avg_water_temp = ${info.avgWaterTemp},
-                    avg_outside_temp = ${info.avgOutsideTemp},
-                    avg_speed = $avgSpeed,
-                    points = ${info.points},
-                    distance = ${info.distance},
-                    consumption = $consumption
-                where id = $track""".update.run
-      _ <- insertSentencePoints(
-        coord.boatStats.toList.flatMap(_.parts).map(key => (key, point))
-      )
-      _ = log.debug(s"Inserted $point at index $idx of $track, fetching by that ID...")
+              set avg_water_temp = ${info.avgWaterTemp},
+                  avg_outside_temp = ${info.avgOutsideTemp},
+                  avg_speed = $avgSpeed,
+                  points = ${info.points},
+                  distance = ${info.distance},
+                  consumption = $consumption
+              where id = $track""".update.run
       ref <- trackById(track)
-    yield InsertedPoint(point, ref)
+    yield ref
 
   private def insertSentencePoints(
     rows: List[(SentenceKey, TrackPointId)]
@@ -237,7 +242,7 @@ class TrackInserter[F[_]](val db: DoobieDatabase[F]) extends TrackInsertsDatabas
             ${c.lat},
             ${c.coord},
             ${c.speedOpt},
-            ${b.map(_.waterTemp)},
+            ${b.flatMap(_.waterTemp)},
             ${b.map(_.depth)},
             ${b.map(_.depthOffset)},
             ${car.flatMap(_.altitude)},
@@ -260,9 +265,12 @@ class TrackInserter[F[_]](val db: DoobieDatabase[F]) extends TrackInsertsDatabas
           from points p
           where p.track = $track""".query[DateVal].to[List]
 
-  def changeTrack(old: TrackId, date: DateVal, newTrack: TrackId): ConnectionIO[Int] =
-    sql"""update points set track = $newTrack
-          where track = $old and date(source_time) = $date""".update.run
+  def changeTrack(old: TrackId, date: DateVal, newTrack: TrackId): ConnectionIO[JoinedTrack] =
+    for
+      _ <- sql"""update points set track = $newTrack
+                 where track = $old and date(source_time) = $date""".update.run
+      ref <- updateAggregates(newTrack)
+    yield ref
 
   def insertTrack(in: TrackInput): ConnectionIO[TrackMeta] =
     sql"""insert into tracks(name, boat, avg_speed, avg_water_temp, points, distance, canonical)

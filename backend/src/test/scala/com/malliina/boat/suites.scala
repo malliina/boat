@@ -33,7 +33,7 @@ trait MUnitSuite extends munit.CatsEffectSuite:
   val userHome: Path = Paths.get(sys.props("user.home"))
   def databaseFixture(conf: => Conf) = resource(DoobieDatabase.default[IO](conf))
   def resource[T](res: Resource[IO, T]) = ResourceFunFixture(res)
-  LogbackUtils.init(rootLevel = Level.OFF)
+  LogbackUtils.init(rootLevel = Level.INFO)
 
 trait MUnitDatabaseSuite extends DoobieSQL:
   self: MUnitSuite =>

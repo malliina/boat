@@ -34,11 +34,8 @@ class Popups(lang: Lang) extends BoatModels:
         if isBoat then formatSpeed(point.speed)
         else formatSpeedKph(point.speed)
       ),
-      if isBoat then
-        modifier(
-          row(trackLang.water, point.waterTemp.formatCelsius),
-          row(trackLang.depth, point.depth.short)
-        )
+      rowOpt(trackLang.waterTemp, point.waterTemp.map(_.formatCelsius).filter(_ => isBoat)),
+      if isBoat then row(trackLang.depth, point.depth.short)
       else empty,
       rowOpt(trackLang.battery, point.battery.map(_.formatKwh)),
       rowOpt(trackLang.temperature, point.outsideTemp.map(_.formatCelsius)),

@@ -53,8 +53,8 @@ object BoatParser:
     err match
       case IgnoredSentence(_) =>
         log.debug(err.messageString)
-      case UnknownSentence(_, message) =>
-        log.debug(message)
+      case us @ UnknownSentence(_) =>
+        log.debug(us.messageString)
       case SuspectTime(_) =>
         log.warn(err.messageString)
       case SentenceFailure(_, ex) =>

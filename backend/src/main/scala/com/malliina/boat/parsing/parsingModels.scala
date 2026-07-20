@@ -4,7 +4,7 @@ import cats.data.NonEmptyList
 import com.malliina.boat.{Energy, InsertedPoint, KeyedSentence, LocationUpdate, RawSentence, SentenceKey, TimeFormatter, TimedCoord, TrackId, TrackMetaShort, TrackPointId, UserAgent}
 import com.malliina.geo.Coord
 import com.malliina.measure.{DistanceM, SpeedM, Temperature}
-import com.malliina.values.{Degrees, ErrorMessage}
+import com.malliina.values.{Degrees, ErrorMessage, error}
 
 import java.time.{Instant, LocalDate, LocalTime, ZoneOffset}
 
@@ -23,7 +23,7 @@ case class ParsedCoord(coord: Coord, ggaTime: LocalTime, sentence: KeyedSentence
     date: LocalDate,
     time: LocalTime,
     boatSpeed: SpeedM,
-    waterTemp: Temperature,
+    waterTemp: Option[Temperature],
     depth: DistanceM,
     depthOffset: DistanceM,
     parts: Seq[SentenceKey],
@@ -52,7 +52,7 @@ case class WaterDepth(depth: DistanceM, offset: DistanceM, sentence: KeyedSenten
   extends ParsedSentence
 
 case class BoatStats(
-  waterTemp: Temperature,
+  waterTemp: Option[Temperature],
   depth: DistanceM,
   depthOffset: DistanceM,
   parts: Seq[SentenceKey] = Nil
@@ -194,7 +194,7 @@ case class FullCoord(
     speed,
     carStats.flatMap(_.altitude),
     carStats.flatMap(_.outsideTemperature),
-    boat.waterTemp,
+    boat.waterTemp.getOrElse(Temperature.zeroCelsius),
     boat.depth,
     carStats.flatMap(_.batteryLevel),
     formatter.timing(sourceTime)
@@ -207,22 +207,18 @@ sealed trait SentenceError:
 
 case class InvalidSentence(sentence: RawSentence, message: ErrorMessage) extends SentenceError
 
-case class UnknownSentence(sentence: RawSentence, detailedMessage: String) extends SentenceError:
-  override def message: ErrorMessage = ErrorMessage(
-    s"Unknown sentence: '$sentence'. $detailedMessage"
-  )
+case class UnknownSentence(sentence: RawSentence) extends SentenceError:
+  override def message: ErrorMessage = s"Unknown sentence: '$sentence'.".error
 
 case class SuspectTime(sentence: RawSentence) extends SentenceError:
   override def message: ErrorMessage =
-    ErrorMessage(s"Suspect time in '$sentence'. This might mean the plotter is still initializing.")
+    s"Suspect time in '$sentence'. This might mean the plotter is still initializing.".error
 
 case class SentenceFailure(sentence: RawSentence, e: Exception) extends SentenceError:
-  override def message: ErrorMessage = ErrorMessage(
-    s"Error for sentence: '$sentence'. ${e.getMessage}"
-  )
+  override def message: ErrorMessage = s"Error for sentence: '$sentence'. ${e.getMessage}".error
 
 case class IgnoredSentence(sentence: RawSentence) extends SentenceError:
-  override def message = ErrorMessage(s"Ignoring sentence '$sentence'.")
+  override def message = s"Ignoring sentence '$sentence'.".error
 
 enum SavedEvent:
   case EmptySavedEvent

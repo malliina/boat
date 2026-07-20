@@ -91,4 +91,4 @@ object SentenceParser extends NMEA0183Parser:
             a <- Azimuth(azimuth)
           yield GSVMessage(talker, s, e, a)
       case _ =>
-        Left(UnknownSentence(raw, s"Unknown sentence: '$raw'."))
+        Left(UnknownSentence(raw))

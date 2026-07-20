@@ -28,7 +28,7 @@ class SentenceParserTests extends munit.FunSuite:
       case GGAMessage(_, _, lat, lng, _, _, _, _, _, _) =>
         s"GGA ${lat.toDecimalDegrees} ${lng.toDecimalDegrees}"
       case _ => ""
-    assert(strs.length == track.length)
+    assertEquals(strs.length, track.length)
 
   test("read and convert GGA coordinates from degrees minutes to decimal degrees"):
     val dmLatResult = LatitudeDM.parse("6009.1905,N")
@@ -36,12 +36,12 @@ class SentenceParserTests extends munit.FunSuite:
     val dmLat = dmLatResult.toOption.get
     val dLat = dmLat.minutes / 60
     val actualLat = dmLat.degrees + dLat
-    assert(actualLat.toString.take(9) == "60.153175")
+    assertEquals(actualLat.toString.take(9), "60.153175")
 
     val dmLng = LongitudeDM.parse("02453.4979,E").toOption.get
     val dLng = dmLng.minutes / 60
     val actualLng = dmLng.degrees + dLng
-    assert(actualLng.toString.take(9) == "24.891631")
+    assertEquals(actualLng.toString.take(9), "24.891631")
 
   test("parse RMC"):
     val in =
@@ -53,4 +53,23 @@ class SentenceParserTests extends munit.FunSuite:
         case msg @ RMCMessage(_, _, _, _, _) =>
           msg.dateTimeUtc
       .get
-    assert(rmc.getHour == 20)
+    assertEquals(rmc.getHour, 20)
+
+  test("parse water temp"):
+    val in =
+      RawSentence.unsafe("$SDMTW,10.5,C*00")
+    val temp = SentenceParser
+      .parse(in)
+      .toSeq
+      .collectFirst:
+        case msg @ MTWMessage(_, _) =>
+          msg.temperature
+      .get
+    assertEquals(temp.celsius, 10.5)
+
+  test("parse empty water temp"):
+    val in = RawSentence.unsafe("$SDMTW,,C*1A")
+    val res = SentenceParser.parse(in)
+    assert(res.isLeft)
+    val error = res.swap.map(_.messageString).getOrElse("")
+    assertEquals(error, "Unknown sentence: '$SDMTW,,C*1A'.")

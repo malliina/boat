@@ -11,16 +11,16 @@ import io.circe.*
 case class VesselProps(mmsi: Mmsi, name: VesselName, heading: Int) derives Codec.AsObject
 
 case class PointProps(
-                       boatName: DeviceName,
-                       trackName: TrackName,
-                       speed: SpeedM,
-                       altitude: Option[DistanceM],
-                       waterTemp: Temperature,
-                       outsideTemp: Option[Temperature],
-                       depth: DistanceM,
-                       battery: Option[Energy],
-                       dateTime: FormattedDateTime,
-                       sourceType: SourceType
+  boatName: DeviceName,
+  trackName: TrackName,
+  speed: SpeedM,
+  altitude: Option[DistanceM],
+  waterTemp: Option[Temperature],
+  outsideTemp: Option[Temperature],
+  depth: DistanceM,
+  battery: Option[Energy],
+  dateTime: FormattedDateTime,
+  sourceType: SourceType
 ) derives Codec.AsObject
 
 object PointProps:
@@ -30,7 +30,7 @@ object PointProps:
       ref.trackName,
       c.speed,
       c.altitude,
-      c.waterTemp,
+      Option(c.waterTemp),
       c.outsideTemp,
       c.depthMeters,
       c.battery,
@@ -39,9 +39,9 @@ object PointProps:
     )
 
 case class DeviceProps(
-                        deviceName: DeviceName,
-                        lng: Longitude,
-                        lat: Latitude,
-                        dateTime: FormattedDateTime
+  deviceName: DeviceName,
+  lng: Longitude,
+  lat: Latitude,
+  dateTime: FormattedDateTime
 ) derives Codec.AsObject:
   def coord = Coord(lng, lat)

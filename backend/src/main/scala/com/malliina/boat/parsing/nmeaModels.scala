@@ -15,8 +15,11 @@ case class VTGMessage(
   speedKnots: SpeedM,
   speedKmh: SpeedM
 ) extends TalkedSentence
+
 case class DPTMessage(talker: String, depth: DistanceM, offset: DistanceM) extends TalkedSentence
+
 case class MTWMessage(talker: String, temperature: Temperature) extends TalkedSentence
+
 case class ZDAMessage(
   talker: String,
   timeUtc: LocalTime,

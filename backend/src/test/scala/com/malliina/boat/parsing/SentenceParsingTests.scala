@@ -44,7 +44,7 @@ class SentenceParsingTests extends BaseSuite:
         date,
         testSpeed.speed,
         BoatStats(
-          testTemp.temp,
+          Option(testTemp.temp),
           testDepth.depth,
           testDepth.offset,
           keys.map(SentenceKey.unsafe)
@@ -58,28 +58,28 @@ class SentenceParsingTests extends BaseSuite:
         1.0 lngLat 2.0,
         LocalTime.of(10, 11, 1),
         LocalDate.of(2018, 4, 10),
-        Seq(5, 4, 2, 1, 3)
+        Seq(5, 4, 2, 3, 1)
       ),
       toFull(
         4.0 lngLat 5.0,
         LocalTime.of(10, 12, 2),
         LocalDate.of(2018, 4, 10),
-        Seq(7, 6, 2, 1, 3)
+        Seq(7, 6, 2, 3, 1)
       ),
       toFull(
         6.0 lngLat 7.0,
         LocalTime.of(10, 13, 3),
         LocalDate.of(2018, 4, 11),
-        Seq(9, 8, 2, 1, 3)
+        Seq(9, 8, 2, 3, 1)
       ),
       toFull(
         8.0 lngLat 9.0,
         LocalTime.of(10, 13, 3),
         LocalDate.of(2018, 4, 11),
-        Seq(10, 8, 2, 1, 3)
+        Seq(10, 8, 2, 3, 1)
       )
     )
     val manager = TrackManager()
     val processed = parsed.flatMap(s => fs2.Stream.emits(manager.update(s, None))).take(4)
     val actual = processed.compile.toList.unsafeRunSync()
-    assert(actual == expected)
+    assertEquals(actual, expected)

@@ -54,21 +54,22 @@ class TrackManager extends SentenceAggregator[TrackId, ParsedCoord, FullCoord]:
     buffer: List[ParsedCoord],
     userAgent: Option[UserAgent]
   ): List[FullCoord] =
-    (for
-      dateTime <- latestDateTime.get(track)
-      speed <- latestBoatSpeed.get(track)
-      temp <- latestWaterTemp.get(track)
-      depth <- latestDepth.get(track)
+    val res = for
+      dateTime <- latestDateTime.get(track).toRight("dateTime")
+      speed <- latestBoatSpeed.get(track).toRight("speed")
+      depth <- latestDepth.get(track).toRight("depth")
     yield buffer.map: coord =>
-      val sentenceKeys = List(coord.key, dateTime.key, speed.key, temp.key, depth.key)
+      val waterTemp = latestWaterTemp.get(track)
+      val sentenceKeys =
+        List(coord.key, dateTime.key, speed.key, depth.key) ++ waterTemp.map(_.key).toList
       coord.complete(
         dateTime.date,
         dateTime.time,
         speed.speed,
-        temp.temp,
+        waterTemp.map(_.temp),
         depth.depth,
         depth.offset,
         sentenceKeys,
         userAgent
       )
-    ).getOrElse(Nil)
+    res.getOrElse(Nil)

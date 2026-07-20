@@ -1,17 +1,17 @@
 package com.malliina.boat.db
 
-import cats.effect.Temporal
+import cats.effect.Async
 import cats.kernel.Eq
 import cats.syntax.all.toFunctorOps
 import com.malliina.boat.db.TrackImporter.{dateEq, log}
 import com.malliina.boat.parsing.*
 import com.malliina.boat.{InsertedPoint, InsertedSentences, RawSentence, SentencesEvent, TrackMetaShort, UserAgent}
 import com.malliina.util.AppLogger
-import fs2.{Chunk, Pipe, Stream, text}
 import fs2.io.file.{Files, Path}
+import fs2.{Chunk, Pipe, Stream, text}
 
 import java.time.LocalDate
-import concurrent.duration.DurationInt
+import scala.concurrent.duration.DurationInt
 
 object TrackImporter:
   private val log = AppLogger(getClass)
@@ -19,8 +19,8 @@ object TrackImporter:
   given dateEq: Eq[LocalDate] =
     Eq.by[LocalDate, (Int, Int, Int)](d => (d.getYear, d.getMonthValue, d.getDayOfMonth))
 
-class TrackImporter[F[_]: {Files, Temporal}](inserts: TrackInsertsDatabase[F])
-  extends TrackStreams[F]:
+class TrackImporter[F[_]: {Files, Async}](inserts: TrackInsertsDatabase[F]) extends TrackStreams[F]:
+  val F = Async[F]
 
   /** Saves sentences in `file` to the database `track`.
     *
@@ -44,6 +44,7 @@ class TrackImporter[F[_]: {Files, Temporal}](inserts: TrackInsertsDatabase[F])
       .filter(_ != RawSentence.initialZda)
       .groupWithin(100, 500.millis)
       .map(chunk => SentencesEvent(chunk.toList, track, userAgent))
+      .evalTap(se => F.delay(log.info(s"Handling ${se.sentences.size} sentences for $describe...")))
       .through(processor)
       .fold(0): (acc, _) =>
         val duration = 1.0d * (System.currentTimeMillis() - start) / 1000d

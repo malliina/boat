@@ -70,7 +70,7 @@ class ServiceTests extends MUnitSuite with Http4sSuite:
         LocalDate.now(),
         10.knots,
         BoatStats(
-          10.celsius,
+          Option(10.celsius),
           10.meters,
           0.meters
         ),

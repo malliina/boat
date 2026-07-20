@@ -86,7 +86,7 @@ class TracksDatabaseTests extends MUnitSuite with MUnitDatabaseSuite:
       LocalDate.now(),
       speed,
       BoatStats(
-        Temperature.zeroCelsius,
+        None,
         1.meters,
         0.meters
       ),
