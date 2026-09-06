@@ -1,36 +1,11 @@
 import sbtcrossproject.CrossPlugin.autoImport.{CrossType, crossProject}
 import sbtrelease.ReleasePlugin.autoImport.{ReleaseStep, releaseProcess}
 import sbtrelease.ReleaseStateTransformations.*
-
+import sbtcompat.PluginCompat
 import scala.sys.process.Process
 
-val versions = new {
-  val scala213 = "2.13.16"
-  val scala3 = "3.8.3"
-
-  val alpn = "12.0.16"
-  val ci = "1.4.2"
-  val circe = "0.14.15"
-  val codec = "1.21.0"
-  val commonsText = "1.15.0"
-  val fs2 = "3.13.0"
-  val http4s = "0.23.34"
-  val ip4s = "3.7.0"
-  val jts = "1.13"
-  val logback = "1.5.32"
-  val mariadb = "3.5.8"
-  val mobilePush = "3.17.1"
-  val munit = "1.3.1"
-  val munitCe = "2.2.0"
-  val paho = "1.2.5"
-  val s3 = "2.42.4"
-  val scalaJsDom = "2.8.1"
-  val scalaTags = "0.13.1"
-  val util = "6.14.3"
-}
-
 val webAuthDep = "com.malliina" %% "web-auth" % versions.util
-val webAuthTestDep = webAuthDep % Test classifier "tests"
+val webAuthTestDep = (webAuthDep % Test).classifier("tests")
 val munitDep = "org.scalameta" %% "munit" % versions.munit % Test
 
 val buildAndUpload = taskKey[String]("Uploads to S3, returns a URL")
@@ -42,6 +17,7 @@ Global / concurrentRestrictions += Tags.limit(Tags.Test, 1)
 
 inThisBuild(
   Seq(
+    scalacOptions ++= Seq("-rewrite", "-source:3.4-migration"),
     organization := "com.malliina",
     scalaVersion := versions.scala3,
     scalacOptions := Seq("-unchecked", "-deprecation"),
@@ -86,18 +62,18 @@ val mapbox = crossProject(JSPlatform, JVMPlatform)
     developerName := "Michael Skogberg",
     Test / fork := true,
     libraryDependencies ++= Seq("generic", "parser").map { m =>
-      "io.circe" %%% s"circe-$m" % versions.circe
+      "io.circe" %% s"circe-$m" % versions.circe
     } ++ Seq(
-      "com.malliina" %%% "primitives" % versions.util,
-      "com.lihaoyi" %%% "scalatags" % versions.scalaTags,
-      "org.scalameta" %%% "munit" % versions.munit % Test
+      "com.malliina" %% "primitives" % versions.util,
+      "com.lihaoyi" %% "scalatags" % versions.scalaTags,
+      "org.scalameta" %% "munit" % versions.munit % Test
     )
   )
 
 val mapboxJvm = mapbox.jvm
 val mapboxJs = mapbox.js.settings(
   libraryDependencies ++= Seq(
-    "org.scala-js" %%% "scalajs-dom" % versions.scalaJsDom
+    "org.scala-js" %% "scalajs-dom" % versions.scalaJsDom
   )
 )
 
@@ -108,27 +84,29 @@ val cross = crossProject(JSPlatform, JVMPlatform)
   .settings(boatSettings)
   .settings(
     libraryDependencies ++= Seq("generic", "parser").map { m =>
-      "io.circe" %%% s"circe-$m" % versions.circe
+      "io.circe" %% s"circe-$m" % versions.circe
     } ++ Seq(
-      "co.fs2" %%% "fs2-core" % versions.fs2,
-      "com.comcast" %%% "ip4s-core" % versions.ip4s,
-      "org.typelevel" %%% "case-insensitive" % versions.ci,
-      "com.malliina" %%% "primitives" % versions.util,
-      "com.lihaoyi" %%% "scalatags" % versions.scalaTags,
-      "org.scalameta" %%% "munit" % versions.munit % Test
+      "co.fs2" %% "fs2-core" % versions.fs2,
+      "com.comcast" %% "ip4s-core" % versions.ip4s,
+      "org.typelevel" %% "case-insensitive" % versions.ci,
+      "com.malliina" %% "primitives" % versions.util,
+      "com.lihaoyi" %% "scalatags" % versions.scalaTags,
+      "org.scalameta" %% "munit" % versions.munit % Test
     )
   )
 
 val crossJvm = cross.jvm.dependsOn(mapboxJvm)
 val crossJs = cross.js.dependsOn(mapboxJs)
 
+val gprcVersion = "1.62.2"
+val scalapbVersion = "0.11.20"
 val polestar = project
   .in(file("polestar"))
-  .enablePlugins(Fs2Grpc)
+//  .enablePlugins(Fs2Grpc)
   .dependsOn(crossJvm)
   .settings(
     libraryDependencies ++= Seq("generic", "parser").map { m =>
-      "io.circe" %%% s"circe-$m" % versions.circe
+      "io.circe" %% s"circe-$m" % versions.circe
     } ++ Seq("config", "logstreams-client", "okclient-io").map { m =>
       "com.malliina" %% m % versions.util
     } ++ Seq(
@@ -137,7 +115,14 @@ val polestar = project
       "commons-codec" % "commons-codec" % versions.codec,
       "org.scalameta" %% "munit" % versions.munit % Test,
       "org.typelevel" %% "munit-cats-effect" % versions.munitCe % Test,
-      "io.grpc" % "grpc-netty-shaded" % scalapb.compiler.Version.grpcJavaVersion
+      "io.grpc" % "grpc-netty-shaded" % gprcVersion // scalapb.compiler.Version.grpcJavaVersion
+    ) ++ Seq(
+      "io.grpc" % "grpc-core" % gprcVersion,
+      "io.grpc" % "grpc-stub" % gprcVersion,
+      "io.grpc" % "grpc-protobuf" % gprcVersion,
+      "org.typelevel" %% "fs2-grpc-runtime" % "3.1.2",
+      "com.thesamet.scalapb" %% "scalapb-runtime" % scalapbVersion,
+      "com.thesamet.scalapb" %% "scalapb-runtime-grpc" % scalapbVersion
     )
   )
 
@@ -152,9 +137,9 @@ val frontend = project
   .settings(boatSettings)
   .settings(
     libraryDependencies ++= Seq(
-      "com.malliina" %%% "util-html" % versions.util,
-      "org.scala-js" %%% "scalajs-dom" % versions.scalaJsDom,
-      "org.scalameta" %%% "munit" % versions.munit % Test
+      "com.malliina" %% "util-html" % versions.util,
+      "org.scala-js" %% "scalajs-dom" % versions.scalaJsDom,
+      "org.scalameta" %% "munit" % versions.munit % Test
     )
   )
 
@@ -248,8 +233,10 @@ val agent = project
       ),
     releaseUseGlobalVersion := false,
     buildAndUpload := {
+      val conv = fileConverter.value
+      given FileConverter = conv
       val debFile = (Debian / packageBin).value
-      val filename = S3Client.upload(debFile.toPath)
+      val filename = S3Client.upload(PluginCompat.toFile(debFile).toPath)
       val url = s"https://www.boat-tracker.com/files/$filename"
       streams.value.log.info(s"Uploaded package to '$url'.")
       url
@@ -285,7 +272,7 @@ val utils = project
       "OSGeo Release Repository" at "https://repo.osgeo.org/repository/release/"
     ),
     libraryDependencies ++= Seq("shapefile", "geojson").map { m =>
-      "org.geotools" % s"gt-$m" % "30.2" exclude ("javax.media", "jai_core")
+      ("org.geotools" % s"gt-$m" % "30.2").exclude("javax.media", "jai_core")
     } ++ Seq(
       "ch.qos.logback" % "logback-classic" % versions.logback,
       munitDep
