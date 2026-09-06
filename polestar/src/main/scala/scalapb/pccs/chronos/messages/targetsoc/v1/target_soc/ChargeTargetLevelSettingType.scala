@@ -5,59 +5,84 @@
 
 package pccs.chronos.messages.targetsoc.v1.target_soc
 
-sealed abstract class ChargeTargetLevelSettingType(val value: _root_.scala.Int) extends _root_.scalapb.GeneratedEnum {
+sealed abstract class ChargeTargetLevelSettingType(val value: _root_.scala.Int)
+  extends _root_.scalapb.GeneratedEnum:
   type EnumType = pccs.chronos.messages.targetsoc.v1.target_soc.ChargeTargetLevelSettingType
-  type RecognizedType = pccs.chronos.messages.targetsoc.v1.target_soc.ChargeTargetLevelSettingType.Recognized
+  type RecognizedType =
+    pccs.chronos.messages.targetsoc.v1.target_soc.ChargeTargetLevelSettingType.Recognized
   def isChargeTargetLevelSettingTypeUnspecified: _root_.scala.Boolean = false
   def isDaily: _root_.scala.Boolean = false
   def isLongTrip: _root_.scala.Boolean = false
   def isCustom: _root_.scala.Boolean = false
-  def companion: _root_.scalapb.GeneratedEnumCompanion[ChargeTargetLevelSettingType] = pccs.chronos.messages.targetsoc.v1.target_soc.ChargeTargetLevelSettingType
-  final def asRecognized: _root_.scala.Option[pccs.chronos.messages.targetsoc.v1.target_soc.ChargeTargetLevelSettingType.Recognized] = if (isUnrecognized) _root_.scala.None else _root_.scala.Some(this.asInstanceOf[pccs.chronos.messages.targetsoc.v1.target_soc.ChargeTargetLevelSettingType.Recognized])
-}
+  def companion: _root_.scalapb.GeneratedEnumCompanion[ChargeTargetLevelSettingType] =
+    pccs.chronos.messages.targetsoc.v1.target_soc.ChargeTargetLevelSettingType
+  final def asRecognized: _root_.scala.Option[
+    pccs.chronos.messages.targetsoc.v1.target_soc.ChargeTargetLevelSettingType.Recognized
+  ] = if isUnrecognized then _root_.scala.None
+  else
+    _root_.scala.Some(
+      this.asInstanceOf[
+        pccs.chronos.messages.targetsoc.v1.target_soc.ChargeTargetLevelSettingType.Recognized
+      ]
+    )
 
-object ChargeTargetLevelSettingType extends _root_.scalapb.GeneratedEnumCompanion[ChargeTargetLevelSettingType] {
+object ChargeTargetLevelSettingType
+  extends _root_.scalapb.GeneratedEnumCompanion[ChargeTargetLevelSettingType]:
   sealed trait Recognized extends ChargeTargetLevelSettingType
-  implicit def enumCompanion: _root_.scalapb.GeneratedEnumCompanion[ChargeTargetLevelSettingType] = this
-  
+  implicit def enumCompanion: _root_.scalapb.GeneratedEnumCompanion[ChargeTargetLevelSettingType] =
+    this
+
   @SerialVersionUID(0L)
-  case object CHARGE_TARGET_LEVEL_SETTING_TYPE_UNSPECIFIED extends ChargeTargetLevelSettingType(0) with ChargeTargetLevelSettingType.Recognized {
+  case object CHARGE_TARGET_LEVEL_SETTING_TYPE_UNSPECIFIED
+    extends ChargeTargetLevelSettingType(0)
+    with ChargeTargetLevelSettingType.Recognized:
     val index = 0
     val name = "CHARGE_TARGET_LEVEL_SETTING_TYPE_UNSPECIFIED"
     override def isChargeTargetLevelSettingTypeUnspecified: _root_.scala.Boolean = true
-  }
-  
+
   @SerialVersionUID(0L)
-  case object DAILY extends ChargeTargetLevelSettingType(1) with ChargeTargetLevelSettingType.Recognized {
+  case object DAILY
+    extends ChargeTargetLevelSettingType(1)
+    with ChargeTargetLevelSettingType.Recognized:
     val index = 1
     val name = "DAILY"
     override def isDaily: _root_.scala.Boolean = true
-  }
-  
+
   @SerialVersionUID(0L)
-  case object LONG_TRIP extends ChargeTargetLevelSettingType(2) with ChargeTargetLevelSettingType.Recognized {
+  case object LONG_TRIP
+    extends ChargeTargetLevelSettingType(2)
+    with ChargeTargetLevelSettingType.Recognized:
     val index = 2
     val name = "LONG_TRIP"
     override def isLongTrip: _root_.scala.Boolean = true
-  }
-  
+
   @SerialVersionUID(0L)
-  case object CUSTOM extends ChargeTargetLevelSettingType(3) with ChargeTargetLevelSettingType.Recognized {
+  case object CUSTOM
+    extends ChargeTargetLevelSettingType(3)
+    with ChargeTargetLevelSettingType.Recognized:
     val index = 3
     val name = "CUSTOM"
     override def isCustom: _root_.scala.Boolean = true
-  }
-  
+
   @SerialVersionUID(0L)
-  final case class Unrecognized(unrecognizedValue: _root_.scala.Int) extends ChargeTargetLevelSettingType(unrecognizedValue) with _root_.scalapb.UnrecognizedEnum
-  lazy val values: scala.collection.immutable.Seq[ValueType] = scala.collection.immutable.Seq(CHARGE_TARGET_LEVEL_SETTING_TYPE_UNSPECIFIED, DAILY, LONG_TRIP, CUSTOM)
-  def fromValue(__value: _root_.scala.Int): ChargeTargetLevelSettingType = __value match {
-    case 0 => CHARGE_TARGET_LEVEL_SETTING_TYPE_UNSPECIFIED
-    case 1 => DAILY
-    case 2 => LONG_TRIP
-    case 3 => CUSTOM
+  final case class Unrecognized(unrecognizedValue: _root_.scala.Int)
+    extends ChargeTargetLevelSettingType(unrecognizedValue)
+    with _root_.scalapb.UnrecognizedEnum
+  lazy val values: scala.collection.immutable.Seq[ValueType] = scala.collection.immutable.Seq(
+    CHARGE_TARGET_LEVEL_SETTING_TYPE_UNSPECIFIED,
+    DAILY,
+    LONG_TRIP,
+    CUSTOM
+  )
+  def fromValue(__value: _root_.scala.Int): ChargeTargetLevelSettingType = __value match
+    case 0       => CHARGE_TARGET_LEVEL_SETTING_TYPE_UNSPECIFIED
+    case 1       => DAILY
+    case 2       => LONG_TRIP
+    case 3       => CUSTOM
     case __other => Unrecognized(__other)
-  }
-  def javaDescriptor: _root_.com.google.protobuf.Descriptors.EnumDescriptor = pccs.chronos.messages.targetsoc.v1.target_soc.TargetSocProto.javaDescriptor.getEnumTypes().get(0)
-  def scalaDescriptor: _root_.scalapb.descriptors.EnumDescriptor = pccs.chronos.messages.targetsoc.v1.target_soc.TargetSocProto.scalaDescriptor.enums(0)
-}
+  def javaDescriptor: _root_.com.google.protobuf.Descriptors.EnumDescriptor =
+    pccs.chronos.messages.targetsoc.v1.target_soc.TargetSocProto.javaDescriptor
+      .getEnumTypes()
+      .get(0)
+  def scalaDescriptor: _root_.scalapb.descriptors.EnumDescriptor =
+    pccs.chronos.messages.targetsoc.v1.target_soc.TargetSocProto.scalaDescriptor.enums(0)

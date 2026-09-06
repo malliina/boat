@@ -5,34 +5,46 @@
 
 package pccs.vehiclestates.entities.battery.v1.battery
 
-sealed abstract class ChargerPowerStatus(val value: _root_.scala.Int) extends _root_.scalapb.GeneratedEnum {
+sealed abstract class ChargerPowerStatus(val value: _root_.scala.Int)
+  extends _root_.scalapb.GeneratedEnum:
   type EnumType = pccs.vehiclestates.entities.battery.v1.battery.ChargerPowerStatus
   type RecognizedType = pccs.vehiclestates.entities.battery.v1.battery.ChargerPowerStatus.Recognized
   def isChargerPowerStatusUnspecified: _root_.scala.Boolean = false
-  def companion: _root_.scalapb.GeneratedEnumCompanion[ChargerPowerStatus] = pccs.vehiclestates.entities.battery.v1.battery.ChargerPowerStatus
-  final def asRecognized: _root_.scala.Option[pccs.vehiclestates.entities.battery.v1.battery.ChargerPowerStatus.Recognized] = if (isUnrecognized) _root_.scala.None else _root_.scala.Some(this.asInstanceOf[pccs.vehiclestates.entities.battery.v1.battery.ChargerPowerStatus.Recognized])
-}
+  def companion: _root_.scalapb.GeneratedEnumCompanion[ChargerPowerStatus] =
+    pccs.vehiclestates.entities.battery.v1.battery.ChargerPowerStatus
+  final def asRecognized: _root_.scala.Option[
+    pccs.vehiclestates.entities.battery.v1.battery.ChargerPowerStatus.Recognized
+  ] = if isUnrecognized then _root_.scala.None
+  else
+    _root_.scala.Some(
+      this
+        .asInstanceOf[pccs.vehiclestates.entities.battery.v1.battery.ChargerPowerStatus.Recognized]
+    )
 
-object ChargerPowerStatus extends _root_.scalapb.GeneratedEnumCompanion[ChargerPowerStatus] {
+object ChargerPowerStatus extends _root_.scalapb.GeneratedEnumCompanion[ChargerPowerStatus]:
   sealed trait Recognized extends ChargerPowerStatus
   implicit def enumCompanion: _root_.scalapb.GeneratedEnumCompanion[ChargerPowerStatus] = this
-  
+
   /** Exact values unknown - discovered field 26 from APK
     */
   @SerialVersionUID(0L)
-  case object CHARGER_POWER_STATUS_UNSPECIFIED extends ChargerPowerStatus(0) with ChargerPowerStatus.Recognized {
+  case object CHARGER_POWER_STATUS_UNSPECIFIED
+    extends ChargerPowerStatus(0)
+    with ChargerPowerStatus.Recognized:
     val index = 0
     val name = "CHARGER_POWER_STATUS_UNSPECIFIED"
     override def isChargerPowerStatusUnspecified: _root_.scala.Boolean = true
-  }
-  
+
   @SerialVersionUID(0L)
-  final case class Unrecognized(unrecognizedValue: _root_.scala.Int) extends ChargerPowerStatus(unrecognizedValue) with _root_.scalapb.UnrecognizedEnum
-  lazy val values: scala.collection.immutable.Seq[ValueType] = scala.collection.immutable.Seq(CHARGER_POWER_STATUS_UNSPECIFIED)
-  def fromValue(__value: _root_.scala.Int): ChargerPowerStatus = __value match {
-    case 0 => CHARGER_POWER_STATUS_UNSPECIFIED
+  final case class Unrecognized(unrecognizedValue: _root_.scala.Int)
+    extends ChargerPowerStatus(unrecognizedValue)
+    with _root_.scalapb.UnrecognizedEnum
+  lazy val values: scala.collection.immutable.Seq[ValueType] =
+    scala.collection.immutable.Seq(CHARGER_POWER_STATUS_UNSPECIFIED)
+  def fromValue(__value: _root_.scala.Int): ChargerPowerStatus = __value match
+    case 0       => CHARGER_POWER_STATUS_UNSPECIFIED
     case __other => Unrecognized(__other)
-  }
-  def javaDescriptor: _root_.com.google.protobuf.Descriptors.EnumDescriptor = pccs.vehiclestates.entities.battery.v1.battery.BatteryProto.javaDescriptor.getEnumTypes().get(3)
-  def scalaDescriptor: _root_.scalapb.descriptors.EnumDescriptor = pccs.vehiclestates.entities.battery.v1.battery.BatteryProto.scalaDescriptor.enums(3)
-}
+  def javaDescriptor: _root_.com.google.protobuf.Descriptors.EnumDescriptor =
+    pccs.vehiclestates.entities.battery.v1.battery.BatteryProto.javaDescriptor.getEnumTypes().get(3)
+  def scalaDescriptor: _root_.scalapb.descriptors.EnumDescriptor =
+    pccs.vehiclestates.entities.battery.v1.battery.BatteryProto.scalaDescriptor.enums(3)

@@ -7,141 +7,164 @@ package pccs.vehiclestates.services.battery.v1.battery_service
 
 @SerialVersionUID(0L)
 final case class GetBatteryRequest(
-    id: _root_.scala.Predef.String = "",
-    vin: _root_.scala.Predef.String = "",
-    unknownFields: _root_.scalapb.UnknownFieldSet = _root_.scalapb.UnknownFieldSet.empty
-    ) extends scalapb.GeneratedMessage with scalapb.lenses.Updatable[GetBatteryRequest] {
-    @transient
-    private[this] var __serializedSizeMemoized: _root_.scala.Int = 0
-    private[this] def __computeSerializedSize(): _root_.scala.Int = {
-      var __size = 0
-      
-      {
-        val __value = id
-        if (!__value.isEmpty) {
-          __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(1, __value)
-        }
-      };
-      
-      {
-        val __value = vin
-        if (!__value.isEmpty) {
-          __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(2, __value)
-        }
-      };
-      __size += unknownFields.serializedSize
-      __size
-    }
-    override def serializedSize: _root_.scala.Int = {
-      var __size = __serializedSizeMemoized
-      if (__size == 0) {
-        __size = __computeSerializedSize() + 1
-        __serializedSizeMemoized = __size
-      }
-      __size - 1
-      
-    }
-    def writeTo(`_output__`: _root_.com.google.protobuf.CodedOutputStream): _root_.scala.Unit = {
-      {
-        val __v = id
-        if (!__v.isEmpty) {
-          _output__.writeString(1, __v)
-        }
-      };
-      {
-        val __v = vin
-        if (!__v.isEmpty) {
-          _output__.writeString(2, __v)
-        }
-      };
-      unknownFields.writeTo(_output__)
-    }
-    def withId(__v: _root_.scala.Predef.String): GetBatteryRequest = copy(id = __v)
-    def withVin(__v: _root_.scala.Predef.String): GetBatteryRequest = copy(vin = __v)
-    def withUnknownFields(__v: _root_.scalapb.UnknownFieldSet) = copy(unknownFields = __v)
-    def discardUnknownFields = copy(unknownFields = _root_.scalapb.UnknownFieldSet.empty)
-    def getFieldByNumber(__fieldNumber: _root_.scala.Int): _root_.scala.Any = {
-      (__fieldNumber: @_root_.scala.unchecked) match {
-        case 1 => {
-          val __t = id
-          if (__t != "") __t else null
-        }
-        case 2 => {
-          val __t = vin
-          if (__t != "") __t else null
-        }
-      }
-    }
-    def getField(__field: _root_.scalapb.descriptors.FieldDescriptor): _root_.scalapb.descriptors.PValue = {
-      _root_.scala.Predef.require(__field.containingMessage eq companion.scalaDescriptor)
-      (__field.number: @_root_.scala.unchecked) match {
-        case 1 => _root_.scalapb.descriptors.PString(id)
-        case 2 => _root_.scalapb.descriptors.PString(vin)
-      }
-    }
-    def toProtoString: _root_.scala.Predef.String = _root_.scalapb.TextFormat.printToUnicodeString(this)
-    def companion: pccs.vehiclestates.services.battery.v1.battery_service.GetBatteryRequest.type = pccs.vehiclestates.services.battery.v1.battery_service.GetBatteryRequest
-    // @@protoc_insertion_point(GeneratedMessage[pccs.vehiclestates.services.battery.v1.GetBatteryRequest])
-}
+  id: _root_.scala.Predef.String = "",
+  vin: _root_.scala.Predef.String = "",
+  unknownFields: _root_.scalapb.UnknownFieldSet = _root_.scalapb.UnknownFieldSet.empty
+) extends scalapb.GeneratedMessage
+  with scalapb.lenses.Updatable[GetBatteryRequest]:
+  @transient
+  private var __serializedSizeMemoized: _root_.scala.Int = 0
+  private def __computeSerializedSize(): _root_.scala.Int =
+    var __size = 0
 
-object GetBatteryRequest extends scalapb.GeneratedMessageCompanion[pccs.vehiclestates.services.battery.v1.battery_service.GetBatteryRequest] {
-  implicit def messageCompanion: scalapb.GeneratedMessageCompanion[pccs.vehiclestates.services.battery.v1.battery_service.GetBatteryRequest] = this
-  def parseFrom(`_input__`: _root_.com.google.protobuf.CodedInputStream): pccs.vehiclestates.services.battery.v1.battery_service.GetBatteryRequest = {
+    {
+      val __value = id
+      if !__value.isEmpty then
+        __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(1, __value)
+    };
+
+    {
+      val __value = vin
+      if !__value.isEmpty then
+        __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(2, __value)
+    };
+    __size += unknownFields.serializedSize
+    __size
+  override def serializedSize: _root_.scala.Int =
+    var __size = __serializedSizeMemoized
+    if __size == 0 then
+      __size = __computeSerializedSize() + 1
+      __serializedSizeMemoized = __size
+    __size - 1
+
+  def writeTo(`_output__`: _root_.com.google.protobuf.CodedOutputStream): _root_.scala.Unit =
+    {
+      val __v = id
+      if !__v.isEmpty then _output__.writeString(1, __v)
+    };
+    {
+      val __v = vin
+      if !__v.isEmpty then _output__.writeString(2, __v)
+    };
+    unknownFields.writeTo(_output__)
+  def withId(__v: _root_.scala.Predef.String): GetBatteryRequest = copy(id = __v)
+  def withVin(__v: _root_.scala.Predef.String): GetBatteryRequest = copy(vin = __v)
+  def withUnknownFields(__v: _root_.scalapb.UnknownFieldSet) = copy(unknownFields = __v)
+  def discardUnknownFields = copy(unknownFields = _root_.scalapb.UnknownFieldSet.empty)
+  def getFieldByNumber(__fieldNumber: _root_.scala.Int): _root_.scala.Any =
+    (__fieldNumber: @ _root_.scala.unchecked) match
+      case 1 =>
+        val __t = id
+        if __t != "" then __t else null
+      case 2 =>
+        val __t = vin
+        if __t != "" then __t else null
+  def getField(
+    __field: _root_.scalapb.descriptors.FieldDescriptor
+  ): _root_.scalapb.descriptors.PValue =
+    _root_.scala.Predef.require(__field.containingMessage eq companion.scalaDescriptor)
+    (__field.number: @ _root_.scala.unchecked) match
+      case 1 => _root_.scalapb.descriptors.PString(id)
+      case 2 => _root_.scalapb.descriptors.PString(vin)
+  def toProtoString: _root_.scala.Predef.String =
+    _root_.scalapb.TextFormat.printToUnicodeString(this)
+  def companion: pccs.vehiclestates.services.battery.v1.battery_service.GetBatteryRequest.type =
+    pccs.vehiclestates.services.battery.v1.battery_service.GetBatteryRequest
+  // @@protoc_insertion_point(GeneratedMessage[pccs.vehiclestates.services.battery.v1.GetBatteryRequest])
+
+object GetBatteryRequest
+  extends scalapb.GeneratedMessageCompanion[
+    pccs.vehiclestates.services.battery.v1.battery_service.GetBatteryRequest
+  ]:
+  implicit def messageCompanion: scalapb.GeneratedMessageCompanion[
+    pccs.vehiclestates.services.battery.v1.battery_service.GetBatteryRequest
+  ] = this
+  def parseFrom(
+    `_input__`: _root_.com.google.protobuf.CodedInputStream
+  ): pccs.vehiclestates.services.battery.v1.battery_service.GetBatteryRequest =
     var __id: _root_.scala.Predef.String = ""
     var __vin: _root_.scala.Predef.String = ""
     var `_unknownFields__`: _root_.scalapb.UnknownFieldSet.Builder = null
     var _done__ = false
-    while (!_done__) {
+    while !_done__ do
       val _tag__ = _input__.readTag()
-      _tag__ match {
-        case 0 => _done__ = true
+      _tag__ match
+        case 0  => _done__ = true
         case 10 =>
           __id = _input__.readStringRequireUtf8()
         case 18 =>
           __vin = _input__.readStringRequireUtf8()
         case tag =>
-          if (_unknownFields__ == null) {
+          if _unknownFields__ == null then
             _unknownFields__ = new _root_.scalapb.UnknownFieldSet.Builder()
-          }
           _unknownFields__.parseField(tag, _input__)
-      }
-    }
     pccs.vehiclestates.services.battery.v1.battery_service.GetBatteryRequest(
-        id = __id,
-        vin = __vin,
-        unknownFields = if (_unknownFields__ == null) _root_.scalapb.UnknownFieldSet.empty else _unknownFields__.result()
+      id = __id,
+      vin = __vin,
+      unknownFields = if _unknownFields__ == null then _root_.scalapb.UnknownFieldSet.empty
+      else _unknownFields__.result()
     )
-  }
-  implicit def messageReads: _root_.scalapb.descriptors.Reads[pccs.vehiclestates.services.battery.v1.battery_service.GetBatteryRequest] = _root_.scalapb.descriptors.Reads{
+  implicit def messageReads: _root_.scalapb.descriptors.Reads[
+    pccs.vehiclestates.services.battery.v1.battery_service.GetBatteryRequest
+  ] = _root_.scalapb.descriptors.Reads:
     case _root_.scalapb.descriptors.PMessage(__fieldsMap) =>
-      _root_.scala.Predef.require(__fieldsMap.keys.forall(_.containingMessage eq scalaDescriptor), "FieldDescriptor does not match message type.")
+      _root_.scala.Predef.require(
+        __fieldsMap.keys.forall(_.containingMessage eq scalaDescriptor),
+        "FieldDescriptor does not match message type."
+      )
       pccs.vehiclestates.services.battery.v1.battery_service.GetBatteryRequest(
-        id = __fieldsMap.get(scalaDescriptor.findFieldByNumber(1).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
-        vin = __fieldsMap.get(scalaDescriptor.findFieldByNumber(2).get).map(_.as[_root_.scala.Predef.String]).getOrElse("")
+        id = __fieldsMap
+          .get(scalaDescriptor.findFieldByNumber(1).get)
+          .map(_.as[_root_.scala.Predef.String])
+          .getOrElse(""),
+        vin = __fieldsMap
+          .get(scalaDescriptor.findFieldByNumber(2).get)
+          .map(_.as[_root_.scala.Predef.String])
+          .getOrElse("")
       )
     case _ => throw new RuntimeException("Expected PMessage")
-  }
-  def javaDescriptor: _root_.com.google.protobuf.Descriptors.Descriptor = pccs.vehiclestates.services.battery.v1.battery_service.BatteryServiceProto.javaDescriptor.getMessageTypes().get(0)
-  def scalaDescriptor: _root_.scalapb.descriptors.Descriptor = pccs.vehiclestates.services.battery.v1.battery_service.BatteryServiceProto.scalaDescriptor.messages(0)
-  def messageCompanionForFieldNumber(__number: _root_.scala.Int): _root_.scalapb.GeneratedMessageCompanion[_] = throw new MatchError(__number)
-  lazy val nestedMessagesCompanions: Seq[_root_.scalapb.GeneratedMessageCompanion[_ <: _root_.scalapb.GeneratedMessage]] = Seq.empty
-  def enumCompanionForFieldNumber(__fieldNumber: _root_.scala.Int): _root_.scalapb.GeneratedEnumCompanion[_] = throw new MatchError(__fieldNumber)
-  lazy val defaultInstance = pccs.vehiclestates.services.battery.v1.battery_service.GetBatteryRequest(
-    id = "",
-    vin = ""
-  )
-  implicit class GetBatteryRequestLens[UpperPB](_l: _root_.scalapb.lenses.Lens[UpperPB, pccs.vehiclestates.services.battery.v1.battery_service.GetBatteryRequest]) extends _root_.scalapb.lenses.ObjectLens[UpperPB, pccs.vehiclestates.services.battery.v1.battery_service.GetBatteryRequest](_l) {
-    def id: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] = field(_.id)((c_, f_) => c_.copy(id = f_))
-    def vin: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] = field(_.vin)((c_, f_) => c_.copy(vin = f_))
-  }
+  def javaDescriptor: _root_.com.google.protobuf.Descriptors.Descriptor =
+    pccs.vehiclestates.services.battery.v1.battery_service.BatteryServiceProto.javaDescriptor
+      .getMessageTypes()
+      .get(0)
+  def scalaDescriptor: _root_.scalapb.descriptors.Descriptor =
+    pccs.vehiclestates.services.battery.v1.battery_service.BatteryServiceProto.scalaDescriptor
+      .messages(0)
+  def messageCompanionForFieldNumber(
+    __number: _root_.scala.Int
+  ): _root_.scalapb.GeneratedMessageCompanion[?] = throw new MatchError(__number)
+  lazy val nestedMessagesCompanions
+    : Seq[_root_.scalapb.GeneratedMessageCompanion[? <: _root_.scalapb.GeneratedMessage]] =
+    Seq.empty
+  def enumCompanionForFieldNumber(
+    __fieldNumber: _root_.scala.Int
+  ): _root_.scalapb.GeneratedEnumCompanion[?] = throw new MatchError(__fieldNumber)
+  lazy val defaultInstance =
+    pccs.vehiclestates.services.battery.v1.battery_service.GetBatteryRequest(
+      id = "",
+      vin = ""
+    )
+  implicit class GetBatteryRequestLens[UpperPB](
+    _l: _root_.scalapb.lenses.Lens[
+      UpperPB,
+      pccs.vehiclestates.services.battery.v1.battery_service.GetBatteryRequest
+    ]
+  ) extends _root_.scalapb.lenses.ObjectLens[
+      UpperPB,
+      pccs.vehiclestates.services.battery.v1.battery_service.GetBatteryRequest
+    ](_l):
+    def id: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] =
+      field(_.id)((c_, f_) => c_.copy(id = f_))
+    def vin: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] =
+      field(_.vin)((c_, f_) => c_.copy(vin = f_))
   final val ID_FIELD_NUMBER = 1
   final val VIN_FIELD_NUMBER = 2
   def of(
     id: _root_.scala.Predef.String,
     vin: _root_.scala.Predef.String
-  ): _root_.pccs.vehiclestates.services.battery.v1.battery_service.GetBatteryRequest = _root_.pccs.vehiclestates.services.battery.v1.battery_service.GetBatteryRequest(
-    id,
-    vin
-  )
+  ): _root_.pccs.vehiclestates.services.battery.v1.battery_service.GetBatteryRequest =
+    _root_.pccs.vehiclestates.services.battery.v1.battery_service.GetBatteryRequest(
+      id,
+      vin
+    )
   // @@protoc_insertion_point(GeneratedMessageCompanion[pccs.vehiclestates.services.battery.v1.GetBatteryRequest])
-}

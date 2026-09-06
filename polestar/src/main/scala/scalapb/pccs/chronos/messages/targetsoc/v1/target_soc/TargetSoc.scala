@@ -7,161 +7,152 @@ package pccs.chronos.messages.targetsoc.v1.target_soc
 
 @SerialVersionUID(0L)
 final case class TargetSoc(
-    batteryChargeTargetLevel: _root_.scala.Int = 0,
-    chargeTargetLevelSettingType: pccs.chronos.messages.targetsoc.v1.target_soc.ChargeTargetLevelSettingType = pccs.chronos.messages.targetsoc.v1.target_soc.ChargeTargetLevelSettingType.CHARGE_TARGET_LEVEL_SETTING_TYPE_UNSPECIFIED,
-    updatedAt: _root_.scala.Long = 0L,
-    source: _root_.scala.Predef.String = "",
-    id: _root_.scala.Predef.String = "",
-    unknownFields: _root_.scalapb.UnknownFieldSet = _root_.scalapb.UnknownFieldSet.empty
-    ) extends scalapb.GeneratedMessage with scalapb.lenses.Updatable[TargetSoc] {
-    @transient
-    private[this] var __serializedSizeMemoized: _root_.scala.Int = 0
-    private[this] def __computeSerializedSize(): _root_.scala.Int = {
-      var __size = 0
-      
-      {
-        val __value = batteryChargeTargetLevel
-        if (__value != 0) {
-          __size += _root_.com.google.protobuf.CodedOutputStream.computeInt32Size(1, __value)
-        }
-      };
-      
-      {
-        val __value = chargeTargetLevelSettingType.value
-        if (__value != 0) {
-          __size += _root_.com.google.protobuf.CodedOutputStream.computeEnumSize(2, __value)
-        }
-      };
-      
-      {
-        val __value = updatedAt
-        if (__value != 0L) {
-          __size += _root_.com.google.protobuf.CodedOutputStream.computeInt64Size(3, __value)
-        }
-      };
-      
-      {
-        val __value = source
-        if (!__value.isEmpty) {
-          __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(4, __value)
-        }
-      };
-      
-      {
-        val __value = id
-        if (!__value.isEmpty) {
-          __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(5, __value)
-        }
-      };
-      __size += unknownFields.serializedSize
-      __size
-    }
-    override def serializedSize: _root_.scala.Int = {
-      var __size = __serializedSizeMemoized
-      if (__size == 0) {
-        __size = __computeSerializedSize() + 1
-        __serializedSizeMemoized = __size
-      }
-      __size - 1
-      
-    }
-    def writeTo(`_output__`: _root_.com.google.protobuf.CodedOutputStream): _root_.scala.Unit = {
-      {
-        val __v = batteryChargeTargetLevel
-        if (__v != 0) {
-          _output__.writeInt32(1, __v)
-        }
-      };
-      {
-        val __v = chargeTargetLevelSettingType.value
-        if (__v != 0) {
-          _output__.writeEnum(2, __v)
-        }
-      };
-      {
-        val __v = updatedAt
-        if (__v != 0L) {
-          _output__.writeInt64(3, __v)
-        }
-      };
-      {
-        val __v = source
-        if (!__v.isEmpty) {
-          _output__.writeString(4, __v)
-        }
-      };
-      {
-        val __v = id
-        if (!__v.isEmpty) {
-          _output__.writeString(5, __v)
-        }
-      };
-      unknownFields.writeTo(_output__)
-    }
-    def withBatteryChargeTargetLevel(__v: _root_.scala.Int): TargetSoc = copy(batteryChargeTargetLevel = __v)
-    def withChargeTargetLevelSettingType(__v: pccs.chronos.messages.targetsoc.v1.target_soc.ChargeTargetLevelSettingType): TargetSoc = copy(chargeTargetLevelSettingType = __v)
-    def withUpdatedAt(__v: _root_.scala.Long): TargetSoc = copy(updatedAt = __v)
-    def withSource(__v: _root_.scala.Predef.String): TargetSoc = copy(source = __v)
-    def withId(__v: _root_.scala.Predef.String): TargetSoc = copy(id = __v)
-    def withUnknownFields(__v: _root_.scalapb.UnknownFieldSet) = copy(unknownFields = __v)
-    def discardUnknownFields = copy(unknownFields = _root_.scalapb.UnknownFieldSet.empty)
-    def getFieldByNumber(__fieldNumber: _root_.scala.Int): _root_.scala.Any = {
-      (__fieldNumber: @_root_.scala.unchecked) match {
-        case 1 => {
-          val __t = batteryChargeTargetLevel
-          if (__t != 0) __t else null
-        }
-        case 2 => {
-          val __t = chargeTargetLevelSettingType.javaValueDescriptor
-          if (__t.getNumber() != 0) __t else null
-        }
-        case 3 => {
-          val __t = updatedAt
-          if (__t != 0L) __t else null
-        }
-        case 4 => {
-          val __t = source
-          if (__t != "") __t else null
-        }
-        case 5 => {
-          val __t = id
-          if (__t != "") __t else null
-        }
-      }
-    }
-    def getField(__field: _root_.scalapb.descriptors.FieldDescriptor): _root_.scalapb.descriptors.PValue = {
-      _root_.scala.Predef.require(__field.containingMessage eq companion.scalaDescriptor)
-      (__field.number: @_root_.scala.unchecked) match {
-        case 1 => _root_.scalapb.descriptors.PInt(batteryChargeTargetLevel)
-        case 2 => _root_.scalapb.descriptors.PEnum(chargeTargetLevelSettingType.scalaValueDescriptor)
-        case 3 => _root_.scalapb.descriptors.PLong(updatedAt)
-        case 4 => _root_.scalapb.descriptors.PString(source)
-        case 5 => _root_.scalapb.descriptors.PString(id)
-      }
-    }
-    def toProtoString: _root_.scala.Predef.String = _root_.scalapb.TextFormat.printToUnicodeString(this)
-    def companion: pccs.chronos.messages.targetsoc.v1.target_soc.TargetSoc.type = pccs.chronos.messages.targetsoc.v1.target_soc.TargetSoc
-    // @@protoc_insertion_point(GeneratedMessage[pccs.chronos.messages.targetsoc.v1.TargetSoc])
-}
+  batteryChargeTargetLevel: _root_.scala.Int = 0,
+  chargeTargetLevelSettingType: pccs.chronos.messages.targetsoc.v1.target_soc.ChargeTargetLevelSettingType =
+    pccs.chronos.messages.targetsoc.v1.target_soc.ChargeTargetLevelSettingType.CHARGE_TARGET_LEVEL_SETTING_TYPE_UNSPECIFIED,
+  updatedAt: _root_.scala.Long = 0L,
+  source: _root_.scala.Predef.String = "",
+  id: _root_.scala.Predef.String = "",
+  unknownFields: _root_.scalapb.UnknownFieldSet = _root_.scalapb.UnknownFieldSet.empty
+) extends scalapb.GeneratedMessage
+  with scalapb.lenses.Updatable[TargetSoc]:
+  @transient
+  private var __serializedSizeMemoized: _root_.scala.Int = 0
+  private def __computeSerializedSize(): _root_.scala.Int =
+    var __size = 0
 
-object TargetSoc extends scalapb.GeneratedMessageCompanion[pccs.chronos.messages.targetsoc.v1.target_soc.TargetSoc] {
-  implicit def messageCompanion: scalapb.GeneratedMessageCompanion[pccs.chronos.messages.targetsoc.v1.target_soc.TargetSoc] = this
-  def parseFrom(`_input__`: _root_.com.google.protobuf.CodedInputStream): pccs.chronos.messages.targetsoc.v1.target_soc.TargetSoc = {
+    {
+      val __value = batteryChargeTargetLevel
+      if __value != 0 then
+        __size += _root_.com.google.protobuf.CodedOutputStream.computeInt32Size(1, __value)
+    };
+
+    {
+      val __value = chargeTargetLevelSettingType.value
+      if __value != 0 then
+        __size += _root_.com.google.protobuf.CodedOutputStream.computeEnumSize(2, __value)
+    };
+
+    {
+      val __value = updatedAt
+      if __value != 0L then
+        __size += _root_.com.google.protobuf.CodedOutputStream.computeInt64Size(3, __value)
+    };
+
+    {
+      val __value = source
+      if !__value.isEmpty then
+        __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(4, __value)
+    };
+
+    {
+      val __value = id
+      if !__value.isEmpty then
+        __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(5, __value)
+    };
+    __size += unknownFields.serializedSize
+    __size
+  override def serializedSize: _root_.scala.Int =
+    var __size = __serializedSizeMemoized
+    if __size == 0 then
+      __size = __computeSerializedSize() + 1
+      __serializedSizeMemoized = __size
+    __size - 1
+
+  def writeTo(`_output__`: _root_.com.google.protobuf.CodedOutputStream): _root_.scala.Unit =
+    {
+      val __v = batteryChargeTargetLevel
+      if __v != 0 then _output__.writeInt32(1, __v)
+    };
+    {
+      val __v = chargeTargetLevelSettingType.value
+      if __v != 0 then _output__.writeEnum(2, __v)
+    };
+    {
+      val __v = updatedAt
+      if __v != 0L then _output__.writeInt64(3, __v)
+    };
+    {
+      val __v = source
+      if !__v.isEmpty then _output__.writeString(4, __v)
+    };
+    {
+      val __v = id
+      if !__v.isEmpty then _output__.writeString(5, __v)
+    };
+    unknownFields.writeTo(_output__)
+  def withBatteryChargeTargetLevel(__v: _root_.scala.Int): TargetSoc =
+    copy(batteryChargeTargetLevel = __v)
+  def withChargeTargetLevelSettingType(
+    __v: pccs.chronos.messages.targetsoc.v1.target_soc.ChargeTargetLevelSettingType
+  ): TargetSoc = copy(chargeTargetLevelSettingType = __v)
+  def withUpdatedAt(__v: _root_.scala.Long): TargetSoc = copy(updatedAt = __v)
+  def withSource(__v: _root_.scala.Predef.String): TargetSoc = copy(source = __v)
+  def withId(__v: _root_.scala.Predef.String): TargetSoc = copy(id = __v)
+  def withUnknownFields(__v: _root_.scalapb.UnknownFieldSet) = copy(unknownFields = __v)
+  def discardUnknownFields = copy(unknownFields = _root_.scalapb.UnknownFieldSet.empty)
+  def getFieldByNumber(__fieldNumber: _root_.scala.Int): _root_.scala.Any =
+    (__fieldNumber: @ _root_.scala.unchecked) match
+      case 1 =>
+        val __t = batteryChargeTargetLevel
+        if __t != 0 then __t else null
+      case 2 =>
+        val __t = chargeTargetLevelSettingType.javaValueDescriptor
+        if __t.getNumber() != 0 then __t else null
+      case 3 =>
+        val __t = updatedAt
+        if __t != 0L then __t else null
+      case 4 =>
+        val __t = source
+        if __t != "" then __t else null
+      case 5 =>
+        val __t = id
+        if __t != "" then __t else null
+  def getField(
+    __field: _root_.scalapb.descriptors.FieldDescriptor
+  ): _root_.scalapb.descriptors.PValue =
+    _root_.scala.Predef.require(__field.containingMessage eq companion.scalaDescriptor)
+    (__field.number: @ _root_.scala.unchecked) match
+      case 1 => _root_.scalapb.descriptors.PInt(batteryChargeTargetLevel)
+      case 2 => _root_.scalapb.descriptors.PEnum(chargeTargetLevelSettingType.scalaValueDescriptor)
+      case 3 => _root_.scalapb.descriptors.PLong(updatedAt)
+      case 4 => _root_.scalapb.descriptors.PString(source)
+      case 5 => _root_.scalapb.descriptors.PString(id)
+  def toProtoString: _root_.scala.Predef.String =
+    _root_.scalapb.TextFormat.printToUnicodeString(this)
+  def companion: pccs.chronos.messages.targetsoc.v1.target_soc.TargetSoc.type =
+    pccs.chronos.messages.targetsoc.v1.target_soc.TargetSoc
+  // @@protoc_insertion_point(GeneratedMessage[pccs.chronos.messages.targetsoc.v1.TargetSoc])
+
+object TargetSoc
+  extends scalapb.GeneratedMessageCompanion[
+    pccs.chronos.messages.targetsoc.v1.target_soc.TargetSoc
+  ]:
+  implicit def messageCompanion
+    : scalapb.GeneratedMessageCompanion[pccs.chronos.messages.targetsoc.v1.target_soc.TargetSoc] =
+    this
+  def parseFrom(
+    `_input__`: _root_.com.google.protobuf.CodedInputStream
+  ): pccs.chronos.messages.targetsoc.v1.target_soc.TargetSoc =
     var __batteryChargeTargetLevel: _root_.scala.Int = 0
-    var __chargeTargetLevelSettingType: pccs.chronos.messages.targetsoc.v1.target_soc.ChargeTargetLevelSettingType = pccs.chronos.messages.targetsoc.v1.target_soc.ChargeTargetLevelSettingType.CHARGE_TARGET_LEVEL_SETTING_TYPE_UNSPECIFIED
+    var __chargeTargetLevelSettingType
+      : pccs.chronos.messages.targetsoc.v1.target_soc.ChargeTargetLevelSettingType =
+      pccs.chronos.messages.targetsoc.v1.target_soc.ChargeTargetLevelSettingType.CHARGE_TARGET_LEVEL_SETTING_TYPE_UNSPECIFIED
     var __updatedAt: _root_.scala.Long = 0L
     var __source: _root_.scala.Predef.String = ""
     var __id: _root_.scala.Predef.String = ""
     var `_unknownFields__`: _root_.scalapb.UnknownFieldSet.Builder = null
     var _done__ = false
-    while (!_done__) {
+    while !_done__ do
       val _tag__ = _input__.readTag()
-      _tag__ match {
+      _tag__ match
         case 0 => _done__ = true
         case 8 =>
           __batteryChargeTargetLevel = _input__.readInt32()
         case 16 =>
-          __chargeTargetLevelSettingType = pccs.chronos.messages.targetsoc.v1.target_soc.ChargeTargetLevelSettingType.fromValue(_input__.readEnum())
+          __chargeTargetLevelSettingType =
+            pccs.chronos.messages.targetsoc.v1.target_soc.ChargeTargetLevelSettingType
+              .fromValue(_input__.readEnum())
         case 24 =>
           __updatedAt = _input__.readInt64()
         case 34 =>
@@ -169,56 +160,100 @@ object TargetSoc extends scalapb.GeneratedMessageCompanion[pccs.chronos.messages
         case 42 =>
           __id = _input__.readStringRequireUtf8()
         case tag =>
-          if (_unknownFields__ == null) {
+          if _unknownFields__ == null then
             _unknownFields__ = new _root_.scalapb.UnknownFieldSet.Builder()
-          }
           _unknownFields__.parseField(tag, _input__)
-      }
-    }
     pccs.chronos.messages.targetsoc.v1.target_soc.TargetSoc(
-        batteryChargeTargetLevel = __batteryChargeTargetLevel,
-        chargeTargetLevelSettingType = __chargeTargetLevelSettingType,
-        updatedAt = __updatedAt,
-        source = __source,
-        id = __id,
-        unknownFields = if (_unknownFields__ == null) _root_.scalapb.UnknownFieldSet.empty else _unknownFields__.result()
+      batteryChargeTargetLevel = __batteryChargeTargetLevel,
+      chargeTargetLevelSettingType = __chargeTargetLevelSettingType,
+      updatedAt = __updatedAt,
+      source = __source,
+      id = __id,
+      unknownFields = if _unknownFields__ == null then _root_.scalapb.UnknownFieldSet.empty
+      else _unknownFields__.result()
     )
-  }
-  implicit def messageReads: _root_.scalapb.descriptors.Reads[pccs.chronos.messages.targetsoc.v1.target_soc.TargetSoc] = _root_.scalapb.descriptors.Reads{
-    case _root_.scalapb.descriptors.PMessage(__fieldsMap) =>
-      _root_.scala.Predef.require(__fieldsMap.keys.forall(_.containingMessage eq scalaDescriptor), "FieldDescriptor does not match message type.")
-      pccs.chronos.messages.targetsoc.v1.target_soc.TargetSoc(
-        batteryChargeTargetLevel = __fieldsMap.get(scalaDescriptor.findFieldByNumber(1).get).map(_.as[_root_.scala.Int]).getOrElse(0),
-        chargeTargetLevelSettingType = pccs.chronos.messages.targetsoc.v1.target_soc.ChargeTargetLevelSettingType.fromValue(__fieldsMap.get(scalaDescriptor.findFieldByNumber(2).get).map(_.as[_root_.scalapb.descriptors.EnumValueDescriptor]).getOrElse(pccs.chronos.messages.targetsoc.v1.target_soc.ChargeTargetLevelSettingType.CHARGE_TARGET_LEVEL_SETTING_TYPE_UNSPECIFIED.scalaValueDescriptor).number),
-        updatedAt = __fieldsMap.get(scalaDescriptor.findFieldByNumber(3).get).map(_.as[_root_.scala.Long]).getOrElse(0L),
-        source = __fieldsMap.get(scalaDescriptor.findFieldByNumber(4).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
-        id = __fieldsMap.get(scalaDescriptor.findFieldByNumber(5).get).map(_.as[_root_.scala.Predef.String]).getOrElse("")
-      )
-    case _ => throw new RuntimeException("Expected PMessage")
-  }
-  def javaDescriptor: _root_.com.google.protobuf.Descriptors.Descriptor = pccs.chronos.messages.targetsoc.v1.target_soc.TargetSocProto.javaDescriptor.getMessageTypes().get(0)
-  def scalaDescriptor: _root_.scalapb.descriptors.Descriptor = pccs.chronos.messages.targetsoc.v1.target_soc.TargetSocProto.scalaDescriptor.messages(0)
-  def messageCompanionForFieldNumber(__number: _root_.scala.Int): _root_.scalapb.GeneratedMessageCompanion[_] = throw new MatchError(__number)
-  lazy val nestedMessagesCompanions: Seq[_root_.scalapb.GeneratedMessageCompanion[_ <: _root_.scalapb.GeneratedMessage]] = Seq.empty
-  def enumCompanionForFieldNumber(__fieldNumber: _root_.scala.Int): _root_.scalapb.GeneratedEnumCompanion[_] = {
-    (__fieldNumber: @_root_.scala.unchecked) match {
-      case 2 => pccs.chronos.messages.targetsoc.v1.target_soc.ChargeTargetLevelSettingType
+  implicit def messageReads
+    : _root_.scalapb.descriptors.Reads[pccs.chronos.messages.targetsoc.v1.target_soc.TargetSoc] =
+    _root_.scalapb.descriptors.Reads {
+      case _root_.scalapb.descriptors.PMessage(__fieldsMap) =>
+        _root_.scala.Predef.require(
+          __fieldsMap.keys.forall(_.containingMessage eq scalaDescriptor),
+          "FieldDescriptor does not match message type."
+        )
+        pccs.chronos.messages.targetsoc.v1.target_soc.TargetSoc(
+          batteryChargeTargetLevel = __fieldsMap
+            .get(scalaDescriptor.findFieldByNumber(1).get)
+            .map(_.as[_root_.scala.Int])
+            .getOrElse(0),
+          chargeTargetLevelSettingType =
+            pccs.chronos.messages.targetsoc.v1.target_soc.ChargeTargetLevelSettingType.fromValue(
+              __fieldsMap
+                .get(scalaDescriptor.findFieldByNumber(2).get)
+                .map(_.as[_root_.scalapb.descriptors.EnumValueDescriptor])
+                .getOrElse(
+                  pccs.chronos.messages.targetsoc.v1.target_soc.ChargeTargetLevelSettingType.CHARGE_TARGET_LEVEL_SETTING_TYPE_UNSPECIFIED.scalaValueDescriptor
+                )
+                .number
+            ),
+          updatedAt = __fieldsMap
+            .get(scalaDescriptor.findFieldByNumber(3).get)
+            .map(_.as[_root_.scala.Long])
+            .getOrElse(0L),
+          source = __fieldsMap
+            .get(scalaDescriptor.findFieldByNumber(4).get)
+            .map(_.as[_root_.scala.Predef.String])
+            .getOrElse(""),
+          id = __fieldsMap
+            .get(scalaDescriptor.findFieldByNumber(5).get)
+            .map(_.as[_root_.scala.Predef.String])
+            .getOrElse("")
+        )
+      case _ => throw new RuntimeException("Expected PMessage")
     }
-  }
+  def javaDescriptor: _root_.com.google.protobuf.Descriptors.Descriptor =
+    pccs.chronos.messages.targetsoc.v1.target_soc.TargetSocProto.javaDescriptor
+      .getMessageTypes()
+      .get(0)
+  def scalaDescriptor: _root_.scalapb.descriptors.Descriptor =
+    pccs.chronos.messages.targetsoc.v1.target_soc.TargetSocProto.scalaDescriptor.messages(0)
+  def messageCompanionForFieldNumber(
+    __number: _root_.scala.Int
+  ): _root_.scalapb.GeneratedMessageCompanion[?] = throw new MatchError(__number)
+  lazy val nestedMessagesCompanions
+    : Seq[_root_.scalapb.GeneratedMessageCompanion[? <: _root_.scalapb.GeneratedMessage]] =
+    Seq.empty
+  def enumCompanionForFieldNumber(
+    __fieldNumber: _root_.scala.Int
+  ): _root_.scalapb.GeneratedEnumCompanion[?] =
+    (__fieldNumber: @ _root_.scala.unchecked) match
+      case 2 => pccs.chronos.messages.targetsoc.v1.target_soc.ChargeTargetLevelSettingType
   lazy val defaultInstance = pccs.chronos.messages.targetsoc.v1.target_soc.TargetSoc(
     batteryChargeTargetLevel = 0,
-    chargeTargetLevelSettingType = pccs.chronos.messages.targetsoc.v1.target_soc.ChargeTargetLevelSettingType.CHARGE_TARGET_LEVEL_SETTING_TYPE_UNSPECIFIED,
+    chargeTargetLevelSettingType =
+      pccs.chronos.messages.targetsoc.v1.target_soc.ChargeTargetLevelSettingType.CHARGE_TARGET_LEVEL_SETTING_TYPE_UNSPECIFIED,
     updatedAt = 0L,
     source = "",
     id = ""
   )
-  implicit class TargetSocLens[UpperPB](_l: _root_.scalapb.lenses.Lens[UpperPB, pccs.chronos.messages.targetsoc.v1.target_soc.TargetSoc]) extends _root_.scalapb.lenses.ObjectLens[UpperPB, pccs.chronos.messages.targetsoc.v1.target_soc.TargetSoc](_l) {
-    def batteryChargeTargetLevel: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Int] = field(_.batteryChargeTargetLevel)((c_, f_) => c_.copy(batteryChargeTargetLevel = f_))
-    def chargeTargetLevelSettingType: _root_.scalapb.lenses.Lens[UpperPB, pccs.chronos.messages.targetsoc.v1.target_soc.ChargeTargetLevelSettingType] = field(_.chargeTargetLevelSettingType)((c_, f_) => c_.copy(chargeTargetLevelSettingType = f_))
-    def updatedAt: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Long] = field(_.updatedAt)((c_, f_) => c_.copy(updatedAt = f_))
-    def source: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] = field(_.source)((c_, f_) => c_.copy(source = f_))
-    def id: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] = field(_.id)((c_, f_) => c_.copy(id = f_))
-  }
+  implicit class TargetSocLens[UpperPB](
+    _l: _root_.scalapb.lenses.Lens[UpperPB, pccs.chronos.messages.targetsoc.v1.target_soc.TargetSoc]
+  ) extends _root_.scalapb.lenses.ObjectLens[
+      UpperPB,
+      pccs.chronos.messages.targetsoc.v1.target_soc.TargetSoc
+    ](_l):
+    def batteryChargeTargetLevel: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Int] =
+      field(_.batteryChargeTargetLevel)((c_, f_) => c_.copy(batteryChargeTargetLevel = f_))
+    def chargeTargetLevelSettingType: _root_.scalapb.lenses.Lens[
+      UpperPB,
+      pccs.chronos.messages.targetsoc.v1.target_soc.ChargeTargetLevelSettingType
+    ] =
+      field(_.chargeTargetLevelSettingType)((c_, f_) => c_.copy(chargeTargetLevelSettingType = f_))
+    def updatedAt: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Long] =
+      field(_.updatedAt)((c_, f_) => c_.copy(updatedAt = f_))
+    def source: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] =
+      field(_.source)((c_, f_) => c_.copy(source = f_))
+    def id: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] =
+      field(_.id)((c_, f_) => c_.copy(id = f_))
   final val BATTERY_CHARGE_TARGET_LEVEL_FIELD_NUMBER = 1
   final val CHARGE_TARGET_LEVEL_SETTING_TYPE_FIELD_NUMBER = 2
   final val UPDATED_AT_FIELD_NUMBER = 3
@@ -230,12 +265,12 @@ object TargetSoc extends scalapb.GeneratedMessageCompanion[pccs.chronos.messages
     updatedAt: _root_.scala.Long,
     source: _root_.scala.Predef.String,
     id: _root_.scala.Predef.String
-  ): _root_.pccs.chronos.messages.targetsoc.v1.target_soc.TargetSoc = _root_.pccs.chronos.messages.targetsoc.v1.target_soc.TargetSoc(
-    batteryChargeTargetLevel,
-    chargeTargetLevelSettingType,
-    updatedAt,
-    source,
-    id
-  )
+  ): _root_.pccs.chronos.messages.targetsoc.v1.target_soc.TargetSoc =
+    _root_.pccs.chronos.messages.targetsoc.v1.target_soc.TargetSoc(
+      batteryChargeTargetLevel,
+      chargeTargetLevelSettingType,
+      updatedAt,
+      source,
+      id
+    )
   // @@protoc_insertion_point(GeneratedMessageCompanion[pccs.chronos.messages.targetsoc.v1.TargetSoc])
-}

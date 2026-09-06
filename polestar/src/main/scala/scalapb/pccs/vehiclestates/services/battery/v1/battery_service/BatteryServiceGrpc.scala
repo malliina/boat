@@ -5,109 +5,249 @@
 
 package pccs.vehiclestates.services.battery.v1.battery_service
 
-
-object BatteryServiceGrpc {
-  val METHOD_GET_BATTERY: _root_.io.grpc.MethodDescriptor[pccs.vehiclestates.services.battery.v1.battery_service.GetBatteryRequest, pccs.vehiclestates.services.battery.v1.battery_service.GetBatteryResponse] =
-    _root_.io.grpc.MethodDescriptor.newBuilder()
+object BatteryServiceGrpc:
+  val METHOD_GET_BATTERY: _root_.io.grpc.MethodDescriptor[
+    pccs.vehiclestates.services.battery.v1.battery_service.GetBatteryRequest,
+    pccs.vehiclestates.services.battery.v1.battery_service.GetBatteryResponse
+  ] =
+    _root_.io.grpc.MethodDescriptor
+      .newBuilder()
       .setType(_root_.io.grpc.MethodDescriptor.MethodType.SERVER_STREAMING)
-      .setFullMethodName(_root_.io.grpc.MethodDescriptor.generateFullMethodName("pccs.vehiclestates.services.battery.v1.BatteryService", "GetBattery"))
+      .setFullMethodName(
+        _root_.io.grpc.MethodDescriptor.generateFullMethodName(
+          "pccs.vehiclestates.services.battery.v1.BatteryService",
+          "GetBattery"
+        )
+      )
       .setSampledToLocalTracing(true)
-      .setRequestMarshaller(_root_.scalapb.grpc.Marshaller.forMessage[pccs.vehiclestates.services.battery.v1.battery_service.GetBatteryRequest])
-      .setResponseMarshaller(_root_.scalapb.grpc.Marshaller.forMessage[pccs.vehiclestates.services.battery.v1.battery_service.GetBatteryResponse])
-      .setSchemaDescriptor(_root_.scalapb.grpc.ConcreteProtoMethodDescriptorSupplier.fromMethodDescriptor(pccs.vehiclestates.services.battery.v1.battery_service.BatteryServiceProto.javaDescriptor.getServices().get(0).getMethods().get(0)))
+      .setRequestMarshaller(
+        _root_.scalapb.grpc.Marshaller
+          .forMessage[pccs.vehiclestates.services.battery.v1.battery_service.GetBatteryRequest]
+      )
+      .setResponseMarshaller(
+        _root_.scalapb.grpc.Marshaller
+          .forMessage[pccs.vehiclestates.services.battery.v1.battery_service.GetBatteryResponse]
+      )
+      .setSchemaDescriptor(
+        _root_.scalapb.grpc.ConcreteProtoMethodDescriptorSupplier.fromMethodDescriptor(
+          pccs.vehiclestates.services.battery.v1.battery_service.BatteryServiceProto.javaDescriptor
+            .getServices()
+            .get(0)
+            .getMethods()
+            .get(0)
+        )
+      )
       .build()
-  
-  val METHOD_GET_LATEST_BATTERY: _root_.io.grpc.MethodDescriptor[pccs.vehiclestates.services.battery.v1.battery_service.GetBatteryRequest, pccs.vehiclestates.services.battery.v1.battery_service.GetBatteryResponse] =
-    _root_.io.grpc.MethodDescriptor.newBuilder()
+
+  val METHOD_GET_LATEST_BATTERY: _root_.io.grpc.MethodDescriptor[
+    pccs.vehiclestates.services.battery.v1.battery_service.GetBatteryRequest,
+    pccs.vehiclestates.services.battery.v1.battery_service.GetBatteryResponse
+  ] =
+    _root_.io.grpc.MethodDescriptor
+      .newBuilder()
       .setType(_root_.io.grpc.MethodDescriptor.MethodType.UNARY)
-      .setFullMethodName(_root_.io.grpc.MethodDescriptor.generateFullMethodName("pccs.vehiclestates.services.battery.v1.BatteryService", "GetLatestBattery"))
+      .setFullMethodName(
+        _root_.io.grpc.MethodDescriptor.generateFullMethodName(
+          "pccs.vehiclestates.services.battery.v1.BatteryService",
+          "GetLatestBattery"
+        )
+      )
       .setSampledToLocalTracing(true)
-      .setRequestMarshaller(_root_.scalapb.grpc.Marshaller.forMessage[pccs.vehiclestates.services.battery.v1.battery_service.GetBatteryRequest])
-      .setResponseMarshaller(_root_.scalapb.grpc.Marshaller.forMessage[pccs.vehiclestates.services.battery.v1.battery_service.GetBatteryResponse])
-      .setSchemaDescriptor(_root_.scalapb.grpc.ConcreteProtoMethodDescriptorSupplier.fromMethodDescriptor(pccs.vehiclestates.services.battery.v1.battery_service.BatteryServiceProto.javaDescriptor.getServices().get(0).getMethods().get(1)))
+      .setRequestMarshaller(
+        _root_.scalapb.grpc.Marshaller
+          .forMessage[pccs.vehiclestates.services.battery.v1.battery_service.GetBatteryRequest]
+      )
+      .setResponseMarshaller(
+        _root_.scalapb.grpc.Marshaller
+          .forMessage[pccs.vehiclestates.services.battery.v1.battery_service.GetBatteryResponse]
+      )
+      .setSchemaDescriptor(
+        _root_.scalapb.grpc.ConcreteProtoMethodDescriptorSupplier.fromMethodDescriptor(
+          pccs.vehiclestates.services.battery.v1.battery_service.BatteryServiceProto.javaDescriptor
+            .getServices()
+            .get(0)
+            .getMethods()
+            .get(1)
+        )
+      )
       .build()
-  
+
   val SERVICE: _root_.io.grpc.ServiceDescriptor =
-    _root_.io.grpc.ServiceDescriptor.newBuilder("pccs.vehiclestates.services.battery.v1.BatteryService")
-      .setSchemaDescriptor(new _root_.scalapb.grpc.ConcreteProtoFileDescriptorSupplier(pccs.vehiclestates.services.battery.v1.battery_service.BatteryServiceProto.javaDescriptor))
+    _root_.io.grpc.ServiceDescriptor
+      .newBuilder("pccs.vehiclestates.services.battery.v1.BatteryService")
+      .setSchemaDescriptor(
+        new _root_.scalapb.grpc.ConcreteProtoFileDescriptorSupplier(
+          pccs.vehiclestates.services.battery.v1.battery_service.BatteryServiceProto.javaDescriptor
+        )
+      )
       .addMethod(METHOD_GET_BATTERY)
       .addMethod(METHOD_GET_LATEST_BATTERY)
       .build()
-  
-  /** gRPC service: pccs.vehiclestates.services.battery.v1.BatteryService
-    * Methods: GetBattery (server streaming), GetLatestBattery (unary)
+
+  /** gRPC service: pccs.vehiclestates.services.battery.v1.BatteryService Methods: GetBattery
+    * (server streaming), GetLatestBattery (unary)
     */
-  trait BatteryService extends _root_.scalapb.grpc.AbstractService {
-    override def serviceCompanion: _root_.scalapb.grpc.ServiceCompanion[BatteryService] = BatteryService
-    def getBattery(request: pccs.vehiclestates.services.battery.v1.battery_service.GetBatteryRequest, responseObserver: _root_.io.grpc.stub.StreamObserver[pccs.vehiclestates.services.battery.v1.battery_service.GetBatteryResponse]): _root_.scala.Unit
-    def getLatestBattery(request: pccs.vehiclestates.services.battery.v1.battery_service.GetBatteryRequest): scala.concurrent.Future[pccs.vehiclestates.services.battery.v1.battery_service.GetBatteryResponse]
-  }
-  
-  object BatteryService extends _root_.scalapb.grpc.ServiceCompanion[BatteryService] {
+  trait BatteryService extends _root_.scalapb.grpc.AbstractService:
+    override def serviceCompanion: _root_.scalapb.grpc.ServiceCompanion[BatteryService] =
+      BatteryService
+    def getBattery(
+      request: pccs.vehiclestates.services.battery.v1.battery_service.GetBatteryRequest,
+      responseObserver: _root_.io.grpc.stub.StreamObserver[
+        pccs.vehiclestates.services.battery.v1.battery_service.GetBatteryResponse
+      ]
+    ): _root_.scala.Unit
+    def getLatestBattery(
+      request: pccs.vehiclestates.services.battery.v1.battery_service.GetBatteryRequest
+    ): scala.concurrent.Future[
+      pccs.vehiclestates.services.battery.v1.battery_service.GetBatteryResponse
+    ]
+
+  object BatteryService extends _root_.scalapb.grpc.ServiceCompanion[BatteryService]:
     implicit def serviceCompanion: _root_.scalapb.grpc.ServiceCompanion[BatteryService] = this
-    def javaDescriptor: _root_.com.google.protobuf.Descriptors.ServiceDescriptor = pccs.vehiclestates.services.battery.v1.battery_service.BatteryServiceProto.javaDescriptor.getServices().get(0)
-    def scalaDescriptor: _root_.scalapb.descriptors.ServiceDescriptor = pccs.vehiclestates.services.battery.v1.battery_service.BatteryServiceProto.scalaDescriptor.services(0)
-    def bindService(serviceImpl: BatteryService, executionContext: scala.concurrent.ExecutionContext): _root_.io.grpc.ServerServiceDefinition =
-      _root_.io.grpc.ServerServiceDefinition.builder(SERVICE)
-      .addMethod(
-        METHOD_GET_BATTERY,
-        _root_.io.grpc.stub.ServerCalls.asyncServerStreamingCall((request: pccs.vehiclestates.services.battery.v1.battery_service.GetBatteryRequest, observer: _root_.io.grpc.stub.StreamObserver[pccs.vehiclestates.services.battery.v1.battery_service.GetBatteryResponse]) => {
-          serviceImpl.getBattery(request, observer)
-        }))
-      .addMethod(
-        METHOD_GET_LATEST_BATTERY,
-        _root_.io.grpc.stub.ServerCalls.asyncUnaryCall((request: pccs.vehiclestates.services.battery.v1.battery_service.GetBatteryRequest, observer: _root_.io.grpc.stub.StreamObserver[pccs.vehiclestates.services.battery.v1.battery_service.GetBatteryResponse]) => {
-          serviceImpl.getLatestBattery(request).onComplete(scalapb.grpc.Grpc.completeObserver(observer))(
-            executionContext)
-        }))
-      .build()
-  }
-  
-  /** gRPC service: pccs.vehiclestates.services.battery.v1.BatteryService
-    * Methods: GetBattery (server streaming), GetLatestBattery (unary)
+    def javaDescriptor: _root_.com.google.protobuf.Descriptors.ServiceDescriptor =
+      pccs.vehiclestates.services.battery.v1.battery_service.BatteryServiceProto.javaDescriptor
+        .getServices()
+        .get(0)
+    def scalaDescriptor: _root_.scalapb.descriptors.ServiceDescriptor =
+      pccs.vehiclestates.services.battery.v1.battery_service.BatteryServiceProto.scalaDescriptor
+        .services(0)
+    def bindService(
+      serviceImpl: BatteryService,
+      executionContext: scala.concurrent.ExecutionContext
+    ): _root_.io.grpc.ServerServiceDefinition =
+      _root_.io.grpc.ServerServiceDefinition
+        .builder(SERVICE)
+        .addMethod(
+          METHOD_GET_BATTERY,
+          _root_.io.grpc.stub.ServerCalls.asyncServerStreamingCall(
+            (
+              request: pccs.vehiclestates.services.battery.v1.battery_service.GetBatteryRequest,
+              observer: _root_.io.grpc.stub.StreamObserver[
+                pccs.vehiclestates.services.battery.v1.battery_service.GetBatteryResponse
+              ]
+            ) => serviceImpl.getBattery(request, observer)
+          )
+        )
+        .addMethod(
+          METHOD_GET_LATEST_BATTERY,
+          _root_.io.grpc.stub.ServerCalls.asyncUnaryCall(
+            (
+              request: pccs.vehiclestates.services.battery.v1.battery_service.GetBatteryRequest,
+              observer: _root_.io.grpc.stub.StreamObserver[
+                pccs.vehiclestates.services.battery.v1.battery_service.GetBatteryResponse
+              ]
+            ) =>
+              serviceImpl
+                .getLatestBattery(request)
+                .onComplete(scalapb.grpc.Grpc.completeObserver(observer))(using executionContext)
+          )
+        )
+        .build()
+
+  /** gRPC service: pccs.vehiclestates.services.battery.v1.BatteryService Methods: GetBattery
+    * (server streaming), GetLatestBattery (unary)
     */
-  trait BatteryServiceBlockingClient {
+  trait BatteryServiceBlockingClient:
     def serviceCompanion: _root_.scalapb.grpc.ServiceCompanion[BatteryService] = BatteryService
-    def getBattery(request: pccs.vehiclestates.services.battery.v1.battery_service.GetBatteryRequest): scala.collection.Iterator[pccs.vehiclestates.services.battery.v1.battery_service.GetBatteryResponse]
-    def getLatestBattery(request: pccs.vehiclestates.services.battery.v1.battery_service.GetBatteryRequest): pccs.vehiclestates.services.battery.v1.battery_service.GetBatteryResponse
-  }
-  
-  class BatteryServiceBlockingStub(channel: _root_.io.grpc.Channel, options: _root_.io.grpc.CallOptions = _root_.io.grpc.CallOptions.DEFAULT) extends _root_.io.grpc.stub.AbstractStub[BatteryServiceBlockingStub](channel, options) with BatteryServiceBlockingClient {
-    override def getBattery(request: pccs.vehiclestates.services.battery.v1.battery_service.GetBatteryRequest): scala.collection.Iterator[pccs.vehiclestates.services.battery.v1.battery_service.GetBatteryResponse] = {
-      _root_.scalapb.grpc.ClientCalls.blockingServerStreamingCall(channel, METHOD_GET_BATTERY, options, request)
-    }
-    
-    override def getLatestBattery(request: pccs.vehiclestates.services.battery.v1.battery_service.GetBatteryRequest): pccs.vehiclestates.services.battery.v1.battery_service.GetBatteryResponse = {
-      _root_.scalapb.grpc.ClientCalls.blockingUnaryCall(channel, METHOD_GET_LATEST_BATTERY, options, request)
-    }
-    
-    override def build(channel: _root_.io.grpc.Channel, options: _root_.io.grpc.CallOptions): BatteryServiceBlockingStub = new BatteryServiceBlockingStub(channel, options)
-  }
-  
-  class BatteryServiceStub(channel: _root_.io.grpc.Channel, options: _root_.io.grpc.CallOptions = _root_.io.grpc.CallOptions.DEFAULT) extends _root_.io.grpc.stub.AbstractStub[BatteryServiceStub](channel, options) with BatteryService {
-    override def getBattery(request: pccs.vehiclestates.services.battery.v1.battery_service.GetBatteryRequest, responseObserver: _root_.io.grpc.stub.StreamObserver[pccs.vehiclestates.services.battery.v1.battery_service.GetBatteryResponse]): _root_.scala.Unit = {
-      _root_.scalapb.grpc.ClientCalls.asyncServerStreamingCall(channel, METHOD_GET_BATTERY, options, request, responseObserver)
-    }
-    
-    override def getLatestBattery(request: pccs.vehiclestates.services.battery.v1.battery_service.GetBatteryRequest): scala.concurrent.Future[pccs.vehiclestates.services.battery.v1.battery_service.GetBatteryResponse] = {
-      _root_.scalapb.grpc.ClientCalls.asyncUnaryCall(channel, METHOD_GET_LATEST_BATTERY, options, request)
-    }
-    
-    override def build(channel: _root_.io.grpc.Channel, options: _root_.io.grpc.CallOptions): BatteryServiceStub = new BatteryServiceStub(channel, options)
-  }
-  
-  object BatteryServiceStub extends _root_.io.grpc.stub.AbstractStub.StubFactory[BatteryServiceStub] {
-    override def newStub(channel: _root_.io.grpc.Channel, options: _root_.io.grpc.CallOptions): BatteryServiceStub = new BatteryServiceStub(channel, options)
-    
-    implicit val stubFactory: _root_.io.grpc.stub.AbstractStub.StubFactory[BatteryServiceStub] = this
-  }
-  
-  def bindService(serviceImpl: BatteryService, executionContext: scala.concurrent.ExecutionContext): _root_.io.grpc.ServerServiceDefinition = BatteryService.bindService(serviceImpl, executionContext)
-  
-  def blockingStub(channel: _root_.io.grpc.Channel): BatteryServiceBlockingStub = new BatteryServiceBlockingStub(channel)
-  
+    def getBattery(
+      request: pccs.vehiclestates.services.battery.v1.battery_service.GetBatteryRequest
+    ): scala.collection.Iterator[
+      pccs.vehiclestates.services.battery.v1.battery_service.GetBatteryResponse
+    ]
+    def getLatestBattery(
+      request: pccs.vehiclestates.services.battery.v1.battery_service.GetBatteryRequest
+    ): pccs.vehiclestates.services.battery.v1.battery_service.GetBatteryResponse
+
+  class BatteryServiceBlockingStub(
+    channel: _root_.io.grpc.Channel,
+    options: _root_.io.grpc.CallOptions = _root_.io.grpc.CallOptions.DEFAULT
+  ) extends _root_.io.grpc.stub.AbstractStub[BatteryServiceBlockingStub](channel, options)
+    with BatteryServiceBlockingClient:
+    override def getBattery(
+      request: pccs.vehiclestates.services.battery.v1.battery_service.GetBatteryRequest
+    ): scala.collection.Iterator[
+      pccs.vehiclestates.services.battery.v1.battery_service.GetBatteryResponse
+    ] =
+      _root_.scalapb.grpc.ClientCalls.blockingServerStreamingCall(
+        channel,
+        METHOD_GET_BATTERY,
+        options,
+        request
+      )
+
+    override def getLatestBattery(
+      request: pccs.vehiclestates.services.battery.v1.battery_service.GetBatteryRequest
+    ): pccs.vehiclestates.services.battery.v1.battery_service.GetBatteryResponse =
+      _root_.scalapb.grpc.ClientCalls.blockingUnaryCall(
+        channel,
+        METHOD_GET_LATEST_BATTERY,
+        options,
+        request
+      )
+
+    override def build(
+      channel: _root_.io.grpc.Channel,
+      options: _root_.io.grpc.CallOptions
+    ): BatteryServiceBlockingStub = new BatteryServiceBlockingStub(channel, options)
+
+  class BatteryServiceStub(
+    channel: _root_.io.grpc.Channel,
+    options: _root_.io.grpc.CallOptions = _root_.io.grpc.CallOptions.DEFAULT
+  ) extends _root_.io.grpc.stub.AbstractStub[BatteryServiceStub](channel, options)
+    with BatteryService:
+    override def getBattery(
+      request: pccs.vehiclestates.services.battery.v1.battery_service.GetBatteryRequest,
+      responseObserver: _root_.io.grpc.stub.StreamObserver[
+        pccs.vehiclestates.services.battery.v1.battery_service.GetBatteryResponse
+      ]
+    ): _root_.scala.Unit =
+      _root_.scalapb.grpc.ClientCalls.asyncServerStreamingCall(
+        channel,
+        METHOD_GET_BATTERY,
+        options,
+        request,
+        responseObserver
+      )
+
+    override def getLatestBattery(
+      request: pccs.vehiclestates.services.battery.v1.battery_service.GetBatteryRequest
+    ): scala.concurrent.Future[
+      pccs.vehiclestates.services.battery.v1.battery_service.GetBatteryResponse
+    ] =
+      _root_.scalapb.grpc.ClientCalls.asyncUnaryCall(
+        channel,
+        METHOD_GET_LATEST_BATTERY,
+        options,
+        request
+      )
+
+    override def build(
+      channel: _root_.io.grpc.Channel,
+      options: _root_.io.grpc.CallOptions
+    ): BatteryServiceStub = new BatteryServiceStub(channel, options)
+
+  object BatteryServiceStub
+    extends _root_.io.grpc.stub.AbstractStub.StubFactory[BatteryServiceStub]:
+    override def newStub(
+      channel: _root_.io.grpc.Channel,
+      options: _root_.io.grpc.CallOptions
+    ): BatteryServiceStub = new BatteryServiceStub(channel, options)
+
+    implicit val stubFactory: _root_.io.grpc.stub.AbstractStub.StubFactory[BatteryServiceStub] =
+      this
+
+  def bindService(
+    serviceImpl: BatteryService,
+    executionContext: scala.concurrent.ExecutionContext
+  ): _root_.io.grpc.ServerServiceDefinition =
+    BatteryService.bindService(serviceImpl, executionContext)
+
+  def blockingStub(channel: _root_.io.grpc.Channel): BatteryServiceBlockingStub =
+    new BatteryServiceBlockingStub(channel)
+
   def stub(channel: _root_.io.grpc.Channel): BatteryServiceStub = new BatteryServiceStub(channel)
-  
-  def javaDescriptor: _root_.com.google.protobuf.Descriptors.ServiceDescriptor = pccs.vehiclestates.services.battery.v1.battery_service.BatteryServiceProto.javaDescriptor.getServices().get(0)
-  
-}
+
+  def javaDescriptor: _root_.com.google.protobuf.Descriptors.ServiceDescriptor =
+    pccs.vehiclestates.services.battery.v1.battery_service.BatteryServiceProto.javaDescriptor
+      .getServices()
+      .get(0)

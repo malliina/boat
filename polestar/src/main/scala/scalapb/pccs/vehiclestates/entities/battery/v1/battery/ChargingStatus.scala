@@ -5,7 +5,8 @@
 
 package pccs.vehiclestates.entities.battery.v1.battery
 
-sealed abstract class ChargingStatus(val value: _root_.scala.Int) extends _root_.scalapb.GeneratedEnum {
+sealed abstract class ChargingStatus(val value: _root_.scala.Int)
+  extends _root_.scalapb.GeneratedEnum:
   type EnumType = pccs.vehiclestates.entities.battery.v1.battery.ChargingStatus
   type RecognizedType = pccs.vehiclestates.entities.battery.v1.battery.ChargingStatus.Recognized
   def isChargingStatusUnspecified: _root_.scala.Boolean = false
@@ -17,92 +18,103 @@ sealed abstract class ChargingStatus(val value: _root_.scala.Int) extends _root_
   def isChargingStatusDischarging: _root_.scala.Boolean = false
   def isChargingStatusError: _root_.scala.Boolean = false
   def isChargingStatusSmartCharging: _root_.scala.Boolean = false
-  def companion: _root_.scalapb.GeneratedEnumCompanion[ChargingStatus] = pccs.vehiclestates.entities.battery.v1.battery.ChargingStatus
-  final def asRecognized: _root_.scala.Option[pccs.vehiclestates.entities.battery.v1.battery.ChargingStatus.Recognized] = if (isUnrecognized) _root_.scala.None else _root_.scala.Some(this.asInstanceOf[pccs.vehiclestates.entities.battery.v1.battery.ChargingStatus.Recognized])
-}
+  def companion: _root_.scalapb.GeneratedEnumCompanion[ChargingStatus] =
+    pccs.vehiclestates.entities.battery.v1.battery.ChargingStatus
+  final def asRecognized: _root_.scala.Option[
+    pccs.vehiclestates.entities.battery.v1.battery.ChargingStatus.Recognized
+  ] = if isUnrecognized then _root_.scala.None
+  else
+    _root_.scala.Some(
+      this.asInstanceOf[pccs.vehiclestates.entities.battery.v1.battery.ChargingStatus.Recognized]
+    )
 
-object ChargingStatus extends _root_.scalapb.GeneratedEnumCompanion[ChargingStatus] {
+object ChargingStatus extends _root_.scalapb.GeneratedEnumCompanion[ChargingStatus]:
   sealed trait Recognized extends ChargingStatus
   implicit def enumCompanion: _root_.scalapb.GeneratedEnumCompanion[ChargingStatus] = this
-  
+
   @SerialVersionUID(0L)
-  case object CHARGING_STATUS_UNSPECIFIED extends ChargingStatus(0) with ChargingStatus.Recognized {
+  case object CHARGING_STATUS_UNSPECIFIED extends ChargingStatus(0) with ChargingStatus.Recognized:
     val index = 0
     val name = "CHARGING_STATUS_UNSPECIFIED"
     override def isChargingStatusUnspecified: _root_.scala.Boolean = true
-  }
-  
+
   @SerialVersionUID(0L)
-  case object CHARGING_STATUS_CHARGING extends ChargingStatus(1) with ChargingStatus.Recognized {
+  case object CHARGING_STATUS_CHARGING extends ChargingStatus(1) with ChargingStatus.Recognized:
     val index = 1
     val name = "CHARGING_STATUS_CHARGING"
     override def isChargingStatusCharging: _root_.scala.Boolean = true
-  }
-  
+
   @SerialVersionUID(0L)
-  case object CHARGING_STATUS_IDLE extends ChargingStatus(2) with ChargingStatus.Recognized {
+  case object CHARGING_STATUS_IDLE extends ChargingStatus(2) with ChargingStatus.Recognized:
     val index = 2
     val name = "CHARGING_STATUS_IDLE"
     override def isChargingStatusIdle: _root_.scala.Boolean = true
-  }
-  
+
   @SerialVersionUID(0L)
-  case object CHARGING_STATUS_DONE extends ChargingStatus(3) with ChargingStatus.Recognized {
+  case object CHARGING_STATUS_DONE extends ChargingStatus(3) with ChargingStatus.Recognized:
     val index = 3
     val name = "CHARGING_STATUS_DONE"
     override def isChargingStatusDone: _root_.scala.Boolean = true
-  }
-  
+
   @SerialVersionUID(0L)
-  case object CHARGING_STATUS_FAULT extends ChargingStatus(4) with ChargingStatus.Recognized {
+  case object CHARGING_STATUS_FAULT extends ChargingStatus(4) with ChargingStatus.Recognized:
     val index = 4
     val name = "CHARGING_STATUS_FAULT"
     override def isChargingStatusFault: _root_.scala.Boolean = true
-  }
-  
+
   @SerialVersionUID(0L)
-  case object CHARGING_STATUS_SCHEDULED extends ChargingStatus(5) with ChargingStatus.Recognized {
+  case object CHARGING_STATUS_SCHEDULED extends ChargingStatus(5) with ChargingStatus.Recognized:
     val index = 5
     val name = "CHARGING_STATUS_SCHEDULED"
     override def isChargingStatusScheduled: _root_.scala.Boolean = true
-  }
-  
+
   @SerialVersionUID(0L)
-  case object CHARGING_STATUS_DISCHARGING extends ChargingStatus(6) with ChargingStatus.Recognized {
+  case object CHARGING_STATUS_DISCHARGING extends ChargingStatus(6) with ChargingStatus.Recognized:
     val index = 6
     val name = "CHARGING_STATUS_DISCHARGING"
     override def isChargingStatusDischarging: _root_.scala.Boolean = true
-  }
-  
+
   @SerialVersionUID(0L)
-  case object CHARGING_STATUS_ERROR extends ChargingStatus(7) with ChargingStatus.Recognized {
+  case object CHARGING_STATUS_ERROR extends ChargingStatus(7) with ChargingStatus.Recognized:
     val index = 7
     val name = "CHARGING_STATUS_ERROR"
     override def isChargingStatusError: _root_.scala.Boolean = true
-  }
-  
+
   @SerialVersionUID(0L)
-  case object CHARGING_STATUS_SMART_CHARGING extends ChargingStatus(8) with ChargingStatus.Recognized {
+  case object CHARGING_STATUS_SMART_CHARGING
+    extends ChargingStatus(8)
+    with ChargingStatus.Recognized:
     val index = 8
     val name = "CHARGING_STATUS_SMART_CHARGING"
     override def isChargingStatusSmartCharging: _root_.scala.Boolean = true
-  }
-  
+
   @SerialVersionUID(0L)
-  final case class Unrecognized(unrecognizedValue: _root_.scala.Int) extends ChargingStatus(unrecognizedValue) with _root_.scalapb.UnrecognizedEnum
-  lazy val values: scala.collection.immutable.Seq[ValueType] = scala.collection.immutable.Seq(CHARGING_STATUS_UNSPECIFIED, CHARGING_STATUS_CHARGING, CHARGING_STATUS_IDLE, CHARGING_STATUS_DONE, CHARGING_STATUS_FAULT, CHARGING_STATUS_SCHEDULED, CHARGING_STATUS_DISCHARGING, CHARGING_STATUS_ERROR, CHARGING_STATUS_SMART_CHARGING)
-  def fromValue(__value: _root_.scala.Int): ChargingStatus = __value match {
-    case 0 => CHARGING_STATUS_UNSPECIFIED
-    case 1 => CHARGING_STATUS_CHARGING
-    case 2 => CHARGING_STATUS_IDLE
-    case 3 => CHARGING_STATUS_DONE
-    case 4 => CHARGING_STATUS_FAULT
-    case 5 => CHARGING_STATUS_SCHEDULED
-    case 6 => CHARGING_STATUS_DISCHARGING
-    case 7 => CHARGING_STATUS_ERROR
-    case 8 => CHARGING_STATUS_SMART_CHARGING
+  final case class Unrecognized(unrecognizedValue: _root_.scala.Int)
+    extends ChargingStatus(unrecognizedValue)
+    with _root_.scalapb.UnrecognizedEnum
+  lazy val values: scala.collection.immutable.Seq[ValueType] = scala.collection.immutable.Seq(
+    CHARGING_STATUS_UNSPECIFIED,
+    CHARGING_STATUS_CHARGING,
+    CHARGING_STATUS_IDLE,
+    CHARGING_STATUS_DONE,
+    CHARGING_STATUS_FAULT,
+    CHARGING_STATUS_SCHEDULED,
+    CHARGING_STATUS_DISCHARGING,
+    CHARGING_STATUS_ERROR,
+    CHARGING_STATUS_SMART_CHARGING
+  )
+  def fromValue(__value: _root_.scala.Int): ChargingStatus = __value match
+    case 0       => CHARGING_STATUS_UNSPECIFIED
+    case 1       => CHARGING_STATUS_CHARGING
+    case 2       => CHARGING_STATUS_IDLE
+    case 3       => CHARGING_STATUS_DONE
+    case 4       => CHARGING_STATUS_FAULT
+    case 5       => CHARGING_STATUS_SCHEDULED
+    case 6       => CHARGING_STATUS_DISCHARGING
+    case 7       => CHARGING_STATUS_ERROR
+    case 8       => CHARGING_STATUS_SMART_CHARGING
     case __other => Unrecognized(__other)
-  }
-  def javaDescriptor: _root_.com.google.protobuf.Descriptors.EnumDescriptor = pccs.vehiclestates.entities.battery.v1.battery.BatteryProto.javaDescriptor.getEnumTypes().get(1)
-  def scalaDescriptor: _root_.scalapb.descriptors.EnumDescriptor = pccs.vehiclestates.entities.battery.v1.battery.BatteryProto.scalaDescriptor.enums(1)
-}
+  def javaDescriptor: _root_.com.google.protobuf.Descriptors.EnumDescriptor =
+    pccs.vehiclestates.entities.battery.v1.battery.BatteryProto.javaDescriptor.getEnumTypes().get(1)
+  def scalaDescriptor: _root_.scalapb.descriptors.EnumDescriptor =
+    pccs.vehiclestates.entities.battery.v1.battery.BatteryProto.scalaDescriptor.enums(1)

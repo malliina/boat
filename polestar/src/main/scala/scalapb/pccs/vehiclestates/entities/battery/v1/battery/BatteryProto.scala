@@ -5,19 +5,22 @@
 
 package pccs.vehiclestates.entities.battery.v1.battery
 
-object BatteryProto extends _root_.scalapb.GeneratedFileObject {
+object BatteryProto extends _root_.scalapb.GeneratedFileObject:
   lazy val dependencies: Seq[_root_.scalapb.GeneratedFileObject] = Seq(
     pccs.vehiclestates.entities.common.v1.common.CommonProto
   )
-  lazy val messagesCompanions: Seq[_root_.scalapb.GeneratedMessageCompanion[_ <: _root_.scalapb.GeneratedMessage]] =
-    Seq[_root_.scalapb.GeneratedMessageCompanion[_ <: _root_.scalapb.GeneratedMessage]](
+  lazy val messagesCompanions
+    : Seq[_root_.scalapb.GeneratedMessageCompanion[? <: _root_.scalapb.GeneratedMessage]] =
+    Seq[_root_.scalapb.GeneratedMessageCompanion[? <: _root_.scalapb.GeneratedMessage]](
       pccs.vehiclestates.entities.battery.v1.battery.EnergyConsumptionPercentage,
       pccs.vehiclestates.entities.battery.v1.battery.EnergyConsumptionWh,
       pccs.vehiclestates.entities.battery.v1.battery.Battery
     )
   private lazy val ProtoBytes: _root_.scala.Array[Byte] =
-      scalapb.Encoding.fromBase64(scala.collection.immutable.Seq(
-  """Cg1iYXR0ZXJ5LnByb3RvEiZwY2NzLnZlaGljbGVzdGF0ZXMuZW50aXRpZXMuYmF0dGVyeS52MRoMY29tbW9uLnByb3RvIj8KG
+    scalapb.Encoding.fromBase64(
+      scala.collection.immutable
+        .Seq(
+          """Cg1iYXR0ZXJ5LnByb3RvEiZwY2NzLnZlaGljbGVzdGF0ZXMuZW50aXRpZXMuYmF0dGVyeS52MRoMY29tbW9uLnByb3RvIj8KG
   0VuZXJneUNvbnN1bXB0aW9uUGVyY2VudGFnZRIgCgV2YWx1ZRgBIAEoAUIK4j8HEgV2YWx1ZVIFdmFsdWUiNwoTRW5lcmd5Q29uc
   3VtcHRpb25XaBIgCgV2YWx1ZRgBIAEoAUIK4j8HEgV2YWx1ZVIFdmFsdWUisxsKB0JhdHRlcnkSXgoJdGltZXN0YW1wGAEgASgLM
   jAucGNjcy52ZWhpY2xlc3RhdGVzLmVudGl0aWVzLmNvbW1vbi52MS5UaW1lc3RhbXBCDuI/CxIJdGltZXN0YW1wUgl0aW1lc3Rhb
@@ -83,17 +86,23 @@ object BatteryProto extends _root_.scalapb.GeneratedFileObject {
   FlQRV9BQxABGhXiPxISEENIQVJHSU5HX1RZUEVfQUMSKwoQQ0hBUkdJTkdfVFlQRV9EQxACGhXiPxISEENIQVJHSU5HX1RZUEVfR
   EMqYQoSQ2hhcmdlclBvd2VyU3RhdHVzEksKIENIQVJHRVJfUE9XRVJfU1RBVFVTX1VOU1BFQ0lGSUVEEAAaJeI/IhIgQ0hBUkdFU
   l9QT1dFUl9TVEFUVVNfVU5TUEVDSUZJRURiBnByb3RvMw=="""
-      ).mkString)
-  lazy val scalaDescriptor: _root_.scalapb.descriptors.FileDescriptor = {
+        )
+        .mkString
+    )
+  lazy val scalaDescriptor: _root_.scalapb.descriptors.FileDescriptor =
     val scalaProto = com.google.protobuf.descriptor.FileDescriptorProto.parseFrom(ProtoBytes)
-    _root_.scalapb.descriptors.FileDescriptor.buildFrom(scalaProto, dependencies.map(_.scalaDescriptor))
-  }
-  lazy val javaDescriptor: com.google.protobuf.Descriptors.FileDescriptor = {
+    _root_.scalapb.descriptors.FileDescriptor
+      .buildFrom(scalaProto, dependencies.map(_.scalaDescriptor))
+  lazy val javaDescriptor: com.google.protobuf.Descriptors.FileDescriptor =
     val javaProto = com.google.protobuf.DescriptorProtos.FileDescriptorProto.parseFrom(ProtoBytes)
-    com.google.protobuf.Descriptors.FileDescriptor.buildFrom(javaProto, _root_.scala.Array(
-      pccs.vehiclestates.entities.common.v1.common.CommonProto.javaDescriptor
-    ))
-  }
-  @deprecated("Use javaDescriptor instead. In a future version this will refer to scalaDescriptor.", "ScalaPB 0.5.47")
+    com.google.protobuf.Descriptors.FileDescriptor.buildFrom(
+      javaProto,
+      _root_.scala.Array(
+        pccs.vehiclestates.entities.common.v1.common.CommonProto.javaDescriptor
+      )
+    )
+  @deprecated(
+    "Use javaDescriptor instead. In a future version this will refer to scalaDescriptor.",
+    "ScalaPB 0.5.47"
+  )
   def descriptor: com.google.protobuf.Descriptors.FileDescriptor = javaDescriptor
-}

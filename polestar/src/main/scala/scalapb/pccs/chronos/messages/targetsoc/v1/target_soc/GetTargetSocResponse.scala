@@ -7,193 +7,238 @@ package pccs.chronos.messages.targetsoc.v1.target_soc
 
 @SerialVersionUID(0L)
 final case class GetTargetSocResponse(
-    id: _root_.scala.Predef.String = "",
-    vin: _root_.scala.Predef.String = "",
-    targetSoc: _root_.scala.Option[pccs.chronos.messages.targetsoc.v1.target_soc.TargetSoc] = _root_.scala.None,
-    pendingTargetSoc: _root_.scala.Option[pccs.chronos.messages.targetsoc.v1.target_soc.TargetSoc] = _root_.scala.None,
-    updatedAt: _root_.scala.Option[_root_.scala.Long] = _root_.scala.None,
-    unknownFields: _root_.scalapb.UnknownFieldSet = _root_.scalapb.UnknownFieldSet.empty
-    ) extends scalapb.GeneratedMessage with scalapb.lenses.Updatable[GetTargetSocResponse] {
-    @transient
-    private[this] var __serializedSizeMemoized: _root_.scala.Int = 0
-    private[this] def __computeSerializedSize(): _root_.scala.Int = {
-      var __size = 0
-      
-      {
-        val __value = id
-        if (!__value.isEmpty) {
-          __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(1, __value)
-        }
-      };
-      
-      {
-        val __value = vin
-        if (!__value.isEmpty) {
-          __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(2, __value)
-        }
-      };
-      if (targetSoc.isDefined) {
-        val __value = targetSoc.get
-        __size += 1 + _root_.com.google.protobuf.CodedOutputStream.computeUInt32SizeNoTag(__value.serializedSize) + __value.serializedSize
-      };
-      if (pendingTargetSoc.isDefined) {
-        val __value = pendingTargetSoc.get
-        __size += 1 + _root_.com.google.protobuf.CodedOutputStream.computeUInt32SizeNoTag(__value.serializedSize) + __value.serializedSize
-      };
-      if (updatedAt.isDefined) {
-        val __value = updatedAt.get
-        __size += _root_.com.google.protobuf.CodedOutputStream.computeInt64Size(5, __value)
-      };
-      __size += unknownFields.serializedSize
-      __size
-    }
-    override def serializedSize: _root_.scala.Int = {
-      var __size = __serializedSizeMemoized
-      if (__size == 0) {
-        __size = __computeSerializedSize() + 1
-        __serializedSizeMemoized = __size
-      }
-      __size - 1
-      
-    }
-    def writeTo(`_output__`: _root_.com.google.protobuf.CodedOutputStream): _root_.scala.Unit = {
-      {
-        val __v = id
-        if (!__v.isEmpty) {
-          _output__.writeString(1, __v)
-        }
-      };
-      {
-        val __v = vin
-        if (!__v.isEmpty) {
-          _output__.writeString(2, __v)
-        }
-      };
-      targetSoc.foreach { __v =>
-        val __m = __v
-        _output__.writeTag(3, 2)
-        _output__.writeUInt32NoTag(__m.serializedSize)
-        __m.writeTo(_output__)
-      };
-      pendingTargetSoc.foreach { __v =>
-        val __m = __v
-        _output__.writeTag(4, 2)
-        _output__.writeUInt32NoTag(__m.serializedSize)
-        __m.writeTo(_output__)
-      };
-      updatedAt.foreach { __v =>
-        val __m = __v
-        _output__.writeInt64(5, __m)
-      };
-      unknownFields.writeTo(_output__)
-    }
-    def withId(__v: _root_.scala.Predef.String): GetTargetSocResponse = copy(id = __v)
-    def withVin(__v: _root_.scala.Predef.String): GetTargetSocResponse = copy(vin = __v)
-    def getTargetSoc: pccs.chronos.messages.targetsoc.v1.target_soc.TargetSoc = targetSoc.getOrElse(pccs.chronos.messages.targetsoc.v1.target_soc.TargetSoc.defaultInstance)
-    def clearTargetSoc: GetTargetSocResponse = copy(targetSoc = _root_.scala.None)
-    def withTargetSoc(__v: pccs.chronos.messages.targetsoc.v1.target_soc.TargetSoc): GetTargetSocResponse = copy(targetSoc = Option(__v))
-    def getPendingTargetSoc: pccs.chronos.messages.targetsoc.v1.target_soc.TargetSoc = pendingTargetSoc.getOrElse(pccs.chronos.messages.targetsoc.v1.target_soc.TargetSoc.defaultInstance)
-    def clearPendingTargetSoc: GetTargetSocResponse = copy(pendingTargetSoc = _root_.scala.None)
-    def withPendingTargetSoc(__v: pccs.chronos.messages.targetsoc.v1.target_soc.TargetSoc): GetTargetSocResponse = copy(pendingTargetSoc = Option(__v))
-    def getUpdatedAt: _root_.scala.Long = updatedAt.getOrElse(0L)
-    def clearUpdatedAt: GetTargetSocResponse = copy(updatedAt = _root_.scala.None)
-    def withUpdatedAt(__v: _root_.scala.Long): GetTargetSocResponse = copy(updatedAt = Option(__v))
-    def withUnknownFields(__v: _root_.scalapb.UnknownFieldSet) = copy(unknownFields = __v)
-    def discardUnknownFields = copy(unknownFields = _root_.scalapb.UnknownFieldSet.empty)
-    def getFieldByNumber(__fieldNumber: _root_.scala.Int): _root_.scala.Any = {
-      (__fieldNumber: @_root_.scala.unchecked) match {
-        case 1 => {
-          val __t = id
-          if (__t != "") __t else null
-        }
-        case 2 => {
-          val __t = vin
-          if (__t != "") __t else null
-        }
-        case 3 => targetSoc.orNull
-        case 4 => pendingTargetSoc.orNull
-        case 5 => updatedAt.orNull
-      }
-    }
-    def getField(__field: _root_.scalapb.descriptors.FieldDescriptor): _root_.scalapb.descriptors.PValue = {
-      _root_.scala.Predef.require(__field.containingMessage eq companion.scalaDescriptor)
-      (__field.number: @_root_.scala.unchecked) match {
-        case 1 => _root_.scalapb.descriptors.PString(id)
-        case 2 => _root_.scalapb.descriptors.PString(vin)
-        case 3 => targetSoc.map(_.toPMessage).getOrElse(_root_.scalapb.descriptors.PEmpty)
-        case 4 => pendingTargetSoc.map(_.toPMessage).getOrElse(_root_.scalapb.descriptors.PEmpty)
-        case 5 => updatedAt.map(_root_.scalapb.descriptors.PLong(_)).getOrElse(_root_.scalapb.descriptors.PEmpty)
-      }
-    }
-    def toProtoString: _root_.scala.Predef.String = _root_.scalapb.TextFormat.printToUnicodeString(this)
-    def companion: pccs.chronos.messages.targetsoc.v1.target_soc.GetTargetSocResponse.type = pccs.chronos.messages.targetsoc.v1.target_soc.GetTargetSocResponse
-    // @@protoc_insertion_point(GeneratedMessage[pccs.chronos.messages.targetsoc.v1.GetTargetSocResponse])
-}
+  id: _root_.scala.Predef.String = "",
+  vin: _root_.scala.Predef.String = "",
+  targetSoc: _root_.scala.Option[pccs.chronos.messages.targetsoc.v1.target_soc.TargetSoc] =
+    _root_.scala.None,
+  pendingTargetSoc: _root_.scala.Option[pccs.chronos.messages.targetsoc.v1.target_soc.TargetSoc] =
+    _root_.scala.None,
+  updatedAt: _root_.scala.Option[_root_.scala.Long] = _root_.scala.None,
+  unknownFields: _root_.scalapb.UnknownFieldSet = _root_.scalapb.UnknownFieldSet.empty
+) extends scalapb.GeneratedMessage
+  with scalapb.lenses.Updatable[GetTargetSocResponse]:
+  @transient
+  private var __serializedSizeMemoized: _root_.scala.Int = 0
+  private def __computeSerializedSize(): _root_.scala.Int =
+    var __size = 0
 
-object GetTargetSocResponse extends scalapb.GeneratedMessageCompanion[pccs.chronos.messages.targetsoc.v1.target_soc.GetTargetSocResponse] {
-  implicit def messageCompanion: scalapb.GeneratedMessageCompanion[pccs.chronos.messages.targetsoc.v1.target_soc.GetTargetSocResponse] = this
-  def parseFrom(`_input__`: _root_.com.google.protobuf.CodedInputStream): pccs.chronos.messages.targetsoc.v1.target_soc.GetTargetSocResponse = {
+    {
+      val __value = id
+      if !__value.isEmpty then
+        __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(1, __value)
+    };
+
+    {
+      val __value = vin
+      if !__value.isEmpty then
+        __size += _root_.com.google.protobuf.CodedOutputStream.computeStringSize(2, __value)
+    };
+    if targetSoc.isDefined then
+      val __value = targetSoc.get
+      __size += 1 + _root_.com.google.protobuf.CodedOutputStream
+        .computeUInt32SizeNoTag(__value.serializedSize) + __value.serializedSize;
+    if pendingTargetSoc.isDefined then
+      val __value = pendingTargetSoc.get
+      __size += 1 + _root_.com.google.protobuf.CodedOutputStream
+        .computeUInt32SizeNoTag(__value.serializedSize) + __value.serializedSize;
+    if updatedAt.isDefined then
+      val __value = updatedAt.get
+      __size += _root_.com.google.protobuf.CodedOutputStream.computeInt64Size(5, __value);
+    __size += unknownFields.serializedSize
+    __size
+  override def serializedSize: _root_.scala.Int =
+    var __size = __serializedSizeMemoized
+    if __size == 0 then
+      __size = __computeSerializedSize() + 1
+      __serializedSizeMemoized = __size
+    __size - 1
+
+  def writeTo(`_output__`: _root_.com.google.protobuf.CodedOutputStream): _root_.scala.Unit =
+    {
+      val __v = id
+      if !__v.isEmpty then _output__.writeString(1, __v)
+    };
+    {
+      val __v = vin
+      if !__v.isEmpty then _output__.writeString(2, __v)
+    };
+    targetSoc.foreach: __v =>
+      val __m = __v
+      _output__.writeTag(3, 2)
+      _output__.writeUInt32NoTag(__m.serializedSize)
+      __m.writeTo(_output__)
+    ;
+    pendingTargetSoc.foreach: __v =>
+      val __m = __v
+      _output__.writeTag(4, 2)
+      _output__.writeUInt32NoTag(__m.serializedSize)
+      __m.writeTo(_output__)
+    ;
+    updatedAt.foreach: __v =>
+      val __m = __v
+      _output__.writeInt64(5, __m)
+    ;
+    unknownFields.writeTo(_output__)
+  def withId(__v: _root_.scala.Predef.String): GetTargetSocResponse = copy(id = __v)
+  def withVin(__v: _root_.scala.Predef.String): GetTargetSocResponse = copy(vin = __v)
+  def getTargetSoc: pccs.chronos.messages.targetsoc.v1.target_soc.TargetSoc =
+    targetSoc.getOrElse(pccs.chronos.messages.targetsoc.v1.target_soc.TargetSoc.defaultInstance)
+  def clearTargetSoc: GetTargetSocResponse = copy(targetSoc = _root_.scala.None)
+  def withTargetSoc(
+    __v: pccs.chronos.messages.targetsoc.v1.target_soc.TargetSoc
+  ): GetTargetSocResponse = copy(targetSoc = Option(__v))
+  def getPendingTargetSoc: pccs.chronos.messages.targetsoc.v1.target_soc.TargetSoc =
+    pendingTargetSoc.getOrElse(
+      pccs.chronos.messages.targetsoc.v1.target_soc.TargetSoc.defaultInstance
+    )
+  def clearPendingTargetSoc: GetTargetSocResponse = copy(pendingTargetSoc = _root_.scala.None)
+  def withPendingTargetSoc(
+    __v: pccs.chronos.messages.targetsoc.v1.target_soc.TargetSoc
+  ): GetTargetSocResponse = copy(pendingTargetSoc = Option(__v))
+  def getUpdatedAt: _root_.scala.Long = updatedAt.getOrElse(0L)
+  def clearUpdatedAt: GetTargetSocResponse = copy(updatedAt = _root_.scala.None)
+  def withUpdatedAt(__v: _root_.scala.Long): GetTargetSocResponse = copy(updatedAt = Option(__v))
+  def withUnknownFields(__v: _root_.scalapb.UnknownFieldSet) = copy(unknownFields = __v)
+  def discardUnknownFields = copy(unknownFields = _root_.scalapb.UnknownFieldSet.empty)
+  def getFieldByNumber(__fieldNumber: _root_.scala.Int): _root_.scala.Any =
+    (__fieldNumber: @ _root_.scala.unchecked) match
+      case 1 =>
+        val __t = id
+        if __t != "" then __t else null
+      case 2 =>
+        val __t = vin
+        if __t != "" then __t else null
+      case 3 => targetSoc.orNull
+      case 4 => pendingTargetSoc.orNull
+      case 5 => updatedAt.orNull
+  def getField(
+    __field: _root_.scalapb.descriptors.FieldDescriptor
+  ): _root_.scalapb.descriptors.PValue =
+    _root_.scala.Predef.require(__field.containingMessage eq companion.scalaDescriptor)
+    (__field.number: @ _root_.scala.unchecked) match
+      case 1 => _root_.scalapb.descriptors.PString(id)
+      case 2 => _root_.scalapb.descriptors.PString(vin)
+      case 3 => targetSoc.map(_.toPMessage).getOrElse(_root_.scalapb.descriptors.PEmpty)
+      case 4 => pendingTargetSoc.map(_.toPMessage).getOrElse(_root_.scalapb.descriptors.PEmpty)
+      case 5 =>
+        updatedAt
+          .map(_root_.scalapb.descriptors.PLong(_))
+          .getOrElse(_root_.scalapb.descriptors.PEmpty)
+  def toProtoString: _root_.scala.Predef.String =
+    _root_.scalapb.TextFormat.printToUnicodeString(this)
+  def companion: pccs.chronos.messages.targetsoc.v1.target_soc.GetTargetSocResponse.type =
+    pccs.chronos.messages.targetsoc.v1.target_soc.GetTargetSocResponse
+  // @@protoc_insertion_point(GeneratedMessage[pccs.chronos.messages.targetsoc.v1.GetTargetSocResponse])
+
+object GetTargetSocResponse
+  extends scalapb.GeneratedMessageCompanion[
+    pccs.chronos.messages.targetsoc.v1.target_soc.GetTargetSocResponse
+  ]:
+  implicit def messageCompanion: scalapb.GeneratedMessageCompanion[
+    pccs.chronos.messages.targetsoc.v1.target_soc.GetTargetSocResponse
+  ] = this
+  def parseFrom(
+    `_input__`: _root_.com.google.protobuf.CodedInputStream
+  ): pccs.chronos.messages.targetsoc.v1.target_soc.GetTargetSocResponse =
     var __id: _root_.scala.Predef.String = ""
     var __vin: _root_.scala.Predef.String = ""
-    var __targetSoc: _root_.scala.Option[pccs.chronos.messages.targetsoc.v1.target_soc.TargetSoc] = _root_.scala.None
-    var __pendingTargetSoc: _root_.scala.Option[pccs.chronos.messages.targetsoc.v1.target_soc.TargetSoc] = _root_.scala.None
+    var __targetSoc: _root_.scala.Option[pccs.chronos.messages.targetsoc.v1.target_soc.TargetSoc] =
+      _root_.scala.None
+    var __pendingTargetSoc
+      : _root_.scala.Option[pccs.chronos.messages.targetsoc.v1.target_soc.TargetSoc] =
+      _root_.scala.None
     var __updatedAt: _root_.scala.Option[_root_.scala.Long] = _root_.scala.None
     var `_unknownFields__`: _root_.scalapb.UnknownFieldSet.Builder = null
     var _done__ = false
-    while (!_done__) {
+    while !_done__ do
       val _tag__ = _input__.readTag()
-      _tag__ match {
-        case 0 => _done__ = true
+      _tag__ match
+        case 0  => _done__ = true
         case 10 =>
           __id = _input__.readStringRequireUtf8()
         case 18 =>
           __vin = _input__.readStringRequireUtf8()
         case 26 =>
-          __targetSoc = _root_.scala.Option(__targetSoc.fold(_root_.scalapb.LiteParser.readMessage[pccs.chronos.messages.targetsoc.v1.target_soc.TargetSoc](_input__))(_root_.scalapb.LiteParser.readMessage(_input__, _)))
+          __targetSoc = _root_.scala.Option(
+            __targetSoc.fold(
+              _root_.scalapb.LiteParser
+                .readMessage[pccs.chronos.messages.targetsoc.v1.target_soc.TargetSoc](_input__)
+            )(_root_.scalapb.LiteParser.readMessage(_input__, _))
+          )
         case 34 =>
-          __pendingTargetSoc = _root_.scala.Option(__pendingTargetSoc.fold(_root_.scalapb.LiteParser.readMessage[pccs.chronos.messages.targetsoc.v1.target_soc.TargetSoc](_input__))(_root_.scalapb.LiteParser.readMessage(_input__, _)))
+          __pendingTargetSoc = _root_.scala.Option(
+            __pendingTargetSoc.fold(
+              _root_.scalapb.LiteParser
+                .readMessage[pccs.chronos.messages.targetsoc.v1.target_soc.TargetSoc](_input__)
+            )(_root_.scalapb.LiteParser.readMessage(_input__, _))
+          )
         case 40 =>
           __updatedAt = _root_.scala.Option(_input__.readInt64())
         case tag =>
-          if (_unknownFields__ == null) {
+          if _unknownFields__ == null then
             _unknownFields__ = new _root_.scalapb.UnknownFieldSet.Builder()
-          }
           _unknownFields__.parseField(tag, _input__)
-      }
-    }
     pccs.chronos.messages.targetsoc.v1.target_soc.GetTargetSocResponse(
-        id = __id,
-        vin = __vin,
-        targetSoc = __targetSoc,
-        pendingTargetSoc = __pendingTargetSoc,
-        updatedAt = __updatedAt,
-        unknownFields = if (_unknownFields__ == null) _root_.scalapb.UnknownFieldSet.empty else _unknownFields__.result()
+      id = __id,
+      vin = __vin,
+      targetSoc = __targetSoc,
+      pendingTargetSoc = __pendingTargetSoc,
+      updatedAt = __updatedAt,
+      unknownFields = if _unknownFields__ == null then _root_.scalapb.UnknownFieldSet.empty
+      else _unknownFields__.result()
     )
-  }
-  implicit def messageReads: _root_.scalapb.descriptors.Reads[pccs.chronos.messages.targetsoc.v1.target_soc.GetTargetSocResponse] = _root_.scalapb.descriptors.Reads{
+  implicit def messageReads: _root_.scalapb.descriptors.Reads[
+    pccs.chronos.messages.targetsoc.v1.target_soc.GetTargetSocResponse
+  ] = _root_.scalapb.descriptors.Reads:
     case _root_.scalapb.descriptors.PMessage(__fieldsMap) =>
-      _root_.scala.Predef.require(__fieldsMap.keys.forall(_.containingMessage eq scalaDescriptor), "FieldDescriptor does not match message type.")
+      _root_.scala.Predef.require(
+        __fieldsMap.keys.forall(_.containingMessage eq scalaDescriptor),
+        "FieldDescriptor does not match message type."
+      )
       pccs.chronos.messages.targetsoc.v1.target_soc.GetTargetSocResponse(
-        id = __fieldsMap.get(scalaDescriptor.findFieldByNumber(1).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
-        vin = __fieldsMap.get(scalaDescriptor.findFieldByNumber(2).get).map(_.as[_root_.scala.Predef.String]).getOrElse(""),
-        targetSoc = __fieldsMap.get(scalaDescriptor.findFieldByNumber(3).get).flatMap(_.as[_root_.scala.Option[pccs.chronos.messages.targetsoc.v1.target_soc.TargetSoc]]),
-        pendingTargetSoc = __fieldsMap.get(scalaDescriptor.findFieldByNumber(4).get).flatMap(_.as[_root_.scala.Option[pccs.chronos.messages.targetsoc.v1.target_soc.TargetSoc]]),
-        updatedAt = __fieldsMap.get(scalaDescriptor.findFieldByNumber(5).get).flatMap(_.as[_root_.scala.Option[_root_.scala.Long]])
+        id = __fieldsMap
+          .get(scalaDescriptor.findFieldByNumber(1).get)
+          .map(_.as[_root_.scala.Predef.String])
+          .getOrElse(""),
+        vin = __fieldsMap
+          .get(scalaDescriptor.findFieldByNumber(2).get)
+          .map(_.as[_root_.scala.Predef.String])
+          .getOrElse(""),
+        targetSoc = __fieldsMap
+          .get(scalaDescriptor.findFieldByNumber(3).get)
+          .flatMap(
+            _.as[_root_.scala.Option[pccs.chronos.messages.targetsoc.v1.target_soc.TargetSoc]]
+          ),
+        pendingTargetSoc = __fieldsMap
+          .get(scalaDescriptor.findFieldByNumber(4).get)
+          .flatMap(
+            _.as[_root_.scala.Option[pccs.chronos.messages.targetsoc.v1.target_soc.TargetSoc]]
+          ),
+        updatedAt = __fieldsMap
+          .get(scalaDescriptor.findFieldByNumber(5).get)
+          .flatMap(_.as[_root_.scala.Option[_root_.scala.Long]])
       )
     case _ => throw new RuntimeException("Expected PMessage")
-  }
-  def javaDescriptor: _root_.com.google.protobuf.Descriptors.Descriptor = pccs.chronos.messages.targetsoc.v1.target_soc.TargetSocProto.javaDescriptor.getMessageTypes().get(2)
-  def scalaDescriptor: _root_.scalapb.descriptors.Descriptor = pccs.chronos.messages.targetsoc.v1.target_soc.TargetSocProto.scalaDescriptor.messages(2)
-  def messageCompanionForFieldNumber(__number: _root_.scala.Int): _root_.scalapb.GeneratedMessageCompanion[_] = {
-    var __out: _root_.scalapb.GeneratedMessageCompanion[_] = null
-    (__number: @_root_.scala.unchecked) match {
+  def javaDescriptor: _root_.com.google.protobuf.Descriptors.Descriptor =
+    pccs.chronos.messages.targetsoc.v1.target_soc.TargetSocProto.javaDescriptor
+      .getMessageTypes()
+      .get(2)
+  def scalaDescriptor: _root_.scalapb.descriptors.Descriptor =
+    pccs.chronos.messages.targetsoc.v1.target_soc.TargetSocProto.scalaDescriptor.messages(2)
+  def messageCompanionForFieldNumber(
+    __number: _root_.scala.Int
+  ): _root_.scalapb.GeneratedMessageCompanion[?] =
+    var __out: _root_.scalapb.GeneratedMessageCompanion[?] = null
+    (__number: @ _root_.scala.unchecked) match
       case 3 => __out = pccs.chronos.messages.targetsoc.v1.target_soc.TargetSoc
       case 4 => __out = pccs.chronos.messages.targetsoc.v1.target_soc.TargetSoc
-    }
     __out
-  }
-  lazy val nestedMessagesCompanions: Seq[_root_.scalapb.GeneratedMessageCompanion[_ <: _root_.scalapb.GeneratedMessage]] = Seq.empty
-  def enumCompanionForFieldNumber(__fieldNumber: _root_.scala.Int): _root_.scalapb.GeneratedEnumCompanion[_] = throw new MatchError(__fieldNumber)
+  lazy val nestedMessagesCompanions
+    : Seq[_root_.scalapb.GeneratedMessageCompanion[? <: _root_.scalapb.GeneratedMessage]] =
+    Seq.empty
+  def enumCompanionForFieldNumber(
+    __fieldNumber: _root_.scala.Int
+  ): _root_.scalapb.GeneratedEnumCompanion[?] = throw new MatchError(__fieldNumber)
   lazy val defaultInstance = pccs.chronos.messages.targetsoc.v1.target_soc.GetTargetSocResponse(
     id = "",
     vin = "",
@@ -201,16 +246,39 @@ object GetTargetSocResponse extends scalapb.GeneratedMessageCompanion[pccs.chron
     pendingTargetSoc = _root_.scala.None,
     updatedAt = _root_.scala.None
   )
-  implicit class GetTargetSocResponseLens[UpperPB](_l: _root_.scalapb.lenses.Lens[UpperPB, pccs.chronos.messages.targetsoc.v1.target_soc.GetTargetSocResponse]) extends _root_.scalapb.lenses.ObjectLens[UpperPB, pccs.chronos.messages.targetsoc.v1.target_soc.GetTargetSocResponse](_l) {
-    def id: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] = field(_.id)((c_, f_) => c_.copy(id = f_))
-    def vin: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] = field(_.vin)((c_, f_) => c_.copy(vin = f_))
-    def targetSoc: _root_.scalapb.lenses.Lens[UpperPB, pccs.chronos.messages.targetsoc.v1.target_soc.TargetSoc] = field(_.getTargetSoc)((c_, f_) => c_.copy(targetSoc = _root_.scala.Option(f_)))
-    def optionalTargetSoc: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Option[pccs.chronos.messages.targetsoc.v1.target_soc.TargetSoc]] = field(_.targetSoc)((c_, f_) => c_.copy(targetSoc = f_))
-    def pendingTargetSoc: _root_.scalapb.lenses.Lens[UpperPB, pccs.chronos.messages.targetsoc.v1.target_soc.TargetSoc] = field(_.getPendingTargetSoc)((c_, f_) => c_.copy(pendingTargetSoc = _root_.scala.Option(f_)))
-    def optionalPendingTargetSoc: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Option[pccs.chronos.messages.targetsoc.v1.target_soc.TargetSoc]] = field(_.pendingTargetSoc)((c_, f_) => c_.copy(pendingTargetSoc = f_))
-    def updatedAt: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Long] = field(_.getUpdatedAt)((c_, f_) => c_.copy(updatedAt = _root_.scala.Option(f_)))
-    def optionalUpdatedAt: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Option[_root_.scala.Long]] = field(_.updatedAt)((c_, f_) => c_.copy(updatedAt = f_))
-  }
+  implicit class GetTargetSocResponseLens[UpperPB](
+    _l: _root_.scalapb.lenses.Lens[
+      UpperPB,
+      pccs.chronos.messages.targetsoc.v1.target_soc.GetTargetSocResponse
+    ]
+  ) extends _root_.scalapb.lenses.ObjectLens[
+      UpperPB,
+      pccs.chronos.messages.targetsoc.v1.target_soc.GetTargetSocResponse
+    ](_l):
+    def id: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] =
+      field(_.id)((c_, f_) => c_.copy(id = f_))
+    def vin: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Predef.String] =
+      field(_.vin)((c_, f_) => c_.copy(vin = f_))
+    def targetSoc: _root_.scalapb.lenses.Lens[
+      UpperPB,
+      pccs.chronos.messages.targetsoc.v1.target_soc.TargetSoc
+    ] = field(_.getTargetSoc)((c_, f_) => c_.copy(targetSoc = _root_.scala.Option(f_)))
+    def optionalTargetSoc: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Option[
+      pccs.chronos.messages.targetsoc.v1.target_soc.TargetSoc
+    ]] = field(_.targetSoc)((c_, f_) => c_.copy(targetSoc = f_))
+    def pendingTargetSoc: _root_.scalapb.lenses.Lens[
+      UpperPB,
+      pccs.chronos.messages.targetsoc.v1.target_soc.TargetSoc
+    ] =
+      field(_.getPendingTargetSoc)((c_, f_) => c_.copy(pendingTargetSoc = _root_.scala.Option(f_)))
+    def optionalPendingTargetSoc: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Option[
+      pccs.chronos.messages.targetsoc.v1.target_soc.TargetSoc
+    ]] = field(_.pendingTargetSoc)((c_, f_) => c_.copy(pendingTargetSoc = f_))
+    def updatedAt: _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Long] =
+      field(_.getUpdatedAt)((c_, f_) => c_.copy(updatedAt = _root_.scala.Option(f_)))
+    def optionalUpdatedAt
+      : _root_.scalapb.lenses.Lens[UpperPB, _root_.scala.Option[_root_.scala.Long]] =
+      field(_.updatedAt)((c_, f_) => c_.copy(updatedAt = f_))
   final val ID_FIELD_NUMBER = 1
   final val VIN_FIELD_NUMBER = 2
   final val TARGET_SOC_FIELD_NUMBER = 3
@@ -222,12 +290,12 @@ object GetTargetSocResponse extends scalapb.GeneratedMessageCompanion[pccs.chron
     targetSoc: _root_.scala.Option[pccs.chronos.messages.targetsoc.v1.target_soc.TargetSoc],
     pendingTargetSoc: _root_.scala.Option[pccs.chronos.messages.targetsoc.v1.target_soc.TargetSoc],
     updatedAt: _root_.scala.Option[_root_.scala.Long]
-  ): _root_.pccs.chronos.messages.targetsoc.v1.target_soc.GetTargetSocResponse = _root_.pccs.chronos.messages.targetsoc.v1.target_soc.GetTargetSocResponse(
-    id,
-    vin,
-    targetSoc,
-    pendingTargetSoc,
-    updatedAt
-  )
+  ): _root_.pccs.chronos.messages.targetsoc.v1.target_soc.GetTargetSocResponse =
+    _root_.pccs.chronos.messages.targetsoc.v1.target_soc.GetTargetSocResponse(
+      id,
+      vin,
+      targetSoc,
+      pendingTargetSoc,
+      updatedAt
+    )
   // @@protoc_insertion_point(GeneratedMessageCompanion[pccs.chronos.messages.targetsoc.v1.GetTargetSocResponse])
-}

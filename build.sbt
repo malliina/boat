@@ -17,7 +17,7 @@ Global / concurrentRestrictions += Tags.limit(Tags.Test, 1)
 
 inThisBuild(
   Seq(
-    scalacOptions ++= Seq("-rewrite", "-source:3.4-migration"),
+    scalacOptions ++= Seq("-new-syntax", "-rewrite"),
     organization := "com.malliina",
     scalaVersion := versions.scala3,
     scalacOptions := Seq("-unchecked", "-deprecation"),

@@ -5,102 +5,240 @@
 
 package pccs.chronos.services.v1.target_soc_service
 
+object TargetSocServiceGrpc:
+  val METHOD_GET_TARGET_SOC: _root_.io.grpc.MethodDescriptor[
+    pccs.chronos.messages.targetsoc.v1.target_soc.GetTargetSocRequest,
+    pccs.chronos.messages.targetsoc.v1.target_soc.GetTargetSocResponse
+  ] =
+    _root_.io.grpc.MethodDescriptor
+      .newBuilder()
+      .setType(_root_.io.grpc.MethodDescriptor.MethodType.SERVER_STREAMING)
+      .setFullMethodName(
+        _root_.io.grpc.MethodDescriptor
+          .generateFullMethodName("pccs.chronos.services.v1.TargetSocService", "GetTargetSoc")
+      )
+      .setSampledToLocalTracing(true)
+      .setRequestMarshaller(
+        _root_.scalapb.grpc.Marshaller
+          .forMessage[pccs.chronos.messages.targetsoc.v1.target_soc.GetTargetSocRequest]
+      )
+      .setResponseMarshaller(
+        _root_.scalapb.grpc.Marshaller
+          .forMessage[pccs.chronos.messages.targetsoc.v1.target_soc.GetTargetSocResponse]
+      )
+      .setSchemaDescriptor(
+        _root_.scalapb.grpc.ConcreteProtoMethodDescriptorSupplier.fromMethodDescriptor(
+          pccs.chronos.services.v1.target_soc_service.TargetSocServiceProto.javaDescriptor
+            .getServices()
+            .get(0)
+            .getMethods()
+            .get(0)
+        )
+      )
+      .build()
 
-object TargetSocServiceGrpc {
-  val METHOD_GET_TARGET_SOC: _root_.io.grpc.MethodDescriptor[pccs.chronos.messages.targetsoc.v1.target_soc.GetTargetSocRequest, pccs.chronos.messages.targetsoc.v1.target_soc.GetTargetSocResponse] =
-    _root_.io.grpc.MethodDescriptor.newBuilder()
+  val METHOD_SET_TARGET_SOC: _root_.io.grpc.MethodDescriptor[
+    pccs.chronos.messages.targetsoc.v1.target_soc.SetTargetSocRequest,
+    pccs.chronos.messages.targetsoc.v1.target_soc.SetTargetSocResponse
+  ] =
+    _root_.io.grpc.MethodDescriptor
+      .newBuilder()
       .setType(_root_.io.grpc.MethodDescriptor.MethodType.SERVER_STREAMING)
-      .setFullMethodName(_root_.io.grpc.MethodDescriptor.generateFullMethodName("pccs.chronos.services.v1.TargetSocService", "GetTargetSoc"))
+      .setFullMethodName(
+        _root_.io.grpc.MethodDescriptor
+          .generateFullMethodName("pccs.chronos.services.v1.TargetSocService", "SetTargetSoc")
+      )
       .setSampledToLocalTracing(true)
-      .setRequestMarshaller(_root_.scalapb.grpc.Marshaller.forMessage[pccs.chronos.messages.targetsoc.v1.target_soc.GetTargetSocRequest])
-      .setResponseMarshaller(_root_.scalapb.grpc.Marshaller.forMessage[pccs.chronos.messages.targetsoc.v1.target_soc.GetTargetSocResponse])
-      .setSchemaDescriptor(_root_.scalapb.grpc.ConcreteProtoMethodDescriptorSupplier.fromMethodDescriptor(pccs.chronos.services.v1.target_soc_service.TargetSocServiceProto.javaDescriptor.getServices().get(0).getMethods().get(0)))
+      .setRequestMarshaller(
+        _root_.scalapb.grpc.Marshaller
+          .forMessage[pccs.chronos.messages.targetsoc.v1.target_soc.SetTargetSocRequest]
+      )
+      .setResponseMarshaller(
+        _root_.scalapb.grpc.Marshaller
+          .forMessage[pccs.chronos.messages.targetsoc.v1.target_soc.SetTargetSocResponse]
+      )
+      .setSchemaDescriptor(
+        _root_.scalapb.grpc.ConcreteProtoMethodDescriptorSupplier.fromMethodDescriptor(
+          pccs.chronos.services.v1.target_soc_service.TargetSocServiceProto.javaDescriptor
+            .getServices()
+            .get(0)
+            .getMethods()
+            .get(1)
+        )
+      )
       .build()
-  
-  val METHOD_SET_TARGET_SOC: _root_.io.grpc.MethodDescriptor[pccs.chronos.messages.targetsoc.v1.target_soc.SetTargetSocRequest, pccs.chronos.messages.targetsoc.v1.target_soc.SetTargetSocResponse] =
-    _root_.io.grpc.MethodDescriptor.newBuilder()
-      .setType(_root_.io.grpc.MethodDescriptor.MethodType.SERVER_STREAMING)
-      .setFullMethodName(_root_.io.grpc.MethodDescriptor.generateFullMethodName("pccs.chronos.services.v1.TargetSocService", "SetTargetSoc"))
-      .setSampledToLocalTracing(true)
-      .setRequestMarshaller(_root_.scalapb.grpc.Marshaller.forMessage[pccs.chronos.messages.targetsoc.v1.target_soc.SetTargetSocRequest])
-      .setResponseMarshaller(_root_.scalapb.grpc.Marshaller.forMessage[pccs.chronos.messages.targetsoc.v1.target_soc.SetTargetSocResponse])
-      .setSchemaDescriptor(_root_.scalapb.grpc.ConcreteProtoMethodDescriptorSupplier.fromMethodDescriptor(pccs.chronos.services.v1.target_soc_service.TargetSocServiceProto.javaDescriptor.getServices().get(0).getMethods().get(1)))
-      .build()
-  
+
   val SERVICE: _root_.io.grpc.ServiceDescriptor =
-    _root_.io.grpc.ServiceDescriptor.newBuilder("pccs.chronos.services.v1.TargetSocService")
-      .setSchemaDescriptor(new _root_.scalapb.grpc.ConcreteProtoFileDescriptorSupplier(pccs.chronos.services.v1.target_soc_service.TargetSocServiceProto.javaDescriptor))
+    _root_.io.grpc.ServiceDescriptor
+      .newBuilder("pccs.chronos.services.v1.TargetSocService")
+      .setSchemaDescriptor(
+        new _root_.scalapb.grpc.ConcreteProtoFileDescriptorSupplier(
+          pccs.chronos.services.v1.target_soc_service.TargetSocServiceProto.javaDescriptor
+        )
+      )
       .addMethod(METHOD_GET_TARGET_SOC)
       .addMethod(METHOD_SET_TARGET_SOC)
       .build()
-  
-  trait TargetSocService extends _root_.scalapb.grpc.AbstractService {
-    override def serviceCompanion: _root_.scalapb.grpc.ServiceCompanion[TargetSocService] = TargetSocService
-    def getTargetSoc(request: pccs.chronos.messages.targetsoc.v1.target_soc.GetTargetSocRequest, responseObserver: _root_.io.grpc.stub.StreamObserver[pccs.chronos.messages.targetsoc.v1.target_soc.GetTargetSocResponse]): _root_.scala.Unit
-    def setTargetSoc(request: pccs.chronos.messages.targetsoc.v1.target_soc.SetTargetSocRequest, responseObserver: _root_.io.grpc.stub.StreamObserver[pccs.chronos.messages.targetsoc.v1.target_soc.SetTargetSocResponse]): _root_.scala.Unit
-  }
-  
-  object TargetSocService extends _root_.scalapb.grpc.ServiceCompanion[TargetSocService] {
+
+  trait TargetSocService extends _root_.scalapb.grpc.AbstractService:
+    override def serviceCompanion: _root_.scalapb.grpc.ServiceCompanion[TargetSocService] =
+      TargetSocService
+    def getTargetSoc(
+      request: pccs.chronos.messages.targetsoc.v1.target_soc.GetTargetSocRequest,
+      responseObserver: _root_.io.grpc.stub.StreamObserver[
+        pccs.chronos.messages.targetsoc.v1.target_soc.GetTargetSocResponse
+      ]
+    ): _root_.scala.Unit
+    def setTargetSoc(
+      request: pccs.chronos.messages.targetsoc.v1.target_soc.SetTargetSocRequest,
+      responseObserver: _root_.io.grpc.stub.StreamObserver[
+        pccs.chronos.messages.targetsoc.v1.target_soc.SetTargetSocResponse
+      ]
+    ): _root_.scala.Unit
+
+  object TargetSocService extends _root_.scalapb.grpc.ServiceCompanion[TargetSocService]:
     implicit def serviceCompanion: _root_.scalapb.grpc.ServiceCompanion[TargetSocService] = this
-    def javaDescriptor: _root_.com.google.protobuf.Descriptors.ServiceDescriptor = pccs.chronos.services.v1.target_soc_service.TargetSocServiceProto.javaDescriptor.getServices().get(0)
-    def scalaDescriptor: _root_.scalapb.descriptors.ServiceDescriptor = pccs.chronos.services.v1.target_soc_service.TargetSocServiceProto.scalaDescriptor.services(0)
-    def bindService(serviceImpl: TargetSocService, executionContext: scala.concurrent.ExecutionContext): _root_.io.grpc.ServerServiceDefinition =
-      _root_.io.grpc.ServerServiceDefinition.builder(SERVICE)
-      .addMethod(
-        METHOD_GET_TARGET_SOC,
-        _root_.io.grpc.stub.ServerCalls.asyncServerStreamingCall((request: pccs.chronos.messages.targetsoc.v1.target_soc.GetTargetSocRequest, observer: _root_.io.grpc.stub.StreamObserver[pccs.chronos.messages.targetsoc.v1.target_soc.GetTargetSocResponse]) => {
-          serviceImpl.getTargetSoc(request, observer)
-        }))
-      .addMethod(
-        METHOD_SET_TARGET_SOC,
-        _root_.io.grpc.stub.ServerCalls.asyncServerStreamingCall((request: pccs.chronos.messages.targetsoc.v1.target_soc.SetTargetSocRequest, observer: _root_.io.grpc.stub.StreamObserver[pccs.chronos.messages.targetsoc.v1.target_soc.SetTargetSocResponse]) => {
-          serviceImpl.setTargetSoc(request, observer)
-        }))
-      .build()
-  }
-  
-  trait TargetSocServiceBlockingClient {
+    def javaDescriptor: _root_.com.google.protobuf.Descriptors.ServiceDescriptor =
+      pccs.chronos.services.v1.target_soc_service.TargetSocServiceProto.javaDescriptor
+        .getServices()
+        .get(0)
+    def scalaDescriptor: _root_.scalapb.descriptors.ServiceDescriptor =
+      pccs.chronos.services.v1.target_soc_service.TargetSocServiceProto.scalaDescriptor.services(0)
+    def bindService(
+      serviceImpl: TargetSocService,
+      executionContext: scala.concurrent.ExecutionContext
+    ): _root_.io.grpc.ServerServiceDefinition =
+      _root_.io.grpc.ServerServiceDefinition
+        .builder(SERVICE)
+        .addMethod(
+          METHOD_GET_TARGET_SOC,
+          _root_.io.grpc.stub.ServerCalls.asyncServerStreamingCall(
+            (
+              request: pccs.chronos.messages.targetsoc.v1.target_soc.GetTargetSocRequest,
+              observer: _root_.io.grpc.stub.StreamObserver[
+                pccs.chronos.messages.targetsoc.v1.target_soc.GetTargetSocResponse
+              ]
+            ) => serviceImpl.getTargetSoc(request, observer)
+          )
+        )
+        .addMethod(
+          METHOD_SET_TARGET_SOC,
+          _root_.io.grpc.stub.ServerCalls.asyncServerStreamingCall(
+            (
+              request: pccs.chronos.messages.targetsoc.v1.target_soc.SetTargetSocRequest,
+              observer: _root_.io.grpc.stub.StreamObserver[
+                pccs.chronos.messages.targetsoc.v1.target_soc.SetTargetSocResponse
+              ]
+            ) => serviceImpl.setTargetSoc(request, observer)
+          )
+        )
+        .build()
+
+  trait TargetSocServiceBlockingClient:
     def serviceCompanion: _root_.scalapb.grpc.ServiceCompanion[TargetSocService] = TargetSocService
-    def getTargetSoc(request: pccs.chronos.messages.targetsoc.v1.target_soc.GetTargetSocRequest): scala.collection.Iterator[pccs.chronos.messages.targetsoc.v1.target_soc.GetTargetSocResponse]
-    def setTargetSoc(request: pccs.chronos.messages.targetsoc.v1.target_soc.SetTargetSocRequest): scala.collection.Iterator[pccs.chronos.messages.targetsoc.v1.target_soc.SetTargetSocResponse]
-  }
-  
-  class TargetSocServiceBlockingStub(channel: _root_.io.grpc.Channel, options: _root_.io.grpc.CallOptions = _root_.io.grpc.CallOptions.DEFAULT) extends _root_.io.grpc.stub.AbstractStub[TargetSocServiceBlockingStub](channel, options) with TargetSocServiceBlockingClient {
-    override def getTargetSoc(request: pccs.chronos.messages.targetsoc.v1.target_soc.GetTargetSocRequest): scala.collection.Iterator[pccs.chronos.messages.targetsoc.v1.target_soc.GetTargetSocResponse] = {
-      _root_.scalapb.grpc.ClientCalls.blockingServerStreamingCall(channel, METHOD_GET_TARGET_SOC, options, request)
-    }
-    
-    override def setTargetSoc(request: pccs.chronos.messages.targetsoc.v1.target_soc.SetTargetSocRequest): scala.collection.Iterator[pccs.chronos.messages.targetsoc.v1.target_soc.SetTargetSocResponse] = {
-      _root_.scalapb.grpc.ClientCalls.blockingServerStreamingCall(channel, METHOD_SET_TARGET_SOC, options, request)
-    }
-    
-    override def build(channel: _root_.io.grpc.Channel, options: _root_.io.grpc.CallOptions): TargetSocServiceBlockingStub = new TargetSocServiceBlockingStub(channel, options)
-  }
-  
-  class TargetSocServiceStub(channel: _root_.io.grpc.Channel, options: _root_.io.grpc.CallOptions = _root_.io.grpc.CallOptions.DEFAULT) extends _root_.io.grpc.stub.AbstractStub[TargetSocServiceStub](channel, options) with TargetSocService {
-    override def getTargetSoc(request: pccs.chronos.messages.targetsoc.v1.target_soc.GetTargetSocRequest, responseObserver: _root_.io.grpc.stub.StreamObserver[pccs.chronos.messages.targetsoc.v1.target_soc.GetTargetSocResponse]): _root_.scala.Unit = {
-      _root_.scalapb.grpc.ClientCalls.asyncServerStreamingCall(channel, METHOD_GET_TARGET_SOC, options, request, responseObserver)
-    }
-    
-    override def setTargetSoc(request: pccs.chronos.messages.targetsoc.v1.target_soc.SetTargetSocRequest, responseObserver: _root_.io.grpc.stub.StreamObserver[pccs.chronos.messages.targetsoc.v1.target_soc.SetTargetSocResponse]): _root_.scala.Unit = {
-      _root_.scalapb.grpc.ClientCalls.asyncServerStreamingCall(channel, METHOD_SET_TARGET_SOC, options, request, responseObserver)
-    }
-    
-    override def build(channel: _root_.io.grpc.Channel, options: _root_.io.grpc.CallOptions): TargetSocServiceStub = new TargetSocServiceStub(channel, options)
-  }
-  
-  object TargetSocServiceStub extends _root_.io.grpc.stub.AbstractStub.StubFactory[TargetSocServiceStub] {
-    override def newStub(channel: _root_.io.grpc.Channel, options: _root_.io.grpc.CallOptions): TargetSocServiceStub = new TargetSocServiceStub(channel, options)
-    
-    implicit val stubFactory: _root_.io.grpc.stub.AbstractStub.StubFactory[TargetSocServiceStub] = this
-  }
-  
-  def bindService(serviceImpl: TargetSocService, executionContext: scala.concurrent.ExecutionContext): _root_.io.grpc.ServerServiceDefinition = TargetSocService.bindService(serviceImpl, executionContext)
-  
-  def blockingStub(channel: _root_.io.grpc.Channel): TargetSocServiceBlockingStub = new TargetSocServiceBlockingStub(channel)
-  
-  def stub(channel: _root_.io.grpc.Channel): TargetSocServiceStub = new TargetSocServiceStub(channel)
-  
-  def javaDescriptor: _root_.com.google.protobuf.Descriptors.ServiceDescriptor = pccs.chronos.services.v1.target_soc_service.TargetSocServiceProto.javaDescriptor.getServices().get(0)
-  
-}
+    def getTargetSoc(
+      request: pccs.chronos.messages.targetsoc.v1.target_soc.GetTargetSocRequest
+    ): scala.collection.Iterator[pccs.chronos.messages.targetsoc.v1.target_soc.GetTargetSocResponse]
+    def setTargetSoc(
+      request: pccs.chronos.messages.targetsoc.v1.target_soc.SetTargetSocRequest
+    ): scala.collection.Iterator[pccs.chronos.messages.targetsoc.v1.target_soc.SetTargetSocResponse]
+
+  class TargetSocServiceBlockingStub(
+    channel: _root_.io.grpc.Channel,
+    options: _root_.io.grpc.CallOptions = _root_.io.grpc.CallOptions.DEFAULT
+  ) extends _root_.io.grpc.stub.AbstractStub[TargetSocServiceBlockingStub](channel, options)
+    with TargetSocServiceBlockingClient:
+    override def getTargetSoc(
+      request: pccs.chronos.messages.targetsoc.v1.target_soc.GetTargetSocRequest
+    ): scala.collection.Iterator[
+      pccs.chronos.messages.targetsoc.v1.target_soc.GetTargetSocResponse
+    ] =
+      _root_.scalapb.grpc.ClientCalls.blockingServerStreamingCall(
+        channel,
+        METHOD_GET_TARGET_SOC,
+        options,
+        request
+      )
+
+    override def setTargetSoc(
+      request: pccs.chronos.messages.targetsoc.v1.target_soc.SetTargetSocRequest
+    ): scala.collection.Iterator[
+      pccs.chronos.messages.targetsoc.v1.target_soc.SetTargetSocResponse
+    ] =
+      _root_.scalapb.grpc.ClientCalls.blockingServerStreamingCall(
+        channel,
+        METHOD_SET_TARGET_SOC,
+        options,
+        request
+      )
+
+    override def build(
+      channel: _root_.io.grpc.Channel,
+      options: _root_.io.grpc.CallOptions
+    ): TargetSocServiceBlockingStub = new TargetSocServiceBlockingStub(channel, options)
+
+  class TargetSocServiceStub(
+    channel: _root_.io.grpc.Channel,
+    options: _root_.io.grpc.CallOptions = _root_.io.grpc.CallOptions.DEFAULT
+  ) extends _root_.io.grpc.stub.AbstractStub[TargetSocServiceStub](channel, options)
+    with TargetSocService:
+    override def getTargetSoc(
+      request: pccs.chronos.messages.targetsoc.v1.target_soc.GetTargetSocRequest,
+      responseObserver: _root_.io.grpc.stub.StreamObserver[
+        pccs.chronos.messages.targetsoc.v1.target_soc.GetTargetSocResponse
+      ]
+    ): _root_.scala.Unit =
+      _root_.scalapb.grpc.ClientCalls.asyncServerStreamingCall(
+        channel,
+        METHOD_GET_TARGET_SOC,
+        options,
+        request,
+        responseObserver
+      )
+
+    override def setTargetSoc(
+      request: pccs.chronos.messages.targetsoc.v1.target_soc.SetTargetSocRequest,
+      responseObserver: _root_.io.grpc.stub.StreamObserver[
+        pccs.chronos.messages.targetsoc.v1.target_soc.SetTargetSocResponse
+      ]
+    ): _root_.scala.Unit =
+      _root_.scalapb.grpc.ClientCalls.asyncServerStreamingCall(
+        channel,
+        METHOD_SET_TARGET_SOC,
+        options,
+        request,
+        responseObserver
+      )
+
+    override def build(
+      channel: _root_.io.grpc.Channel,
+      options: _root_.io.grpc.CallOptions
+    ): TargetSocServiceStub = new TargetSocServiceStub(channel, options)
+
+  object TargetSocServiceStub
+    extends _root_.io.grpc.stub.AbstractStub.StubFactory[TargetSocServiceStub]:
+    override def newStub(
+      channel: _root_.io.grpc.Channel,
+      options: _root_.io.grpc.CallOptions
+    ): TargetSocServiceStub = new TargetSocServiceStub(channel, options)
+
+    implicit val stubFactory: _root_.io.grpc.stub.AbstractStub.StubFactory[TargetSocServiceStub] =
+      this
+
+  def bindService(
+    serviceImpl: TargetSocService,
+    executionContext: scala.concurrent.ExecutionContext
+  ): _root_.io.grpc.ServerServiceDefinition =
+    TargetSocService.bindService(serviceImpl, executionContext)
+
+  def blockingStub(channel: _root_.io.grpc.Channel): TargetSocServiceBlockingStub =
+    new TargetSocServiceBlockingStub(channel)
+
+  def stub(channel: _root_.io.grpc.Channel): TargetSocServiceStub = new TargetSocServiceStub(
+    channel
+  )
+
+  def javaDescriptor: _root_.com.google.protobuf.Descriptors.ServiceDescriptor =
+    pccs.chronos.services.v1.target_soc_service.TargetSocServiceProto.javaDescriptor
+      .getServices()
+      .get(0)

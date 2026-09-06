@@ -5,12 +5,13 @@
 
 package pccs.chronos.messages.targetsoc.v1.target_soc
 
-object TargetSocProto extends _root_.scalapb.GeneratedFileObject {
+object TargetSocProto extends _root_.scalapb.GeneratedFileObject:
   lazy val dependencies: Seq[_root_.scalapb.GeneratedFileObject] = Seq(
     pccs.chronos.messages.common.v1.chronos_request.ChronosRequestProto
   )
-  lazy val messagesCompanions: Seq[_root_.scalapb.GeneratedMessageCompanion[_ <: _root_.scalapb.GeneratedMessage]] =
-    Seq[_root_.scalapb.GeneratedMessageCompanion[_ <: _root_.scalapb.GeneratedMessage]](
+  lazy val messagesCompanions
+    : Seq[_root_.scalapb.GeneratedMessageCompanion[? <: _root_.scalapb.GeneratedMessage]] =
+    Seq[_root_.scalapb.GeneratedMessageCompanion[? <: _root_.scalapb.GeneratedMessage]](
       pccs.chronos.messages.targetsoc.v1.target_soc.TargetSoc,
       pccs.chronos.messages.targetsoc.v1.target_soc.GetTargetSocRequest,
       pccs.chronos.messages.targetsoc.v1.target_soc.GetTargetSocResponse,
@@ -18,8 +19,10 @@ object TargetSocProto extends _root_.scalapb.GeneratedFileObject {
       pccs.chronos.messages.targetsoc.v1.target_soc.SetTargetSocResponse
     )
   private lazy val ProtoBytes: _root_.scala.Array[Byte] =
-      scalapb.Encoding.fromBase64(scala.collection.immutable.Seq(
-  """ChB0YXJnZXRfc29jLnByb3RvEiJwY2NzLmNocm9ub3MubWVzc2FnZXMudGFyZ2V0c29jLnYxGhVjaHJvbm9zX3JlcXVlc3Quc
+    scalapb.Encoding.fromBase64(
+      scala.collection.immutable
+        .Seq(
+          """ChB0YXJnZXRfc29jLnByb3RvEiJwY2NzLmNocm9ub3MubWVzc2FnZXMudGFyZ2V0c29jLnYxGhVjaHJvbm9zX3JlcXVlc3Quc
   HJvdG8ihAMKCVRhcmdldFNvYxJcChtiYXR0ZXJ5X2NoYXJnZV90YXJnZXRfbGV2ZWwYASABKAVCHeI/GhIYYmF0dGVyeUNoYXJnZ
   VRhcmdldExldmVsUhhiYXR0ZXJ5Q2hhcmdlVGFyZ2V0TGV2ZWwSqwEKIGNoYXJnZV90YXJnZXRfbGV2ZWxfc2V0dGluZ190eXBlG
   AIgASgOMkAucGNjcy5jaHJvbm9zLm1lc3NhZ2VzLnRhcmdldHNvYy52MS5DaGFyZ2VUYXJnZXRMZXZlbFNldHRpbmdUeXBlQiHiP
@@ -41,17 +44,23 @@ object TargetSocProto extends _root_.scalapb.GeneratedFileObject {
   0VUVElOR19UWVBFX1VOU1BFQ0lGSUVEEAAaMeI/LhIsQ0hBUkdFX1RBUkdFVF9MRVZFTF9TRVRUSU5HX1RZUEVfVU5TUEVDSUZJR
   UQSFQoFREFJTFkQARoK4j8HEgVEQUlMWRIdCglMT05HX1RSSVAQAhoO4j8LEglMT05HX1RSSVASFwoGQ1VTVE9NEAMaC+I/CBIGQ
   1VTVE9NYgZwcm90bzM="""
-      ).mkString)
-  lazy val scalaDescriptor: _root_.scalapb.descriptors.FileDescriptor = {
+        )
+        .mkString
+    )
+  lazy val scalaDescriptor: _root_.scalapb.descriptors.FileDescriptor =
     val scalaProto = com.google.protobuf.descriptor.FileDescriptorProto.parseFrom(ProtoBytes)
-    _root_.scalapb.descriptors.FileDescriptor.buildFrom(scalaProto, dependencies.map(_.scalaDescriptor))
-  }
-  lazy val javaDescriptor: com.google.protobuf.Descriptors.FileDescriptor = {
+    _root_.scalapb.descriptors.FileDescriptor
+      .buildFrom(scalaProto, dependencies.map(_.scalaDescriptor))
+  lazy val javaDescriptor: com.google.protobuf.Descriptors.FileDescriptor =
     val javaProto = com.google.protobuf.DescriptorProtos.FileDescriptorProto.parseFrom(ProtoBytes)
-    com.google.protobuf.Descriptors.FileDescriptor.buildFrom(javaProto, _root_.scala.Array(
-      pccs.chronos.messages.common.v1.chronos_request.ChronosRequestProto.javaDescriptor
-    ))
-  }
-  @deprecated("Use javaDescriptor instead. In a future version this will refer to scalaDescriptor.", "ScalaPB 0.5.47")
+    com.google.protobuf.Descriptors.FileDescriptor.buildFrom(
+      javaProto,
+      _root_.scala.Array(
+        pccs.chronos.messages.common.v1.chronos_request.ChronosRequestProto.javaDescriptor
+      )
+    )
+  @deprecated(
+    "Use javaDescriptor instead. In a future version this will refer to scalaDescriptor.",
+    "ScalaPB 0.5.47"
+  )
   def descriptor: com.google.protobuf.Descriptors.FileDescriptor = javaDescriptor
-}

@@ -2,7 +2,6 @@ package com.malliina.boat.db
 
 import cats.effect.IO
 import cats.implicits.*
-import com.malliina.boat.parsing.FullCoord
 import com.malliina.boat.{BoatConf, BoatUser, DateVal, DeviceId, DeviceName, Language, MUnitSuite, RawSentence, SourceType, TrackId, TrackInput, TrackName}
 import com.malliina.database.{Conf, DoobieDatabase}
 import com.malliina.http.UrlSyntax.url
