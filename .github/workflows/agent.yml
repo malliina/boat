@@ -11,12 +11,11 @@ jobs:
     runs-on: ubuntu-24.04
 
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-java@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
         with:
           distribution: zulu
           java-version: 17
-          cache: sbt
       - uses: sbt/setup-sbt@v1
       - name: Release agent
         env:
