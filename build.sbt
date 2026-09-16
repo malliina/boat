@@ -158,14 +158,12 @@ val backend = Project("boat", file("backend"))
         "config",
         "logstreams-client",
         "util-html",
-//        "database",
+        "database",
         "util-http4s",
         "web-auth"
       ).map { m =>
         "com.malliina" %% m % versions.util
       } ++ Seq(
-        ("com.malliina" %% "database" % versions.util).exclude("org.flywaydb", "flyway-mysql"),
-        "org.flywaydb" % "flyway-mysql" % "12.5.0",
         "ch.qos.logback" % "logback-classic" % versions.logback,
         "com.vividsolutions" % "jts" % versions.jts,
         "org.mariadb.jdbc" % "mariadb-java-client" % versions.mariadb,
