@@ -15,8 +15,8 @@ jobs:
         env:
           MYSQL_DATABASE: testboat
           MYSQL_USER: testboat
-          MYSQL_PASSWORD: ${{ env.db_pass }}
-          MYSQL_ROOT_PASSWORD: ${{ env.db_pass }}
+          MYSQL_PASSWORD: testboat123
+          MYSQL_ROOT_PASSWORD: testboat123
         ports:
           - 3306:3306
         options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
@@ -34,11 +34,11 @@ jobs:
         run: sbt agent/test
       - name: Run backend tests
         env:
-          DB_PASS: ${{ env.db_pass }}
+          DB_PASS: testboat123
         run: sbt boat/test
       - name: Run frontend tests
         run: sbt frontend/test
       - name: Run integration tests
         env:
-          DB_PASS: ${{ env.db_pass }}
+          DB_PASS: testboat123
         run: sbt integration-tests/test
