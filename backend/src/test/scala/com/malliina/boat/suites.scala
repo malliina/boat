@@ -48,7 +48,6 @@ trait MUnitDatabaseSuite extends DoobieSQL:
       conf = testConf
         .parse[Password]("boat.db.pass")
         .map: pass =>
-          println(s"Using test pass '${pass.pass}'.")
           testDatabaseConf(pass)
 
     override def afterAll(): Unit = ()

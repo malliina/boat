@@ -3,7 +3,7 @@ name: Test
 on: push
 
 env:
-  db_pass: testboat123
+  db_pass: changeme
 
 jobs:
   build:
