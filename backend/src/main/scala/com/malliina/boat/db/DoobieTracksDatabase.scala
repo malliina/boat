@@ -5,14 +5,14 @@ import cats.effect.Async
 import cats.syntax.all.{catsSyntaxApplicativeId, catsSyntaxList}
 import com.malliina.boat.*
 import com.malliina.boat.InviteState.accepted
+import com.malliina.boat.db.DoobieTracksDatabase.log
 import com.malliina.boat.http.{BoatQuery, LimitLike, Limits, Near, SortOrder, TrackQuery, TracksQuery}
 import com.malliina.database.DoobieDatabase
 import com.malliina.measure.{DistanceM, SpeedM, Temperature}
 import com.malliina.util.AppLogger
 import com.malliina.values.Username
-import DoobieTracksDatabase.log
 import doobie.syntax.all.toSqlInterpolator
-import doobie.*
+import doobie.{ConnectionIO, Fragment, Fragments}
 
 import scala.concurrent.duration.{DurationInt, FiniteDuration}
 

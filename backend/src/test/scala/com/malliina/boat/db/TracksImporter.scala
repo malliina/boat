@@ -21,7 +21,10 @@ class TracksImporter extends MUnitSuite:
     "boat",
     pass"changeme",
     BoatConf.mariaDbDriver,
-    maxPoolSize = 2,
+    2,
+    Conf.DefaultMaxLifetime,
+    Conf.DefaultKeepaliveTime,
+    Conf.DefaultIdleTimeout,
     autoMigrate = true,
     schemaTable = "flyway_schema_history2"
   )

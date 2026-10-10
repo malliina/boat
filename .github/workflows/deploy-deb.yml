@@ -11,7 +11,7 @@ env:
 jobs:
   deploy:
     name: Deploy deb
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     steps:
       - uses: actions/checkout@v7
       - name: Install lintian
@@ -45,5 +45,5 @@ jobs:
           sbt "mode prod;Deb/packageBin"
       - name: Deploy
         run: |
-          scp target/out/jvm/scala-3.9.0/boat/boat.deb server:/home/mle/boat.deb
+          scp target/out/jvm/scala-3.10.0/boat/boat.deb server:/home/mle/boat.deb
           ssh server 'sudo dpkg --force-confold -i /home/mle/boat.deb'

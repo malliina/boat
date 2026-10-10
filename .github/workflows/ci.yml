@@ -8,10 +8,10 @@ env:
 jobs:
   build:
     name: Build
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     services:
       mysql:
-        image: mariadb:10.11.6
+        image: mariadb:10.11.18
         env:
           MYSQL_DATABASE: testboat
           MYSQL_USER: testboat

@@ -25,7 +25,10 @@ class DoobieTests extends MUnitSuite with Mappings:
     "changeme",
     pass"changeme",
     BoatConf.mariaDbDriver,
-    maxPoolSize = 5,
+    5,
+    Conf.DefaultMaxLifetime,
+    Conf.DefaultKeepaliveTime,
+    Conf.DefaultIdleTimeout,
     autoMigrate = true,
     schemaTable = "flyway_schema_history2"
   )

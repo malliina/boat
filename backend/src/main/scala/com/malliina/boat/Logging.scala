@@ -7,6 +7,8 @@ import com.malliina.http.HttpClient
 import com.malliina.logback.LogbackUtils
 import com.malliina.logstreams.client.LogstreamsUtils
 
+import scala.concurrent.duration.DurationInt
+
 object Logging:
   private val defaultLevel = if BuildInfo.mode == "test" then Level.OFF else Level.INFO
   private val userAgent = s"Boat-Tracker/${BuildInfo.version} (${BuildInfo.gitHash.take(7)})"
@@ -17,4 +19,4 @@ object Logging:
   def init() = LogbackUtils.init(rootLevel = defaultLevel, levelsByLogger = levels)
 
   def install[F[_]: Async](d: Dispatcher[F], http: HttpClient[F]) =
-    LogstreamsUtils.installIfEnabled("boat", userAgent, d, http)
+    LogstreamsUtils.installIfEnabled("boat", userAgent, 2.seconds, d, http)

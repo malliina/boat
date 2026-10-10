@@ -57,7 +57,10 @@ trait MUnitDatabaseSuite extends DoobieSQL:
       "testboat",
       password,
       BoatConf.mariaDbDriver,
-      maxPoolSize = 2,
+      2,
+      Conf.DefaultMaxLifetime,
+      Conf.DefaultKeepaliveTime,
+      Conf.DefaultIdleTimeout,
       autoMigrate = true,
       schemaTable = "flyway_schema_history2"
     )

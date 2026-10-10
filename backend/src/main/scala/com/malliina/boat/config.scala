@@ -159,22 +159,21 @@ object BoatConf:
       )
     )
 
-  private def prodDbConf(password: Password, maxPoolSize: Int) = Conf(
-    url"jdbc:mariadb://localhost:3306/boat",
-    "boat",
-    password,
-    mariaDbDriver,
-    maxPoolSize = maxPoolSize,
-    autoMigrate = true,
-    schemaTable = "flyway_schema_history2"
-  )
+  private def prodDbConf(password: Password, maxPoolSize: Int) =
+    databaseConf(password, maxPoolSize)
 
-  private def devDatabaseConf(password: Password) = Conf(
+  private def devDatabaseConf(password: Password) =
+    databaseConf(password, 2)
+
+  private def databaseConf(password: Password, maxPoolSize: Int) = Conf(
     url"jdbc:mariadb://localhost:3306/boat",
     "boat",
     password,
     mariaDbDriver,
-    maxPoolSize = 2,
+    maxPoolSize,
+    Conf.DefaultMaxLifetime,
+    Conf.DefaultKeepaliveTime,
+    Conf.DefaultIdleTimeout,
     autoMigrate = true,
     schemaTable = "flyway_schema_history2"
   )
