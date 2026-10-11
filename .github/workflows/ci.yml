@@ -3,7 +3,7 @@ name: Test
 on: push
 
 env:
-  db_pass: changeme
+  db_pass: testboat123
 
 jobs:
   build:
@@ -29,16 +29,16 @@ jobs:
           java-version: 17
       - uses: sbt/setup-sbt@v1
       - name: Run utils tests
-        run: sbt utils/test
+        run: sbt "utils/test;shutdown"
       - name: Run agent tests
-        run: sbt agent/test
+        run: sbt "agent/test;shutdown"
       - name: Run backend tests
         env:
           DB_PASS: ${{ env.db_pass }}
-        run: sbt boat/test
+        run: sbt "boat/test;shutdown"
       - name: Run frontend tests
-        run: sbt frontend/test
+        run: sbt "frontend/test;shutdown"
       - name: Run integration tests
         env:
           DB_PASS: ${{ env.db_pass }}
-        run: sbt integration-tests/test
+        run: sbt "integration-tests/test;shutdown"
